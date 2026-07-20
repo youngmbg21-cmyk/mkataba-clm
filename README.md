@@ -45,7 +45,8 @@ The demo data is organised into six value-stream folders, each with genuine cont
 |---|---|
 | **Workspace & auth** | Single-organization workspace; in server mode: real server-side sessions (httpOnly cookies) and scrypt password hashes; roles: Admin / Legal / Viewer (viewers are read-only, enforced on the server too) |
 | **Central storage** | In server mode the whole team shares one SQLite-backed workspace across devices; in static mode data lives in the browser with JSON backup export/restore |
-| **Contract workspace** | Live editable contract documents from three vetted Kenyan templates (NDA, commercial lease, freight forwarding), with status flow Draft → Under Review → Signed/Declined |
+| **Contract workspace** | Live editable contract documents from the built-in Kenyan templates, with status flow Draft → Under Review → Signed/Declined |
+| **Upload received contracts** | "Their paper" too: upload a contract another company sent you (PDF, Word, image or text), file it, run an AI review checklist, comment, and sign — the seal is a SHA-256 of the actual file, so it proves exactly which version you signed |
 | **E-signature & audit trail** | SHA-256 document sealing on signature, per-contract audit trail of every edit/comment/scan/share, seal verification, downloadable JSON evidence pack |
 | **Counterparty sharing** | Generate a short share link — the counterparty opens a no-login review portal and approves & signs, requests changes, or declines. Server mode: their response lands on the contract automatically (each link accepts one response). Static mode: the response travels back as a code you import |
 | **PDF export** | Clean print-ready export of any contract with its seal and audit trail |
