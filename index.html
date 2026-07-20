@@ -85,12 +85,25 @@
   #party-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #party-scrim.open{opacity:1;pointer-events:auto;}
 
+  .modal-in{animation:viewIn .2s cubic-bezier(.22,.61,.36,1);}
+
+  /* PDF export — print only the prepared document */
+  #print-root{display:none;}
+  @media print{
+    body>*{display:none!important;}
+    #print-root{display:block!important;}
+    body{background:#fff;}
+  }
+
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 </style>
 </head>
 <body class="font-sans text-brand-900 antialiased">
 
-<div class="flex min-h-screen">
+<div id="auth-root"></div>
+<div id="share-root"></div>
+
+<div id="app-shell" class="flex min-h-screen hidden">
 
   <!-- ================= SIDEBAR ================= -->
   <aside class="w-[248px] shrink-0 bg-brand-900 text-brand-100/80 flex flex-col fixed inset-y-0 left-0 z-30">
@@ -117,6 +130,10 @@
         <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
         <span data-ic="file"></span> Contract Workspace
       </button>
+      <button data-view="team" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="users"></span> Team &amp; Settings
+      </button>
 
       <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">Folders</div>
       <div id="side-folders" class="space-y-0.5"></div>
@@ -131,15 +148,7 @@
       </button>
     </div>
 
-    <div class="px-4 py-4 border-t border-white/10">
-      <div class="flex items-center gap-3">
-        <div class="h-8 w-8 rounded-full bg-brand-700 grid place-items-center text-xs font-semibold text-brand-100">YM</div>
-        <div class="text-xs leading-tight">
-          <div class="text-white font-medium">Highland Corporate Ltd</div>
-          <div class="text-brand-300">Nairobi · Enterprise</div>
-        </div>
-      </div>
-    </div>
+    <div class="px-4 py-4 border-t border-white/10" id="side-user"></div>
   </aside>
 
   <!-- ================= MAIN ================= -->
@@ -172,7 +181,9 @@
   </footer>
 </section>
 
+<div id="modal-root"></div>
 <div id="toast-root" class="fixed bottom-6 right-6 z-[60] space-y-2"></div>
+<div id="print-root"></div>
 
 <script>
 /* ============================================================ ICONS */
@@ -209,6 +220,14 @@ const ICONS = {
   target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
   network:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/>',
+  share:'<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+  copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  printer:'<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
 };
 const icon = (n,cls='w-4 h-4',sw=2)=>`<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
 document.getElementById('brand-mark').innerHTML = icon('scroll','w-5 h-5',2.2);
@@ -216,7 +235,8 @@ document.querySelectorAll('[data-ic]').forEach(el=>el.outerHTML=icon(el.getAttri
 document.querySelectorAll('[data-ic-big]').forEach(el=>el.innerHTML=icon(el.getAttribute('data-ic-big'),'w-[18px] h-[18px]'));
 
 /* ============================================================ STATE */
-const FIRST_PARTY = 'Highland Corporate Ltd';
+let FIRST_PARTY = 'Highland Corporate Ltd'; // replaced by the workspace org name at login
+let PORTAL_MODE = false;                     // true when rendering the counterparty share portal
 
 const FOLDERS = {
   nda:    { id:'nda',    name:'NDAs & Confidentiality', ic:'shield',   desc:'Mutual NDAs, DPAs and data confidentiality instruments.' },
@@ -263,7 +283,9 @@ function mk(name,cp,value,status,tmpl,date,expiry,valueType){
     folder:TEMPLATES[tmpl].folder, valueType:valueType||TEMPLATES[tmpl].valueType,
     lastAction:date, expiry:expiry||null, hash:null, signedAt:null,
     signatory:'A. Otieno, Director', compliance:{iprs:false,pki:false},
-    comments:seedComments(), fields:{}, scan:null };
+    comments:seedComments(), fields:{}, scan:null,
+    audit:[{at:new Date().toISOString(),user:'System',action:'Created',detail:'Seeded as sample data'}],
+    signatures:[] };
   if(status==='Signed'){ c.hash='PRE-SEEDED'; c.compliance={iprs:true,pki:true}; }
   return c;
 }
@@ -297,6 +319,407 @@ async function sha256(str){
   }catch(e){ let h=0; for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;} return h.toString(16).padStart(8,'0').repeat(8).slice(0,64); }
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
+
+/* ============================================================
+   PLATFORM CORE — persistence · auth · audit · sharing · export
+   MVP runs fully client-side (localStorage) so it deploys as a
+   static page. Every load/store function below is the seam
+   where a hosted backend API slots in later (swap for fetch()).
+   ============================================================ */
+const LS = { org:'mkataba.v1.org', users:'mkataba.v1.users', session:'mkataba.v1.session', data:'mkataba.v1.data' };
+const lsGet = k => { try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } };
+const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+
+const nowISO = () => new Date().toISOString();
+const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+const todayStr = () => new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+const fval = id => (document.getElementById(id)?.value||'').trim();
+
+/* ---------- persistence ---------- */
+function persist(){ lsSet(LS.data, { uid, contracts: state.contracts,
+  view: state.view, activeId: state.activeId, folderId: state.folderId }); }
+function hydrate(){
+  const d = lsGet(LS.data);
+  if(d && Array.isArray(d.contracts)){
+    uid = d.uid || uid;
+    state.contracts = d.contracts.map(migrateContract);
+    state.view = d.view || 'dashboard';
+    state.activeId = d.activeId || null;
+    state.folderId = d.folderId || null;
+  }
+  else state.contracts = state.contracts.map(migrateContract);
+}
+function migrateContract(c){
+  return Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
+    compliance:{iprs:false,pki:false}, hash:null, signedAt:null, expiry:null }, c);
+}
+
+/* ---------- workspace / auth ---------- */
+const getOrg = () => lsGet(LS.org);
+const getUsers = () => lsGet(LS.users) || [];
+const saveUsers = u => lsSet(LS.users, u);
+const getSession = () => lsGet(LS.session);
+const userById = id => getUsers().find(u=>u.id===id);
+const currentUser = () => getSession() ? userById(getSession().userId) : null;
+const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; };
+const isAdmin = () => currentUser()?.role==='admin';
+const ROLE_LABEL = { admin:'Admin', legal:'Legal', viewer:'Viewer' };
+
+const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
+
+function renderAuth(mode){
+  document.getElementById('app-shell').classList.add('hidden');
+  const root=document.getElementById('auth-root');
+  const shell = inner => `
+  <div class="min-h-screen grid place-items-center bg-brand-900 px-4 py-10">
+    <div class="w-full max-w-md">
+      <div class="flex items-center gap-3 justify-center mb-6">
+        <div class="h-11 w-11 rounded-xl bg-gold-500 grid place-items-center text-brand-900">${icon('scroll','w-6 h-6',2.2)}</div>
+        <div class="leading-tight">
+          <div class="font-display font-700 text-white text-2xl tracking-tight">Mkataba</div>
+          <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-brand-100 shadow-2xl p-6">${inner}</div>
+      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">MVP build — your workspace, users and contracts are stored in this browser.<br/>A hosted backend replaces this layer in production.</p>
+    </div>
+  </div>`;
+  const input=(id,label,type='text',ph='')=>`
+    <label class="block mb-3"><span class="text-xs font-medium text-brand-800/70">${label}</span>
+    <input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`;
+  if(mode==='setup'){
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Create your workspace</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Set up your organization and the first admin account.</p>
+      ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
+      ${input('su-name','Your full name','text','e.g. Amina Otieno')}
+      ${input('su-email','Work email','email','you@company.co.ke')}
+      ${input('su-pass','Password','password','Min 8 characters')}
+      <label class="flex items-center gap-2 text-xs text-brand-800/70 mb-4"><input id="su-sample" type="checkbox" checked class="h-4 w-4 rounded border-brand-300 text-brand-600"/> Load sample Kenyan portfolio (12 demo contracts)</label>
+      <button id="su-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace</button>`);
+    document.getElementById('su-go').addEventListener('click',doSetup);
+    root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
+  } else {
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg().name}</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Use your workspace credentials.</p>
+      ${input('li-email','Email','email')}
+      ${input('li-pass','Password','password')}
+      <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
+      <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
+      <button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>`);
+    document.getElementById('li-go').addEventListener('click',doLogin);
+    root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
+    document.getElementById('li-reset').addEventListener('click',()=>{
+      if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
+        Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
+      }
+    });
+  }
+}
+async function doSetup(){
+  const name=fval('su-org'), uname=fval('su-name'), email=fval('su-email').toLowerCase();
+  const pass=document.getElementById('su-pass').value;
+  if(!name||!uname||!email){ toast('Fill in organization, name and email','err'); return; }
+  if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+  const salt=newSalt();
+  const admin={ id:'u1', name:uname, email, role:'admin', salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
+  lsSet(LS.org,{ name, createdAt:nowISO() });
+  saveUsers([admin]);
+  lsSet(LS.session,{ userId:admin.id, at:nowISO() });
+  if(!document.getElementById('su-sample').checked) state.contracts=[];
+  persist();
+  startApp();
+  toast(`Workspace "${name}" created — karibu!`);
+}
+async function doLogin(){
+  const email=fval('li-email').toLowerCase(), pass=document.getElementById('li-pass').value;
+  const u=getUsers().find(x=>x.email===email);
+  const err=document.getElementById('li-err');
+  if(!u || (await hashPassword(pass,u.salt))!==u.hash){ err.textContent='Email or password is incorrect.'; err.classList.remove('hidden'); return; }
+  lsSet(LS.session,{ userId:u.id, at:nowISO() });
+  startApp();
+  toast(`Karibu tena, ${u.name.split(' ')[0]}`);
+}
+function logout(){ localStorage.removeItem(LS.session); location.reload(); }
+
+function startApp(){
+  FIRST_PARTY = getOrg().name;
+  document.getElementById('auth-root').innerHTML='';
+  document.getElementById('app-shell').classList.remove('hidden');
+  renderSideUser(); renderSideFolders();
+  // resume where the user left off
+  setView(['dashboard','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
+}
+function renderSideUser(){
+  const u=currentUser(); if(!u) return;
+  const initials=u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('side-user').innerHTML=`
+    <div class="flex items-center gap-3">
+      <div class="h-8 w-8 rounded-full bg-brand-700 grid place-items-center text-xs font-semibold text-brand-100 shrink-0">${initials}</div>
+      <div class="text-xs leading-tight min-w-0 flex-1">
+        <div class="text-white font-medium truncate">${u.name}</div>
+        <div class="text-brand-300 truncate">${getOrg().name} · ${ROLE_LABEL[u.role]}</div>
+      </div>
+      <button id="side-logout" title="Sign out" class="h-7 w-7 grid place-items-center rounded-lg text-brand-300 hover:text-white hover:bg-white/10 transition shrink-0">${icon('logout','w-3.5 h-3.5')}</button>
+    </div>`;
+  document.getElementById('side-logout').addEventListener('click',logout);
+}
+
+/* ---------- audit trail ---------- */
+function logAudit(c, action, detail, actor){
+  c.audit = c.audit || [];
+  const user = actor || currentUser()?.name || 'System';
+  const last = c.audit[c.audit.length-1];
+  // coalesce rapid repeats (e.g. keystrokes on the same field) into one entry
+  if(last && last.action===action && last.detail===detail && last.user===user
+     && (Date.now()-new Date(last.at).getTime())<60000){ last.at=nowISO(); return; }
+  c.audit.push({ at:nowISO(), user, action, detail });
+}
+function renderAuditSection(c){
+  const host=document.getElementById('audit-section'); if(!host) return;
+  const items=(c.audit||[]).slice().reverse();
+  host.innerHTML=`
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-brand-500">${icon('history')}</span>
+        <h3 class="text-sm font-display font-600 text-brand-900">Audit trail</h3>
+        <span class="ml-auto text-[10px] font-mono text-brand-800/40">${items.length} events</span>
+      </div>
+      <div class="space-y-2 max-h-44 overflow-y-auto scroll-thin pr-1">
+        ${items.length?items.map(e=>`
+          <div class="flex gap-2 text-[11px] leading-relaxed">
+            <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-300 shrink-0"></span>
+            <span class="min-w-0"><span class="font-medium text-brand-900">${e.action}</span>
+              <span class="text-brand-800/70"> — ${e.detail}</span>
+              <span class="block text-[10px] text-brand-800/40 font-mono">${e.user} · ${fmtDT(e.at)}</span></span>
+          </div>`).join(''):`<div class="text-[11px] text-brand-800/45">No events recorded yet.</div>`}
+      </div>
+    </div>`;
+}
+
+/* ---------- modal helper ---------- */
+function openModal(html){
+  const root=document.getElementById('modal-root');
+  root.innerHTML=`
+  <div class="fixed inset-0 z-[70] grid place-items-center px-4">
+    <div id="modal-scrim" class="absolute inset-0 bg-brand-900/40 backdrop-blur-[2px]"></div>
+    <div class="modal-in relative bg-white rounded-2xl border border-brand-100 shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto scroll-thin">${html}</div>
+  </div>`;
+  document.getElementById('modal-scrim').addEventListener('click',closeModal);
+  return root;
+}
+function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
+
+/* ---------- document sealing ---------- */
+const canonicalDoc = c => JSON.stringify({ id:c.id, template:c.template, name:c.name,
+  firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields });
+
+async function verifySeal(c){
+  if(!c.hash){ toast('Document is not sealed yet','err'); return; }
+  if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before hashing was enabled','err'); return; }
+  const h=await sha256(canonicalDoc(c));
+  if(h===c.hash) toast('Seal valid — document matches its SHA-256 hash');
+  else toast('Seal MISMATCH — document changed after signing','err');
+}
+function downloadFile(name, content, type='application/json'){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+function downloadEvidence(c){
+  downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
+    generatedAt:nowISO(), platform:'Mkataba CLM (MVP)', org:FIRST_PARTY,
+    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty,
+      value:c.value, valueType:c.valueType, fields:c.fields, status:c.status },
+    sha256DocumentSeal:c.hash, signedAt:c.signedAt, signatures:c.signatures||[], auditTrail:c.audit||[],
+  },null,2));
+  logAudit(c,'Exported','Evidence pack downloaded'); persist(); renderAuditSection(c);
+  toast('Evidence pack downloaded');
+}
+
+/* ---------- counterparty share links ---------- */
+const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
+
+async function openShareModal(c){
+  const docHash=await sha256(canonicalDoc(c));
+  const payload=b64e({ v:1, kind:'mkataba-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
+    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields } });
+  const link=location.href.split('#')[0]+'#share='+payload;
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('share')}</span>
+        <h2 class="font-display font-700 text-brand-900">Share with counterparty</h2></div>
+      <p class="text-xs text-brand-800/55 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. Their response comes back as a code you import below the document.</p>
+      <textarea id="share-link" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none break-all">${link}</textarea>
+      <div class="mt-3 flex items-center gap-2 justify-end">
+        <button id="share-close" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Close</button>
+        <button id="share-copy" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('copy','w-3.5 h-3.5')} Copy link</button>
+      </div>
+    </div>`);
+  document.getElementById('share-close').addEventListener('click',closeModal);
+  document.getElementById('share-copy').addEventListener('click',async()=>{
+    const ta=document.getElementById('share-link'); ta.select();
+    try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
+    toast('Share link copied to clipboard');
+  });
+  logAudit(c,'Shared',`Review link generated for ${c.counterparty||'counterparty'}`);
+  persist(); renderAuditSection(c);
+}
+
+function openImportModal(c){
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('upload')}</span>
+        <h2 class="font-display font-700 text-brand-900">Import counterparty response</h2></div>
+      <p class="text-xs text-brand-800/55 mb-3">Paste the response code the counterparty sent back after opening your share link.</p>
+      <textarea id="imp-code" rows="5" placeholder="Paste response code…" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none focus:border-brand-400"></textarea>
+      <div class="mt-3 flex items-center gap-2 justify-end">
+        <button id="imp-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        <button id="imp-go" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">Import</button>
+      </div>
+    </div>`);
+  document.getElementById('imp-cancel').addEventListener('click',closeModal);
+  document.getElementById('imp-go').addEventListener('click',async()=>{
+    const ok=await applyResponse(c, b64d(fval('imp-code')));
+    if(ok) closeModal();
+  });
+}
+async function applyResponse(c, r){
+  if(!r || r.kind!=='mkataba-response'){ toast('That code is not a valid Mkataba response','err'); return false; }
+  if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
+  const currentHash=await sha256(canonicalDoc(c));
+  if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
+    toast('Note: the document changed after this share link was created','err');
+  const who=r.name+(r.title?', '+r.title:'');
+  if(r.action==='sign'){
+    c.signatures=c.signatures||[];
+    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at, docHash:r.docHash });
+    c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
+    logAudit(c,'Countersigned',`${who} signed via share link`);
+    toast(`${r.name} has signed — countersignature recorded`);
+  } else if(r.action==='changes'){
+    c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
+    logAudit(c,'Changes requested',`${who} requested changes via share link`);
+    toast(`${r.name} requested changes — see comments`);
+  } else if(r.action==='decline'){
+    c.status='Declined';
+    c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, ts:fmtDT(r.at) });
+    logAudit(c,'Declined',`${who} declined via share link`);
+    toast(`${r.name} declined the agreement`,'err');
+  } else { toast('Unknown response type','err'); return false; }
+  c.lastAction=todayStr(); persist();
+  renderWorkspace();
+  return true;
+}
+
+/* ---------- counterparty portal (opened from a share link) ---------- */
+function renderSharePortal(encoded){
+  PORTAL_MODE=true;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  const p=b64d(encoded);
+  if(!p || p.kind!=='mkataba-share' || !p.contract || !TEMPLATES[p.contract.template]){
+    root.innerHTML=`<div class="min-h-screen grid place-items-center bg-brand-900 px-4">
+      <div class="bg-white rounded-2xl p-8 text-center max-w-sm">
+        <div class="text-rose-500 mb-3 flex justify-center">${icon('ban','w-8 h-8')}</div>
+        <h1 class="font-display font-700 text-brand-900">Invalid share link</h1>
+        <p class="text-sm text-brand-800/55 mt-1">This link is malformed or truncated. Ask the sender to generate a fresh one.</p>
+      </div></div>`;
+    return;
+  }
+  FIRST_PARTY=p.org;
+  const c=migrateContract({ ...p.contract, status:'Under Review', folder:TEMPLATES[p.contract.template].folder });
+  const input=(id,label,ph)=>`
+    <label class="block mb-2.5"><span class="text-[11px] font-medium text-brand-800/70">${label}</span>
+    <input id="${id}" type="text" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`;
+  root.innerHTML=`
+  <div class="min-h-screen bg-canvas">
+    <header class="bg-brand-900 text-white px-6 py-4">
+      <div class="max-w-[1100px] mx-auto flex items-center gap-3">
+        <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0">${icon('scroll','w-5 h-5',2.2)}</div>
+        <div class="leading-tight min-w-0">
+          <div class="font-display font-600">${p.org} shared a contract for your review</div>
+          <div class="text-[11px] text-brand-300 font-mono truncate">${p.contract.id} · shared by ${p.sharedBy} · ${fmtDT(p.at)} · via Mkataba</div>
+        </div>
+      </div>
+    </header>
+    <div class="max-w-[1100px] mx-auto grid lg:grid-cols-[1fr_360px] gap-6 px-6 py-8 items-start">
+      <article class="bg-white rounded-2xl border border-brand-100 shadow-sm p-7 lg:p-9">${docBody(c)}</article>
+      <aside class="bg-white rounded-2xl border border-brand-100 p-5 lg:sticky lg:top-6">
+        <h2 class="font-display font-600 text-brand-900 mb-1">Respond to ${p.org}</h2>
+        <p class="text-[11px] text-brand-800/55 mb-4">Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.</p>
+        ${input('pt-name','Full name *','e.g. Grace Njeri')}
+        ${input('pt-title','Title / role','e.g. Legal Counsel')}
+        ${input('pt-email','Work email','you@company.co.ke')}
+        <label class="block mb-3"><span class="text-[11px] font-medium text-brand-800/70">Comment</span>
+        <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"></textarea></label>
+        <div class="space-y-2">
+          <button id="pt-sign" class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="pt-changes" class="rounded-xl border border-brand-200 text-brand-700 py-2.5 text-xs font-medium hover:bg-brand-50 transition">Request changes</button>
+            <button id="pt-decline" class="rounded-xl border border-rose-200 text-rose-600 py-2.5 text-xs font-medium hover:bg-rose-50 transition">Decline</button>
+          </div>
+        </div>
+        <div id="portal-result" class="mt-4"></div>
+      </aside>
+    </div>
+  </div>`;
+  document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
+  document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
+  document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
+}
+function portalRespond(p, action){
+  const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
+  if(!name){ toast('Enter your full name','err'); return; }
+  if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
+  if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  const code=b64e({ v:1, kind:'mkataba-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() });
+  const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
+  document.getElementById('portal-result').innerHTML=`
+    <div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5">
+      <div class="flex items-center gap-1.5 text-brand-700 text-xs font-semibold mb-1.5">${icon('check2','w-3.5 h-3.5')} Your ${label} is ready</div>
+      <p class="text-[11px] text-brand-800/70 mb-2">Copy this response code and send it back to ${p.sharedBy} at ${p.org} (email or WhatsApp). They import it in Mkataba to record it on the contract.</p>
+      <textarea id="pt-code" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-white p-2.5 text-[10px] font-mono outline-none break-all">${code}</textarea>
+      <button id="pt-copy" class="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2 text-xs font-medium hover:bg-brand-800 transition">${icon('copy','w-3 h-3')} Copy response code</button>
+    </div>`;
+  document.getElementById('pt-copy').addEventListener('click',async()=>{
+    const ta=document.getElementById('pt-code'); ta.select();
+    try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
+    toast('Response code copied');
+  });
+}
+
+/* ---------- PDF export (print pipeline) ---------- */
+function exportPDF(c){
+  const holder=document.createElement('div');
+  holder.innerHTML=docBody(c);
+  holder.querySelectorAll('input').forEach(inp=>{
+    const span=document.createElement('span');
+    span.style.cssText="font-family:'JetBrains Mono',monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
+    span.textContent=inp.value||inp.getAttribute('value')||'________';
+    inp.replaceWith(span);
+  });
+  const audit=(c.audit||[]).map(e=>`
+    <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
+    <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
+    <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
+  document.getElementById('print-root').innerHTML=`
+    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0B7A5F;padding-bottom:10px;margin-bottom:24px;">
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">Mkataba <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
+      </div>
+      ${holder.innerHTML}
+      ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
+      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by Mkataba CLM · ${FIRST_PARTY}</div>
+    </div>`;
+  logAudit(c,'Exported','PDF export generated'); persist(); renderAuditSection(c);
+  window.print();
+}
 
 function metrics(){
   const cs=state.contracts, active=cs.filter(c=>c.status!=='Declined');
@@ -394,7 +817,7 @@ function renderDashboard(){
       <div class="px-8 py-4 flex items-center justify-between gap-4">
         <div>
           <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Dashboard</h1>
-          <p class="text-xs text-brand-800/50">Jambo, Highland Corporate — here's what needs you today.</p>
+          <p class="text-xs text-brand-800/50">Jambo, ${(currentUser()?.name||FIRST_PARTY).split(' ')[0]} — here's what needs ${FIRST_PARTY} today.</p>
         </div>
         <button id="topbar-ai" class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
           ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI — search or research contracts…</span>
@@ -540,7 +963,7 @@ function renderFolderListOnly(){
    ============================================================ */
 function docBody(c){
   const t=TEMPLATES[c.template];
-  const locked=c.status==='Signed';
+  const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
   const dis=locked?'disabled':'';
   const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
   const fText=(id,val,ph='')=>`<input ${dis} type="text" value="${val||''}" placeholder="${ph}" data-field="${id}" class="field"/>`;
@@ -598,7 +1021,8 @@ function signatureBlock(c){
         <div class="h-14 w-14 shrink-0 grid place-items-center rounded-full bg-brand-900 text-gold-400 ring-4 ring-gold-500/15">${icon('seal','w-7 h-7')}</div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2"><span class="font-display font-700 text-brand-900">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
-          <div class="mt-1 text-xs text-brand-800/60">Signed by <strong>${c.signatory}</strong> for ${FIRST_PARTY}, countersigned by ${c.counterparty||'the Counterparty'}.</div>
+          <div class="mt-1 text-xs text-brand-800/60">${(()=>{ const cp=(c.signatures||[]).find(s=>s.party==='counterparty');
+            return `Signed by <strong>${c.signatory}</strong> for ${FIRST_PARTY}${cp?`, countersigned by <strong>${cp.name}${cp.title?', '+cp.title:''}</strong> for ${c.counterparty||'the Counterparty'} (${fmtDT(cp.at)})`:` — counterparty signature pending; share the document to collect it`}.`; })()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
             <div class="rounded-lg bg-white border border-brand-100 p-2.5">
               <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon('finger','w-3 h-3')} IPRS Identity</div>
@@ -656,17 +1080,24 @@ function renderWorkspace(){
             <div class="text-[11px] font-mono text-brand-800/45">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
           </div>
         </div>
-        <button id="ws-ai" class="hidden sm:flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition shrink-0">
-          ${icon('sparkle','w-3.5 h-3.5 text-gold-500')} Ask AI about this contract
-        </button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${canEdit()?`
+          <button id="ws-share" title="Share with counterparty" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('share','w-3.5 h-3.5')}<span class="hidden xl:inline">Share</span></button>
+          <button id="ws-import" title="Import counterparty response" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('upload','w-3.5 h-3.5')}<span class="hidden xl:inline">Import response</span></button>`:''}
+          <button id="ws-pdf" title="Export as PDF" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('printer','w-3.5 h-3.5')}<span class="hidden xl:inline">PDF</span></button>
+          <button id="ws-ai" class="hidden sm:flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">
+            ${icon('sparkle','w-3.5 h-3.5 text-gold-500')}<span class="hidden xl:inline">Ask AI</span>
+          </button>
+        </div>
       </div>
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-0 lg:h-[calc(100vh-61px)]">
       <section class="overflow-y-auto scroll-thin border-r border-brand-100/70 bg-canvas">
         <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
-          ${!locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`
-                  :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked. Fields are read-only.</span></div>`}
+          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked. Fields are read-only.</span></div>`
+            :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
+            :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
           <article class="bg-white rounded-2xl border border-brand-100 shadow-sm shadow-brand-900/5 p-7 lg:p-9" id="doc-canvas">${docBody(c)}</article>
           <div class="h-8"></div>
         </div>
@@ -684,6 +1115,8 @@ function renderWorkspace(){
 
         <div id="scan-section" class="border-b border-brand-100/70"></div>
 
+        <div id="audit-section" class="border-b border-brand-100/70"></div>
+
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
           <div class="flex items-center gap-2 mb-3">
             <span class="text-brand-500">${icon('msg')}</span>
@@ -692,10 +1125,7 @@ function renderWorkspace(){
           </div>
           <div id="feed" class="space-y-3 overflow-y-auto scroll-thin flex-1 pr-1"></div>
           <div class="mt-3 pt-3 border-t border-brand-100/60">
-            <div class="flex items-center gap-1.5 mb-2">
-              <button id="as-internal" class="as-btn active text-[11px] px-2 py-1 rounded-md border font-medium transition">Internal team</button>
-              <button id="as-external" class="as-btn text-[11px] px-2 py-1 rounded-md border font-medium transition">Counterparty</button>
-            </div>
+            <div class="text-[10px] text-brand-800/40 mb-2">Commenting as <span class="font-medium text-brand-700">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
             <div class="flex items-center gap-2">
               <input id="comment-input" type="text" placeholder="Add a comment on the terms…" class="flex-1 rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
               <button id="comment-send" class="h-9 w-9 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-white hover:bg-brand-800 transition">${icon('send')}</button>
@@ -708,15 +1138,15 @@ function renderWorkspace(){
             <span class="text-gold-500">${icon('shield')}</span>
             <h3 class="text-sm font-display font-600 text-brand-900">Kenyan Legal Verification</h3>
           </div>
-          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition mb-2 ${locked?'opacity-70 pointer-events-none':''}">
-            <input type="checkbox" data-comp="iprs" ${c.compliance.iprs?'checked':''} ${locked?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
+          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition mb-2 ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
+            <input type="checkbox" data-comp="iprs" ${c.compliance.iprs?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
             <span class="text-xs">
               <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('finger','w-3.5 h-3.5')} Verify Identity via National IPRS Database</span>
               <span class="text-brand-800/50">Integrated Population Registration System check on signatory.</span>
             </span>
           </label>
-          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${locked?'opacity-70 pointer-events-none':''}">
-            <input type="checkbox" data-comp="pki" ${c.compliance.pki?'checked':''} ${locked?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
+          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
+            <input type="checkbox" data-comp="pki" ${c.compliance.pki?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
             <span class="text-xs">
               <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('key','w-3.5 h-3.5')} Attach CAK-Approved PKI Token</span>
               <span class="text-brand-800/50">Advanced e-signature under the Kenya Information &amp; Communications Act.</span>
@@ -730,9 +1160,12 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderAuditSection(c);
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
+  document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
+  document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   setActiveNav('workspace');
 }
 
@@ -751,10 +1184,21 @@ function wireDocumentSync(c){
         c.counterparty=inp.value;
         document.getElementById('meta-cp').textContent=c.counterparty||'—';
       }
-      if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){ c.status='Under Review'; updateStatusUI(c); }
+      if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
+        c.status='Under Review'; updateStatusUI(c);
+        logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
+      }
+      c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
+      persist(); renderAuditSection(c);
     });
   });
-  canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{ c.fields[inp.getAttribute('data-field')]=inp.value; }));
+  canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{
+    c.fields[inp.getAttribute('data-field')]=inp.value;
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
+    persist(); renderAuditSection(c);
+  }));
 }
 function updateStatusUI(c){
   const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
@@ -763,7 +1207,6 @@ function updateStatusUI(c){
 }
 
 /* -------- comments -------- */
-let commentAs='internal';
 function renderFeed(c){
   const feed=document.getElementById('feed');
   feed.innerHTML=c.comments.map(m=>{
@@ -788,42 +1231,41 @@ function renderFeed(c){
 function wireComments(c){
   const input=document.getElementById('comment-input');
   const send=document.getElementById('comment-send');
-  const bi=document.getElementById('as-internal'), be=document.getElementById('as-external');
-  const setAs=who=>{ commentAs=who; [bi,be].forEach(b=>b.classList.remove('active')); (who==='internal'?bi:be).classList.add('active'); styleAsBtns(); };
-  bi.addEventListener('click',()=>setAs('internal')); be.addEventListener('click',()=>setAs('external'));
-  styleAsBtns();
   const post=()=>{
     const text=input.value.trim(); if(!text) return;
-    const internal=commentAs==='internal';
-    c.comments.push({author:internal?'You (Highland Corporate)':c.counterparty||'Counterparty',role:internal?'Legal (Internal)':'Reviewer',side:commentAs,text,ts:'just now'});
-    input.value=''; renderFeed(c);
-    if(internal&&Math.random()>0.35){
-      setTimeout(()=>{
-        c.comments.push({author:c.counterparty||'Counterparty',role:'Reviewer',side:'external',text:pickReply(),ts:'just now'});
-        renderFeed(c); toast('New comment from '+(c.counterparty||'the counterparty'));
-      },1400);
-    }
+    const u=currentUser();
+    c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, ts:fmtDT(nowISO()) });
+    logAudit(c,'Comment','Internal comment added');
+    persist();
+    input.value=''; renderFeed(c); renderAuditSection(c);
   };
   send.addEventListener('click',post);
   input.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
 }
-function styleAsBtns(){
-  document.querySelectorAll('.as-btn').forEach(b=>{
-    const base=['as-btn','text-[11px]','px-2','py-1','rounded-md','border','font-medium','transition'];
-    if(b.classList.contains('active')) b.className=[...base,'active','bg-brand-900','text-white','border-brand-900'].join(' ');
-    else b.className=[...base,'bg-white','text-brand-700','border-brand-200'].join(' ');
-  });
-}
-const pickReply=()=>['Noted — routing this to our counsel for sign-off today.','Understood. The commercial value looks right on our side.','Thanks. We are comfortable proceeding to signature.','One query on the term length, otherwise we are aligned.'][Math.floor(Math.random()*4)];
 
 /* -------- compliance + signing -------- */
 function wireCompliance(c){
-  document.querySelectorAll('[data-comp]').forEach(cb=>cb.addEventListener('change',()=>{ c.compliance[cb.getAttribute('data-comp')]=cb.checked; renderSignButton(c); }));
+  document.querySelectorAll('[data-comp]').forEach(cb=>cb.addEventListener('change',()=>{
+    c.compliance[cb.getAttribute('data-comp')]=cb.checked;
+    logAudit(c,'Verification',`${cb.getAttribute('data-comp')==='iprs'?'IPRS identity check':'CAK PKI token'} ${cb.checked?'completed':'cleared'}`);
+    persist(); renderSignButton(c); renderAuditSection(c);
+  }));
 }
 function renderSignButton(c){
   const wrap=document.getElementById('sign-wrap'); if(!wrap) return;
   if(c.status==='Signed'){
-    wrap.innerHTML=`<div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>`;
+    wrap.innerHTML=`
+      <div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <button id="verify-seal" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
+        <button id="evidence-dl" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
+      </div>`;
+    document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
+    document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
+    return;
+  }
+  if(!canEdit()){
+    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/45 py-2">Viewer access — signing is disabled for your role.</div>`;
     return;
   }
   const ready=c.compliance.iprs&&c.compliance.pki&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
@@ -843,16 +1285,21 @@ function renderSignButton(c){
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
 }
 async function signDocument(c){
+  if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
   const btn=document.getElementById('sign-btn');
   btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
-  const stamp=new Date();
-  c.signedAt=stamp.toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})+' EAT';
-  c.lastAction=stamp.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  c.hash=await sha256(`${c.id}|${c.name}|${FIRST_PARTY}|${c.counterparty}|${c.value}|${c.signedAt}`);
+  const u=currentUser(), at=nowISO();
+  c.signedAt=fmtDT(at)+' EAT';
+  c.lastAction=todayStr();
+  c.signatory=`${u.name} (${ROLE_LABEL[u.role]})`;
+  c.hash=await sha256(canonicalDoc(c));
+  c.signatures=c.signatures||[];
+  c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at, docHash:c.hash });
   c.status='Signed';
-  document.querySelectorAll('#doc-canvas [data-sync], #doc-canvas [data-field]').forEach(i=>i.disabled=true);
+  logAudit(c,'Signed',`Document sealed by ${u.name} — SHA-256 ${c.hash.slice(0,16)}…`);
+  persist();
   document.getElementById('doc-canvas').innerHTML=docBody(c);
-  updateStatusUI(c); renderSignButton(c);
+  updateStatusUI(c); renderSignButton(c); renderAuditSection(c);
   toast('Document signed and cryptographically sealed');
 }
 
@@ -1395,14 +1842,16 @@ function renderScanSection(c){
   host.querySelector('#scan-run')?.addEventListener('click',()=>{
     scanUI.running=true; renderScanSection(c);
     setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
-      renderScanSection(c); renderSignButton(c);
       const n=openFindings(c).length;
+      logAudit(c,'Scanned',`AI contract scan run \u2014 ${n} open finding${n===1?'':'s'}`);
+      persist();
+      renderScanSection(c); renderSignButton(c); renderAuditSection(c);
       toast(n?`Scan complete \u2014 ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete \u2014 no issues found');
     }, 1100);
   });
   host.querySelector('#scan-rerun')?.addEventListener('click',()=>{
     scanUI.running=true; renderScanSection(c);
-    setTimeout(()=>{ runScan(c); scanUI.running=false; renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
+    setTimeout(()=>{ runScan(c); scanUI.running=false; persist(); renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
   });
   host.querySelectorAll('[data-scan-filter]').forEach(b=>b.addEventListener('click',()=>{ scanUI.filter=b.getAttribute('data-scan-filter'); renderScanSection(c); }));
   host.querySelectorAll('[data-scan-toggle]').forEach(b=>b.addEventListener('click',()=>{
@@ -1412,6 +1861,7 @@ function renderScanSection(c){
   }));
   host.querySelectorAll('[data-scan-dismiss]').forEach(b=>b.addEventListener('click',()=>{
     c.scan.dismissed.push(b.getAttribute('data-scan-dismiss'));
+    persist();
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
@@ -1601,9 +2051,126 @@ document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-scrim').addEventListener('click',closeAI);
 document.getElementById('ai-open-side').addEventListener('click',()=>openAI());
 document.addEventListener('keydown',e=>{
-  if(e.key==='/'&&!ai.open&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){ e.preventDefault(); openAI(); }
+  const appHidden=document.getElementById('app-shell').classList.contains('hidden');
+  if(e.key==='/'&&!appHidden&&!ai.open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){ e.preventDefault(); openAI(); }
   if(e.key==='Escape'&&ai.open) closeAI();
 });
+
+/* ============================================================
+   VIEW: TEAM & SETTINGS
+   ============================================================ */
+function renderTeam(){
+  const me=currentUser(), o=getOrg();
+  const roleChip=r=>({admin:'bg-brand-900 text-white',legal:'bg-brand-50 text-brand-700 border border-brand-200',viewer:'bg-slate-100 text-slate-600 border border-slate-200'}[r]||'');
+  const rows=getUsers().map(x=>`
+    <div class="flex items-center gap-3 px-5 py-3 border-b border-brand-100/50 last:border-0">
+      <div class="h-8 w-8 rounded-full bg-brand-100 text-brand-700 grid place-items-center text-[10px] font-semibold shrink-0">${x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-medium text-brand-900">${x.name}${x.id===me.id?' <span class="text-[10px] text-brand-800/40">(you)</span>':''}</div>
+        <div class="text-[11px] font-mono text-brand-800/45">${x.email}</div>
+      </div>
+      ${isAdmin()&&x.id!==me.id?`
+        <select data-role-for="${x.id}" class="text-xs rounded-lg border border-brand-100 bg-white px-2 py-1.5 outline-none focus:border-brand-400">
+          ${['admin','legal','viewer'].map(r=>`<option value="${r}" ${x.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join('')}
+        </select>
+        <button data-remove-user="${x.id}" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium transition">Remove</button>`
+      :`<span class="text-[10px] px-2 py-1 rounded-full font-medium ${roleChip(x.role)}">${ROLE_LABEL[x.role]}</span>`}
+    </div>`).join('');
+
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4">
+        <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Team &amp; Settings</h1>
+        <p class="text-xs text-brand-800/50">${o.name} · workspace created ${fmtDT(o.createdAt)}</p>
+      </div>
+    </header>
+    <div class="px-8 py-6 max-w-[760px] space-y-6">
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
+          <span class="text-brand-500">${icon('users')}</span>
+          <h2 class="font-display font-600 text-brand-900">Team</h2>
+          <span class="ml-auto text-[11px] font-mono text-brand-800/40">${getUsers().length} member${getUsers().length===1?'':'s'}</span>
+        </div>
+        ${rows}
+        ${isAdmin()?`
+        <div class="px-5 py-4 bg-brand-50/40 border-t border-brand-100/60">
+          <div class="text-xs font-semibold text-brand-900 mb-2 flex items-center gap-1.5">${icon('userplus','w-3.5 h-3.5')} Add team member</div>
+          <div class="grid sm:grid-cols-2 gap-2">
+            <input id="tm-name" type="text" placeholder="Full name" class="rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400"/>
+            <input id="tm-email" type="email" placeholder="Work email" class="rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400"/>
+            <select id="tm-role" class="rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400">
+              <option value="legal">Legal — edit &amp; sign</option>
+              <option value="viewer">Viewer — read only</option>
+              <option value="admin">Admin — full control</option>
+            </select>
+            <input id="tm-pass" type="password" placeholder="Temporary password (min 8)" class="rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400"/>
+          </div>
+          <button id="tm-add" class="mt-2.5 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">Add member</button>
+        </div>`:''}
+      </section>
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
+          <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
+        <p class="text-xs text-brand-800/55 mb-3">This MVP stores everything in this browser's local storage. Export a backup to move workspaces between machines — the hosted backend replaces this in production.</p>
+        <div class="flex flex-wrap gap-2">
+          <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
+          ${isAdmin()?`
+          <label class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition cursor-pointer">${icon('upload','w-3.5 h-3.5')} Restore backup<input id="bk-import" type="file" accept=".json,application/json" class="hidden"/></label>
+          <button id="bk-reset" class="ml-auto flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3.5 py-2 text-xs font-medium hover:bg-rose-50 transition">${icon('ban','w-3.5 h-3.5')} Reset workspace</button>`:''}
+        </div>
+      </section>
+    </div>
+  </div>`;
+
+  document.getElementById('tm-add')?.addEventListener('click',async()=>{
+    const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
+    const pass=document.getElementById('tm-pass').value;
+    if(!name||!email){ toast('Name and email are required','err'); return; }
+    if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
+    if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
+    const salt=newSalt();
+    const nu={ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
+    saveUsers([...getUsers(),nu]);
+    toast(`${name} added as ${ROLE_LABEL[role]} — share their temporary password securely`);
+    renderTeam();
+  });
+  document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',()=>{
+    const us=getUsers(); const u=us.find(x=>x.id===sel.getAttribute('data-role-for'));
+    if(u){ u.role=sel.value; saveUsers(us); toast(`${u.name} is now ${ROLE_LABEL[u.role]}`); renderTeam(); }
+  }));
+  document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',()=>{
+    const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
+    if(u && confirm(`Remove ${u.name} from the workspace?`)){
+      saveUsers(us.filter(x=>x.id!==u.id)); toast(`${u.name} removed`); renderTeam();
+    }
+  }));
+  document.getElementById('bk-export')?.addEventListener('click',()=>{
+    downloadFile(`mkataba-backup-${new Date().toISOString().slice(0,10)}.json`,
+      JSON.stringify({ kind:'mkataba-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(), data:lsGet(LS.data) },null,2));
+    toast('Backup downloaded');
+  });
+  document.getElementById('bk-import')?.addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{ try{
+        const b=JSON.parse(rd.result);
+        if(b.kind!=='mkataba-backup'||!b.org||!b.users) throw new Error('bad');
+        if(!confirm('Restoring replaces this workspace, its users and contracts with the backup. Continue?')) return;
+        lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
+        localStorage.removeItem(LS.session); location.reload();
+      }catch(err){ toast('That file is not a valid Mkataba backup','err'); } };
+    rd.readAsText(f);
+  });
+  document.getElementById('bk-reset')?.addEventListener('click',()=>{
+    if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
+      Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
+    }
+  });
+  setActiveNav('team');
+}
 
 /* ============================================================ NAV */
 function setActiveNav(view){
@@ -1619,22 +2186,28 @@ function setView(view){
   if(view==='dashboard') renderDashboard();
   else if(view==='folder') renderFolder();
   else if(view==='intel') renderIntel();
+  else if(view==='team') renderTeam();
   else renderWorkspace();
+  if(getOrg()) persist();
   window.scrollTo({top:0});
 }
 function openFolder(fid){ state.folderId=fid; state.folderQuery=''; setView('folder'); }
 function openWorkspace(id){ state.activeId=id; setView('workspace'); }
 function createFromTemplate(tid){
-  const t=TEMPLATES[tid];
+  if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
+  const t=TEMPLATES[tid], u=currentUser();
   const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
     template:tid, folder:t.folder,
-    lastAction:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
-    hash:null, signedAt:null, signatory:'A. Otieno, Director',
+    lastAction:todayStr(),
+    hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{iprs:false,pki:false},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`New ${t.kind} generated from Template ${tid} and filed under ${FOLDERS[t.folder].name}. Fill the highlighted fields to begin.`,ts:'just now'}],
-    fields:{}, scan:null, expiry:null, valueType:t.valueType };
+    comments:[{author:'System',role:'Automation',side:'internal',text:`New ${t.kind} generated from Template ${tid} and filed under ${FOLDERS[t.folder].name}. Fill the highlighted fields to begin.`,ts:fmtDT(nowISO())}],
+    fields:{}, scan:null, expiry:null, valueType:t.valueType,
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Generated from Template ${tid} (${t.kind})`}],
+    signatures:[] };
   state.contracts.unshift(c);
   state.activeId=c.id;
+  persist();
   toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
   setView('workspace');
   renderSideFolders();
@@ -1663,8 +2236,19 @@ document.getElementById('nav').addEventListener('click',e=>{
   if(btn) setView(btn.getAttribute('data-view'));
 });
 
-/* BOOT */
-renderDashboard();
+/* BOOT
+   1. #share=… in the URL → counterparty portal (no login needed)
+   2. No workspace yet     → setup screen
+   3. No session           → login screen
+   4. Otherwise            → hydrate from storage and start the app */
+(function boot(){
+  const m=location.hash.match(/^#share=(.+)$/);
+  if(m){ renderSharePortal(m[1]); return; }
+  hydrate();
+  if(!getOrg()){ renderAuth('setup'); return; }
+  if(!getSession()||!currentUser()){ localStorage.removeItem(LS.session); renderAuth('login'); return; }
+  startApp();
+})();
 
 </script>
 </body>
