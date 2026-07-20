@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mkataba — Contract Lifecycle Management</title>
+<title>HaTi — Contract Lifecycle Management</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +111,7 @@
       <div class="flex items-center gap-2.5">
         <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0" id="brand-mark"></div>
         <div class="leading-tight">
-          <div class="font-display font-700 text-white text-lg tracking-tight">Mkataba</div>
+          <div class="font-display font-700 text-white text-lg tracking-tight">HaTi</div>
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
@@ -144,7 +144,7 @@
 
     <div class="px-3 pb-3">
       <button id="ai-open-side" class="w-full flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-brand-900 px-3.5 py-3 text-sm font-semibold hover:brightness-105 transition shadow-lg shadow-black/20">
-        <span data-ic="sparkle"></span> Ask Mkataba AI
+        <span data-ic="sparkle"></span> Ask HaTi AI
       </button>
     </div>
 
@@ -163,7 +163,7 @@
   <header class="px-5 py-4 border-b border-brand-100/70 flex items-center gap-3 bg-brand-900 text-white">
     <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
-      <div class="font-display font-600">Mkataba AI</div>
+      <div class="font-display font-600">HaTi AI</div>
       <div class="text-[11px] text-brand-200 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-brand-300 live-dot"></span>Searching your live contract data</div>
     </div>
     <button id="ai-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
@@ -337,6 +337,12 @@ function mk(name,cp,value,status,tmpl,date,expiry,valueType){
 const getContract = id => state.contracts.find(c=>c.id===id);
 const folderContracts = fid => state.contracts.filter(c=>c.folder===fid);
 
+// Contract type/icon helpers — uploaded ("inbound") contracts have no template.
+const isUpload = c => c && c.source==='upload';
+const cIcon = c => isUpload(c) ? 'upload' : (TEMPLATES[c.template]?.ic || 'file');
+const cKind = c => isUpload(c) ? 'External Document' : (TEMPLATES[c.template]?.kind || 'Contract');
+const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
+
 /* ============================================================ HELPERS */
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
@@ -371,7 +377,7 @@ const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charC
    static page. Every load/store function below is the seam
    where a hosted backend API slots in later (swap for fetch()).
    ============================================================ */
-const LS = { org:'mkataba.v1.org', users:'mkataba.v1.users', session:'mkataba.v1.session', data:'mkataba.v1.data', ui:'mkataba.v1.ui' };
+const LS = { org:'hati.v1.org', users:'hati.v1.users', session:'hati.v1.session', data:'hati.v1.data', ui:'hati.v1.ui' };
 const lsGet = k => { try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } };
 const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -379,7 +385,7 @@ const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
    When served by server/server.js the app stores everything on the
    server (multi-user, multi-device). Opened as a plain static page,
    it falls back to this browser's localStorage. */
-let REMOTE=null; // {org, me, users} when a Mkataba server is present
+let REMOTE=null; // {org, me, users} when a HaTi server is present
 const API_MODE=()=>!!REMOTE;
 async function api(path, method='GET', body){
   const res=await fetch('api/'+path,{ method,
@@ -461,12 +467,12 @@ function renderAuth(mode){
       <div class="flex items-center gap-3 justify-center mb-6">
         <div class="h-11 w-11 rounded-xl bg-gold-500 grid place-items-center text-brand-900">${icon('scroll','w-6 h-6',2.2)}</div>
         <div class="leading-tight">
-          <div class="font-display font-700 text-white text-2xl tracking-tight">Mkataba</div>
+          <div class="font-display font-700 text-white text-2xl tracking-tight">HaTi</div>
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
       <div class="bg-white rounded-2xl border border-brand-100 shadow-2xl p-6">${inner}</div>
-      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your Mkataba server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
+      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
@@ -620,9 +626,15 @@ function openModal(html){
 }
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
-/* ---------- document sealing ---------- */
-const canonicalDoc = c => JSON.stringify({ id:c.id, template:c.template, name:c.name,
-  firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields });
+/* ---------- document sealing ----------
+   For a generated contract the seal covers the field values; for an uploaded
+   ("inbound") document it covers the file's own hash, so the seal proves
+   exactly which file you signed. */
+const canonicalDoc = c => isUpload(c)
+  ? JSON.stringify({ id:c.id, source:'upload', fileName:c.upload?.fileName, fileHash:c.upload?.fileHash,
+      firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value })
+  : JSON.stringify({ id:c.id, template:c.template, name:c.name,
+      firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields });
 
 async function verifySeal(c){
   if(!c.hash){ toast('Document is not sealed yet','err'); return; }
@@ -638,7 +650,7 @@ function downloadFile(name, content, type='application/json'){
 }
 function downloadEvidence(c){
   downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
-    generatedAt:nowISO(), platform:'Mkataba CLM (MVP)', org:FIRST_PARTY,
+    generatedAt:nowISO(), platform:'HaTi CLM (MVP)', org:FIRST_PARTY,
     contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, fields:c.fields, status:c.status },
     sha256DocumentSeal:c.hash, signedAt:c.signedAt, signatures:c.signatures||[], auditTrail:c.audit||[],
@@ -652,9 +664,16 @@ const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).repl
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
 
 async function openShareModal(c){
+  // An uploaded document carries its file; that only fits through the server,
+  // so static mode points the user at the original instead of a giant URL.
+  if(isUpload(c) && !API_MODE()){
+    toast('To share an uploaded document, run the HaTi server — or send the original file directly','err');
+    return;
+  }
   const docHash=await sha256(canonicalDoc(c));
-  const payloadObj={ v:1, kind:'mkataba-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
-    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields } };
+  const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
+    contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
+      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder } };
   let link;
   if(API_MODE()){
     try{ const r=await api('shares','POST',{ payload:payloadObj });
@@ -701,7 +720,7 @@ function openImportModal(c){
   });
 }
 async function applyResponse(c, r, opts={}){
-  if(!r || r.kind!=='mkataba-response'){ if(!opts.background) toast('That code is not a valid Mkataba response','err'); return false; }
+  if(!r || r.kind!=='hati-response'){ if(!opts.background) toast('That code is not a valid HaTi response','err'); return false; }
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
   const currentHash=await sha256(canonicalDoc(c));
   if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
@@ -760,7 +779,8 @@ function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
-  if(!p || p.kind!=='mkataba-share' || !p.contract || !TEMPLATES[p.contract.template]){
+  const validDoc = p && p.kind==='hati-share' && p.contract && (p.contract.source==='upload' || TEMPLATES[p.contract.template]);
+  if(!validDoc){
     root.innerHTML=`<div class="min-h-screen grid place-items-center bg-brand-900 px-4">
       <div class="bg-white rounded-2xl p-8 text-center max-w-sm">
         <div class="text-rose-500 mb-3 flex justify-center">${icon('ban','w-8 h-8')}</div>
@@ -770,7 +790,8 @@ function renderSharePortal(p, opts={}){
     return;
   }
   FIRST_PARTY=p.org;
-  const c=migrateContract({ ...p.contract, status:'Under Review', folder:TEMPLATES[p.contract.template].folder });
+  const c=migrateContract({ ...p.contract, status:'Under Review',
+    folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   const input=(id,label,ph)=>`
     <label class="block mb-2.5"><span class="text-[11px] font-medium text-brand-800/70">${label}</span>
     <input id="${id}" type="text" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`;
@@ -781,7 +802,7 @@ function renderSharePortal(p, opts={}){
         <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0">${icon('scroll','w-5 h-5',2.2)}</div>
         <div class="leading-tight min-w-0">
           <div class="font-display font-600">${p.org} shared a contract for your review</div>
-          <div class="text-[11px] text-brand-300 font-mono truncate">${p.contract.id} · shared by ${p.sharedBy} · ${fmtDT(p.at)} · via Mkataba</div>
+          <div class="text-[11px] text-brand-300 font-mono truncate">${p.contract.id} · shared by ${p.sharedBy} · ${fmtDT(p.at)} · via HaTi</div>
         </div>
       </div>
     </header>
@@ -816,7 +837,7 @@ async function portalRespond(p, action){
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  const response={ v:1, kind:'mkataba-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
   if(PORTAL_OPTS.token){
     try{
@@ -833,7 +854,7 @@ async function portalRespond(p, action){
   document.getElementById('portal-result').innerHTML=`
     <div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5">
       <div class="flex items-center gap-1.5 text-brand-700 text-xs font-semibold mb-1.5">${icon('check2','w-3.5 h-3.5')} Your ${label} is ready</div>
-      <p class="text-[11px] text-brand-800/70 mb-2">Copy this response code and send it back to ${p.sharedBy} at ${p.org} (email or WhatsApp). They import it in Mkataba to record it on the contract.</p>
+      <p class="text-[11px] text-brand-800/70 mb-2">Copy this response code and send it back to ${p.sharedBy} at ${p.org} (email or WhatsApp). They import it in HaTi to record it on the contract.</p>
       <textarea id="pt-code" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-white p-2.5 text-[10px] font-mono outline-none break-all">${code}</textarea>
       <button id="pt-copy" class="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2 text-xs font-medium hover:bg-brand-800 transition">${icon('copy','w-3 h-3')} Copy response code</button>
     </div>`;
@@ -846,14 +867,33 @@ async function portalRespond(p, action){
 
 /* ---------- PDF export (print pipeline) ---------- */
 function exportPDF(c){
-  const holder=document.createElement('div');
-  holder.innerHTML=docBody(c);
-  holder.querySelectorAll('input').forEach(inp=>{
-    const span=document.createElement('span');
-    span.style.cssText="font-family:'JetBrains Mono',monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
-    span.textContent=inp.value||inp.getAttribute('value')||'________';
-    inp.replaceWith(span);
-  });
+  let bodyHtml;
+  if(isUpload(c)){
+    // The original file is a separate attachment; print a signing certificate.
+    const u=c.upload||{};
+    bodyHtml=`
+      <div style="border:1px solid #CFEAE0;border-radius:10px;padding:16px;margin-bottom:16px;">
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
+        <table style="font-size:11px;border-collapse:collapse;">
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value):'—')}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:'JetBrains Mono',monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
+        </table>
+      </div>
+      <p style="font-size:11px;color:#444;line-height:1.6;">This is a HaTi signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in HaTi and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.</p>`;
+  } else {
+    const holder=document.createElement('div');
+    holder.innerHTML=docBody(c);
+    holder.querySelectorAll('input').forEach(inp=>{
+      const span=document.createElement('span');
+      span.style.cssText="font-family:'JetBrains Mono',monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
+      span.textContent=inp.value||inp.getAttribute('value')||'________';
+      inp.replaceWith(span);
+    });
+    bodyHtml=holder.innerHTML;
+  }
   const audit=(c.audit||[]).map(e=>`
     <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
@@ -861,13 +901,13 @@ function exportPDF(c){
   document.getElementById('print-root').innerHTML=`
     <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0B7A5F;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">Mkataba <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
-      ${holder.innerHTML}
+      ${bodyHtml}
       ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
       ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
-      <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by Mkataba CLM · ${FIRST_PARTY}</div>
+      <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(); renderAuditSection(c);
   window.print();
@@ -888,10 +928,9 @@ function metrics(){
    SHARED: contract row (compact list item, used everywhere)
    ============================================================ */
 function contractRow(c, {showFolder=false}={}){
-  const t=TEMPLATES[c.template];
   return `
   <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-3 hover:bg-brand-50/50 transition border-b border-brand-100/50 last:border-0">
-    <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500 border border-brand-100">${icon(t.ic)}</span>
+    <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'} border" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
       <span class="block text-[11px] text-brand-800/45 font-mono truncate">${c.counterparty||'No counterparty yet'}${showFolder?' · '+FOLDERS[c.folder].name:''}</span>
@@ -1015,7 +1054,7 @@ function renderDashboard(){
           <div class="rounded-2xl bg-brand-900 text-white p-5">
             <div class="flex items-center gap-2">
               <span class="text-gold-400">${icon('sparkle')}</span>
-              <h3 class="font-display font-600">Mkataba AI</h3>
+              <h3 class="font-display font-600">HaTi AI</h3>
             </div>
             <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
             <div class="mt-3 space-y-1.5">
@@ -1029,6 +1068,15 @@ function renderDashboard(){
             <h3 class="font-display font-600 text-brand-900 text-sm">Quick create</h3>
             <p class="text-xs text-brand-800/50 mt-0.5 mb-3">Vetted Kenyan boilerplate templates.</p>
             <div class="space-y-2">${templateChips}</div>
+            <div class="mt-3 pt-3 border-t border-brand-100/60">
+              <button id="dash-upload" class="group w-full flex items-center gap-2.5 rounded-xl border border-dashed border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 hover:border-gold-500/60 px-3.5 py-2.5 transition-all text-left">
+                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload','w-4 h-4')}</span>
+                <span class="min-w-0">
+                  <span class="block text-xs font-semibold text-brand-900">Upload a received contract</span>
+                  <span class="block text-[10px] text-brand-800/50">Their paper — review, scan &amp; sign it here</span>
+                </span>
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -1038,6 +1086,7 @@ function renderDashboard(){
   wireOpens();
   document.querySelectorAll('[data-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-folder'))));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
+  document.getElementById('dash-upload').addEventListener('click',openUploadModal);
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
   document.getElementById('rail-ai-open').addEventListener('click',()=>openAI());
   document.querySelectorAll('[data-ai-q]').forEach(el=>el.addEventListener('click',()=>openAI(el.getAttribute('data-ai-q'))));
@@ -1080,7 +1129,7 @@ function renderFolder(){
           <div class="px-5 py-10 text-center">
             <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
             <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
           </div>`}
       </section>
     </div>
@@ -1105,15 +1154,159 @@ function renderFolderListOnly(){
     <div class="px-5 py-10 text-center">
       <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
       <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
     </div>`;
   wireOpens(section);
 }
 
 /* ============================================================
-   DOC BODY + WORKSPACE (as before)
+   INBOUND / UPLOADED CONTRACTS  ("their paper")
+   A received document is stored as a file and wrapped in the same
+   review → scan → sign → audit workflow as generated contracts.
+   ============================================================ */
+const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
+
+function openUploadModal(){
+  if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
+  const folderOpts=Object.values(FOLDERS).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
+        <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
+      <p class="text-xs text-brand-800/55 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
+      <label class="block mb-3">
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/45">(PDF, Word, image or text · max 4 MB)</span></span>
+        <input id="up-file" type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
+      </label>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
+        ${upField('up-cp','Received from (counterparty)','e.g. Acme Ltd')}
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
+          <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOpts}</select></label>
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">Value type</span>
+          <select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+            <option value="estimated">Estimated value</option><option value="fixed">Fixed value</option><option value="none">Non-monetary</option></select></label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mb-4">
+        ${upField('up-value','Contract value (KES)','e.g. 2500000','number')}
+        ${upField('up-expiry','Expiry date (optional)','','date')}
+      </div>
+      <div class="flex items-center gap-2 justify-end">
+        <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('upload','w-3.5 h-3.5')} Add contract</button>
+      </div>
+    </div>`);
+  document.getElementById('up-cancel').addEventListener('click',closeModal);
+  document.getElementById('up-go').addEventListener('click',submitUpload);
+}
+async function submitUpload(){
+  const fileInput=document.getElementById('up-file');
+  const file=fileInput.files&&fileInput.files[0];
+  if(!file){ toast('Choose a file to upload','err'); return; }
+  if(file.size>UPLOAD_MAX){ toast('File is larger than 4 MB — please compress or split it','err'); return; }
+  const cp=fval('up-cp');
+  const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
+  const folder=document.getElementById('up-folder').value;
+  const vtype=document.getElementById('up-vtype').value;
+  const value=vtype==='none'?0:Number(fval('up-value')||0);
+  const expiry=fval('up-expiry')||null;
+  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Adding…</span>';
+  const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
+  if(!dataUrl){ toast('Could not read that file','err'); return; }
+  const fileHash=await sha256(dataUrl);
+  const u=currentUser();
+  const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
+    template:null, source:'upload', folder, valueType:vtype,
+    lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
+    compliance:{iprs:false,pki:false},
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}. Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    fields:{}, scan:null,
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received document “${file.name}” (${Math.round(file.size/1024)} KB) added`}],
+    signatures:[],
+    upload:{ fileName:file.name, mime:file.type||'application/octet-stream', size:file.size, dataUrl, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System' } };
+  state.contracts.unshift(c);
+  state.activeId=c.id;
+  persist();
+  closeModal();
+  toast('Contract uploaded and filed in '+FOLDERS[folder].name);
+  setView('workspace');
+  renderSideFolders();
+}
+
+function uploadDocBody(c){
+  const u=c.upload||{}, mime=u.mime||'';
+  const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
+  const preview = (isPdf||isText)
+    ? `<iframe src="${u.dataUrl}" class="w-full h-[560px] rounded-lg border border-brand-100 bg-white" title="Uploaded document"></iframe>`
+    : isImg
+    ? `<img src="${u.dataUrl}" class="max-w-full rounded-lg border border-brand-100" alt="Uploaded document"/>`
+    : `<div class="rounded-lg border border-dashed border-brand-200 bg-brand-50/40 p-8 text-center">
+         <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-7 h-7')}</div>
+         <div class="text-sm font-medium text-brand-800/70">${u.fileName||'Document'}</div>
+         <div class="text-xs text-brand-800/45 mt-0.5">Word documents can't preview in the browser — download the original to review it.</div>
+       </div>`;
+  const sizeKB = u.size?Math.round(u.size/1024):0;
+  return `
+    <div class="mb-6 pb-5 border-b border-brand-100">
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/40 mb-2">External Document · received · ${c.id}</div>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
+    </div>
+    <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
+      ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.</span>
+    </div>
+    <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
+    </div>
+    <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+    ${preview}
+    ${signatureBlock(c)}`;
+}
+
+function uploadScanRules(c){
+  const F=[]; const add=(id,sev,kind,title,what,why,fix)=>F.push({id,sev,kind,title,anchor:'doc',what,why,fix});
+  if(!c.counterparty) add('u-cp','high','missing','Counterparty not recorded',
+    'No counterparty name is recorded against this uploaded document.',
+    'A signed contract with no recorded party is hard to enforce and clutters the register.',
+    'Add the counterparty’s full registered name (as on the BRS certificate) in the deal details.');
+  if(isMonetary(c) && !(Number(c.value)>0)) add('u-val','med','missing','Contract value not recorded',
+    'The value field is empty for a document marked as monetary.',
+    'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
+    'Record the agreed KES value, or mark the contract non-monetary if none passes.');
+  add('u-law','med','risk','Confirm governing law is Kenyan',
+    'This is an external document — confirm its governing-law and jurisdiction clause.',
+    'A foreign governing law or arbitration seat can make enforcement slow and expensive for a Kenyan business.',
+    'Find the governing-law clause and confirm it is the laws of Kenya with a Kenyan forum; negotiate if not.');
+  add('u-liab','med','risk','Check liability cap & indemnities',
+    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+    'An unbalanced liability/indemnity split can expose you to costs far beyond the deal value.',
+    'Confirm the liability cap is mutual and reasonable, and that indemnities are limited to their fault.');
+  if(c.folder==='sales'||c.folder==='proc'||c.folder==='dist') add('u-pay','med','risk','Confirm payment terms & pricing',
+    'Check the payment days, pricing basis and any escalation or penalty clauses.',
+    'Extended terms or one-sided price-variation clauses quietly erode margin and cash flow.',
+    'Confirm payment terms are workable and price changes are capped or index-linked.');
+  if(c.folder==='corp') add('u-dp','low','risk','Confirm Data Protection (DPA 2019) terms',
+    'Corporate and IT agreements should address personal-data handling.',
+    'Under the Data Protection Act 2019 you remain responsible for how vendors process your data.',
+    'Confirm a data-processing clause / DPA with ODPC-aligned obligations is included.');
+  add('u-term','low','ambiguity','Confirm term, renewal & exit',
+    'Check the term length, any automatic renewal, and your notice period to exit.',
+    'Auto-renewing contracts with long notice periods are a common way to get locked in.',
+    'Confirm renewal is not automatic (or is acceptable) and the exit notice period is workable.');
+  add('u-legal','low','missing','Independent legal review before signing',
+    'This checklist is a prompt, not a substitute for reading the full document.',
+    'External paper is drafted for the other side’s benefit; a clause-by-clause read catches what a checklist can’t.',
+    'Have counsel review before signing where the value or risk is material.');
+  return F;
+}
+
+/* ============================================================
+   DOC BODY + WORKSPACE
    ============================================================ */
 function docBody(c){
+  if(isUpload(c)) return uploadDocBody(c);
   const t=TEMPLATES[c.template];
   const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
   const dis=locked?'disabled':'';
@@ -1323,8 +1516,9 @@ function renderWorkspace(){
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-0 lg:h-[calc(100vh-61px)]">
       <section class="overflow-y-auto scroll-thin border-r border-brand-100/70 bg-canvas">
         <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
-          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked. Fields are read-only.</span></div>`
+          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
+            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
           <article class="bg-white rounded-2xl border border-brand-100 shadow-sm shadow-brand-900/5 p-7 lg:p-9" id="doc-canvas">${docBody(c)}</article>
           <div class="h-8"></div>
@@ -1921,6 +2115,7 @@ const SEV_RANK = {high:3, med:2, low:1};
 const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
 
 function scanRules(c){
+  if(isUpload(c)) return uploadScanRules(c);
   const F=[], f=c.fields||{};
   const add=(id,sev,kind,title,anchor,what,why,fix)=>F.push({id,sev,kind,title,anchor,what,why,fix});
   const valAnchor = c.template==='ND' ? 'c1' : 'c2';
@@ -2125,7 +2320,7 @@ function renderScanSection(c){
       <span>Scanning clauses against Kenyan practice checks\u2026</span></div>`;
   } else if(!c.scan){
     body = `
-      <p class="text-xs text-brand-800/55 leading-relaxed">Review this contract against ${c.template==='A'?'NDA':'commercial'} risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.</p>
+      <p class="text-xs text-brand-800/55 leading-relaxed">${isUpload(c)?'Run an AI review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}</p>
       <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} Run AI scan</button>`;
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
@@ -2147,7 +2342,7 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
-            <button data-scan-goto="${x.anchor}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to clause</button>
+            <button data-scan-goto="${x.anchor}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${x.anchor==='doc'?'Go to document':'Go to clause'}</button>
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/45 hover:text-brand-800 transition">Dismiss</button>
           </div>
         </div>`:''}
@@ -2202,7 +2397,8 @@ function renderScanSection(c){
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
-    const el=document.querySelector(`#doc-canvas [data-anchor="${b.getAttribute('data-scan-goto')}"]`);
+    const anchor=b.getAttribute('data-scan-goto');
+    const el=anchor==='doc' ? document.querySelector('#doc-canvas [data-anchor="doc"]') : document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`);
     if(!el) return;
     el.scrollIntoView({behavior:'smooth',block:'center'});
     el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
@@ -2228,7 +2424,7 @@ function openAI(prefill){
   document.getElementById('ai-scrim').classList.add('open');
   ai.open=true;
   if(!ai.history.length){
-    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your Mkataba workspace — try one of the suggestions below, or ask in your own words.`});
+    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
   }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
@@ -2269,10 +2465,9 @@ function renderAIFeed(typing=false){
 }
 
 function aiContractCard(c){
-  const t=TEMPLATES[c.template];
   return `
   <button data-ai-open="${c.id}" class="w-full text-left flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-3 py-2.5 transition group">
-    <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(t.ic,'w-3.5 h-3.5')}</span>
+    <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
       <span class="block text-[10px] font-mono text-brand-800/45 truncate">${c.counterparty||'—'} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
@@ -2296,8 +2491,7 @@ function aiAnswer(qRaw){
     if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
     if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
     if(c){
-      const t=TEMPLATES[c.template];
-      return { text:`<strong>${c.name}</strong> (${c.id}) is a ${t.kind} with <strong>${c.counterparty||'no counterparty yet'}</strong>, filed under ${FOLDERS[c.folder].name}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been AI-scanned yet.'; const o=openFindings(c); return o.length?` The AI scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The AI scan is clean — no open findings.'; })()}`,
+      return { text:`<strong>${c.name}</strong> (${c.id}) is ${isUpload(c)?'an uploaded <strong>external document</strong>':`a ${cKind(c)}`} with <strong>${c.counterparty||'no counterparty yet'}</strong>, filed under ${FOLDERS[c.folder].name}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been AI-scanned yet.'; const o=openFindings(c); return o.length?` The AI scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The AI scan is clean — no open findings.'; })()}`,
         cards:aiCards([c]) };
     }
   }
@@ -2360,7 +2554,7 @@ function aiAnswer(qRaw){
   // 8) counterparty / free-text search
   const terms=q.replace(/[?.,!]/g,'').split(/\s+/).filter(w=>w.length>2&&!['the','and','for','with','find','show','search','contracts','contract','any','all','have','what','which'].includes(w));
   if(terms.length){
-    const list=cs.filter(c=>terms.some(t=>(c.name+' '+c.counterparty+' '+FOLDERS[c.folder].name+' '+TEMPLATES[c.template].kind).toLowerCase().includes(t)));
+    const list=cs.filter(c=>terms.some(t=>(c.name+' '+c.counterparty+' '+FOLDERS[c.folder].name+' '+cKind(c)).toLowerCase().includes(t)));
     if(list.length){
       return { text:`Found <strong>${list.length} contract${list.length===1?'':'s'}</strong> matching "${terms.join(', ')}":`, cards:aiCards(list) };
     }
@@ -2451,7 +2645,7 @@ function renderTeam(){
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
-        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your Mkataba server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the Mkataba server for central storage.'}</p>
+        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
           ${(!API_MODE()&&isAdmin())?`
@@ -2498,8 +2692,8 @@ function renderTeam(){
     toast(`${u.name} removed`); renderTeam();
   }));
   document.getElementById('bk-export')?.addEventListener('click',()=>{
-    downloadFile(`mkataba-backup-${new Date().toISOString().slice(0,10)}.json`,
-      JSON.stringify({ kind:'mkataba-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
+    downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
+      JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
         data:{ uid, contracts:state.contracts } },null,2));
     toast('Backup downloaded');
   });
@@ -2508,11 +2702,11 @@ function renderTeam(){
     const rd=new FileReader();
     rd.onload=()=>{ try{
         const b=JSON.parse(rd.result);
-        if(b.kind!=='mkataba-backup'||!b.org||!b.users) throw new Error('bad');
+        if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad');
         if(!confirm('Restoring replaces this workspace, its users and contracts with the backup. Continue?')) return;
         lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
         localStorage.removeItem(LS.session); location.reload();
-      }catch(err){ toast('That file is not a valid Mkataba backup','err'); } };
+      }catch(err){ toast('That file is not a valid HaTi backup','err'); } };
     rd.readAsText(f);
   });
   document.getElementById('bk-reset')?.addEventListener('click',()=>{
@@ -2578,9 +2772,14 @@ renderSideFolders();
 document.getElementById('side-templates').innerHTML=Object.values(TEMPLATES).map(t=>`
   <button data-new-side="${t.id}" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition">
     <span class="text-gold-400">${icon(t.ic)}</span>
-    <span class="truncate">Template ${t.id} — ${t.kind}</span>
-  </button>`).join('');
+    <span class="truncate">${t.kind}</span>
+  </button>`).join('') + `
+  <button id="side-upload" class="w-full text-left flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition border-t border-white/10 pt-2.5">
+    <span class="text-gold-400">${icon('upload')}</span>
+    <span class="truncate">Upload received contract</span>
+  </button>`;
 document.querySelectorAll('[data-new-side]').forEach(b=>b.addEventListener('click',()=>createFromTemplate(b.getAttribute('data-new-side'))));
+document.getElementById('side-upload').addEventListener('click',openUploadModal);
 
 document.getElementById('nav').addEventListener('click',e=>{
   const btn=e.target.closest('[data-view]');
@@ -2589,7 +2788,7 @@ document.getElementById('nav').addEventListener('click',e=>{
 
 /* BOOT
    1. #share=… in the URL → counterparty portal (no login needed)
-   2. Mkataba server present → API mode (central storage, live shares)
+   2. HaTi server present → API mode (central storage, live shares)
    3. No server → static mode backed by this browser's localStorage
    Either mode: no workspace → setup screen; no session → login. */
 (async function boot(){

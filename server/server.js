@@ -1,5 +1,5 @@
 /* ============================================================
-   Mkataba CLM — backend server (MVP "real engine")
+   HaTi CLM — backend server (MVP "real engine")
    Express + built-in node:sqlite. Serves the frontend and a JSON
    API for auth, team, contract storage and counterparty shares.
    Run:  npm install && npm start   (http://localhost:3000)
@@ -11,9 +11,9 @@ const fs = require('fs');
 const { DatabaseSync } = require('node:sqlite');
 
 const PORT = process.env.PORT || 3000;
-const DATA_DIR = process.env.MKATABA_DATA || path.join(__dirname, 'data');
+const DATA_DIR = process.env.HATI_DATA || path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
-const db = new DatabaseSync(path.join(DATA_DIR, 'mkataba.db'));
+const db = new DatabaseSync(path.join(DATA_DIR, 'hati.db'));
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, json TEXT NOT NULL);
@@ -44,7 +44,7 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 /* ---------- session handling (httpOnly cookie) ---------- */
-const COOKIE = 'mkataba_session';
+const COOKIE = 'hati_session';
 function readSession(req) {
   const raw = req.headers.cookie || '';
   const m = raw.split(/;\s*/).find(c => c.startsWith(COOKIE + '='));
@@ -167,7 +167,7 @@ app.delete('/api/users/:id', auth, admin, (req, res) => {
 /* ---------- counterparty shares ---------- */
 app.post('/api/shares', auth, editor, (req, res) => {
   const { payload } = req.body || {};
-  if (!payload || payload.kind !== 'mkataba-share') return res.status(400).json({ error: 'Invalid share payload' });
+  if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const token = rid(12);
   db.prepare('INSERT INTO shares (token,payload,created_at) VALUES (?,?,?)').run(token, JSON.stringify(payload), now());
   res.json({ ok: true, token });
@@ -190,7 +190,7 @@ app.post('/api/shares/:token/respond', (req, res) => {       // public: counterp
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const r = req.body || {};
-  if (r.kind !== 'mkataba-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
+  if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
   db.prepare('UPDATE shares SET response=? WHERE token=?').run(JSON.stringify(r), req.params.token);
   res.json({ ok: true });
@@ -206,4 +206,4 @@ const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));
 app.get('/index.html', (req, res) => res.sendFile(INDEX));
 
-app.listen(PORT, () => console.log(`Mkataba CLM server running → http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${PORT}`));
