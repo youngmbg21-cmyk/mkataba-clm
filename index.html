@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mkataba — Contract Lifecycle Management</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      fontFamily: {
+        display: ['"Space Grotesk"','system-ui','sans-serif'],
+        sans: ['Inter','system-ui','sans-serif'],
+        mono: ['"JetBrains Mono"','ui-monospace','monospace'],
+      },
+      colors: {
+        canvas:'#F4F7F5',
+        brand:{50:'#EAF6F1',100:'#CFEAE0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
+        gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
+      },
+    }},
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; } body { background:#F4F7F5; }
+  ::selection { background:#CFEAE0; }
+  .view-enter { animation: viewIn .25s cubic-bezier(.22,.61,.36,1); }
+  @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#EAF6F1;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
+  .field:hover{background:#DCF0E7;}
+  .field:focus{background:#fff;border-bottom-color:#0B7A5F;box-shadow:0 2px 0 0 #0B7A5F,0 0 0 3px rgba(11,122,95,.12);}
+  .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
+  .field:disabled{color:#0A3B32;background:transparent;border-bottom:1.5px solid #CFEAE0;-webkit-text-fill-color:#0A3B32;opacity:1;cursor:default;font-weight:600;}
+
+  .scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
+  .scroll-thin::-webkit-scrollbar-thumb{background:#CFEAE0;border-radius:8px;}
+  .scroll-thin::-webkit-scrollbar-track{background:transparent;}
+
+  .live-dot{position:relative;}
+  .live-dot::after{content:'';position:absolute;inset:-4px;border-radius:9999px;background:currentColor;opacity:.4;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
+  @keyframes ping{75%,100%{transform:scale(2.2);opacity:0;}}
+
+  .seal-in{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes sealIn{from{opacity:0;transform:scale(.9) rotate(-3deg);}to{opacity:1;transform:none;}}
+  .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+  .nav-item.active{background:rgba(255,255,255,.08);color:#fff;}
+  .nav-item.active .nav-rail{opacity:1;}
+
+  /* AI panel slide-over */
+  #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-panel.open{transform:none;}
+  #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
+  #ai-scrim.open{opacity:1;pointer-events:auto;}
+  .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
+  .typing span{display:inline-block;width:5px;height:5px;border-radius:9999px;background:#66BCA1;margin-right:3px;animation:blink 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
+
+  .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:8px;}
+  @keyframes anchorFlash{0%{background:#FBF2DC;box-shadow:0 0 0 4px rgba(199,154,62,.30);}100%{background:transparent;box-shadow:0 0 0 4px transparent;}}
+  .scan-pulse{animation:scanPulse 1s ease infinite;}
+  @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
+
+  .mlink{stroke:#C9D8D0;stroke-width:1.4;fill:none;opacity:.6;transition:stroke .15s,opacity .15s,stroke-width .15s;}
+  .mlink.hi{stroke:#0B7A5F;opacity:1;stroke-width:2.2;}
+  .mlink.dim{opacity:.08;}
+  .mlabel{fill:#5c7a6e;font-size:9.5px;font-family:'JetBrains Mono',monospace;pointer-events:none;opacity:0;transition:opacity .15s;}
+  .mlabel.show{opacity:1;}
+  .mnode{cursor:pointer;}
+  .mnode .chipbg{fill:#fff;stroke:#CFEAE0;stroke-width:1.4;transition:stroke .15s;}
+  .mnode.hi .chipbg{stroke:#0B7A5F;stroke-width:2;}
+  .mnode.sel .chipbg{stroke:#C79A3E;stroke-width:2.4;}
+  .mnode.dim{opacity:.18;transition:opacity .15s;}
+  #map-svg{cursor:grab;}
+  #map-svg.panning{cursor:grabbing;}
+
+  .qdot{cursor:pointer;transition:r .15s;}
+  .qdot:hover{stroke:#08211E;stroke-width:2;}
+  #party-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
+  #party-scrim.open{opacity:1;pointer-events:auto;}
+
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
+</style>
+</head>
+<body class="font-sans text-brand-900 antialiased">
+
+<div class="flex min-h-screen">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="w-[248px] shrink-0 bg-brand-900 text-brand-100/80 flex flex-col fixed inset-y-0 left-0 z-30">
+    <div class="px-5 py-5 border-b border-white/10">
+      <div class="flex items-center gap-2.5">
+        <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0" id="brand-mark"></div>
+        <div class="leading-tight">
+          <div class="font-display font-700 text-white text-lg tracking-tight">Mkataba</div>
+          <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="px-3 py-4 flex-1 overflow-y-auto scroll-thin" id="nav">
+      <button data-view="dashboard" class="nav-item active w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="grid"></span> Dashboard
+      </button>
+      <button data-view="intel" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="trend"></span> Portfolio Intelligence
+      </button>
+      <button data-view="workspace" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="file"></span> Contract Workspace
+      </button>
+
+      <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">Folders</div>
+      <div id="side-folders" class="space-y-0.5"></div>
+
+      <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">Quick create</div>
+      <div id="side-templates" class="space-y-0.5"></div>
+    </nav>
+
+    <div class="px-3 pb-3">
+      <button id="ai-open-side" class="w-full flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-brand-900 px-3.5 py-3 text-sm font-semibold hover:brightness-105 transition shadow-lg shadow-black/20">
+        <span data-ic="sparkle"></span> Ask Mkataba AI
+      </button>
+    </div>
+
+    <div class="px-4 py-4 border-t border-white/10">
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-8 rounded-full bg-brand-700 grid place-items-center text-xs font-semibold text-brand-100">YM</div>
+        <div class="text-xs leading-tight">
+          <div class="text-white font-medium">Highland Corporate Ltd</div>
+          <div class="text-brand-300">Nairobi · Enterprise</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <main class="flex-1 ml-[248px] min-w-0">
+    <div id="content"></div>
+  </main>
+</div>
+
+<!-- ================= AI ASSISTANT (slide-over) ================= -->
+<div id="ai-scrim" class="fixed inset-0 bg-brand-900/30 backdrop-blur-[2px] z-40"></div>
+<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[420px] bg-white z-50 flex flex-col border-l border-brand-100 shadow-2xl shadow-brand-900/20">
+  <header class="px-5 py-4 border-b border-brand-100/70 flex items-center gap-3 bg-brand-900 text-white">
+    <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
+    <div class="flex-1 leading-tight">
+      <div class="font-display font-600">Mkataba AI</div>
+      <div class="text-[11px] text-brand-200 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-brand-300 live-dot"></span>Searching your live contract data</div>
+    </div>
+    <button id="ai-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
+  </header>
+
+  <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4"></div>
+
+  <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5"></div>
+
+  <footer class="px-5 pb-5 pt-2 border-t border-brand-100/70">
+    <div class="flex items-center gap-2">
+      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-brand-100 bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
+      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-900 text-white hover:bg-brand-800 transition" data-ic-big="send"></button>
+    </div>
+  </footer>
+</section>
+
+<div id="toast-root" class="fixed bottom-6 right-6 z-[60] space-y-2"></div>
+
+<script>
+/* ============================================================ ICONS */
+const ICONS = {
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+  folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  folderOpen:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  check2:'<path d="M20 6 9 17l-5-5"/>',
+  seal:'<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6z"/>',
+  ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  chevR:'<path d="m9 18 6-6-6-6"/>',
+  msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  finger:'<path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 16h.01"/><path d="M21.8 16c.2-2 .131-5.354 0-6"/><path d="M5 19.5C5.5 18 6 15 6 12a6 6 0 0 1 .34-2"/><path d="M8.65 22c.21-.66.45-1.32.57-2"/><path d="M9 6.8a6 6 0 0 1 9 5.2v2"/>',
+  key:'<path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/>',
+  building:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>',
+  truck:'<path d="M14 18V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h1"/><path d="M14 9h4l4 4v4a1 1 0 0 1-1 1h-1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  scroll:'<path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>',
+  sparkle:'<path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/>',
+  arrowLeft:'<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  coins:'<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4M16.71 13.88l.7.71-2.82 2.82"/>',
+  hash:'<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  alert:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  scan:'<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',
+  chevD:'<path d="m6 9 6 6 6-6"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  trend:'<path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/>',
+  network:'<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/>',
+};
+const icon = (n,cls='w-4 h-4',sw=2)=>`<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
+document.getElementById('brand-mark').innerHTML = icon('scroll','w-5 h-5',2.2);
+document.querySelectorAll('[data-ic]').forEach(el=>el.outerHTML=icon(el.getAttribute('data-ic')));
+document.querySelectorAll('[data-ic-big]').forEach(el=>el.innerHTML=icon(el.getAttribute('data-ic-big'),'w-[18px] h-[18px]'));
+
+/* ============================================================ STATE */
+const FIRST_PARTY = 'Highland Corporate Ltd';
+
+const FOLDERS = {
+  nda:    { id:'nda',    name:'NDAs & Confidentiality', ic:'shield',   desc:'Mutual NDAs, DPAs and data confidentiality instruments.' },
+  lease:  { id:'lease',  name:'Property & Leases',      ic:'building', desc:'Office, warehouse and commercial premises leases.' },
+  supply: { id:'supply', name:'Supply Chain & Logistics', ic:'truck',  desc:'Freight forwarding, distribution and SLA agreements.' },
+};
+const TEMPLATES = {
+  A:{ id:'A', name:'Non-Disclosure Agreement', kind:'NDA', ic:'shield', folder:'nda', valueType:'none', blurb:'Mutual confidentiality — vendor & partner onboarding.' },
+  B:{ id:'B', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'lease', valueType:'fixed', blurb:'Nairobi Tech Hub office premises lease.' },
+  C:{ id:'C', name:'B2B Freight Forwarding Agreement', kind:'Supply Chain', ic:'truck', folder:'supply', valueType:'estimated', blurb:'Cross-border logistics & freight forwarding terms.' },
+};
+
+let uid = 100;
+const nextId = () => 'MK-' + (++uid);
+const seedComments = () => ([
+  { author:'Wanjiku Kamau', role:'Legal (Internal)', side:'internal', text:'Flagged clause 4 — please confirm the governing-law reference stays Kenyan.', ts:'2d ago' },
+  { author:'Counterparty', role:'Reviewer', side:'external', text:'Agreed on scope. We will need the value confirmed before counsel signs off.', ts:'1d ago' },
+]);
+
+const state = {
+  view:'dashboard',        // dashboard | folder | workspace
+  activeId:null,
+  folderId:null,
+  folderQuery:'',
+  mapPos:{}, mapSel:null,
+  contracts:[
+    mk('Master Services Agreement','Safaricom PLC',4500000,'Under Review','A','12 Jul 2026','2026-09-15','estimated'),
+    mk('Office Lease — Westlands Tech Park','Britam Holdings',3200000,'Draft','B','15 Jul 2026',null),
+    mk('Freight Forwarding — Mombasa Corridor','Twiga Foods',8750000,'Signed','C','08 Jul 2026','2027-07-08'),
+    mk('Vendor NDA — Payments Integration','Equity Bank Kenya',0,'Under Review','A','14 Jul 2026','2026-08-10'),
+    mk('Cold-Chain Distribution Terms','Sendy Logistics',2100000,'Declined','C','02 Jul 2026',null),
+    mk('Data Processing Addendum','M-KOPA Kenya',0,'Signed','A','06 Jul 2026','2026-10-01'),
+    mk('Warehouse Lease — Industrial Area','Naivas Supermarkets',5400000,'Under Review','B','16 Jul 2026','2027-01-31'),
+    mk('Distribution SLA — Coastal Region','Kenya Breweries Ltd',6800000,'Draft','C','17 Jul 2026',null),
+    mk('Retail NDA — Loyalty Data Pilot','Carrefour Kenya',0,'Signed','A','04 Jul 2026','2026-08-30'),
+    mk('Depot Lease — Nakuru Hub','KenGen Pension Scheme',2750000,'Under Review','B','13 Jul 2026','2028-07-01'),
+    mk('Last-Mile Courier Agreement','Wasoko',1850000,'Draft','C','18 Jul 2026',null),
+    mk('Confidentiality Deed — Audit Scope','Deloitte East Africa',0,'Draft','A','18 Jul 2026',null),
+  ],
+};
+const isMonetary = c => c.valueType !== 'none';
+function mk(name,cp,value,status,tmpl,date,expiry,valueType){
+  const c = { id:nextId(), name, counterparty:cp, value, status, template:tmpl,
+    folder:TEMPLATES[tmpl].folder, valueType:valueType||TEMPLATES[tmpl].valueType,
+    lastAction:date, expiry:expiry||null, hash:null, signedAt:null,
+    signatory:'A. Otieno, Director', compliance:{iprs:false,pki:false},
+    comments:seedComments(), fields:{}, scan:null };
+  if(status==='Signed'){ c.hash='PRE-SEEDED'; c.compliance={iprs:true,pki:true}; }
+  return c;
+}
+const getContract = id => state.contracts.find(c=>c.id===id);
+const folderContracts = fid => state.contracts.filter(c=>c.folder===fid);
+
+/* ============================================================ HELPERS */
+const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
+const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
+const STATUS_STYLES = {
+  'Draft':{dot:'bg-slate-400',chip:'bg-slate-100 text-slate-700 border-slate-200'},
+  'Under Review':{dot:'bg-gold-500',chip:'bg-gold-500/10 text-gold-600 border-gold-500/25'},
+  'Signed':{dot:'bg-brand-500',chip:'bg-brand-50 text-brand-700 border-brand-200'},
+  'Declined':{dot:'bg-rose-500',chip:'bg-rose-50 text-rose-700 border-rose-200'},
+};
+const statusChip = s => { const st=STATUS_STYLES[s]||STATUS_STYLES.Draft;
+  return `<span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${st.chip}"><span class="h-1.5 w-1.5 rounded-full ${st.dot}"></span>${s}</span>`; };
+
+function toast(msg,kind='ok'){
+  const root=document.getElementById('toast-root');
+  const bg = kind==='ok'?'bg-brand-900 border-brand-700':'bg-rose-900 border-rose-700';
+  const el=document.createElement('div');
+  el.className=`toast-in flex items-center gap-2.5 rounded-xl border ${bg} text-white px-4 py-3 shadow-xl text-sm max-w-xs`;
+  el.innerHTML=`<span class="text-gold-400">${icon(kind==='ok'?'check2':'ban')}</span><span>${msg}</span>`;
+  root.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity=0;el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),300);},3200);
+}
+async function sha256(str){
+  try{ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){ let h=0; for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;} return h.toString(16).padStart(8,'0').repeat(8).slice(0,64); }
+}
+const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
+
+function metrics(){
+  const cs=state.contracts, active=cs.filter(c=>c.status!=='Declined');
+  return {
+    totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
+    pending:cs.filter(c=>c.status==='Under Review').length,
+    signed:cs.filter(c=>c.status==='Signed').length,
+    declined:cs.filter(c=>c.status==='Declined').length,
+    drafts:cs.filter(c=>c.status==='Draft').length,
+  };
+}
+
+/* ============================================================
+   SHARED: contract row (compact list item, used everywhere)
+   ============================================================ */
+function contractRow(c, {showFolder=false}={}){
+  const t=TEMPLATES[c.template];
+  return `
+  <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-3 hover:bg-brand-50/50 transition border-b border-brand-100/50 last:border-0">
+    <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500 border border-brand-100">${icon(t.ic)}</span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
+      <span class="block text-[11px] text-brand-800/45 font-mono truncate">${c.counterparty||'No counterparty yet'}${showFolder?' · '+FOLDERS[c.folder].name:''}</span>
+    </span>
+    ${(()=>{ const o=openFindings(c); if(!o.length) return '';
+      const sm=SEV_META[worstSevOf(o)];
+      return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
+    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
+    <span class="shrink-0">${statusChip(c.status)}</span>
+    <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
+  </button>`;
+}
+function wireOpens(root=document){
+  root.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-open'))));
+}
+
+/* ============================================================
+   VIEW: DASHBOARD (lean — attention queue + folders, no giant table)
+   ============================================================ */
+function renderDashboard(){
+  const m=metrics();
+  const kpis=[
+    {label:'Active value',val:fmtKESshort(m.totalValue),ic:'coins',cls:'text-brand-500'},
+    {label:'Pending counterparty',val:m.pending,ic:'clock',cls:'text-gold-500'},
+    {label:'Signed this month',val:m.signed,ic:'seal',cls:'text-brand-500'},
+    {label:'Declined / expired',val:m.declined,ic:'ban',cls:'text-rose-500'},
+  ];
+  const kpiHtml = kpis.map(k=>`
+    <div class="flex items-center gap-3 bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
+      <span class="h-9 w-9 grid place-items-center rounded-lg bg-canvas border border-brand-100 ${k.cls}">${icon(k.ic)}</span>
+      <div class="leading-tight">
+        <div class="font-display font-700 text-xl tracking-tight text-brand-900">${k.val}</div>
+        <div class="text-[11px] text-brand-800/50">${k.label}</div>
+      </div>
+    </div>`).join('');
+
+  // attention queue: drafts + under review, newest action first, cap 5
+  const attention = state.contracts
+    .filter(c=>c.status==='Draft'||c.status==='Under Review')
+    .slice(0,5);
+
+  const folderCards = Object.values(FOLDERS).map(f=>{
+    const cs=folderContracts(f.id);
+    const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+    const pending=cs.filter(c=>c.status==='Under Review').length;
+    return `
+    <button data-folder="${f.id}" class="group text-left bg-white rounded-2xl border border-brand-100/70 p-5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-900/5 hover:-translate-y-0.5 transition-all">
+      <div class="flex items-start justify-between">
+        <span class="h-10 w-10 grid place-items-center rounded-xl bg-brand-900 text-gold-400">${icon(f.ic,'w-5 h-5')}</span>
+        <span class="text-brand-300 group-hover:text-brand-500 transition">${icon('chevR')}</span>
+      </div>
+      <div class="mt-3 font-display font-600 text-brand-900">${f.name}</div>
+      <div class="text-xs text-brand-800/50 mt-0.5">${f.desc}</div>
+      <div class="mt-4 pt-3 border-t border-brand-100/60 flex items-center gap-4 text-xs">
+        <span class="font-mono text-brand-900 font-medium">${cs.length} <span class="text-brand-800/45 font-sans font-normal">contracts</span></span>
+        <span class="font-mono text-brand-900 font-medium">${fmtKESshort(val)}</span>
+        ${pending?`<span class="ml-auto inline-flex items-center gap-1 text-gold-600 font-medium">${icon('clock','w-3.5 h-3.5')}${pending} pending</span>`:''}
+      </div>
+    </button>`;
+  }).join('');
+
+  const templateChips = Object.values(TEMPLATES).map(t=>`
+    <button data-new="${t.id}" class="group flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-md hover:shadow-brand-900/5 px-3.5 py-2.5 transition-all text-left">
+      <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
+      <span class="min-w-0">
+        <span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span>
+        <span class="block text-[10px] text-brand-800/45">Template ${t.id} · opens in workspace</span>
+      </span>
+      <span class="ml-1 text-brand-400 group-hover:text-brand-600 transition">${icon('plus','w-3.5 h-3.5')}</span>
+    </button>`).join('');
+
+  document.getElementById('content').innerHTML = `
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Dashboard</h1>
+          <p class="text-xs text-brand-800/50">Jambo, Highland Corporate — here's what needs you today.</p>
+        </div>
+        <button id="topbar-ai" class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
+          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI — search or research contracts…</span>
+          <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 max-w-[1200px] space-y-6">
+
+      <!-- KPI strip -->
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">${kpiHtml}</div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
+        <div class="space-y-6">
+          <!-- Needs attention -->
+          <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/60">
+              <div class="flex items-center gap-2">
+                <span class="text-gold-500">${icon('alert')}</span>
+                <h2 class="font-display font-600 text-brand-900">Needs your attention</h2>
+              </div>
+              <span class="text-[11px] font-mono text-brand-800/40">${m.drafts} drafts · ${m.pending} in review</span>
+            </div>
+            <div>
+              ${attention.length ? attention.map(c=>contractRow(c,{showFolder:true})).join('') :
+                `<div class="px-5 py-8 text-center text-sm text-brand-800/50">All clear — nothing waiting on you. Generate a contract to get started.</div>`}
+            </div>
+          </section>
+
+          <!-- Folders -->
+          <section>
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="font-display font-600 text-brand-900">Folders</h2>
+              <span class="text-[11px] text-brand-800/40">Contracts are filed automatically by agreement type</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">${folderCards}</div>
+          </section>
+        </div>
+
+        <!-- Right rail -->
+        <aside class="space-y-4">
+          <div class="rounded-2xl bg-brand-900 text-white p-5">
+            <div class="flex items-center gap-2">
+              <span class="text-gold-400">${icon('sparkle')}</span>
+              <h3 class="font-display font-600">Mkataba AI</h3>
+            </div>
+            <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
+            <div class="mt-3 space-y-1.5">
+              ${['What is pending counterparty action?','Total value of signed contracts','Summarize the Safaricom agreement'].map(q=>`
+                <button data-ai-q="${q}" class="w-full text-left text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 transition text-brand-100/90">"${q}"</button>`).join('')}
+            </div>
+            <button id="rail-ai-open" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-gold-500 text-brand-900 py-2.5 text-sm font-semibold hover:brightness-105 transition">${icon('sparkle')} Open assistant</button>
+          </div>
+
+          <div class="rounded-2xl border border-brand-100/70 bg-white p-5">
+            <h3 class="font-display font-600 text-brand-900 text-sm">Quick create</h3>
+            <p class="text-xs text-brand-800/50 mt-0.5 mb-3">Vetted Kenyan boilerplate templates.</p>
+            <div class="space-y-2">${templateChips}</div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>`;
+
+  wireOpens();
+  document.querySelectorAll('[data-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-folder'))));
+  document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
+  document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
+  document.getElementById('rail-ai-open').addEventListener('click',()=>openAI());
+  document.querySelectorAll('[data-ai-q]').forEach(el=>el.addEventListener('click',()=>openAI(el.getAttribute('data-ai-q'))));
+  setActiveNav('dashboard');
+}
+
+/* ============================================================
+   VIEW: FOLDER (filtered register + local search)
+   ============================================================ */
+function renderFolder(){
+  const f=FOLDERS[state.folderId];
+  if(!f){ setView('dashboard'); return; }
+  const q=state.folderQuery.trim().toLowerCase();
+  let cs=folderContracts(f.id);
+  if(q) cs=cs.filter(c=>(c.name+' '+c.counterparty+' '+c.id).toLowerCase().includes(q));
+  const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="back-dash" class="h-9 w-9 grid place-items-center rounded-lg border border-brand-100 bg-white text-brand-700 hover:bg-brand-50 transition shrink-0">${icon('arrowLeft')}</button>
+          <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400 shrink-0">${icon(f.ic)}</span>
+          <div class="min-w-0">
+            <h1 class="font-display font-700 text-lg tracking-tight text-brand-900 truncate">${f.name}</h1>
+            <p class="text-[11px] font-mono text-brand-800/45">${cs.length} contracts · ${fmtKESshort(val)} active value</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 w-72 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition">
+          ${icon('search','w-4 h-4 text-brand-800/40')}
+          <input id="folder-search" value="${state.folderQuery.replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" class="flex-1 text-sm outline-none bg-transparent"/>
+        </div>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 max-w-[1000px]">
+      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        ${cs.length ? cs.map(c=>contractRow(c)).join('') : `
+          <div class="px-5 py-10 text-center">
+            <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
+            <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
+            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+          </div>`}
+      </section>
+    </div>
+  </div>`;
+
+  wireOpens();
+  document.getElementById('back-dash').addEventListener('click',()=>setView('dashboard'));
+  const si=document.getElementById('folder-search');
+  si.addEventListener('input',()=>{ state.folderQuery=si.value; renderFolderListOnly(); });
+  si.focus(); si.setSelectionRange(si.value.length,si.value.length);
+  setActiveNav('folder');
+}
+// re-render only list body on keystroke (keeps input focus)
+function renderFolderListOnly(){
+  const f=FOLDERS[state.folderId]; if(!f) return;
+  const q=state.folderQuery.trim().toLowerCase();
+  let cs=folderContracts(f.id);
+  if(q) cs=cs.filter(c=>(c.name+' '+c.counterparty+' '+c.id).toLowerCase().includes(q));
+  const section=document.querySelector('#content section');
+  if(!section) return;
+  section.innerHTML = cs.length ? cs.map(c=>contractRow(c)).join('') : `
+    <div class="px-5 py-10 text-center">
+      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
+      <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
+      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+    </div>`;
+  wireOpens(section);
+}
+
+/* ============================================================
+   DOC BODY + WORKSPACE (as before)
+   ============================================================ */
+function docBody(c){
+  const t=TEMPLATES[c.template];
+  const locked=c.status==='Signed';
+  const dis=locked?'disabled':'';
+  const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
+  const fText=(id,val,ph='')=>`<input ${dis} type="text" value="${val||''}" placeholder="${ph}" data-field="${id}" class="field"/>`;
+  const fNum=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" class="field field-num"/>`;
+  const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
+  const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" class="field field-num"/>`;
+  const clause=(n,title,body)=>`<div class="mb-5 px-2 -mx-2 py-1" data-anchor="c${n}"><h4 class="font-display font-600 text-brand-900 text-[13px] mb-1.5">${n}. ${title}</h4><p class="text-[13.5px] leading-[1.85] text-brand-800/85">${body}</p></div>`;
+  let title,recital,clauses;
+  if(c.template==='A'){
+    title='MUTUAL NON-DISCLOSURE AGREEMENT';
+    recital=`This Mutual Non-Disclosure Agreement (the "Agreement") is entered into on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong>, a company incorporated in the Republic of Kenya (the "Disclosing Party"), and ${CP} (the "Receiving Party"), collectively the "Parties".`;
+    clauses=[
+      clause(1,'Purpose', isMonetary(c)
+        ? `The Parties wish to explore a potential business relationship with an estimated commercial value of KES ${VAL} and, in connection therewith, may disclose to each other certain confidential and proprietary information.`
+        : `The Parties wish to explore a potential business relationship and, in connection therewith, may disclose to each other certain confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
+      clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, whether orally, in writing, or by inspection of tangible objects, including commercial terms, pricing, and customer data.`),
+      clause(3,'Term',`This Agreement shall remain in force for a period of ${fNum('termYears',c.fields.termYears||3)} years from the effective date, unless terminated earlier by written notice served to the registered office in Nairobi.`),
+      clause(4,'Governing Law',`This Agreement shall be governed by and construed in accordance with the laws of the Republic of Kenya, and the Parties submit to the exclusive jurisdiction of the Courts at Nairobi.`),
+    ];
+  } else if(c.template==='B'){
+    title='COMMERCIAL PROPERTY LEASE AGREEMENT';
+    recital=`This Lease is made on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong> (the "Landlord") and ${CP} (the "Tenant") in respect of commercial premises situated at the ${fText('premises',c.fields.premises,'e.g. Nairobi Tech Hub, Westlands')}, Nairobi.`;
+    clauses=[
+      clause(1,'Demised Premises',`The Landlord leases to the Tenant office space measuring ${fNum('sqm',c.fields.sqm||420)} square metres within the Nairobi Tech Hub, together with shared access to fibre, backup power, and secure parking.`),
+      clause(2,'Rent',`The Tenant shall pay monthly rent of KES ${VAL}, payable in advance on or before the 5th day of each calendar month, exclusive of Value Added Tax at the prevailing KRA rate.`),
+      clause(3,'Term & Deposit',`The lease term is ${fNum('termYears',c.fields.termYears||6)} years, secured by a deposit of ${fNum('deposit',c.fields.deposit,'deposit KES')} held against dilapidations and refundable per clause 7.`),
+      clause(4,'Governing Law',`This Lease is governed by the laws of Kenya, including the Land Act (2012) and the Landlord and Tenant Act, with disputes referred to the Environment and Land Court at Nairobi.`),
+    ];
+  } else {
+    title='B2B FREIGHT FORWARDING & SUPPLY CHAIN AGREEMENT';
+    recital=`This Freight Forwarding Agreement is entered into on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong> (the "Forwarder") and ${CP} (the "Client") for the provision of integrated logistics services along the Northern Corridor.`;
+    clauses=[
+      clause(1,'Scope of Services',`The Forwarder shall arrange collection, customs clearance at ${fText('port',c.fields.port,'e.g. Port of Mombasa')}, warehousing, and last-mile distribution of the Client's consignments within Kenya and the wider EAC.`),
+      clause(2,'Contract Value & Rates',`The estimated annual contract value is KES ${VAL}, billed against agreed per-container rates and reconciled monthly. All figures are quoted exclusive of statutory levies.`),
+      clause(3,'Service Levels',`The Forwarder commits to a clearance turnaround of ${fNum('slaHrs',c.fields.slaHrs||48)} hours and a delivery reliability target of 98%, measured against the KPI schedule in Annexure A.`),
+      clause(4,'Liability & Governing Law',`Liability is capped per the Carriage of Goods rules applicable in Kenya. This Agreement is governed by Kenyan law with arbitration seated in Nairobi under the Nairobi Centre for International Arbitration.`),
+    ];
+  }
+  return `
+    <div class="mb-6 pb-5 border-b border-brand-100">
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/40 mb-2">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${title}</h3>
+    </div>
+    <p class="text-[13.5px] leading-[1.9] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
+    ${clauses.join('')}
+    ${signatureBlock(c)}`;
+}
+function signatureBlock(c){
+  const locked=c.status==='Signed';
+  if(locked){
+    const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('a7f3'+generatePseudo(c.id));
+    return `
+    <div class="seal-in mt-8 rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5">
+      <div class="flex items-start gap-4">
+        <div class="h-14 w-14 shrink-0 grid place-items-center rounded-full bg-brand-900 text-gold-400 ring-4 ring-gold-500/15">${icon('seal','w-7 h-7')}</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2"><span class="font-display font-700 text-brand-900">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
+          <div class="mt-1 text-xs text-brand-800/60">Signed by <strong>${c.signatory}</strong> for ${FIRST_PARTY}, countersigned by ${c.counterparty||'the Counterparty'}.</div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
+            <div class="rounded-lg bg-white border border-brand-100 p-2.5">
+              <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon('finger','w-3 h-3')} IPRS Identity</div>
+              <div class="font-medium text-brand-700">Verified</div>
+            </div>
+            <div class="rounded-lg bg-white border border-brand-100 p-2.5">
+              <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon('key','w-3 h-3')} CAK PKI Token</div>
+              <div class="font-medium text-brand-700">Attached</div>
+            </div>
+          </div>
+          <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} SHA-256 DOCUMENT SEAL</div>
+            <div class="text-brand-100 break-all">${hashDisplay}</div>
+            <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded on ledger'}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
+      <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
+      <div class="text-sm font-medium text-brand-800/70">Signature block — pending execution</div>
+      <div class="text-xs text-brand-800/45 mt-0.5">Complete verification and sign from the panel on the right.</div>
+    </div>`;
+}
+
+function renderWorkspace(){
+  const c=getContract(state.activeId);
+  const content=document.getElementById('content');
+  if(!c){
+    content.innerHTML=`
+    <div class="view-enter grid place-items-center min-h-screen px-8">
+      <div class="text-center max-w-sm">
+        <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
+        <h2 class="font-display font-600 text-lg text-brand-900">No contract open</h2>
+        <p class="text-sm text-brand-800/55 mt-1">Open a folder from the dashboard, or generate a contract from a template.</p>
+        <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} Go to dashboard</button>
+      </div>
+    </div>`;
+    setActiveNav('workspace'); return;
+  }
+  const locked=c.status==='Signed';
+  content.innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-6 py-3.5 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="ws-back" class="h-9 w-9 grid place-items-center rounded-lg border border-brand-100 bg-white text-brand-700 hover:bg-brand-50 transition shrink-0">${icon('arrowLeft')}</button>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <h1 class="font-display font-600 text-brand-900 truncate">${c.name}</h1>
+              <span id="ws-status">${statusChip(c.status)}</span>
+            </div>
+            <div class="text-[11px] font-mono text-brand-800/45">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+          </div>
+        </div>
+        <button id="ws-ai" class="hidden sm:flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition shrink-0">
+          ${icon('sparkle','w-3.5 h-3.5 text-gold-500')} Ask AI about this contract
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-0 lg:h-[calc(100vh-61px)]">
+      <section class="overflow-y-auto scroll-thin border-r border-brand-100/70 bg-canvas">
+        <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
+          ${!locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`
+                  :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked. Fields are read-only.</span></div>`}
+          <article class="bg-white rounded-2xl border border-brand-100 shadow-sm shadow-brand-900/5 p-7 lg:p-9" id="doc-canvas">${docBody(c)}</article>
+          <div class="h-8"></div>
+        </div>
+      </section>
+
+      <aside class="overflow-y-auto scroll-thin bg-white flex flex-col">
+        <div class="px-5 pt-5 pb-4 border-b border-brand-100/70">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-800/45 mb-2.5">Deal summary</div>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Counterparty</span><span id="meta-cp" class="text-sm font-medium text-brand-900 text-right max-w-[200px] truncate">${c.counterparty||'—'}</span></div>
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Contract value</span><span id="meta-value" class="text-sm font-mono font-semibold ${isMonetary(c)?'text-brand-700':'text-brand-800/45'}">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+          </div>
+        </div>
+
+        <div id="scan-section" class="border-b border-brand-100/70"></div>
+
+        <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-brand-500">${icon('msg')}</span>
+            <h3 class="text-sm font-display font-600 text-brand-900">Activity &amp; Comments</h3>
+            <span class="ml-auto flex items-center gap-1 text-[10px] text-brand-500 font-medium"><span class="h-1.5 w-1.5 rounded-full bg-brand-500 live-dot"></span>live</span>
+          </div>
+          <div id="feed" class="space-y-3 overflow-y-auto scroll-thin flex-1 pr-1"></div>
+          <div class="mt-3 pt-3 border-t border-brand-100/60">
+            <div class="flex items-center gap-1.5 mb-2">
+              <button id="as-internal" class="as-btn active text-[11px] px-2 py-1 rounded-md border font-medium transition">Internal team</button>
+              <button id="as-external" class="as-btn text-[11px] px-2 py-1 rounded-md border font-medium transition">Counterparty</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <input id="comment-input" type="text" placeholder="Add a comment on the terms…" class="flex-1 rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
+              <button id="comment-send" class="h-9 w-9 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-white hover:bg-brand-800 transition">${icon('send')}</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="px-5 py-4 border-b border-brand-100/70">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-gold-500">${icon('shield')}</span>
+            <h3 class="text-sm font-display font-600 text-brand-900">Kenyan Legal Verification</h3>
+          </div>
+          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition mb-2 ${locked?'opacity-70 pointer-events-none':''}">
+            <input type="checkbox" data-comp="iprs" ${c.compliance.iprs?'checked':''} ${locked?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
+            <span class="text-xs">
+              <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('finger','w-3.5 h-3.5')} Verify Identity via National IPRS Database</span>
+              <span class="text-brand-800/50">Integrated Population Registration System check on signatory.</span>
+            </span>
+          </label>
+          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${locked?'opacity-70 pointer-events-none':''}">
+            <input type="checkbox" data-comp="pki" ${c.compliance.pki?'checked':''} ${locked?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
+            <span class="text-xs">
+              <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('key','w-3.5 h-3.5')} Attach CAK-Approved PKI Token</span>
+              <span class="text-brand-800/50">Advanced e-signature under the Kenya Information &amp; Communications Act.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="px-5 py-4 sticky bottom-0 bg-white border-t border-brand-100/70"><div id="sign-wrap"></div></div>
+      </aside>
+    </div>
+  </div>`;
+
+  scanUI = { running:false, filter:'all', expanded:new Set() };
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c);
+  document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
+  document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+  setActiveNav('workspace');
+}
+
+/* -------- doc field sync -------- */
+function wireDocumentSync(c){
+  const canvas=document.getElementById('doc-canvas');
+  canvas.querySelectorAll('[data-sync]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const key=inp.getAttribute('data-sync');
+      if(key==='value'){
+        c.value=inp.value===''?0:Number(inp.value);
+        const mv=document.getElementById('meta-value');
+        mv.textContent=c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—';
+        mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
+      } else if(key==='counterparty'){
+        c.counterparty=inp.value;
+        document.getElementById('meta-cp').textContent=c.counterparty||'—';
+      }
+      if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){ c.status='Under Review'; updateStatusUI(c); }
+    });
+  });
+  canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{ c.fields[inp.getAttribute('data-field')]=inp.value; }));
+}
+function updateStatusUI(c){
+  const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
+  if(ms) ms.innerHTML=statusChip(c.status);
+  if(ws) ws.innerHTML=statusChip(c.status);
+}
+
+/* -------- comments -------- */
+let commentAs='internal';
+function renderFeed(c){
+  const feed=document.getElementById('feed');
+  feed.innerHTML=c.comments.map(m=>{
+    const internal=m.side==='internal';
+    const avatarBg=internal?'bg-brand-100 text-brand-700':'bg-gold-500/15 text-gold-600';
+    const initials=m.author.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `
+    <div class="flex gap-2.5">
+      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-full text-[10px] font-semibold ${avatarBg}">${initials}</div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs font-medium text-brand-900">${m.author}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${m.role}</span>
+          <span class="text-[10px] text-brand-800/40 ml-auto">${m.ts}</span>
+        </div>
+        <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${m.text}</p>
+      </div>
+    </div>`;
+  }).join('');
+  feed.scrollTop=feed.scrollHeight;
+}
+function wireComments(c){
+  const input=document.getElementById('comment-input');
+  const send=document.getElementById('comment-send');
+  const bi=document.getElementById('as-internal'), be=document.getElementById('as-external');
+  const setAs=who=>{ commentAs=who; [bi,be].forEach(b=>b.classList.remove('active')); (who==='internal'?bi:be).classList.add('active'); styleAsBtns(); };
+  bi.addEventListener('click',()=>setAs('internal')); be.addEventListener('click',()=>setAs('external'));
+  styleAsBtns();
+  const post=()=>{
+    const text=input.value.trim(); if(!text) return;
+    const internal=commentAs==='internal';
+    c.comments.push({author:internal?'You (Highland Corporate)':c.counterparty||'Counterparty',role:internal?'Legal (Internal)':'Reviewer',side:commentAs,text,ts:'just now'});
+    input.value=''; renderFeed(c);
+    if(internal&&Math.random()>0.35){
+      setTimeout(()=>{
+        c.comments.push({author:c.counterparty||'Counterparty',role:'Reviewer',side:'external',text:pickReply(),ts:'just now'});
+        renderFeed(c); toast('New comment from '+(c.counterparty||'the counterparty'));
+      },1400);
+    }
+  };
+  send.addEventListener('click',post);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+}
+function styleAsBtns(){
+  document.querySelectorAll('.as-btn').forEach(b=>{
+    const base=['as-btn','text-[11px]','px-2','py-1','rounded-md','border','font-medium','transition'];
+    if(b.classList.contains('active')) b.className=[...base,'active','bg-brand-900','text-white','border-brand-900'].join(' ');
+    else b.className=[...base,'bg-white','text-brand-700','border-brand-200'].join(' ');
+  });
+}
+const pickReply=()=>['Noted — routing this to our counsel for sign-off today.','Understood. The commercial value looks right on our side.','Thanks. We are comfortable proceeding to signature.','One query on the term length, otherwise we are aligned.'][Math.floor(Math.random()*4)];
+
+/* -------- compliance + signing -------- */
+function wireCompliance(c){
+  document.querySelectorAll('[data-comp]').forEach(cb=>cb.addEventListener('change',()=>{ c.compliance[cb.getAttribute('data-comp')]=cb.checked; renderSignButton(c); }));
+}
+function renderSignButton(c){
+  const wrap=document.getElementById('sign-wrap'); if(!wrap) return;
+  if(c.status==='Signed'){
+    wrap.innerHTML=`<div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>`;
+    return;
+  }
+  const ready=c.compliance.iprs&&c.compliance.pki&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
+  const missing=[];
+  if(!c.counterparty)missing.push('counterparty name');
+  if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
+  if(!c.compliance.iprs)missing.push('IPRS check');
+  if(!c.compliance.pki)missing.push('PKI token');
+  wrap.innerHTML=`
+    <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/40 cursor-not-allowed'}">
+      ${icon('finger','w-[18px] h-[18px]')} Sign Document
+    </button>
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/45">Applies a SHA-256 seal and locks the document.</p>`
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/45">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')}</span></p>`}
+    ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
+      return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
+  if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
+}
+async function signDocument(c){
+  const btn=document.getElementById('sign-btn');
+  btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
+  const stamp=new Date();
+  c.signedAt=stamp.toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})+' EAT';
+  c.lastAction=stamp.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  c.hash=await sha256(`${c.id}|${c.name}|${FIRST_PARTY}|${c.counterparty}|${c.value}|${c.signedAt}`);
+  c.status='Signed';
+  document.querySelectorAll('#doc-canvas [data-sync], #doc-canvas [data-field]').forEach(i=>i.disabled=true);
+  document.getElementById('doc-canvas').innerHTML=docBody(c);
+  updateStatusUI(c); renderSignButton(c);
+  toast('Document signed and cryptographically sealed');
+}
+
+
+
+/* ============================================================
+   VIEW: DEAL MAP  (force-directed graph of the portfolio)
+   ============================================================ */
+const REL_SEEDS = [ // name-matched so IDs stay dynamic
+  { from:'Cold-Chain Distribution Terms', to:'Freight Forwarding \u2014 Mombasa Corridor', label:'re-tendered as' },
+  { from:'Vendor NDA \u2014 Payments Integration', to:'Master Services Agreement', label:'precedes' },
+  { from:'Warehouse Lease \u2014 Industrial Area', to:'Last-Mile Courier Agreement', label:'supports' },
+];
+const STATUS_BAR = {'Draft':'#94a3b8','Under Review':'#C79A3E','Signed':'#0B7A5F','Declined':'#f43f5e'};
+const KIND_TAG = {nda:{t:'NDA',c:'#7c3aed'},lease:{t:'LEASE',c:'#0369a1'},supply:{t:'SUPPLY',c:'#b45309'},party:{t:'PARTY',c:'#0B7A5F'}};
+
+function buildGraph(){
+  const nodes=[], edges=[];
+  const trunc=(s,n=24)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
+  // contract nodes
+  state.contracts.forEach(c=>{
+    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?fmtKESshort(c.value):'\u2014'),
+      kind:c.folder, bar:STATUS_BAR[c.status], w:0,h:0,x:0,y:0 });
+  });
+  // party nodes (aggregate)
+  const parties={};
+  state.contracts.forEach(c=>{ if(!c.counterparty) return;
+    (parties[c.counterparty]||(parties[c.counterparty]=[])).push(c); });
+  Object.entries(parties).forEach(([name,cs])=>{
+    const val=cs.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+    nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtKESshort(val),
+      kind:'party', bar:'#08211E', w:0,h:0,x:0,y:0 });
+    cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
+  });
+  // seeded contract-to-contract relations
+  REL_SEEDS.forEach(r=>{
+    const a=state.contracts.find(c=>c.name===r.from), b=state.contracts.find(c=>c.name===r.to);
+    if(a&&b) edges.push({from:a.id, to:b.id, label:r.label});
+  });
+  const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  edges.forEach(e=>{e.s=byId[e.from]; e.t=byId[e.to];});
+  const adj={}; nodes.forEach(n=>adj[n.id]=new Set());
+  edges.forEach(e=>{adj[e.from].add(e.to); adj[e.to].add(e.from);});
+  return {nodes, edges, adj};
+}
+
+function layoutGraph(nodes, edges, W, H){
+  let seed=11; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff;};
+  const groups=['nda','lease','supply','party'];
+  const gA={}; groups.forEach((g,i)=>gA[g]=i/groups.length*Math.PI*2 - Math.PI/3);
+  nodes.forEach(n=>{
+    if(state.mapPos[n.id]){ n.x=state.mapPos[n.id].x; n.y=state.mapPos[n.id].y; n.pinned=true; return; }
+    const a=gA[n.kind]+(rnd()-.5)*1.1, r=Math.min(W,H)*(n.type==='party'?0.18:0.34);
+    n.x=W/2+Math.cos(a)*r+(rnd()-.5)*40; n.y=H/2+Math.sin(a)*r+(rnd()-.5)*40;
+  });
+  for(let it=0; it<340; it++){
+    const cool=1-it/340;
+    for(let i=0;i<nodes.length;i++) for(let j=i+1;j<nodes.length;j++){
+      const a=nodes[i],b=nodes[j];
+      let dx=a.x-b.x, dy=a.y-b.y; const d2=dx*dx+dy*dy+1, d=Math.sqrt(d2);
+      const rep=Math.min(28, 14000/d2)*cool;
+      dx/=d; dy/=d;
+      if(!a.pinned){a.x+=dx*rep; a.y+=dy*rep;} if(!b.pinned){b.x-=dx*rep; b.y-=dy*rep;}
+    }
+    edges.forEach(e=>{
+      let dx=e.t.x-e.s.x, dy=e.t.y-e.s.y; const d=Math.sqrt(dx*dx+dy*dy)+.01;
+      const f=(d-165)*0.02*cool; dx/=d; dy/=d;
+      if(!e.s.pinned){e.s.x+=dx*f*d*0.01+dx*f; e.s.y+=dy*f;} if(!e.t.pinned){e.t.x-=dx*f; e.t.y-=dy*f;}
+    });
+    nodes.forEach(n=>{ if(n.pinned) return;
+      n.x+=(W/2-n.x)*0.006; n.y+=(H/2-n.y)*0.006;
+      n.x=Math.max(110,Math.min(W-110,n.x)); n.y=Math.max(70,Math.min(H-70,n.y)); });
+  }
+}
+
+/* ============================================================
+   VIEW: PORTFOLIO INTELLIGENCE
+   ============================================================ */
+const SEV_WEIGHT = {high:5, med:2, low:1};
+const riskScore = c => openFindings(c).reduce((s,f)=>s+SEV_WEIGHT[f.sev],0);
+const daysUntil = iso => Math.ceil((new Date(iso+'T00:00:00') - Date.now())/86400000);
+let intelUI = { scanning:false, scannedAt:null };
+
+function scanPortfolio(){
+  state.contracts.forEach(c=>runScan(c));
+  intelUI.scannedAt = new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
+}
+
+function renderIntel(){
+  const cs = state.contracts;
+  const scanned = cs.filter(c=>c.scan);
+  const allScanned = scanned.length===cs.length && cs.length>0;
+
+  /* ---- header stats ---- */
+  const openAll = scanned.flatMap(c=>openFindings(c));
+  const highN = openAll.filter(f=>f.sev==='high').length;
+  const atRisk = scanned.filter(c=>openFindings(c).some(f=>f.sev==='high'))
+                        .reduce((s,c)=>s+Number(c.value||0),0);
+
+  /* ---- expiry radar (independent of scan) ---- */
+  const expiring = cs.filter(c=>c.expiry && c.status!=='Declined')
+    .map(c=>({c, d:daysUntil(c.expiry)}))
+    .filter(x=>x.d>=0 && x.d<=90)
+    .sort((a,b)=>a.d-b.d);
+
+  /* ---- quadrant data (monetary scatter + non-monetary lane) ---- */
+  const pts = scanned.filter(c=>isMonetary(c)).map(c=>({c, v:Number(c.value||0), r:riskScore(c)}));
+  const nmPts = scanned.filter(c=>!isMonetary(c)).map((c,i)=>({c, i, r:riskScore(c)}));
+  const maxV = Math.max(1, ...pts.map(p=>p.v));
+  const maxR = Math.max(6, ...pts.map(p=>p.r), ...nmPts.map(p=>p.r));
+  const vals = pts.map(p=>p.v).sort((a,b)=>a-b);
+  const medV = vals.length ? vals[Math.floor(vals.length/2)] : 0;
+  const CW=900, CH=400, P={l:64,r:24,t:30,b:44};
+  const LANE = nmPts.length ? 70 : 0;
+  const X = v => P.l+LANE + (v/maxV)*(CW-P.l-LANE-P.r);
+  const Y = r => CH-P.b - (r/maxR)*(CH-P.t-P.b);
+  const riskLine = 5; // any high finding crosses it
+
+  const dotCol = c => { const o=openFindings(c);
+    if(!o.length) return '#0B7A5F';
+    const w=worstSevOf(o); return w==='high'?'#f43f5e':w==='med'?'#C79A3E':'#94a3b8'; };
+
+  const chart = !allScanned ? `
+    <div class="grid place-items-center h-[300px] text-center">
+      <div>
+        <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('scan','w-5 h-5')}</div>
+        <div class="text-sm font-medium text-brand-900">${scanned.length ? scanned.length+' of '+cs.length+' contracts scanned' : 'The portfolio hasn\u2019t been scanned yet'}</div>
+        <div class="text-xs text-brand-800/50 mt-1 max-w-xs">Run a portfolio scan to place every contract on the risk\u2013value map and roll up findings across the book.</div>
+      </div>
+    </div>` : `
+    <svg viewBox="0 0 ${CW} ${CH}" class="w-full">
+      <rect x="${X(medV)}" y="${P.t}" width="${CW-P.r-X(medV)}" height="${Y(riskLine)-P.t}" fill="#f43f5e" opacity="0.045"/>
+      <line x1="${P.l}" y1="${Y(riskLine)}" x2="${CW-P.r}" y2="${Y(riskLine)}" stroke="#C79A3E" stroke-width="1" stroke-dasharray="4 4" opacity=".6"/>
+      <line x1="${X(medV)}" y1="${P.t}" x2="${X(medV)}" y2="${CH-P.b}" stroke="#9FD5C2" stroke-width="1" stroke-dasharray="4 4"/>
+      ${LANE?`<rect x="${P.l+3}" y="${P.t}" width="${LANE-14}" height="${CH-P.t-P.b}" rx="8" fill="#08211E" opacity="0.04"/>
+      <line x1="${P.l+LANE-6}" y1="${P.t}" x2="${P.l+LANE-6}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1"/>
+      <text x="${P.l+LANE/2-4}" y="${(P.t+CH-P.b)/2}" font-size="8.5" font-weight="700" letter-spacing=".12em" fill="#8aa198" transform="rotate(-90 ${P.l+LANE/2-4} ${(P.t+CH-P.b)/2})" text-anchor="middle">NON-MONETARY</text>`:''}
+      <line x1="${P.l}" y1="${CH-P.b}" x2="${CW-P.r}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1.4"/>
+      <line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1.4"/>
+      <text x="${CW-P.r-6}" y="${P.t+14}" text-anchor="end" font-size="10" font-weight="700" fill="#f43f5e" opacity=".8">WATCHLIST \u2014 high value \u00b7 high risk</text>
+      <text x="${P.l+6}" y="${P.t+14}" font-size="10" font-weight="600" fill="#C79A3E" opacity=".75">Housekeeping</text>
+      <text x="${CW-P.r-6}" y="${CH-P.b-8}" text-anchor="end" font-size="10" font-weight="600" fill="#0B7A5F" opacity=".75">Healthy core</text>
+      <text x="${P.l+6}" y="${CH-P.b-8}" font-size="10" font-weight="600" fill="#8aa198">Long tail</text>
+      <text x="${(P.l+CW-P.r)/2}" y="${CH-10}" text-anchor="middle" font-size="10" fill="#8aa198" font-family="'JetBrains Mono',monospace">contract value (KES) \u2192  median ${fmtKESshort(medV)}</text>
+      <text x="16" y="${(P.t+CH-P.b)/2}" font-size="10" fill="#8aa198" font-family="'JetBrains Mono',monospace" transform="rotate(-90 16 ${(P.t+CH-P.b)/2})" text-anchor="middle">risk score \u2192</text>
+      ${pts.map(p=>`<circle class="qdot" data-open="${p.c.id}" cx="${X(p.v)}" cy="${Y(p.r)}" r="${7+Math.sqrt(p.v/maxV)*6}" fill="${dotCol(p.c)}" fill-opacity=".82" stroke="transparent"><title>${p.c.name.replace(/&/g,'&amp;')} \u00b7 ${fmtKESshort(p.v)}${p.c.valueType==='estimated'?' (est.)':''} \u00b7 risk ${p.r}${openFindings(p.c).length?' \u00b7 '+openFindings(p.c).length+' open findings':' \u00b7 clean'}</title></circle>`).join('')}
+      ${nmPts.map(p=>`<circle class="qdot" data-open="${p.c.id}" cx="${P.l+16+(p.i%3)*14}" cy="${Y(p.r)}" r="6.5" fill="${dotCol(p.c)}" fill-opacity=".82" stroke="transparent"><title>${p.c.name.replace(/&/g,'&amp;')} \u00b7 non-monetary \u00b7 risk ${p.r}${openFindings(p.c).length?' \u00b7 '+openFindings(p.c).length+' open findings':' \u00b7 clean'}</title></circle>`).join('')}
+    </svg>`;
+
+  /* ---- aggregated findings across the book ---- */
+  const agg = {};
+  scanned.forEach(c=>openFindings(c).forEach(f=>{
+    (agg[f.id] || (agg[f.id]={id:f.id, title:f.title, sev:f.sev, kind:f.kind, fix:f.fix, cs:[]})).cs.push(c);
+  }));
+  const aggList = Object.values(agg).sort((a,b)=>SEV_RANK[b.sev]-SEV_RANK[a.sev] || b.cs.length-a.cs.length);
+  const aggHtml = !allScanned ? `<div class="px-5 py-6 text-center text-xs text-brand-800/50">Run the portfolio scan to aggregate findings across the book.</div>`
+    : !aggList.length ? `<div class="px-5 py-6 text-center text-xs text-brand-800/50">No open findings anywhere \u2014 the book is clean.</div>`
+    : aggList.map(a=>{
+      const sm=SEV_META[a.sev];
+      const exposure=a.cs.reduce((s,c)=>s+Number(c.value||0),0);
+      return `
+      <div class="px-5 py-3.5 border-b border-brand-100/50 last:border-0">
+        <div class="flex items-center gap-2">
+          <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
+          <span class="text-sm font-medium text-brand-900 flex-1 min-w-0 truncate">${a.title}</span>
+          <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
+          <span class="text-xs font-mono text-brand-900 whitespace-nowrap">${a.cs.length}\u00d7 \u00b7 ${fmtKESshort(exposure)}</span>
+        </div>
+        <p class="mt-1 ml-3.5 text-[11px] text-brand-800/55 leading-relaxed">${a.fix}</p>
+        <div class="mt-1.5 ml-3.5 flex flex-wrap gap-1.5">
+          ${a.cs.map(c=>`<button data-open="${c.id}" class="text-[10px] font-mono rounded-full border border-brand-100 bg-canvas hover:border-brand-400 px-2 py-0.5 text-brand-700 transition">${c.id} \u00b7 ${(c.counterparty||'draft').split(' ')[0]}</button>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+  /* ---- counterparty concentration ---- */
+  const partyMap={};
+  cs.filter(c=>c.counterparty && c.status!=='Declined').forEach(c=>{
+    (partyMap[c.counterparty]||(partyMap[c.counterparty]={name:c.counterparty, cs:[], val:0})).cs.push(c);
+    partyMap[c.counterparty].val += Number(c.value||0);
+  });
+  const totalActive = Object.values(partyMap).reduce((s,p)=>s+p.val,0)||1;
+  const parties = Object.values(partyMap).sort((a,b)=>b.val-a.val);
+  const concHtml = parties.map(p=>{
+    const pct=p.val/totalActive*100;
+    const flag=pct>25;
+    return `
+    <button data-party="${p.name.replace(/"/g,'&quot;')}" class="w-full text-left px-5 py-3 border-b border-brand-100/50 last:border-0 hover:bg-brand-50/50 transition group">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-brand-900 flex-1 min-w-0 truncate group-hover:text-brand-600 transition">${p.name}</span>
+        ${flag?`<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-600">${icon('alert','w-3 h-3')} concentration</span>`:''}
+        <span class="text-xs font-mono text-brand-900 whitespace-nowrap">${fmtKESshort(p.val)} \u00b7 ${pct.toFixed(0)}%</span>
+      </div>
+      <div class="mt-1.5 h-1.5 rounded-full bg-brand-50 overflow-hidden">
+        <div class="h-full rounded-full ${flag?'bg-rose-400':'bg-brand-400'}" style="width:${Math.max(2,pct)}%"></div>
+      </div>
+      <div class="mt-1 text-[10px] text-brand-800/45">${p.cs.length} agreement${p.cs.length===1?'':'s'}${(n=>n?` \u00b7 ${n} non-monetary`:'')(p.cs.filter(c=>!isMonetary(c)).length)} \u00b7 tap for relationship view</div>
+    </button>`;
+  }).join('');
+
+  /* ---- expiry radar html ---- */
+  const expHtml = expiring.length ? expiring.map(x=>{
+    const urg = x.d<=30?'rose':x.d<=60?'gold':'slate';
+    const cls = urg==='rose'?'bg-rose-50 text-rose-700 border-rose-200':urg==='gold'?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-slate-100 text-slate-600 border-slate-200';
+    return `
+    <button data-open="${x.c.id}" class="w-full text-left flex items-center gap-3 px-5 py-3 border-b border-brand-100/50 last:border-0 hover:bg-brand-50/50 transition group">
+      <span class="inline-flex flex-col items-center justify-center h-11 w-11 shrink-0 rounded-xl border ${cls}">
+        <span class="text-sm font-display font-700 leading-none">${x.d}</span>
+        <span class="text-[8px] uppercase tracking-wider">days</span>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${x.c.name}</span>
+        <span class="block text-[11px] font-mono text-brand-800/45">${x.c.counterparty} \u00b7 lapses ${new Date(x.c.expiry).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+      </span>
+      <span class="text-xs font-mono whitespace-nowrap ${isMonetary(x.c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(x.c)?'n/m':(x.c.value?fmtKESshort(x.c.value):'\u2014')}</span>
+      ${statusChip(x.c.status)}
+    </button>`;
+  }).join('') : `<div class="px-5 py-6 text-center text-xs text-brand-800/50">Nothing lapses in the next 90 days.</div>`;
+
+  document.getElementById('content').innerHTML = `
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Portfolio Intelligence</h1>
+          <p class="text-xs text-brand-800/50">${allScanned?`Book scanned ${intelUI.scannedAt} \u00b7 ${openAll.length} open findings \u00b7 ${highN} high severity`:'Analyze risk, exposure and renewals across every contract'}</p>
+        </div>
+        <button id="scan-all" ${intelUI.scanning?'disabled':''} class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-lg shadow-brand-900/15 ${intelUI.scanning?'opacity-70':''}">
+          <span class="${intelUI.scanning?'scan-pulse':''}">${icon('scan')}</span> ${intelUI.scanning?'Scanning book\u2026':allScanned?'Re-scan portfolio':'Scan portfolio'}
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 max-w-[1200px] space-y-6">
+
+      ${allScanned?`
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        ${[
+          {l:'Contracts scanned', v:scanned.length, ic:'scan', cls:'text-brand-500'},
+          {l:'Open findings', v:openAll.length, ic:'alert', cls:'text-gold-500'},
+          {l:'High severity', v:highN, ic:'ban', cls:'text-rose-500'},
+          {l:'Value on watchlist', v:fmtKESshort(atRisk), ic:'coins', cls:'text-rose-500'},
+        ].map(k=>`
+        <div class="flex items-center gap-3 bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
+          <span class="h-9 w-9 grid place-items-center rounded-lg bg-canvas border border-brand-100 ${k.cls}">${icon(k.ic)}</span>
+          <div class="leading-tight">
+            <div class="font-display font-700 text-xl tracking-tight text-brand-900">${k.v}</div>
+            <div class="text-[11px] text-brand-800/50">${k.l}</div>
+          </div>
+        </div>`).join('')}
+      </div>`:''}
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/60">
+          <div class="flex items-center gap-2"><span class="text-brand-500">${icon('target')}</span>
+            <h2 class="font-display font-600 text-brand-900">Risk \u00d7 Value quadrant</h2></div>
+          <span class="text-[11px] text-brand-800/40">Dot size = value \u00b7 color = worst open finding \u00b7 click to open</span>
+        </div>
+        <div class="p-4">${chart}</div>
+      </section>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+          <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
+            <span class="text-gold-500">${icon('clock')}</span>
+            <h2 class="font-display font-600 text-brand-900">Expiry radar</h2>
+            <span class="ml-auto text-[11px] font-mono text-brand-800/40">next 90 days \u00b7 ${expiring.length}</span>
+          </div>
+          ${expHtml}
+        </section>
+
+        <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+          <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
+            <span class="text-brand-500">${icon('users')}</span>
+            <h2 class="font-display font-600 text-brand-900">Counterparty concentration</h2>
+            <span class="ml-auto text-[11px] font-mono text-brand-800/40">% of active book</span>
+          </div>
+          ${concHtml}
+        </section>
+      </div>
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
+          <span class="text-gold-500">${icon('shield')}</span>
+          <h2 class="font-display font-600 text-brand-900">Findings across the book</h2>
+          <span class="ml-auto text-[11px] text-brand-800/40">grouped by pattern \u00b7 exposure = combined value of affected contracts</span>
+        </div>
+        ${aggHtml}
+      </section>
+    </div>
+  </div>
+
+  <div id="party-scrim" class="fixed inset-0 bg-brand-900/40 backdrop-blur-[2px] z-40 grid place-items-center p-6">
+    <div id="party-modal" class="w-full max-w-2xl"></div>
+  </div>`;
+
+  wireOpens();
+  document.getElementById('scan-all').addEventListener('click',()=>{
+    intelUI.scanning=true; renderIntel();
+    setTimeout(()=>{ scanPortfolio(); intelUI.scanning=false; renderIntel();
+      toast('Portfolio scan complete \u2014 '+state.contracts.flatMap(c=>openFindings(c)).length+' open findings across the book'); }, 1300);
+  });
+  document.querySelectorAll('[data-party]').forEach(b=>b.addEventListener('click',()=>openPartyModal(b.getAttribute('data-party'))));
+  document.getElementById('party-scrim').addEventListener('click',e=>{ if(e.target.id==='party-scrim') closePartyModal(); });
+  setActiveNav('intel');
+}
+
+/* ---- counterparty relationship modal: local graph at honest scale ---- */
+function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }
+function openPartyModal(name){
+  const scrim=document.getElementById('party-scrim'), modal=document.getElementById('party-modal');
+  const own = state.contracts.filter(c=>c.counterparty===name);
+  // pull in relation-linked contracts + their parties
+  const ownIds=new Set(own.map(c=>c.id));
+  const linked=[];
+  REL_SEEDS.forEach(r=>{
+    const a=state.contracts.find(c=>c.name===r.from), b=state.contracts.find(c=>c.name===r.to);
+    if(!a||!b) return;
+    if(ownIds.has(a.id)&&!ownIds.has(b.id)) linked.push(b);
+    if(ownIds.has(b.id)&&!ownIds.has(a.id)) linked.push(a);
+  });
+  const nodes=[], edges=[];
+  const trunc=(s,n=22)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
+  nodes.push({id:'p:'+name, type:'party', label:trunc(name), sub:own.length+' deals', bar:'#08211E', kind:'party'});
+  const addC=c=>{ if(nodes.some(n=>n.id===c.id)) return;
+    nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
+  own.forEach(c=>{ addC(c); edges.push({from:c.id,to:'p:'+name,label:'party to'}); });
+  linked.forEach(c=>{ addC(c);
+    if(c.counterparty && c.counterparty!==name){
+      const pid='p:'+c.counterparty;
+      if(!nodes.some(n=>n.id===pid)) nodes.push({id:pid,type:'party',label:trunc(c.counterparty),sub:'counterparty',bar:'#08211E',kind:'party'});
+      edges.push({from:c.id,to:pid,label:'party to'});
+    }});
+  REL_SEEDS.forEach(r=>{
+    const a=state.contracts.find(c=>c.name===r.from), b=state.contracts.find(c=>c.name===r.to);
+    if(a&&b&&nodes.some(n=>n.id===a.id)&&nodes.some(n=>n.id===b.id)) edges.push({from:a.id,to:b.id,label:r.label});
+  });
+  const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  edges.forEach(e=>{e.s=byId[e.from]; e.t=byId[e.to];});
+  const W=640,H=340;
+  nodes.forEach(n=>{ n.w=Math.max(104,Math.min(170,n.label.length*6.4+50)); n.h=38; n.x=0; n.y=0; });
+  const savedPos=state.mapPos; state.mapPos={};   // fresh layout, don't reuse global cache
+  layoutGraph(nodes, edges, W, H);
+  state.mapPos=savedPos;
+
+  const val=own.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
+  modal.innerHTML=`
+  <div class="view-enter bg-white rounded-2xl border border-brand-100 shadow-2xl shadow-brand-900/25 overflow-hidden">
+    <div class="flex items-center gap-3 px-5 py-4 border-b border-brand-100/60">
+      <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon('users')}</span>
+      <div class="flex-1 min-w-0">
+        <div class="font-display font-600 text-brand-900 truncate">${name}</div>
+        <div class="text-[11px] font-mono text-brand-800/45">${own.length} agreements \u00b7 ${fmtKES(val)} exposure \u00b7 relationship neighborhood</div>
+      </div>
+      <button id="pm-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-800 transition">${icon('x')}</button>
+    </div>
+    <svg viewBox="0 0 ${W} ${H}" class="w-full bg-canvas/60">
+      ${edges.map((e,i)=>`<path class="mlink" d="M${e.s.x} ${e.s.y} L${e.t.x} ${e.t.y}"/>
+        <text class="mlabel show" x="${(e.s.x+e.t.x)/2}" y="${(e.s.y+e.t.y)/2-3}" text-anchor="middle">${e.label}</text>`).join('')}
+      ${nodes.map(n=>`
+      <g class="mnode" ${n.type==='contract'?`data-open="${n.id}"`:''} transform="translate(${n.x},${n.y})">
+        <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
+        <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
+        <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#08211E">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
+        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#8aa198">${n.sub}</text>
+      </g>`).join('')}
+    </svg>
+    <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/45 flex items-center justify-between">
+      <span>Click a contract node to open its workspace</span>
+      <span class="font-mono">${nodes.length} nodes \u00b7 bounded neighborhood</span>
+    </div>
+  </div>`;
+  scrim.classList.add('open');
+  modal.querySelector('#pm-close').addEventListener('click',closePartyModal);
+  modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
+}
+
+/* ============================================================
+   AI CONTRACT SCAN  (rule engine over live contract data)
+   ============================================================ */
+const SEV_META = {
+  high:{label:'High', chip:'bg-rose-50 text-rose-700 border-rose-200', dot:'bg-rose-500', text:'text-rose-600'},
+  med:{label:'Medium', chip:'bg-gold-500/10 text-gold-600 border-gold-500/25', dot:'bg-gold-500', text:'text-gold-600'},
+  low:{label:'Low', chip:'bg-slate-100 text-slate-600 border-slate-200', dot:'bg-slate-400', text:'text-slate-500'},
+};
+const SEV_RANK = {high:3, med:2, low:1};
+const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
+
+function scanRules(c){
+  const F=[], f=c.fields||{};
+  const add=(id,sev,kind,title,anchor,what,why,fix)=>F.push({id,sev,kind,title,anchor,what,why,fix});
+  const valAnchor = c.template==='A' ? 'c1' : 'c2';
+
+  // --- generic, data-driven (auto-clear when fixed) ---
+  if(!c.counterparty) add('g-cp','high','missing','No counterparty named','recital',
+    'The opening recital names Highland Corporate but leaves the counterparty blank.',
+    'A contract with an unnamed party is unenforceable — there is no legal person to hold to its terms or serve notice on.',
+    'Enter the counterparty\u2019s full registered name (as it appears on the BRS register) in the recital.');
+  if(isMonetary(c) && !(Number(c.value)>0)) add('g-val','med','missing','Contract value not set',valAnchor,
+    'The commercial value field reads KES 0 or is empty.',
+    'Without a stated consideration the pricing clause is incomplete, and downstream stamp duty and approval thresholds cannot be assessed.',
+    'Set the agreed KES value in the highlighted field \u2014 the deal summary and dashboard will sync automatically.');
+  if(!f.effDate) add('g-date','med','missing','No effective date','recital',
+    'The commencement date field in the recital is empty.',
+    'Obligations, term length and notice periods all count from this date; leaving it open invites disputes about when duties began.',
+    'Pick the effective date in the recital\u2019s date field.');
+  if(c.status!=='Signed' && (!c.compliance.iprs || !c.compliance.pki)) add('g-comp','low','missing','Signature verification incomplete','sig',
+    'IPRS identity verification and/or the CAK PKI token have not been completed.',
+    'Under the Kenya Information & Communications Act an advanced e-signature needs verified identity and an accredited certificate to carry full evidentiary weight.',
+    'Run the IPRS check and attach the PKI token in the verification panel before signing.');
+
+  // --- template-specific ---
+  if(c.template==='A'){
+    const term=Number(f.termYears||3);
+    if(term>5) add('a-term','med','ambiguity','Confidentiality term exceeds market norm','c3',
+      `The term is set to ${term} years \u2014 well beyond the 2\u20135 years typical for commercial NDAs in Kenya.`,
+      'Overlong terms are harder to enforce and may be read down by a court as an unreasonable restraint.',
+      'Reduce the term to 3\u20135 years, or carve trade secrets out with an indefinite tail instead.');
+    add('a-liab','high','risk','No limitation of liability clause','c4',
+      'The template caps nothing \u2014 there is no ceiling on damages for breach of confidence.',
+      'Exposure is unlimited: a Kenyan court will award whatever loss is proven, which for leaked pricing or customer data can dwarf the deal value.',
+      'Add a liability cap (commonly the engagement value or a fixed KES amount), excluding deliberate breach.');
+    add('a-inj','low','missing','No injunctive relief clause','c2',
+      'The agreement is silent on equitable remedies.',
+      'Damages arrive too late for a confidentiality breach \u2014 the value is in stopping disclosure fast.',
+      'Add a clause acknowledging that breach causes irreparable harm and permitting interim injunctions in the High Court at Nairobi.');
+  }
+  if(c.template==='B'){
+    if(!f.deposit) add('b-dep','high','missing','Security deposit not specified','c3',
+      'Clause 3 references a deposit but the amount field is blank.',
+      'Without a stated deposit the landlord has no defined security against dilapidations or arrears, and the refund obligation in clause 7 has nothing to bite on.',
+      'Enter the deposit \u2014 market practice in Nairobi is 3 months\u2019 gross rent for commercial space.');
+    if(!f.premises) add('b-prem','med','missing','Premises description incomplete','recital',
+      'The demised premises field in the recital is empty.',
+      'A lease must identify the land and unit with certainty; a vague description risks unenforceability and registration problems.',
+      'State the building, floor/unit and LR number, e.g. \u201cNairobi Tech Hub, 4th Floor, LR No. 209/XXXX, Westlands\u201d.');
+    add('b-stamp','med','risk','Stamp duty not evidenced','c4',
+      'Nothing in the document records assessment or payment of stamp duty.',
+      'Leases attract stamp duty under the Stamp Duty Act (Cap 480); an unstamped lease is inadmissible in evidence in Kenyan courts until duty and penalties are paid.',
+      'Assess and pay stamp duty via iTax within 30 days of execution and attach the certificate to the record.');
+    add('b-esc','low','missing','No rent escalation clause','c2',
+      `Rent is fixed for the full ${Number(f.termYears||6)}-year term with no review mechanism.`,
+      'On a multi-year Nairobi lease, flat rent shifts inflation risk entirely to the landlord \u2014 or, if renegotiated informally, creates dispute risk for the tenant.',
+      'Add a periodic escalation (commonly 7.5% every 2 years) or an open-market rent review.');
+  }
+  if(c.template==='C'){
+    const sla=Number(f.slaHrs||48);
+    if(sla>72) add('c-sla','med','ambiguity','Clearance SLA above competitive benchmark','c3',
+      `The clearance turnaround is set at ${sla} hours against a Mombasa market norm of 48\u201372 hours.`,
+      'A loose SLA weakens the 98% reliability target and gives the client little contractual leverage on delays.',
+      'Tighten to 48\u201372 hours, or tier the SLA by cargo class with service credits for misses.');
+    if(!f.port) add('c-port','med','missing','Port of clearance unspecified','c1',
+      'The customs clearance location field in clause 1 is empty.',
+      'Scope, transit times and KRA/KPA documentation all hinge on the named port of entry.',
+      'Name the port \u2014 typically \u201cPort of Mombasa\u201d or \u201cNaivasha ICD\u201d for Northern Corridor flows.');
+    add('c-liab','med','ambiguity','Liability cap incorporated by reference only','c4',
+      'Clause 4 caps liability \u201cper the Carriage of Goods rules\u201d without stating figures.',
+      'The parties may hold different views of which regime and limits apply \u2014 per-package, per-kilo or per-container \u2014 which is exactly where freight disputes start.',
+      'State the cap expressly (e.g. USD X per container or SDR-based per-kilo limit) and name the governing convention.');
+    if(Number(c.value)>5000000) add('c-ins','low','risk','No cargo insurance obligation','c2',
+      `At ${fmtKESshort(c.value)} of annual flows, the agreement is silent on who insures the cargo.`,
+      'If neither party carries marine cargo cover, an uninsured loss lands as a dispute over the liability clause instead of a clean claim.',
+      'Add an obligation for one party to maintain marine cargo insurance to the full consignment value, with the other noted as loss payee.');
+  }
+  return F;
+}
+
+const openFindings = c => !c.scan ? [] : c.scan.findings.filter(x=>!c.scan.dismissed.includes(x.id));
+const worstSevOf = list => list.reduce((w,x)=>SEV_RANK[x.sev]>SEV_RANK[w]?x.sev:w,'low');
+function runScan(c){
+  const prev = c.scan ? c.scan.dismissed : [];
+  c.scan = { at:new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'}), findings:scanRules(c), dismissed:prev };
+}
+
+let scanUI = { running:false, filter:'all', expanded:new Set() };
+
+function renderScanSection(c){
+  const host = document.getElementById('scan-section'); if(!host) return;
+  const open = openFindings(c);
+  const worst = open.length ? worstSevOf(open) : null;
+
+  let body;
+  if(scanUI.running){
+    body = `<div class="flex items-center gap-2.5 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2.5 text-xs text-brand-700">
+      <span class="scan-pulse text-brand-500">${icon('scan','w-4 h-4')}</span>
+      <span>Scanning clauses against Kenyan practice checks\u2026</span></div>`;
+  } else if(!c.scan){
+    body = `
+      <p class="text-xs text-brand-800/55 leading-relaxed">Review this contract against ${c.template==='A'?'NDA':'commercial'} risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.</p>
+      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} Run AI scan</button>`;
+  } else {
+    const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
+    const counts = s => open.filter(x=>x.sev===s).length;
+    const chip = (key,label)=>`<button data-scan-filter="${key}" class="text-[10px] px-2 py-0.5 rounded-full border font-medium transition ${scanUI.filter===key?'bg-brand-900 text-white border-brand-900':'bg-white text-brand-700 border-brand-200 hover:border-brand-400'}">${label}</button>`;
+    const cards = list.length ? list.map(x=>{
+      const sm=SEV_META[x.sev], exp=scanUI.expanded.has(x.id);
+      return `
+      <div class="rounded-lg border ${exp?'border-brand-300':'border-brand-100'} bg-white overflow-hidden">
+        <button data-scan-toggle="${x.id}" class="w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-brand-50/50 transition">
+          <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
+          <span class="text-xs font-medium text-brand-900 flex-1 min-w-0 truncate">${x.title}</span>
+          <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
+          <span class="text-brand-300 transition ${exp?'rotate-180':''}">${icon('chevD','w-3.5 h-3.5')}</span>
+        </button>
+        ${exp?`
+        <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
+          <div class="flex items-center gap-2 pt-1">
+            <button data-scan-goto="${x.anchor}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to clause</button>
+            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/45 hover:text-brand-800 transition">Dismiss</button>
+          </div>
+        </div>`:''}
+      </div>`;
+    }).join('') : `<div class="text-center text-[11px] text-brand-800/50 py-3">No ${scanUI.filter==='all'?'open':scanUI.filter+'-severity'} findings \u2014 looking clean.</div>`;
+
+    body = `
+      <div class="flex items-center gap-1.5 mb-2 flex-wrap">
+        ${chip('all',`All ${open.length}`)}${chip('high',`High ${counts('high')}`)}${chip('med',`Med ${counts('med')}`)}${chip('low',`Low ${counts('low')}`)}
+      </div>
+      <div class="space-y-1.5 max-h-64 overflow-y-auto scroll-thin pr-0.5">${cards}</div>
+      <div class="mt-2 flex items-center justify-between text-[10px] text-brand-800/40">
+        <span>Scanned ${c.scan.at}</span>
+        <button id="scan-rerun" class="font-medium text-brand-600 hover:text-brand-800 transition">Re-scan</button>
+      </div>`;
+  }
+
+  host.innerHTML = `
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-gold-500">${icon('scan')}</span>
+        <h3 class="text-sm font-display font-600 text-brand-900">AI Contract Scan</h3>
+        ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?`${open.length} open`:'All clear'}</span>` : ''}
+      </div>
+      ${body}
+    </div>`;
+
+  // wiring
+  host.querySelector('#scan-run')?.addEventListener('click',()=>{
+    scanUI.running=true; renderScanSection(c);
+    setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
+      renderScanSection(c); renderSignButton(c);
+      const n=openFindings(c).length;
+      toast(n?`Scan complete \u2014 ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete \u2014 no issues found');
+    }, 1100);
+  });
+  host.querySelector('#scan-rerun')?.addEventListener('click',()=>{
+    scanUI.running=true; renderScanSection(c);
+    setTimeout(()=>{ runScan(c); scanUI.running=false; renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
+  });
+  host.querySelectorAll('[data-scan-filter]').forEach(b=>b.addEventListener('click',()=>{ scanUI.filter=b.getAttribute('data-scan-filter'); renderScanSection(c); }));
+  host.querySelectorAll('[data-scan-toggle]').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.getAttribute('data-scan-toggle');
+    scanUI.expanded.has(id)?scanUI.expanded.delete(id):scanUI.expanded.add(id);
+    renderScanSection(c);
+  }));
+  host.querySelectorAll('[data-scan-dismiss]').forEach(b=>b.addEventListener('click',()=>{
+    c.scan.dismissed.push(b.getAttribute('data-scan-dismiss'));
+    renderScanSection(c); renderSignButton(c);
+  }));
+  host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
+    const el=document.querySelector(`#doc-canvas [data-anchor="${b.getAttribute('data-scan-goto')}"]`);
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
+  }));
+}
+
+/* ============================================================
+   AI ASSISTANT  (local intent engine over live state)
+   ============================================================ */
+const ai = { open:false, history:[] };
+const AI_SUGGESTIONS = [
+  'What is pending counterparty action?',
+  'Total value of signed contracts',
+  'Which contract has the highest value?',
+  'Find contracts with Safaricom',
+  'How many drafts do I have?',
+  'Which contracts have open risk findings?',
+  'What expires in the next 90 days?',
+];
+
+function openAI(prefill){
+  document.getElementById('ai-panel').classList.add('open');
+  document.getElementById('ai-scrim').classList.add('open');
+  ai.open=true;
+  if(!ai.history.length){
+    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your Mkataba workspace — try one of the suggestions below, or ask in your own words.`});
+  }
+  renderAIFeed(); renderAISuggest();
+  const inp=document.getElementById('ai-input');
+  if(prefill){ inp.value=prefill; aiSubmit(); } else inp.focus();
+}
+function closeAI(){
+  document.getElementById('ai-panel').classList.remove('open');
+  document.getElementById('ai-scrim').classList.remove('open');
+  ai.open=false;
+}
+function aiPush(role,payload){ ai.history.push({role,...payload}); }
+
+function renderAISuggest(){
+  const el=document.getElementById('ai-suggest');
+  el.innerHTML=AI_SUGGESTIONS.map(q=>`<button data-sug="${q}" class="text-[11px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition">${q}</button>`).join('');
+  el.querySelectorAll('[data-sug]').forEach(b=>b.addEventListener('click',()=>{ document.getElementById('ai-input').value=b.getAttribute('data-sug'); aiSubmit(); }));
+}
+function renderAIFeed(typing=false){
+  const feed=document.getElementById('ai-feed');
+  feed.innerHTML=ai.history.map(m=>{
+    if(m.role==='user'){
+      return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-4 py-2.5 text-sm">${m.text}</div></div>`;
+    }
+    return `<div class="ai-msg flex gap-2.5">
+      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>
+      <div class="max-w-[88%] space-y-2">
+        ${m.text?`<div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-2.5 text-sm text-brand-900 leading-relaxed">${m.text}</div>`:''}
+        ${m.cards?m.cards:''}
+      </div>
+    </div>`;
+  }).join('') + (typing?`
+    <div class="ai-msg flex gap-2.5">
+      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3.5 h-3.5')}</div>
+      <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-4 py-3 typing"><span></span><span></span><span></span></div>
+    </div>`:'');
+  feed.scrollTop=feed.scrollHeight;
+  feed.querySelectorAll('[data-ai-open]').forEach(el=>el.addEventListener('click',()=>{ closeAI(); openWorkspace(el.getAttribute('data-ai-open')); }));
+}
+
+function aiContractCard(c){
+  const t=TEMPLATES[c.template];
+  return `
+  <button data-ai-open="${c.id}" class="w-full text-left flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-3 py-2.5 transition group">
+    <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(t.ic,'w-3.5 h-3.5')}</span>
+    <span class="min-w-0 flex-1">
+      <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
+      <span class="block text-[10px] font-mono text-brand-800/45 truncate">${c.counterparty||'—'} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
+    </span>
+    ${statusChip(c.status)}
+  </button>`;
+}
+const aiCards = list => `<div class="space-y-1.5">${list.map(aiContractCard).join('')}</div>`;
+
+/* --- the intent engine --- */
+function aiAnswer(qRaw){
+  const q=qRaw.toLowerCase();
+  const cs=state.contracts;
+  const has=(...words)=>words.some(w=>q.includes(w));
+
+  // 1) direct contract-ID summary
+  const idMatch=qRaw.match(/MK-\d+/i);
+  if(idMatch||has('summarize','summary','brief me','tell me about')){
+    let c=null;
+    if(idMatch) c=getContract(idMatch[0].toUpperCase());
+    if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
+    if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
+    if(c){
+      const t=TEMPLATES[c.template];
+      return { text:`<strong>${c.name}</strong> (${c.id}) is a ${t.kind} with <strong>${c.counterparty||'no counterparty yet'}</strong>, filed under ${FOLDERS[c.folder].name}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been AI-scanned yet.'; const o=openFindings(c); return o.length?` The AI scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The AI scan is clean — no open findings.'; })()}`,
+        cards:aiCards([c]) };
+    }
+  }
+
+  // 1a) expiry / renewal queries
+  if(has('expir','renew','lapse','ending','due soon')){
+    const exp=cs.filter(c=>c.expiry && c.status!=='Declined')
+      .map(c=>({c,d:Math.ceil((new Date(c.expiry+'T00:00:00')-Date.now())/86400000)}))
+      .filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+    if(!exp.length) return { text:`Nothing in the active book lapses in the next 90 days.` };
+    const soon=exp.filter(x=>x.d<=30).length;
+    return { text:`<strong>${exp.length} contract${exp.length===1?'':'s'}</strong> lapse within 90 days${soon?`, including <strong>${soon} inside 30 days</strong>`:''}. Closest first — ${exp[0].c.name} with ${exp[0].c.counterparty} in <strong>${exp[0].d} days</strong>:`, cards:aiCards(exp.map(x=>x.c)) };
+  }
+  // 1b) risk / findings / scan queries
+  if(has('risk','finding','findings','issue','issues','problem','scan','red flag','exposure')){
+    const scanned=cs.filter(c=>c.scan);
+    if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>Run AI scan</strong> in the workspace — I’ll check its clauses against Kenyan practice and pin every finding to the clause it concerns.` };
+    const withOpen=scanned.filter(c=>openFindings(c).length).sort((a,b)=>SEV_RANK[worstSevOf(openFindings(b))]-SEV_RANK[worstSevOf(openFindings(a))]);
+    if(!withOpen.length) return { text:`${scanned.length} contract${scanned.length===1?' has':'s have'} been scanned and every finding is resolved or dismissed — the reviewed book is clean.`, cards:aiCards(scanned) };
+    const high=withOpen.reduce((s,c)=>s+openFindings(c).filter(x=>x.sev==='high').length,0);
+    return { text:`<strong>${withOpen.length} contract${withOpen.length===1?'':'s'}</strong> ${withOpen.length===1?'has':'have'} open scan findings${high?`, including <strong>${high} high-severity</strong>`:''}. Sorted by worst exposure:`, cards:aiCards(withOpen) };
+  }
+  // 2) pending / under review
+  if(has('pending','under review','waiting','counterparty action','awaiting')){
+    const list=cs.filter(c=>c.status==='Under Review');
+    const val=list.reduce((s,c)=>s+Number(c.value||0),0);
+    return { text:`You have <strong>${list.length} contracts pending counterparty action</strong>, worth ${fmtKES(val)} combined. Tap any to open its workspace:`, cards:aiCards(list) };
+  }
+  // 3) drafts
+  if(has('draft')){
+    const list=cs.filter(c=>c.status==='Draft');
+    return { text:`There are <strong>${list.length} drafts</strong> in your workspace. Drafts move to "Under Review" automatically once a counterparty and value are set.`, cards:aiCards(list) };
+  }
+  // 4) signed / executed
+  if(has('signed','executed','sealed','completed')){
+    const list=cs.filter(c=>c.status==='Signed');
+    const val=list.reduce((s,c)=>s+Number(c.value||0),0);
+    return { text:`<strong>${list.length} contracts are signed and executed</strong> this month, totalling <strong>${fmtKES(val)}</strong>. All carry SHA-256 document seals with IPRS and CAK PKI verification.`, cards:aiCards(list) };
+  }
+  // 5) declined
+  if(has('declined','expired','rejected','lost')){
+    const list=cs.filter(c=>c.status==='Declined');
+    return { text:`${list.length} contract${list.length===1?'':'s'} closed without signature. Worth a follow-up call:`, cards:aiCards(list) };
+  }
+  // 6) totals / value analytics
+  if(has('total','value','worth','how much','portfolio')){
+    const m=metrics();
+    const byFolder=Object.values(FOLDERS).map(f=>{
+      const v=folderContracts(f.id).filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+      return `<div class="flex items-center justify-between text-xs py-1.5 border-b border-brand-100/60 last:border-0"><span class="text-brand-800/70">${f.name}</span><span class="font-mono font-medium text-brand-900">${fmtKESshort(v)}</span></div>`;
+    }).join('');
+    return { text:`Your active portfolio is worth <strong>${fmtKES(m.totalValue)}</strong> across ${cs.filter(c=>c.status!=='Declined').length} live agreements. Breakdown by folder:`,
+      cards:`<div class="rounded-xl border border-brand-100 bg-white px-3.5 py-1.5">${byFolder}</div>` };
+  }
+  // 7) highest / largest
+  if(has('highest','largest','biggest','top contract','most valuable')){
+    const sorted=[...cs].filter(c=>c.status!=='Declined').sort((a,b)=>b.value-a.value).slice(0,3);
+    return { text:`Your highest-value agreement is <strong>${sorted[0].name}</strong> at <strong>${fmtKES(sorted[0].value)}</strong>. Top three by value:`, cards:aiCards(sorted) };
+  }
+  // 8) counterparty / free-text search
+  const terms=q.replace(/[?.,!]/g,'').split(/\s+/).filter(w=>w.length>2&&!['the','and','for','with','find','show','search','contracts','contract','any','all','have','what','which'].includes(w));
+  if(terms.length){
+    const list=cs.filter(c=>terms.some(t=>(c.name+' '+c.counterparty+' '+FOLDERS[c.folder].name+' '+TEMPLATES[c.template].kind).toLowerCase().includes(t)));
+    if(list.length){
+      return { text:`Found <strong>${list.length} contract${list.length===1?'':'s'}</strong> matching "${terms.join(', ')}":`, cards:aiCards(list) };
+    }
+  }
+  // fallback
+  return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Twiga"</em>).` };
+}
+
+function aiSubmit(){
+  const inp=document.getElementById('ai-input');
+  const q=inp.value.trim(); if(!q) return;
+  inp.value='';
+  aiPush('user',{text:q});
+  renderAIFeed(true);
+  setTimeout(()=>{
+    const ans=aiAnswer(q);
+    aiPush('assistant',ans);
+    renderAIFeed();
+  }, 650+Math.random()*500);
+}
+
+document.getElementById('ai-send').addEventListener('click',aiSubmit);
+document.getElementById('ai-input').addEventListener('keydown',e=>{if(e.key==='Enter')aiSubmit();});
+document.getElementById('ai-close').addEventListener('click',closeAI);
+document.getElementById('ai-scrim').addEventListener('click',closeAI);
+document.getElementById('ai-open-side').addEventListener('click',()=>openAI());
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&!ai.open&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){ e.preventDefault(); openAI(); }
+  if(e.key==='Escape'&&ai.open) closeAI();
+});
+
+/* ============================================================ NAV */
+function setActiveNav(view){
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.getAttribute('data-view')===view));
+  // folder highlighting in sidebar
+  document.querySelectorAll('[data-side-folder]').forEach(b=>{
+    b.classList.toggle('bg-white/10',view==='folder'&&b.getAttribute('data-side-folder')===state.folderId);
+    b.classList.toggle('text-white',view==='folder'&&b.getAttribute('data-side-folder')===state.folderId);
+  });
+}
+function setView(view){
+  state.view=view;
+  if(view==='dashboard') renderDashboard();
+  else if(view==='folder') renderFolder();
+  else if(view==='intel') renderIntel();
+  else renderWorkspace();
+  window.scrollTo({top:0});
+}
+function openFolder(fid){ state.folderId=fid; state.folderQuery=''; setView('folder'); }
+function openWorkspace(id){ state.activeId=id; setView('workspace'); }
+function createFromTemplate(tid){
+  const t=TEMPLATES[tid];
+  const c={ id:nextId(), name:t.name+' (Draft)', counterparty:'', value:0, status:'Draft',
+    template:tid, folder:t.folder,
+    lastAction:new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
+    hash:null, signedAt:null, signatory:'A. Otieno, Director',
+    compliance:{iprs:false,pki:false},
+    comments:[{author:'System',role:'Automation',side:'internal',text:`New ${t.kind} generated from Template ${tid} and filed under ${FOLDERS[t.folder].name}. Fill the highlighted fields to begin.`,ts:'just now'}],
+    fields:{}, scan:null, expiry:null, valueType:t.valueType };
+  state.contracts.unshift(c);
+  state.activeId=c.id;
+  toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
+  setView('workspace');
+  renderSideFolders();
+}
+
+/* sidebar: folders + templates */
+function renderSideFolders(){
+  document.getElementById('side-folders').innerHTML=Object.values(FOLDERS).map(f=>`
+    <button data-side-folder="${f.id}" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition">
+      <span class="text-brand-300">${icon('folder')}</span>
+      <span class="truncate flex-1">${f.name}</span>
+      <span class="text-[10px] font-mono text-brand-300/70">${folderContracts(f.id).length}</span>
+    </button>`).join('');
+  document.querySelectorAll('[data-side-folder]').forEach(b=>b.addEventListener('click',()=>openFolder(b.getAttribute('data-side-folder'))));
+}
+renderSideFolders();
+document.getElementById('side-templates').innerHTML=Object.values(TEMPLATES).map(t=>`
+  <button data-new-side="${t.id}" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition">
+    <span class="text-gold-400">${icon(t.ic)}</span>
+    <span class="truncate">Template ${t.id} — ${t.kind}</span>
+  </button>`).join('');
+document.querySelectorAll('[data-new-side]').forEach(b=>b.addEventListener('click',()=>createFromTemplate(b.getAttribute('data-new-side'))));
+
+document.getElementById('nav').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-view]');
+  if(btn) setView(btn.getAttribute('data-view'));
+});
+
+/* BOOT */
+renderDashboard();
+
+</script>
+</body>
+</html>
