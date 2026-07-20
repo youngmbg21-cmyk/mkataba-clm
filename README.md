@@ -24,7 +24,20 @@ python3 -m http.server 8000
 # → http://localhost:8000, or just open index.html
 ```
 
-On first launch you create a workspace (organization + admin account), optionally seeded with a sample Kenyan portfolio of 12 contracts.
+On first launch you create a workspace (organization + admin account), optionally seeded with a sample portfolio of **30 realistic contracts** modelled on a **diversified Kenyan FMCG company** — spanning the full value stream from raw materials to market.
+
+### Sample portfolio (value stream)
+
+The demo data is organised into six value-stream folders, each with genuine contract types (each opens with its own clauses and Kenya-specific AI risk checks):
+
+| Folder | Contract types | Example counterparties |
+|---|---|---|
+| Procurement & Raw Materials | Raw material supply, Packaging supply | Kabras Sugar, Wilmar, Nampak, Statpack |
+| Manufacturing & Production | Contract manufacturing (co-packing), Equipment lease | Kevian, Orbit Products, Kapa Oil, Krones |
+| Warehousing & Distribution | Warehousing & cold-chain, Freight & distribution | Siginon, ALP, Sendy, Lori Systems |
+| Sales & Route-to-Market | Distributor agreement, Retail listing & supply | Naivas, Carrefour, Copia, regional distributors |
+| Marketing & Brand | Marketing & trade promotion services | Scanad, Royal Media, Ogilvy |
+| Corporate & Compliance | NDA, Commercial lease, Professional services | Givaudan, Britam, PwC, Bowmans, SAP |
 
 ## MVP features
 
