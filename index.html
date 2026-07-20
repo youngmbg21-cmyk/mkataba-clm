@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Mkataba — Contract Lifecycle Management</title>
+<title>HaTi — Contract Lifecycle Management</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,7 +111,7 @@
       <div class="flex items-center gap-2.5">
         <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0" id="brand-mark"></div>
         <div class="leading-tight">
-          <div class="font-display font-700 text-white text-lg tracking-tight">Mkataba</div>
+          <div class="font-display font-700 text-white text-lg tracking-tight">HaTi</div>
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
@@ -144,7 +144,7 @@
 
     <div class="px-3 pb-3">
       <button id="ai-open-side" class="w-full flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-brand-900 px-3.5 py-3 text-sm font-semibold hover:brightness-105 transition shadow-lg shadow-black/20">
-        <span data-ic="sparkle"></span> Ask Mkataba AI
+        <span data-ic="sparkle"></span> Ask HaTi AI
       </button>
     </div>
 
@@ -163,7 +163,7 @@
   <header class="px-5 py-4 border-b border-brand-100/70 flex items-center gap-3 bg-brand-900 text-white">
     <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
-      <div class="font-display font-600">Mkataba AI</div>
+      <div class="font-display font-600">HaTi AI</div>
       <div class="text-[11px] text-brand-200 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-brand-300 live-dot"></span>Searching your live contract data</div>
     </div>
     <button id="ai-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
@@ -377,7 +377,7 @@ const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charC
    static page. Every load/store function below is the seam
    where a hosted backend API slots in later (swap for fetch()).
    ============================================================ */
-const LS = { org:'mkataba.v1.org', users:'mkataba.v1.users', session:'mkataba.v1.session', data:'mkataba.v1.data', ui:'mkataba.v1.ui' };
+const LS = { org:'hati.v1.org', users:'hati.v1.users', session:'hati.v1.session', data:'hati.v1.data', ui:'hati.v1.ui' };
 const lsGet = k => { try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } };
 const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -385,7 +385,7 @@ const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
    When served by server/server.js the app stores everything on the
    server (multi-user, multi-device). Opened as a plain static page,
    it falls back to this browser's localStorage. */
-let REMOTE=null; // {org, me, users} when a Mkataba server is present
+let REMOTE=null; // {org, me, users} when a HaTi server is present
 const API_MODE=()=>!!REMOTE;
 async function api(path, method='GET', body){
   const res=await fetch('api/'+path,{ method,
@@ -467,12 +467,12 @@ function renderAuth(mode){
       <div class="flex items-center gap-3 justify-center mb-6">
         <div class="h-11 w-11 rounded-xl bg-gold-500 grid place-items-center text-brand-900">${icon('scroll','w-6 h-6',2.2)}</div>
         <div class="leading-tight">
-          <div class="font-display font-700 text-white text-2xl tracking-tight">Mkataba</div>
+          <div class="font-display font-700 text-white text-2xl tracking-tight">HaTi</div>
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
       <div class="bg-white rounded-2xl border border-brand-100 shadow-2xl p-6">${inner}</div>
-      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your Mkataba server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
+      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
@@ -650,7 +650,7 @@ function downloadFile(name, content, type='application/json'){
 }
 function downloadEvidence(c){
   downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
-    generatedAt:nowISO(), platform:'Mkataba CLM (MVP)', org:FIRST_PARTY,
+    generatedAt:nowISO(), platform:'HaTi CLM (MVP)', org:FIRST_PARTY,
     contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, fields:c.fields, status:c.status },
     sha256DocumentSeal:c.hash, signedAt:c.signedAt, signatures:c.signatures||[], auditTrail:c.audit||[],
@@ -667,11 +667,11 @@ async function openShareModal(c){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){
-    toast('To share an uploaded document, run the Mkataba server — or send the original file directly','err');
+    toast('To share an uploaded document, run the HaTi server — or send the original file directly','err');
     return;
   }
   const docHash=await sha256(canonicalDoc(c));
-  const payloadObj={ v:1, kind:'mkataba-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
+  const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder } };
   let link;
@@ -720,7 +720,7 @@ function openImportModal(c){
   });
 }
 async function applyResponse(c, r, opts={}){
-  if(!r || r.kind!=='mkataba-response'){ if(!opts.background) toast('That code is not a valid Mkataba response','err'); return false; }
+  if(!r || r.kind!=='hati-response'){ if(!opts.background) toast('That code is not a valid HaTi response','err'); return false; }
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
   const currentHash=await sha256(canonicalDoc(c));
   if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
@@ -779,7 +779,7 @@ function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
-  const validDoc = p && p.kind==='mkataba-share' && p.contract && (p.contract.source==='upload' || TEMPLATES[p.contract.template]);
+  const validDoc = p && p.kind==='hati-share' && p.contract && (p.contract.source==='upload' || TEMPLATES[p.contract.template]);
   if(!validDoc){
     root.innerHTML=`<div class="min-h-screen grid place-items-center bg-brand-900 px-4">
       <div class="bg-white rounded-2xl p-8 text-center max-w-sm">
@@ -802,7 +802,7 @@ function renderSharePortal(p, opts={}){
         <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0">${icon('scroll','w-5 h-5',2.2)}</div>
         <div class="leading-tight min-w-0">
           <div class="font-display font-600">${p.org} shared a contract for your review</div>
-          <div class="text-[11px] text-brand-300 font-mono truncate">${p.contract.id} · shared by ${p.sharedBy} · ${fmtDT(p.at)} · via Mkataba</div>
+          <div class="text-[11px] text-brand-300 font-mono truncate">${p.contract.id} · shared by ${p.sharedBy} · ${fmtDT(p.at)} · via HaTi</div>
         </div>
       </div>
     </header>
@@ -837,7 +837,7 @@ async function portalRespond(p, action){
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  const response={ v:1, kind:'mkataba-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
   if(PORTAL_OPTS.token){
     try{
@@ -854,7 +854,7 @@ async function portalRespond(p, action){
   document.getElementById('portal-result').innerHTML=`
     <div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5">
       <div class="flex items-center gap-1.5 text-brand-700 text-xs font-semibold mb-1.5">${icon('check2','w-3.5 h-3.5')} Your ${label} is ready</div>
-      <p class="text-[11px] text-brand-800/70 mb-2">Copy this response code and send it back to ${p.sharedBy} at ${p.org} (email or WhatsApp). They import it in Mkataba to record it on the contract.</p>
+      <p class="text-[11px] text-brand-800/70 mb-2">Copy this response code and send it back to ${p.sharedBy} at ${p.org} (email or WhatsApp). They import it in HaTi to record it on the contract.</p>
       <textarea id="pt-code" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-white p-2.5 text-[10px] font-mono outline-none break-all">${code}</textarea>
       <button id="pt-copy" class="mt-2 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2 text-xs font-medium hover:bg-brand-800 transition">${icon('copy','w-3 h-3')} Copy response code</button>
     </div>`;
@@ -882,7 +882,7 @@ function exportPDF(c){
           <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:'JetBrains Mono',monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
       </div>
-      <p style="font-size:11px;color:#444;line-height:1.6;">This is a Mkataba signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in Mkataba and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.</p>`;
+      <p style="font-size:11px;color:#444;line-height:1.6;">This is a HaTi signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in HaTi and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.</p>`;
   } else {
     const holder=document.createElement('div');
     holder.innerHTML=docBody(c);
@@ -901,13 +901,13 @@ function exportPDF(c){
   document.getElementById('print-root').innerHTML=`
     <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0B7A5F;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">Mkataba <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       ${bodyHtml}
       ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
       ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
-      <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by Mkataba CLM · ${FIRST_PARTY}</div>
+      <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(); renderAuditSection(c);
   window.print();
@@ -1054,7 +1054,7 @@ function renderDashboard(){
           <div class="rounded-2xl bg-brand-900 text-white p-5">
             <div class="flex items-center gap-2">
               <span class="text-gold-400">${icon('sparkle')}</span>
-              <h3 class="font-display font-600">Mkataba AI</h3>
+              <h3 class="font-display font-600">HaTi AI</h3>
             </div>
             <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
             <div class="mt-3 space-y-1.5">
@@ -1129,7 +1129,7 @@ function renderFolder(){
           <div class="px-5 py-10 text-center">
             <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
             <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
           </div>`}
       </section>
     </div>
@@ -1154,7 +1154,7 @@ function renderFolderListOnly(){
     <div class="px-5 py-10 text-center">
       <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
       <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask Mkataba AI to look across all folders.</div>
+      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
     </div>`;
   wireOpens(section);
 }
@@ -2424,7 +2424,7 @@ function openAI(prefill){
   document.getElementById('ai-scrim').classList.add('open');
   ai.open=true;
   if(!ai.history.length){
-    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your Mkataba workspace — try one of the suggestions below, or ask in your own words.`});
+    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
   }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
@@ -2645,7 +2645,7 @@ function renderTeam(){
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
-        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your Mkataba server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the Mkataba server for central storage.'}</p>
+        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
           ${(!API_MODE()&&isAdmin())?`
@@ -2692,8 +2692,8 @@ function renderTeam(){
     toast(`${u.name} removed`); renderTeam();
   }));
   document.getElementById('bk-export')?.addEventListener('click',()=>{
-    downloadFile(`mkataba-backup-${new Date().toISOString().slice(0,10)}.json`,
-      JSON.stringify({ kind:'mkataba-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
+    downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
+      JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
         data:{ uid, contracts:state.contracts } },null,2));
     toast('Backup downloaded');
   });
@@ -2702,11 +2702,11 @@ function renderTeam(){
     const rd=new FileReader();
     rd.onload=()=>{ try{
         const b=JSON.parse(rd.result);
-        if(b.kind!=='mkataba-backup'||!b.org||!b.users) throw new Error('bad');
+        if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad');
         if(!confirm('Restoring replaces this workspace, its users and contracts with the backup. Continue?')) return;
         lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
         localStorage.removeItem(LS.session); location.reload();
-      }catch(err){ toast('That file is not a valid Mkataba backup','err'); } };
+      }catch(err){ toast('That file is not a valid HaTi backup','err'); } };
     rd.readAsText(f);
   });
   document.getElementById('bk-reset')?.addEventListener('click',()=>{
@@ -2788,7 +2788,7 @@ document.getElementById('nav').addEventListener('click',e=>{
 
 /* BOOT
    1. #share=… in the URL → counterparty portal (no login needed)
-   2. Mkataba server present → API mode (central storage, live shares)
+   2. HaTi server present → API mode (central storage, live shares)
    3. No server → static mode backed by this browser's localStorage
    Either mode: no workspace → setup screen; no session → login. */
 (async function boot(){

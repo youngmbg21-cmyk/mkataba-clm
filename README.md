@@ -1,6 +1,6 @@
-# Mkataba — Contract Lifecycle Management
+# HaTi — Contract Lifecycle Management
 
-Mkataba is a Contract Lifecycle Management platform for the Kenyan market, now at **MVP status** with two ways to run:
+HaTi is a Contract Lifecycle Management platform for the Kenyan market, now at **MVP status** with two ways to run:
 
 1. **Server mode (recommended)** — a Node.js backend with a SQLite database. Accounts, contracts and counterparty responses are stored centrally, so the whole team sees the same data from any device, and share-link responses arrive on the contract automatically.
 2. **Static mode** — open `index.html` on its own (no server) and everything is stored in that browser's local storage. Good for offline demos.

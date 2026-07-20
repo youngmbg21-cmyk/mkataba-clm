@@ -1,7 +1,7 @@
 {
-  "name": "mkataba-clm",
+  "name": "hati-clm",
   "version": "0.2.0",
-  "description": "Mkataba — Contract Lifecycle Management platform for the Kenyan market",
+  "description": "HaTi — Contract Lifecycle Management platform for the Kenyan market",
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js"
