@@ -1,14 +1,27 @@
 # Mkataba — Contract Lifecycle Management
 
-Mkataba is a Contract Lifecycle Management platform for the Kenyan market, now at **MVP status**: a fully client-side application (single `index.html`, no build step) that runs as a static page and persists everything in the browser's local storage.
+Mkataba is a Contract Lifecycle Management platform for the Kenyan market, now at **MVP status** with two ways to run:
+
+1. **Server mode (recommended)** — a Node.js backend with a SQLite database. Accounts, contracts and counterparty responses are stored centrally, so the whole team sees the same data from any device, and share-link responses arrive on the contract automatically.
+2. **Static mode** — open `index.html` on its own (no server) and everything is stored in that browser's local storage. Good for offline demos.
+
+The frontend auto-detects which mode it is in.
 
 ## Running it
 
-Open `index.html` in a browser, or serve it statically:
+**Server mode:**
+
+```bash
+npm install
+npm start
+# → http://localhost:3000  (database lives in server/data/)
+```
+
+**Static mode:**
 
 ```bash
 python3 -m http.server 8000
-# → http://localhost:8000
+# → http://localhost:8000, or just open index.html
 ```
 
 On first launch you create a workspace (organization + admin account), optionally seeded with a sample Kenyan portfolio of 12 contracts.
@@ -17,22 +30,26 @@ On first launch you create a workspace (organization + admin account), optionall
 
 | Area | What you get |
 |---|---|
-| **Workspace & auth** | Single-organization workspace, login with salted SHA-256 password hashes, roles: Admin / Legal / Viewer (viewers are read-only) |
-| **Persistence** | All contracts, comments, scans and audit events survive reloads (localStorage); export/restore JSON backups from Team & Settings |
+| **Workspace & auth** | Single-organization workspace; in server mode: real server-side sessions (httpOnly cookies) and scrypt password hashes; roles: Admin / Legal / Viewer (viewers are read-only, enforced on the server too) |
+| **Central storage** | In server mode the whole team shares one SQLite-backed workspace across devices; in static mode data lives in the browser with JSON backup export/restore |
 | **Contract workspace** | Live editable contract documents from three vetted Kenyan templates (NDA, commercial lease, freight forwarding), with status flow Draft → Under Review → Signed/Declined |
 | **E-signature & audit trail** | SHA-256 document sealing on signature, per-contract audit trail of every edit/comment/scan/share, seal verification, downloadable JSON evidence pack |
-| **Counterparty sharing** | Generate a share link — the counterparty opens a no-login review portal, then approves & signs, requests changes, or declines; their response comes back as a code you import onto the contract |
+| **Counterparty sharing** | Generate a short share link — the counterparty opens a no-login review portal and approves & signs, requests changes, or declines. Server mode: their response lands on the contract automatically (each link accepts one response). Static mode: the response travels back as a code you import |
 | **PDF export** | Clean print-ready export of any contract with its seal and audit trail |
 | **AI contract scan** | Rule engine flagging missing clauses, enforceability gaps and market-norm deviations tuned to Kenyan practice |
 | **Portfolio intelligence** | Relationship map and portfolio scanner across all contracts |
-| **Team management** | Admins add/remove members, change roles, and manage workspace data |
+| **Team management** | Admins add/remove members and change roles (server-enforced in API mode) |
+
+## Architecture
+
+- `index.html` — the entire frontend (Tailwind CDN + vanilla JS, no build step). A small "platform core" layer inside it handles storage/auth and auto-detects server vs static mode.
+- `server/server.js` — Express API + built-in `node:sqlite` (Node ≥ 22.5, zero native dependencies). Endpoints for auth, bootstrap, contract data, team management and counterparty shares. Serves the frontend.
 
 ## Honest limitations (MVP)
 
-This build is designed for demos and design-partner pilots, **not production security**:
+Designed for demos and design-partner pilots; before charging customers you'd want:
 
-- Auth, roles and data live in the browser — there is no server, so anyone with access to the machine/browser profile can read the data.
-- Share links embed the contract snapshot in the URL; responses travel back manually as codes. Real-time sync requires the backend.
-- IPRS identity checks and CAK PKI tokens are simulated pending real integrations.
-
-Every storage/auth function is isolated behind a small "platform core" layer in `index.html` — the seam where a hosted backend API (accounts, database, real e-signature evidence, live counterparty portal) slots in next.
+- HTTPS deployment, rate limiting, password reset, email invites.
+- Per-contract server records with optimistic locking (currently the contract set syncs as one document — fine for one team, not for heavy concurrent editing).
+- Real IPRS identity checks and CAK-accredited PKI signatures (currently simulated).
+- Multi-tenancy and billing for self-serve SaaS.

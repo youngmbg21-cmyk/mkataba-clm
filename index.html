@@ -326,9 +326,38 @@ const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charC
    static page. Every load/store function below is the seam
    where a hosted backend API slots in later (swap for fetch()).
    ============================================================ */
-const LS = { org:'mkataba.v1.org', users:'mkataba.v1.users', session:'mkataba.v1.session', data:'mkataba.v1.data' };
+const LS = { org:'mkataba.v1.org', users:'mkataba.v1.users', session:'mkataba.v1.session', data:'mkataba.v1.data', ui:'mkataba.v1.ui' };
 const lsGet = k => { try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } };
 const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+
+/* ---------- optional backend (API mode) ----------
+   When served by server/server.js the app stores everything on the
+   server (multi-user, multi-device). Opened as a plain static page,
+   it falls back to this browser's localStorage. */
+let REMOTE=null; // {org, me, users} when a Mkataba server is present
+const API_MODE=()=>!!REMOTE;
+async function api(path, method='GET', body){
+  const res=await fetch('api/'+path,{ method,
+    headers:body?{'Content-Type':'application/json'}:undefined,
+    body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
+  let data=null; try{ data=await res.json(); }catch(e){}
+  if(!res.ok) throw new Error(data?.error||('Request failed ('+res.status+')'));
+  return data;
+}
+async function loadBootstrap(){
+  const b=await api('bootstrap');
+  REMOTE={ org:b.org, me:b.me, users:b.users };
+  if(b.data && Array.isArray(b.data.contracts)){
+    uid=b.data.uid||uid;
+    state.contracts=b.data.contracts.map(migrateContract);
+  } else state.contracts=[];
+  // screen position is per-device, not shared with teammates
+  const ui=lsGet(LS.ui)||{};
+  state.view=ui.view||'dashboard';
+  state.activeId=(ui.activeId&&state.contracts.some(c=>c.id===ui.activeId))?ui.activeId:null;
+  state.folderId=ui.folderId||null;
+  if(state.view==='workspace'&&!state.activeId) state.view='dashboard';
+}
 
 const nowISO = () => new Date().toISOString();
 const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
@@ -336,8 +365,18 @@ const todayStr = () => new Date().toLocaleDateString('en-GB',{day:'2-digit',mont
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
 /* ---------- persistence ---------- */
-function persist(){ lsSet(LS.data, { uid, contracts: state.contracts,
-  view: state.view, activeId: state.activeId, folderId: state.folderId }); }
+let syncTimer=null;
+function persist(){
+  if(API_MODE()){
+    lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+    if(!canEdit()) return; // server rejects viewer writes
+    const snapshot={ uid, contracts:state.contracts };
+    clearTimeout(syncTimer);
+    syncTimer=setTimeout(()=>api('data','PUT',snapshot).catch(e=>toast('Sync failed: '+e.message,'err')),400);
+    return;
+  }
+  lsSet(LS.data, { uid, contracts:state.contracts, view:state.view, activeId:state.activeId, folderId:state.folderId });
+}
 function hydrate(){
   const d = lsGet(LS.data);
   if(d && Array.isArray(d.contracts)){
@@ -355,12 +394,12 @@ function migrateContract(c){
 }
 
 /* ---------- workspace / auth ---------- */
-const getOrg = () => lsGet(LS.org);
-const getUsers = () => lsGet(LS.users) || [];
+const getOrg = () => REMOTE ? REMOTE.org : lsGet(LS.org);
+const getUsers = () => REMOTE ? REMOTE.users : (lsGet(LS.users) || []);
 const saveUsers = u => lsSet(LS.users, u);
-const getSession = () => lsGet(LS.session);
+const getSession = () => REMOTE ? (REMOTE.me?{userId:REMOTE.me.id}:null) : lsGet(LS.session);
 const userById = id => getUsers().find(u=>u.id===id);
-const currentUser = () => getSession() ? userById(getSession().userId) : null;
+const currentUser = () => REMOTE ? REMOTE.me : (getSession() ? userById(getSession().userId) : null);
 const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; };
 const isAdmin = () => currentUser()?.role==='admin';
 const ROLE_LABEL = { admin:'Admin', legal:'Legal', viewer:'Viewer' };
@@ -382,7 +421,7 @@ function renderAuth(mode){
         </div>
       </div>
       <div class="bg-white rounded-2xl border border-brand-100 shadow-2xl p-6">${inner}</div>
-      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">MVP build — your workspace, users and contracts are stored in this browser.<br/>A hosted backend replaces this layer in production.</p>
+      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your Mkataba server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
@@ -402,16 +441,16 @@ function renderAuth(mode){
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else {
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg().name}</h1>
+      <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg()?.name||'your workspace'}</h1>
       <p class="text-xs text-brand-800/55 mb-4">Use your workspace credentials.</p>
       ${input('li-email','Email','email')}
       ${input('li-pass','Password','password')}
       <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
       <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
-      <button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>`);
+      ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
-    document.getElementById('li-reset').addEventListener('click',()=>{
+    document.getElementById('li-reset')?.addEventListener('click',()=>{
       if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
@@ -423,6 +462,17 @@ async function doSetup(){
   const pass=document.getElementById('su-pass').value;
   if(!name||!uname||!email){ toast('Fill in organization, name and email','err'); return; }
   if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+  if(REMOTE){
+    try{
+      const sample=document.getElementById('su-sample').checked;
+      await api('setup','POST',{ org:name, name:uname, email, password:pass,
+        data:{ uid, contracts:sample?state.contracts.map(migrateContract):[], view:'dashboard', activeId:null, folderId:null } });
+      await loadBootstrap();
+      startApp();
+      toast(`Workspace "${name}" created — karibu!`);
+    }catch(e){ toast(e.message,'err'); }
+    return;
+  }
   const salt=newSalt();
   const admin={ id:'u1', name:uname, email, role:'admin', salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
   lsSet(LS.org,{ name, createdAt:nowISO() });
@@ -435,14 +485,26 @@ async function doSetup(){
 }
 async function doLogin(){
   const email=fval('li-email').toLowerCase(), pass=document.getElementById('li-pass').value;
-  const u=getUsers().find(x=>x.email===email);
   const err=document.getElementById('li-err');
+  if(REMOTE){
+    try{
+      await api('login','POST',{ email, password:pass });
+      await loadBootstrap();
+      startApp();
+      toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
+    }catch(e){ err.textContent=e.message; err.classList.remove('hidden'); }
+    return;
+  }
+  const u=getUsers().find(x=>x.email===email);
   if(!u || (await hashPassword(pass,u.salt))!==u.hash){ err.textContent='Email or password is incorrect.'; err.classList.remove('hidden'); return; }
   lsSet(LS.session,{ userId:u.id, at:nowISO() });
   startApp();
   toast(`Karibu tena, ${u.name.split(' ')[0]}`);
 }
-function logout(){ localStorage.removeItem(LS.session); location.reload(); }
+function logout(){
+  if(REMOTE){ api('logout','POST').catch(()=>{}).finally(()=>location.reload()); return; }
+  localStorage.removeItem(LS.session); location.reload();
+}
 
 function startApp(){
   FIRST_PARTY = getOrg().name;
@@ -451,6 +513,7 @@ function startApp(){
   renderSideUser(); renderSideFolders();
   // resume where the user left off
   setView(['dashboard','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
+  if(API_MODE()){ pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
@@ -545,14 +608,19 @@ const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(Stri
 
 async function openShareModal(c){
   const docHash=await sha256(canonicalDoc(c));
-  const payload=b64e({ v:1, kind:'mkataba-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
-    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields } });
-  const link=location.href.split('#')[0]+'#share='+payload;
+  const payloadObj={ v:1, kind:'mkataba-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
+    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields } };
+  let link;
+  if(API_MODE()){
+    try{ const r=await api('shares','POST',{ payload:payloadObj });
+      link=location.origin+location.pathname+'#share=t:'+r.token;
+    }catch(e){ toast(e.message,'err'); return; }
+  } else link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
   openModal(`
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('share')}</span>
         <h2 class="font-display font-700 text-brand-900">Share with counterparty</h2></div>
-      <p class="text-xs text-brand-800/55 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. Their response comes back as a code you import below the document.</p>
+      <p class="text-xs text-brand-800/55 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
       <textarea id="share-link" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none break-all">${link}</textarea>
       <div class="mt-3 flex items-center gap-2 justify-end">
         <button id="share-close" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Close</button>
@@ -587,8 +655,8 @@ function openImportModal(c){
     if(ok) closeModal();
   });
 }
-async function applyResponse(c, r){
-  if(!r || r.kind!=='mkataba-response'){ toast('That code is not a valid Mkataba response','err'); return false; }
+async function applyResponse(c, r, opts={}){
+  if(!r || r.kind!=='mkataba-response'){ if(!opts.background) toast('That code is not a valid Mkataba response','err'); return false; }
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
   const currentHash=await sha256(canonicalDoc(c));
   if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
@@ -609,18 +677,44 @@ async function applyResponse(c, r){
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, ts:fmtDT(r.at) });
     logAudit(c,'Declined',`${who} declined via share link`);
     toast(`${r.name} declined the agreement`,'err');
-  } else { toast('Unknown response type','err'); return false; }
+  } else { if(!opts.background) toast('Unknown response type','err'); return false; }
   c.lastAction=todayStr(); persist();
-  renderWorkspace();
+  if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
   return true;
 }
 
+/* poll the server for counterparty responses and apply them */
+async function pollPendingResponses(){
+  if(!API_MODE() || !canEdit()) return;
+  try{
+    const list=await api('shares/pending');
+    for(const item of list){
+      const c=getContract(item.response?.id);
+      if(!c) continue;
+      const ok=await applyResponse(c, item.response, {background:true});
+      if(ok) await api('shares/'+item.token+'/applied','POST');
+    }
+  }catch(e){ /* transient network issues — next poll retries */ }
+}
+
 /* ---------- counterparty portal (opened from a share link) ---------- */
-function renderSharePortal(encoded){
-  PORTAL_MODE=true;
+let PORTAL_OPTS={};
+async function portalEntry(encoded){
+  if(encoded.startsWith('t:')){        // server-backed share token
+    try{
+      const r=await fetch('api/shares/'+encodeURIComponent(encoded.slice(2)));
+      const d=await r.json().catch(()=>null);
+      if(!r.ok) throw new Error(d?.error||'not found');
+      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded });
+    }catch(e){ renderSharePortal(null); }
+    return;
+  }
+  renderSharePortal(b64d(encoded));    // static-mode share (payload in the URL)
+}
+function renderSharePortal(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
-  const p=b64d(encoded);
   if(!p || p.kind!=='mkataba-share' || !p.contract || !TEMPLATES[p.contract.template]){
     root.innerHTML=`<div class="min-h-screen grid place-items-center bg-brand-900 px-4">
       <div class="bg-white rounded-2xl p-8 text-center max-w-sm">
@@ -650,7 +744,8 @@ function renderSharePortal(encoded){
       <article class="bg-white rounded-2xl border border-brand-100 shadow-sm p-7 lg:p-9">${docBody(c)}</article>
       <aside class="bg-white rounded-2xl border border-brand-100 p-5 lg:sticky lg:top-6">
         <h2 class="font-display font-600 text-brand-900 mb-1">Respond to ${p.org}</h2>
-        <p class="text-[11px] text-brand-800/55 mb-4">Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.</p>
+        ${opts.responded?`<div class="mb-4 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2.5 text-[11px] text-brand-700 flex items-center gap-1.5">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
+        <p class="text-[11px] text-brand-800/55 mb-4">${opts.token?`Your response is delivered to ${p.sharedBy} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
         ${input('pt-email','Work email','you@company.co.ke')}
@@ -671,13 +766,25 @@ function renderSharePortal(encoded){
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
 }
-function portalRespond(p, action){
+async function portalRespond(p, action){
   const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  const code=b64e({ v:1, kind:'mkataba-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() });
+  const response={ v:1, kind:'mkataba-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
+  if(PORTAL_OPTS.token){
+    try{
+      await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+      document.getElementById('portal-result').innerHTML=`
+        <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 text-center">
+          <div class="flex items-center justify-center gap-1.5 text-brand-700 text-sm font-semibold mb-1">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
+          <p class="text-[11px] text-brand-800/70">${p.sharedBy} at ${p.org} has been notified — you're all done.</p>
+        </div>`;
+    }catch(e){ toast(e.message,'err'); }
+    return;
+  }
+  const code=b64e(response);
   document.getElementById('portal-result').innerHTML=`
     <div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5">
       <div class="flex items-center gap-1.5 text-brand-700 text-xs font-semibold mb-1.5">${icon('check2','w-3.5 h-3.5')} Your ${label} is ready</div>
@@ -2114,10 +2221,10 @@ function renderTeam(){
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
-        <p class="text-xs text-brand-800/55 mb-3">This MVP stores everything in this browser's local storage. Export a backup to move workspaces between machines — the hosted backend replaces this in production.</p>
+        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your Mkataba server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the Mkataba server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
-          ${isAdmin()?`
+          ${(!API_MODE()&&isAdmin())?`
           <label class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition cursor-pointer">${icon('upload','w-3.5 h-3.5')} Restore backup<input id="bk-import" type="file" accept=".json,application/json" class="hidden"/></label>
           <button id="bk-reset" class="ml-auto flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3.5 py-2 text-xs font-medium hover:bg-rose-50 transition">${icon('ban','w-3.5 h-3.5')} Reset workspace</button>`:''}
         </div>
@@ -2131,25 +2238,39 @@ function renderTeam(){
     if(!name||!email){ toast('Name and email are required','err'); return; }
     if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
     if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
-    const salt=newSalt();
-    const nu={ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
-    saveUsers([...getUsers(),nu]);
+    if(API_MODE()){
+      try{ const r=await api('users','POST',{ name, email, role, password:pass });
+        REMOTE.users=[...REMOTE.users, r.user];
+      }catch(e){ toast(e.message,'err'); return; }
+    } else {
+      const salt=newSalt();
+      saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
+    }
     toast(`${name} added as ${ROLE_LABEL[role]} — share their temporary password securely`);
     renderTeam();
   });
-  document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',()=>{
+  document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===sel.getAttribute('data-role-for'));
-    if(u){ u.role=sel.value; saveUsers(us); toast(`${u.name} is now ${ROLE_LABEL[u.role]}`); renderTeam(); }
+    if(!u) return;
+    if(API_MODE()){
+      try{ await api('users/'+u.id,'PATCH',{ role:sel.value }); u.role=sel.value; }
+      catch(e){ toast(e.message,'err'); renderTeam(); return; }
+    } else { u.role=sel.value; saveUsers(us); }
+    toast(`${u.name} is now ${ROLE_LABEL[u.role]}`); renderTeam();
   }));
-  document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
-    if(u && confirm(`Remove ${u.name} from the workspace?`)){
-      saveUsers(us.filter(x=>x.id!==u.id)); toast(`${u.name} removed`); renderTeam();
-    }
+    if(!u || !confirm(`Remove ${u.name} from the workspace?`)) return;
+    if(API_MODE()){
+      try{ await api('users/'+u.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==u.id); }
+      catch(e){ toast(e.message,'err'); return; }
+    } else saveUsers(us.filter(x=>x.id!==u.id));
+    toast(`${u.name} removed`); renderTeam();
   }));
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`mkataba-backup-${new Date().toISOString().slice(0,10)}.json`,
-      JSON.stringify({ kind:'mkataba-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(), data:lsGet(LS.data) },null,2));
+      JSON.stringify({ kind:'mkataba-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
+        data:{ uid, contracts:state.contracts } },null,2));
     toast('Backup downloaded');
   });
   document.getElementById('bk-import')?.addEventListener('change',e=>{
@@ -2238,12 +2359,22 @@ document.getElementById('nav').addEventListener('click',e=>{
 
 /* BOOT
    1. #share=… in the URL → counterparty portal (no login needed)
-   2. No workspace yet     → setup screen
-   3. No session           → login screen
-   4. Otherwise            → hydrate from storage and start the app */
-(function boot(){
+   2. Mkataba server present → API mode (central storage, live shares)
+   3. No server → static mode backed by this browser's localStorage
+   Either mode: no workspace → setup screen; no session → login. */
+(async function boot(){
   const m=location.hash.match(/^#share=(.+)$/);
-  if(m){ renderSharePortal(m[1]); return; }
+  if(m){ await portalEntry(m[1]); return; }
+  let st=null;
+  try{ const r=await fetch('api/status',{credentials:'same-origin'}); if(r.ok) st=await r.json(); }catch(e){}
+  if(st && st.mode==='api'){
+    REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    if(!st.setup){ renderAuth('setup'); return; }
+    if(!st.authed){ renderAuth('login'); return; }
+    try{ await loadBootstrap(); startApp(); }
+    catch(e){ renderAuth('login'); }
+    return;
+  }
   hydrate();
   if(!getOrg()){ renderAuth('setup'); return; }
   if(!getSession()||!currentUser()){ localStorage.removeItem(LS.session); renderAuth('login'); return; }
