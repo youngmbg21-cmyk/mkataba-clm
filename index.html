@@ -228,6 +228,14 @@ const ICONS = {
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
   history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+  leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+  box:'<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  factory:'<path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1M12 18h1M7 18h1"/>',
+  wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.9 6.91a2.12 2.12 0 0 1-3-3l6.91-6.9a6 6 0 0 1 7.94-7.94l-3.76 3.76Z"/>',
+  store:'<path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20v3a2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0 2 2 0 0 1-4 0Z"/>',
+  megaphone:'<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  cart:'<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  briefcase:'<rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
 };
 const icon = (n,cls='w-4 h-4',sw=2)=>`<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
 document.getElementById('brand-mark').innerHTML = icon('scroll','w-5 h-5',2.2);
@@ -238,15 +246,28 @@ document.querySelectorAll('[data-ic-big]').forEach(el=>el.innerHTML=icon(el.getA
 let FIRST_PARTY = 'Highland Corporate Ltd'; // replaced by the workspace org name at login
 let PORTAL_MODE = false;                     // true when rendering the counterparty share portal
 
+/* Folders follow the FMCG value stream, from raw materials to market. */
 const FOLDERS = {
-  nda:    { id:'nda',    name:'NDAs & Confidentiality', ic:'shield',   desc:'Mutual NDAs, DPAs and data confidentiality instruments.' },
-  lease:  { id:'lease',  name:'Property & Leases',      ic:'building', desc:'Office, warehouse and commercial premises leases.' },
-  supply: { id:'supply', name:'Supply Chain & Logistics', ic:'truck',  desc:'Freight forwarding, distribution and SLA agreements.' },
+  proc:  { id:'proc',  name:'Procurement & Raw Materials', ic:'leaf',      desc:'Ingredient, commodity and packaging supply into the plants.' },
+  mfg:   { id:'mfg',   name:'Manufacturing & Production',  ic:'factory',   desc:'Co-packing, tolling and plant equipment agreements.' },
+  dist:  { id:'dist',  name:'Warehousing & Distribution',  ic:'truck',     desc:'3PL warehousing, cold chain and primary distribution.' },
+  sales: { id:'sales', name:'Sales & Route-to-Market',     ic:'store',     desc:'Distributor, modern-trade and e-commerce supply deals.' },
+  mktg:  { id:'mktg',  name:'Marketing & Brand',           ic:'megaphone', desc:'Agency, media, activation and sponsorship contracts.' },
+  corp:  { id:'corp',  name:'Corporate & Compliance',      ic:'briefcase', desc:'NDAs, leases, audit, legal and IT / professional services.' },
 };
 const TEMPLATES = {
-  A:{ id:'A', name:'Non-Disclosure Agreement', kind:'NDA', ic:'shield', folder:'nda', valueType:'none', blurb:'Mutual confidentiality — vendor & partner onboarding.' },
-  B:{ id:'B', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'lease', valueType:'fixed', blurb:'Nairobi Tech Hub office premises lease.' },
-  C:{ id:'C', name:'B2B Freight Forwarding Agreement', kind:'Supply Chain', ic:'truck', folder:'supply', valueType:'estimated', blurb:'Cross-border logistics & freight forwarding terms.' },
+  RM:{ id:'RM', name:'Raw Material Supply Agreement', kind:'Raw Material Supply', ic:'leaf', folder:'proc', valueType:'estimated', blurb:'Commodity & ingredient supply into the plants.' },
+  PK:{ id:'PK', name:'Packaging Supply Agreement', kind:'Packaging Supply', ic:'box', folder:'proc', valueType:'estimated', blurb:'Bottles, cartons, films and labels.' },
+  CM:{ id:'CM', name:'Contract Manufacturing (Co-Packing)', kind:'Contract Manufacturing', ic:'factory', folder:'mfg', valueType:'estimated', blurb:'Outsourced production & tolling.' },
+  EQ:{ id:'EQ', name:'Equipment Lease & Maintenance', kind:'Equipment Lease', ic:'wrench', folder:'mfg', valueType:'fixed', blurb:'Plant machinery lease and servicing.' },
+  WH:{ id:'WH', name:'Warehousing & Cold-Chain Agreement', kind:'Warehousing', ic:'box', folder:'dist', valueType:'fixed', blurb:'3PL storage and temperature-controlled space.' },
+  FF:{ id:'FF', name:'Freight & Distribution Agreement', kind:'Distribution Logistics', ic:'truck', folder:'dist', valueType:'estimated', blurb:'Primary and last-mile distribution.' },
+  DA:{ id:'DA', name:'Distributor Agreement', kind:'Distributor', ic:'cart', folder:'sales', valueType:'estimated', blurb:'Regional route-to-market distributor terms.' },
+  RL:{ id:'RL', name:'Retail Listing & Supply Agreement', kind:'Retail Listing', ic:'store', folder:'sales', valueType:'estimated', blurb:'Modern-trade supermarket listing & supply.' },
+  MK:{ id:'MK', name:'Marketing & Trade Promotion Services', kind:'Marketing Services', ic:'megaphone', folder:'mktg', valueType:'fixed', blurb:'Agency, media and activation services.' },
+  ND:{ id:'ND', name:'Mutual Non-Disclosure Agreement', kind:'NDA', ic:'shield', folder:'corp', valueType:'none', blurb:'Confidentiality for NPD & vendor onboarding.' },
+  LE:{ id:'LE', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'corp', valueType:'fixed', blurb:'Office, depot and premises leases.' },
+  PS:{ id:'PS', name:'Professional Services Agreement', kind:'Professional Services', ic:'briefcase', folder:'corp', valueType:'fixed', blurb:'Audit, legal and advisory retainers.' },
 };
 
 let uid = 100;
@@ -263,18 +284,42 @@ const state = {
   folderQuery:'',
   mapPos:{}, mapSel:null,
   contracts:[
-    mk('Master Services Agreement','Safaricom PLC',4500000,'Under Review','A','12 Jul 2026','2026-09-15','estimated'),
-    mk('Office Lease — Westlands Tech Park','Britam Holdings',3200000,'Draft','B','15 Jul 2026',null),
-    mk('Freight Forwarding — Mombasa Corridor','Twiga Foods',8750000,'Signed','C','08 Jul 2026','2027-07-08'),
-    mk('Vendor NDA — Payments Integration','Equity Bank Kenya',0,'Under Review','A','14 Jul 2026','2026-08-10'),
-    mk('Cold-Chain Distribution Terms','Sendy Logistics',2100000,'Declined','C','02 Jul 2026',null),
-    mk('Data Processing Addendum','M-KOPA Kenya',0,'Signed','A','06 Jul 2026','2026-10-01'),
-    mk('Warehouse Lease — Industrial Area','Naivas Supermarkets',5400000,'Under Review','B','16 Jul 2026','2027-01-31'),
-    mk('Distribution SLA — Coastal Region','Kenya Breweries Ltd',6800000,'Draft','C','17 Jul 2026',null),
-    mk('Retail NDA — Loyalty Data Pilot','Carrefour Kenya',0,'Signed','A','04 Jul 2026','2026-08-30'),
-    mk('Depot Lease — Nakuru Hub','KenGen Pension Scheme',2750000,'Under Review','B','13 Jul 2026','2028-07-01'),
-    mk('Last-Mile Courier Agreement','Wasoko',1850000,'Draft','C','18 Jul 2026',null),
-    mk('Confidentiality Deed — Audit Scope','Deloitte East Africa',0,'Draft','A','18 Jul 2026',null),
+    // — Procurement & Raw Materials —
+    mk('Refined Sugar Supply — Confectionery Line','Kabras Sugar (West Kenya Ltd)',48000000,'Signed','RM','09 Jul 2026','2027-07-31'),
+    mk('Raw Milk Collection — Rift Valley Co-ops','Nandi Dairy Co-operative Union',36000000,'Signed','RM','03 Jul 2026','2027-06-30'),
+    mk('Crude Edible Oil Supply','Wilmar East Africa Ltd',95000000,'Under Review','RM','16 Jul 2026','2027-03-31'),
+    mk('PET Bottle & Preform Supply','Nampak Kenya Ltd',22000000,'Under Review','PK','15 Jul 2026','2027-01-31'),
+    mk('Corrugated Carton Supply','Statpack Industries Ltd',14500000,'Draft','PK','18 Jul 2026',null),
+    // — Manufacturing & Production —
+    mk('Co-Packing — Powdered Beverages','Kevian Kenya Ltd',60000000,'Signed','CM','07 Jul 2026','2027-12-31'),
+    mk('Contract Manufacturing — Bar Soap','Orbit Products Africa Ltd',40000000,'Under Review','CM','14 Jul 2026','2027-09-30'),
+    mk('Tolling Agreement — Detergent Powder','Kapa Oil Refineries Ltd',33000000,'Under Review','CM','12 Jul 2026',null),
+    mk('Filling Line Lease & Maintenance','Krones East Africa Ltd',8400000,'Signed','EQ','05 Jul 2026','2029-06-30'),
+    mk('Forklift Fleet Lease — Plant','CFAO Equipment Kenya',3600000,'Draft','EQ','17 Jul 2026',null),
+    // — Warehousing & Distribution —
+    mk('Central Warehouse & 3PL — Industrial Area','Siginon Group',18000000,'Signed','WH','06 Jul 2026','2028-06-30'),
+    mk('Cold-Chain Storage — Dairy & Chilled','Africa Logistics Properties',12600000,'Under Review','WH','15 Jul 2026','2027-12-31'),
+    mk('Primary Distribution — Nairobi to Coast','Sendy Ltd',9800000,'Signed','FF','08 Jul 2026','2027-07-31'),
+    mk('Cross-Border Freight — EAC Markets','Lori Systems',15200000,'Under Review','FF','13 Jul 2026',null),
+    mk('Last-Mile Distribution — Western Region','Wasoko',6400000,'Draft','FF','18 Jul 2026',null),
+    // — Sales & Route-to-Market —
+    mk('Regional Distributor — Nyanza','Ramogi Distributors Ltd',52000000,'Signed','DA','04 Jul 2026','2027-06-30'),
+    mk('Regional Distributor — Mt. Kenya','Muranga Distributors Ltd',44000000,'Under Review','DA','14 Jul 2026',null),
+    mk('Modern Trade Listing & Supply','Naivas Supermarkets',85000000,'Signed','RL','02 Jul 2026','2027-06-30'),
+    mk('Retail Supply — Modern Trade','Carrefour Kenya',78000000,'Under Review','RL','16 Jul 2026','2027-03-31'),
+    mk('E-commerce Distribution Agreement','Copia Global',12000000,'Draft','DA','17 Jul 2026',null),
+    // — Marketing & Brand —
+    mk('Creative & Brand Agency Retainer','Scanad Kenya',24000000,'Signed','MK','06 Jul 2026','2027-06-30'),
+    mk('Media Buying — TV & Radio','Royal Media Services',30000000,'Under Review','MK','15 Jul 2026','2027-06-30'),
+    mk('Trade Activation & Field Marketing','Ogilvy Kenya',9600000,'Under Review','MK','12 Jul 2026',null),
+    mk('Digital & Influencer Campaign','Aleph Group',5400000,'Draft','MK','18 Jul 2026',null),
+    mk('Sponsorship — FKF Premier League','Football Kenya Federation',18000000,'Declined','MK','01 Jul 2026',null),
+    // — Corporate & Compliance —
+    mk('Mutual NDA — New Product Development','Givaudan East Africa',0,'Signed','ND','05 Jul 2026','2027-07-31'),
+    mk('Head Office Lease — Westlands','Britam Properties',42000000,'Signed','LE','03 Jul 2026','2030-06-30'),
+    mk('External Audit Engagement — FY2026','PwC Kenya',7200000,'Under Review','PS','16 Jul 2026',null),
+    mk('Legal Retainer — Commercial & Regulatory','Bowmans (Coulson Harney LLP)',6000000,'Signed','PS','07 Jul 2026','2027-06-30'),
+    mk('Vendor NDA — ERP Implementation','SAP East Africa',0,'Under Review','ND','14 Jul 2026',null),
   ],
 };
 const isMonetary = c => c.valueType !== 'none';
@@ -974,7 +1019,7 @@ function renderDashboard(){
             </div>
             <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
             <div class="mt-3 space-y-1.5">
-              ${['What is pending counterparty action?','Total value of signed contracts','Summarize the Safaricom agreement'].map(q=>`
+              ${['What is pending counterparty action?','Total value of signed contracts','Summarize the Naivas listing agreement'].map(q=>`
                 <button data-ai-q="${q}" class="w-full text-left text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 transition text-brand-100/90">"${q}"</button>`).join('')}
             </div>
             <button id="rail-ai-open" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-gold-500 text-brand-900 py-2.5 text-sm font-semibold hover:brightness-105 transition">${icon('sparkle')} Open assistant</button>
@@ -1078,37 +1123,113 @@ function docBody(c){
   const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
   const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" class="field field-num"/>`;
   const clause=(n,title,body)=>`<div class="mb-5 px-2 -mx-2 py-1" data-anchor="c${n}"><h4 class="font-display font-600 text-brand-900 text-[13px] mb-1.5">${n}. ${title}</h4><p class="text-[13.5px] leading-[1.85] text-brand-800/85">${body}</p></div>`;
-  let title,recital,clauses;
-  if(c.template==='A'){
-    title='MUTUAL NON-DISCLOSURE AGREEMENT';
-    recital=`This Mutual Non-Disclosure Agreement (the "Agreement") is entered into on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong>, a company incorporated in the Republic of Kenya (the "Disclosing Party"), and ${CP} (the "Receiving Party"), collectively the "Parties".`;
-    clauses=[
-      clause(1,'Purpose', isMonetary(c)
-        ? `The Parties wish to explore a potential business relationship with an estimated commercial value of KES ${VAL} and, in connection therewith, may disclose to each other certain confidential and proprietary information.`
-        : `The Parties wish to explore a potential business relationship and, in connection therewith, may disclose to each other certain confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
-      clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, whether orally, in writing, or by inspection of tangible objects, including commercial terms, pricing, and customer data.`),
-      clause(3,'Term',`This Agreement shall remain in force for a period of ${fNum('termYears',c.fields.termYears||3)} years from the effective date, unless terminated earlier by written notice served to the registered office in Nairobi.`),
-      clause(4,'Governing Law',`This Agreement shall be governed by and construed in accordance with the laws of the Republic of Kenya, and the Parties submit to the exclusive jurisdiction of the Courts at Nairobi.`),
-    ];
-  } else if(c.template==='B'){
-    title='COMMERCIAL PROPERTY LEASE AGREEMENT';
-    recital=`This Lease is made on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong> (the "Landlord") and ${CP} (the "Tenant") in respect of commercial premises situated at the ${fText('premises',c.fields.premises,'e.g. Nairobi Tech Hub, Westlands')}, Nairobi.`;
-    clauses=[
-      clause(1,'Demised Premises',`The Landlord leases to the Tenant office space measuring ${fNum('sqm',c.fields.sqm||420)} square metres within the Nairobi Tech Hub, together with shared access to fibre, backup power, and secure parking.`),
-      clause(2,'Rent',`The Tenant shall pay monthly rent of KES ${VAL}, payable in advance on or before the 5th day of each calendar month, exclusive of Value Added Tax at the prevailing KRA rate.`),
-      clause(3,'Term & Deposit',`The lease term is ${fNum('termYears',c.fields.termYears||6)} years, secured by a deposit of ${fNum('deposit',c.fields.deposit,'deposit KES')} held against dilapidations and refundable per clause 7.`),
-      clause(4,'Governing Law',`This Lease is governed by the laws of Kenya, including the Land Act (2012) and the Landlord and Tenant Act, with disputes referred to the Environment and Land Court at Nairobi.`),
-    ];
-  } else {
-    title='B2B FREIGHT FORWARDING & SUPPLY CHAIN AGREEMENT';
-    recital=`This Freight Forwarding Agreement is entered into on ${fDate('effDate',c.fields.effDate)} between <strong>${FIRST_PARTY}</strong> (the "Forwarder") and ${CP} (the "Client") for the provision of integrated logistics services along the Northern Corridor.`;
-    clauses=[
-      clause(1,'Scope of Services',`The Forwarder shall arrange collection, customs clearance at ${fText('port',c.fields.port,'e.g. Port of Mombasa')}, warehousing, and last-mile distribution of the Client's consignments within Kenya and the wider EAC.`),
-      clause(2,'Contract Value & Rates',`The estimated annual contract value is KES ${VAL}, billed against agreed per-container rates and reconciled monthly. All figures are quoted exclusive of statutory levies.`),
-      clause(3,'Service Levels',`The Forwarder commits to a clearance turnaround of ${fNum('slaHrs',c.fields.slaHrs||48)} hours and a delivery reliability target of 98%, measured against the KPI schedule in Annexure A.`),
-      clause(4,'Liability & Governing Law',`Liability is capped per the Carriage of Goods rules applicable in Kenya. This Agreement is governed by Kenyan law with arbitration seated in Nairobi under the Nairobi Centre for International Arbitration.`),
-    ];
-  }
+  const f=c.fields;
+  const D=id=>fDate(id,f[id]);                    // date field
+  const T=(id,ph)=>fText(id,f[id],ph);            // text field
+  const N=(id,def,ph)=>fNum(id,(f[id]??def),ph);  // number field (with default)
+
+  // Each builder returns { title, recital, clauses[] }. Clause 'c2' holds the
+  // contract value for most types (NDA has no value; scanRules mirrors this).
+  const BUILD = {
+    RM:()=>({ title:'RAW MATERIAL SUPPLY AGREEMENT',
+      recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in Kenya.`,
+      clauses:[
+        clause(1,'Supply & Specification',`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification and the applicable KEBS/EAS standard, delivered DDP to the Buyer's plant.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is KES ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT.`),
+        clause(3,'Quality & Rejection',`Consignments failing specification or Public Health / KEBS requirements may be rejected within ${N('inspectDays',3)} days of delivery, with replacement at the Supplier's cost.`),
+        clause(4,'Governing Law',`This Agreement is governed by the laws of Kenya, with disputes referred to arbitration in Nairobi under the Nairobi Centre for International Arbitration.`),
+      ]}),
+    PK:()=>({ title:'PACKAGING SUPPLY AGREEMENT',
+      recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
+      clauses:[
+        clause(1,'Scope of Supply',`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in Kenya.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is KES ${VAL}, on agreed per-unit pricing. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
+        clause(3,'Forecast, Lead Time & Stock',`The Buyer issues a ${N('forecastWeeks',8)}-week rolling forecast; the Supplier holds ${N('safetyDays',14)} days of safety stock and honours agreed lead times.`),
+        clause(4,'Intellectual Property & Governing Law',`All trademarks and artwork remain the Buyer's property. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    CM:()=>({ title:'CONTRACT MANUFACTURING & CO-PACKING AGREEMENT',
+      recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
+      clauses:[
+        clause(1,'Manufacturing Scope',`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`),
+        clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is KES ${VAL}, billed as a per-unit conversion (tolling) fee and reconciled monthly against actual output.`),
+        clause(3,'Quality, Food Safety & Licences',`The Co-Packer shall maintain FSSC 22000 / KEBS certification and valid Public Health and KRA licences, and permit the Brand Owner to audit on ${N('auditNotice',7)} days' notice.`),
+        clause(4,'Liability & Governing Law',`The Co-Packer is liable for defects arising from its process, including recall costs. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    EQ:()=>({ title:'EQUIPMENT LEASE & MAINTENANCE AGREEMENT',
+      recital:`This Equipment Lease is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Lessee") and ${CP} (the "Lessor") for the lease of ${T('equipment','e.g. a PET filling line')} installed at the Lessee's plant.`,
+      clauses:[
+        clause(1,'Equipment & Title',`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`),
+        clause(2,'Lease Charges',`The Lessee shall pay a monthly lease charge of KES ${VAL}, in advance, exclusive of VAT.`),
+        clause(3,'Maintenance & Uptime',`The Lessor guarantees ${N('uptime',95)}% availability with an on-site response within ${N('respHrs',24)} hours, and holds critical spares locally.`),
+        clause(4,'Term, Insurance & Governing Law',`The term is ${N('termYears',3)} years. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. Kenyan law governs.`),
+      ]}),
+    WH:()=>({ title:'WAREHOUSING & COLD-CHAIN SERVICES AGREEMENT',
+      recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site','e.g. Industrial Area, Nairobi')}.`,
+      clauses:[
+        clause(1,'Storage & Handling',`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`),
+        clause(2,'Service Charge',`The monthly service charge is KES ${VAL}, based on pallet positions and throughput, exclusive of VAT.`),
+        clause(3,'Stock Accuracy & Temperature SLA',`The Provider shall maintain not less than ${N('accuracy',99)}% stock accuracy and continuous temperature logging, reporting any excursion within ${N('excursionHrs',2)} hours.`),
+        clause(4,'Liability & Governing Law',`The Provider is liable for loss or damage to goods in its custody up to their stock value. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    FF:()=>({ title:'FREIGHT & DISTRIBUTION AGREEMENT',
+      recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region','e.g. Nairobi to Coast')}.`,
+      clauses:[
+        clause(1,'Scope of Services',`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`),
+        clause(2,'Rates & Contract Value',`The estimated annual contract value is KES ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly.`),
+        clause(3,'Service Levels',`The Carrier commits to an on-time-in-full (OTIF) target of ${N('otif',98)}% with delivery within ${N('leadHrs',48)} hours of dispatch, per the KPI schedule in Annexure A.`),
+        clause(4,'Liability & Governing Law',`Liability for loss in transit is capped per consignment value. This Agreement is governed by Kenyan law with arbitration seated in Nairobi.`),
+      ]}),
+    DA:()=>({ title:'DISTRIBUTOR AGREEMENT',
+      recital:`This Distributor Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Distributor"), appointing the Distributor for the ${T('territory','e.g. Nyanza')} territory.`,
+      clauses:[
+        clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
+        clause(2,'Targets & Contract Value',`The estimated annual purchase value is KES ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
+        clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
+        clause(4,'Term, Termination & Governing Law',`The term is ${N('termYears',2)} years, terminable on ${N('noticeDays',90)} days' written notice. Kenyan law governs.`),
+      ]}),
+    RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
+      recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
+      clauses:[
+        clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores, with planogram and shelf space per the trading terms in Annexure A.`),
+        clause(2,'Trading Terms & Value',`The estimated annual supply value is KES ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`),
+        clause(3,'Payment & Returns',`Payment falls due within ${N('payDays',60)} days of invoice. Short-dated or damaged stock is handled per the returns schedule.`),
+        clause(4,'Compliance & Governing Law',`Products shall comply with KEBS labelling and Legal Metrology requirements. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    MK:()=>({ title:'MARKETING & TRADE PROMOTION SERVICES AGREEMENT',
+      recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
+      clauses:[
+        clause(1,'Scope of Services',`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`),
+        clause(2,'Fees & Contract Value',`The annual retainer / working budget is KES ${VAL}, billed ${T('billing','e.g. monthly')}, exclusive of VAT and third-party pass-through costs.`),
+        clause(3,'Approvals & Media',`All spend and creative require the Client's prior written approval. Any media rebates or volume bonuses are passed back to the Client in full.`),
+        clause(4,'IP, Confidentiality & Governing Law',`All work product and campaign intellectual property vest in the Client upon payment. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    ND:()=>({ title:'MUTUAL NON-DISCLOSURE AGREEMENT',
+      recital:`This Mutual Non-Disclosure Agreement is entered into on ${D('effDate')} between <strong>${FIRST_PARTY}</strong>, a company incorporated in the Republic of Kenya, and ${CP}, collectively the "Parties".`,
+      clauses:[
+        clause(1,'Purpose',`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
+        clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`),
+        clause(3,'Term',`This Agreement shall remain in force for ${N('termYears',3)} years from the effective date, unless terminated earlier by written notice to the registered office in Nairobi.`),
+        clause(4,'Governing Law',`This Agreement is governed by the laws of the Republic of Kenya, and the Parties submit to the exclusive jurisdiction of the Courts at Nairobi.`),
+      ]}),
+    LE:()=>({ title:'COMMERCIAL PROPERTY LEASE AGREEMENT',
+      recital:`This Lease is made on ${D('effDate')} between ${CP} (the "Landlord") and <strong>${FIRST_PARTY}</strong> (the "Tenant") in respect of commercial premises situated at ${T('premises','e.g. Westlands, Nairobi')}.`,
+      clauses:[
+        clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
+        clause(2,'Rent',`The Tenant shall pay monthly rent of KES ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT at the prevailing KRA rate.`),
+        clause(3,'Term & Deposit',`The lease term is ${N('termYears',6)} years, secured by a deposit of ${N('deposit',0,'deposit KES')} held against dilapidations and refundable per clause 7.`),
+        clause(4,'Governing Law',`This Lease is governed by the laws of Kenya, including the Land Act (2012), with disputes referred to the Environment and Land Court at Nairobi.`),
+      ]}),
+    PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',
+      recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
+      clauses:[
+        clause(1,'Scope of Engagement',`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`),
+        clause(2,'Fees & Contract Value',`The fees for the engagement are KES ${VAL}, billed ${T('billing','e.g. on milestones')}, exclusive of VAT and disbursements.`),
+        clause(3,'Standard & Independence',`The services shall be performed to professional standards and, where regulated, in line with ICPAK / LSK requirements and applicable independence rules.`),
+        clause(4,'Liability, Confidentiality & Governing Law',`The Adviser's liability is capped at the fees paid, save for negligence or wilful default. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+  };
+  const built=(BUILD[c.template]||BUILD.ND)();
+  const title=built.title, recital=built.recital, clauses=built.clauses;
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
       <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/40 mb-2">${t.kind} · Republic of Kenya · ${c.id}</div>
@@ -1415,13 +1536,17 @@ async function signDocument(c){
 /* ============================================================
    VIEW: DEAL MAP  (force-directed graph of the portfolio)
    ============================================================ */
-const REL_SEEDS = [ // name-matched so IDs stay dynamic
-  { from:'Cold-Chain Distribution Terms', to:'Freight Forwarding \u2014 Mombasa Corridor', label:'re-tendered as' },
-  { from:'Vendor NDA \u2014 Payments Integration', to:'Master Services Agreement', label:'precedes' },
-  { from:'Warehouse Lease \u2014 Industrial Area', to:'Last-Mile Courier Agreement', label:'supports' },
+const REL_SEEDS = [ // name-matched so IDs stay dynamic \u2014 traces the value stream
+  { from:'Refined Sugar Supply \u2014 Confectionery Line', to:'Co-Packing \u2014 Powdered Beverages', label:'feeds' },
+  { from:'Co-Packing \u2014 Powdered Beverages', to:'Modern Trade Listing & Supply', label:'supplies' },
+  { from:'Raw Milk Collection \u2014 Rift Valley Co-ops', to:'Cold-Chain Storage \u2014 Dairy & Chilled', label:'stored via' },
+  { from:'Central Warehouse & 3PL \u2014 Industrial Area', to:'Last-Mile Distribution \u2014 Western Region', label:'feeds' },
+  { from:'Regional Distributor \u2014 Nyanza', to:'Modern Trade Listing & Supply', label:'overlaps' },
+  { from:'Crude Edible Oil Supply', to:'Tolling Agreement \u2014 Detergent Powder', label:'feeds' },
+  { from:'Mutual NDA \u2014 New Product Development', to:'Contract Manufacturing \u2014 Bar Soap', label:'precedes' },
 ];
 const STATUS_BAR = {'Draft':'#94a3b8','Under Review':'#C79A3E','Signed':'#0B7A5F','Declined':'#f43f5e'};
-const KIND_TAG = {nda:{t:'NDA',c:'#7c3aed'},lease:{t:'LEASE',c:'#0369a1'},supply:{t:'SUPPLY',c:'#b45309'},party:{t:'PARTY',c:'#0B7A5F'}};
+const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'#C79A3E'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'#0B7A5F'},party:{t:'PARTY',c:'#08211E'}};
 
 function buildGraph(){
   const nodes=[], edges=[];
@@ -1455,7 +1580,7 @@ function buildGraph(){
 
 function layoutGraph(nodes, edges, W, H){
   let seed=11; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff;};
-  const groups=['nda','lease','supply','party'];
+  const groups=[...Object.keys(FOLDERS),'party'];
   const gA={}; groups.forEach((g,i)=>gA[g]=i/groups.length*Math.PI*2 - Math.PI/3);
   nodes.forEach(n=>{
     if(state.mapPos[n.id]){ n.x=state.mapPos[n.id].x; n.y=state.mapPos[n.id].y; n.pinned=true; return; }
@@ -1798,11 +1923,11 @@ const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
 function scanRules(c){
   const F=[], f=c.fields||{};
   const add=(id,sev,kind,title,anchor,what,why,fix)=>F.push({id,sev,kind,title,anchor,what,why,fix});
-  const valAnchor = c.template==='A' ? 'c1' : 'c2';
+  const valAnchor = c.template==='ND' ? 'c1' : 'c2';
 
   // --- generic, data-driven (auto-clear when fixed) ---
   if(!c.counterparty) add('g-cp','high','missing','No counterparty named','recital',
-    'The opening recital names Highland Corporate but leaves the counterparty blank.',
+    `The opening recital names ${FIRST_PARTY} but leaves the counterparty blank.`,
     'A contract with an unnamed party is unenforceable — there is no legal person to hold to its terms or serve notice on.',
     'Enter the counterparty\u2019s full registered name (as it appears on the BRS register) in the recital.');
   if(isMonetary(c) && !(Number(c.value)>0)) add('g-val','med','missing','Contract value not set',valAnchor,
@@ -1818,58 +1943,163 @@ function scanRules(c){
     'Under the Kenya Information & Communications Act an advanced e-signature needs verified identity and an accredited certificate to carry full evidentiary weight.',
     'Run the IPRS check and attach the PKI token in the verification panel before signing.');
 
-  // --- template-specific ---
-  if(c.template==='A'){
+  // --- template-specific (tuned to FMCG contract types & Kenyan practice) ---
+  if(c.template==='RM'){
+    if(!f.material) add('rm-mat','med','missing','Material not specified','recital',
+      'The recital leaves the material description blank.',
+      'An unspecified input makes the specification, quality and rejection clauses unworkable and invites delivery disputes.',
+      'Name the material and grade in the recital (e.g. \u201cICUMSA 45 refined white sugar\u201d).');
+    add('rm-kebs','med','risk','KEBS/EAS standard not cited','c3',
+      'The quality clause references a specification generally but names no KEBS/EAS standard number.',
+      'For food-grade inputs, an unnamed standard makes rejection hard to enforce and risks non-compliant material entering production.',
+      'Cite the applicable KEBS/EAS standard and make conformity a condition of acceptance.');
+    add('rm-index','low','ambiguity','Price index unnamed','c2',
+      'Pricing is \u201creviewed against commodity indices\u201d without naming one.',
+      'Different indices move differently; an unnamed benchmark invites a pricing dispute at every quarterly review.',
+      'Name the specific published index and state the review formula.');
+    if(Number(c.value)>50000000) add('rm-sec','med','missing','No alternate-source / security of supply','c1',
+      `At ${fmtKESshort(c.value)} a year this is a critical input, yet nothing addresses supply failure.`,
+      'A single-source dependency at this scale can halt production if the supplier defaults.',
+      'Add a business-continuity clause: safety stock, an approved alternate source, or step-in rights.');
+  }
+  if(c.template==='PK'){
+    add('pk-ip','med','risk','Artwork / trademark ownership not explicit','c4',
+      'IP is mentioned only briefly; ownership of dies, plates and artwork is not spelled out.',
+      'If the supplier claims rights over tooling or artwork, a switch of supplier can be blocked or delayed.',
+      'State expressly that all artwork, trademarks and Buyer-funded tooling remain the Buyer\u2019s property, returnable on request.');
+    add('pk-moq','low','ambiguity','MOQ & obsolete-stock liability not addressed','c3',
+      'Forecast and safety stock are covered, but minimum order quantities and who carries obsolete artwork stock are not.',
+      'On an artwork change, unsold old-artwork packaging becomes a write-off nobody has agreed to fund.',
+      'Set MOQs and agree that the Buyer funds obsolete stock only where it gave firm commitments.');
+  }
+  if(c.template==='CM'){
+    add('cm-fs','high','risk','Food-safety certification not evidenced','c3',
+      'The agreement requires FSSC 22000 / KEBS certification but attaches no current certificate.',
+      'A lapsed co-packer certificate exposes the brand owner to recalls and Public Health / KEBS enforcement on its own label.',
+      'Attach the current certificate and make continuous renewal a condition, with audit rights on notice.');
+    add('cm-recall','high','missing','No product recall & traceability clause','c4',
+      'Liability is noted generally but there is no defined recall process or batch traceability obligation.',
+      'Without agreed recall roles and cost allocation, a contamination event becomes a dispute while product is still on shelf.',
+      'Add a recall clause: batch coding, mock-recall tests, notification timelines and cost allocation by fault.');
+    add('cm-ip','med','missing','Formulation IP protection is thin','c1',
+      'The clause states the Brand Owner owns recipes but adds no non-compete or non-use protection.',
+      'A co-packer that also makes competitor or own-label products could leak or reuse the formulation.',
+      'Add a non-use / non-compete covenant on the specific formulation and ring-fence production records.');
+  }
+  if(c.template==='EQ'){
+    if(!f.equipment) add('eq-eq','med','missing','Equipment not described','recital',
+      'The equipment description in the recital is blank.',
+      'The lease, insurance and maintenance obligations all attach to a defined asset; without it the contract is uncertain.',
+      'Describe the equipment, make/model and serial number in the recital or a schedule.');
+    add('eq-credit','med','missing','No uptime service credits','c3',
+      'An uptime target is stated but nothing happens if the Lessor misses it.',
+      'A target with no remedy is unenforceable in practice \u2014 downtime on a filling line directly stops sales.',
+      'Add service credits against the monthly charge for each band of missed uptime.');
+    add('eq-title','low','risk','Ownership on Lessor insolvency unclear','c1',
+      'Title stays with the Lessor, but the Lessee\u2019s position if the Lessor becomes insolvent is not addressed.',
+      'On the Lessor\u2019s insolvency the Lessee could lose access to equipment its production depends on.',
+      'Add quiet-enjoyment and step-in / purchase-option protection on Lessor insolvency.');
+  }
+  if(c.template==='WH'){
+    add('wh-temp','high','risk','Cold-chain excursion remedy missing','c3',
+      'Temperature logging is required, but the consequence of an excursion (who bears spoiled stock) is not stated.',
+      'For dairy and chilled goods a single excursion can write off a whole consignment; silence means a dispute, not a claim.',
+      'Define excursion thresholds, mandatory quarantine, and Provider liability for stock spoiled outside range.');
+    add('wh-ins','med','missing','Liability cap may sit below stock value','c4',
+      'Liability is capped at \u201cstock value\u201d but no warehouse-keeper\u2019s insurance is required.',
+      'If the Provider is uninsured, a fire or flood loss becomes an unrecoverable debt rather than an insurance claim.',
+      'Require the Provider to carry warehouse-keeper\u2019s liability cover to the peak stock value, evidenced annually.');
+  }
+  if(c.template==='FF'){
+    if(!f.region) add('ff-reg','med','missing','Distribution territory unspecified','recital',
+      'The territory / lane field in the recital is blank.',
+      'Rates, transit times and OTIF all depend on the named lanes; leaving them open invites billing and SLA disputes.',
+      'Name the lanes or region (e.g. \u201cNairobi \u2013 Mombasa primary + coastal secondary\u201d).');
+    add('ff-otif','med','ambiguity','OTIF penalty not defined','c3',
+      'An OTIF target is set but carries no service credit or penalty for misses.',
+      'Without a remedy the target is aspirational, and repeated late deliveries erode trade fill rates with no recourse.',
+      'Attach service credits or penalties to defined OTIF bands, tiered by channel priority.');
+    if(Number(c.value)>5000000) add('ff-ins','low','risk','Goods-in-transit insurance silent','c4',
+      `At ${fmtKESshort(c.value)} of annual flows the agreement does not require goods-in-transit cover.`,
+      'An uninsured hijack or accident lands as a dispute over the liability cap instead of a clean claim.',
+      'Require the Carrier to maintain goods-in-transit insurance to full consignment value, Principal as loss payee.');
+  }
+  if(c.template==='DA'){
+    add('da-credit','high','risk','Distributor credit inadequately secured','c3',
+      'A credit limit is granted; confirm the bank guarantee is in place and covers the peak exposure.',
+      'Distributor default on open credit is the single most common bad-debt loss in Kenyan FMCG route-to-market.',
+      'Hold a bank guarantee or post-dated security sized to peak exposure and review it quarterly.');
+    add('da-excl','med','ambiguity','Exclusivity vs. territory unclear','c1',
+      'The appointment is \u201cnon-exclusive\u201d but sets a single-territory restriction, which reads inconsistently.',
+      'Ambiguity over exclusivity fuels channel-conflict disputes when another distributor sells into the area.',
+      'State clearly whether the territory is exclusive, and define permitted cross-territory sales.');
+    add('da-perf','low','missing','No minimum-performance termination trigger','c4',
+      'Termination is on notice only, with no link to missed volume targets.',
+      'A weak distributor can hold a territory indefinitely while under-serving it, with no clean exit.',
+      'Add a right to terminate or de-scope the territory on sustained failure to hit agreed targets.');
+  }
+  if(c.template==='RL'){
+    if(Number(f.payDays||60)>45) add('rl-pay','med','risk','Payment terms strain working capital',valAnchor,
+      `Payment terms are ${Number(f.payDays||60)} days \u2014 well beyond the 30\u201345 days that keeps cash healthy.`,
+      'Long modern-trade terms on high volumes tie up working capital and magnify the risk if the retailer delays.',
+      'Negotiate toward 30\u201345 days, or price the cost of the extended terms into the trading margin.');
+    add('rl-listing','low','ambiguity','Listing fees & rebates not itemised','c2',
+      'Trading terms bundle listing fees and rebates without an itemised schedule.',
+      'Un-itemised trade spend is where margin quietly leaks and reconciliation disputes begin.',
+      'Itemise listing fees, rebates and promotional support in a costed Annexure A.');
+    add('rl-return','med','missing','Short-dated returns liability unclear','c3',
+      'Returns are mentioned but the split of short-dated / damaged stock liability is not defined.',
+      'Retailers often push short-dated stock back; without clear rules this becomes an unbudgeted write-off.',
+      'Define return windows, condition criteria and who bears short-dated stock by cause.');
+  }
+  if(c.template==='MK'){
+    add('mk-rebate','med','ambiguity','Media rebate transparency not guaranteed','c3',
+      'The clause says rebates are passed back but requires no audit or disclosure of media buys.',
+      'Undisclosed agency media rebates are a well-known leakage; without audit rights the Client cannot verify pass-back.',
+      'Add media-transparency and audit rights over buys, rates and rebates.');
+    add('mk-ip','med','risk','Campaign IP vests only on full payment','c4',
+      'IP vests \u201con payment\u201d, which can strand rights if a dispute pauses a final invoice.',
+      'A withheld final payment could leave the Client unable to use campaign assets it largely funded.',
+      'Provide a licence to use delivered work pending payment, with full assignment on settlement.');
+    add('mk-appr','low','missing','Spend approval threshold unset','c3',
+      'All spend needs approval, but no monetary threshold or delegation is defined.',
+      'Without thresholds, either every small cost needs sign-off (slow) or large spend slips through (risk).',
+      'Set an approval matrix with KES thresholds and named approvers.');
+  }
+  if(c.template==='ND'){
     const term=Number(f.termYears||3);
-    if(term>5) add('a-term','med','ambiguity','Confidentiality term exceeds market norm','c3',
-      `The term is set to ${term} years \u2014 well beyond the 2\u20135 years typical for commercial NDAs in Kenya.`,
+    if(term>5) add('nd-term','med','ambiguity','Confidentiality term exceeds market norm','c3',
+      `The term is set to ${term} years \u2014 beyond the 2\u20135 years typical for commercial NDAs in Kenya.`,
       'Overlong terms are harder to enforce and may be read down by a court as an unreasonable restraint.',
-      'Reduce the term to 3\u20135 years, or carve trade secrets out with an indefinite tail instead.');
-    add('a-liab','high','risk','No limitation of liability clause','c4',
-      'The template caps nothing \u2014 there is no ceiling on damages for breach of confidence.',
-      'Exposure is unlimited: a Kenyan court will award whatever loss is proven, which for leaked pricing or customer data can dwarf the deal value.',
-      'Add a liability cap (commonly the engagement value or a fixed KES amount), excluding deliberate breach.');
-    add('a-inj','low','missing','No injunctive relief clause','c2',
+      'Reduce to 3\u20135 years, or give trade secrets an indefinite tail while other information expires.');
+    add('nd-inj','low','missing','No injunctive-relief clause','c2',
       'The agreement is silent on equitable remedies.',
       'Damages arrive too late for a confidentiality breach \u2014 the value is in stopping disclosure fast.',
-      'Add a clause acknowledging that breach causes irreparable harm and permitting interim injunctions in the High Court at Nairobi.');
+      'Add wording acknowledging irreparable harm and permitting interim injunctions in the High Court at Nairobi.');
   }
-  if(c.template==='B'){
-    if(!f.deposit) add('b-dep','high','missing','Security deposit not specified','c3',
+  if(c.template==='LE'){
+    if(!f.deposit) add('le-dep','high','missing','Security deposit not specified','c3',
       'Clause 3 references a deposit but the amount field is blank.',
-      'Without a stated deposit the landlord has no defined security against dilapidations or arrears, and the refund obligation in clause 7 has nothing to bite on.',
-      'Enter the deposit \u2014 market practice in Nairobi is 3 months\u2019 gross rent for commercial space.');
-    if(!f.premises) add('b-prem','med','missing','Premises description incomplete','recital',
-      'The demised premises field in the recital is empty.',
-      'A lease must identify the land and unit with certainty; a vague description risks unenforceability and registration problems.',
-      'State the building, floor/unit and LR number, e.g. \u201cNairobi Tech Hub, 4th Floor, LR No. 209/XXXX, Westlands\u201d.');
-    add('b-stamp','med','risk','Stamp duty not evidenced','c4',
-      'Nothing in the document records assessment or payment of stamp duty.',
-      'Leases attract stamp duty under the Stamp Duty Act (Cap 480); an unstamped lease is inadmissible in evidence in Kenyan courts until duty and penalties are paid.',
-      'Assess and pay stamp duty via iTax within 30 days of execution and attach the certificate to the record.');
-    add('b-esc','low','missing','No rent escalation clause','c2',
-      `Rent is fixed for the full ${Number(f.termYears||6)}-year term with no review mechanism.`,
-      'On a multi-year Nairobi lease, flat rent shifts inflation risk entirely to the landlord \u2014 or, if renegotiated informally, creates dispute risk for the tenant.',
+      'Without a stated deposit there is no defined security against dilapidations or arrears.',
+      'Enter the deposit \u2014 market practice in Nairobi is around 3 months\u2019 gross rent for commercial space.');
+    add('le-stamp','med','risk','Stamp duty not evidenced','c4',
+      'Nothing records assessment or payment of stamp duty.',
+      'Leases attract stamp duty under the Stamp Duty Act (Cap 480); an unstamped lease is inadmissible in evidence until duty and penalties are paid.',
+      'Assess and pay stamp duty via iTax within 30 days of execution and attach the certificate.');
+    add('le-esc','low','missing','No rent escalation clause','c2',
+      `Rent is fixed for the ${Number(f.termYears||6)}-year term with no review mechanism.`,
+      'Over a multi-year lease, flat rent shifts inflation risk to one side and invites informal renegotiation disputes.',
       'Add a periodic escalation (commonly 7.5% every 2 years) or an open-market rent review.');
   }
-  if(c.template==='C'){
-    const sla=Number(f.slaHrs||48);
-    if(sla>72) add('c-sla','med','ambiguity','Clearance SLA above competitive benchmark','c3',
-      `The clearance turnaround is set at ${sla} hours against a Mombasa market norm of 48\u201372 hours.`,
-      'A loose SLA weakens the 98% reliability target and gives the client little contractual leverage on delays.',
-      'Tighten to 48\u201372 hours, or tier the SLA by cargo class with service credits for misses.');
-    if(!f.port) add('c-port','med','missing','Port of clearance unspecified','c1',
-      'The customs clearance location field in clause 1 is empty.',
-      'Scope, transit times and KRA/KPA documentation all hinge on the named port of entry.',
-      'Name the port \u2014 typically \u201cPort of Mombasa\u201d or \u201cNaivasha ICD\u201d for Northern Corridor flows.');
-    add('c-liab','med','ambiguity','Liability cap incorporated by reference only','c4',
-      'Clause 4 caps liability \u201cper the Carriage of Goods rules\u201d without stating figures.',
-      'The parties may hold different views of which regime and limits apply \u2014 per-package, per-kilo or per-container \u2014 which is exactly where freight disputes start.',
-      'State the cap expressly (e.g. USD X per container or SDR-based per-kilo limit) and name the governing convention.');
-    if(Number(c.value)>5000000) add('c-ins','low','risk','No cargo insurance obligation','c2',
-      `At ${fmtKESshort(c.value)} of annual flows, the agreement is silent on who insures the cargo.`,
-      'If neither party carries marine cargo cover, an uninsured loss lands as a dispute over the liability clause instead of a clean claim.',
-      'Add an obligation for one party to maintain marine cargo insurance to the full consignment value, with the other noted as loss payee.');
+  if(c.template==='PS'){
+    add('ps-cap','med','risk','Liability cap may be too low','c4',
+      'Liability is capped at the fees paid, which for a low-fee engagement can be far below the exposure created.',
+      'On audit or regulatory advice, a capped-at-fees limit may leave the Client under-protected against a costly error.',
+      'Size the cap to the risk (a multiple of fees or a fixed KES amount) and carve out negligence.');
+    add('ps-indep','low','missing','Independence / conflicts not addressed','c3',
+      'The engagement is silent on conflicts of interest and independence.',
+      'For audit and legal work, an undisclosed conflict can invalidate the work and create regulatory exposure.',
+      'Add an independence and conflict-check clause with ongoing disclosure duties.');
   }
   return F;
 }
@@ -1987,7 +2217,7 @@ const AI_SUGGESTIONS = [
   'What is pending counterparty action?',
   'Total value of signed contracts',
   'Which contract has the highest value?',
-  'Find contracts with Safaricom',
+  'Find contracts with Naivas',
   'How many drafts do I have?',
   'Which contracts have open risk findings?',
   'What expires in the next 90 days?',
@@ -2136,7 +2366,7 @@ function aiAnswer(qRaw){
     }
   }
   // fallback
-  return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Twiga"</em>).` };
+  return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Naivas"</em>).` };
 }
 
 function aiSubmit(){
