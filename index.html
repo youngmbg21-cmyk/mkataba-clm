@@ -7,7 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
   // HaTi light-theme design system (design_handoff_hati_redesign):
   // DM Sans everywhere, JetBrains Mono for IDs/values/timestamps, the
@@ -20,6 +20,12 @@
         display: ['"DM Sans"','system-ui','sans-serif'],
         sans: ['"DM Sans"','system-ui','sans-serif'],
         mono: ['"JetBrains Mono"','ui-monospace','monospace'],
+      },
+      // numeric weight utilities — Tailwind ships only named weights
+      // (medium/semibold/bold), so font-600/700/800 used across the app
+      // were silently no-ops (everything rendered at 400). Make them real.
+      fontWeight: {
+        400:'400', 500:'500', 600:'600', 700:'700', 800:'800', 900:'900',
       },
       colors: {
         canvas:'#F4F7F5',
@@ -45,10 +51,11 @@
 <style>
   /* ---- premium design tokens (elevation, depth, motion) ---- */
   :root{
-    --sh1:0 1px 2px rgba(8,33,30,.05);
-    --sh2:0 6px 16px -8px rgba(8,33,30,.13),0 2px 6px -3px rgba(8,33,30,.07);
-    --sh3:0 18px 40px -18px rgba(8,33,30,.22),0 5px 14px -8px rgba(8,33,30,.10);
-    --sh4:0 34px 64px -26px rgba(8,33,30,.30);
+    --ring:0 0 0 1px rgba(8,33,30,.08);
+    --sh1:0 1px 2px rgba(8,33,30,.06),0 1px 1px rgba(8,33,30,.04);
+    --sh2:0 2px 4px rgba(8,33,30,.05),0 16px 30px -14px rgba(8,33,30,.20);
+    --sh3:0 18px 40px -18px rgba(8,33,30,.24),0 6px 16px -8px rgba(8,33,30,.13);
+    --sh4:0 34px 64px -26px rgba(8,33,30,.32);
     --focus:0 0 0 3px rgba(11,122,95,.20);
     --ease:cubic-bezier(.2,.7,.3,1);
   }
@@ -57,17 +64,19 @@
     color:#08211E; font-family:'DM Sans',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.006em;
     background:
-      radial-gradient(1100px 560px at 86% -12%, rgba(8,107,84,.055), transparent 60%),
-      linear-gradient(180deg,#F7FAF8,#EDF4F0);
+      radial-gradient(1100px 560px at 86% -12%, rgba(8,107,84,.07), transparent 60%),
+      linear-gradient(180deg,#EFF5F1,#E1EDE7);
     min-height:100vh;
   }
   h1,h2,h3,.font-display { letter-spacing:-0.022em; }
   a { color:#086B54; }
   ::selection { background:#CFEAE0; }
   /* elevation + motion utilities */
-  .elev-1{box-shadow:var(--sh1)} .elev-2{box-shadow:var(--sh2)} .elev-3{box-shadow:var(--sh3)} .elev-4{box-shadow:var(--sh4)}
+  /* every elevated card carries a crisp hairline ring so white cards separate
+     from the canvas AND nested white tiles separate from white parents */
+  .elev-1{box-shadow:var(--ring),var(--sh1)} .elev-2{box-shadow:var(--ring),var(--sh2)} .elev-3{box-shadow:var(--ring),var(--sh3)} .elev-4{box-shadow:var(--ring),var(--sh4)}
   .lift{transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .18s}
-  .lift:hover{transform:translateY(-3px); box-shadow:var(--sh3)}
+  .lift:hover{transform:translateY(-3px); box-shadow:0 0 0 1px rgba(8,33,30,.10),var(--sh3)}
   .tnum{font-variant-numeric:tabular-nums}
   button,[role=button]{transition:background .16s, color .16s, box-shadow .16s, transform .12s}
   button:active:not(:disabled){transform:translateY(.5px)}
@@ -292,6 +301,8 @@ const ICONS = {
   upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
   copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   printer:'<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  expand:'<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  close:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   userplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
   history:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
@@ -616,7 +627,7 @@ function renderAuth(mode){
   if(mode==='setup'){
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-[22px] tracking-[-0.01em] text-ink">Create your workspace</h1>
-      <p class="text-xs text-ink/55 mb-5 mt-1">Set up your organization and the first admin account.</p>
+      <p class="text-xs text-ink/70 mb-5 mt-1">Set up your organization and the first admin account.</p>
       ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
       ${input('su-name','Your full name','text','e.g. Amina Otieno')}
       ${input('su-email','Work email','email','you@company.co.ke')}
@@ -628,13 +639,13 @@ function renderAuth(mode){
   } else if(mode==='login'){
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg()?.name||'your workspace'}</h1>
-      <p class="text-xs text-brand-800/55 mb-4">Use your workspace credentials.</p>
+      <p class="text-xs text-brand-800/70 mb-4">Use your workspace credentials.</p>
       ${input('li-email','Email','email')}
       ${input('li-pass','Password','password')}
       <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
       <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
-      ${REMOTE?'<button id="li-forgot" class="mt-3 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Forgot password?</button>':''}
-      ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
+      ${REMOTE?'<button id="li-forgot" class="mt-3 w-full text-[11px] text-brand-800/65 hover:text-brand-700 transition">Forgot password?</button>':''}
+      ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/60 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
@@ -646,11 +657,11 @@ function renderAuth(mode){
   } else if(mode==='forgot'){
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-lg text-brand-900">Reset your password</h1>
-      <p class="text-xs text-brand-800/55 mb-4">Enter your email and we’ll send a reset link.</p>
+      <p class="text-xs text-brand-800/70 mb-4">Enter your email and we’ll send a reset link.</p>
       ${input('fp-email','Email','email')}
       <button id="fp-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Send reset link</button>
       <div id="fp-result" class="mt-3"></div>
-      <button id="fp-back" class="mt-4 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Back to sign in</button>`);
+      <button id="fp-back" class="mt-4 w-full text-[11px] text-brand-800/65 hover:text-brand-700 transition">Back to sign in</button>`);
     document.getElementById('fp-back').addEventListener('click',()=>renderAuth('login'));
     document.getElementById('fp-go').addEventListener('click',async()=>{
       const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
@@ -664,7 +675,7 @@ function renderAuth(mode){
     const token=mode.slice(6);
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-lg text-brand-900">Set a new password</h1>
-      <p class="text-xs text-brand-800/55 mb-4">Choose a new password for your account.</p>
+      <p class="text-xs text-brand-800/70 mb-4">Choose a new password for your account.</p>
       ${input('rs-pass','New password','password','Min 8 characters')}
       <button id="rs-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Save new password</button>
       <p id="rs-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>`);
@@ -767,7 +778,7 @@ function renderAuditSection(c){
       <div class="flex items-center gap-2 mb-3">
         <span class="text-brand-500">${icon('history')}</span>
         <h3 class="text-sm font-display font-600 text-brand-900">Audit trail</h3>
-        <span class="ml-auto text-[10px] font-mono text-brand-800/40">${items.length} events</span>
+        <span class="ml-auto text-[10px] font-mono text-brand-800/60">${items.length} events</span>
       </div>
       <div class="space-y-2 max-h-44 overflow-y-auto scroll-thin pr-1">
         ${items.length?items.map(e=>`
@@ -775,8 +786,8 @@ function renderAuditSection(c){
             <span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-brand-300 shrink-0"></span>
             <span class="min-w-0"><span class="font-medium text-brand-900">${e.action}</span>
               <span class="text-brand-800/70"> — ${e.detail}</span>
-              <span class="block text-[10px] text-brand-800/40 font-mono">${e.user} · ${fmtDT(e.at)}</span></span>
-          </div>`).join(''):`<div class="text-[11px] text-brand-800/45">No events recorded yet.</div>`}
+              <span class="block text-[10px] text-brand-800/60 font-mono">${e.user} · ${fmtDT(e.at)}</span></span>
+          </div>`).join(''):`<div class="text-[11px] text-brand-800/65">No events recorded yet.</div>`}
       </div>
     </div>`;
 }
@@ -792,27 +803,27 @@ function renderNegotiationSection(c){
       <div class="flex items-center gap-2 mb-3">
         <span class="text-gold-500">${icon('history')}</span>
         <h3 class="text-sm font-display font-600 text-brand-900">Negotiation</h3>
-        ${open?`<span class="ml-auto inline-flex items-center gap-1 rounded-full border border-gold-500/25 bg-gold-500/10 text-gold-600 px-2 py-0.5 text-[10px] font-medium">${open} open</span>`:`<span class="ml-auto text-[10px] font-mono text-brand-800/40">${rounds.length} round${rounds.length===1?'':'s'}</span>`}
+        ${open?`<span class="ml-auto inline-flex items-center gap-1 rounded-full border border-gold-500/25 bg-gold-500/10 text-gold-600 px-2 py-0.5 text-[10px] font-medium">${open} open</span>`:`<span class="ml-auto text-[10px] font-mono text-brand-800/60">${rounds.length} round${rounds.length===1?'':'s'}</span>`}
       </div>
       <div class="space-y-2">
         ${rounds.slice().reverse().map(r=>`
           <div class="rounded-lg border ${r.status==='open'?'border-gold-500/30 bg-gold-500/5':'border-brand-100 bg-white'} p-3">
             <div class="flex items-center gap-2 text-[11px] mb-1">
               <span class="font-semibold text-brand-900">Round ${r.n} — changes requested</span>
-              <span class="ml-auto text-brand-800/40 font-mono">${fmtDT(r.at)}</span>
+              <span class="ml-auto text-brand-800/60 font-mono">${fmtDT(r.at)}</span>
             </div>
-            <div class="text-[11px] text-brand-800/45 mb-1">by ${r.by}</div>
+            <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>
             <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
-            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/50">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
+            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
             ${r.status==='open'?(canEdit()?`
               <div class="mt-2 flex items-center gap-2">
                 <button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
                 <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>
-              </div>`:`<div class="mt-2 text-[11px] text-brand-800/45">Awaiting an approver to resolve.</div>`)
+              </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">Awaiting an approver to resolve.</div>`)
             :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
           </div>`).join('')}
       </div>
-      <p class="mt-2 text-[10px] text-brand-800/40">After resolving, re-share the updated document to send the next round.</p>
+      <p class="mt-2 text-[10px] text-brand-800/60">After resolving, re-share the updated document to send the next round.</p>
     </div>`;
   host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
   host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
@@ -941,7 +952,7 @@ async function openShareModal(c){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('share')}</span>
         <h2 class="font-display font-700 text-brand-900">Share with counterparty</h2></div>
-      <p class="text-xs text-brand-800/55 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
+      <p class="text-xs text-brand-800/70 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
       <textarea id="share-link" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none break-all">${link}</textarea>
       <div class="mt-3 flex items-center gap-2 justify-end">
         <button id="share-close" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Close</button>
@@ -963,7 +974,7 @@ function openImportModal(c){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('upload')}</span>
         <h2 class="font-display font-700 text-brand-900">Import counterparty response</h2></div>
-      <p class="text-xs text-brand-800/55 mb-3">Paste the response code the counterparty sent back after opening your share link.</p>
+      <p class="text-xs text-brand-800/70 mb-3">Paste the response code the counterparty sent back after opening your share link.</p>
       <textarea id="imp-code" rows="5" placeholder="Paste response code…" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none focus:border-brand-400"></textarea>
       <div class="mt-3 flex items-center gap-2 justify-end">
         <button id="imp-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
@@ -1047,7 +1058,7 @@ function renderSharePortal(p, opts={}){
       <div class="bg-white rounded-2xl p-8 text-center max-w-sm">
         <div class="text-rose-500 mb-3 flex justify-center">${icon('ban','w-8 h-8')}</div>
         <h1 class="font-display font-700 text-brand-900">Invalid share link</h1>
-        <p class="text-sm text-brand-800/55 mt-1">This link is malformed or truncated. Ask the sender to generate a fresh one.</p>
+        <p class="text-sm text-brand-800/70 mt-1">This link is malformed or truncated. Ask the sender to generate a fresh one.</p>
       </div></div>`;
     return;
   }
@@ -1073,7 +1084,7 @@ function renderSharePortal(p, opts={}){
       <aside class="bg-white rounded-2xl border border-brand-100 p-5 lg:sticky lg:top-6">
         <h2 class="font-display font-600 text-brand-900 mb-1">Respond to ${p.org}</h2>
         ${opts.responded?`<div class="mb-4 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2.5 text-[11px] text-brand-700 flex items-center gap-1.5">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
-        <p class="text-[11px] text-brand-800/55 mb-4">${opts.token?`Your response is delivered to ${p.sharedBy} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.`}</p>
+        <p class="text-[11px] text-brand-800/70 mb-4">${opts.token?`Your response is delivered to ${p.sharedBy} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
         ${input('pt-email','Work email','you@company.co.ke')}
@@ -1148,7 +1159,7 @@ async function portalStartOtp(p, info){
       ${devCode?`<p class="mb-2 text-[11px] rounded-lg bg-gold-500/10 border border-gold-500/25 text-gold-700 px-2.5 py-1.5">Email isn’t configured on this server yet, so for testing your code is <strong class="font-mono">${devCode}</strong>.</p>`:''}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" class="w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-center text-lg font-mono tracking-[0.4em] outline-none focus:border-brand-400"/>
       <button id="pt-otp-go" class="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-2.5 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
-      <button id="pt-otp-resend" class="mt-1.5 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Resend code</button>
+      <button id="pt-otp-resend" class="mt-1.5 w-full text-[11px] text-brand-800/65 hover:text-brand-700 transition">Resend code</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
   document.getElementById('pt-otp-resend').addEventListener('click',()=>portalStartOtp(p, info));
@@ -1248,12 +1259,12 @@ function contractRow(c, {showFolder=false}={}){
     <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'} border" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
-      <span class="block text-[11px] text-brand-800/45 font-mono truncate">${c.counterparty||'No counterparty yet'}${showFolder?' · '+FOLDERS[c.folder].name:''}</span>
+      <span class="block text-[11px] text-brand-800/65 font-mono truncate">${c.counterparty||'No counterparty yet'}${showFolder?' · '+FOLDERS[c.folder].name:''}</span>
     </span>
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
-    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
+    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
     <span class="shrink-0">${statusChip(c.status)}</span>
     <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
   </button>`;
@@ -1300,17 +1311,17 @@ function renderDashboard(){
   const kpiHtml = kpis.map((k,i)=>`
     <button data-kpi="${i}" class="text-left bg-white rounded-2xl elev-2 lift px-5 py-5" style="animation:rowIn .45s var(--ease) both;animation-delay:${i*45}ms">
       <span class="h-[40px] w-[40px] grid place-items-center rounded-xl mb-3.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[19px] h-[19px]')}</span>
-      <div class="font-display font-800 text-[28px] tracking-[-0.03em] leading-none tnum" style="color:${k.num}">${k.val}</div>
-      <div class="text-[11.5px] text-ink/50 mt-2">${k.label}</div>
+      <div class="font-display font-800 text-[31px] tracking-[-0.035em] leading-none tnum" style="color:${k.num}">${k.val}</div>
+      <div class="text-[12px] font-500 text-ink/70 mt-2.5">${k.label}</div>
     </button>`).join('');
 
   // segmented stage bar
   const segBar = stages.map(s=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color}" class="h-2.5 first:rounded-l-full last:rounded-r-full"></span>`).join('');
   const stageCards = stages.map(s=>`
-    <button data-stage="${s.k}" class="group flex items-center justify-between gap-2 rounded-xl bg-white elev-1 lift px-4 py-3.5 text-left">
+    <button data-stage="${s.k}" class="group flex items-center justify-between gap-2 rounded-xl bg-white elev-2 lift px-4 py-3.5 text-left">
       <span class="min-w-0">
         <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full" style="background:${s.color}"></span><span class="text-sm font-medium text-brand-900">${s.label}</span></span>
-        <span class="block mt-1 text-[11px] font-mono text-brand-800/50">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
+        <span class="block mt-1 text-[11px] font-mono text-brand-800/70">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
       </span>
       <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
     </button>`).join('');
@@ -1329,9 +1340,9 @@ function renderDashboard(){
     {go:{stage:'Under Review'}, donut:donut(m.pending, countAll?m.pending/countAll*100:0, '#086B54'), title:'Awaiting counterparty', sub:`${m.pending} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
   ];
   const snapHtml = snap.map((s,i)=>`
-    <button data-snap="${i}" class="text-left flex items-center gap-4 rounded-[14px] border border-hair bg-faint px-4 py-4 hover:border-brand-300 transition">
+    <button data-snap="${i}" class="text-left flex items-center gap-4 rounded-[14px] bg-white elev-2 lift px-4 py-4 transition">
       ${s.donut}
-      <div class="min-w-0"><div class="text-sm font-600 text-ink">${s.title}</div><div class="text-[11px] text-ink/50 mt-0.5">${s.sub}</div></div>
+      <div class="min-w-0"><div class="text-sm font-600 text-ink">${s.title}</div><div class="text-[11px] text-ink/70 mt-0.5">${s.sub}</div></div>
     </button>`).join('');
 
   // attention column row (name + meta + right tag)
@@ -1339,16 +1350,16 @@ function renderDashboard(){
     <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-50/40 transition border-b border-brand-100/50 last:border-0">
       <span class="min-w-0 flex-1">
         <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
-        <span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''}</span>
+        <span class="block text-[11px] font-mono text-brand-800/65 truncate">${c.id} · ${c.counterparty||'—'}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''}</span>
       </span>
       <span class="shrink-0 text-[11px] font-mono font-semibold whitespace-nowrap" style="color:${tagColor}">${tag}</span>
     </button>`;
-  const emptyCol = msg => `<div class="px-4 py-8 text-center text-xs text-brand-800/45">${msg}</div>`;
+  const emptyCol = msg => `<div class="px-4 py-8 text-center text-xs text-brand-800/65">${msg}</div>`;
   const col=(icon_,accent,title,total,rows,empty)=>`
     <section class="bg-white rounded-2xl elev-2 overflow-hidden flex flex-col">
       <div class="flex items-center justify-between px-4 py-3 border-b border-brand-100/60">
         <div class="flex items-center gap-2"><span style="color:${accent}">${icon(icon_)}</span><h3 class="font-display font-600 text-sm text-brand-900">${title}</h3></div>
-        <span class="text-[11px] font-mono text-brand-800/40">${total} total</span>
+        <span class="text-[11px] font-mono text-brand-800/60">${total} total</span>
       </div>
       <div class="flex-1">${rows||empty}</div>
       <button data-view-intel class="text-[11px] font-medium text-brand-600 hover:text-brand-800 px-4 py-2.5 border-t border-brand-100/60 text-left transition">View all in Portfolio Intelligence →</button>
@@ -1362,7 +1373,7 @@ function renderDashboard(){
   const menuItems = Object.values(TEMPLATES).map(t=>`
     <button data-new="${t.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
       <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
-      <span class="min-w-0"><span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span><span class="block text-[10px] text-brand-800/45">Template ${t.id}</span></span>
+      <span class="min-w-0"><span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span><span class="block text-[10px] text-brand-800/65">Template ${t.id}</span></span>
     </button>`).join('');
 
   document.getElementById('content').innerHTML = `
@@ -1371,17 +1382,17 @@ function renderDashboard(){
       <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1280px] mx-auto w-full">
         <div>
           <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Portfolio</h1>
-          <p class="text-[13px] text-ink/50"><span class="tnum">${Number(countAll).toLocaleString('en-KE')}</span> contracts under management · <span class="tnum">${fmtKESshort(m.totalValue)}</span> active</p>
+          <p class="text-[13px] text-ink/70"><span class="tnum">${Number(countAll).toLocaleString('en-KE')}</span> contracts under management · <span class="tnum">${fmtKESshort(m.totalValue)}</span> active</p>
         </div>
         <div class="flex items-center gap-3">
-          <button id="topbar-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
+          <button id="topbar-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/70 w-72 hover:border-brand-300 transition text-left">
             ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Search contracts, or ask AI…</span>
-            <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
+            <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/60">/</kbd>
           </button>
           <div class="relative">
             <button id="folders-btn" class="flex items-center gap-2 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm font-medium text-ink/70 hover:border-brand-300 transition">${icon('folder','w-4 h-4 text-brand-500')} Folders ${icon('chevD','w-3.5 h-3.5')}</button>
             <div id="folders-menu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40">
-              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-ink/45 font-semibold">Value streams</div>
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-ink/65 font-semibold">Value streams</div>
               ${Object.values(FOLDERS).map(f=>`<button data-open-folder="${f.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
                 <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-600">${icon(f.ic,'w-4 h-4')}</span>
                 <span class="min-w-0 flex-1 text-xs font-medium text-ink truncate">${f.name}</span>
@@ -1392,12 +1403,12 @@ function renderDashboard(){
           <div class="relative">
             <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
             <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
-              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/45 font-semibold">Generate from template</div>
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/65 font-semibold">Generate from template</div>
               ${menuItems}
               <div class="mt-1 pt-1 border-t border-brand-100/60">
                 <button id="menu-upload" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-gold-500/10 px-2.5 py-2 transition text-left">
                   <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload')}</span>
-                  <span class="min-w-0"><span class="block text-xs font-semibold text-brand-900">Upload a received contract</span><span class="block text-[10px] text-brand-800/45">Their paper — review, scan &amp; sign</span></span>
+                  <span class="min-w-0"><span class="block text-xs font-semibold text-brand-900">Upload a received contract</span><span class="block text-[10px] text-brand-800/65">Their paper — review, scan &amp; sign</span></span>
                 </button>
               </div>
             </div>
@@ -1423,7 +1434,7 @@ function renderDashboard(){
       <!-- Attention snapshot -->
       <section class="bg-white rounded-2xl elev-2 p-5">
         <h2 class="font-display font-600 text-brand-900">Attention snapshot</h2>
-        <p class="text-xs text-brand-800/50 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
+        <p class="text-xs text-brand-800/70 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">${snapHtml}</div>
       </section>
 
@@ -1476,11 +1487,11 @@ function renderFolder(){
           <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400 shrink-0">${icon(f.ic)}</span>
           <div class="min-w-0">
             <h1 class="font-display font-700 text-lg tracking-tight text-brand-900 truncate">${f.name}</h1>
-            <p class="text-[11px] font-mono text-brand-800/45">${cs.length} contracts · ${fmtKESshort(val)} active value</p>
+            <p class="text-[11px] font-mono text-brand-800/65">${cs.length} contracts · ${fmtKESshort(val)} active value</p>
           </div>
         </div>
         <div class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 w-72 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition">
-          ${icon('search','w-4 h-4 text-brand-800/40')}
+          ${icon('search','w-4 h-4 text-brand-800/60')}
           <input id="folder-search" value="${state.folderQuery.replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" class="flex-1 text-sm outline-none bg-transparent"/>
         </div>
       </div>
@@ -1507,7 +1518,7 @@ function folderListHtml(cs){
     <div class="px-5 py-10 text-center">
       <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
       <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
+      <div class="text-xs text-brand-800/70 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
     </div>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const rows=cs.slice(0,shown).map(c=>contractRow(c)).join('');
@@ -1647,9 +1658,9 @@ function openUploadModal(){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
         <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
-      <p class="text-xs text-brand-800/55 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
+      <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
       <label class="block mb-3">
-        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/45">(PDF, Word, image or text · max 4 MB)</span></span>
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word, image or text · max 4 MB)</span></span>
         <input id="up-file" type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
       </label>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
@@ -1721,27 +1732,35 @@ async function submitUpload(){
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
-  const preview = (isPdf||isText)
-    ? `<iframe src="${u.dataUrl}" class="w-full h-[560px] rounded-lg border border-brand-100 bg-white" title="Uploaded document"></iframe>`
+  // a generous reading surface: fills the viewport height, with an Expand
+  // control that opens the document near-fullscreen for comfortable review
+  const canPreview = isPdf||isText||isImg;
+  const previewHead = canPreview ? `
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Document preview</div>
+      <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
+    </div>` : '';
+  const preview = previewHead + ((isPdf||isText)
+    ? `<iframe id="uploaded-doc-frame" src="${u.dataUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
     : isImg
-    ? `<img src="${u.dataUrl}" class="max-w-full rounded-lg border border-brand-100" alt="Uploaded document"/>`
-    : `<div class="rounded-lg border border-dashed border-brand-200 bg-brand-50/40 p-8 text-center">
-         <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-7 h-7')}</div>
-         <div class="text-sm font-medium text-brand-800/70">${u.fileName||'Document'}</div>
-         <div class="text-xs text-brand-800/45 mt-0.5">Word documents can't preview in the browser — download the original to review it.</div>
-       </div>`;
+    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${u.dataUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
+         <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
+         <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
+         <div class="text-xs text-brand-800/65 mt-1">Word documents can't preview in the browser — download the original to review it.</div>
+       </div>`);
   const sizeKB = u.size?Math.round(u.size/1024):0;
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/40 mb-2">External Document · received · ${c.id}</div>
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">External Document · received · ${c.id}</div>
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
     </div>
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
       ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.</span>
     </div>
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
-      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
@@ -1749,6 +1768,40 @@ function uploadDocBody(c){
     </div>
     ${preview}
     ${signatureBlock(c)}`;
+}
+
+// near-fullscreen reader for a received document — the reading surface the
+// inline preview can't give inside the split workspace
+function openDocReader(url, name){
+  if(!url) return;
+  const prev=document.getElementById('doc-reader'); if(prev) prev.remove();
+  const isImg=/^data:image\//.test(url);
+  const body=isImg
+    ? `<div class="flex-1 min-h-0 overflow-auto bg-docbg grid place-items-start p-4"><img src="${url}" class="max-w-full mx-auto" alt="${(name||'Document').replace(/"/g,'')}"/></div>`
+    : `<iframe src="${url}" class="flex-1 min-h-0 w-full bg-white" title="${(name||'Document').replace(/"/g,'')}"></iframe>`;
+  const ov=document.createElement('div');
+  ov.id='doc-reader';
+  ov.className='fixed inset-0 z-[80] bg-ink/60 backdrop-blur-sm flex flex-col p-3 sm:p-6';
+  ov.style.animation='viewIn .2s var(--ease)';
+  ov.innerHTML=`
+    <div class="mx-auto w-full max-w-[1100px] flex-1 min-h-0 flex flex-col bg-white rounded-2xl elev-4 overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-hair">
+        <div class="min-w-0 flex items-center gap-2.5">
+          <span class="h-8 w-8 grid place-items-center rounded-lg bg-brand-50 text-brand-600 shrink-0">${icon('file','w-4 h-4')}</span>
+          <div class="min-w-0"><div class="text-sm font-700 text-brand-900 truncate">${name||'Document'}</div><div class="text-[11px] text-brand-800/60">Received document · full-screen reader</div></div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="${url}" download="${(name||'contract').replace(/"/g,'')}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-600 text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download</a>
+          <button type="button" data-close-reader class="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 text-white px-3 py-2 text-xs font-600 hover:bg-brand-800 transition">${icon('close','w-3.5 h-3.5')} Close</button>
+        </div>
+      </div>
+      ${body}
+    </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('[data-close-reader]').addEventListener('click',close);
+  ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
 }
 
 function uploadScanRules(c){
@@ -1918,7 +1971,7 @@ function docBody(c){
   const title=built.title, recital=built.recital, clauses=built.clauses;
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/40 mb-2">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${t.kind} · Republic of Kenya · ${c.id}</div>
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${title}</h3>
     </div>
     <p class="text-[13.5px] leading-[1.9] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
@@ -1931,10 +1984,10 @@ function signatureBlock(c){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
     const first=(c.signatures||[]).find(s=>s.party==='first');
     const cp=(c.signatures||[]).find(s=>s.party==='counterparty');
-    const sub=s=>`<div class="text-[10px] text-brand-800/45 font-normal leading-snug">${[s.email,s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
     const party=(label,ic,s,fallback)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(ic,'w-3 h-3')} ${label}</div>
-      ${s?`<div class="font-medium text-brand-700">${s.name}${s.title?', '+s.title:''}</div>${sub(s)}`:`<div class="text-brand-800/40 text-xs">${fallback}</div>`}</div>`;
+      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(ic,'w-3 h-3')} ${label}</div>
+      ${s?`<div class="font-medium text-brand-700">${s.name}${s.title?', '+s.title:''}</div>${sub(s)}`:`<div class="text-brand-800/60 text-xs">${fallback}</div>`}</div>`;
     return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
       <div class="flex items-start gap-4">
@@ -1952,13 +2005,13 @@ function signatureBlock(c){
             ${party('First party', 'finger', first||(c.signatory?{name:c.signatory,method:'session-authenticated',at:c.execution?.at}:null), 'Not recorded')}
             ${party('Counterparty', 'users', cp, 'Pending — share the document to collect a verified counter-signature')}
           </div>
-          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} DOCUMENT SEAL (SHA-256)</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
             <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded'}</div>
           </div>
-          <div class="mt-2 text-[10px] text-brand-800/40 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
         </div>
       </div>
     </div>`;
@@ -1967,7 +2020,7 @@ function signatureBlock(c){
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
       <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
       <div class="text-sm font-medium text-brand-800/70">Signature block — pending execution</div>
-      <div class="text-xs text-brand-800/45 mt-0.5">Confirm intent to sign from the panel on the right.</div>
+      <div class="text-xs text-brand-800/65 mt-0.5">Confirm intent to sign from the panel on the right.</div>
     </div>`;
 }
 function frozenDocBody(c){
@@ -1983,7 +2036,7 @@ function renderWorkspace(){
       <div class="text-center max-w-sm">
         <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
         <h2 class="font-display font-600 text-lg text-brand-900">No contract open</h2>
-        <p class="text-sm text-brand-800/55 mt-1">Open a folder from the dashboard, or generate a contract from a template.</p>
+        <p class="text-sm text-brand-800/70 mt-1">Open a folder from the dashboard, or generate a contract from a template.</p>
         <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} Go to dashboard</button>
       </div>
     </div>`;
@@ -1991,7 +2044,7 @@ function renderWorkspace(){
   }
   // load the full contract body (comments, audit, execution text, extracted text) on first open
   if(API_MODE() && !c._loaded){
-    content.innerHTML=`<div class="view-enter grid place-items-center min-h-screen"><div class="text-center text-brand-800/50"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
+    content.innerHTML=`<div class="view-enter grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
     setActiveNav('workspace');
     ensureFull(c).then(()=>{ if(state.activeId===c.id) renderWorkspace(); })
       .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">Could not load this contract: ${e.message}</div>`; });
@@ -2009,7 +2062,7 @@ function renderWorkspace(){
               <h1 class="font-display font-600 text-brand-900 truncate">${c.name}</h1>
               <span id="ws-status">${statusChip(c.status)}</span>
             </div>
-            <div class="text-[11px] font-mono text-brand-800/45">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+            <div class="text-[11px] font-mono text-brand-800/65">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
           </div>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
@@ -2038,11 +2091,11 @@ function renderWorkspace(){
 
       <aside class="overflow-y-auto scroll-thin bg-white flex flex-col">
         <div class="px-5 pt-5 pb-4 border-b border-brand-100/70">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-800/45 mb-2.5">Deal summary</div>
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-800/65 mb-2.5">Deal summary</div>
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Counterparty</span><span id="meta-cp" class="text-sm font-medium text-brand-900 text-right max-w-[200px] truncate">${c.counterparty||'—'}</span></div>
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Contract value</span><span id="meta-value" class="text-sm font-mono font-semibold ${isMonetary(c)?'text-brand-700':'text-brand-800/45'}">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/55">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Counterparty</span><span id="meta-cp" class="text-sm font-medium text-brand-900 text-right max-w-[200px] truncate">${c.counterparty||'—'}</span></div>
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Contract value</span><span id="meta-value" class="text-sm font-mono font-semibold ${isMonetary(c)?'text-brand-700':'text-brand-800/65'}">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
           </div>
         </div>
 
@@ -2060,7 +2113,7 @@ function renderWorkspace(){
           </div>
           <div id="feed" class="space-y-3 overflow-y-auto scroll-thin flex-1 pr-1"></div>
           <div class="mt-3 pt-3 border-t border-brand-100/60">
-            <div class="text-[10px] text-brand-800/40 mb-2">Commenting as <span class="font-medium text-brand-700">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
+            <div class="text-[10px] text-brand-800/60 mb-2">Commenting as <span class="font-medium text-brand-700">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
             <div class="flex items-center gap-2">
               <input id="comment-input" type="text" placeholder="Add a comment on the terms…" class="flex-1 rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
               <button id="comment-send" class="h-9 w-9 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-white hover:bg-brand-800 transition">${icon('send')}</button>
@@ -2075,17 +2128,17 @@ function renderWorkspace(){
           </div>
           <div class="rounded-lg border border-brand-100 bg-brand-50/40 p-3 mb-2 text-xs">
             <div class="font-medium text-brand-900 flex items-center gap-1.5 mb-0.5">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
-            <div class="text-brand-800/55 font-mono text-[11px] truncate">${currentUser()?.email||''}</div>
-            <div class="text-brand-800/45 text-[11px] mt-0.5">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
+            <div class="text-brand-800/70 font-mono text-[11px] truncate">${currentUser()?.email||''}</div>
+            <div class="text-brand-800/65 text-[11px] mt-0.5">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
           </div>
           <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
             <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
             <span class="text-xs">
               <span class="font-medium text-brand-900">I intend to sign electronically</span>
-              <span class="text-brand-800/50 block">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
+              <span class="text-brand-800/70 block">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
             </span>
           </label>
-          <div class="mt-2 text-[10px] text-brand-800/40 leading-snug flex items-start gap-1">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug flex items-start gap-1">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
         </div>
 
         <div class="px-5 py-4 sticky bottom-0 bg-white border-t border-brand-100/70"><div id="sign-wrap"></div></div>
@@ -2106,6 +2159,7 @@ function renderWorkspace(){
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(c.upload?.dataUrl, c.upload?.fileName||c.name));
   setActiveNav('workspace');
 }
 
@@ -2160,7 +2214,7 @@ function renderFeed(c){
         <div class="flex items-center gap-1.5 flex-wrap">
           <span class="text-xs font-medium text-brand-900">${m.author}</span>
           <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${m.role}</span>
-          <span class="text-[10px] text-brand-800/40 ml-auto">${m.ts}</span>
+          <span class="text-[10px] text-brand-800/60 ml-auto">${m.ts}</span>
         </div>
         <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${m.text}</p>
       </div>
@@ -2206,7 +2260,7 @@ function renderSignButton(c){
     return;
   }
   if(!canEdit()){
-    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/45 py-2">Viewer access — signing is disabled for your role.</div>`;
+    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">Viewer access — signing is disabled for your role.</div>`;
     return;
   }
   const appr=approvalState(c);
@@ -2218,14 +2272,14 @@ function renderSignButton(c){
   wrap.innerHTML=`
     ${appr.required?`<div class="mb-2 rounded-lg border ${appr.ok?'border-brand-200 bg-brand-50':'border-gold-500/30 bg-gold-500/10'} p-2.5 text-[11px]">
       <div class="font-medium ${appr.ok?'text-brand-700':'text-gold-700'} flex items-center gap-1.5">${icon(appr.ok?'check2':'alert','w-3 h-3')} ${appr.ok?`Approved by ${appr.by}`:`Approval required (value ≥ ${fmtKESshort(appr.threshold)})`}</div>
-      ${!appr.ok?`<div class="text-brand-800/55 mt-0.5">Needs sign-off from ${appr.approverLabel}.${appr.canApprove?'':' You do not have approver rights.'}</div>
+      ${!appr.ok?`<div class="text-brand-800/70 mt-0.5">Needs sign-off from ${appr.approverLabel}.${appr.canApprove?'':' You do not have approver rights.'}</div>
         ${appr.canApprove?`<button id="approve-btn" class="mt-1.5 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">Approve this contract</button>`:''}`:''}
     </div>`:''}
-    <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/40 cursor-not-allowed'}">
+    <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
       ${icon('finger','w-[18px] h-[18px]')} Sign Document
     </button>
-    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/45">Freezes the exact text, applies a tamper-evident SHA-256 seal, and locks the document.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/45">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span></p>`}
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal, and locks the document.</p>`
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span></p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
       return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
@@ -2563,14 +2617,14 @@ function renderIntel(){
       <div class="px-[26px] py-[13px] flex items-center gap-4">
         <div class="shrink-0">
           <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Portfolio Intelligence</h1>
-          <p class="text-xs text-ink/50 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI to filter or regroup</p>
+          <p class="text-xs text-ink/70 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI to filter or regroup</p>
         </div>
         <div class="flex-1 max-w-[560px] mx-auto relative">
           <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-500">${icon('sparkle','w-4 h-4')}</span>
           <input id="ig-input" value="${(intel.query||'').replace(/"/g,'&quot;')}" placeholder="e.g. show all leases · group by customer · Naivas contracts" class="w-full rounded-xl border border-inputln bg-white pl-10 pr-24 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
           <button id="ig-go" class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3.5 py-1.5 text-xs font-600 hover:bg-brand-700 transition">Ask AI</button>
         </div>
-        <label class="shrink-0 flex items-center gap-2 text-xs text-ink/50">Group
+        <label class="shrink-0 flex items-center gap-2 text-xs text-ink/70">Group
           <select id="ig-group" class="rounded-lg border border-inputln bg-white px-2.5 py-2 text-xs text-ink outline-none focus:border-brand-500">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
           </select>
@@ -2654,7 +2708,7 @@ function openPartyModal(name){
       <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon('users')}</span>
       <div class="flex-1 min-w-0">
         <div class="font-display font-600 text-brand-900 truncate">${name}</div>
-        <div class="text-[11px] font-mono text-brand-800/45">${own.length} agreements \u00b7 ${fmtKES(val)} exposure \u00b7 relationship neighborhood</div>
+        <div class="text-[11px] font-mono text-brand-800/65">${own.length} agreements \u00b7 ${fmtKES(val)} exposure \u00b7 relationship neighborhood</div>
       </div>
       <button id="pm-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-800 transition">${icon('x')}</button>
     </div>
@@ -2669,7 +2723,7 @@ function openPartyModal(name){
         <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#8aa198">${n.sub}</text>
       </g>`).join('')}
     </svg>
-    <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/45 flex items-center justify-between">
+    <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">
       <span>Click a contract node to open its workspace</span>
       <span class="font-mono">${nodes.length} nodes \u00b7 bounded neighborhood</span>
     </div>
@@ -2898,7 +2952,7 @@ function renderScanSection(c){
       <span>Scanning clauses against Kenyan practice checks\u2026</span></div>`;
   } else if(!c.scan){
     body = `
-      <p class="text-xs text-brand-800/55 leading-relaxed">${isUpload(c)?'Run an AI review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}</p>
+      <p class="text-xs text-brand-800/70 leading-relaxed">${isUpload(c)?'Run an AI review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}</p>
       <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} Run AI scan</button>`;
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
@@ -2917,23 +2971,23 @@ function renderScanSection(c){
         </button>
         ${exp?`
         <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
             <button data-scan-goto="${x.anchor}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${x.anchor==='doc'?'Go to document':'Go to clause'}</button>
-            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/45 hover:text-brand-800 transition">Dismiss</button>
+            <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
           </div>
         </div>`:''}
       </div>`;
-    }).join('') : `<div class="text-center text-[11px] text-brand-800/50 py-3">No ${scanUI.filter==='all'?'open':scanUI.filter+'-severity'} findings \u2014 looking clean.</div>`;
+    }).join('') : `<div class="text-center text-[11px] text-brand-800/70 py-3">No ${scanUI.filter==='all'?'open':scanUI.filter+'-severity'} findings \u2014 looking clean.</div>`;
 
     body = `
       <div class="flex items-center gap-1.5 mb-2 flex-wrap">
         ${chip('all',`All ${open.length}`)}${chip('high',`High ${counts('high')}`)}${chip('med',`Med ${counts('med')}`)}${chip('low',`Low ${counts('low')}`)}
       </div>
       <div class="space-y-1.5 max-h-64 overflow-y-auto scroll-thin pr-0.5">${cards}</div>
-      <div class="mt-2 flex items-center justify-between text-[10px] text-brand-800/40">
+      <div class="mt-2 flex items-center justify-between text-[10px] text-brand-800/60">
         <span>Scanned ${c.scan.at}</span>
         <button id="scan-rerun" class="font-medium text-brand-600 hover:text-brand-800 transition">Re-scan</button>
       </div>`;
@@ -3049,7 +3103,7 @@ function aiContractCard(c){
     <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
-      <span class="block text-[10px] font-mono text-brand-800/45 truncate">${c.counterparty||'—'} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
+      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${c.counterparty||'—'} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
     </span>
     ${statusChip(c.status)}
   </button>`;
@@ -3178,7 +3232,7 @@ function renderTeam(){
       <div class="h-9 w-9 rounded-full bg-brand-100 text-brand-700 grid place-items-center text-[11px] font-semibold font-mono shrink-0">${x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
       <div class="min-w-0 flex-1">
         <div class="text-sm font-600 text-ink">${x.name}${x.id===me.id?' <span class="text-[11px] font-normal text-ink/40">(you)</span>':''}</div>
-        <div class="text-[11px] font-mono text-ink/45 truncate">${x.email}</div>
+        <div class="text-[11px] font-mono text-ink/65 truncate">${x.email}</div>
       </div>
       <span class="text-[11px] px-2.5 py-1 rounded-full font-600 ${roleChip(x.role)}">${ROLE_LABEL[x.role]}</span>
       <span class="hidden sm:inline text-[11px] px-2.5 py-1 rounded-full font-600 ${statusChipT(x.status)}">${x.status==='invited'?'Invited':'Active'}</span>
@@ -3195,7 +3249,7 @@ function renderTeam(){
     <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
       <div class="px-8 py-4 max-w-[1040px] mx-auto w-full">
         <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Team &amp; Settings</h1>
-        <p class="text-[13px] text-ink/50 mt-0.5">${o.name} · workspace created ${fmtDT(o.createdAt)}</p>
+        <p class="text-[13px] text-ink/70 mt-0.5">${o.name} · workspace created ${fmtDT(o.createdAt)}</p>
       </div>
     </header>
     <div class="flex-1 min-h-0 overflow-y-auto scroll-thin"><div class="px-8 py-7 max-w-[1040px] mx-auto w-full space-y-5">
@@ -3205,7 +3259,7 @@ function renderTeam(){
           <div class="h-14 w-14 rounded-2xl bg-ink grid place-items-center text-gold-400 shrink-0">${icon('building','w-6 h-6')}</div>
           <div class="min-w-0">
             <div class="font-display font-700 text-lg text-ink truncate">${o.name}</div>
-            <div class="text-xs text-ink/50 font-mono">Business plan · Nairobi, Kenya · ${getUsers().length} member${getUsers().length===1?'':'s'}</div>
+            <div class="text-xs text-ink/70 font-mono">Business plan · Nairobi, Kenya · ${getUsers().length} member${getUsers().length===1?'':'s'}</div>
           </div>
         </div>
         <button id="org-export" class="flex items-center gap-1.5 rounded-xl border border-inputln text-brand-700 px-4 py-2.5 text-sm font-medium hover:bg-brand-50 transition shrink-0">${icon('download','w-4 h-4')} Export backup</button>
@@ -3239,7 +3293,7 @@ function renderTeam(){
       <section class="bg-white rounded-2xl elev-2 p-6">
         <div class="flex items-center gap-2 mb-1.5"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-ink text-[17px]">Approval gate</h2></div>
-        <p class="text-[13px] text-ink/55 mb-4 leading-relaxed">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
+        <p class="text-[13px] text-ink/70 mb-4 leading-relaxed">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
         ${(()=>{ const cfg=getApprovalCfg(); return `
         <div class="grid sm:grid-cols-2 gap-3">
           <label class="block"><span class="text-[12px] font-600 text-ink/70">Approval threshold (KES)</span>
@@ -3251,13 +3305,13 @@ function renderTeam(){
             </select></label>
         </div>
         ${isAdmin()?`<button id="ap-save" class="mt-4 rounded-xl bg-ink text-white px-4 py-2.5 text-sm font-600 hover:bg-brand-800 transition">Save approval policy</button>`
-          :`<p class="mt-2 text-[11px] text-ink/45">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
+          :`<p class="mt-2 text-[11px] text-ink/65">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
       </section>
 
       <section class="bg-white rounded-2xl elev-2 p-6">
         <div class="flex items-center gap-2 mb-1.5"><span class="text-gold-500">${icon('calendar','w-[18px] h-[18px]')}</span>
           <h2 class="font-display font-600 text-ink text-[17px]">Renewal reminders</h2></div>
-        <p class="text-[13px] text-ink/55 mb-4 leading-relaxed">Email the contract owner ahead of every executed contract’s expiry.</p>
+        <p class="text-[13px] text-ink/70 mb-4 leading-relaxed">Email the contract owner ahead of every executed contract’s expiry.</p>
         <div class="flex flex-wrap gap-2">
           ${[90,60,30].map(d=>`<span class="rounded-full bg-ink text-white px-4 py-2 text-xs font-600">${d} days</span>`).join('')}
         </div>
@@ -3268,8 +3322,8 @@ function renderTeam(){
       <section class="bg-white rounded-2xl elev-2 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('sparkle','w-[18px] h-[18px]')}</span>
           <h2 class="font-display font-600 text-ink">AI engine</h2></div>
-        <p class="text-xs text-ink/55 mb-3">Powers natural-language filtering and clustering on the <b>Portfolio Intelligence</b> graph. Paste an Anthropic API key (stored on your server, never in the browser). Without a key the graph falls back to the built-in interpreter.</p>
-        <div id="ai-cfg-status" class="text-[11px] mb-3 text-ink/50">Checking…</div>
+        <p class="text-xs text-ink/70 mb-3">Powers natural-language filtering and clustering on the <b>Portfolio Intelligence</b> graph. Paste an Anthropic API key (stored on your server, never in the browser). Without a key the graph falls back to the built-in interpreter.</p>
+        <div id="ai-cfg-status" class="text-[11px] mb-3 text-ink/70">Checking…</div>
         ${isAdmin()?`
         <div class="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
           <label class="block"><span class="text-[12px] font-600 text-ink">Anthropic API key</span>
@@ -3280,13 +3334,13 @@ function renderTeam(){
           <label class="text-[11px] text-ink/60 flex items-center gap-1.5">Model
             <input id="ai-model" type="text" placeholder="claude-haiku-4-5-20251001" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/></label>
           <button id="ai-key-clear" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium">Remove key</button>
-        </div>`:`<p class="text-[11px] text-ink/45">Only an admin can configure the AI key.</p>`}
+        </div>`:`<p class="text-[11px] text-ink/65">Only an admin can configure the AI key.</p>`}
       </section>`:''}
 
       <section class="bg-white rounded-2xl elev-2 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-ink">Data &amp; backup</h2></div>
-        <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
+        <p class="text-xs text-brand-800/70 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
           ${(!API_MODE()&&isAdmin())?`
@@ -3299,12 +3353,12 @@ function renderTeam(){
       <section class="bg-white rounded-2xl elev-2 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('send')}</span>
           <h2 class="font-display font-600 text-brand-900">Email &amp; notifications</h2></div>
-        <p class="text-xs text-brand-800/55 mb-3">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span class="font-mono">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
+        <p class="text-xs text-brand-800/70 mb-3">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span class="font-mono">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
         <div class="flex flex-wrap gap-2 mb-3">
           <button id="rem-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
           <button id="ob-refresh" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
         </div>
-        <div id="outbox-list" class="text-xs text-brand-800/45">Loading outbox…</div>
+        <div id="outbox-list" class="text-xs text-brand-800/65">Loading outbox…</div>
       </section>`:''}
     </div></div>
   </div>`;
@@ -3317,9 +3371,9 @@ function renderTeam(){
           (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
             <div class="rounded-lg border border-brand-100 bg-white p-2.5">
               <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?'sent':it.provider}</span></div>
-              <div class="text-[10px] font-mono text-brand-800/45 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
+              <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
               ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
-            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/45">No messages yet.</div>`);
+            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/65">No messages yet.</div>`);
       }catch(e){}
     };
     setTimeout(loadOutbox,50);
@@ -3464,19 +3518,19 @@ function regFiltered(){
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 function regRowsHtml(cs){
   const R=regState();
-  if(!cs.length) return `<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-brand-800/50">No contracts match the current filters.</td></tr>`;
+  if(!cs.length) return `<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-brand-800/70">No contracts match the current filters.</td></tr>`;
   const shown=Math.min(cs.length, R.shown||REG_PAGE);
   const ini=regOwnerInitials();
   return cs.slice(0,shown).map((c,i)=>`
     <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(8,33,30,.05);animation-delay:${Math.min(i,14)*22}ms">
       <td class="pl-5 pr-1 py-3.5 w-8 align-middle" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></td>
       <td class="px-2 py-3.5">
-        <div class="min-w-0"><span class="block text-[14.5px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/45 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'—'}</span></div>
+        <div class="min-w-0"><span class="block text-[14.5px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/65 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'—'}</span></div>
       </td>
       <td class="px-2 py-3.5 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-[13px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span></td>
       <td class="px-2 py-3.5 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700 font-mono" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
       <td class="px-2 py-3.5 text-right whitespace-nowrap text-[13px] font-600 tnum ${isMonetary(c)?'text-ink':'text-ink/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
-      <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum text-ink/45">${c.lastAction||'—'}</td>
+      <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum text-ink/65">${c.lastAction||'—'}</td>
       <td class="px-2 pr-5 py-3.5 text-right">${statusChip(c.status)}</td>
     </tr>`).join('') + (cs.length>shown
       ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(8,33,30,.06)">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
@@ -3528,9 +3582,9 @@ function renderRegister(){
       <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1240px] mx-auto w-full">
         <div>
           <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Contract Register</h1>
-          <p class="text-[13px] text-ink/50 mt-0.5"><span id="reg-count" class="tnum font-600 text-ink/70">${cs.length.toLocaleString('en-KE')}</span> of <span class="tnum">${Number(countAll).toLocaleString('en-KE')}</span> contracts · filter, sort and act in bulk</p>
+          <p class="text-[13px] text-ink/70 mt-0.5"><span id="reg-count" class="tnum font-600 text-ink/70">${cs.length.toLocaleString('en-KE')}</span> of <span class="tnum">${Number(countAll).toLocaleString('en-KE')}</span> contracts · filter, sort and act in bulk</p>
         </div>
-        <button id="reg-ai" class="hidden md:flex items-center gap-2 rounded-xl bg-white elev-1 px-3.5 py-2.5 text-sm text-ink/50 w-64 hover:elev-2 lift text-left">
+        <button id="reg-ai" class="hidden md:flex items-center gap-2 rounded-xl bg-white elev-1 px-3.5 py-2.5 text-sm text-ink/70 w-64 hover:elev-2 lift text-left">
           ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI about the register…</span>
         </button>
       </div>
@@ -3547,7 +3601,7 @@ function renderRegister(){
         </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
-          <label class="flex items-center gap-2 text-[13px] text-ink/50">Sort
+          <label class="flex items-center gap-2 text-[13px] text-ink/70">Sort
             <select id="reg-sort" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">${sortOpts}</select>
           </label>
         </div>
@@ -3565,7 +3619,7 @@ function renderRegister(){
         <div class="flex-1 min-h-0 overflow-auto scroll-thin">
           <table class="w-full text-left">
             <thead class="sticky top-0 z-10">
-              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/45" style="box-shadow:inset 0 -1px 0 var(--sh1,rgba(8,33,30,.06)),0 1px 0 rgba(8,33,30,.05)">
+              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 var(--sh1,rgba(8,33,30,.06)),0 1px 0 rgba(8,33,30,.05)">
                 <th class="pl-5 pr-1 py-3 w-8"><input id="reg-selall" type="checkbox" class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></th>
                 <th class="px-2 py-3 font-700">Contract</th>
                 <th class="px-2 py-3 font-700 hidden md:table-cell">Type</th>
@@ -3617,23 +3671,23 @@ function pipeCard(c){
   return `
     <div data-card="${c.id}" ${drag?'draggable="true"':''} class="group bg-white rounded-xl elev-1 lift p-3.5 mb-3 ${drag?'cursor-grab active:cursor-grabbing':'cursor-pointer'}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
-        <span class="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand-800/45">
+        <span class="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand-800/65">
           <span class="h-5 w-5 grid place-items-center rounded-md border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}">${icon(cIcon(c),'w-3 h-3')}</span>${c.id}
         </span>
         ${(()=>{ const o=openFindings(c).filter(f=>f.sev==='high').length; return o?`<span class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style="background:#F4E2DD;color:#9A342A">${icon('scan','w-2.5 h-2.5')}${o}</span>`:''; })()}
       </div>
       <div class="text-sm font-medium text-brand-900 leading-snug line-clamp-2 group-hover:text-brand-600 transition">${c.name}</div>
-      <div class="text-[11px] text-brand-800/45 truncate mt-0.5">${c.counterparty||'No counterparty yet'}</div>
+      <div class="text-[11px] text-brand-800/65 truncate mt-0.5">${c.counterparty||'No counterparty yet'}</div>
       <div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-brand-100/50">
-        <span class="inline-flex items-center gap-1 text-[10px] text-brand-800/45 truncate">${icon('folder','w-3 h-3')}<span class="truncate">${FOLDERS[c.folder]?.name||''}</span></span>
-        <span class="text-[11px] font-mono font-medium whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
+        <span class="inline-flex items-center gap-1 text-[10px] text-brand-800/65 truncate">${icon('folder','w-3 h-3')}<span class="truncate">${FOLDERS[c.folder]?.name||''}</span></span>
+        <span class="text-[11px] font-mono font-medium whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
       </div>
     </div>`;
 }
 function pipeColumnInner(col, list){
   const shown=list.slice(0,PIPE_CAP);
   const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" class="w-full mt-1 rounded-lg border border-brand-100 bg-white px-3 py-2 text-[11px] font-medium text-brand-600 hover:border-brand-300 transition">+${list.length-PIPE_CAP} more in Register →</button>`:'';
-  const empty=list.length?'':`<div class="rounded-xl border border-dashed border-brand-100 px-3 py-8 text-center text-[11px] text-brand-800/40">Nothing here</div>`;
+  const empty=list.length?'':`<div class="rounded-xl border border-dashed border-brand-100 px-3 py-8 text-center text-[11px] text-brand-800/60">Nothing here</div>`;
   return shown.map(pipeCard).join('')+empty+more;
 }
 function renderPipeline(){
@@ -3648,7 +3702,7 @@ function renderPipeline(){
         <div class="flex items-center gap-2 min-w-0">
           <span class="h-2.5 w-2.5 rounded-full shrink-0" style="background:${g.col.color}"></span>
           <span class="text-[11px] font-700 uppercase tracking-wider text-ink/70 truncate">${g.col.label}</span>
-          <span class="text-[10px] font-600 tnum text-ink/45 bg-white elev-1 rounded-full px-1.5 py-0.5">${g.list.length}</span>
+          <span class="text-[10px] font-600 tnum text-ink/65 bg-white elev-1 rounded-full px-1.5 py-0.5">${g.list.length}</span>
         </div>
         <span class="text-[11px] font-600 tnum text-ink/40 shrink-0">${fmtKESshort(g.val)}</span>
       </div>
@@ -3663,7 +3717,7 @@ function renderPipeline(){
       <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1400px] mx-auto w-full">
         <div>
           <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">My Queue</h1>
-          <p class="text-[13px] text-ink/50"><span class="tnum">${total.toLocaleString('en-KE')}</span> contracts · ${canEdit()?'drag a card between stages to advance them':'read-only — you have viewer access'}</p>
+          <p class="text-[13px] text-ink/70"><span class="tnum">${total.toLocaleString('en-KE')}</span> contracts · ${canEdit()?'drag a card between stages to advance them':'read-only — you have viewer access'}</p>
         </div>
       </div>
     </header>
