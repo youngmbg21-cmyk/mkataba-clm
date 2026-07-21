@@ -588,6 +588,8 @@ function renderWorkspace(){
 
         <div id="obligations-section" class="border-b border-brand-100/70 empty:hidden"></div>
 
+        <div id="engagement-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="audit-section" class="border-b border-brand-100/70"></div>
 
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
@@ -632,7 +634,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
@@ -749,26 +751,30 @@ function renderSignButton(c){
     return;
   }
   const appr=approvalState(c);
-  const ready=c.counterparty&&(!isMonetary(c)||Number(c.value)>0)&&c.compliance.consent&&appr.ok;
+  const ns=nextSigner(c), planned=signerPlan(c).length>0;
+  // With a signer plan, the in-app button only acts when it's an internal
+  // signer's turn; counterparty turns are collected via the share link.
+  const signerReady = !planned || (ns && ns.party==='internal');
+  const ready=c.counterparty&&(!isMonetary(c)||Number(c.value)>0)&&c.compliance.consent&&appr.ok&&signerReady;
   const missing=[];
   if(!c.counterparty)missing.push('counterparty name');
   if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
   if(!c.compliance.consent)missing.push('intent-to-sign consent');
+  if(!appr.ok)missing.push('approvals');
+  const signLabel = planned&&ns ? `Sign as ${ns.name}` : 'Sign Document';
   wrap.innerHTML=`
-    ${appr.required?`<div class="mb-2 rounded-lg border ${appr.ok?'border-brand-200 bg-brand-50':'border-gold-500/30 bg-gold-500/10'} p-2.5 text-[11px]">
-      <div class="font-medium ${appr.ok?'text-brand-700':'text-gold-700'} flex items-center gap-1.5">${icon(appr.ok?'check2':'alert','w-3 h-3')} ${appr.ok?`Approved by ${appr.by}`:`Approval required (value ≥ ${fmtKESshort(appr.threshold)})`}</div>
-      ${!appr.ok?`<div class="text-brand-800/70 mt-0.5">Needs sign-off from ${appr.approverLabel}.${appr.canApprove?'':' You do not have approver rights.'}</div>
-        ${appr.canApprove?`<button id="approve-btn" class="mt-1.5 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">Approve this contract</button>`:''}`:''}
-    </div>`:''}
+    ${approvalPanelHtml(c)}
     <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
-      ${icon('finger','w-[18px] h-[18px]')} Sign Document
+      ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
     </button>
-    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal, and locks the document.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span></p>`}
+    ${!planned&&canEdit()&&c.status!=='Signed'?`<button id="sp-setup" class="mt-2 w-full text-[11px] text-brand-600 hover:text-brand-800 font-600">Set a multi-signer order…</button>`:''}
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
       return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
-  document.getElementById('approve-btn')?.addEventListener('click',()=>approveContract(c));
+  document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  wireApprovalPanel(c);
 }
 async function signDocument(c){
   if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
@@ -785,11 +791,23 @@ async function signDocument(c){
     logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
   }
   const btn=document.getElementById('sign-btn');
-  btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
   const u=currentUser(), at=nowISO();
   // capture server-stamped IP + time where available (honest attribution)
   let meta={ ip:null, at };
   if(API_MODE()){ try{ meta=await api('sign-meta','POST',{}); }catch(e){} }
+  // E5-T3 multi-signer: if a signing order exists and this internal signer is
+  // not the last, record their signature and advance — seal only on the last.
+  const plan=signerPlan(c), ns=nextSigner(c);
+  if(plan.length && ns){
+    if(ns.party!=='internal'){ toast(`Next signer is ${ns.name} (counterparty) — share the link to collect their signature`,'err'); return; }
+    ns.signed=true; ns.at=at; ns.by=u.name;
+    c.signatures=c.signatures||[];
+    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, email:u.email, role:ROLE_LABEL[u.role], at, method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent });
+    logAudit(c,'Signature',`${ns.name} signed (signer ${ns.order} of ${plan.length})`);
+    if(!allSigned(c)){ persist(c); renderSignButton(c); renderAuditSection(c); toast(`Recorded — ${plan.filter(s=>!s.signed).length} signer(s) remaining`); return; }
+    // last signer — fall through to freeze + seal below
+  }
+  btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
   const exec={ at, method:'session-authenticated', consent:true, ua:navigator.userAgent, ip:meta.ip||null };
   if(!isUpload(c)){ exec.html=freezeContractHtml(c); exec.textHash=await sha256(normText(exec.html)); }
   c.execution=exec;
