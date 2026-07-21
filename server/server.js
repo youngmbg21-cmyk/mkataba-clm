@@ -225,6 +225,7 @@ app.get('/api/bootstrap', auth, (req, res) => {
     uid: getSetting('uid') || 100,
     settings: getSetting('appSettings') || {},
     count: db.prepare('SELECT COUNT(*) n FROM contracts').get().n,
+    aiConfigured: !!(getSetting('aiKey') || process.env.ANTHROPIC_API_KEY),
   });
 });
 
@@ -289,6 +290,62 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
 app.put('/api/settings', auth, admin, (req, res) => {
   setSetting('appSettings', req.body || {});
   res.json({ ok: true });
+});
+
+/* ---------- AI engine (Portfolio Intelligence graph) ----------
+   An admin pastes an Anthropic API key (stored server-side, never returned
+   to the browser). The graph endpoint proxies to Claude and returns which
+   contracts to show and how to group them. No key → the client falls back
+   to its built-in interpreter. */
+const aiKey = () => getSetting('aiKey') || process.env.ANTHROPIC_API_KEY || '';
+const aiModel = () => getSetting('aiModel') || 'claude-haiku-4-5-20251001';
+app.get('/api/ai/config', auth, (req, res) => {
+  const k = aiKey();
+  res.json({ configured: !!k, model: aiModel(), source: getSetting('aiKey') ? 'settings' : (process.env.ANTHROPIC_API_KEY ? 'env' : null),
+    hint: k ? ('••••' + k.slice(-4)) : '' });
+});
+app.put('/api/ai/config', auth, admin, (req, res) => {
+  const { key, model, clear } = req.body || {};
+  if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
+  if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
+  if (typeof model === 'string' && model.trim()) setSetting('aiModel', model.trim());
+  res.json({ ok: true, configured: !!aiKey(), model: aiModel() });
+});
+app.post('/api/ai/graph', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { query, contracts } = req.body || {};
+  if (!query || !Array.isArray(contracts)) return res.status(400).json({ error: 'query and contracts are required' });
+  const list = contracts.slice(0, 600);
+  const tool = {
+    name: 'render_graph',
+    description: 'Decide which contracts stay visible and how to cluster them.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        visibleIds: { type: 'array', items: { type: 'string' }, description: 'Contract ids that MATCH the request. Omit or leave empty to keep every contract visible (e.g. a pure grouping request).' },
+        groupBy: { type: 'string', enum: ['folder','counterparty','status','valueBand','kind','custom'], description: 'How to cluster. Use custom only when the dimension is not one of the others (e.g. by city).' },
+        groups: { type: 'object', additionalProperties: { type: 'string' }, description: 'Only for groupBy=custom: map each contract id to its group label (e.g. inferred city).' },
+        note: { type: 'string', description: 'Short label of what was done, e.g. "Leases · grouped by city".' }
+      },
+      required: ['note']
+    }
+  };
+  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nContracts (JSON):\n${JSON.stringify(list)}\n\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    const out = block.input || {};
+    res.json({ visibleIds: Array.isArray(out.visibleIds) && out.visibleIds.length ? out.visibleIds : null,
+      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '' });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.

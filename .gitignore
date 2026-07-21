@@ -1,3 +1,4 @@
 node_modules/
 server/data/
+server/data-*/
 package-lock.json

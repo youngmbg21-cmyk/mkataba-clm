@@ -52,6 +52,15 @@
   .view-enter { animation: viewIn .25s cubic-bezier(.22,.61,.36,1); }
   @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
+  /* Intel contract graph */
+  #ig-svg{touch-action:none}
+  .ig-link{stroke:#C6DCCB;stroke-width:1.4;fill:none;opacity:.6}
+  .ig-node{cursor:pointer}
+  .ig-chip{stroke:#DCEDE5;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(8,33,30,.06))}
+  .ig-node:hover .ig-chip{stroke:#086B54;stroke-width:2}
+  .ig-lab{pointer-events:none;font-size:11.5px;font-family:'DM Sans',system-ui,sans-serif}
+  .ig-sub{pointer-events:none;font-size:9px;font-family:'JetBrains Mono',monospace}
+
   .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#EAF6F1;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
   .field:hover{background:#DCF0E7;}
   .field:focus{background:#fff;border-bottom-color:#0B7A5F;box-shadow:0 2px 0 0 #0B7A5F,0 0 0 3px rgba(11,122,95,.12);}
@@ -425,7 +434,7 @@ async function api(path, method='GET', body){
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
-  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0;
+  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
   // on open. Capped so a very large portfolio can't blow up the initial load.
   state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
@@ -1333,6 +1342,17 @@ function renderDashboard(){
             <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
           </button>
           <div class="relative">
+            <button id="folders-btn" class="flex items-center gap-2 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm font-medium text-ink/70 hover:border-brand-300 transition">${icon('folder','w-4 h-4 text-brand-500')} Folders ${icon('chevD','w-3.5 h-3.5')}</button>
+            <div id="folders-menu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40">
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-ink/45 font-semibold">Value streams</div>
+              ${Object.values(FOLDERS).map(f=>`<button data-open-folder="${f.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
+                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-600">${icon(f.ic,'w-4 h-4')}</span>
+                <span class="min-w-0 flex-1 text-xs font-medium text-ink truncate">${f.name}</span>
+                <span class="text-[11px] font-mono text-ink/40">${folderContracts(f.id).length}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="relative">
             <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
             <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
               <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/45 font-semibold">Generate from template</div>
@@ -1392,6 +1412,10 @@ function renderDashboard(){
   document.addEventListener('click',e=>{ if(nm && !nm.classList.contains('hidden') && !nm.contains(e.target) && e.target!==nb) nm.classList.add('hidden'); });
   document.getElementById('menu-upload').addEventListener('click',openUploadModal);
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
+  const fb=document.getElementById('folders-btn'), fm=document.getElementById('folders-menu');
+  fb.addEventListener('click',e=>{ e.stopPropagation(); fm.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ if(fm && !fm.classList.contains('hidden') && !fm.contains(e.target) && e.target!==fb) fm.classList.add('hidden'); });
+  document.querySelectorAll('[data-open-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-open-folder'))));
   setActiveNav('dashboard');
 }
 
@@ -2281,178 +2305,250 @@ function scanPortfolio(){
   intelUI.scannedAt = new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
 }
 
+/* ============================================================
+   VIEW: INTEL — AI contract graph (force-directed, HaTi light theme)
+   Every contract is a node, clustered around group hubs. A free-form AI
+   box both FILTERS (non-matches disappear) and RE-CLUSTERS (group by
+   customer / folder / status / value / city…). Uses the server LLM when a
+   key is configured; otherwise the built-in interpreter.
+   ============================================================ */
+const INTEL_CAP = 120;
+const STATUS_DOT = {'Draft':'#9A9484','Under Review':'#C79A3E','Signed':'#086B54','Declined':'#B23A2E'};
+let intel = { query:'', groupBy:'folder', visible:null /*Set of ids or null=all*/, note:'', groups:null /*{id:label} override from AI*/, busy:false };
+let IG = null;      // live graph model
+let intelRAF = 0;   // animation token
+
+function valueBand(v){ v=Number(v||0); if(!v) return 'Non-monetary'; if(v>=50e6) return '≥ KES 50M'; if(v>=10e6) return 'KES 10–50M'; if(v>=1e6) return 'KES 1–10M'; return '< KES 1M'; }
+function groupLabelOf(c, groupBy, override){
+  if(override && override[c.id]) return override[c.id];
+  switch(groupBy){
+    case 'counterparty': return c.counterparty||'No counterparty';
+    case 'status': return statusLabel(c.status);
+    case 'valueBand': return valueBand(c.value);
+    case 'kind': return cKind(c);
+    case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
+  }
+}
+
+/* ---- built-in fallback interpreter: query -> {visibleIds, groupBy, note} ---- */
+function graphInterpret(qRaw){
+  const q=(qRaw||'').toLowerCase().trim(); const cs=state.contracts;
+  const has=(...w)=>w.some(x=>q.includes(x));
+  let groupBy=intel.groupBy, vis=null, note='';
+  // grouping intent
+  if(has('by customer','by counterpart','by party','per customer','by client')) groupBy='counterparty';
+  else if(has('by folder','by function','by value stream','by category','by department')) groupBy='folder';
+  else if(has('by status','by stage','by lifecycle')) groupBy='status';
+  else if(has('by value','by size','by amount','by exposure')) groupBy='valueBand';
+  else if(has('by type','by kind','by contract type')) groupBy='kind';
+  // filter intent
+  const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
+  if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
+  else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note='NDAs'; }
+  else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note='Supply agreements'; }
+  else if(has('draft')) { vis=cs.filter(c=>c.status==='Draft'); note='Drafts'; }
+  else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note='In review'; }
+  else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note='Executed'; }
+  else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note='Closed'; }
+  else if(has('expir','renew','lapse','ending')) { vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=90); note='Expiring ≤ 90 days'; }
+  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note='High-value (≥ KES 20M)'; }
+  else if(has('non-monetary','no value','nda')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
+  else {
+    // counterparty name match
+    const party=cs.filter(c=>c.counterparty && c.counterparty.toLowerCase().split(/[^a-z0-9]+/).some(w=>w.length>3&&q.includes(w)));
+    if(party.length){ vis=party; note='Counterparty match'; }
+    else { const f=Object.values(FOLDERS).find(f=>{ const kw=f.name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>4); return kw.some(w=>q.includes(w)); });
+      if(f){ vis=cs.filter(c=>c.folder===f.id); note=f.name; } }
+  }
+  return { visibleIds: vis?vis.map(c=>c.id):null, groupBy, note };
+}
+
+/* ---- apply a query (server LLM if configured, else interpreter) ---- */
+async function applyGraphQuery(qRaw){
+  const q=(qRaw||'').trim();
+  if(!q){ intel.visible=null; intel.groups=null; intel.note=''; rebuildIntelGraph(); return; }
+  intel.busy=true; updateIntelNote();
+  let res=null;
+  if(API_MODE() && state.aiConfigured){
+    try{
+      const payload={ query:q, contracts: state.contracts.slice(0,600).map(c=>({id:c.id,name:c.name,counterparty:c.counterparty||'',folder:FOLDERS[c.folder]?.name||'',kind:cKind(c),value:Number(c.value||0),status:c.status,expiry:c.expiry||''})) };
+      res=await api('ai/graph','POST',payload);
+    }catch(e){ if(/key|configure|401|model/i.test(e.message)) { toast('AI engine needs a key — using the built-in interpreter','err'); } else toast('AI error: '+e.message,'err'); }
+  }
+  if(!res) res=graphInterpret(q);           // fallback
+  intel.busy=false;
+  intel.visible = res.visibleIds ? new Set(res.visibleIds) : null;
+  intel.groupBy = res.groupBy || intel.groupBy;
+  intel.groups  = res.groups || null;
+  intel.note    = res.note || (res.visibleIds?`${res.visibleIds.length} match${res.visibleIds.length===1?'':'es'}`:'') ;
+  rebuildIntelGraph();
+}
+
+/* ---- build the node/edge model from current state + filter/group ---- */
+function buildGraphModel(){
+  const groupBy=intel.groupBy, override=intel.groups;
+  let cs=state.contracts.filter(c=>!intel.visible || intel.visible.has(c.id));
+  const capped = cs.length>INTEL_CAP;
+  if(capped) cs=cs.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0)).slice(0,INTEL_CAP);
+  // hubs
+  const hubMap={};
+  cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override); (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
+  const hubs=Object.values(hubMap);
+  const nodes=[], edges=[];
+  hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
+  cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#9A9484'});
+    edges.push({from:c.id, to:'hub:'+g});
+  });
+  return { nodes, edges, capped, shown:cs.length, total:state.contracts.filter(c=>!intel.visible||intel.visible.has(c.id)).length };
+}
+
+/* ---- physics + svg (adapted, light theme) ---- */
+function makeIntelGraph(model){
+  const svg=document.getElementById('ig-svg'); if(!svg) return null;
+  const gLinks=document.getElementById('ig-links'), gNodes=document.getElementById('ig-nodes'), vp=document.getElementById('ig-vp');
+  gLinks.innerHTML=''; gNodes.innerHTML='';
+  const W=svg.clientWidth||1000, H=svg.clientHeight||600;
+  const nodes=model.nodes.map(n=>({...n})); const byId=Object.fromEntries(nodes.map(n=>[n.id,n]));
+  const edges=model.edges.map(e=>({...e,s:byId[e.from],t:byId[e.to]})).filter(e=>e.s&&e.t);
+  // seed positions: hubs on a ring, contracts near their hub
+  let seed=42; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff;};
+  const hubs=nodes.filter(n=>n.kind==='hub');
+  hubs.forEach((h,i)=>{ const a=i/Math.max(1,hubs.length)*Math.PI*2; h.x=W/2+Math.cos(a)*Math.min(W,H)*0.28; h.y=H/2+Math.sin(a)*Math.min(W,H)*0.28; h.vx=h.vy=0; });
+  nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
+  nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(96,Math.min(180,n.label.length*7+30)); n.h=40; } else { n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.sub?40:30; } });
+  // svg build
+  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'); gLinks.appendChild(e.el); });
+  nodes.forEach(n=>{
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','ig-node'); n.g=g;
+    const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
+    rect.setAttribute('fill', n.kind==='hub'?'#08211E':'#ffffff');
+    g.appendChild(rect);
+    if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
+    const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
+    lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
+    lab.setAttribute('fill', n.kind==='hub'?'#EAF6F1':'#08211E'); lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
+    lab.textContent = n.label.length>24?n.label.slice(0,23)+'…':n.label; g.appendChild(lab);
+    if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
+      sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
+      sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#7C8983'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+    gNodes.appendChild(g);
+    g.addEventListener('pointerdown',e=>igStartDrag(e,n));
+    g.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return;
+      if(n.kind==='contract') openWorkspace(n.id); else { /* click hub -> keep only its group */ igFilterToGroup(n.label); } });
+  });
+  return { svg, vp, nodes, edges, byId, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false };
+}
+function igFilterToGroup(label){ const ids=state.contracts.filter(c=>groupLabelOf(c,intel.groupBy,intel.groups)===label).map(c=>c.id);
+  intel.visible=new Set(ids); intel.note='Group: '+label; rebuildIntelGraph(); }
+function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
+  const p=igToWorld(e.clientX,e.clientY); IG.dragOff={x:n.x-p.x,y:n.y-p.y};
+  const mv=ev=>{ if(!IG.dragging)return; const p=igToWorld(ev.clientX,ev.clientY); IG.dragging.x=p.x+IG.dragOff.x; IG.dragging.y=p.y+IG.dragOff.y; IG.dragging.vx=IG.dragging.vy=0; IG.dragMoved=true; };
+  const up=()=>{ IG.dragging=null; window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up); setTimeout(()=>{if(IG)IG.dragMoved=false;},50); };
+  window.addEventListener('pointermove',mv); window.addEventListener('pointerup',up);
+}
+function igToWorld(cx,cy){ const r=IG.svg.getBoundingClientRect(); return {x:(cx-r.left-IG.view.x)/IG.view.k,y:(cy-r.top-IG.view.y)/IG.view.k}; }
+function igApplyView(){ IG.vp.setAttribute('transform',`translate(${IG.view.x},${IG.view.y}) scale(${IG.view.k})`); }
+function igTick(){
+  const {nodes,edges,W,H}=IG;
+  for(let i=0;i<nodes.length;i++){ const a=nodes[i];
+    for(let j=i+1;j<nodes.length;j++){ const b=nodes[j];
+      let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy||1,d=Math.sqrt(d2); dx/=d;dy/=d;
+      if(d2<140000){ const f=6500/d2; a.vx+=dx*f;a.vy+=dy*f; b.vx-=dx*f;b.vy-=dy*f; }
+      const padX=(a.w+b.w)/2+16, padY=(a.h+b.h)/2+14, ox=padX-Math.abs(a.x-b.x), oy=padY-Math.abs(a.y-b.y);
+      if(ox>0&&oy>0){ if(ox<oy){ const s=ox/2*Math.sign(a.x-b.x||dx); a.vx+=s*0.5;b.vx-=s*0.5; } else { const s=oy/2*Math.sign(a.y-b.y||dy); a.vy+=s*0.5;b.vy-=s*0.5; } }
+    } }
+  edges.forEach(e=>{ let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1; const f=(d-120)*0.02; dx/=d;dy/=d; e.s.vx+=dx*f;e.s.vy+=dy*f; e.t.vx-=dx*f;e.t.vy-=dy*f; });
+  nodes.forEach(n=>{ n.vx+=(W/2-n.x)*0.0016; n.vy+=(H/2-n.y)*0.0016;
+    if(n===IG.dragging)return; n.vx*=0.86;n.vy*=0.86; n.vx=Math.max(-35,Math.min(35,n.vx));n.vy=Math.max(-35,Math.min(35,n.vy)); n.x+=n.vx;n.y+=n.vy; });
+}
+function igRender(){
+  IG.nodes.forEach(n=>n.g.setAttribute('transform',`translate(${n.x-n.w/2},${n.y-n.h/2})`));
+  IG.edges.forEach(e=>{ const dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
+    const a=igClamp(e.s,nx,ny), b=igClamp(e.t,-nx,-ny); e.el.setAttribute('d',`M${a.x},${a.y} L${b.x},${b.y}`); });
+}
+function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
+
+function rebuildIntelGraph(){
+  const model=buildGraphModel();
+  IG=makeIntelGraph(model); if(!IG) return;
+  // pre-settle
+  for(let i=0;i<220;i++) igTick();
+  igRender(); igApplyView();
+  updateIntelNote(); renderIntelLegend(model);
+}
+function updateIntelNote(){
+  const el=document.getElementById('ig-note'); if(!el) return;
+  const filtered=intel.visible!=null;
+  el.innerHTML = intel.busy ? `<span class="text-brand-700">Thinking…</span>`
+    : `<span class="text-ink/60">Grouped by <b class="text-ink">${({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type'})[intel.groupBy]||intel.groupBy}</b>${filtered?` · <b class="text-brand-700">${intel.note||'filtered'}</b>`:''}</span>`
+      + (filtered?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear ✕</button>`:'');
+  document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.visible=null;intel.groups=null;intel.note='';document.getElementById('ig-input').value=''; rebuildIntelGraph(); });
+}
+function renderIntelLegend(model){
+  const el=document.getElementById('ig-legend'); if(!el) return;
+  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">Status — click to filter</div>`+
+    [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
+      `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
+  el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
+    intel.visible=new Set(state.contracts.filter(c=>c.status===s).map(c=>c.id)); intel.note=statusLabel(s); rebuildIntelGraph(); }));
+}
+
 function renderIntel(){
-  const cs = state.contracts;
-  const active = cs.filter(c=>c.counterparty && c.status!=='Declined');
-
-  /* ---- counterparty exposure ---- */
-  const partyMap={};
-  active.forEach(c=>{ (partyMap[c.counterparty]||(partyMap[c.counterparty]={name:c.counterparty, cs:[], val:0})).cs.push(c); partyMap[c.counterparty].val+=Number(c.value||0); });
-  const parties = Object.values(partyMap).sort((a,b)=>b.val-a.val);
-  const totalActive = parties.reduce((s,p)=>s+p.val,0)||1;
-  const top5 = parties.slice(0,5).reduce((s,p)=>s+p.val,0);
-  const partyColor=p=>{ const kinds=p.cs.map(c=>cKind(c).toLowerCase());
-    if(kinds.some(k=>k.includes('nda')||k.includes('non-disclosure'))) return '#086B54';
-    if(kinds.some(k=>k.includes('lease'))) return '#C79A3E';
-    return '#2E9F80'; };
-
-  /* ---- folder exposure ---- */
-  const folderVal={}; Object.keys(FOLDERS).forEach(f=>folderVal[f]=0);
-  active.forEach(c=>{ folderVal[c.folder]=(folderVal[c.folder]||0)+Number(c.value||0); });
-  const maxFolder = Math.max(1, ...Object.values(folderVal));
-
-  /* ---- risk distribution (computed live from the rule engine) ---- */
-  const dist={high:0,med:0,low:0};
-  cs.forEach(c=>{ (c.scan?openFindings(c):scanRules(c).filter(f=>f.sev)).forEach(f=>{ if(dist[f.sev]!=null) dist[f.sev]++; }); });
-  const highN = dist.high;
-  const maxDist = Math.max(1, dist.high, dist.med, dist.low);
-
-  /* ---- stat cards ---- */
-  const stats=[
-    {l:'Active counterparties', v:parties.length, ic:'users', bg:'#EAF6F1', color:'#086B54', num:'#08211E'},
-    {l:'Largest relationship', v:fmtKESshort(parties[0]?parties[0].val:0), ic:'coins', bg:'#F0E6CF', color:'#8A5E1B', num:'#086B54'},
-    {l:'Top-5 concentration', v:Math.round(top5/totalActive*100)+'%', ic:'trend', bg:'#EAF6F1', color:'#086B54', num:'#08211E'},
-    {l:'High-risk findings', v:highN, ic:'alert', bg:'#F4E2DD', color:'#9A342A', num:'#C0392B'},
-  ];
-  const statHtml=stats.map(k=>`
-    <div class="bg-white rounded-[14px] border border-line px-4 py-3.5">
-      <span class="h-[38px] w-[38px] grid place-items-center rounded-[10px] mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[18px] h-[18px]')}</span>
-      <div class="font-display font-800 text-[23px] tracking-[-0.02em] leading-none" style="color:${k.num}">${k.v}</div>
-      <div class="text-[11px] text-ink/50 mt-1.5">${k.l}</div>
-    </div>`).join('');
-
-  /* ---- relationship map (SVG radial graph) ---- */
-  const org=(getOrg()&&getOrg().name)||FIRST_PARTY||'HaTi';
-  const orgShort=org.split(' ').slice(0,2).join(' ').toUpperCase();
-  const top=parties.slice(0,12);
-  const maxVal=Math.max(1, ...top.map(p=>p.val));
-  const W=760,H=560,cx=W/2,cy=H/2,ringR=195;
-  const nodesSvg=top.map((p,i)=>{
-    const ang=(-90 + i*(360/top.length))*Math.PI/180;
-    const x=cx+ringR*Math.cos(ang), y=cy+ringR*Math.sin(ang);
-    const r=20+Math.sqrt(p.val/maxVal)*20;
-    const lw=2+(p.val/maxVal)*7;
-    const col=partyColor(p);
-    const lx=x+(Math.cos(ang)*(r+4)), ly=y+(Math.sin(ang)*(r+4));
-    const anchor=Math.cos(ang)>0.3?'start':Math.cos(ang)<-0.3?'end':'middle';
-    const name=(p.name.length>18?p.name.slice(0,17)+'…':p.name).replace(/&/g,'&amp;');
-    return {link:`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#C6DCCB" stroke-width="${lw.toFixed(1)}" stroke-linecap="round" opacity=".8"/>`,
-      node:`<g class="qdot" data-party="${p.name.replace(/"/g,'&quot;')}" style="cursor:pointer">
-        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#EAF6F1" stroke="${col}" stroke-width="2.5"/>
-        <text x="${lx.toFixed(1)}" y="${(ly + (Math.abs(Math.cos(ang))<0.3? (Math.sin(ang)>0?16:-8) :4)).toFixed(1)}" text-anchor="${anchor}" font-size="11" font-family="'DM Sans',sans-serif" fill="#415049">${name}</text>
-      </g>`}; });
-  const mapSvg=`<svg viewBox="0 0 ${W} ${H}" class="w-full" style="max-height:560px">
-    ${nodesSvg.map(n=>n.link).join('')}
-    ${nodesSvg.map(n=>n.node).join('')}
-    <circle cx="${cx}" cy="${cy}" r="42" fill="#08211E"/>
-    <circle cx="${cx}" cy="${cy}" r="42" fill="none" stroke="#C79A3E" stroke-width="2"/>
-    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="15" font-weight="700" font-family="'DM Sans',sans-serif" fill="#EAF6F1">HaTi</text>
-    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#9FD5C2">${orgShort.slice(0,16)}</text>
-  </svg>`;
-
-  /* ---- top counterparties by exposure ---- */
-  const expoHtml=parties.slice(0,12).map(p=>{
-    const pct=p.val/totalActive*100, col=partyColor(p);
-    return `<button data-party="${p.name.replace(/"/g,'&quot;')}" class="w-full text-left px-5 py-3.5 border-b border-brand-100/40 last:border-0 hover:bg-brand-50/40 transition group">
-      <div class="flex items-center justify-between gap-3">
-        <span class="text-sm font-600 text-ink truncate group-hover:text-brand-600 transition">${p.name}</span>
-        <span class="text-sm font-mono font-600 text-brand-600 whitespace-nowrap">${fmtKESshort(p.val)}</span>
-      </div>
-      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(2,pct).toFixed(1)}%;background:${col}"></div></div>
-      <div class="mt-1 text-[11px] font-mono text-ink/40">${p.cs.length} contract${p.cs.length===1?'':'s'}</div>
-    </button>`; }).join('');
-
-  /* ---- exposure by value stream ---- */
-  const streamHtml=Object.values(FOLDERS).map(f=>{
-    const v=folderVal[f.id]||0, pct=v/maxFolder*100;
-    return `<button data-folder="${f.id}" class="w-full text-left px-5 py-3 hover:bg-brand-50/40 transition group">
-      <div class="flex items-center gap-2.5">
-        <span class="text-brand-500">${icon(f.ic,'w-4 h-4')}</span>
-        <span class="text-sm text-ink flex-1 truncate group-hover:text-brand-600 transition">${f.name}</span>
-        <span class="text-sm font-mono font-600 text-brand-600 whitespace-nowrap">${fmtKESshort(v)}</span>
-      </div>
-      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full bg-brand-400" style="width:${Math.max(2,pct).toFixed(1)}%"></div></div>
-    </button>`; }).join('');
-
-  /* ---- risk distribution ---- */
-  const riskRows=[
-    {l:'High severity', n:dist.high, dot:'#B23A2E', bar:'#B23A2E'},
-    {l:'Medium', n:dist.med, dot:'#C79A3E', bar:'#C79A3E'},
-    {l:'Low / advisory', n:dist.low, dot:'#9A9484', bar:'#9A9484'},
-  ].map(r=>`
-    <div class="px-5 py-3.5">
-      <div class="flex items-center gap-2.5">
-        <span class="h-2 w-2 rounded-full" style="background:${r.dot}"></span>
-        <span class="text-sm text-ink flex-1">${r.l}</span>
-        <span class="text-sm font-mono font-700 text-ink">${r.n}</span>
-      </div>
-      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full" style="width:${(r.n/maxDist*100).toFixed(1)}%;background:${r.bar}"></div></div>
-    </div>`).join('');
-
+  intelRAF++; const myRAF=intelRAF;
+  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
-  <div class="view-enter">
-    <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-[10px] border-b border-hair">
-      <div class="px-[26px] py-[13px] flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <button data-back class="h-[38px] w-[38px] grid place-items-center rounded-xl border border-inputln bg-white text-brand-700 hover:border-brand-300 transition">${icon('arrowLeft')}</button>
-          <div>
-            <h1 class="font-display font-700 text-[21px] tracking-tight text-ink">Portfolio Intelligence</h1>
-            <p class="text-xs text-ink/50 font-mono">Relationship map &amp; risk concentration across ${cs.length.toLocaleString('en-KE')} contracts</p>
-          </div>
+  <div class="view-enter h-[calc(100vh)] flex flex-col">
+    <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-[10px] border-b border-hair shrink-0">
+      <div class="px-[26px] py-[13px] flex items-center gap-4">
+        <div class="shrink-0">
+          <h1 class="font-display font-700 text-[21px] tracking-tight text-ink">Portfolio Intelligence</h1>
+          <p class="text-xs text-ink/50 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI to filter or regroup</p>
         </div>
+        <div class="flex-1 max-w-[560px] mx-auto relative">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-500">${icon('sparkle','w-4 h-4')}</span>
+          <input id="ig-input" value="${(intel.query||'').replace(/"/g,'&quot;')}" placeholder="e.g. show all leases · group by customer · Naivas contracts" class="w-full rounded-xl border border-inputln bg-white pl-10 pr-24 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+          <button id="ig-go" class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3.5 py-1.5 text-xs font-600 hover:bg-brand-700 transition">Ask AI</button>
+        </div>
+        <label class="shrink-0 flex items-center gap-2 text-xs text-ink/50">Group
+          <select id="ig-group" class="rounded-lg border border-inputln bg-white px-2.5 py-2 text-xs text-ink outline-none focus:border-brand-500">
+            ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
+          </select>
+        </label>
       </div>
+      <div id="ig-note" class="px-[26px] pb-2 text-[11.5px]"></div>
     </header>
-
-    <div class="px-[26px] py-6 max-w-[1360px] space-y-5">
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">${statHtml}</div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-5 items-start">
-        <section class="bg-white rounded-2xl border border-line overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/50">
-            <div class="flex items-center gap-2"><span class="text-brand-500">${icon('network')}</span><h2 class="font-display font-600 text-ink">Relationship map</h2></div>
-            <button id="intel-ai" class="text-xs font-600 text-brand-600 hover:text-brand-800 transition">Ask AI about risk →</button>
-          </div>
-          <p class="px-5 pt-3 text-[11px] text-ink/45">Node size &amp; link weight scale with active contract value; colour shows the dominant contract type.</p>
-          <div class="p-3">${mapSvg}</div>
-          <div class="flex items-center justify-center gap-5 pb-5 text-[11px] text-ink/55">
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#086B54"></span>NDAs</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#C79A3E"></span>Leases</span>
-            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#2E9F80"></span>Supply chain</span>
-          </div>
-        </section>
-
-        <section class="bg-white rounded-2xl border border-line overflow-hidden">
-          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Top counterparties by exposure</h2></div>
-          <div class="max-h-[560px] overflow-y-auto scroll-thin">${expoHtml||'<div class="px-5 py-8 text-center text-xs text-ink/45">No active counterparties yet.</div>'}</div>
-        </section>
-      </div>
-
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-        <section class="bg-white rounded-2xl border border-line overflow-hidden">
-          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Exposure by value stream</h2></div>
-          <div class="py-1">${streamHtml}</div>
-        </section>
-        <section class="bg-white rounded-2xl border border-line overflow-hidden">
-          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Risk distribution</h2></div>
-          <div class="py-1">${riskRows}</div>
-        </section>
-      </div>
+    <div class="relative flex-1 min-h-0 bg-canvas">
+      <svg id="ig-svg" class="w-full h-full block cursor-grab"><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
+      <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(8,33,30,.3)]"></div>
+      <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to open</div>
     </div>
-  </div>
-
-  <div id="party-scrim" class="fixed inset-0 bg-brand-900/40 backdrop-blur-[2px] z-40 grid place-items-center p-6">
-    <div id="party-modal" class="w-full max-w-2xl"></div>
   </div>`;
 
-  document.querySelector('[data-back]')?.addEventListener('click',()=>setView('dashboard'));
-  document.getElementById('intel-ai').addEventListener('click',()=>openAI('What are the biggest risks and concentrations in the portfolio?'));
-  document.querySelectorAll('[data-party]').forEach(b=>b.addEventListener('click',()=>openPartyModal(b.getAttribute('data-party'))));
-  document.querySelectorAll('[data-folder]').forEach(b=>b.addEventListener('click',()=>{ regState().type=b.getAttribute('data-folder'); regState().stage='all'; regState().sel={}; setView('register'); }));
-  document.getElementById('party-scrim').addEventListener('click',e=>{ if(e.target.id==='party-scrim') closePartyModal(); });
+  rebuildIntelGraph();
+
+  // pan & zoom
+  const svg=document.getElementById('ig-svg');
+  svg.addEventListener('wheel',e=>{ e.preventDefault(); if(!IG)return; const s=Math.exp(-e.deltaY*0.0012),nk=Math.max(0.35,Math.min(2.4,IG.view.k*s));
+    const r=svg.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top; IG.view.x=mx-(mx-IG.view.x)*(nk/IG.view.k); IG.view.y=my-(my-IG.view.y)*(nk/IG.view.k); IG.view.k=nk; igApplyView(); },{passive:false});
+  let pan=null;
+  svg.addEventListener('pointerdown',e=>{ if(e.target.closest('.ig-node'))return; if(!IG)return; pan={x:e.clientX-IG.view.x,y:e.clientY-IG.view.y}; svg.classList.add('cursor-grabbing'); });
+  window.addEventListener('pointermove',e=>{ if(pan&&IG){ IG.view.x=e.clientX-pan.x; IG.view.y=e.clientY-pan.y; igApplyView(); } });
+  window.addEventListener('pointerup',()=>{ pan=null; svg.classList.remove('cursor-grabbing'); });
+
+  // controls
+  const go=()=>{ intel.query=document.getElementById('ig-input').value; applyGraphQuery(intel.query); };
+  document.getElementById('ig-go').addEventListener('click',go);
+  document.getElementById('ig-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+  document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });
+
+  // animation loop (stops when leaving intel)
+  (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return; igTick(); igRender(); requestAnimationFrame(loop); })();
   setActiveNav('intel');
 }
 
-/* ---- counterparty relationship modal: local graph at honest scale ---- */
 function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }
 function openPartyModal(name){
   const scrim=document.getElementById('party-scrim'), modal=document.getElementById('party-modal');
@@ -3105,6 +3201,25 @@ function renderTeam(){
         </div>
       </section>
 
+      ${API_MODE()?`
+      <section class="bg-white rounded-2xl border border-line p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('sparkle','w-[18px] h-[18px]')}</span>
+          <h2 class="font-display font-600 text-ink">AI engine</h2></div>
+        <p class="text-xs text-ink/55 mb-3">Powers natural-language filtering and clustering on the <b>Portfolio Intelligence</b> graph. Paste an Anthropic API key (stored on your server, never in the browser). Without a key the graph falls back to the built-in interpreter.</p>
+        <div id="ai-cfg-status" class="text-[11px] mb-3 text-ink/50">Checking…</div>
+        ${isAdmin()?`
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
+          <label class="block"><span class="text-[12px] font-600 text-ink">Anthropic API key</span>
+            <input id="ai-key" type="password" placeholder="sk-ant-…" class="mt-1.5 w-full rounded-[11px] border border-inputln bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/></label>
+          <button id="ai-key-save" class="rounded-xl bg-ink text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition">Save key</button>
+        </div>
+        <div class="flex items-center gap-3 mt-2.5">
+          <label class="text-[11px] text-ink/60 flex items-center gap-1.5">Model
+            <input id="ai-model" type="text" placeholder="claude-haiku-4-5-20251001" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/></label>
+          <button id="ai-key-clear" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium">Remove key</button>
+        </div>`:`<p class="text-[11px] text-ink/45">Only an admin can configure the AI key.</p>`}
+      </section>`:''}
+
       <section class="bg-white rounded-2xl border border-line p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-ink">Data &amp; backup</h2></div>
@@ -3153,6 +3268,25 @@ function renderTeam(){
   }
 
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
+  // AI engine config
+  if(API_MODE()){
+    const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
+      try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
+        el.innerHTML=c.configured?`<span class="text-brand-600">● Configured</span> · model <span class="font-mono">${c.model}</span> · key ${c.hint}${c.source==='env'?' (from server env)':''}`
+          :`<span class="text-gold-600">● Not configured</span> — the graph uses the built-in interpreter.`;
+        const mi=document.getElementById('ai-model'); if(mi&&!mi.value) mi.value=c.model||''; }catch(e){ el.textContent='Could not read AI config.'; } };
+    refreshAiCfg();
+    document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
+      const key=document.getElementById('ai-key').value.trim(), model=document.getElementById('ai-model').value.trim();
+      if(!key&&!model){ toast('Enter a key to save','err'); return; }
+      try{ await api('ai/config','PUT',{ key, model }); document.getElementById('ai-key').value=''; toast('AI engine key saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
+      if(!confirm('Remove the stored AI key? The graph will fall back to the built-in interpreter.')) return;
+      try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
+    });
+  }
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
     const pass=document.getElementById('tm-pass').value;
