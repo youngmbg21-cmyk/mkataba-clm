@@ -63,6 +63,14 @@
   .ig-node.dim{opacity:.22;transition:opacity .15s}
   .ig-lab{pointer-events:none;font-size:11.5px;font-family:'DM Sans',system-ui,sans-serif}
   .ig-sub{pointer-events:none;font-size:9px;font-family:'JetBrains Mono',monospace}
+  /* lens states: mut = dimmed by an AI highlight lens (independent of hover dim);
+     hit = matched by the active lens — stronger border + soft glow */
+  .ig-node.mut{opacity:.28;transition:opacity .15s}
+  .ig-node.hit .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 0 7px rgba(8,107,84,.35)) drop-shadow(0 4px 10px rgba(8,33,30,.08))}
+  .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  /* right-hand AI dock */
+  #ig-dock{transition:width .25s cubic-bezier(.22,.61,.36,1)}
+  .ig-lens{transition:background .15s,border-color .15s,color .15s}
 
   .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#EAF6F1;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
   .field:hover{background:#DCF0E7;}
@@ -2317,9 +2325,13 @@ function scanPortfolio(){
    ============================================================ */
 const INTEL_CAP = 120;
 const STATUS_DOT = {'Draft':'#9A9484','Under Review':'#C79A3E','Signed':'#086B54','Declined':'#B23A2E'};
-let intel = { query:'', groupBy:'folder', visible:null /*Set of ids or null=all*/, note:'', groups:null /*{id:label} override from AI*/, busy:false };
+let intel = { groupBy:'folder', groups:null /*{id:label} override from AI*/,
+  lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
+  history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,err?}*/,
+  busy:false, dockOpen:true, seq:1 };
 let IG = null;      // live graph model
 let intelRAF = 0;   // animation token
+const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
 function valueBand(v){ v=Number(v||0); if(!v) return 'Non-monetary'; if(v>=50e6) return '≥ KES 50M'; if(v>=10e6) return 'KES 10–50M'; if(v>=1e6) return 'KES 1–10M'; return '< KES 1M'; }
 function groupLabelOf(c, groupBy, override){
@@ -2333,11 +2345,41 @@ function groupLabelOf(c, groupBy, override){
   }
 }
 
-/* ---- built-in fallback interpreter: query -> {visibleIds, groupBy, note} ---- */
+/* ---- pinned lenses: active ones intersect; any filter lens filters ---- */
+function intelActive(){
+  const on=intel.lenses.filter(l=>l.on);
+  if(!on.length) return { ids:null, action:'filter', badges:null };
+  let ids=null;
+  on.forEach(l=>{ const s=new Set(l.ids); ids = ids===null ? s : new Set([...ids].filter(id=>s.has(id))); });
+  const badges={};
+  on.forEach(l=>{ if(l.badges) Object.entries(l.badges).forEach(([id,b])=>{ if(ids.has(id)) badges[id]=b; }); });
+  return { ids, action: on.some(l=>l.action==='filter')?'filter':'highlight',
+    badges: Object.keys(badges).length?badges:null };
+}
+function addLens(l){
+  intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
+    label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null });
+  renderIntelDock();
+}
+
+/* ---- built-in fallback interpreter: query -> render_graph-shaped result ---- */
+function parseHorizonDays(q){
+  const m=q.match(/(\d+)\s*(day|week|month|year)s?/);
+  if(m){ const n=+m[1]; return Math.round(n*({day:1,week:7,month:30.44,year:365.25})[m[2]]); }
+  if(q.includes('this year')){ const end=new Date(new Date().getFullYear(),11,31); return Math.max(0,Math.ceil((end-Date.now())/86400000)); }
+  return null;
+}
 function graphInterpret(qRaw){
-  const q=(qRaw||'').toLowerCase().trim(); const cs=state.contracts;
+  const q=(qRaw||'').toLowerCase().trim();
+  const act=intelActive();
+  // "of those / among these" → operate on the currently selected set
+  const followup=/\b(of|among|from|out of)\s+(those|these|them)\b/.test(q);
+  const cs=(followup && act.ids)? state.contracts.filter(c=>act.ids.has(c.id)) : state.contracts;
   const has=(...w)=>w.some(x=>q.includes(x));
-  let groupBy=intel.groupBy, vis=null, note='';
+  // analytical questions read better highlighted; explicit commands filter
+  const questionish=/^(which|what|who|how|are|is|do|does)\b/.test(q)||q.includes('?');
+  const mode=has('only','show ','filter','display')&&!questionish?'filter':(questionish?'highlight':'filter');
+  let groupBy=null, vis=null, note='', badges=null, action=mode;
   // grouping intent
   if(has('by customer','by counterpart','by party','per customer','by client')) groupBy='counterparty';
   else if(has('by folder','by function','by value stream','by category','by department')) groupBy='folder';
@@ -2346,16 +2388,22 @@ function graphInterpret(qRaw){
   else if(has('by type','by kind','by contract type')) groupBy='kind';
   // filter intent
   const kindHit=(...k)=>cs.filter(c=>k.some(x=>cKind(c).toLowerCase().includes(x)));
-  if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
+  if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
+    const horizon=parseHorizonDays(q)??90;
+    vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
+    note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
+    badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(c.expiry)+'d');
+    action='highlight';
+  }
+  else if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
   else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note='NDAs'; }
   else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note='Supply agreements'; }
   else if(has('draft')) { vis=cs.filter(c=>c.status==='Draft'); note='Drafts'; }
   else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note='In review'; }
   else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note='Executed'; }
   else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note='Closed'; }
-  else if(has('expir','renew','lapse','ending')) { vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=90); note='Expiring ≤ 90 days'; }
   else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note='High-value (≥ KES 20M)'; }
-  else if(has('non-monetary','no value','nda')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
+  else if(has('non-monetary','no value')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
   else {
     // counterparty name match
     const party=cs.filter(c=>c.counterparty && c.counterparty.toLowerCase().split(/[^a-z0-9]+/).some(w=>w.length>3&&q.includes(w)));
@@ -2363,36 +2411,112 @@ function graphInterpret(qRaw){
     else { const f=Object.values(FOLDERS).find(f=>{ const kw=f.name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>4); return kw.some(w=>q.includes(w)); });
       if(f){ vis=cs.filter(c=>c.folder===f.id); note=f.name; } }
   }
-  return { visibleIds: vis?vis.map(c=>c.id):null, groupBy, note };
+  const answer = vis===null
+    ? (groupBy?'Regrouped the graph.':'I could not match that to a filter — try a contract type, status, counterparty or expiry horizon.')
+    : (vis.length
+      ? `${vis.length} contract${vis.length===1?'':'s'} match${vis.length===1?'es':''} (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
+      : `No contracts match (${note}).`);
+  return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy, groups:null, note, action, badges, answer };
 }
 
-/* ---- apply a query (server LLM if configured, else interpreter) ---- */
-async function applyGraphQuery(qRaw){
+/* ---- dock entry point: routes to graph query or template advisor ---- */
+const IG_TEMPLATE_RE=/\btemplate\b|\bbase\b.{0,30}\b(new|next|on)\b|model (contract|agreement)|starting point|start(ing)? from/i;
+async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
-  if(!q){ intel.visible=null; intel.groups=null; intel.note=''; rebuildIntelGraph(); return; }
-  intel.busy=true; updateIntelNote();
+  if(!q||intel.busy) return;
+  intel.history.push({role:'user', text:q});
+  intel.busy=true; renderIntelDock(); updateIntelNote();
+  try{
+    if(IG_TEMPLATE_RE.test(q)) await intelTemplateAsk(q);
+    else await intelGraphAsk(q);
+  }catch(e){
+    intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
+  }
+  intel.busy=false;
+  rebuildIntelGraph(); renderIntelDock();
+}
+
+async function intelGraphAsk(q){
+  const act=intelActive();
   let res=null;
   if(API_MODE() && state.aiConfigured){
     try{
-      const payload={ query:q, contracts: state.contracts.slice(0,600).map(c=>({id:c.id,name:c.name,counterparty:c.counterparty||'',folder:FOLDERS[c.folder]?.name||'',kind:cKind(c),value:Number(c.value||0),status:c.status,expiry:c.expiry||''})) };
+      const payload={ query:q,
+        contracts: state.contracts.slice(0,600).map(c=>({id:c.id,name:c.name,counterparty:c.counterparty||'',folder:FOLDERS[c.folder]?.name||'',kind:cKind(c),value:Number(c.value||0),status:c.status,expiry:c.expiry||''})),
+        history: intel.history.slice(-9,-1).filter(m=>m.text).map(m=>({role:m.role,text:m.text})),
+        activeIds: act.ids?[...act.ids]:null };
       res=await api('ai/graph','POST',payload);
-    }catch(e){ if(/key|configure|401|model/i.test(e.message)) { toast('AI engine needs a key — using the built-in interpreter','err'); } else toast('AI error: '+e.message,'err'); }
+    }catch(e){
+      intel.history.push({role:'assistant', err:true,
+        text:(/key|configure|401|model/i.test(e.message)?'The AI engine needs an API key — using the built-in interpreter instead.':'AI error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
+    }
   }
   if(!res) res=graphInterpret(q);           // fallback
-  intel.busy=false;
-  intel.visible = res.visibleIds ? new Set(res.visibleIds) : null;
-  intel.groupBy = res.groupBy || intel.groupBy;
-  intel.groups  = res.groups || null;
-  intel.note    = res.note || (res.visibleIds?`${res.visibleIds.length} match${res.visibleIds.length===1?'':'es'}`:'') ;
-  rebuildIntelGraph();
+  if(res.groupBy){ intel.groupBy=res.groupBy; intel.groups=res.groups||null; }
+  if(res.visibleIds && res.visibleIds.length)
+    addLens({ label:res.note||res.visibleIds.length+' matches', ids:res.visibleIds, action:res.action||'filter', badges:res.badges||null });
+  intel.history.push({role:'assistant', text:res.answer||res.note||'Done.', cardIds:(res.visibleIds||[]).slice(0,5)});
 }
 
-/* ---- build the node/edge model from current state + filter/group ---- */
+/* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level AI rank ---- */
+function contractPlainText(c){
+  try{
+    if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
+    const host=document.createElement('div'); host.innerHTML=docBody(c);
+    host.querySelectorAll('input').forEach(i=>i.replaceWith(document.createTextNode(i.value||i.getAttribute('value')||'')));
+    return (host.textContent||'').replace(/\s+/g,' ').trim();
+  }catch(e){ return ''; }
+}
+function templateShortlist(q){
+  const ql=q.toLowerCase();
+  const score=c=>{ let s=0;
+    cKind(c).toLowerCase().split(/[^a-z]+/).forEach(w=>{ if(w.length>3&&ql.includes(w)) s+=4; });
+    if(c.status==='Signed') s+=3;
+    if(Number(c.value||0)>0) s+=1;
+    if(c.counterparty) s+=1;
+    if(isUpload(c)&&!(c.upload&&c.upload.extractedText)) s-=5;   // no text to compare
+    return s; };
+  return state.contracts.map(c=>({c,s:score(c)})).sort((a,b)=>b.s-a.s).slice(0,8).map(x=>x.c);
+}
+async function intelTemplateAsk(q){
+  const shortlist=templateShortlist(q);
+  if(!shortlist.length){ intel.history.push({role:'assistant', text:'There are no contracts to compare yet.'}); return; }
+  if(API_MODE() && state.aiConfigured){
+    try{
+      await Promise.all(shortlist.map(c=>ensureFull(c).catch(()=>{})));
+      const candidates=shortlist.map(c=>({id:c.id,name:c.name,kind:cKind(c),counterparty:c.counterparty||'',value:Number(c.value||0),status:c.status,expiry:c.expiry||'',text:contractPlainText(c)}));
+      const res=await api('ai/template','POST',{query:q,candidates});
+      applyTemplateResult(res.ranked, res.answer); return;
+    }catch(e){
+      intel.history.push({role:'assistant', err:true,
+        text:(/key|configure|401|model/i.test(e.message)?'The AI engine needs an API key for template analysis — here is a metadata-only ranking instead.':'AI template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
+    }
+  }
+  // fallback: deterministic metadata ranking, honest about its limits
+  const ranked=shortlist.slice(0,3).map(c=>({ id:c.id,
+    reason:[c.status==='Signed'?'executed — battle-tested terms':'closest match on type', cKind(c), c.counterparty?('with '+c.counterparty):null].filter(Boolean).join(' · ') }));
+  const top=getContract(ranked[0].id);
+  applyTemplateResult(ranked, `Closest template match on metadata: <b>${top?.name||'—'}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the AI engine for a clause-level comparison.':''}`);
+}
+function applyTemplateResult(ranked, answer){
+  const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
+  addLens({ label:'Template picks · '+ranked.length, ids:ranked.map(r=>r.id), action:'highlight', badges });
+  intel.history.push({role:'assistant', text:answer||'Ranked the best template candidates.', ranked});
+}
+
+/* ---- build the node/edge model from current state + lenses/group ---- */
 function buildGraphModel(){
   const groupBy=intel.groupBy, override=intel.groups;
-  let cs=state.contracts.filter(c=>!intel.visible || intel.visible.has(c.id));
+  const act=intelActive();
+  let cs=state.contracts;
+  if(act.ids && act.action==='filter') cs=cs.filter(c=>act.ids.has(c.id));
   const capped = cs.length>INTEL_CAP;
-  if(capped) cs=cs.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0)).slice(0,INTEL_CAP);
+  if(capped) cs=cs.slice().sort((a,b)=>{
+    // matched contracts survive the cap first, then largest by value
+    const am=act.ids?.has(a.id)?1:0, bm=act.ids?.has(b.id)?1:0;
+    return (bm-am)||(Number(b.value||0)-Number(a.value||0));
+  }).slice(0,INTEL_CAP);
+  const highlight = act.ids && act.action==='highlight';
   // hubs
   const hubMap={};
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override); (hubMap[g]||(hubMap[g]={label:g,ids:[]})).ids.push(c.id); });
@@ -2400,10 +2524,11 @@ function buildGraphModel(){
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#9A9484'});
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#9A9484',
+      hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
-  return { nodes, edges, capped, shown:cs.length, total:state.contracts.filter(c=>!intel.visible||intel.visible.has(c.id)).length };
+  return { nodes, edges, capped, shown:cs.length, total:cs.length };
 }
 
 /* ---- physics + svg (adapted, light theme) ---- */
@@ -2425,7 +2550,8 @@ function makeIntelGraph(model){
   // adjacency (undirected) for the hover-focus highlight
   const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
   nodes.forEach(n=>{
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','ig-node'); n.g=g;
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
     rect.setAttribute('fill', n.kind==='hub'?'#08211E':'#ffffff');
@@ -2439,12 +2565,22 @@ function makeIntelGraph(model){
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
       sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#7C8983'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+    if(n.badge){ // gold pill pinned to the chip's top-right corner (AI annotation)
+      const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
+      const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
+      br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
+      br.setAttribute('fill','#C79A3E'); br.setAttribute('stroke','#fff'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
+      const bl=document.createElementNS('http://www.w3.org/2000/svg','text');
+      bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#231A05');
+      bl.textContent=bt; g.appendChild(bl); }
     gNodes.appendChild(g);
     g.addEventListener('pointerdown',e=>igStartDrag(e,n));
     g.addEventListener('pointerenter',()=>{ if(IG&&!IG.dragging) igPaint(n); });
     g.addEventListener('pointerleave',()=>{ if(IG&&!IG.dragging) igPaint(null); });
     g.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return;
-      if(n.kind==='contract') openWorkspace(n.id); else { /* click hub -> keep only its group */ igFilterToGroup(n.label); } });
+      // contract -> explain it in the dock (workspace stays one click away in the card);
+      // hub -> keep only its group
+      if(n.kind==='contract') igExplain(n.id); else igFilterToGroup(n.label); });
   });
   return { svg, vp, nodes, edges, byId, adj, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false };
 }
@@ -2457,8 +2593,26 @@ function igPaint(focus){
   IG.nodes.forEach(n=>{ const on=n.id===focus.id||near.has(n.id); n.g.classList.toggle('hi',n.id===focus.id); n.g.classList.toggle('dim',!on); });
   IG.edges.forEach(e=>{ const on=e.from===focus.id||e.to===focus.id; e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on); e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
 }
+// two-way linking: light up an explicit set of contract ids (hover from the dock)
+function igPaintIds(ids){
+  if(!IG) return;
+  if(!ids||!ids.length){ igPaint(null); return; }
+  const set=ids instanceof Set?ids:new Set(ids);
+  IG.nodes.forEach(n=>{ const on=set.has(n.id)||(n.kind==='hub'&&[...(IG.adj[n.id]||[])].some(id=>set.has(id)));
+    n.g.classList.toggle('hi',set.has(n.id)); n.g.classList.toggle('dim',!on); });
+  IG.edges.forEach(e=>{ const on=set.has(e.to)||set.has(e.from);
+    e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on);
+    e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
+}
 function igFilterToGroup(label){ const ids=state.contracts.filter(c=>groupLabelOf(c,intel.groupBy,intel.groups)===label).map(c=>c.id);
-  intel.visible=new Set(ids); intel.note='Group: '+label; rebuildIntelGraph(); }
+  addLens({label:'Group: '+label, ids, action:'filter'}); rebuildIntelGraph(); }
+// node click -> explain the contract inside the dock (Open workspace is the secondary action)
+function igExplain(id){
+  const c=getContract(id); if(!c) return;
+  if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
+  intel.history.push({role:'assistant', explainId:id});
+  renderIntelDock(); igPaintIds([id]);
+}
 function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
   const p=igToWorld(e.clientX,e.clientY); IG.dragOff={x:n.x-p.x,y:n.y-p.y};
   const mv=ev=>{ if(!IG.dragging)return; const p=igToWorld(ev.clientX,ev.clientY); IG.dragging.x=p.x+IG.dragOff.x; IG.dragging.y=p.y+IG.dragOff.y; IG.dragging.vx=IG.dragging.vy=0; IG.dragMoved=true; };
@@ -2499,11 +2653,13 @@ function rebuildIntelGraph(){
 }
 function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
-  const filtered=intel.visible!=null;
+  const on=intel.lenses.filter(l=>l.on);
+  const act=intelActive();
+  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'AI grouping'})[intel.groupBy]||intel.groupBy;
   el.innerHTML = intel.busy ? `<span class="text-brand-700">Thinking…</span>`
-    : `<span class="text-ink/60">Grouped by <b class="text-ink">${({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type'})[intel.groupBy]||intel.groupBy}</b>${filtered?` · <b class="text-brand-700">${intel.note||'filtered'}</b>`:''}</span>`
-      + (filtered?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear ✕</button>`:'');
-  document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.visible=null;intel.groups=null;intel.note='';document.getElementById('ig-input').value=''; rebuildIntelGraph(); });
+    : `<span class="text-ink/60">Grouped by <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
+      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear all ✕</button>`:'');
+  document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
@@ -2511,9 +2667,15 @@ function renderIntelLegend(model){
     [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
       `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
   el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
-    intel.visible=new Set(state.contracts.filter(c=>c.status===s).map(c=>c.id)); intel.note=statusLabel(s); rebuildIntelGraph(); }));
+    addLens({label:statusLabel(s), ids:state.contracts.filter(c=>c.status===s).map(c=>c.id), action:'filter'}); rebuildIntelGraph(); }));
 }
 
+const IG_SUGGESTIONS=[
+  'Which contracts end in the next 6 months?',
+  'Group by customer',
+  'Show all leases',
+  'Best template for a new supply agreement?',
+];
 function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
@@ -2521,14 +2683,9 @@ function renderIntel(){
   <div class="view-enter h-[calc(100vh)] flex flex-col">
     <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-[10px] border-b border-hair shrink-0">
       <div class="px-[26px] py-[13px] flex items-center gap-4">
-        <div class="shrink-0">
+        <div class="shrink-0 flex-1">
           <h1 class="font-display font-700 text-[21px] tracking-tight text-ink">Portfolio Intelligence</h1>
-          <p class="text-xs text-ink/50 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI to filter or regroup</p>
-        </div>
-        <div class="flex-1 max-w-[560px] mx-auto relative">
-          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gold-500">${icon('sparkle','w-4 h-4')}</span>
-          <input id="ig-input" value="${(intel.query||'').replace(/"/g,'&quot;')}" placeholder="e.g. show all leases · group by customer · Naivas contracts" class="w-full rounded-xl border border-inputln bg-white pl-10 pr-24 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-          <button id="ig-go" class="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3.5 py-1.5 text-xs font-600 hover:bg-brand-700 transition">Ask AI</button>
+          <p class="text-xs text-ink/50 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI panel to filter, analyse or regroup</p>
         </div>
         <label class="shrink-0 flex items-center gap-2 text-xs text-ink/50">Group
           <select id="ig-group" class="rounded-lg border border-inputln bg-white px-2.5 py-2 text-xs text-ink outline-none focus:border-brand-500">
@@ -2538,16 +2695,20 @@ function renderIntel(){
       </div>
       <div id="ig-note" class="px-[26px] pb-2 text-[11.5px]"></div>
     </header>
-    <div class="relative flex-1 min-h-0 bg-canvas">
-      <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
-        <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C6DCCB"></path></marker>
-        <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#086B54"></path></marker>
-      </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
-      <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(8,33,30,.3)]"></div>
-      <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to open</div>
+    <div class="relative flex-1 min-h-0 bg-canvas flex">
+      <div class="relative flex-1 min-w-0">
+        <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
+          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C6DCCB"></path></marker>
+          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#086B54"></path></marker>
+        </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
+        <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(8,33,30,.3)]"></div>
+        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
+      </div>
+      <aside id="ig-dock" class="shrink-0 bg-white border-l border-hair flex flex-col min-h-0 overflow-hidden" style="width:${intel.dockOpen?380:46}px"></aside>
     </div>
   </div>`;
 
+  renderIntelDock();
   rebuildIntelGraph();
 
   // pan & zoom
@@ -2560,14 +2721,147 @@ function renderIntel(){
   window.addEventListener('pointerup',()=>{ pan=null; svg.classList.remove('cursor-grabbing'); });
 
   // controls
-  const go=()=>{ intel.query=document.getElementById('ig-input').value; applyGraphQuery(intel.query); };
-  document.getElementById('ig-go').addEventListener('click',go);
-  document.getElementById('ig-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
   document.getElementById('ig-group').addEventListener('change',e=>{ intel.groupBy=e.target.value; intel.groups=null; rebuildIntelGraph(); });
 
   // animation loop (stops when leaving intel)
   (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return; igTick(); igRender(); requestAnimationFrame(loop); })();
   setActiveNav('intel');
+}
+
+/* ---- right-hand AI dock ---- */
+function igSyncDockWidth(){
+  const dock=document.getElementById('ig-dock'); if(!dock) return;
+  dock.style.width=(intel.dockOpen?380:46)+'px';
+  // the canvas flexes — re-measure and re-settle once the width transition lands
+  setTimeout(()=>{ if(state.view==='intel') rebuildIntelGraph(); },280);
+}
+function igMiniCard(id, extra){
+  const c=getContract(id); if(!c) return '';
+  return `
+  <button data-ig-card="${c.id}" class="w-full text-left flex items-center gap-2 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-2.5 py-2 transition">
+    ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
+    <span class="min-w-0 flex-1">
+      <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''} · ${statusLabel(c.status)}</span>
+    </span>
+  </button>`;
+}
+function igRankCard(r,i){
+  const c=getContract(r.id); if(!c) return '';
+  return `
+  <div class="rounded-xl border ${i===0?'border-brand-300 bg-brand-50/40':'border-brand-100 bg-white'} p-1.5 space-y-1">
+    ${igMiniCard(r.id,`<span class="h-6 w-6 shrink-0 grid place-items-center rounded-full ${i===0?'bg-brand-600 text-white':'bg-gold-500/15 text-gold-600'} text-[11px] font-700">${i+1}</span>`)}
+    <div class="px-2 pb-1 text-[11px] leading-snug text-ink/60">${igEsc(r.reason||'')}</div>
+  </div>`;
+}
+function igExplainCard(id){
+  const c=getContract(id); if(!c) return '';
+  const d=c.expiry?daysUntil(c.expiry):null;
+  const row=(k,v)=>`<div class="flex justify-between gap-3 text-[11.5px] py-0.5"><span class="text-ink/45">${k}</span><span class="text-right text-brand-900 font-medium truncate">${v}</span></div>`;
+  return `
+  <div class="rounded-xl border border-brand-100 bg-white p-3" data-ig-hoverid="${c.id}">
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
+      <div class="min-w-0"><div class="text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
+      <div class="text-[10px] font-mono text-ink/45">${c.id}</div></div>
+    </div>
+    ${row('Type',igEsc(cKind(c)))}
+    ${row('Counterparty',igEsc(c.counterparty||'—'))}
+    ${row('Value',isMonetary(c)&&c.value?fmtKESshort(c.value):'Non-monetary')}
+    ${row('Status',statusLabel(c.status))}
+    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
+    ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
+    <button data-ig-ws="${c.id}" class="mt-2 w-full rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">Open workspace →</button>
+  </div>`;
+}
+function igMsgHTML(m){
+  if(m.role==='user')
+    return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
+  const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
+    : m.explainId ? igExplainCard(m.explainId)
+    : (m.cardIds||[]).map(id=>igMiniCard(id)).join('');
+  return `<div class="ai-msg flex gap-2">
+    <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
+    <div class="min-w-0 flex-1 space-y-1.5">
+      ${m.text?`<div class="rounded-2xl rounded-tl-md border px-3.5 py-2 text-[13px] leading-relaxed ${m.err?'bg-rose-50 border-rose-200 text-rose-800':'bg-canvas border-brand-100 text-brand-900'}">${m.text}</div>`:''}
+      ${body}
+    </div>
+  </div>`;
+}
+function renderIntelDock(){
+  const dock=document.getElementById('ig-dock'); if(!dock) return;
+  if(!intel.dockOpen){
+    dock.innerHTML=`
+      <button id="igd-expand" title="Open the intelligence panel" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
+        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">AI panel</span>
+      </button>`;
+    document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
+    return;
+  }
+  const msgs=intel.history.map(igMsgHTML).join('');
+  const typing=intel.busy?`
+    <div class="ai-msg flex gap-2">
+      <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
+      <div class="rounded-2xl rounded-tl-md bg-canvas border border-brand-100 px-3.5 py-2.5 typing"><span></span><span></span><span></span></div>
+    </div>`:'';
+  dock.innerHTML=`
+    <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
+      <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
+      <span class="font-display font-700 text-[13px] text-ink flex-1">Intelligence panel</span>
+      <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
+    </div>
+    ${intel.lenses.length?`
+    <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
+      ${intel.lenses.map(l=>`
+        <span data-lens-hover="${l.id}" class="ig-lens inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-mono cursor-pointer ${l.on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/40'}">
+          <button data-lens-toggle="${l.id}" title="${l.on?'Lens on — click to ignore':'Lens off — click to apply'}">${igEsc(l.label)} · ${l.ids.length}</button>
+          <button data-lens-x="${l.id}" title="Remove lens" class="hover:text-rose-600">✕</button>
+        </span>`).join('')}
+      <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
+    </div>`:''}
+    <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3">
+      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! Ask me anything about this portfolio — I filter, highlight and regroup the nodes as I answer. Answers pin as lenses you can toggle or stack.</div>`}
+      ${typing}
+    </div>
+    ${!intel.history.length?`
+    <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
+      ${IG_SUGGESTIONS.map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+    </div>`:''}
+    <div class="p-3 border-t border-hair shrink-0 relative">
+      <input id="igd-input" placeholder="Ask about the portfolio…" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">Ask</button>
+    </div>`;
+  const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
+  // wiring
+  document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
+  const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value; inp.value=''; intelAsk(v); };
+  document.getElementById('igd-go').addEventListener('click',go);
+  document.getElementById('igd-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+  dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
+  document.getElementById('igd-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
+  // lens chips: toggle / remove / hover-trace
+  dock.querySelectorAll('[data-lens-toggle]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const l=intel.lenses.find(x=>x.id===b.getAttribute('data-lens-toggle')); if(l){ l.on=!l.on; rebuildIntelGraph(); renderIntelDock(); } }));
+  dock.querySelectorAll('[data-lens-x]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    intel.lenses=intel.lenses.filter(x=>x.id!==b.getAttribute('data-lens-x')); rebuildIntelGraph(); renderIntelDock(); }));
+  dock.querySelectorAll('[data-lens-hover]').forEach(el=>{
+    const l=()=>intel.lenses.find(x=>x.id===el.getAttribute('data-lens-hover'));
+    el.addEventListener('pointerenter',()=>{ const x=l(); if(x) igPaintIds(x.ids); });
+    el.addEventListener('pointerleave',()=>igPaintIds(null));
+  });
+  // contract cards: hover-trace + click to highlight; workspace button
+  dock.querySelectorAll('[data-ig-card]').forEach(b=>{
+    const id=b.getAttribute('data-ig-card');
+    b.addEventListener('pointerenter',()=>igPaintIds([id]));
+    b.addEventListener('pointerleave',()=>igPaintIds(null));
+    b.addEventListener('click',()=>igPaintIds([id]));
+  });
+  dock.querySelectorAll('[data-ig-hoverid]').forEach(el=>{
+    const id=el.getAttribute('data-ig-hoverid');
+    el.addEventListener('pointerenter',()=>igPaintIds([id]));
+    el.addEventListener('pointerleave',()=>igPaintIds(null));
+  });
+  dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openWorkspace(b.getAttribute('data-ig-ws')); }));
 }
 
 function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }

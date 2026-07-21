@@ -314,7 +314,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
 app.post('/api/ai/graph', auth, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
-  const { query, contracts } = req.body || {};
+  const { query, contracts, history, activeIds } = req.body || {};
   if (!query || !Array.isArray(contracts)) return res.status(400).json({ error: 'query and contracts are required' });
   const list = contracts.slice(0, 600);
   const tool = {
@@ -324,19 +324,25 @@ app.post('/api/ai/graph', auth, async (req, res) => {
       type: 'object',
       properties: {
         visibleIds: { type: 'array', items: { type: 'string' }, description: 'Contract ids that MATCH the request. Omit or leave empty to keep every contract visible (e.g. a pure grouping request).' },
+        action: { type: 'string', enum: ['filter','highlight'], description: 'filter = remove non-matches from the graph (use for "show only X" style commands). highlight = keep everything visible but dim non-matches and emphasise matches (use for analytical questions like "which expire soon?"). Default filter.' },
+        badges: { type: 'object', additionalProperties: { type: 'string' }, description: 'Optional map of contract id -> very short annotation shown as a pill on the node, e.g. "ends in 143d" or "rank #1". Only for ids in visibleIds.' },
+        answer: { type: 'string', description: 'A 1-3 sentence natural-language answer to the user, shown in the chat panel. Mention counts and standout contracts by name.' },
         groupBy: { type: 'string', enum: ['folder','counterparty','status','valueBand','kind','custom'], description: 'How to cluster. Use custom only when the dimension is not one of the others (e.g. by city).' },
         groups: { type: 'object', additionalProperties: { type: 'string' }, description: 'Only for groupBy=custom: map each contract id to its group label (e.g. inferred city).' },
-        note: { type: 'string', description: 'Short label of what was done, e.g. "Leases · grouped by city".' }
+        note: { type: 'string', description: 'Short label of what was done, e.g. "Leases · grouped by city". Used to name the pinned lens chip.' }
       },
       required: ['note']
     }
   };
-  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nContracts (JSON):\n${JSON.stringify(list)}\n\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
+  const today = new Date().toISOString().slice(0, 10);
+  const hist = Array.isArray(history) ? history.slice(-8).map(h => `${h.role === 'user' ? 'User' : 'Assistant'}: ${String(h.text || '').slice(0, 400)}`).join('\n') : '';
+  const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
+  const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: aiModel(), max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] })
     });
     if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
     const data = await r.json();
@@ -344,7 +350,64 @@ app.post('/api/ai/graph', auth, async (req, res) => {
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
     const out = block.input || {};
     res.json({ visibleIds: Array.isArray(out.visibleIds) && out.visibleIds.length ? out.visibleIds : null,
+      action: out.action === 'highlight' ? 'highlight' : 'filter',
+      badges: (out.badges && typeof out.badges === 'object') ? out.badges : null,
+      answer: typeof out.answer === 'string' ? out.answer : '',
       groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '' });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
+/* ---------- AI template advisor (two-stage) ----------
+   Stage 1: the client sends candidate contracts (metadata + full clause text);
+   the server re-scores on metadata and keeps at most 8 — Signed first, then by
+   value and text richness. Stage 2: Claude (Sonnet — a deeper read than the
+   graph model) ranks the top 3 as templates for the described new contract. */
+app.post('/api/ai/template', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { query, candidates } = req.body || {};
+  if (!query || !Array.isArray(candidates) || !candidates.length)
+    return res.status(400).json({ error: 'query and candidates are required' });
+  // stage 1 — metadata shortlist, capped at 8
+  const scored = candidates
+    .filter(c => c && c.id)
+    .map(c => ({ c, s: (c.status === 'Signed' ? 3 : 0) + (Number(c.value || 0) > 0 ? 1 : 0) + Math.min(2, String(c.text || '').length / 2000) }))
+    .sort((a, b) => b.s - a.s)
+    .slice(0, 8)
+    .map(x => x.c);
+  const today = new Date().toISOString().slice(0, 10);
+  const tool = {
+    name: 'recommend_template',
+    description: 'Rank the best existing contracts to use as a template for the new contract the user describes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        ranked: { type: 'array', maxItems: 3, items: { type: 'object', properties: {
+          id: { type: 'string', description: 'Contract id from the candidates.' },
+          reason: { type: 'string', description: 'One line: why this contract works as the template (clause structure, terms, counterparty class, execution status).' }
+        }, required: ['id','reason'] }, description: 'Best first. Up to 3.' },
+        answer: { type: 'string', description: '1-3 sentence overall recommendation for the chat panel, naming the top pick.' }
+      },
+      required: ['ranked','answer']
+    }
+  };
+  const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
+  const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    const out = block.input || {};
+    const ids = new Set(scored.map(c => c.id));
+    const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
+    if (!ranked.length) return res.status(502).json({ error: 'AI returned no usable ranking' });
+    res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '' });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
