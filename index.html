@@ -9,10 +9,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
-  // HaTi design system (from the Claude Design redesign): DM Sans throughout,
-  // the warm green-and-gold palette, and warmed neutrals/semantic reds. The
-  // brand/gold scales already matched the design; slate & rose are overridden
-  // to the design's warm greige and earthy red so existing utilities repaint.
+  // HaTi light-theme design system (design_handoff_hati_redesign):
+  // DM Sans everywhere, JetBrains Mono for IDs/values/timestamps, the
+  // green-and-gold brand palette, cool green-grey neutrals, and a strict
+  // colour discipline — surfaces white/near-white, colour reserved for
+  // actions, active state, status, severity and key metrics.
   tailwind.config = {
     theme: { extend: {
       fontFamily: {
@@ -22,12 +23,21 @@
       },
       colors: {
         canvas:'#F4F7F5',
+        ink:'#08211E',
         brand:{50:'#EAF6F1',100:'#CFEAE0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
         gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
-        // warm greige (was slate) — design neutrals
-        slate:{50:'#F5F2EA',100:'#ECE7DC',200:'#DED5C6',300:'#CFC6B4',400:'#9A9484',500:'#807A6C',600:'#6B6559',700:'#57524A',800:'#413D37',900:'#2B2823'},
-        // earthy red (was rose) — design danger
+        // cool green-grey neutrals (light theme) — was warm greige
+        slate:{50:'#F4F7F5',100:'#EAF4F0',200:'#DCEDE5',300:'#C4D8CE',400:'#9DB0A8',500:'#7C8983',600:'#5A6B63',700:'#415049',800:'#2A3831',900:'#08211E'},
+        // earthy red — design danger / severity high
         rose:{50:'#F4E2DD',100:'#E6C9C1',200:'#E6C9C1',300:'#DCA99D',400:'#C56555',500:'#B23A2E',600:'#9A342A',700:'#822C24',900:'#3E1712'},
+        // exact chrome + accent tokens from the handoff
+        hair:'#E6EEEA',       // chrome hairline (rail / top-bar borders)
+        line:'#DCEDE5',       // card border
+        inputln:'#D8EAE2',    // input / chip / button border
+        faint:'#FBFDFC',      // donut cards
+        docbg:'#EEF3F1',      // workspace document canvas
+        amber:'#B0791F',      // expiring / awaiting metrics
+        danger:'#C0392B',     // high-risk metric
       },
     }},
   };
@@ -61,8 +71,12 @@
   .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 
-  .nav-item.active{background:rgba(255,255,255,.08);color:#fff;}
+  /* Icon-rail nav (light theme) */
+  .nav-item{color:#7C8983;}
+  .nav-item:hover{color:#075444;background:#F1F7F4;}
+  .nav-item.active{background:#EAF6F1;color:#075444;}
   .nav-item.active .nav-rail{opacity:1;}
+  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;} html{scroll-behavior:auto;} }
 
   /* AI panel slide-over */
   #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
@@ -117,70 +131,54 @@
 
 <div id="app-shell" class="flex min-h-screen hidden">
 
-  <!-- ================= SIDEBAR ================= -->
-  <aside class="w-[248px] shrink-0 bg-brand-900 text-brand-100/80 flex flex-col fixed inset-y-0 left-0 z-30">
-    <div class="px-5 py-5 border-b border-white/10">
-      <div class="flex items-center gap-2.5">
-        <div class="h-9 w-9 rounded-lg bg-gold-500 grid place-items-center text-brand-900 shrink-0" id="brand-mark"></div>
-        <div class="leading-tight">
-          <div class="font-display font-700 text-white text-lg tracking-tight">HaTi</div>
-          <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
-        </div>
-      </div>
-    </div>
+  <!-- ================= ICON RAIL (84px, white) ================= -->
+  <aside class="w-[84px] shrink-0 bg-white border-r border-hair flex flex-col items-center fixed inset-y-0 left-0 z-30 py-4">
+    <!-- logo -->
+    <div class="h-11 w-11 rounded-[13px] bg-brand-600 grid place-items-center text-white shrink-0 mb-4" id="brand-mark" title="HaTi — Contract Lifecycle"></div>
 
-    <nav class="px-3 py-4 flex-1 overflow-y-auto scroll-thin" id="nav">
-      <button data-view="dashboard" class="nav-item active w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="grid"></span> Home
+    <nav class="flex flex-col items-center gap-1 flex-1 w-full px-1" id="nav">
+      <button data-view="dashboard" class="nav-item active relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Home">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="grid" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Home</span>
       </button>
-      <button data-view="register" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="file"></span> Contract Register
+      <button data-view="register" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Register">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="list" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Register</span>
       </button>
-      <button data-view="pipeline" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="grid"></span> Pipeline
+      <button data-view="pipeline" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Queue">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="columns" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Queue</span>
       </button>
-      <button data-view="intel" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="trend"></span> Portfolio Intelligence
+      <button data-view="intel" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Intel">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="network" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Intel</span>
       </button>
-      <button data-view="workspace" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="file"></span> Contract Workspace
+      <button data-view="workspace" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Doc">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="file" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Doc</span>
       </button>
-      <button data-view="team" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
-        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="users"></span> Team &amp; Settings
+      <button data-view="team" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Team">
+        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
+        <span data-ic="users" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Team</span>
       </button>
-
-      <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">Folders</div>
-      <div id="side-folders" class="space-y-0.5"></div>
-
-      <div class="pt-5 pb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-300/70">Quick create</div>
-      <div id="side-templates" class="space-y-0.5"></div>
     </nav>
 
-    <div class="px-3 pb-3">
-      <button id="ai-open-side" class="w-full flex items-center gap-2.5 rounded-xl bg-gradient-to-r from-gold-500 to-gold-400 text-brand-900 px-3.5 py-3 text-sm font-semibold hover:brightness-105 transition shadow-lg shadow-black/20">
-        <span data-ic="sparkle"></span> Ask HaTi AI
-      </button>
-    </div>
-
-    <div class="px-4 py-4 border-t border-white/10" id="side-user"></div>
+    <button id="ai-open-side" title="Ask HaTi AI" class="h-14 w-14 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white grid place-content-center justify-items-center gap-0.5 transition shrink-0 mb-3">
+      <span data-ic="sparkle" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-semibold">AI</span>
+    </button>
+    <button id="rail-avatar" title="Team &amp; settings" class="h-10 w-10 rounded-full bg-brand-50 grid place-items-center text-[11px] font-semibold text-brand-700 font-mono shrink-0 hover:ring-2 hover:ring-brand-100 transition"></button>
   </aside>
 
   <!-- ================= MAIN ================= -->
-  <main class="flex-1 ml-[248px] min-w-0">
+  <main class="flex-1 ml-[84px] min-w-0">
     <div id="content"></div>
   </main>
 </div>
 
 <!-- ================= AI ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 bg-brand-900/30 backdrop-blur-[2px] z-40"></div>
-<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[420px] bg-white z-50 flex flex-col border-l border-brand-100 shadow-2xl shadow-brand-900/20">
-  <header class="px-5 py-4 border-b border-brand-100/70 flex items-center gap-3 bg-brand-900 text-white">
+<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[430px] bg-brand-50 z-50 flex flex-col border-l border-inputln shadow-2xl shadow-brand-900/20">
+  <header class="px-5 py-4 flex items-center gap-3 bg-ink text-white">
     <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">HaTi AI</div>
@@ -193,10 +191,10 @@
 
   <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5"></div>
 
-  <footer class="px-5 pb-5 pt-2 border-t border-brand-100/70">
+  <footer class="px-5 pb-5 pt-3 border-t border-inputln">
     <div class="flex items-center gap-2">
-      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-brand-100 bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
-      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-900 text-white hover:bg-brand-800 transition" data-ic-big="send"></button>
+      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition" data-ic-big="send"></button>
     </div>
   </footer>
 </section>
@@ -220,6 +218,9 @@ const ICONS = {
   ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
   clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
   chevR:'<path d="m9 18 6-6-6-6"/>',
+  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+  columns:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
   msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   lock:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
@@ -259,7 +260,7 @@ const ICONS = {
 };
 const icon = (n,cls='w-4 h-4',sw=2)=>`<svg xmlns="http://www.w3.org/2000/svg" class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${ICONS[n]||''}</svg>`;
 document.getElementById('brand-mark').innerHTML = icon('scroll','w-5 h-5',2.2);
-document.querySelectorAll('[data-ic]').forEach(el=>el.outerHTML=icon(el.getAttribute('data-ic')));
+document.querySelectorAll('[data-ic]').forEach(el=>el.outerHTML=icon(el.getAttribute('data-ic'), el.getAttribute('data-ic-cls')||'w-4 h-4'));
 document.querySelectorAll('[data-ic-big]').forEach(el=>el.innerHTML=icon(el.getAttribute('data-ic-big'),'w-[18px] h-[18px]'));
 
 /* ============================================================ STATE */
@@ -559,23 +560,23 @@ function renderAuth(mode){
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
-      <div class="bg-white rounded-2xl border border-brand-100 shadow-2xl p-6">${inner}</div>
-      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'Static mode — your workspace, users and contracts are stored in this browser.'}</p>
+      <div class="bg-white rounded-[20px] border border-line shadow-[0_24px_48px_-20px_rgba(8,33,30,.35)] p-7">${inner}</div>
+      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
-    <label class="block mb-3"><span class="text-xs font-medium text-brand-800/70">${label}</span>
-    <input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`;
+    <label class="block mb-3.5"><span class="text-[12px] font-600 text-ink">${label}</span>
+    <input id="${id}" type="${type}" placeholder="${ph}" class="mt-1.5 w-full rounded-[11px] border border-inputln bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/></label>`;
   if(mode==='setup'){
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-lg text-brand-900">Create your workspace</h1>
-      <p class="text-xs text-brand-800/55 mb-4">Set up your organization and the first admin account.</p>
+      <h1 class="font-display font-700 text-[22px] tracking-[-0.01em] text-ink">Create your workspace</h1>
+      <p class="text-xs text-ink/55 mb-5 mt-1">Set up your organization and the first admin account.</p>
       ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
       ${input('su-name','Your full name','text','e.g. Amina Otieno')}
       ${input('su-email','Work email','email','you@company.co.ke')}
       ${input('su-pass','Password','password','Min 8 characters')}
-      <label class="flex items-center gap-2 text-xs text-brand-800/70 mb-4"><input id="su-sample" type="checkbox" checked class="h-4 w-4 rounded border-brand-300 text-brand-600"/> Load sample Kenyan portfolio (12 demo contracts)</label>
-      <button id="su-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace</button>`);
+      <label class="flex items-center gap-2.5 text-xs text-ink/70 mb-5 mt-1"><input id="su-sample" type="checkbox" checked class="h-[18px] w-[18px] rounded accent-brand-600"/> Load sample Kenyan FMCG portfolio (30 demo contracts)</label>
+      <button id="su-go" class="w-full rounded-xl bg-ink text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace &amp; sign in</button>`);
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else if(mode==='login'){
@@ -687,23 +688,20 @@ function startApp(){
   document.getElementById('app-shell').classList.remove('hidden');
   renderSideUser(); renderSideFolders();
   // resume where the user left off
-  setView(['dashboard','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
-  const initials=u.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-  document.getElementById('side-user').innerHTML=`
-    <div class="flex items-center gap-3">
-      <div class="h-8 w-8 rounded-full bg-brand-700 grid place-items-center text-xs font-semibold text-brand-100 shrink-0">${initials}</div>
-      <div class="text-xs leading-tight min-w-0 flex-1">
-        <div class="text-white font-medium truncate">${u.name}</div>
-        <div class="text-brand-300 truncate">${getOrg().name} · ${ROLE_LABEL[u.role]}</div>
-      </div>
-      <button id="side-logout" title="Sign out" class="h-7 w-7 grid place-items-center rounded-lg text-brand-300 hover:text-white hover:bg-white/10 transition shrink-0">${icon('logout','w-3.5 h-3.5')}</button>
-    </div>`;
-  document.getElementById('side-logout').addEventListener('click',logout);
+  const org=getOrg().name||'HaTi';
+  // rail avatar shows the ORG initials (per spec) and links to Team & Settings
+  const initials=org.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const av=document.getElementById('rail-avatar');
+  if(av){ av.textContent=initials; av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`;
+    av.onclick=()=>setView('team'); }
 }
+// folders/quick-create moved into the Register + New-contract menu; no rail list.
+function renderSideFolders(){ /* rail has no folder list in the light-theme redesign */ }
 
 /* ---------- audit trail ---------- */
 function logAudit(c, action, detail, actor){
@@ -1247,18 +1245,18 @@ function renderDashboard(){
     .map(c=>({c, idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
 
   const kpis=[
-    {label:'Contracts under management', val:Number(countAll).toLocaleString('en-KE'), ic:'file',  bg:'#EEF2F0', color:'#5B6B64'},
-    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#EAF6F1', color:'#086B54'},
-    {label:'Awaiting counterparty',      val:Number(m.pending).toLocaleString('en-KE'),ic:'clock', bg:'#F0E6CF', color:'#8A5E1B'},
-    {label:'Expiring within 90 days',    val:Number(expiring.length).toLocaleString('en-KE'), ic:'history', bg:'#F0E6CF', color:'#8A5E1B'},
-    {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A'},
+    {label:'Contracts under management', val:Number(countAll).toLocaleString('en-KE'), ic:'file',  bg:'#EEF2F0', color:'#5B6B64', num:'#08211E', go:{stage:'all'}},
+    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#EAF6F1', color:'#086B54', num:'#086B54', go:{stage:'all',sort:'value'}},
+    {label:'Awaiting counterparty',      val:Number(m.pending).toLocaleString('en-KE'),ic:'clock', bg:'#F0E6CF', color:'#8A5E1B', num:'#B0791F', go:{stage:'Under Review'}},
+    {label:'Expiring within 90 days',    val:Number(expiring.length).toLocaleString('en-KE'), ic:'calendar', bg:'#F0E6CF', color:'#8A5E1B', num:'#B0791F', go:{stage:'Signed',sort:'expiry'}},
+    {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A', num:'#C0392B', go:{stage:'all'}},
   ];
-  const kpiHtml = kpis.map(k=>`
-    <div class="bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
-      <span class="h-8 w-8 grid place-items-center rounded-lg mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-4 h-4')}</span>
-      <div class="font-display font-700 text-2xl tracking-tight text-brand-900 leading-none">${k.val}</div>
-      <div class="text-[11px] text-brand-800/50 mt-1">${k.label}</div>
-    </div>`).join('');
+  const kpiHtml = kpis.map((k,i)=>`
+    <button data-kpi="${i}" class="text-left bg-white rounded-[14px] border border-line px-4 py-3.5 hover:border-brand-300 hover:shadow-[0_10px_22px_-16px_rgba(8,33,30,.3)] transition">
+      <span class="h-[38px] w-[38px] grid place-items-center rounded-[10px] mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[18px] h-[18px]')}</span>
+      <div class="font-display font-800 text-[23px] tracking-[-0.02em] leading-none" style="color:${k.num}">${k.val}</div>
+      <div class="text-[11px] text-ink/50 mt-1.5">${k.label}</div>
+    </button>`).join('');
 
   // segmented stage bar
   const segBar = stages.map(s=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color}" class="h-2.5 first:rounded-l-full last:rounded-r-full"></span>`).join('');
@@ -1271,24 +1269,24 @@ function renderDashboard(){
       <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
     </button>`).join('');
 
-  // donut helper
-  const donut=(count,pct,color)=>{ const r=30,c=2*Math.PI*r,off=c*(1-Math.min(1,pct/100));
-    return `<svg width="76" height="76" viewBox="0 0 76 76" class="shrink-0">
-      <circle cx="38" cy="38" r="${r}" fill="none" stroke="#ECE7DC" stroke-width="7"/>
-      <circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 38 38)"/>
-      <text x="38" y="37" text-anchor="middle" font-size="17" font-weight="700" fill="#08211E" style="font-family:'DM Sans',sans-serif">${count}</text>
-      <text x="38" y="50" text-anchor="middle" font-size="9" font-weight="600" fill="${color}">${pct.toFixed(1)}%</text>
-    </svg>`; };
+  // donut: 88px conic-gradient ring with a white 11px-inset inner circle (per spec)
+  const donut=(count,pct,color)=>{ const deg=(Math.min(100,Math.max(0,pct))*3.6).toFixed(1);
+    return `<div class="relative shrink-0" style="width:88px;height:88px;border-radius:9999px;background:conic-gradient(${color} ${deg}deg,#EAF4F0 0deg)">
+      <div class="absolute inset-[11px] rounded-full bg-white grid place-content-center text-center">
+        <div class="font-display font-700 leading-none" style="font-size:22px;color:#08211E">${count}</div>
+        <div class="font-mono font-600 mt-1" style="font-size:10px;color:${color}">${pct.toFixed(1)}%</div>
+      </div>
+    </div>`; };
   const snap=[
-    {donut:donut(expiring.length, countAll?expiring.length/countAll*100:0, '#C79A3E'), title:'Expiring ≤ 90 days', sub:`${expiring.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
-    {donut:donut(highRisk.length, countAll?highRisk.length/countAll*100:0, '#B23A2E'), title:'High-risk findings', sub:`${highRisk.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
-    {donut:donut(m.pending, countAll?m.pending/countAll*100:0, '#086B54'), title:'Awaiting counterparty', sub:`${m.pending} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {go:{stage:'Signed',sort:'expiry'}, donut:donut(expiring.length, countAll?expiring.length/countAll*100:0, '#B0791F'), title:'Expiring ≤ 90 days', sub:`${expiring.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {go:{stage:'all'}, donut:donut(highRisk.length, countAll?highRisk.length/countAll*100:0, '#C0392B'), title:'High-risk findings', sub:`${highRisk.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {go:{stage:'Under Review'}, donut:donut(m.pending, countAll?m.pending/countAll*100:0, '#086B54'), title:'Awaiting counterparty', sub:`${m.pending} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
   ];
-  const snapHtml = snap.map(s=>`
-    <div class="flex items-center gap-4 rounded-xl border border-brand-100/60 bg-canvas/40 px-4 py-4">
+  const snapHtml = snap.map((s,i)=>`
+    <button data-snap="${i}" class="text-left flex items-center gap-4 rounded-[14px] border border-hair bg-faint px-4 py-4 hover:border-brand-300 transition">
       ${s.donut}
-      <div class="min-w-0"><div class="text-sm font-medium text-brand-900">${s.title}</div><div class="text-[11px] text-brand-800/50 mt-0.5">${s.sub}</div></div>
-    </div>`).join('');
+      <div class="min-w-0"><div class="text-sm font-600 text-ink">${s.title}</div><div class="text-[11px] text-ink/50 mt-0.5">${s.sub}</div></div>
+    </button>`).join('');
 
   // attention column row (name + meta + right tag)
   const attnRow=(c,tag,tagColor)=>`
@@ -1384,6 +1382,9 @@ function renderDashboard(){
   wireOpens();
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-stage'); regState().type='all'; regState().sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ regState().stage='all'; regState().sel={}; setView('register'); }));
+  const goReg=g=>{ const R=regState(); R.stage=g.stage||'all'; R.type='all'; if(g.sort) R.sort=g.sort; R.sel={}; setView('register'); };
+  document.querySelectorAll('[data-kpi]').forEach(el=>el.addEventListener('click',()=>goReg(kpis[+el.getAttribute('data-kpi')].go)));
+  document.querySelectorAll('[data-snap]').forEach(el=>el.addEventListener('click',()=>goReg(snap[+el.getAttribute('data-snap')].go)));
   document.querySelectorAll('[data-view-intel]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
   const nb=document.getElementById('new-contract-btn'), nm=document.getElementById('new-menu');
@@ -1957,13 +1958,13 @@ function renderWorkspace(){
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-0 lg:h-[calc(100vh-61px)]">
-      <section class="overflow-y-auto scroll-thin border-r border-brand-100/70 bg-canvas">
+      <section class="overflow-y-auto scroll-thin border-r border-hair bg-docbg">
         <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
-          <article class="bg-white rounded-2xl border border-brand-100 shadow-sm shadow-brand-900/5 p-7 lg:p-9" id="doc-canvas">${docBody(c)}</article>
+          <article class="bg-white rounded-[4px] border border-brand-100/60 shadow-[0_24px_60px_-30px_rgba(8,33,30,.35),0_2px_6px_rgba(8,33,30,.06)] p-7 lg:p-10" id="doc-canvas">${docBody(c)}</article>
           <div class="h-8"></div>
         </div>
       </section>
@@ -2282,205 +2283,160 @@ function scanPortfolio(){
 
 function renderIntel(){
   const cs = state.contracts;
-  const scanned = cs.filter(c=>c.scan);
-  const allScanned = scanned.length===cs.length && cs.length>0;
+  const active = cs.filter(c=>c.counterparty && c.status!=='Declined');
 
-  /* ---- header stats ---- */
-  const openAll = scanned.flatMap(c=>openFindings(c));
-  const highN = openAll.filter(f=>f.sev==='high').length;
-  const atRisk = scanned.filter(c=>openFindings(c).some(f=>f.sev==='high'))
-                        .reduce((s,c)=>s+Number(c.value||0),0);
-
-  /* ---- expiry radar (independent of scan) ---- */
-  const expiring = cs.filter(c=>c.expiry && c.status!=='Declined')
-    .map(c=>({c, d:daysUntil(c.expiry)}))
-    .filter(x=>x.d>=0 && x.d<=90)
-    .sort((a,b)=>a.d-b.d);
-
-  /* ---- quadrant data (monetary scatter + non-monetary lane) ---- */
-  const pts = scanned.filter(c=>isMonetary(c)).map(c=>({c, v:Number(c.value||0), r:riskScore(c)}));
-  const nmPts = scanned.filter(c=>!isMonetary(c)).map((c,i)=>({c, i, r:riskScore(c)}));
-  const maxV = Math.max(1, ...pts.map(p=>p.v));
-  const maxR = Math.max(6, ...pts.map(p=>p.r), ...nmPts.map(p=>p.r));
-  const vals = pts.map(p=>p.v).sort((a,b)=>a-b);
-  const medV = vals.length ? vals[Math.floor(vals.length/2)] : 0;
-  const CW=900, CH=400, P={l:64,r:24,t:30,b:44};
-  const LANE = nmPts.length ? 70 : 0;
-  const X = v => P.l+LANE + (v/maxV)*(CW-P.l-LANE-P.r);
-  const Y = r => CH-P.b - (r/maxR)*(CH-P.t-P.b);
-  const riskLine = 5; // any high finding crosses it
-
-  const dotCol = c => { const o=openFindings(c);
-    if(!o.length) return '#0B7A5F';
-    const w=worstSevOf(o); return w==='high'?'#f43f5e':w==='med'?'#C79A3E':'#94a3b8'; };
-
-  const chart = !allScanned ? `
-    <div class="grid place-items-center h-[300px] text-center">
-      <div>
-        <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('scan','w-5 h-5')}</div>
-        <div class="text-sm font-medium text-brand-900">${scanned.length ? scanned.length+' of '+cs.length+' contracts scanned' : 'The portfolio hasn\u2019t been scanned yet'}</div>
-        <div class="text-xs text-brand-800/50 mt-1 max-w-xs">Run a portfolio scan to place every contract on the risk\u2013value map and roll up findings across the book.</div>
-      </div>
-    </div>` : `
-    <svg viewBox="0 0 ${CW} ${CH}" class="w-full">
-      <rect x="${X(medV)}" y="${P.t}" width="${CW-P.r-X(medV)}" height="${Y(riskLine)-P.t}" fill="#f43f5e" opacity="0.045"/>
-      <line x1="${P.l}" y1="${Y(riskLine)}" x2="${CW-P.r}" y2="${Y(riskLine)}" stroke="#C79A3E" stroke-width="1" stroke-dasharray="4 4" opacity=".6"/>
-      <line x1="${X(medV)}" y1="${P.t}" x2="${X(medV)}" y2="${CH-P.b}" stroke="#9FD5C2" stroke-width="1" stroke-dasharray="4 4"/>
-      ${LANE?`<rect x="${P.l+3}" y="${P.t}" width="${LANE-14}" height="${CH-P.t-P.b}" rx="8" fill="#08211E" opacity="0.04"/>
-      <line x1="${P.l+LANE-6}" y1="${P.t}" x2="${P.l+LANE-6}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1"/>
-      <text x="${P.l+LANE/2-4}" y="${(P.t+CH-P.b)/2}" font-size="8.5" font-weight="700" letter-spacing=".12em" fill="#8aa198" transform="rotate(-90 ${P.l+LANE/2-4} ${(P.t+CH-P.b)/2})" text-anchor="middle">NON-MONETARY</text>`:''}
-      <line x1="${P.l}" y1="${CH-P.b}" x2="${CW-P.r}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1.4"/>
-      <line x1="${P.l}" y1="${P.t}" x2="${P.l}" y2="${CH-P.b}" stroke="#CFEAE0" stroke-width="1.4"/>
-      <text x="${CW-P.r-6}" y="${P.t+14}" text-anchor="end" font-size="10" font-weight="700" fill="#f43f5e" opacity=".8">WATCHLIST \u2014 high value \u00b7 high risk</text>
-      <text x="${P.l+6}" y="${P.t+14}" font-size="10" font-weight="600" fill="#C79A3E" opacity=".75">Housekeeping</text>
-      <text x="${CW-P.r-6}" y="${CH-P.b-8}" text-anchor="end" font-size="10" font-weight="600" fill="#0B7A5F" opacity=".75">Healthy core</text>
-      <text x="${P.l+6}" y="${CH-P.b-8}" font-size="10" font-weight="600" fill="#8aa198">Long tail</text>
-      <text x="${(P.l+CW-P.r)/2}" y="${CH-10}" text-anchor="middle" font-size="10" fill="#8aa198" font-family="'JetBrains Mono',monospace">contract value (KES) \u2192  median ${fmtKESshort(medV)}</text>
-      <text x="16" y="${(P.t+CH-P.b)/2}" font-size="10" fill="#8aa198" font-family="'JetBrains Mono',monospace" transform="rotate(-90 16 ${(P.t+CH-P.b)/2})" text-anchor="middle">risk score \u2192</text>
-      ${pts.map(p=>`<circle class="qdot" data-open="${p.c.id}" cx="${X(p.v)}" cy="${Y(p.r)}" r="${7+Math.sqrt(p.v/maxV)*6}" fill="${dotCol(p.c)}" fill-opacity=".82" stroke="transparent"><title>${p.c.name.replace(/&/g,'&amp;')} \u00b7 ${fmtKESshort(p.v)}${p.c.valueType==='estimated'?' (est.)':''} \u00b7 risk ${p.r}${openFindings(p.c).length?' \u00b7 '+openFindings(p.c).length+' open findings':' \u00b7 clean'}</title></circle>`).join('')}
-      ${nmPts.map(p=>`<circle class="qdot" data-open="${p.c.id}" cx="${P.l+16+(p.i%3)*14}" cy="${Y(p.r)}" r="6.5" fill="${dotCol(p.c)}" fill-opacity=".82" stroke="transparent"><title>${p.c.name.replace(/&/g,'&amp;')} \u00b7 non-monetary \u00b7 risk ${p.r}${openFindings(p.c).length?' \u00b7 '+openFindings(p.c).length+' open findings':' \u00b7 clean'}</title></circle>`).join('')}
-    </svg>`;
-
-  /* ---- aggregated findings across the book ---- */
-  const agg = {};
-  scanned.forEach(c=>openFindings(c).forEach(f=>{
-    (agg[f.id] || (agg[f.id]={id:f.id, title:f.title, sev:f.sev, kind:f.kind, fix:f.fix, cs:[]})).cs.push(c);
-  }));
-  const aggList = Object.values(agg).sort((a,b)=>SEV_RANK[b.sev]-SEV_RANK[a.sev] || b.cs.length-a.cs.length);
-  const aggHtml = !allScanned ? `<div class="px-5 py-6 text-center text-xs text-brand-800/50">Run the portfolio scan to aggregate findings across the book.</div>`
-    : !aggList.length ? `<div class="px-5 py-6 text-center text-xs text-brand-800/50">No open findings anywhere \u2014 the book is clean.</div>`
-    : aggList.map(a=>{
-      const sm=SEV_META[a.sev];
-      const exposure=a.cs.reduce((s,c)=>s+Number(c.value||0),0);
-      return `
-      <div class="px-5 py-3.5 border-b border-brand-100/50 last:border-0">
-        <div class="flex items-center gap-2">
-          <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
-          <span class="text-sm font-medium text-brand-900 flex-1 min-w-0 truncate">${a.title}</span>
-          <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
-          <span class="text-xs font-mono text-brand-900 whitespace-nowrap">${a.cs.length}\u00d7 \u00b7 ${fmtKESshort(exposure)}</span>
-        </div>
-        <p class="mt-1 ml-3.5 text-[11px] text-brand-800/55 leading-relaxed">${a.fix}</p>
-        <div class="mt-1.5 ml-3.5 flex flex-wrap gap-1.5">
-          ${a.cs.map(c=>`<button data-open="${c.id}" class="text-[10px] font-mono rounded-full border border-brand-100 bg-canvas hover:border-brand-400 px-2 py-0.5 text-brand-700 transition">${c.id} \u00b7 ${(c.counterparty||'draft').split(' ')[0]}</button>`).join('')}
-        </div>
-      </div>`;
-    }).join('');
-
-  /* ---- counterparty concentration ---- */
+  /* ---- counterparty exposure ---- */
   const partyMap={};
-  cs.filter(c=>c.counterparty && c.status!=='Declined').forEach(c=>{
-    (partyMap[c.counterparty]||(partyMap[c.counterparty]={name:c.counterparty, cs:[], val:0})).cs.push(c);
-    partyMap[c.counterparty].val += Number(c.value||0);
-  });
-  const totalActive = Object.values(partyMap).reduce((s,p)=>s+p.val,0)||1;
+  active.forEach(c=>{ (partyMap[c.counterparty]||(partyMap[c.counterparty]={name:c.counterparty, cs:[], val:0})).cs.push(c); partyMap[c.counterparty].val+=Number(c.value||0); });
   const parties = Object.values(partyMap).sort((a,b)=>b.val-a.val);
-  const concHtml = parties.map(p=>{
-    const pct=p.val/totalActive*100;
-    const flag=pct>25;
-    return `
-    <button data-party="${p.name.replace(/"/g,'&quot;')}" class="w-full text-left px-5 py-3 border-b border-brand-100/50 last:border-0 hover:bg-brand-50/50 transition group">
-      <div class="flex items-center gap-2">
-        <span class="text-sm font-medium text-brand-900 flex-1 min-w-0 truncate group-hover:text-brand-600 transition">${p.name}</span>
-        ${flag?`<span class="inline-flex items-center gap-1 text-[10px] font-semibold text-rose-600">${icon('alert','w-3 h-3')} concentration</span>`:''}
-        <span class="text-xs font-mono text-brand-900 whitespace-nowrap">${fmtKESshort(p.val)} \u00b7 ${pct.toFixed(0)}%</span>
-      </div>
-      <div class="mt-1.5 h-1.5 rounded-full bg-brand-50 overflow-hidden">
-        <div class="h-full rounded-full ${flag?'bg-rose-400':'bg-brand-400'}" style="width:${Math.max(2,pct)}%"></div>
-      </div>
-      <div class="mt-1 text-[10px] text-brand-800/45">${p.cs.length} agreement${p.cs.length===1?'':'s'}${(n=>n?` \u00b7 ${n} non-monetary`:'')(p.cs.filter(c=>!isMonetary(c)).length)} \u00b7 tap for relationship view</div>
-    </button>`;
-  }).join('');
+  const totalActive = parties.reduce((s,p)=>s+p.val,0)||1;
+  const top5 = parties.slice(0,5).reduce((s,p)=>s+p.val,0);
+  const partyColor=p=>{ const kinds=p.cs.map(c=>cKind(c).toLowerCase());
+    if(kinds.some(k=>k.includes('nda')||k.includes('non-disclosure'))) return '#086B54';
+    if(kinds.some(k=>k.includes('lease'))) return '#C79A3E';
+    return '#2E9F80'; };
 
-  /* ---- expiry radar html ---- */
-  const expHtml = expiring.length ? expiring.map(x=>{
-    const urg = x.d<=30?'rose':x.d<=60?'gold':'slate';
-    const cls = urg==='rose'?'bg-rose-50 text-rose-700 border-rose-200':urg==='gold'?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-slate-100 text-slate-600 border-slate-200';
-    return `
-    <button data-open="${x.c.id}" class="w-full text-left flex items-center gap-3 px-5 py-3 border-b border-brand-100/50 last:border-0 hover:bg-brand-50/50 transition group">
-      <span class="inline-flex flex-col items-center justify-center h-11 w-11 shrink-0 rounded-xl border ${cls}">
-        <span class="text-sm font-display font-700 leading-none">${x.d}</span>
-        <span class="text-[8px] uppercase tracking-wider">days</span>
-      </span>
-      <span class="min-w-0 flex-1">
-        <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${x.c.name}</span>
-        <span class="block text-[11px] font-mono text-brand-800/45">${x.c.counterparty} \u00b7 lapses ${new Date(x.c.expiry).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
-      </span>
-      <span class="text-xs font-mono whitespace-nowrap ${isMonetary(x.c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(x.c)?'n/m':(x.c.value?fmtKESshort(x.c.value):'\u2014')}</span>
-      ${statusChip(x.c.status)}
-    </button>`;
-  }).join('') : `<div class="px-5 py-6 text-center text-xs text-brand-800/50">Nothing lapses in the next 90 days.</div>`;
+  /* ---- folder exposure ---- */
+  const folderVal={}; Object.keys(FOLDERS).forEach(f=>folderVal[f]=0);
+  active.forEach(c=>{ folderVal[c.folder]=(folderVal[c.folder]||0)+Number(c.value||0); });
+  const maxFolder = Math.max(1, ...Object.values(folderVal));
+
+  /* ---- risk distribution (computed live from the rule engine) ---- */
+  const dist={high:0,med:0,low:0};
+  cs.forEach(c=>{ (c.scan?openFindings(c):scanRules(c).filter(f=>f.sev)).forEach(f=>{ if(dist[f.sev]!=null) dist[f.sev]++; }); });
+  const highN = dist.high;
+  const maxDist = Math.max(1, dist.high, dist.med, dist.low);
+
+  /* ---- stat cards ---- */
+  const stats=[
+    {l:'Active counterparties', v:parties.length, ic:'users', bg:'#EAF6F1', color:'#086B54', num:'#08211E'},
+    {l:'Largest relationship', v:fmtKESshort(parties[0]?parties[0].val:0), ic:'coins', bg:'#F0E6CF', color:'#8A5E1B', num:'#086B54'},
+    {l:'Top-5 concentration', v:Math.round(top5/totalActive*100)+'%', ic:'trend', bg:'#EAF6F1', color:'#086B54', num:'#08211E'},
+    {l:'High-risk findings', v:highN, ic:'alert', bg:'#F4E2DD', color:'#9A342A', num:'#C0392B'},
+  ];
+  const statHtml=stats.map(k=>`
+    <div class="bg-white rounded-[14px] border border-line px-4 py-3.5">
+      <span class="h-[38px] w-[38px] grid place-items-center rounded-[10px] mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[18px] h-[18px]')}</span>
+      <div class="font-display font-800 text-[23px] tracking-[-0.02em] leading-none" style="color:${k.num}">${k.v}</div>
+      <div class="text-[11px] text-ink/50 mt-1.5">${k.l}</div>
+    </div>`).join('');
+
+  /* ---- relationship map (SVG radial graph) ---- */
+  const org=(getOrg()&&getOrg().name)||FIRST_PARTY||'HaTi';
+  const orgShort=org.split(' ').slice(0,2).join(' ').toUpperCase();
+  const top=parties.slice(0,12);
+  const maxVal=Math.max(1, ...top.map(p=>p.val));
+  const W=760,H=560,cx=W/2,cy=H/2,ringR=195;
+  const nodesSvg=top.map((p,i)=>{
+    const ang=(-90 + i*(360/top.length))*Math.PI/180;
+    const x=cx+ringR*Math.cos(ang), y=cy+ringR*Math.sin(ang);
+    const r=20+Math.sqrt(p.val/maxVal)*20;
+    const lw=2+(p.val/maxVal)*7;
+    const col=partyColor(p);
+    const lx=x+(Math.cos(ang)*(r+4)), ly=y+(Math.sin(ang)*(r+4));
+    const anchor=Math.cos(ang)>0.3?'start':Math.cos(ang)<-0.3?'end':'middle';
+    const name=(p.name.length>18?p.name.slice(0,17)+'…':p.name).replace(/&/g,'&amp;');
+    return {link:`<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#C6DCCB" stroke-width="${lw.toFixed(1)}" stroke-linecap="round" opacity=".8"/>`,
+      node:`<g class="qdot" data-party="${p.name.replace(/"/g,'&quot;')}" style="cursor:pointer">
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" fill="#EAF6F1" stroke="${col}" stroke-width="2.5"/>
+        <text x="${lx.toFixed(1)}" y="${(ly + (Math.abs(Math.cos(ang))<0.3? (Math.sin(ang)>0?16:-8) :4)).toFixed(1)}" text-anchor="${anchor}" font-size="11" font-family="'DM Sans',sans-serif" fill="#415049">${name}</text>
+      </g>`}; });
+  const mapSvg=`<svg viewBox="0 0 ${W} ${H}" class="w-full" style="max-height:560px">
+    ${nodesSvg.map(n=>n.link).join('')}
+    ${nodesSvg.map(n=>n.node).join('')}
+    <circle cx="${cx}" cy="${cy}" r="42" fill="#08211E"/>
+    <circle cx="${cx}" cy="${cy}" r="42" fill="none" stroke="#C79A3E" stroke-width="2"/>
+    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="15" font-weight="700" font-family="'DM Sans',sans-serif" fill="#EAF6F1">HaTi</text>
+    <text x="${cx}" y="${cy+13}" text-anchor="middle" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#9FD5C2">${orgShort.slice(0,16)}</text>
+  </svg>`;
+
+  /* ---- top counterparties by exposure ---- */
+  const expoHtml=parties.slice(0,12).map(p=>{
+    const pct=p.val/totalActive*100, col=partyColor(p);
+    return `<button data-party="${p.name.replace(/"/g,'&quot;')}" class="w-full text-left px-5 py-3.5 border-b border-brand-100/40 last:border-0 hover:bg-brand-50/40 transition group">
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-sm font-600 text-ink truncate group-hover:text-brand-600 transition">${p.name}</span>
+        <span class="text-sm font-mono font-600 text-brand-600 whitespace-nowrap">${fmtKESshort(p.val)}</span>
+      </div>
+      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full" style="width:${Math.max(2,pct).toFixed(1)}%;background:${col}"></div></div>
+      <div class="mt-1 text-[11px] font-mono text-ink/40">${p.cs.length} contract${p.cs.length===1?'':'s'}</div>
+    </button>`; }).join('');
+
+  /* ---- exposure by value stream ---- */
+  const streamHtml=Object.values(FOLDERS).map(f=>{
+    const v=folderVal[f.id]||0, pct=v/maxFolder*100;
+    return `<button data-folder="${f.id}" class="w-full text-left px-5 py-3 hover:bg-brand-50/40 transition group">
+      <div class="flex items-center gap-2.5">
+        <span class="text-brand-500">${icon(f.ic,'w-4 h-4')}</span>
+        <span class="text-sm text-ink flex-1 truncate group-hover:text-brand-600 transition">${f.name}</span>
+        <span class="text-sm font-mono font-600 text-brand-600 whitespace-nowrap">${fmtKESshort(v)}</span>
+      </div>
+      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full bg-brand-400" style="width:${Math.max(2,pct).toFixed(1)}%"></div></div>
+    </button>`; }).join('');
+
+  /* ---- risk distribution ---- */
+  const riskRows=[
+    {l:'High severity', n:dist.high, dot:'#B23A2E', bar:'#B23A2E'},
+    {l:'Medium', n:dist.med, dot:'#C79A3E', bar:'#C79A3E'},
+    {l:'Low / advisory', n:dist.low, dot:'#9A9484', bar:'#9A9484'},
+  ].map(r=>`
+    <div class="px-5 py-3.5">
+      <div class="flex items-center gap-2.5">
+        <span class="h-2 w-2 rounded-full" style="background:${r.dot}"></span>
+        <span class="text-sm text-ink flex-1">${r.l}</span>
+        <span class="text-sm font-mono font-700 text-ink">${r.n}</span>
+      </div>
+      <div class="mt-2 h-1.5 rounded-full bg-brand-50 overflow-hidden"><div class="h-full rounded-full" style="width:${(r.n/maxDist*100).toFixed(1)}%;background:${r.bar}"></div></div>
+    </div>`).join('');
 
   document.getElementById('content').innerHTML = `
   <div class="view-enter">
-    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
-      <div class="px-8 py-4 flex items-center justify-between gap-4">
-        <div>
-          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Portfolio Intelligence</h1>
-          <p class="text-xs text-brand-800/50">${allScanned?`Book scanned ${intelUI.scannedAt} \u00b7 ${openAll.length} open findings \u00b7 ${highN} high severity`:'Analyze risk, exposure and renewals across every contract'}</p>
+    <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-[10px] border-b border-hair">
+      <div class="px-[26px] py-[13px] flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <button data-back class="h-[38px] w-[38px] grid place-items-center rounded-xl border border-inputln bg-white text-brand-700 hover:border-brand-300 transition">${icon('arrowLeft')}</button>
+          <div>
+            <h1 class="font-display font-700 text-[21px] tracking-tight text-ink">Portfolio Intelligence</h1>
+            <p class="text-xs text-ink/50 font-mono">Relationship map &amp; risk concentration across ${cs.length.toLocaleString('en-KE')} contracts</p>
+          </div>
         </div>
-        <button id="scan-all" ${intelUI.scanning?'disabled':''} class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-lg shadow-brand-900/15 ${intelUI.scanning?'opacity-70':''}">
-          <span class="${intelUI.scanning?'scan-pulse':''}">${icon('scan')}</span> ${intelUI.scanning?'Scanning book\u2026':allScanned?'Re-scan portfolio':'Scan portfolio'}
-        </button>
       </div>
     </header>
 
-    <div class="px-8 py-6 max-w-[1200px] space-y-6">
+    <div class="px-[26px] py-6 max-w-[1360px] space-y-5">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">${statHtml}</div>
 
-      ${allScanned?`
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        ${[
-          {l:'Contracts scanned', v:scanned.length, ic:'scan', cls:'text-brand-500'},
-          {l:'Open findings', v:openAll.length, ic:'alert', cls:'text-gold-500'},
-          {l:'High severity', v:highN, ic:'ban', cls:'text-rose-500'},
-          {l:'Value on watchlist', v:fmtKESshort(atRisk), ic:'coins', cls:'text-rose-500'},
-        ].map(k=>`
-        <div class="flex items-center gap-3 bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
-          <span class="h-9 w-9 grid place-items-center rounded-lg bg-canvas border border-brand-100 ${k.cls}">${icon(k.ic)}</span>
-          <div class="leading-tight">
-            <div class="font-display font-700 text-xl tracking-tight text-brand-900">${k.v}</div>
-            <div class="text-[11px] text-brand-800/50">${k.l}</div>
+      <div class="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-5 items-start">
+        <section class="bg-white rounded-2xl border border-line overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/50">
+            <div class="flex items-center gap-2"><span class="text-brand-500">${icon('network')}</span><h2 class="font-display font-600 text-ink">Relationship map</h2></div>
+            <button id="intel-ai" class="text-xs font-600 text-brand-600 hover:text-brand-800 transition">Ask AI about risk →</button>
           </div>
-        </div>`).join('')}
-      </div>`:''}
-
-      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-        <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/60">
-          <div class="flex items-center gap-2"><span class="text-brand-500">${icon('target')}</span>
-            <h2 class="font-display font-600 text-brand-900">Risk \u00d7 Value quadrant</h2></div>
-          <span class="text-[11px] text-brand-800/40">Dot size = value \u00b7 color = worst open finding \u00b7 click to open</span>
-        </div>
-        <div class="p-4">${chart}</div>
-      </section>
-
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
-        <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-          <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
-            <span class="text-gold-500">${icon('clock')}</span>
-            <h2 class="font-display font-600 text-brand-900">Expiry radar</h2>
-            <span class="ml-auto text-[11px] font-mono text-brand-800/40">next 90 days \u00b7 ${expiring.length}</span>
+          <p class="px-5 pt-3 text-[11px] text-ink/45">Node size &amp; link weight scale with active contract value; colour shows the dominant contract type.</p>
+          <div class="p-3">${mapSvg}</div>
+          <div class="flex items-center justify-center gap-5 pb-5 text-[11px] text-ink/55">
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#086B54"></span>NDAs</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#C79A3E"></span>Leases</span>
+            <span class="inline-flex items-center gap-1.5"><span class="h-2 w-2 rounded-full" style="background:#2E9F80"></span>Supply chain</span>
           </div>
-          ${expHtml}
         </section>
 
-        <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-          <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
-            <span class="text-brand-500">${icon('users')}</span>
-            <h2 class="font-display font-600 text-brand-900">Counterparty concentration</h2>
-            <span class="ml-auto text-[11px] font-mono text-brand-800/40">% of active book</span>
-          </div>
-          ${concHtml}
+        <section class="bg-white rounded-2xl border border-line overflow-hidden">
+          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Top counterparties by exposure</h2></div>
+          <div class="max-h-[560px] overflow-y-auto scroll-thin">${expoHtml||'<div class="px-5 py-8 text-center text-xs text-ink/45">No active counterparties yet.</div>'}</div>
         </section>
       </div>
 
-      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-        <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
-          <span class="text-gold-500">${icon('shield')}</span>
-          <h2 class="font-display font-600 text-brand-900">Findings across the book</h2>
-          <span class="ml-auto text-[11px] text-brand-800/40">grouped by pattern \u00b7 exposure = combined value of affected contracts</span>
-        </div>
-        ${aggHtml}
-      </section>
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <section class="bg-white rounded-2xl border border-line overflow-hidden">
+          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Exposure by value stream</h2></div>
+          <div class="py-1">${streamHtml}</div>
+        </section>
+        <section class="bg-white rounded-2xl border border-line overflow-hidden">
+          <div class="px-5 py-4 border-b border-brand-100/50"><h2 class="font-display font-600 text-ink">Risk distribution</h2></div>
+          <div class="py-1">${riskRows}</div>
+        </section>
+      </div>
     </div>
   </div>
 
@@ -2488,13 +2444,10 @@ function renderIntel(){
     <div id="party-modal" class="w-full max-w-2xl"></div>
   </div>`;
 
-  wireOpens();
-  document.getElementById('scan-all').addEventListener('click',()=>{
-    intelUI.scanning=true; renderIntel();
-    setTimeout(()=>{ scanPortfolio(); intelUI.scanning=false; renderIntel();
-      toast('Portfolio scan complete \u2014 '+state.contracts.flatMap(c=>openFindings(c)).length+' open findings across the book'); }, 1300);
-  });
+  document.querySelector('[data-back]')?.addEventListener('click',()=>setView('dashboard'));
+  document.getElementById('intel-ai').addEventListener('click',()=>openAI('What are the biggest risks and concentrations in the portfolio?'));
   document.querySelectorAll('[data-party]').forEach(b=>b.addEventListener('click',()=>openPartyModal(b.getAttribute('data-party'))));
+  document.querySelectorAll('[data-folder]').forEach(b=>b.addEventListener('click',()=>{ regState().type=b.getAttribute('data-folder'); regState().stage='all'; regState().sel={}; setView('register'); }));
   document.getElementById('party-scrim').addEventListener('click',e=>{ if(e.target.id==='party-scrim') closePartyModal(); });
   setActiveNav('intel');
 }
@@ -3061,20 +3014,23 @@ document.addEventListener('keydown',e=>{
    ============================================================ */
 function renderTeam(){
   const me=currentUser(), o=getOrg();
-  const roleChip=r=>({admin:'bg-brand-900 text-white',legal:'bg-brand-50 text-brand-700 border border-brand-200',viewer:'bg-slate-100 text-slate-600 border border-slate-200'}[r]||'');
+  const roleChip=r=>({admin:'bg-ink text-white',legal:'bg-brand-50 text-brand-700',viewer:'bg-gold-500/15 text-gold-600'}[r]||'');
+  const statusChipT=s=>s==='invited'?'bg-gold-500/15 text-gold-600':'bg-brand-50 text-brand-700';
   const rows=getUsers().map(x=>`
-    <div class="flex items-center gap-3 px-5 py-3 border-b border-brand-100/50 last:border-0">
-      <div class="h-8 w-8 rounded-full bg-brand-100 text-brand-700 grid place-items-center text-[10px] font-semibold shrink-0">${x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
+    <div class="flex items-center gap-3 px-5 py-3.5 border-b border-brand-100/40 last:border-0">
+      <div class="h-9 w-9 rounded-full bg-brand-100 text-brand-700 grid place-items-center text-[11px] font-semibold font-mono shrink-0">${x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase()}</div>
       <div class="min-w-0 flex-1">
-        <div class="text-sm font-medium text-brand-900">${x.name}${x.id===me.id?' <span class="text-[10px] text-brand-800/40">(you)</span>':''}</div>
-        <div class="text-[11px] font-mono text-brand-800/45">${x.email}</div>
+        <div class="text-sm font-600 text-ink">${x.name}${x.id===me.id?' <span class="text-[11px] font-normal text-ink/40">(you)</span>':''}</div>
+        <div class="text-[11px] font-mono text-ink/45 truncate">${x.email}</div>
       </div>
+      <span class="text-[11px] px-2.5 py-1 rounded-full font-600 ${roleChip(x.role)}">${ROLE_LABEL[x.role]}</span>
+      <span class="hidden sm:inline text-[11px] px-2.5 py-1 rounded-full font-600 ${statusChipT(x.status)}">${x.status==='invited'?'Invited':'Active'}</span>
       ${isAdmin()&&x.id!==me.id?`
-        <select data-role-for="${x.id}" class="text-xs rounded-lg border border-brand-100 bg-white px-2 py-1.5 outline-none focus:border-brand-400">
+        <select data-role-for="${x.id}" title="Change role" class="text-xs rounded-lg border border-inputln bg-white px-2 py-1.5 outline-none focus:border-brand-500">
           ${['admin','legal','viewer'].map(r=>`<option value="${r}" ${x.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join('')}
         </select>
         <button data-remove-user="${x.id}" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium transition">Remove</button>`
-      :`<span class="text-[10px] px-2 py-1 rounded-full font-medium ${roleChip(x.role)}">${ROLE_LABEL[x.role]}</span>`}
+      :`<span class="w-[52px]"></span>`}
     </div>`).join('');
 
   document.getElementById('content').innerHTML=`
@@ -3085,13 +3041,24 @@ function renderTeam(){
         <p class="text-xs text-brand-800/50">${o.name} · workspace created ${fmtDT(o.createdAt)}</p>
       </div>
     </header>
-    <div class="px-8 py-6 max-w-[760px] space-y-6">
+    <div class="px-8 py-6 max-w-[900px] space-y-5">
 
-      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-        <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/60">
+      <section class="bg-white rounded-2xl border border-line p-5 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="h-14 w-14 rounded-2xl bg-ink grid place-items-center text-gold-400 shrink-0">${icon('building','w-6 h-6')}</div>
+          <div class="min-w-0">
+            <div class="font-display font-700 text-lg text-ink truncate">${o.name}</div>
+            <div class="text-xs text-ink/50 font-mono">Business plan · Nairobi, Kenya · ${getUsers().length} member${getUsers().length===1?'':'s'}</div>
+          </div>
+        </div>
+        <button id="org-export" class="flex items-center gap-1.5 rounded-xl border border-inputln text-brand-700 px-4 py-2.5 text-sm font-medium hover:bg-brand-50 transition shrink-0">${icon('download','w-4 h-4')} Export backup</button>
+      </section>
+
+      <section class="bg-white rounded-2xl border border-line overflow-hidden">
+        <div class="flex items-center gap-2 px-5 py-4 border-b border-brand-100/50">
           <span class="text-brand-500">${icon('users')}</span>
-          <h2 class="font-display font-600 text-brand-900">Team</h2>
-          <span class="ml-auto text-[11px] font-mono text-brand-800/40">${getUsers().length} member${getUsers().length===1?'':'s'}</span>
+          <h2 class="font-display font-600 text-ink">Members &amp; roles</h2>
+          <span class="ml-auto text-[11px] font-mono text-ink/40">${getUsers().length} member${getUsers().length===1?'':'s'}</span>
         </div>
         ${rows}
         ${isAdmin()?`
@@ -3111,9 +3078,9 @@ function renderTeam(){
         </div>`:''}
       </section>
 
-      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
-        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('check2')}</span>
-          <h2 class="font-display font-600 text-brand-900">Approval policy</h2></div>
+      <section class="bg-white rounded-2xl border border-line p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
+          <h2 class="font-display font-600 text-ink">Approval gate</h2></div>
         <p class="text-xs text-brand-800/55 mb-3">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
         ${(()=>{ const cfg=getApprovalCfg(); return `
         <div class="grid sm:grid-cols-2 gap-3">
@@ -3129,9 +3096,18 @@ function renderTeam(){
           :`<p class="mt-2 text-[11px] text-brand-800/45">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
       </section>
 
-      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+      <section class="bg-white rounded-2xl border border-line p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('calendar','w-[18px] h-[18px]')}</span>
+          <h2 class="font-display font-600 text-ink">Renewal reminders</h2></div>
+        <p class="text-xs text-ink/55 mb-3">Email the contract owner ahead of every executed contract’s expiry.</p>
+        <div class="flex flex-wrap gap-2">
+          ${[90,60,30].map(d=>`<span class="rounded-full bg-ink text-white px-4 py-2 text-xs font-600">${d} days</span>`).join('')}
+        </div>
+      </section>
+
+      <section class="bg-white rounded-2xl border border-line p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
-          <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
+          <h2 class="font-display font-600 text-ink">Data &amp; backup</h2></div>
         <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
@@ -3176,6 +3152,7 @@ function renderTeam(){
     });
   }
 
+  document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
     const pass=document.getElementById('tm-pass').value;
@@ -3297,13 +3274,10 @@ function regRowsHtml(cs){
     <tr data-open="${c.id}" class="group border-b border-brand-100/50 last:border-0 hover:bg-brand-50/40 transition cursor-pointer">
       <td class="pl-4 pr-1 py-3 w-8" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></td>
       <td class="px-2 py-3">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}">${icon(cIcon(c))}</span>
-          <span class="min-w-0"><span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}</span></span>
-        </div>
+        <div class="min-w-0"><span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}</span></div>
       </td>
-      <td class="px-2 py-3 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-xs text-brand-800/70">${icon(cIcon(c),'w-3.5 h-3.5')}${cKind(c)}</span></td>
-      <td class="px-2 py-3 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-700 text-[9px] font-semibold text-brand-100" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
+      <td class="px-2 py-3 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-xs text-brand-800/70">${icon(cIcon(c),'w-3.5 h-3.5 text-brand-500')}${cKind(c)}</span></td>
+      <td class="px-2 py-3 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700 font-mono" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
       <td class="px-2 py-3 text-right whitespace-nowrap text-xs font-mono ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
       <td class="px-2 py-3 hidden sm:table-cell whitespace-nowrap text-[11px] font-mono text-brand-800/45">${c.lastAction||'—'}</td>
       <td class="px-2 pr-4 py-3 text-right">${statusChip(c.status)}</td>
@@ -3394,7 +3368,7 @@ function renderRegister(){
         <div class="overflow-x-auto scroll-thin">
           <table class="w-full text-left">
             <thead>
-              <tr class="border-b border-brand-100 bg-canvas/50 text-[10px] uppercase tracking-wider text-brand-800/45">
+              <tr class="border-b border-hair bg-brand-50 text-[10px] uppercase tracking-wider text-brand-800/45">
                 <th class="pl-4 pr-1 py-2.5 w-8"><input id="reg-selall" type="checkbox" class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></th>
                 <th class="px-2 py-2.5 font-semibold">Contract</th>
                 <th class="px-2 py-2.5 font-semibold hidden md:table-cell">Type</th>
@@ -3491,8 +3465,8 @@ function renderPipeline(){
     <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
       <div class="px-8 py-4 flex items-center justify-between gap-4">
         <div>
-          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Pipeline</h1>
-          <p class="text-xs text-brand-800/50 font-mono">${total.toLocaleString('en-KE')} contracts · ${canEdit()?'drag a card between stages to advance it':'read-only — you have viewer access'}</p>
+          <h1 class="font-display font-700 text-[21px] tracking-tight text-ink">My Queue</h1>
+          <p class="text-xs text-ink/50 font-mono">${total.toLocaleString('en-KE')} contracts · ${canEdit()?'drag a card between stages to advance them':'read-only — you have viewer access'}</p>
         </div>
       </div>
     </header>
@@ -3583,28 +3557,8 @@ function createFromTemplate(tid){
   renderSideFolders();
 }
 
-/* sidebar: folders + templates */
-function renderSideFolders(){
-  document.getElementById('side-folders').innerHTML=Object.values(FOLDERS).map(f=>`
-    <button data-side-folder="${f.id}" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition">
-      <span class="text-brand-300">${icon('folder')}</span>
-      <span class="truncate flex-1">${f.name}</span>
-      <span class="text-[10px] font-mono text-brand-300/70">${folderContracts(f.id).length}</span>
-    </button>`).join('');
-  document.querySelectorAll('[data-side-folder]').forEach(b=>b.addEventListener('click',()=>openFolder(b.getAttribute('data-side-folder'))));
-}
-renderSideFolders();
-document.getElementById('side-templates').innerHTML=Object.values(TEMPLATES).map(t=>`
-  <button data-new-side="${t.id}" class="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition">
-    <span class="text-gold-400">${icon(t.ic)}</span>
-    <span class="truncate">${t.kind}</span>
-  </button>`).join('') + `
-  <button id="side-upload" class="w-full text-left flex items-center gap-3 px-3 py-2 mt-1 rounded-lg text-sm text-brand-100/70 hover:text-white hover:bg-white/5 transition border-t border-white/10 pt-2.5">
-    <span class="text-gold-400">${icon('upload')}</span>
-    <span class="truncate">Upload received contract</span>
-  </button>`;
-document.querySelectorAll('[data-new-side]').forEach(b=>b.addEventListener('click',()=>createFromTemplate(b.getAttribute('data-new-side'))));
-document.getElementById('side-upload').addEventListener('click',openUploadModal);
+// (folders + quick-create live in the Register chips and the New-contract
+//  menu now; the old dark-sidebar population has been removed.)
 
 document.getElementById('nav').addEventListener('click',e=>{
   const btn=e.target.closest('[data-view]');
