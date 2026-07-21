@@ -43,6 +43,7 @@ The demo data is organised into six value-stream folders, each with genuine cont
 
 | Area | What you get |
 |---|---|
+| **Interface** | Warm HaTi design system (DM Sans, green-and-gold palette) across four primary views: **Home** (portfolio dashboard — KPIs, stage breakdown, attention snapshot and the contracts that need you), **Register** (global table with search, stage/type filters, sort and bulk CSV export), **Pipeline** (Kanban board — drag contracts between lifecycle stages, with guard rails so signing still runs through the workspace) and **Portfolio Intelligence** (relationship map, risk quadrant and expiry radar) |
 | **Workspace & auth** | Single-organization workspace; in server mode: real server-side sessions (httpOnly cookies) and scrypt password hashes; roles: Admin / Legal / Viewer (viewers are read-only, enforced on the server too) |
 | **Central storage** | In server mode the whole team shares one SQLite-backed workspace across devices; in static mode data lives in the browser with JSON backup export/restore |
 | **Contract workspace** | Live editable contract documents from the built-in Kenyan templates, with status flow Draft → Under Review → Signed/Declined |
