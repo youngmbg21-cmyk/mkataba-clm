@@ -8,7 +8,29 @@ const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const zlib = require('zlib');
 const { DatabaseSync } = require('node:sqlite');
+
+// E8-T4: minimal ZIP writer (deflate) using only built-ins — no new deps.
+const CRC_TABLE = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) { // files: [{name, data:Buffer}]
+  const chunks = [], central = []; let offset = 0;
+  const u16 = n => { const b = Buffer.alloc(2); b.writeUInt16LE(n >>> 0); return b; };
+  const u32 = n => { const b = Buffer.alloc(4); b.writeUInt32LE(n >>> 0); return b; };
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8');
+    const comp = zlib.deflateRawSync(f.data);
+    const crc = crc32(f.data);
+    const local = Buffer.concat([u32(0x04034b50), u16(20), u16(0), u16(8), u16(0), u16(0), u32(crc), u32(comp.length), u32(f.data.length), u16(name.length), u16(0), name, comp]);
+    chunks.push(local);
+    central.push(Buffer.concat([u32(0x02014b50), u16(20), u16(20), u16(0), u16(8), u16(0), u16(0), u32(crc), u32(comp.length), u32(f.data.length), u16(name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(offset), name]));
+    offset += local.length;
+  }
+  const cd = Buffer.concat(central);
+  const end = Buffer.concat([u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cd.length), u32(offset), u16(0)]);
+  return Buffer.concat([...chunks, cd, end]);
+}
 
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.HATI_DATA || path.join(__dirname, 'data');
@@ -144,10 +166,61 @@ function migrateBlobIfNeeded() {
 migrateBlobIfNeeded();
 backfillFts();
 
+// E8-T3/T5: additive column migrations (SQLite has no ADD COLUMN IF NOT EXISTS).
+function addColumnIfMissing(table, col, decl) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(c => c.name);
+  if (!cols.includes(col)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${decl}`);
+}
+addColumnIfMissing('sessions', 'expires_at', 'TEXT');
+addColumnIfMissing('sessions', 'last_seen', 'TEXT');
+addColumnIfMissing('sessions', 'ip', 'TEXT');
+addColumnIfMissing('sessions', 'ua', 'TEXT');
+// E8-T5 multi-tenancy groundwork: a workspace/org id on the scoped tables.
+// Single-tenant today (one org in settings) so every row shares WORKSPACE_ID;
+// the column is here so future per-tenant scoping is an additive change.
+const WORKSPACE_ID = 'ws_default';
+addColumnIfMissing('contracts', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
+addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
+
 const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
+
+// E8-T2: hand-rolled security headers (no new deps). Secure cookies + HSTS
+// only when told we're behind TLS (HTTPS=true or TRUST_PROXY set), so local
+// http development still works.
+const HTTPS_ON = () => process.env.HTTPS === 'true' || process.env.TRUST_PROXY === 'true';
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-XSS-Protection', '0');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  if (HTTPS_ON()) res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  next();
+});
 app.use(express.json({ limit: '15mb' }));
 const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
+
+// E8-T1: in-memory sliding-window rate limiter (no deps). Keyed by ip+bucket.
+const rlHits = new Map();
+function rateLimit(bucket, max, windowMs) {
+  return (req, res, next) => {
+    const key = bucket + ':' + (clientIp(req) || 'unknown');
+    const nowMs = Date.now();
+    const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
+    if (arr.length >= max) {
+      res.setHeader('Retry-After', Math.ceil(windowMs / 1000));
+      return res.status(429).json({ error: 'Too many attempts — please wait and try again' });
+    }
+    arr.push(nowMs); rlHits.set(key, arr);
+    next();
+  };
+}
+// periodic cleanup so the map cannot grow unbounded
+setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { const keep = arr.filter(t => nowMs - t < 3600000); if (keep.length) rlHits.set(k, keep); else rlHits.delete(k); } }, 600000).unref?.();
+const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000);   // 10 / 15 min per IP
+const rlOtp = rateLimit('otp', 8, 15 * 60 * 1000);
+const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
 const sha = s => crypto.createHash('sha256').update(String(s)).digest('hex');
 const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 
@@ -185,17 +258,33 @@ function readSession(req) {
   const s = db.prepare('SELECT * FROM sessions WHERE token=?').get(token);
   if (!s) return null;
   const u = db.prepare('SELECT * FROM users WHERE id=?').get(s.user_id);
-  return u ? { token, user: u } : null;
+  return u ? { token, user: u, session: s } : null;
+}
+// E8-T3: create a session with expiry + device info (used on login/setup).
+function createSession(res, req, userId) {
+  const token = rid();
+  const exp = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  db.prepare('INSERT INTO sessions (token,user_id,created_at,expires_at,last_seen,ip,ua) VALUES (?,?,?,?,?,?,?)')
+    .run(token, userId, now(), exp, now(), clientIp(req), String((req && req.get && req.get('user-agent')) || '').slice(0, 300));
+  setCookie(res, token);
+  return token;
 }
 function setCookie(res, token) {
-  res.setHeader('Set-Cookie', `${COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${60*60*24*30}; SameSite=Lax`);
+  res.setHeader('Set-Cookie', `${COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${60*60*24*30}; SameSite=Lax${HTTPS_ON() ? '; Secure' : ''}`);
 }
 function clearCookie(res) {
-  res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax`);
+  res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${HTTPS_ON() ? '; Secure' : ''}`);
 }
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;   // 30 days
 const auth = (req, res, next) => {
   const s = readSession(req);
   if (!s) return res.status(401).json({ error: 'Not signed in' });
+  // E8-T3: enforce absolute session expiry
+  if (s.session && s.session.expires_at && Date.parse(s.session.expires_at) < Date.now()) {
+    db.prepare('DELETE FROM sessions WHERE token=?').run(s.token); clearCookie(res);
+    return res.status(401).json({ error: 'Session expired — please sign in again' });
+  }
+  db.prepare('UPDATE sessions SET last_seen=? WHERE token=?').run(now(), s.token);
   req.user = s.user; req.token = s.token; next();
 };
 const editor = (req, res, next) => {
@@ -213,7 +302,7 @@ app.get('/api/status', (req, res) => {
   res.json({ mode: 'api', setup: !!org, orgName: org?.name || null, authed: !!readSession(req) });
 });
 
-app.post('/api/setup', (req, res) => {
+app.post('/api/setup', rlAuth, (req, res) => {
   if (getSetting('org')) return res.status(409).json({ error: 'Workspace already exists' });
   const { org, name, email, password, data } = req.body || {};
   if (!org || !name || !email) return res.status(400).json({ error: 'Organization, name and email are required' });
@@ -232,21 +321,36 @@ app.post('/api/setup', (req, res) => {
       seqCounter = seq;
     });
   }
-  const token = rid();
-  db.prepare('INSERT INTO sessions (token,user_id,created_at) VALUES (?,?,?)').run(token, u.id, now());
-  setCookie(res, token);
+  createSession(res, req, u.id);
   res.json({ ok: true, me: publicUser(u) });
 });
 
-app.post('/api/login', (req, res) => {
+app.post('/api/login', rlAuth, (req, res) => {
   const { email, password } = req.body || {};
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(String(email || '').toLowerCase());
   if (!u || !safeEq(hashPw(password || '', u.salt), u.hash))
     return res.status(401).json({ error: 'Email or password is incorrect' });
-  const token = rid();
-  db.prepare('INSERT INTO sessions (token,user_id,created_at) VALUES (?,?,?)').run(token, u.id, now());
-  setCookie(res, token);
+  // E8-T3: rotate — old sessions for this user on this device are not reused;
+  // a fresh token is minted with a new expiry.
+  createSession(res, req, u.id);
   res.json({ ok: true, me: publicUser(u) });
+});
+
+// E8-T3: active sessions list + revoke (the signed-in user's own sessions).
+app.get('/api/sessions', auth, (req, res) => {
+  const rows = db.prepare('SELECT token,created_at,last_seen,expires_at,ip,ua FROM sessions WHERE user_id=? ORDER BY last_seen DESC').all(req.user.id);
+  res.json({ sessions: rows.map(r => ({
+    id: r.token.slice(0, 8), current: r.token === req.token,
+    createdAt: r.created_at, lastSeen: r.last_seen, expiresAt: r.expires_at,
+    ip: r.ip || null, ua: r.ua || null })) });
+});
+app.delete('/api/sessions/:id', auth, (req, res) => {
+  // match by the short id prefix shown to the user, scoped to their own sessions
+  const rows = db.prepare('SELECT token FROM sessions WHERE user_id=?').all(req.user.id);
+  const hit = rows.find(r => r.token.slice(0, 8) === req.params.id);
+  if (!hit) return res.status(404).json({ error: 'Session not found' });
+  db.prepare('DELETE FROM sessions WHERE token=?').run(hit.token);
+  res.json({ ok: true, wasCurrent: hit.token === req.token });
 });
 
 app.post('/api/logout', auth, (req, res) => {
@@ -655,6 +759,31 @@ app.post('/api/ai/playbook', auth, async (req, res) => {
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
+// E8-T4: full workspace export as a zip (contracts incl. versions/audit,
+// uploaded files, settings, users without password hashes). Restore is
+// documented in DEPLOYMENT.md.
+app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
+  const org = getSetting('org');
+  const contracts = db.prepare('SELECT json FROM contracts ORDER BY seq').all().map(r => JSON.parse(r.json));
+  const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
+  const settings = getSetting('appSettings') || {};
+  const files = [
+    { name: 'workspace.json', data: Buffer.from(JSON.stringify({ kind: 'hati-workspace-export', v: 1, exportedAt: now(), org, settings, userCount: users.length, contractCount: contracts.length }, null, 2)) },
+    { name: 'contracts.json', data: Buffer.from(JSON.stringify(contracts, null, 2)) },
+    { name: 'users.json', data: Buffer.from(JSON.stringify(users, null, 2)) },
+  ];
+  // uploaded file bytes (the files table stores a data: URL in `data`)
+  const fileRows = db.prepare('SELECT id, name, data FROM files').all();
+  for (const fr of fileRows) {
+    const m = String(fr.data || '').match(/^data:([^;]*);base64,(.*)$/);
+    if (m) files.push({ name: 'files/' + fr.id + '__' + String(fr.name || 'file').replace(/[^\w.\-]/g, '_'), data: Buffer.from(m[2], 'base64') });
+  }
+  const zip = makeZip(files);
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="hati-workspace-${new Date().toISOString().slice(0, 10)}.zip"`);
+  res.send(zip);
+});
+
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
 app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
@@ -746,7 +875,7 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
 });
 
 // Counterparty signing is verified by an email one-time code.
-app.post('/api/shares/:token/otp', (req, res) => {           // public: request a code
+app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request a code
   const s = db.prepare('SELECT token FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   const email = String((req.body || {}).email || '').toLowerCase();
@@ -758,7 +887,7 @@ app.post('/api/shares/:token/otp', (req, res) => {           // public: request 
   sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
   res.json({ ok: true, emailSent: EMAIL_ON(), devCode: EMAIL_ON() ? undefined : code });
 });
-app.post('/api/shares/:token/verify-otp', (req, res) => {    // public: verify the code
+app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { email, code } = req.body || {};
   if (!row || row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
@@ -769,7 +898,7 @@ app.post('/api/shares/:token/verify-otp', (req, res) => {    // public: verify t
   res.json({ ok: true, verify });
 });
 
-app.post('/api/shares/:token/respond', (req, res) => {       // public: counterparty responds
+app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT token, response FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
@@ -787,7 +916,7 @@ app.post('/api/shares/:token/respond', (req, res) => {       // public: counterp
 });
 
 /* ---------- password reset ---------- */
-app.post('/api/password/reset-request', (req, res) => {
+app.post('/api/password/reset-request', rlAuth, (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase();
   const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
   let devToken;
