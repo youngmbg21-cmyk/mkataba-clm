@@ -7,30 +7,6 @@ window.FIRST_PARTY = 'Highland Corporate Ltd'; // replaced by the workspace org 
 window.PORTAL_MODE = false;                     // true when rendering the counterparty share portal
 
 Object.assign(window,{FIRST_PARTY,PORTAL_MODE});
-/* Folders follow the FMCG value stream, from raw materials to market. */
-const FOLDERS = {
-  proc:  { id:'proc',  name:'Procurement & Raw Materials', ic:'leaf',      desc:'Ingredient, commodity and packaging supply into the plants.' },
-  mfg:   { id:'mfg',   name:'Manufacturing & Production',  ic:'factory',   desc:'Co-packing, tolling and plant equipment agreements.' },
-  dist:  { id:'dist',  name:'Warehousing & Distribution',  ic:'truck',     desc:'3PL warehousing, cold chain and primary distribution.' },
-  sales: { id:'sales', name:'Sales & Route-to-Market',     ic:'store',     desc:'Distributor, modern-trade and e-commerce supply deals.' },
-  mktg:  { id:'mktg',  name:'Marketing & Brand',           ic:'megaphone', desc:'Agency, media, activation and sponsorship contracts.' },
-  corp:  { id:'corp',  name:'Corporate & Compliance',      ic:'briefcase', desc:'NDAs, leases, audit, legal and IT / professional services.' },
-};
-const TEMPLATES = {
-  RM:{ id:'RM', name:'Raw Material Supply Agreement', kind:'Raw Material Supply', ic:'leaf', folder:'proc', valueType:'estimated', blurb:'Commodity & ingredient supply into the plants.' },
-  PK:{ id:'PK', name:'Packaging Supply Agreement', kind:'Packaging Supply', ic:'box', folder:'proc', valueType:'estimated', blurb:'Bottles, cartons, films and labels.' },
-  CM:{ id:'CM', name:'Contract Manufacturing (Co-Packing)', kind:'Contract Manufacturing', ic:'factory', folder:'mfg', valueType:'estimated', blurb:'Outsourced production & tolling.' },
-  EQ:{ id:'EQ', name:'Equipment Lease & Maintenance', kind:'Equipment Lease', ic:'wrench', folder:'mfg', valueType:'fixed', blurb:'Plant machinery lease and servicing.' },
-  WH:{ id:'WH', name:'Warehousing & Cold-Chain Agreement', kind:'Warehousing', ic:'box', folder:'dist', valueType:'fixed', blurb:'3PL storage and temperature-controlled space.' },
-  FF:{ id:'FF', name:'Freight & Distribution Agreement', kind:'Distribution Logistics', ic:'truck', folder:'dist', valueType:'estimated', blurb:'Primary and last-mile distribution.' },
-  DA:{ id:'DA', name:'Distributor Agreement', kind:'Distributor', ic:'cart', folder:'sales', valueType:'estimated', blurb:'Regional route-to-market distributor terms.' },
-  RL:{ id:'RL', name:'Retail Listing & Supply Agreement', kind:'Retail Listing', ic:'store', folder:'sales', valueType:'estimated', blurb:'Modern-trade supermarket listing & supply.' },
-  MK:{ id:'MK', name:'Marketing & Trade Promotion Services', kind:'Marketing Services', ic:'megaphone', folder:'mktg', valueType:'fixed', blurb:'Agency, media and activation services.' },
-  ND:{ id:'ND', name:'Mutual Non-Disclosure Agreement', kind:'NDA', ic:'shield', folder:'corp', valueType:'none', blurb:'Confidentiality for NPD & vendor onboarding.' },
-  LE:{ id:'LE', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'corp', valueType:'fixed', blurb:'Office, depot and premises leases.' },
-  PS:{ id:'PS', name:'Professional Services Agreement', kind:'Professional Services', ic:'briefcase', folder:'corp', valueType:'fixed', blurb:'Audit, legal and advisory retainers.' },
-};
-Object.assign(window,{FOLDERS,TEMPLATES});
 
 window.uid = 100;
 const nextId = () => 'MK-' + (++uid);
@@ -156,38 +132,6 @@ const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
    it falls back to this browser's localStorage. */
 window.REMOTE=null; // {org, me, users} when a HaTi server is present
 Object.assign(window,{LS,REMOTE,lsGet,lsSet});
-const API_MODE=()=>!!REMOTE;
-async function api(path, method='GET', body){
-  const res=await fetch('api/'+path,{ method,
-    headers:body?{'Content-Type':'application/json'}:undefined,
-    body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
-  let data=null; try{ data=await res.json(); }catch(e){}
-  if(!res.ok) throw new Error(data?.error||('Request failed ('+res.status+')'));
-  return data;
-}
-async function loadBootstrap(){
-  const b=await api('bootstrap');
-  REMOTE={ org:b.org, me:b.me, users:b.users };
-  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
-  // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
-  // on open. Capped so a very large portfolio can't blow up the initial load.
-  state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
-  while(offset<total && state.contracts.length<5000){
-    const pg=await api('contracts?limit='+limit+'&offset='+offset);
-    total=pg.total;
-    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; state.contracts.push(c); });
-    if(!pg.rows.length) break;
-    offset+=pg.rows.length;
-  }
-  state.truncated = total>state.contracts.length;
-  // screen position is per-device, not shared with teammates
-  const ui=lsGet(LS.ui)||{};
-  state.view=ui.view||'dashboard';
-  state.activeId=(ui.activeId&&state.contracts.some(c=>c.id===ui.activeId))?ui.activeId:null;
-  state.folderId=ui.folderId||null;
-  if(state.view==='workspace'&&!state.activeId) state.view='dashboard';
-}
-Object.assign(window,{API_MODE,api,loadBootstrap});
 
 const nowISO = () => new Date().toISOString();
 const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'});
