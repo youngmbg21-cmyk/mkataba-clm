@@ -1326,10 +1326,10 @@ function renderDashboard(){
     {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A', num:'#C0392B', go:{stage:'all'}},
   ];
   const kpiHtml = kpis.map((k,i)=>`
-    <button data-kpi="${i}" class="text-left bg-white rounded-2xl elev-2 lift px-5 py-5" style="animation:rowIn .45s var(--ease) both;animation-delay:${i*45}ms">
-      <span class="h-[40px] w-[40px] grid place-items-center rounded-xl mb-3.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[19px] h-[19px]')}</span>
-      <div class="font-display font-800 text-[31px] tracking-[-0.035em] leading-none tnum" style="color:${k.num}">${k.val}</div>
-      <div class="text-[12px] font-500 text-ink/70 mt-2.5">${k.label}</div>
+    <button data-kpi="${i}" class="text-left bg-white rounded-2xl elev-2 lift px-4 py-3.5" style="animation:rowIn .45s var(--ease) both;animation-delay:${i*45}ms">
+      <span class="h-[32px] w-[32px] grid place-items-center rounded-lg mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-[15px] h-[15px]')}</span>
+      <div class="font-display font-800 text-[25px] tracking-[-0.035em] leading-none tnum" style="color:${k.num}">${k.val}</div>
+      <div class="text-[11px] font-500 text-ink/70 mt-2">${k.label}</div>
     </button>`).join('');
 
   // segmented stage bar
