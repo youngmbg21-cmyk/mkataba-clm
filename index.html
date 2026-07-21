@@ -132,7 +132,11 @@
     <nav class="px-3 py-4 flex-1 overflow-y-auto scroll-thin" id="nav">
       <button data-view="dashboard" class="nav-item active w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative">
         <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="grid"></span> Dashboard
+        <span data-ic="grid"></span> Home
+      </button>
+      <button data-view="register" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="file"></span> Contract Register
       </button>
       <button data-view="intel" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
         <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
@@ -1351,7 +1355,7 @@ function renderDashboard(){
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center justify-between mb-3">
           <h2 class="font-display font-600 text-brand-900">Portfolio by stage</h2>
-          <button data-view-intel class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">Open Portfolio Intelligence →</button>
+          <button data-open-register class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">Open full register →</button>
         </div>
         <div class="flex w-full overflow-hidden rounded-full mb-4 bg-brand-100/40">${segBar}</div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">${stageCards}</div>
@@ -1374,7 +1378,8 @@ function renderDashboard(){
   </div>`;
 
   wireOpens();
-  document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
+  document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-stage'); regState().type='all'; regState().sel={}; setView('register'); }));
+  document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ regState().stage='all'; regState().sel={}; setView('register'); }));
   document.querySelectorAll('[data-view-intel]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
   const nb=document.getElementById('new-contract-btn'), nm=document.getElementById('new-menu');
@@ -3236,6 +3241,186 @@ function renderTeam(){
   setActiveNav('team');
 }
 
+/* ============================================================
+   VIEW: REGISTER (global filterable / sortable table + bulk select)
+   Client-side over the loaded working set, consistent with the folder
+   view. Filters: search, lifecycle stage, contract type (folder), sort.
+   ============================================================ */
+const REG_PAGE=40;
+const REG_STAGES=[
+  {k:'all',label:'All stages'},
+  {k:'Draft',label:'Drafting'},
+  {k:'Under Review',label:'In Review'},
+  {k:'Signed',label:'Executed'},
+  {k:'Declined',label:'Closed'},
+];
+const REG_TYPES=[
+  {k:'all',label:'All types'},
+  {k:'proc',label:'Procurement'},
+  {k:'mfg',label:'Manufacturing'},
+  {k:'dist',label:'Distribution'},
+  {k:'sales',label:'Sales'},
+  {k:'mktg',label:'Marketing'},
+  {k:'corp',label:'Corporate'},
+];
+const REG_SORTS=[
+  {k:'updated',label:'Recently updated'},
+  {k:'value',label:'Value (high → low)'},
+  {k:'expiry',label:'Expiring soonest'},
+  {k:'name',label:'Name (A → Z)'},
+];
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',shown:REG_PAGE,sel:{}}; return state.reg; }
+function regFiltered(){
+  const R=regState(); let cs=state.contracts.slice();
+  if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
+  if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
+  const q=R.query.trim().toLowerCase();
+  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
+  if(R.sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
+  else if(R.sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  else if(R.sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(R.sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
+  return cs;
+}
+function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function regRowsHtml(cs){
+  const R=regState();
+  if(!cs.length) return `<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-brand-800/50">No contracts match the current filters.</td></tr>`;
+  const shown=Math.min(cs.length, R.shown||REG_PAGE);
+  const ini=regOwnerInitials();
+  return cs.slice(0,shown).map(c=>`
+    <tr data-open="${c.id}" class="group border-b border-brand-100/50 last:border-0 hover:bg-brand-50/40 transition cursor-pointer">
+      <td class="pl-4 pr-1 py-3 w-8" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></td>
+      <td class="px-2 py-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}">${icon(cIcon(c))}</span>
+          <span class="min-w-0"><span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}</span></span>
+        </div>
+      </td>
+      <td class="px-2 py-3 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-xs text-brand-800/70">${icon(cIcon(c),'w-3.5 h-3.5')}${cKind(c)}</span></td>
+      <td class="px-2 py-3 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-700 text-[9px] font-semibold text-brand-100" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
+      <td class="px-2 py-3 text-right whitespace-nowrap text-xs font-mono ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td class="px-2 py-3 hidden sm:table-cell whitespace-nowrap text-[11px] font-mono text-brand-800/45">${c.lastAction||'—'}</td>
+      <td class="px-2 pr-4 py-3 text-right">${statusChip(c.status)}</td>
+    </tr>`).join('') + (cs.length>shown
+      ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3 text-xs font-medium text-brand-600 hover:bg-brand-50 border-t border-brand-100/60 transition">Show more — ${cs.length-shown} of ${cs.length} remaining</button></td></tr>`
+      : '');
+}
+function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
+function renderRegisterBody(){
+  const cs=regFiltered();
+  const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
+  const cnt=document.getElementById('reg-count'); if(cnt) cnt.textContent=cs.length.toLocaleString('en-KE');
+  renderRegSelBar();
+}
+function renderRegSelBar(){
+  const bar=document.getElementById('reg-selbar'); if(!bar) return; const n=regSelCount();
+  bar.classList.toggle('hidden',n===0);
+  const lbl=document.getElementById('reg-sel-count'); if(lbl) lbl.textContent=n+' selected';
+}
+function wireRegRows(){
+  document.querySelectorAll('#reg-tbody [data-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-open'))));
+  document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
+  document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
+}
+function regExportSelectedCsv(){
+  const R=regState(); const ids=Object.keys(R.sel).filter(k=>R.sel[k]);
+  const rows=state.contracts.filter(c=>ids.includes(c.id));
+  if(!rows.length){ toast('Nothing selected','err'); return; }
+  const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const head=['ID','Name','Counterparty','Type','Folder','Value (KES)','Status','Last action','Expiry'];
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',isMonetary(c)?(c.value||0):'',statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const csv=[head.map(esc).join(','),...body].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='hati-register-selection.csv'; a.click(); URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
+}
+function renderRegister(){
+  const R=regState(); R.shown=REG_PAGE;
+  const cs=regFiltered();
+  const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
+  const chip=(active)=>active
+    ? 'inline-flex items-center rounded-full bg-brand-900 text-white border border-brand-900 px-3 py-1.5 text-xs font-medium transition'
+    : 'inline-flex items-center rounded-full bg-white text-brand-800/70 border border-brand-100 px-3 py-1.5 text-xs font-medium hover:border-brand-300 transition';
+  const stageChips=REG_STAGES.map(s=>`<button data-reg-stage="${s.k}" class="${chip(R.stage===s.k)}">${s.label}</button>`).join('');
+  const typeChips=REG_TYPES.map(t=>`<button data-reg-type="${t.k}" class="${chip(R.type===t.k)}">${t.label}</button>`).join('');
+  const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Contract Register</h1>
+          <p class="text-xs text-brand-800/50 font-mono"><span id="reg-count">${cs.length.toLocaleString('en-KE')}</span> of ${Number(countAll).toLocaleString('en-KE')} contracts · filter, sort and act in bulk</p>
+        </div>
+        <button id="reg-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-64 hover:border-brand-300 transition text-left">
+          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI about the register…</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 max-w-[1320px] space-y-4">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative flex-1 min-w-[220px] max-w-md">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-brand-300">${icon('search','w-4 h-4')}</span>
+            <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Filter by name, party or ID…" class="w-full rounded-xl border border-brand-100 bg-white pl-9 pr-3 py-2.5 text-sm outline-none focus:border-brand-400 transition"/>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">${stageChips}</div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
+          <label class="flex items-center gap-2 text-xs text-brand-800/50">Sort
+            <select id="reg-sort" class="rounded-xl border border-brand-100 bg-white px-3 py-2 text-xs text-brand-900 outline-none focus:border-brand-400">${sortOpts}</select>
+          </label>
+        </div>
+      </div>
+
+      <div id="reg-selbar" class="hidden flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-slate-50 px-4 py-2.5">
+        <span id="reg-sel-count" class="text-xs font-medium text-brand-900">0 selected</span>
+        <div class="flex items-center gap-2">
+          <button id="reg-export" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-brand-800 transition">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="reg-clear" class="rounded-lg border border-brand-100 bg-white px-3 py-1.5 text-xs font-medium text-brand-800/70 hover:border-brand-300 transition">Clear</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        <div class="overflow-x-auto scroll-thin">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="border-b border-brand-100 bg-canvas/50 text-[10px] uppercase tracking-wider text-brand-800/45">
+                <th class="pl-4 pr-1 py-2.5 w-8"><input id="reg-selall" type="checkbox" class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></th>
+                <th class="px-2 py-2.5 font-semibold">Contract</th>
+                <th class="px-2 py-2.5 font-semibold hidden md:table-cell">Type</th>
+                <th class="px-2 py-2.5 font-semibold hidden lg:table-cell">Owner</th>
+                <th class="px-2 py-2.5 font-semibold text-right">Value</th>
+                <th class="px-2 py-2.5 font-semibold hidden sm:table-cell">Updated</th>
+                <th class="px-2 pr-4 py-2.5 font-semibold text-right">Stage</th>
+              </tr>
+            </thead>
+            <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  wireRegRows();
+  renderRegSelBar();
+  const si=document.getElementById('reg-search');
+  si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.getElementById('reg-sort').addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
+  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
+  document.getElementById('reg-selall').addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
+  document.getElementById('reg-export').addEventListener('click',regExportSelectedCsv);
+  document.getElementById('reg-clear').addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
+  document.getElementById('reg-ai').addEventListener('click',()=>openAI());
+  setActiveNav('register');
+}
+
 /* ============================================================ NAV */
 function setActiveNav(view){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.getAttribute('data-view')===view));
@@ -3250,6 +3435,7 @@ function setView(view){
   if(view==='dashboard') renderDashboard();
   else if(view==='folder') renderFolder();
   else if(view==='intel') renderIntel();
+  else if(view==='register') renderRegister();
   else if(view==='team') renderTeam();
   else renderWorkspace();
   if(getOrg()&&!API_MODE()) persist();
