@@ -1342,6 +1342,17 @@ function renderDashboard(){
             <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
           </button>
           <div class="relative">
+            <button id="folders-btn" class="flex items-center gap-2 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm font-medium text-ink/70 hover:border-brand-300 transition">${icon('folder','w-4 h-4 text-brand-500')} Folders ${icon('chevD','w-3.5 h-3.5')}</button>
+            <div id="folders-menu" class="hidden absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40">
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-ink/45 font-semibold">Value streams</div>
+              ${Object.values(FOLDERS).map(f=>`<button data-open-folder="${f.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
+                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-600">${icon(f.ic,'w-4 h-4')}</span>
+                <span class="min-w-0 flex-1 text-xs font-medium text-ink truncate">${f.name}</span>
+                <span class="text-[11px] font-mono text-ink/40">${folderContracts(f.id).length}</span>
+              </button>`).join('')}
+            </div>
+          </div>
+          <div class="relative">
             <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
             <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
               <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/45 font-semibold">Generate from template</div>
@@ -1401,6 +1412,10 @@ function renderDashboard(){
   document.addEventListener('click',e=>{ if(nm && !nm.classList.contains('hidden') && !nm.contains(e.target) && e.target!==nb) nm.classList.add('hidden'); });
   document.getElementById('menu-upload').addEventListener('click',openUploadModal);
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
+  const fb=document.getElementById('folders-btn'), fm=document.getElementById('folders-menu');
+  fb.addEventListener('click',e=>{ e.stopPropagation(); fm.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ if(fm && !fm.classList.contains('hidden') && !fm.contains(e.target) && e.target!==fb) fm.classList.add('hidden'); });
+  document.querySelectorAll('[data-open-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-open-folder'))));
   setActiveNav('dashboard');
 }
 
