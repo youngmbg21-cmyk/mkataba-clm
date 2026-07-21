@@ -37,6 +37,13 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS resets (
     id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
   CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
+  CREATE TABLE IF NOT EXISTS contracts (
+    id TEXT PRIMARY KEY, json TEXT NOT NULL,
+    name TEXT, counterparty TEXT, folder TEXT, status TEXT, value REAL, expiry TEXT, is_upload INTEGER,
+    seq INTEGER, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_contracts_folder ON contracts(folder);
+  CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
+  CREATE INDEX IF NOT EXISTS idx_contracts_seq ON contracts(seq);
 `);
 
 const now = () => new Date().toISOString();
@@ -49,6 +56,52 @@ const setSetting = (k, v) => db.prepare('INSERT INTO settings (key,json) VALUES 
 const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at });
+
+/* ---------- per-contract storage (scales to large portfolios) ----------
+   Each contract is its own row with its own version. Lists return a light
+   summary (heavy fields stripped) so a client never has to load thousands of
+   full bodies; the full record loads on open, and a save touches one row. */
+const HEAVY = c => { // strip the big fields for list/index responses
+  const x = { ...c };
+  if (x.execution) x.execution = { ...x.execution, html: undefined };
+  if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
+  x.comments = undefined; x.audit = undefined;
+  x._light = true;
+  return x;
+};
+function upsertContract(c, version) {
+  const j = JSON.stringify(c);
+  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at)
+    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at)
+    ON CONFLICT(id) DO UPDATE SET json=excluded.json, name=excluded.name, counterparty=excluded.counterparty,
+      folder=excluded.folder, status=excluded.status, value=excluded.value, expiry=excluded.expiry,
+      is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at`).run({
+    id: c.id, json: j, name: c.name || '', counterparty: c.counterparty || '', folder: c.folder || '',
+    status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || null, is_upload: c.source === 'upload' ? 1 : 0,
+    seq: c._seq != null ? c._seq : nextSeq(), version, updated_at: now(),
+  });
+}
+function txn(fn) { db.exec('BEGIN'); try { fn(); db.exec('COMMIT'); } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} throw e; } }
+let seqCounter = null;
+function nextSeq() {
+  if (seqCounter == null) { const r = db.prepare('SELECT MAX(seq) m FROM contracts').get(); seqCounter = (r && r.m) || 0; }
+  return ++seqCounter;
+}
+// One-time migration: split a legacy single-blob workspace into per-contract rows.
+function migrateBlobIfNeeded() {
+  const have = db.prepare('SELECT COUNT(*) n FROM contracts').get().n;
+  const blob = getStore('data');
+  if (have === 0 && blob && Array.isArray(blob.contracts) && blob.contracts.length) {
+    let seq = 0;
+    txn(() => {
+      for (const c of blob.contracts) { c._seq = ++seq; upsertContract(c, 1); }
+      setSetting('uid', blob.uid || 100);
+      if (blob.settings) setSetting('appSettings', blob.settings);
+      seqCounter = seq;
+    });
+  }
+}
+migrateBlobIfNeeded();
 
 const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
@@ -129,7 +182,15 @@ app.post('/api/setup', (req, res) => {
   setSetting('org', { name: org, createdAt: now() });
   db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at) VALUES (?,?,?,?,?,?,?)')
     .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at);
-  if (data) setStore('data', data);
+  if (data && Array.isArray(data.contracts)) {   // seed per-contract
+    let seq = 0;
+    txn(() => {
+      for (const c of data.contracts) { c._seq = ++seq; upsertContract(c, 1); }
+      setSetting('uid', data.uid || 100);
+      if (data.settings) setSetting('appSettings', data.settings);
+      seqCounter = seq;
+    });
+  }
   const token = rid();
   db.prepare('INSERT INTO sessions (token,user_id,created_at) VALUES (?,?,?)').run(token, u.id, now());
   setCookie(res, token);
@@ -154,28 +215,80 @@ app.post('/api/logout', auth, (req, res) => {
 });
 
 /* ---------- bootstrap & contract data ---------- */
+// Bootstrap no longer ships every full contract — just the workspace shell.
+// The contract list loads separately (paginated / summary), full bodies on open.
 app.get('/api/bootstrap', auth, (req, res) => {
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
-    data: getStore('data'),
-    version: getSetting('dataVersion') || 0,
+    uid: getSetting('uid') || 100,
+    settings: getSetting('appSettings') || {},
+    count: db.prepare('SELECT COUNT(*) n FROM contracts').get().n,
   });
 });
 
-// Optimistic locking: reject a write based on a stale version so concurrent
-// edits can't silently clobber each other.
-app.put('/api/data', auth, editor, (req, res) => {
-  const d = req.body || {};
-  if (!Array.isArray(d.contracts)) return res.status(400).json({ error: 'contracts array required' });
-  const current = getSetting('dataVersion') || 0;
-  const base = Number(d.baseVersion || 0);
-  if (base !== current) return res.status(409).json({ error: 'Version conflict — data changed on the server', version: current });
-  const next = current + 1;
-  setStore('data', { uid: d.uid, contracts: d.contracts, settings: d.settings || {} });
-  setSetting('dataVersion', next);
+// Portfolio-wide aggregates computed in SQL — O(1) client cost at any scale.
+app.get('/api/stats', auth, (req, res) => {
+  const g = db.prepare(`SELECT
+      COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) totalValue,
+      SUM(status='Under Review') pending, SUM(status='Signed') signed,
+      SUM(status='Declined') declined, SUM(status='Draft') drafts, COUNT(*) total
+    FROM contracts`).get();
+  const byFolder = db.prepare(`SELECT folder, COUNT(*) n,
+      COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val,
+      SUM(status='Under Review') pending FROM contracts GROUP BY folder`).all();
+  res.json({ ...g, byFolder });
+});
+
+// Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
+app.get('/api/contracts', auth, (req, res) => {
+  const { folder, status, q } = req.query;
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
+  const offset = Math.max(0, Number(req.query.offset) || 0);
+  const where = [], args = {};
+  if (folder) { where.push('folder=@folder'); args.folder = folder; }
+  if (status) { where.push('status=@status'); args.status = status; }
+  if (q) { where.push('(lower(name) LIKE @q OR lower(counterparty) LIKE @q OR lower(id) LIKE @q)'); args.q = '%' + String(q).toLowerCase() + '%'; }
+  const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
+  const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
+  const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
+    .all({ ...args, limit, offset })
+    .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(c); });
+  res.json({ total, offset, limit, rows });
+});
+
+app.get('/api/contracts/:id', auth, (req, res) => {
+  const r = db.prepare('SELECT json, version FROM contracts WHERE id=?').get(req.params.id);
+  if (!r) return res.status(404).json({ error: 'Contract not found' });
+  const c = JSON.parse(r.json); c._v = r.version;
+  res.json(c);
+});
+
+// Save ONE contract with its own optimistic-lock version.
+app.put('/api/contracts/:id', auth, editor, (req, res) => {
+  const { contract, baseVersion } = req.body || {};
+  if (!contract || contract.id !== req.params.id) return res.status(400).json({ error: 'Contract id mismatch' });
+  const existing = db.prepare('SELECT version FROM contracts WHERE id=?').get(req.params.id);
+  const cur = existing ? existing.version : 0;
+  if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
+  const next = cur + 1;
+  const c = { ...contract }; delete c._v; delete c._light; delete c._loaded;
+  if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
+  else c._seq = nextSeq();
+  upsertContract(c, next);
+  if (req.body.uid) setSetting('uid', req.body.uid);
   res.json({ ok: true, version: next });
+});
+
+app.delete('/api/contracts/:id', auth, editor, (req, res) => {
+  db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
+  res.json({ ok: true });
+});
+
+app.put('/api/settings', auth, admin, (req, res) => {
+  setSetting('appSettings', req.body || {});
+  res.json({ ok: true });
 });
 
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
@@ -332,14 +445,13 @@ app.get('/api/outbox', auth, admin, (req, res) => {
 
 /* ---------- renewal reminders ---------- */
 function runReminders() {
-  const data = getStore('data');
-  if (!data || !Array.isArray(data.contracts)) return { checked: 0, queued: 0 };
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status FROM contracts WHERE expiry IS NOT NULL AND status!='Declined'").all();
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
   if (!admins.length) return { checked: 0, queued: 0 };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   let queued = 0;
-  for (const c of data.contracts) {
-    if (!c.expiry || c.status === 'Declined') continue;
+  for (const c of rows) {
+    if (!c.expiry) continue;
     const days = Math.ceil((new Date(c.expiry + 'T00:00:00') - today) / 86400000);
     const milestone = [90, 60, 30].find(m => days === m);
     if (milestone == null) continue;
@@ -351,7 +463,7 @@ function runReminders() {
     admins.forEach(a => sendEmail(a, subj, body, `renewal ${milestone}d: ${c.name}`));
     queued++;
   }
-  return { checked: data.contracts.length, queued };
+  return { checked: rows.length, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
 setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily

@@ -399,12 +399,18 @@ async function api(path, method='GET', body){
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
-  if(b.data && Array.isArray(b.data.contracts)){
-    uid=b.data.uid||uid;
-    state.contracts=b.data.contracts.map(migrateContract);
-    state.settings=b.data.settings||{};
-  } else { state.contracts=[]; state.settings={}; }
-  state.dataVersion = b.version||0;   // optimistic-locking baseline
+  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0;
+  // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
+  // on open. Capped so a very large portfolio can't blow up the initial load.
+  state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
+  while(offset<total && state.contracts.length<5000){
+    const pg=await api('contracts?limit='+limit+'&offset='+offset);
+    total=pg.total;
+    pg.rows.forEach(r=>{ const c=migrateContract(r); c._light=true; c._loaded=false; c._v=r._v; state.contracts.push(c); });
+    if(!pg.rows.length) break;
+    offset+=pg.rows.length;
+  }
+  state.truncated = total>state.contracts.length;
   // screen position is per-device, not shared with teammates
   const ui=lsGet(LS.ui)||{};
   state.view=ui.view||'dashboard';
@@ -418,43 +424,50 @@ const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',ti
 const todayStr = () => new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
-/* ---------- persistence ----------
-   API mode syncs with optimistic locking: the client sends the version it
-   last saw; the server rejects a stale write (409) so a teammate's edit is
-   never silently overwritten — we refetch and re-render instead. */
-let syncTimer=null, syncing=false;
-function persist(){
+/* ---------- persistence (per-contract at scale) ----------
+   API mode saves ONE contract at a time, each with its own optimistic-lock
+   version — so an edit never re-sends the whole portfolio and a teammate's
+   change to a different contract can't be clobbered. Static mode keeps the
+   single-blob localStorage model. */
+const dirty=new Map(); let saveTimer=null;
+function persist(c){
   if(API_MODE()){
     lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
-    if(!canEdit()) return; // server rejects viewer writes
-    clearTimeout(syncTimer);
-    syncTimer=setTimeout(syncNow,400);
+    if(!canEdit()) return;              // server rejects viewer writes
+    if(c && c.id){ dirty.set(c.id,c); clearTimeout(saveTimer); saveTimer=setTimeout(flushSaves,400); }
     return;
   }
   lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
 }
-// Strip server-stored file bytes from the synced record so a few PDFs don't
-// re-upload on every edit; the bytes live in the files table, referenced by fileId.
-function contractsForSync(){
-  return state.contracts.map(c=>{
-    if(c.upload && c.upload.fileId && c.upload.dataUrl){
-      const up={...c.upload}; delete up.dataUrl; return {...c, upload:up};
-    }
-    return c;
-  });
+async function flushSaves(){
+  const items=[...dirty.values()]; dirty.clear();
+  for(const c of items){ await saveContract(c); }
+  refreshStats();  // keep portfolio KPIs current after status/value changes
 }
-async function syncNow(){
-  if(syncing){ clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,300); return; }
-  syncing=true;
+async function saveContract(c){
+  const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
+  if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   try{
-    const r=await api('data','PUT',{ uid, contracts:contractsForSync(), settings:state.settings, baseVersion:state.dataVersion });
-    state.dataVersion=r.version;
+    const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
+    c._v=r.version; c._loaded=true; c._light=false;
   }catch(e){
-    if(/conflict|stale|version/i.test(e.message)){
-      toast('A teammate saved changes — reloading the latest','err');
-      try{ await loadBootstrap(); setView(state.view||'dashboard'); }catch(_){}
-    } else toast('Sync failed: '+e.message,'err');
-  }finally{ syncing=false; }
+    if(/conflict|version/i.test(e.message)){
+      toast('This contract changed on the server — reloading it','err');
+      try{ const fresh=await api('contracts/'+c.id); Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+        if(state.activeId===c.id) renderWorkspace(); }catch(_){}
+    } else toast('Save failed: '+e.message,'err');
+  }
+}
+async function saveSettings(){
+  if(API_MODE()){ try{ await api('settings','PUT',state.settings); }catch(e){ toast('Settings save failed: '+e.message,'err'); } }
+  else persist();
+}
+// Ensure a contract's full body (comments, audit, execution text, extracted text)
+// is loaded before we render its workspace.
+async function ensureFull(c){
+  if(!API_MODE() || !c || c._loaded) return;
+  const full=await api('contracts/'+c.id);
+  Object.assign(c, full); c._loaded=true; c._light=false; c._v=full._v;
 }
 function hydrate(){
   const d = lsGet(LS.data);
@@ -490,7 +503,7 @@ function approveContract(c){
   const u=currentUser();
   c.approval={ by:u.name, byId:u.id, role:ROLE_LABEL[u.role], at:nowISO() };
   logAudit(c,'Approved',`Approved for signing by ${u.name} (${ROLE_LABEL[u.role]})`);
-  persist(); renderSignButton(c); renderAuditSection(c);
+  persist(c); renderSignButton(c); renderAuditSection(c);
   toast('Contract approved — signing unlocked');
 }
 
@@ -650,7 +663,7 @@ function startApp(){
   renderSideUser(); renderSideFolders();
   // resume where the user left off
   setView(['dashboard','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ pollPendingResponses(); setInterval(pollPendingResponses,45000); }
+  if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
@@ -745,7 +758,7 @@ function resolveRound(c, n, accept){
     c.approval=null; // value changed — any prior approval is void
   }
   logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
-  persist(); renderWorkspace();
+  persist(c); renderWorkspace();
   toast(`Round ${n} ${accept?'accepted':'rejected'}`);
 }
 
@@ -830,7 +843,7 @@ function downloadEvidence(c){
       method:s.method||null, ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     auditTrail:c.audit||[],
   },null,2));
-  logAudit(c,'Exported','Evidence pack downloaded'); persist(); renderAuditSection(c);
+  logAudit(c,'Exported','Evidence pack downloaded'); persist(c); renderAuditSection(c);
   toast('Evidence pack downloaded');
 }
 
@@ -873,7 +886,7 @@ async function openShareModal(c){
     toast('Share link copied to clipboard');
   });
   logAudit(c,'Shared',`Review link generated for ${c.counterparty||'counterparty'}`);
-  persist(); renderAuditSection(c);
+  persist(c); renderAuditSection(c);
 }
 
 function openImportModal(c){
@@ -922,7 +935,7 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,'Declined',`${who} declined via share link`);
     toast(`${r.name} declined the agreement`,'err');
   } else { if(!opts.background) toast('Unknown response type','err'); return false; }
-  c.lastAction=todayStr(); persist();
+  c.lastAction=todayStr(); persist(c);
   if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
   return true;
 }
@@ -1134,11 +1147,15 @@ function exportPDF(c){
       ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
-  logAudit(c,'Exported','PDF export generated'); persist(); renderAuditSection(c);
+  logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
   window.print();
 }
 
 function metrics(){
+  // Prefer server-computed aggregates (accurate at any scale, even when the
+  // client only holds a capped working set); fall back to the in-memory set.
+  const s=state.serverStats;
+  if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0, declined:s.declined||0, drafts:s.drafts||0 };
   const cs=state.contracts, active=cs.filter(c=>c.status!=='Declined');
   return {
     totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
@@ -1147,6 +1164,10 @@ function metrics(){
     declined:cs.filter(c=>c.status==='Declined').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
   };
+}
+async function refreshStats(){
+  if(!API_MODE()) return;
+  try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
 /* ============================================================
@@ -1197,10 +1218,13 @@ function renderDashboard(){
     .filter(c=>c.status==='Draft'||c.status==='Under Review')
     .slice(0,5);
 
+  const byFolder={}; (state.serverStats?.byFolder||[]).forEach(r=>byFolder[r.folder]=r);
   const folderCards = Object.values(FOLDERS).map(f=>{
+    const sf=byFolder[f.id];                       // server aggregate (accurate at scale)
     const cs=folderContracts(f.id);
-    const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
-    const pending=cs.filter(c=>c.status==='Under Review').length;
+    const count = sf? sf.n : cs.length;
+    const val = sf? sf.val : cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+    const pending = sf? sf.pending : cs.filter(c=>c.status==='Under Review').length;
     return `
     <button data-folder="${f.id}" class="group text-left bg-white rounded-2xl border border-brand-100/70 p-5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-900/5 hover:-translate-y-0.5 transition-all">
       <div class="flex items-start justify-between">
@@ -1210,7 +1234,7 @@ function renderDashboard(){
       <div class="mt-3 font-display font-600 text-brand-900">${f.name}</div>
       <div class="text-xs text-brand-800/50 mt-0.5">${f.desc}</div>
       <div class="mt-4 pt-3 border-t border-brand-100/60 flex items-center gap-4 text-xs">
-        <span class="font-mono text-brand-900 font-medium">${cs.length} <span class="text-brand-800/45 font-sans font-normal">contracts</span></span>
+        <span class="font-mono text-brand-900 font-medium">${count} <span class="text-brand-800/45 font-sans font-normal">contracts</span></span>
         <span class="font-mono text-brand-900 font-medium">${fmtKESshort(val)}</span>
         ${pending?`<span class="ml-auto inline-flex items-center gap-1 text-gold-600 font-medium">${icon('clock','w-3.5 h-3.5')}${pending} pending</span>`:''}
       </div>
@@ -1349,23 +1373,37 @@ function renderFolder(){
     </header>
 
     <div class="px-8 py-6 max-w-[1000px]">
-      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-        ${cs.length ? cs.map(c=>contractRow(c)).join('') : `
-          <div class="px-5 py-10 text-center">
-            <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
-            <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-            <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
-          </div>`}
-      </section>
+      <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">${folderListHtml(cs)}</section>
     </div>
   </div>`;
 
   wireOpens();
   document.getElementById('back-dash').addEventListener('click',()=>setView('dashboard'));
   const si=document.getElementById('folder-search');
-  si.addEventListener('input',()=>{ state.folderQuery=si.value; renderFolderListOnly(); });
+  si.addEventListener('input',()=>{ state.folderQuery=si.value; state.folderShown=FOLDER_PAGE; renderFolderListOnly(); });
   si.focus(); si.setSelectionRange(si.value.length,si.value.length);
+  wireFolderMore();
   setActiveNav('folder');
+}
+const FOLDER_PAGE=50;
+// Render only up to state.folderShown rows, with a "Show more" pager — so a
+// folder with hundreds of contracts never dumps them all into the DOM at once.
+function folderListHtml(cs){
+  if(!cs.length) return `
+    <div class="px-5 py-10 text-center">
+      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
+      <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
+      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
+    </div>`;
+  const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
+  const rows=cs.slice(0,shown).map(c=>contractRow(c)).join('');
+  const more = cs.length>shown
+    ? `<button id="folder-more" class="w-full px-5 py-3 text-xs font-medium text-brand-600 hover:bg-brand-50 border-t border-brand-100/60 transition">Show more — ${cs.length-shown} of ${cs.length} remaining</button>`
+    : '';
+  return rows+more;
+}
+function wireFolderMore(){
+  document.getElementById('folder-more')?.addEventListener('click',()=>{ state.folderShown=(state.folderShown||FOLDER_PAGE)+FOLDER_PAGE; renderFolderListOnly(); });
 }
 // re-render only list body on keystroke (keeps input focus)
 function renderFolderListOnly(){
@@ -1375,13 +1413,8 @@ function renderFolderListOnly(){
   if(q) cs=cs.filter(c=>(c.name+' '+c.counterparty+' '+c.id).toLowerCase().includes(q));
   const section=document.querySelector('#content section');
   if(!section) return;
-  section.innerHTML = cs.length ? cs.map(c=>contractRow(c)).join('') : `
-    <div class="px-5 py-10 text-center">
-      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
-      <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-      <div class="text-xs text-brand-800/50 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
-    </div>`;
-  wireOpens(section);
+  section.innerHTML = folderListHtml(cs);
+  wireOpens(section); wireFolderMore();
 }
 
 /* ============================================================
@@ -1561,9 +1594,10 @@ async function submitUpload(){
     fields:{}, scan:null,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
+  c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c);
   state.activeId=c.id;
-  persist();
+  persist(c);
   closeModal();
   toast('Contract uploaded and filed in '+FOLDERS[folder].name);
   setView('workspace');
@@ -1835,6 +1869,14 @@ function renderWorkspace(){
     </div>`;
     setActiveNav('workspace'); return;
   }
+  // load the full contract body (comments, audit, execution text, extracted text) on first open
+  if(API_MODE() && !c._loaded){
+    content.innerHTML=`<div class="view-enter grid place-items-center min-h-screen"><div class="text-center text-brand-800/50"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
+    setActiveNav('workspace');
+    ensureFull(c).then(()=>{ if(state.activeId===c.id) renderWorkspace(); })
+      .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">Could not load this contract: ${e.message}</div>`; });
+    return;
+  }
   const locked=c.status==='Signed';
   content.innerHTML=`
   <div class="view-enter">
@@ -1968,14 +2010,14 @@ function wireDocumentSync(c){
       }
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
-      persist(); renderAuditSection(c);
+      persist(c); renderAuditSection(c);
     });
   });
   canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{
     c.fields[inp.getAttribute('data-field')]=inp.value;
     c.lastAction=todayStr();
     logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
-    persist(); renderAuditSection(c);
+    persist(c); renderAuditSection(c);
   }));
 }
 function updateStatusUI(c){
@@ -2014,7 +2056,7 @@ function wireComments(c){
     const u=currentUser();
     c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, ts:fmtDT(nowISO()) });
     logAudit(c,'Comment','Internal comment added');
-    persist();
+    persist(c);
     input.value=''; renderFeed(c); renderAuditSection(c);
   };
   send.addEventListener('click',post);
@@ -2027,7 +2069,7 @@ function wireCompliance(c){
     const key=cb.getAttribute('data-comp');
     c.compliance[key]=cb.checked;
     if(key==='consent') logAudit(c,'Consent',`Intent-to-sign ${cb.checked?'confirmed':'withdrawn'} by ${currentUser()?.name||'user'}`);
-    persist(); renderSignButton(c); renderAuditSection(c);
+    persist(c); renderSignButton(c); renderAuditSection(c);
   }));
 }
 function renderSignButton(c){
@@ -2091,7 +2133,7 @@ async function signDocument(c){
     method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent, docHash:c.hash });
   c.status='Signed';
   logAudit(c,'Signed',`Sealed by ${u.name} (${u.email}) — ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
-  persist();
+  persist(c);
   document.getElementById('doc-canvas').innerHTML=docBody(c);
   updateStatusUI(c); renderSignButton(c); renderAuditSection(c);
   toast('Signed & sealed — the exact text is frozen and fingerprinted');
@@ -2749,14 +2791,14 @@ function renderScanSection(c){
     setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
       const n=openFindings(c).length;
       logAudit(c,'Scanned',`AI contract scan run \u2014 ${n} open finding${n===1?'':'s'}`);
-      persist();
+      persist(c);
       renderScanSection(c); renderSignButton(c); renderAuditSection(c);
       toast(n?`Scan complete \u2014 ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete \u2014 no issues found');
     }, 1100);
   });
   host.querySelector('#scan-rerun')?.addEventListener('click',()=>{
     scanUI.running=true; renderScanSection(c);
-    setTimeout(()=>{ runScan(c); scanUI.running=false; persist(); renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
+    setTimeout(()=>{ runScan(c); scanUI.running=false; persist(c); renderScanSection(c); renderSignButton(c); toast('Re-scan complete \u2014 findings refreshed'); }, 700);
   });
   host.querySelectorAll('[data-scan-filter]').forEach(b=>b.addEventListener('click',()=>{ scanUI.filter=b.getAttribute('data-scan-filter'); renderScanSection(c); }));
   host.querySelectorAll('[data-scan-toggle]').forEach(b=>b.addEventListener('click',()=>{
@@ -2766,7 +2808,7 @@ function renderScanSection(c){
   }));
   host.querySelectorAll('[data-scan-dismiss]').forEach(b=>b.addEventListener('click',()=>{
     c.scan.dismissed.push(b.getAttribute('data-scan-dismiss'));
-    persist();
+    persist(c);
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
@@ -3120,7 +3162,7 @@ function renderTeam(){
     const approverRole=document.getElementById('ap-role').value;
     state.settings=state.settings||{};
     state.settings.approval={ threshold, approverRole };
-    persist();
+    saveSettings();
     toast(threshold>0?`Approval required at ≥ ${fmtKESshort(threshold)}`:'Approvals disabled');
   });
   document.getElementById('bk-export')?.addEventListener('click',()=>{
@@ -3165,10 +3207,11 @@ function setView(view){
   else if(view==='intel') renderIntel();
   else if(view==='team') renderTeam();
   else renderWorkspace();
-  if(getOrg()) persist();
+  if(getOrg()&&!API_MODE()) persist();
+  else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
   window.scrollTo({top:0});
 }
-function openFolder(fid){ state.folderId=fid; state.folderQuery=''; setView('folder'); }
+function openFolder(fid){ state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder'); }
 function openWorkspace(id){ state.activeId=id; setView('workspace'); }
 function createFromTemplate(tid){
   if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
@@ -3182,9 +3225,10 @@ function createFromTemplate(tid){
     fields:{}, scan:null, expiry:null, valueType:t.valueType,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Generated from Template ${tid} (${t.kind})`}],
     signatures:[] };
+  c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c);
   state.activeId=c.id;
-  persist();
+  persist(c);
   toast(`New ${t.kind} created and filed in ${FOLDERS[t.folder].name}`);
   setView('workspace');
   renderSideFolders();
