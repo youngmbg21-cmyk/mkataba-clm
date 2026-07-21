@@ -27,6 +27,8 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS shares (
     token TEXT PRIMARY KEY, payload TEXT NOT NULL,
     response TEXT, applied INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS files (
+    id TEXT PRIMARY KEY, name TEXT, mime TEXT, data TEXT NOT NULL, created_at TEXT NOT NULL);
 `);
 
 const now = () => new Date().toISOString();
@@ -177,6 +179,21 @@ app.delete('/api/users/:id', auth, admin, (req, res) => {
   if (!r.changes) return res.status(404).json({ error: 'User not found' });
   db.prepare('DELETE FROM sessions WHERE user_id=?').run(req.params.id);
   res.json({ ok: true });
+});
+
+/* ---------- uploaded-file storage (keeps big files out of the synced blob) ---------- */
+app.post('/api/files', auth, editor, (req, res) => {
+  const { name, mime, dataUrl } = req.body || {};
+  if (!dataUrl || typeof dataUrl !== 'string') return res.status(400).json({ error: 'dataUrl required' });
+  const id = 'f_' + rid(10);
+  db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+    .run(id, name || '', mime || '', dataUrl, now());
+  res.json({ ok: true, id });
+});
+app.get('/api/files/:id', auth, (req, res) => {
+  const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
+  if (!f) return res.status(404).json({ error: 'File not found' });
+  res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
 
 /* ---------- counterparty shares ---------- */

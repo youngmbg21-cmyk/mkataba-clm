@@ -433,11 +433,21 @@ function persist(){
   }
   lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
 }
+// Strip server-stored file bytes from the synced record so a few PDFs don't
+// re-upload on every edit; the bytes live in the files table, referenced by fileId.
+function contractsForSync(){
+  return state.contracts.map(c=>{
+    if(c.upload && c.upload.fileId && c.upload.dataUrl){
+      const up={...c.upload}; delete up.dataUrl; return {...c, upload:up};
+    }
+    return c;
+  });
+}
 async function syncNow(){
   if(syncing){ clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,300); return; }
   syncing=true;
   try{
-    const r=await api('data','PUT',{ uid, contracts:state.contracts, settings:state.settings, baseVersion:state.dataVersion });
+    const r=await api('data','PUT',{ uid, contracts:contractsForSync(), settings:state.settings, baseVersion:state.dataVersion });
     state.dataVersion=r.version;
   }catch(e){
     if(/conflict|stale|version/i.test(e.message)){
@@ -1303,6 +1313,108 @@ function renderFolderListOnly(){
    ============================================================ */
 const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
 
+/* ---------- document text extraction (client-side, no external service) ----------
+   Uses the browser's built-in DecompressionStream to inflate FlateDecode PDF
+   streams, then pulls the text-showing strings. Works for standard text PDFs
+   and .txt; image-only PDFs / Word fall back to the manual checklist. */
+async function inflateBytes(bytes){
+  for(const fmt of ['deflate','deflate-raw']){
+    try{ const ds=new DecompressionStream(fmt);
+      const stream=new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }catch(e){}
+  }
+  return null;
+}
+function pdfStringsFrom(content){
+  const res=[]; const re=/\(((?:\\.|[^()\\])*)\)/g; let m;
+  while((m=re.exec(content))){
+    res.push(m[1].replace(/\\(\d{1,3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\([()\\nrt])/g,(x,c)=>({n:'\n',r:'',t:' '}[c]??c)));
+  }
+  return res.join(' ');
+}
+async function extractPdfText(buf){
+  const bytes=new Uint8Array(buf);
+  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
+  while((m=re.exec(bin))){
+    const raw=m[1];
+    const arr=Uint8Array.from(raw,ch=>ch.charCodeAt(0)&0xff);
+    const inf=await inflateBytes(arr);
+    let text; if(inf){ text=''; for(let i=0;i<inf.length;i++) text+=String.fromCharCode(inf[i]); } else text=raw;
+    if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
+  }
+  return out.join(' ').replace(/\s+/g,' ').trim();
+}
+async function extractDocText(dataUrl, mime){
+  try{
+    if(/text\//.test(mime)){ return (await (await fetch(dataUrl)).text()).slice(0,40000); }
+    if(/pdf/.test(mime)){ const buf=await (await fetch(dataUrl)).arrayBuffer(); return (await extractPdfText(buf)).slice(0,40000); }
+  }catch(e){}
+  return '';
+}
+// Heuristic clause analysis over the REAL extracted text — quotes verbatim.
+function sentenceAround(text, idx){
+  let s=text.lastIndexOf('.',idx); s=s<0?Math.max(0,idx-140):s+1;
+  let e=text.indexOf('.',idx); e=e<0?Math.min(text.length,idx+220):e+1;
+  return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,260);
+}
+function findingsFromText(c, text){
+  const F=[]; const low=text.toLowerCase();
+  const add=(id,sev,kind,title,quote,why,fix,conf)=>F.push({id,sev,kind,title,anchor:'doc',confidence:conf,
+    what:quote?`The document reads: “${quote}”`:'(clause not located in the extracted text)', why, fix});
+  const firstIdx=(...ks)=>{ for(const k of ks){ const i=low.indexOf(k); if(i>=0) return i; } return -1; };
+  // 1) governing law — scan ALL candidate mentions and pick the one that names a
+  //    jurisdiction (a ref-line like "governing law as stated below" is ignored).
+  const foreign=['switzerland','geneva','england','wales','united kingdom','london','delaware','new york','singapore','dubai','u.a.e','uae','netherlands','paris','france','uganda','tanzania','rwanda','south africa'];
+  const govKeys=['governing law','governed by the laws','laws of the republic','exclusive jurisdiction','jurisdiction of','arbitration seated','arbitration in','governed by'];
+  const cands=[]; for(const k of govKeys){ let i=low.indexOf(k); while(i>=0){ cands.push(i); i=low.indexOf(k,i+1); } }
+  let foreignSen=null,foreignHit=null,kenyaSen=null;
+  for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){ const sen=sentenceAround(text,idx), sl=sen.toLowerCase();
+    const fh=foreign.find(f=>sl.includes(f)), hk=sl.includes('kenya');
+    if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
+    if(hk&&!kenyaSen) kenyaSen=sen;
+  }
+  if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
+    `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a Kenyan business and may bypass Kenyan protections.`,
+    'Negotiate Kenyan governing law and forum, or budget for foreign enforcement before signing.','high');
+  else if(kenyaSen) add('t-law','low','ambiguity','Governing law: Kenya (found in text)',kenyaSen,
+    'Kenyan governing law keeps enforcement local and predictable.','No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+  else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
+    'No clause naming a governing law or forum was found in the extracted text.','Every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
+  // 2) payment terms
+  const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
+  if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
+    add('t-pay', d>45?'med':'low', d>45?'risk':'ambiguity', `Payment terms: ${d} days`, sentenceAround(text,i),
+      d>45?`${d}-day terms tie up working capital and raise exposure if the payer delays.`:'Payment terms look within a healthy range.',
+      d>45?'Negotiate toward 30–45 days, or price the extended terms into the deal.':'Confirm this matches what was agreed.','high'); }
+  // 3) auto-renewal
+  const ar=low.search(/auto(?:matically)?[\s-]*renew|renews?\s+automatically/);
+  if(ar>=0) add('t-renew','med','risk','Automatic renewal clause',sentenceAround(text,ar),
+    'Auto-renewing contracts with long notice windows are a common way to get locked in.',
+    'Confirm the renewal is intended and the exit notice period is workable.','high');
+  // 4) termination notice
+  const tn=low.match(/(\d{1,3})\s*days'?\s*(?:written\s*)?notice/);
+  if(tn){ const i=low.indexOf(tn[0]); add('t-term','low','ambiguity',`Termination notice: ${tn[1]} days`,sentenceAround(text,i),
+    'The exit notice period sets how quickly you can walk away.','Confirm the notice period is acceptable for your exposure.','high'); }
+  // 5) liability / indemnity
+  const li=firstIdx('limitation of liability','total liability','liability is limited','liability shall','indemnif');
+  if(li>=0) add('t-liab','med','risk','Liability / indemnity — review carefully',sentenceAround(text,li),
+    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+    'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.','medium');
+  // 6) stamp duty for leases
+  if((low.includes('lease')||low.includes('landlord')||low.includes('tenant')) && !low.includes('stamp duty'))
+    add('t-stamp','med','risk','Lease with no stamp-duty provision','',
+      'An unstamped lease is inadmissible in evidence in Kenya until duty and penalties are paid (Stamp Duty Act, Cap 480).',
+      'Ensure stamp duty is assessed and paid via iTax within 30 days of execution.','medium');
+  // 7) data protection for corporate/IT paper
+  if(c.folder==='corp' && !/(data protection|data processing|personal data|odpc)/.test(low))
+    add('t-dp','low','missing','No data-protection terms detected','',
+      'Under the Data Protection Act 2019 you remain responsible for how vendors process personal data.',
+      'Confirm a data-processing / DPA clause with ODPC-aligned obligations is included.','low');
+  return F;
+}
+
 function openUploadModal(){
   if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
   const folderOpts=Object.values(FOLDERS).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
@@ -1349,20 +1461,28 @@ async function submitUpload(){
   const vtype=document.getElementById('up-vtype').value;
   const value=vtype==='none'?0:Number(fval('up-value')||0);
   const expiry=fval('up-expiry')||null;
-  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Adding…</span>';
+  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading document…</span>';
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
   if(!dataUrl){ toast('Could not read that file','err'); return; }
   const fileHash=await sha256(dataUrl);
+  const mime=file.type||'application/octet-stream';
+  const extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   const u=currentUser();
+  const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
+    extractedText, textChars:extractedText.length, dataUrl };
+  // API mode: store bytes on the server and keep only a reference in the synced record.
+  if(API_MODE()){
+    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
+      upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
+  }
   const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
-    compliance:{iprs:false,pki:false},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}. Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    compliance:{},
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for AI review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null,
-    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received document “${file.name}” (${Math.round(file.size/1024)} KB) added`}],
-    signatures:[],
-    upload:{ fileName:file.name, mime:file.type||'application/octet-stream', size:file.size, dataUrl, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System' } };
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
+    signatures:[], upload };
   state.contracts.unshift(c);
   state.activeId=c.id;
   persist();
@@ -1397,13 +1517,17 @@ function uploadDocBody(c){
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
-    <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+    </div>
     ${preview}
     ${signatureBlock(c)}`;
 }
 
 function uploadScanRules(c){
   const F=[]; const add=(id,sev,kind,title,what,why,fix)=>F.push({id,sev,kind,title,anchor:'doc',what,why,fix});
+  // metadata checks (always)
   if(!c.counterparty) add('u-cp','high','missing','Counterparty not recorded',
     'No counterparty name is recorded against this uploaded document.',
     'A signed contract with no recorded party is hard to enforce and clutters the register.',
@@ -1412,30 +1536,35 @@ function uploadScanRules(c){
     'The value field is empty for a document marked as monetary.',
     'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
     'Record the agreed KES value, or mark the contract non-monetary if none passes.');
-  add('u-law','med','risk','Confirm governing law is Kenyan',
-    'This is an external document — confirm its governing-law and jurisdiction clause.',
-    'A foreign governing law or arbitration seat can make enforcement slow and expensive for a Kenyan business.',
-    'Find the governing-law clause and confirm it is the laws of Kenya with a Kenyan forum; negotiate if not.');
-  add('u-liab','med','risk','Check liability cap & indemnities',
-    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
-    'An unbalanced liability/indemnity split can expose you to costs far beyond the deal value.',
-    'Confirm the liability cap is mutual and reasonable, and that indemnities are limited to their fault.');
-  if(c.folder==='sales'||c.folder==='proc'||c.folder==='dist') add('u-pay','med','risk','Confirm payment terms & pricing',
-    'Check the payment days, pricing basis and any escalation or penalty clauses.',
-    'Extended terms or one-sided price-variation clauses quietly erode margin and cash flow.',
-    'Confirm payment terms are workable and price changes are capped or index-linked.');
-  if(c.folder==='corp') add('u-dp','low','risk','Confirm Data Protection (DPA 2019) terms',
-    'Corporate and IT agreements should address personal-data handling.',
-    'Under the Data Protection Act 2019 you remain responsible for how vendors process your data.',
-    'Confirm a data-processing clause / DPA with ODPC-aligned obligations is included.');
-  add('u-term','low','ambiguity','Confirm term, renewal & exit',
-    'Check the term length, any automatic renewal, and your notice period to exit.',
-    'Auto-renewing contracts with long notice periods are a common way to get locked in.',
-    'Confirm renewal is not automatic (or is acceptable) and the exit notice period is workable.');
-  add('u-legal','low','missing','Independent legal review before signing',
-    'This checklist is a prompt, not a substitute for reading the full document.',
-    'External paper is drafted for the other side’s benefit; a clause-by-clause read catches what a checklist can’t.',
-    'Have counsel review before signing where the value or risk is material.');
+
+  const text=(c.upload&&c.upload.extractedText)||'';
+  if(text.length>200){
+    // real analysis over the extracted text
+    findingsFromText(c, text).forEach(f=>F.push(f));
+  } else {
+    // image-only PDF / Word / extraction failed → honest manual checklist
+    add('u-noext','low','missing','Document text could not be read automatically',
+      'This file did not yield extractable text (a scanned image, or a Word file). The points below are a manual checklist, not a read of the clauses.',
+      'Image-only PDFs and Word documents need OCR or conversion before automated clause review.',
+      'Upload a text-based PDF for clause-level AI review, or review the document manually.');
+    add('u-law','med','risk','Confirm governing law is Kenyan',
+      'Confirm the governing-law and jurisdiction clause names Kenya.',
+      'A foreign governing law or arbitration seat makes enforcement slow and expensive for a Kenyan business.',
+      'Find the governing-law clause and confirm Kenya and a Kenyan forum; negotiate if not.');
+    add('u-liab','med','risk','Check liability cap & indemnities',
+      'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+      'An unbalanced liability/indemnity split can expose you well beyond the deal value.',
+      'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.');
+    add('u-term','low','ambiguity','Confirm term, renewal & exit',
+      'Check the term length, any automatic renewal, and your notice period to exit.',
+      'Auto-renewing contracts with long notice periods are a common way to get locked in.',
+      'Confirm renewal is acceptable and the exit notice period is workable.');
+  }
+  // always — honest disclaimer
+  add('u-legal','low','missing','Have qualified counsel review before signing',
+    'This AI review flags common issues but is not legal advice and cannot catch everything.',
+    'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
+    'Obtain independent legal review before signing where the value or risk is material.');
   return F;
 }
 
@@ -1726,6 +1855,12 @@ function renderWorkspace(){
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderAuditSection(c);
+  // rehydrate a server-stored uploaded file's bytes for preview/download
+  if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
+    api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
+      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
+    }).catch(()=>{});
+  }
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
@@ -2492,12 +2627,13 @@ function renderScanSection(c){
         <button data-scan-toggle="${x.id}" class="w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-brand-50/50 transition">
           <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
           <span class="text-xs font-medium text-brand-900 flex-1 min-w-0 truncate">${x.title}</span>
+          ${x.confidence?`<span class="hidden sm:inline text-[8px] uppercase tracking-wider text-brand-800/35" title="Heuristic confidence">${x.confidence}</span>`:''}
           <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
           <span class="text-brand-300 transition ${exp?'rotate-180':''}">${icon('chevD','w-3.5 h-3.5')}</span>
         </button>
         ${exp?`
         <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
