@@ -7,17 +7,19 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
 <script>
-  // HaTi light-theme design system (design_handoff_hati_redesign):
-  // DM Sans everywhere, JetBrains Mono for IDs/values/timestamps, the
-  // green-and-gold brand palette, cool green-grey neutrals, and a strict
-  // colour discipline — surfaces white/near-white, colour reserved for
-  // actions, active state, status, severity and key metrics.
+  // HaTi warm-paper design system (Horizon Finance OS pivot):
+  // DM Sans for interface, JetBrains Mono for IDs/values/timestamps,
+  // Fraunces serif for page titles. Warm beige surfaces (Horizon light
+  // theme), warm greige neutrals, and a strict colour discipline —
+  // green demoted from wallpaper to accent: colour reserved for actions,
+  // active state, status, severity and key metrics.
   tailwind.config = {
     theme: { extend: {
       fontFamily: {
         display: ['"DM Sans"','system-ui','sans-serif'],
+        serif: ['Fraunces','Georgia','serif'],
         sans: ['"DM Sans"','system-ui','sans-serif'],
         mono: ['"JetBrains Mono"','ui-monospace','monospace'],
       },
@@ -28,20 +30,24 @@
         400:'400', 500:'500', 600:'600', 700:'700', 800:'800', 900:'900',
       },
       colors: {
-        canvas:'#F4F7F5',
-        ink:'#08211E',
-        brand:{50:'#EAF6F1',100:'#CFEAE0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
+        // cards & panels: warm white, not pure white (Horizon bg2)
+        white:'#FDFAF6',
+        canvas:'#F0EBE1',     // page ground (Horizon bg0)
+        ink:'#1a1208',        // warm brown-black text (Horizon text)
+        // brand greens stay — green is the accent story, not the ground.
+        // 50/100 shift to sage tints so hovers/chips sit on warm paper.
+        brand:{50:'#E4EFE7',100:'#C6DED0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
         gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
-        // cool green-grey neutrals (light theme) — was warm greige
-        slate:{50:'#F4F7F5',100:'#EAF4F0',200:'#DCEDE5',300:'#C4D8CE',400:'#9DB0A8',500:'#7C8983',600:'#5A6B63',700:'#415049',800:'#2A3831',900:'#08211E'},
+        // warm greige neutrals (Horizon text2/text3 ramp)
+        slate:{50:'#F7F3ED',100:'#F0EBE1',200:'#E4DDD2',300:'#D6CFBF',400:'#B8AD99',500:'#8a7d6a',600:'#6B5F4B',700:'#4a3f2e',800:'#31281A',900:'#1a1208'},
         // earthy red — design danger / severity high
         rose:{50:'#F4E2DD',100:'#E6C9C1',200:'#E6C9C1',300:'#DCA99D',400:'#C56555',500:'#B23A2E',600:'#9A342A',700:'#822C24',900:'#3E1712'},
-        // exact chrome + accent tokens from the handoff
-        hair:'#E6EEEA',       // chrome hairline (rail / top-bar borders)
-        line:'#DCEDE5',       // card border
-        inputln:'#D8EAE2',    // input / chip / button border
-        faint:'#FBFDFC',      // donut cards
-        docbg:'#EEF3F1',      // workspace document canvas
+        // chrome tokens, warmed (Horizon border pair)
+        hair:'#E2DBCC',       // chrome hairline (rail / top-bar borders)
+        line:'#D6CFBF',       // card border
+        inputln:'#DCD3C0',    // input / chip / button border
+        faint:'#FDFAF6',      // donut cards
+        docbg:'#EDE8DF',      // workspace document canvas (Horizon bg3)
         amber:'#B0791F',      // expiring / awaiting metrics
         danger:'#C0392B',     // high-risk metric
       },
@@ -51,32 +57,35 @@
 <style>
   /* ---- premium design tokens (elevation, depth, motion) ---- */
   :root{
-    --ring:0 0 0 1px rgba(8,33,30,.08);
-    --sh1:0 1px 2px rgba(8,33,30,.06),0 1px 1px rgba(8,33,30,.04);
-    --sh2:0 2px 4px rgba(8,33,30,.05),0 16px 30px -14px rgba(8,33,30,.20);
-    --sh3:0 18px 40px -18px rgba(8,33,30,.24),0 6px 16px -8px rgba(8,33,30,.13);
-    --sh4:0 34px 64px -26px rgba(8,33,30,.32);
+    --ring:0 0 0 1px rgba(60,40,10,.08);
+    --sh1:0 1px 2px rgba(60,40,10,.06),0 1px 1px rgba(60,40,10,.04);
+    --sh2:0 2px 4px rgba(60,40,10,.05),0 16px 30px -14px rgba(60,40,10,.20);
+    --sh3:0 18px 40px -18px rgba(60,40,10,.24),0 6px 16px -8px rgba(60,40,10,.13);
+    --sh4:0 34px 64px -26px rgba(60,40,10,.32);
     --focus:0 0 0 3px rgba(11,122,95,.20);
     --ease:cubic-bezier(.2,.7,.3,1);
   }
   html { scroll-behavior: smooth; }
   body {
-    color:#08211E; font-family:'DM Sans',system-ui,sans-serif;
+    color:#1a1208; font-family:'DM Sans',system-ui,sans-serif;
     -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.006em;
     background:
-      radial-gradient(1100px 560px at 86% -12%, rgba(8,107,84,.07), transparent 60%),
-      linear-gradient(180deg,#EFF5F1,#E1EDE7);
+      radial-gradient(1100px 560px at 86% -12%, rgba(199,154,62,.07), transparent 60%),
+      linear-gradient(180deg,#F3EFE6,#EAE3D4);
     min-height:100vh;
   }
   h1,h2,h3,.font-display { letter-spacing:-0.022em; }
+  /* editorial serif voice — page titles only (Horizon's "calm instrument");
+     h1.font-display outranks the .font-display utility so titles stay serif */
+  h1, h1.font-display { font-family:'Fraunces',Georgia,serif; letter-spacing:-0.012em; }
   a { color:#086B54; }
-  ::selection { background:#CFEAE0; }
+  ::selection { background:#C6DED0; }
   /* elevation + motion utilities */
   /* every elevated card carries a crisp hairline ring so white cards separate
      from the canvas AND nested white tiles separate from white parents */
   .elev-1{box-shadow:var(--ring),var(--sh1)} .elev-2{box-shadow:var(--ring),var(--sh2)} .elev-3{box-shadow:var(--ring),var(--sh3)} .elev-4{box-shadow:var(--ring),var(--sh4)}
   .lift{transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .18s}
-  .lift:hover{transform:translateY(-3px); box-shadow:0 0 0 1px rgba(8,33,30,.10),var(--sh3)}
+  .lift:hover{transform:translateY(-3px); box-shadow:0 0 0 1px rgba(60,40,10,.10),var(--sh3)}
   .tnum{font-variant-numeric:tabular-nums}
   button,[role=button]{transition:background .16s, color .16s, box-shadow .16s, transform .12s}
   button:active:not(:disabled){transform:translateY(.5px)}
@@ -90,38 +99,38 @@
   .warm-flip{animation:warmFlip .4s var(--ease)}
   @keyframes warmFlip{from{opacity:.3;transform:translateY(-3px)}to{opacity:1;transform:none}}
   /* warmer, softer scrollbar */
-  .scroll-thin::-webkit-scrollbar-thumb{ background:#C6E0D5; border-radius:8px; }
+  .scroll-thin::-webkit-scrollbar-thumb{ background:#D6CFBF; border-radius:8px; }
   .view-enter { animation: viewIn .28s var(--ease); }
   @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
   /* Intel contract graph */
   #ig-svg{touch-action:none}
-  .ig-link{stroke:#C6DCCB;stroke-width:1.4;fill:none;opacity:.55;transition:stroke .15s,opacity .15s,stroke-width .15s}
+  .ig-link{stroke:#CDC2AB;stroke-width:1.4;fill:none;opacity:.55;transition:stroke .15s,opacity .15s,stroke-width .15s}
   .ig-link.hi{stroke:#086B54;opacity:1;stroke-width:2.2}
   .ig-link.dim{opacity:.08}
   .ig-node{cursor:pointer}
-  .ig-chip{stroke:#DCEDE5;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(8,33,30,.06));transition:stroke .15s,filter .15s}
-  .ig-node.hi .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 8px 18px rgba(8,33,30,.14))}
+  .ig-chip{stroke:#DCD3C0;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(60,40,10,.06));transition:stroke .15s,filter .15s}
+  .ig-node.hi .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 8px 18px rgba(60,40,10,.14))}
   .ig-node.dim{opacity:.22;transition:opacity .15s}
   .ig-lab{pointer-events:none;font-size:11.5px;font-family:'DM Sans',system-ui,sans-serif}
   .ig-sub{pointer-events:none;font-size:9px;font-family:'JetBrains Mono',monospace}
   /* lens states: mut = dimmed by an AI highlight lens (independent of hover dim);
      hit = matched by the active lens — stronger border + soft glow */
   .ig-node.mut{opacity:.28;transition:opacity .15s}
-  .ig-node.hit .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 0 7px rgba(8,107,84,.35)) drop-shadow(0 4px 10px rgba(8,33,30,.08))}
+  .ig-node.hit .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 0 7px rgba(8,107,84,.35)) drop-shadow(0 4px 10px rgba(60,40,10,.08))}
   .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace}
   /* right-hand AI dock */
   #ig-dock{transition:width .25s cubic-bezier(.22,.61,.36,1)}
   .ig-lens{transition:background .15s,border-color .15s,color .15s}
 
-  .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#EAF6F1;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
-  .field:hover{background:#DCF0E7;}
+  .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#E4EFE7;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
+  .field:hover{background:#D9E8DD;}
   .field:focus{background:#fff;border-bottom-color:#0B7A5F;box-shadow:0 2px 0 0 #0B7A5F,0 0 0 3px rgba(11,122,95,.12);}
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
-  .field:disabled{color:#0A3B32;background:transparent;border-bottom:1.5px solid #CFEAE0;-webkit-text-fill-color:#0A3B32;opacity:1;cursor:default;font-weight:600;}
+  .field:disabled{color:#0A3B32;background:transparent;border-bottom:1.5px solid #C6DED0;-webkit-text-fill-color:#0A3B32;opacity:1;cursor:default;font-weight:600;}
 
   .scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
-  .scroll-thin::-webkit-scrollbar-thumb{background:#CFEAE0;border-radius:8px;}
+  .scroll-thin::-webkit-scrollbar-thumb{background:#D6CFBF;border-radius:8px;}
   .scroll-thin::-webkit-scrollbar-track{background:transparent;}
 
   .live-dot{position:relative;}
@@ -133,10 +142,10 @@
   .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
   @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
 
-  /* Icon-rail nav (light theme) */
-  .nav-item{color:#7C8983;}
-  .nav-item:hover{color:#075444;background:#F1F7F4;}
-  .nav-item.active{background:#EAF6F1;color:#075444;}
+  /* Icon-rail nav (warm light theme) */
+  .nav-item{color:#8a7d6a;}
+  .nav-item:hover{color:#075444;background:#F3EEE4;}
+  .nav-item.active{background:#E4EFE7;color:#075444;}
   .nav-item.active .nav-rail{opacity:1;}
   @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;} html{scroll-behavior:auto;} }
 
@@ -155,13 +164,13 @@
   .scan-pulse{animation:scanPulse 1s ease infinite;}
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 
-  .mlink{stroke:#C9D8D0;stroke-width:1.4;fill:none;opacity:.6;transition:stroke .15s,opacity .15s,stroke-width .15s;}
+  .mlink{stroke:#CDC2AB;stroke-width:1.4;fill:none;opacity:.6;transition:stroke .15s,opacity .15s,stroke-width .15s;}
   .mlink.hi{stroke:#0B7A5F;opacity:1;stroke-width:2.2;}
   .mlink.dim{opacity:.08;}
-  .mlabel{fill:#5c7a6e;font-size:9.5px;font-family:'JetBrains Mono',monospace;pointer-events:none;opacity:0;transition:opacity .15s;}
+  .mlabel{fill:#6B5F4B;font-size:9.5px;font-family:'JetBrains Mono',monospace;pointer-events:none;opacity:0;transition:opacity .15s;}
   .mlabel.show{opacity:1;}
   .mnode{cursor:pointer;}
-  .mnode .chipbg{fill:#fff;stroke:#CFEAE0;stroke-width:1.4;transition:stroke .15s;}
+  .mnode .chipbg{fill:#FDFAF6;stroke:#DCD3C0;stroke-width:1.4;transition:stroke .15s;}
   .mnode.hi .chipbg{stroke:#0B7A5F;stroke-width:2;}
   .mnode.sel .chipbg{stroke:#C79A3E;stroke-width:2.4;}
   .mnode.dim{opacity:.18;transition:opacity .15s;}
@@ -625,7 +634,7 @@ function renderAuth(mode){
           <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
         </div>
       </div>
-      <div class="bg-white rounded-[20px] border border-line shadow-[0_24px_48px_-20px_rgba(8,33,30,.35)] p-7">${inner}</div>
+      <div class="bg-white rounded-[20px] border border-line shadow-[0_24px_48px_-20px_rgba(60,40,10,.35)] p-7">${inner}</div>
       <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
@@ -1198,7 +1207,7 @@ function exportPDF(c){
     // The original file is a separate attachment; print a signing certificate.
     const u=c.upload||{};
     bodyHtml=`
-      <div style="border:1px solid #CFEAE0;border-radius:10px;padding:16px;margin-bottom:16px;">
+      <div style="border:1px solid #D6CFBF;border-radius:10px;padding:16px;margin-bottom:16px;">
         <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
@@ -1231,8 +1240,8 @@ function exportPDF(c){
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       ${bodyHtml}
-      ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
-      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #D6CFBF;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
+      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #D6CFBF;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
@@ -1311,7 +1320,7 @@ function renderDashboard(){
 
   const kpis=[
     {label:'Contracts under management', val:Number(countAll).toLocaleString('en-KE'), ic:'file',  bg:'#EEF2F0', color:'#5B6B64', num:'#08211E', go:{stage:'all'}},
-    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#EAF6F1', color:'#086B54', num:'#086B54', go:{stage:'all',sort:'value'}},
+    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#E4EFE7', color:'#086B54', num:'#086B54', go:{stage:'all',sort:'value'}},
     {label:'Awaiting counterparty',      val:Number(m.pending).toLocaleString('en-KE'),ic:'clock', bg:'#F0E6CF', color:'#8A5E1B', num:'#B0791F', go:{stage:'Under Review'}},
     {label:'Expiring within 90 days',    val:Number(expiring.length).toLocaleString('en-KE'), ic:'calendar', bg:'#F0E6CF', color:'#8A5E1B', num:'#B0791F', go:{stage:'Signed',sort:'expiry'}},
     {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A', num:'#C0392B', go:{stage:'all'}},
@@ -1336,7 +1345,7 @@ function renderDashboard(){
 
   // donut: 88px conic-gradient ring with a white 11px-inset inner circle (per spec)
   const donut=(count,pct,color)=>{ const deg=(Math.min(100,Math.max(0,pct))*3.6).toFixed(1);
-    return `<div class="relative shrink-0" style="width:88px;height:88px;border-radius:9999px;background:conic-gradient(${color} ${deg}deg,#EAF4F0 0deg)">
+    return `<div class="relative shrink-0" style="width:88px;height:88px;border-radius:9999px;background:conic-gradient(${color} ${deg}deg,#E4DDD2 0deg)">
       <div class="absolute inset-[11px] rounded-full bg-white grid place-content-center text-center">
         <div class="font-display font-700 leading-none" style="font-size:22px;color:#08211E">${count}</div>
         <div class="font-mono font-600 mt-1" style="font-size:10px;color:${color}">${pct.toFixed(1)}%</div>
@@ -1999,7 +2008,7 @@ function signatureBlock(c){
     return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
       <div class="flex items-start gap-4">
-        <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(8,33,30,.18))">
+        <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(60,40,10,.18))">
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
@@ -2092,7 +2101,7 @@ function renderWorkspace(){
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
-          <article class="bg-white rounded-[4px] border border-brand-100/60 shadow-[0_24px_60px_-30px_rgba(8,33,30,.35),0_2px_6px_rgba(8,33,30,.06)] p-7 lg:p-10" id="doc-canvas">${docBody(c)}</article>
+          <article class="bg-white rounded-[4px] border border-brand-100/60 shadow-[0_24px_60px_-30px_rgba(60,40,10,.35),0_2px_6px_rgba(60,40,10,.06)] p-7 lg:p-10" id="doc-canvas">${docBody(c)}</article>
           <div class="h-8"></div>
         </div>
       </section>
@@ -2648,7 +2657,7 @@ function makeIntelGraph(model){
     g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
-    rect.setAttribute('fill', n.kind==='hub'?'#08211E':'#ffffff');
+    rect.setAttribute('fill', n.kind==='hub'?'#08211E':'#FDFAF6');
     g.appendChild(rect);
     if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
@@ -2658,12 +2667,12 @@ function makeIntelGraph(model){
     lab.textContent = n.label.length>24?n.label.slice(0,23)+'…':n.label; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#7C8983'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+      sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#8a7d6a'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     if(n.badge){ // gold pill pinned to the chip's top-right corner (AI annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
       br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
-      br.setAttribute('fill','#C79A3E'); br.setAttribute('stroke','#fff'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
+      br.setAttribute('fill','#C79A3E'); br.setAttribute('stroke','#FDFAF6'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
       const bl=document.createElementNS('http://www.w3.org/2000/svg','text');
       bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#231A05');
       bl.textContent=bt; g.appendChild(bl); }
@@ -2792,10 +2801,10 @@ function renderIntel(){
     <div class="relative flex-1 min-h-0 bg-canvas flex">
       <div class="relative flex-1 min-w-0">
         <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
-          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C6DCCB"></path></marker>
+          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#CDC2AB"></path></marker>
           <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#086B54"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
-        <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(8,33,30,.3)]"></div>
+        <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
       </div>
       <aside id="ig-dock" class="shrink-0 bg-white border-l border-hair flex flex-col min-h-0 overflow-hidden" style="width:${intel.dockOpen?380:46}px"></aside>
@@ -3816,7 +3825,7 @@ function regRowsHtml(cs){
   const shown=Math.min(cs.length, R.shown||REG_PAGE);
   const ini=regOwnerInitials();
   return cs.slice(0,shown).map((c,i)=>`
-    <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(8,33,30,.05);animation-delay:${Math.min(i,14)*22}ms">
+    <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.05);animation-delay:${Math.min(i,14)*22}ms">
       <td class="pl-5 pr-1 py-3.5 w-8 align-middle" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></td>
       <td class="px-2 py-3.5">
         <div class="min-w-0"><span class="block text-[14.5px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/65 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'—'}</span></div>
@@ -3827,7 +3836,7 @@ function regRowsHtml(cs){
       <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum text-ink/65">${c.lastAction||'—'}</td>
       <td class="px-2 pr-5 py-3.5 text-right">${statusChip(c.status)}</td>
     </tr>`).join('') + (cs.length>shown
-      ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(8,33,30,.06)">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(60,40,10,.06)">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
@@ -3913,7 +3922,7 @@ function renderRegister(){
         <div class="flex-1 min-h-0 overflow-auto scroll-thin">
           <table class="w-full text-left">
             <thead class="sticky top-0 z-10">
-              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 var(--sh1,rgba(8,33,30,.06)),0 1px 0 rgba(8,33,30,.05)">
+              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 var(--sh1,rgba(60,40,10,.06)),0 1px 0 rgba(60,40,10,.05)">
                 <th class="pl-5 pr-1 py-3 w-8"><input id="reg-selall" type="checkbox" class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></th>
                 <th class="px-2 py-3 font-700">Contract</th>
                 <th class="px-2 py-3 font-700 hidden md:table-cell">Type</th>
