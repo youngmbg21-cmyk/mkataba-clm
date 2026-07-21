@@ -177,8 +177,8 @@
 
 <!-- ================= AI ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 bg-brand-900/30 backdrop-blur-[2px] z-40"></div>
-<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[420px] bg-white z-50 flex flex-col border-l border-brand-100 shadow-2xl shadow-brand-900/20">
-  <header class="px-5 py-4 border-b border-brand-100/70 flex items-center gap-3 bg-brand-900 text-white">
+<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[430px] bg-brand-50 z-50 flex flex-col border-l border-inputln shadow-2xl shadow-brand-900/20">
+  <header class="px-5 py-4 flex items-center gap-3 bg-ink text-white">
     <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">HaTi AI</div>
@@ -191,10 +191,10 @@
 
   <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5"></div>
 
-  <footer class="px-5 pb-5 pt-2 border-t border-brand-100/70">
+  <footer class="px-5 pb-5 pt-3 border-t border-inputln">
     <div class="flex items-center gap-2">
-      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-brand-100 bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
-      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-900 text-white hover:bg-brand-800 transition" data-ic-big="send"></button>
+      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition" data-ic-big="send"></button>
     </div>
   </footer>
 </section>
@@ -1958,13 +1958,13 @@ function renderWorkspace(){
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-0 lg:h-[calc(100vh-61px)]">
-      <section class="overflow-y-auto scroll-thin border-r border-brand-100/70 bg-canvas">
+      <section class="overflow-y-auto scroll-thin border-r border-hair bg-docbg">
         <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
-          <article class="bg-white rounded-2xl border border-brand-100 shadow-sm shadow-brand-900/5 p-7 lg:p-9" id="doc-canvas">${docBody(c)}</article>
+          <article class="bg-white rounded-[4px] border border-brand-100/60 shadow-[0_24px_60px_-30px_rgba(8,33,30,.35),0_2px_6px_rgba(8,33,30,.06)] p-7 lg:p-10" id="doc-canvas">${docBody(c)}</article>
           <div class="h-8"></div>
         </div>
       </section>
