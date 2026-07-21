@@ -27,6 +27,10 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS shares (
     token TEXT PRIMARY KEY, payload TEXT NOT NULL,
     response TEXT, applied INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS engagement (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, contract_id TEXT NOT NULL, token TEXT,
+    kind TEXT NOT NULL, at TEXT NOT NULL, ip TEXT, ua TEXT);
+  CREATE INDEX IF NOT EXISTS idx_engagement_contract ON engagement(contract_id);
   CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY, name TEXT, mime TEXT, data TEXT NOT NULL, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS outbox (
@@ -620,7 +624,20 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT payload, response FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  // E5-T4 engagement: log every open (server-side only, no third-party analytics)
+  try {
+    const payload = JSON.parse(s.payload);
+    const cid = payload && payload.contract && payload.contract.id;
+    if (cid) db.prepare('INSERT INTO engagement (contract_id,token,kind,at,ip,ua) VALUES (?,?,?,?,?,?)')
+      .run(cid, req.params.token, 'open', now(), clientIp(req), String(req.get('user-agent') || '').slice(0, 300));
+  } catch (_) {}
   res.json({ payload: JSON.parse(s.payload), responded: !!s.response });
+});
+
+// E5-T4: engagement timeline for a contract (owner side)
+app.get('/api/contracts/:id/engagement', auth, (req, res) => {
+  const rows = db.prepare('SELECT kind,at,ip,ua FROM engagement WHERE contract_id=? ORDER BY at DESC LIMIT 100').all(req.params.id);
+  res.json({ events: rows });
 });
 
 // Counterparty signing is verified by an email one-time code.

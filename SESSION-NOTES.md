@@ -5,6 +5,51 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E5 — Approval workflows & multi-signer signing
+
+**Done** (new `js/approvals.js`)
+
+- **E5-T1** — Rule-based approval builder in Settings: "IF condition THEN
+  approver" rules with conditions (value ≥ threshold, folder, type contains,
+  foreign governing law, playbook deviation present) and approvers (any
+  Admin, any Legal, or a named member), each with an order for sequential
+  chains (e.g. Finance then Legal). The legacy single spend-threshold is
+  migrated into a default rule automatically.
+- **E5-T2** — Approval run: `approvalState()` evaluates matching rules into
+  an ordered chain, exposes the next pending step and whether the current
+  user may approve it; signing is blocked until every step is approved. The
+  workspace sign area shows the chain with per-step status and approve/
+  reject controls. Rebuilds when the value changes (a redline/negotiation
+  voids prior approvals).
+- **E5-T3** — Multiple signers with order: a signer plan
+  (`c.signerPlan[]`, internal or counterparty, sequenced). Internal signers
+  sign in-app in turn; a counterparty turn points to the share link. The
+  freeze + SHA-256 seal is applied only when the final signature lands, and
+  every signer is recorded in `c.signatures` (so the evidence pack lists
+  them all).
+- **E5-T4** — Engagement tracking: a new `engagement` table logs every
+  share-link open (time, IP, user-agent — server-side only, no third-party
+  analytics); `GET /api/contracts/:id/engagement` feeds a "Counterparty
+  activity" timeline in the workspace.
+
+**Seal integrity.** Multi-signer only defers *when* the existing freeze +
+`sealString` hash runs (to the last signer); the freeze/hash logic itself
+is unchanged, and single-signer contracts seal exactly as before. E2's
+pre-sign redline guard still runs.
+
+**Tested.** 14 checks (legacy migration, ruleMatches for value/folder/
+foreignLaw/deviation, two-step sequential chain build + approve + role-
+gated next step, multi-signer nextSigner/allSigned) + a clean-session run
+(add-rule editor → save → workspace approval panel + multi-signer link).
+E0 21-check regression green; `/api/contracts/:id/engagement` auth-gated;
+server boots with the additive `engagement` table; no page errors.
+
+**Definition of Done** — met: a high-value contract with a deviation routes
+through an ordered chain, collects signatures in order, evidence lists
+every signer, and the activity timeline shows opens.
+
+---
+
 ## E4 — Kenya playbook engine + clause library
 
 **Done** (new `js/playbook.js`)

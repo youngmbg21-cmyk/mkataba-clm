@@ -74,20 +74,11 @@ function renderTeam(){
       <div class="grid lg:grid-cols-2 gap-5 items-start">
       <section class="bg-white rounded-2xl elev-2 p-6">
         <div class="flex items-center gap-2 mb-1.5"><span class="text-brand-500">${icon('shield')}</span>
-          <h2 class="font-display font-600 text-ink text-[17px]">Approval gate</h2></div>
-        <p class="text-[13px] text-ink/70 mb-4 leading-relaxed">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
-        ${(()=>{ const cfg=getApprovalCfg(); return `
-        <div class="grid sm:grid-cols-2 gap-3">
-          <label class="block"><span class="text-[12px] font-600 text-ink/70">Approval threshold (KES)</span>
-            <input id="ap-threshold" type="number" value="${cfg.threshold}" ${isAdmin()?'':'disabled'} class="mt-1.5 w-full rounded-xl border border-inputln bg-canvas px-3.5 py-2.5 text-sm tnum outline-none focus:border-brand-600 ${isAdmin()?'':'opacity-60'}"/></label>
-          <label class="block"><span class="text-[12px] font-600 text-ink/70">Who can approve</span>
-            <select id="ap-role" ${isAdmin()?'':'disabled'} class="mt-1.5 w-full rounded-xl border border-inputln bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 ${isAdmin()?'':'opacity-60'}">
-              <option value="admin" ${cfg.approverRole==='admin'?'selected':''}>Admins only</option>
-              <option value="legal" ${cfg.approverRole==='legal'?'selected':''}>Admins &amp; Legal</option>
-            </select></label>
-        </div>
-        ${isAdmin()?`<button id="ap-save" class="mt-4 rounded-xl bg-ink text-white px-4 py-2.5 text-sm font-600 hover:bg-brand-800 transition">Save approval policy</button>`
-          :`<p class="mt-2 text-[11px] text-ink/65">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
+          <h2 class="font-display font-600 text-ink text-[17px]">Approval rules</h2></div>
+        <p class="text-[13px] text-ink/70 mb-4 leading-relaxed">IF a contract matches a condition THEN it needs the named approver before signing. Rules run in order — a lower order number approves first (e.g. Finance then Legal).</p>
+        <div id="approval-rules"></div>
+        ${isAdmin()?`<button id="ar-add" class="mt-3 flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-600 hover:bg-brand-50 transition">${icon('plus','w-3.5 h-3.5')} Add rule</button>`
+          :`<p class="mt-2 text-[11px] text-ink/65">Only an admin can change approval rules.</p>`}
       </section>
 
       <section class="bg-white rounded-2xl elev-2 p-6">
@@ -237,14 +228,8 @@ function renderTeam(){
     } else saveUsers(us.filter(x=>x.id!==u.id));
     toast(`${u.name} removed`); renderTeam();
   }));
-  document.getElementById('ap-save')?.addEventListener('click',()=>{
-    const threshold=Math.max(0, Number(document.getElementById('ap-threshold').value||0));
-    const approverRole=document.getElementById('ap-role').value;
-    state.settings=state.settings||{};
-    state.settings.approval={ threshold, approverRole };
-    saveSettings();
-    toast(threshold>0?`Approval required at ≥ ${fmtKESshort(threshold)}`:'Approvals disabled');
-  });
+  renderApprovalRules();
+  document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
@@ -324,4 +309,69 @@ function openClauseEditor(idx){
   });
 }
 
-Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor});
+/* ---- E5 approval rules builder (Admin) ---- */
+const AR_CONDS=[['value','Value ≥ (KES)'],['folder','Value stream is'],['kind','Type contains'],['foreignLaw','Foreign governing law'],['deviation','Playbook deviation present']];
+function condLabel(cond){
+  switch(cond.type){
+    case 'value': return `Value ${cond.op||'>='} ${fmtKESshort(cond.value)}`;
+    case 'folder': return `Folder = ${(FOLDERS[cond.value]||{}).name||cond.value}`;
+    case 'kind': return `Type contains “${cond.value}”`;
+    case 'foreignLaw': return 'Foreign governing law';
+    case 'deviation': return 'Playbook deviation present';
+    default: return cond.type;
+  }
+}
+function renderApprovalRules(){
+  const host=document.getElementById('approval-rules'); if(!host) return;
+  const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
+  host.innerHTML=rules.length?rules.map((r,i)=>`
+    <div class="rounded-lg border border-line bg-white p-3 mb-2">
+      <div class="flex items-center gap-2">
+        <span class="h-5 w-5 grid place-items-center rounded-full bg-slate-100 text-[10px] font-700 text-ink/60">${r.order||1}</span>
+        <span class="text-[12.5px] text-ink"><b>IF</b> ${condLabel(r.cond)} <b>THEN</b> ${approverLabelOf(r.approver)}</span>
+        ${isAdmin()?`<span class="ml-auto flex gap-2 text-[11px] font-600"><button data-ar-edit="${i}" class="text-brand-600 hover:text-brand-800">edit</button><button data-ar-del="${i}" class="text-rose-500 hover:text-rose-700">remove</button></span>`:''}
+      </div>
+    </div>`).join(''):`<p class="text-[11px] text-ink/55">No approval rules — contracts can be signed without sign-off.</p>`;
+  host.querySelectorAll('[data-ar-edit]').forEach(b=>b.addEventListener('click',()=>openApprovalRuleEditor(Number(b.getAttribute('data-ar-edit')))));
+  host.querySelectorAll('[data-ar-del]').forEach(b=>b.addEventListener('click',()=>{ const rules2=approvalRules().slice(); rules2.splice(Number(b.getAttribute('data-ar-del')),1); saveApprovalRules(rules2); renderApprovalRules(); toast('Rule removed'); }));
+}
+function openApprovalRuleEditor(idx){
+  const rules=approvalRules().slice();
+  const r=idx>=0?JSON.parse(JSON.stringify(rules[idx])):{ id:'r_'+Math.random().toString(36).slice(2,7), order:rules.length+1, cond:{type:'value',op:'>=',value:5000000}, approver:{kind:'role',role:'admin'} };
+  const members=(getUsers()||[]);
+  openModal(`<div class="p-6">
+    <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} approval rule</h3>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Order (lower approves first)</span>
+      <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Condition</span>
+      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${AR_CONDS.map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
+    <div id="ar-condval" class="mb-2.5"></div>
+    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Approver</span>
+      <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">
+        <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>Any Admin</option>
+        <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>Any Legal (or Admin)</option>
+        ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${ROLE_LABEL[m.role]})</option>`).join('')}
+      </select></label>
+    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save rule</button></div>
+  </div>`);
+  const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
+    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Threshold (KES)</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
+    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Value stream</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${f.id}" ${r.cond.value===f.id?'selected':''}>${f.name}</option>`).join('')}</select></label>`;
+    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Type contains</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="e.g. lease" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
+    else h.innerHTML=`<p class="text-[11px] text-ink/55">No extra value needed for this condition.</p>`; };
+  document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
+  document.getElementById('ar-cancel').addEventListener('click',closeModal);
+  document.getElementById('ar-save').addEventListener('click',()=>{
+    const t=document.getElementById('ar-cond').value; const cv=document.getElementById('ar-cv');
+    const cond={type:t}; if(t==='value'){ cond.op='>='; cond.value=Number(cv.value||0); } else if(t==='folder'||t==='kind'){ cond.value=cv.value.trim?cv.value.trim():cv.value; }
+    const ap=document.getElementById('ar-approver').value.split(':');
+    r.order=Math.max(1,Number(document.getElementById('ar-order').value||1)); r.cond=cond;
+    r.approver = ap[0]==='member'?{kind:'member',name:ap.slice(1).join(':')}:{kind:'role',role:ap[1]};
+    r.name = condLabel(cond);
+    if(idx>=0) rules[idx]=r; else rules.push(r);
+    saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast('Rule saved');
+  });
+}
+
+Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel});
