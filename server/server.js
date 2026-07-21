@@ -41,7 +41,9 @@ const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?)
 const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at });
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
+app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
+app.use(express.json({ limit: '15mb' }));
+const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
 
 /* ---------- session handling (httpOnly cookie) ---------- */
 const COOKIE = 'hati_session';
@@ -122,14 +124,27 @@ app.get('/api/bootstrap', auth, (req, res) => {
     me: publicUser(req.user),
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
     data: getStore('data'),
+    version: getSetting('dataVersion') || 0,
   });
 });
 
+// Optimistic locking: reject a write based on a stale version so concurrent
+// edits can't silently clobber each other.
 app.put('/api/data', auth, editor, (req, res) => {
   const d = req.body || {};
   if (!Array.isArray(d.contracts)) return res.status(400).json({ error: 'contracts array required' });
-  setStore('data', d);
-  res.json({ ok: true });
+  const current = getSetting('dataVersion') || 0;
+  const base = Number(d.baseVersion || 0);
+  if (base !== current) return res.status(409).json({ error: 'Version conflict — data changed on the server', version: current });
+  const next = current + 1;
+  setStore('data', { uid: d.uid, contracts: d.contracts, settings: d.settings || {} });
+  setSetting('dataVersion', next);
+  res.json({ ok: true, version: next });
+});
+
+// Server-stamped signing metadata (IP + authoritative time) for the evidence record.
+app.post('/api/sign-meta', auth, (req, res) => {
+  res.json({ ip: clientIp(req), at: now() });
 });
 
 /* ---------- team management ---------- */
