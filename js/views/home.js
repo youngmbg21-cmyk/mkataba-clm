@@ -165,10 +165,11 @@ function renderDashboard(){
         <h2 class="font-display font-600 text-brand-900">Attention snapshot</h2>
         <p class="text-xs text-brand-800/70 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
         ${(()=>{ const od=overdueObligationCount(), rd=renewalDecisionsDue(30).length;
-          if(!od&&!rd) return '';
+          const pbDev=state.contracts.reduce((s,c)=>{ const sm=window.deviationSummary?deviationSummary(c):null; return s+(sm?sm.dev+sm.miss:0); },0);
+          if(!od&&!rd&&!pbDev) return '';
           return `<button data-goto-calendar class="w-full mb-4 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/8 px-4 py-2.5 text-left hover:bg-gold-500/12 transition">
             <span class="text-gold-600">${icon('calendar','w-4 h-4')}</span>
-            <span class="text-[13px] text-ink/80">${[od?`<b class="text-rose-600">${od}</b> obligation${od===1?'':'s'} overdue`:'', rd?`<b class="text-gold-600">${rd}</b> renewal decision${rd===1?'':'s'} due in 30 days`:''].filter(Boolean).join(' · ')}</span>
+            <span class="text-[13px] text-ink/80">${[od?`<b class="text-rose-600">${od}</b> obligation${od===1?'':'s'} overdue`:'', rd?`<b class="text-gold-600">${rd}</b> renewal decision${rd===1?'':'s'} due in 30 days`:'', pbDev?`<b class="text-gold-600">${pbDev}</b> playbook deviation${pbDev===1?'':'s'}`:''].filter(Boolean).join(' · ')}</span>
             <span class="ml-auto text-[11px] font-600 text-brand-600">Open calendar →</span>
           </button>`; })()}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">${snapHtml}</div>

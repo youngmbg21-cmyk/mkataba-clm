@@ -125,6 +125,15 @@ function renderTeam(){
       </section>`:''}
 
       <section class="bg-white rounded-2xl elev-2 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('scroll')}</span>
+          <h2 class="font-display font-600 text-ink">Clause library &amp; playbook</h2></div>
+        <p class="text-xs text-ink/70 mb-3">Your standard clauses (preferred and fallback wording) and the Kenya FMCG playbook that the AI review checks incoming paper against. ${isAdmin()||currentUser()?.role==='legal'?'Edit the library below; the playbook ships seeded per contract type.':'Only Admin or Legal can edit these.'}</p>
+        <div id="clause-lib" class="space-y-2"></div>
+        ${(isAdmin()||currentUser()?.role==='legal')?`<button id="cl-add" class="mt-3 flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-600 hover:bg-brand-50 transition">${icon('plus','w-3.5 h-3.5')} Add clause</button>`:''}
+        <div id="playbook-view" class="mt-4 pt-4 border-t border-hair"></div>
+      </section>
+
+      <section class="bg-white rounded-2xl elev-2 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-ink">Data &amp; backup</h2></div>
         <p class="text-xs text-brand-800/70 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
@@ -172,6 +181,7 @@ function renderTeam(){
   }
 
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
+  renderClauseLibrary();
   // AI engine config
   if(API_MODE()){
     const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
@@ -261,4 +271,57 @@ function renderTeam(){
   setActiveNav('team');
 }
 
-Object.assign(window,{renderTeam});
+/* ---- E4 clause library editor + playbook viewer (Admin/Legal) ---- */
+function saveClauseLibrary(lib){ state.settings=state.settings||{}; state.settings.clauseLibrary=lib; saveSettings(); }
+function renderClauseLibrary(){
+  const host=document.getElementById('clause-lib'); if(!host) return;
+  const canEditLib=isAdmin()||currentUser()?.role==='legal';
+  const lib=clauseLibrary();
+  host.innerHTML=lib.map((cl,i)=>`
+    <div class="rounded-lg border border-line bg-white p-3">
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
+        <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>
+        ${canEditLib?`<span class="ml-auto flex gap-2 text-[11px] font-600">
+          <button data-cl-edit="${i}" class="text-brand-600 hover:text-brand-800">edit</button>
+          <button data-cl-del="${i}" class="text-rose-500 hover:text-rose-700">remove</button></span>`:''}
+      </div>
+      <div class="mt-1 text-[11px] text-ink/60"><b>Preferred:</b> ${(cl.preferred||'').slice(0,140).replace(/</g,'&lt;')}${(cl.preferred||'').length>140?'…':''}</div>
+    </div>`).join('')||`<p class="text-[11px] text-ink/55">No clauses in the library.</p>`;
+  host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
+  host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast('Clause removed'); }));
+  document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
+  // playbook viewer
+  const pv=document.getElementById('playbook-view');
+  if(pv){ const pb=playbook();
+    pv.innerHTML=`<div class="text-[12px] font-600 text-ink mb-2">Playbook positions by contract type</div>`+
+      Object.entries(pb).filter(([k])=>k!=='_default').map(([k,p])=>{ const rp=resolvePlaybook(k);
+        return `<div class="mb-2 rounded-lg border border-line bg-white p-2.5">
+          <div class="text-[11.5px] font-600 text-ink mb-1">${p.label||k}</div>
+          <div class="flex flex-wrap gap-1">${rp.positions.map(pos=>`<span class="text-[9.5px] font-mono rounded px-1.5 py-0.5 ${pos.pos==='required'?'bg-rose-50 text-rose-600':pos.pos==='forbidden'?'bg-rose-50 text-rose-600':'bg-brand-50 text-brand-600'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
+          ${rp.ranges.map(rg=>`<span class="text-[9.5px] font-mono rounded px-1.5 py-0.5 bg-gold-500/12 text-gold-600">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
+        </div>`; }).join('')+`<p class="text-[10px] text-ink/50 mt-1">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.</p>`;
+  }
+}
+function openClauseEditor(idx){
+  const lib=clauseLibrary().slice();
+  const cl=idx>=0?{...lib[idx]}:{ id:'cl_'+Math.random().toString(36).slice(2,7), category:'', name:'', preferred:'', fallback:'', guidance:'' };
+  const fld=(k,label,ta)=>ta
+    ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><textarea id="ce-${k}" rows="2" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(cl[k]||'').replace(/</g,'&lt;')}</textarea></label>`
+    : `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${label}</span><input id="ce-${k}" value="${(cl[k]||'').replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>`;
+  openModal(`<div class="p-6">
+    <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
+    ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
+    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="ce-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save</button></div>
+  </div>`);
+  document.getElementById('ce-cancel').addEventListener('click',closeModal);
+  document.getElementById('ce-save').addEventListener('click',()=>{
+    ['category','name','preferred','fallback','guidance'].forEach(k=>cl[k]=document.getElementById('ce-'+k).value.trim());
+    if(!cl.name||!cl.category){ toast('Category and name are required','err'); return; }
+    if(idx>=0) lib[idx]=cl; else lib.push(cl);
+    saveClauseLibrary(lib); closeModal(); renderClauseLibrary(); toast('Clause saved');
+  });
+}
+
+Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor});

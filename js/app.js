@@ -7,6 +7,7 @@ import './api.js';
 import './metadata.js';
 import './versioning.js';
 import './obligations.js';
+import './playbook.js';
 import './views/calendar.js';
 import './views/portal.js';
 import './views/home.js';
