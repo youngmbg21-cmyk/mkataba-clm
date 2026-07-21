@@ -1214,58 +1214,103 @@ function wireOpens(root=document){
    VIEW: DASHBOARD (lean — attention queue + folders, no giant table)
    ============================================================ */
 function renderDashboard(){
+  const cs=state.contracts;
   const m=metrics();
+  const countAll = (state.serverStats && state.serverStats.total!=null) ? state.serverStats.total : cs.length;
+
+  // ---- per-stage counts & values (design "Portfolio by stage") ----
+  const STAGE_DEF=[
+    {k:'Draft',        label:'Drafting',  color:'#9A9484'},
+    {k:'Under Review', label:'In Review', color:'#C79A3E'},
+    {k:'Signed',       label:'Executed',  color:'#086B54'},
+    {k:'Declined',     label:'Closed',    color:'#B23A2E'},
+  ];
+  const valOf = arr => arr.reduce((s,c)=>s+Number(c.value||0),0);
+  const stages = STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
+  const stageTotal = stages.reduce((s,x)=>s+x.n,0)||1;
+
+  // ---- attention slices ----
+  const expiring = cs.filter(c=>c.expiry && c.status!=='Declined')
+    .map(c=>({c, d:daysUntil(c.expiry)})).filter(x=>x.d>=0 && x.d<=90).sort((a,b)=>a.d-b.d);
+  const highRisk = cs.map(c=>({c, o:openFindings(c).filter(f=>f.sev==='high').length, r:riskScore(c)}))
+    .filter(x=>x.o>0).sort((a,b)=>b.r-a.r);
+  const idleOf = c => Math.max(0, Math.floor((Date.now()-new Date(c.lastAction))/86400000));
+  const waiting = cs.filter(c=>c.status==='Under Review')
+    .map(c=>({c, idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
+
   const kpis=[
-    {label:'Active value',val:fmtKESshort(m.totalValue),ic:'coins',cls:'text-brand-500'},
-    {label:'Pending counterparty',val:m.pending,ic:'clock',cls:'text-gold-500'},
-    {label:'Signed this month',val:m.signed,ic:'seal',cls:'text-brand-500'},
-    {label:'Declined / expired',val:m.declined,ic:'ban',cls:'text-rose-500'},
+    {label:'Contracts under management', val:Number(countAll).toLocaleString('en-KE'), ic:'file',  bg:'#EEF2F0', color:'#5B6B64'},
+    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#EAF6F1', color:'#086B54'},
+    {label:'Awaiting counterparty',      val:Number(m.pending).toLocaleString('en-KE'),ic:'clock', bg:'#F0E6CF', color:'#8A5E1B'},
+    {label:'Expiring within 90 days',    val:Number(expiring.length).toLocaleString('en-KE'), ic:'history', bg:'#F0E6CF', color:'#8A5E1B'},
+    {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A'},
   ];
   const kpiHtml = kpis.map(k=>`
-    <div class="flex items-center gap-3 bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
-      <span class="h-9 w-9 grid place-items-center rounded-lg bg-canvas border border-brand-100 ${k.cls}">${icon(k.ic)}</span>
-      <div class="leading-tight">
-        <div class="font-display font-700 text-xl tracking-tight text-brand-900">${k.val}</div>
-        <div class="text-[11px] text-brand-800/50">${k.label}</div>
-      </div>
+    <div class="bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
+      <span class="h-8 w-8 grid place-items-center rounded-lg mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-4 h-4')}</span>
+      <div class="font-display font-700 text-2xl tracking-tight text-brand-900 leading-none">${k.val}</div>
+      <div class="text-[11px] text-brand-800/50 mt-1">${k.label}</div>
     </div>`).join('');
 
-  // attention queue: drafts + under review, newest action first, cap 5
-  const attention = state.contracts
-    .filter(c=>c.status==='Draft'||c.status==='Under Review')
-    .slice(0,5);
-
-  const byFolder={}; (state.serverStats?.byFolder||[]).forEach(r=>byFolder[r.folder]=r);
-  const folderCards = Object.values(FOLDERS).map(f=>{
-    const sf=byFolder[f.id];                       // server aggregate (accurate at scale)
-    const cs=folderContracts(f.id);
-    const count = sf? sf.n : cs.length;
-    const val = sf? sf.val : cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
-    const pending = sf? sf.pending : cs.filter(c=>c.status==='Under Review').length;
-    return `
-    <button data-folder="${f.id}" class="group text-left bg-white rounded-2xl border border-brand-100/70 p-5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-900/5 hover:-translate-y-0.5 transition-all">
-      <div class="flex items-start justify-between">
-        <span class="h-10 w-10 grid place-items-center rounded-xl bg-brand-900 text-gold-400">${icon(f.ic,'w-5 h-5')}</span>
-        <span class="text-brand-300 group-hover:text-brand-500 transition">${icon('chevR')}</span>
-      </div>
-      <div class="mt-3 font-display font-600 text-brand-900">${f.name}</div>
-      <div class="text-xs text-brand-800/50 mt-0.5">${f.desc}</div>
-      <div class="mt-4 pt-3 border-t border-brand-100/60 flex items-center gap-4 text-xs">
-        <span class="font-mono text-brand-900 font-medium">${count} <span class="text-brand-800/45 font-sans font-normal">contracts</span></span>
-        <span class="font-mono text-brand-900 font-medium">${fmtKESshort(val)}</span>
-        ${pending?`<span class="ml-auto inline-flex items-center gap-1 text-gold-600 font-medium">${icon('clock','w-3.5 h-3.5')}${pending} pending</span>`:''}
-      </div>
-    </button>`;
-  }).join('');
-
-  const templateChips = Object.values(TEMPLATES).map(t=>`
-    <button data-new="${t.id}" class="group flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-md hover:shadow-brand-900/5 px-3.5 py-2.5 transition-all text-left">
-      <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
+  // segmented stage bar
+  const segBar = stages.map(s=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color}" class="h-2.5 first:rounded-l-full last:rounded-r-full"></span>`).join('');
+  const stageCards = stages.map(s=>`
+    <button data-stage="${s.k}" class="group flex items-center justify-between gap-2 rounded-xl border border-brand-100/70 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition text-left">
       <span class="min-w-0">
-        <span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span>
-        <span class="block text-[10px] text-brand-800/45">Template ${t.id} · opens in workspace</span>
+        <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full" style="background:${s.color}"></span><span class="text-sm font-medium text-brand-900">${s.label}</span></span>
+        <span class="block mt-1 text-[11px] font-mono text-brand-800/50">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
       </span>
-      <span class="ml-1 text-brand-400 group-hover:text-brand-600 transition">${icon('plus','w-3.5 h-3.5')}</span>
+      <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
+    </button>`).join('');
+
+  // donut helper
+  const donut=(count,pct,color)=>{ const r=30,c=2*Math.PI*r,off=c*(1-Math.min(1,pct/100));
+    return `<svg width="76" height="76" viewBox="0 0 76 76" class="shrink-0">
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="#ECE7DC" stroke-width="7"/>
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 38 38)"/>
+      <text x="38" y="37" text-anchor="middle" font-size="17" font-weight="700" fill="#08211E" style="font-family:'DM Sans',sans-serif">${count}</text>
+      <text x="38" y="50" text-anchor="middle" font-size="9" font-weight="600" fill="${color}">${pct.toFixed(1)}%</text>
+    </svg>`; };
+  const snap=[
+    {donut:donut(expiring.length, countAll?expiring.length/countAll*100:0, '#C79A3E'), title:'Expiring ≤ 90 days', sub:`${expiring.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {donut:donut(highRisk.length, countAll?highRisk.length/countAll*100:0, '#B23A2E'), title:'High-risk findings', sub:`${highRisk.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {donut:donut(m.pending, countAll?m.pending/countAll*100:0, '#086B54'), title:'Awaiting counterparty', sub:`${m.pending} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+  ];
+  const snapHtml = snap.map(s=>`
+    <div class="flex items-center gap-4 rounded-xl border border-brand-100/60 bg-canvas/40 px-4 py-4">
+      ${s.donut}
+      <div class="min-w-0"><div class="text-sm font-medium text-brand-900">${s.title}</div><div class="text-[11px] text-brand-800/50 mt-0.5">${s.sub}</div></div>
+    </div>`).join('');
+
+  // attention column row (name + meta + right tag)
+  const attnRow=(c,tag,tagColor)=>`
+    <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-50/40 transition border-b border-brand-100/50 last:border-0">
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
+        <span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''}</span>
+      </span>
+      <span class="shrink-0 text-[11px] font-mono font-semibold whitespace-nowrap" style="color:${tagColor}">${tag}</span>
+    </button>`;
+  const emptyCol = msg => `<div class="px-4 py-8 text-center text-xs text-brand-800/45">${msg}</div>`;
+  const col=(icon_,accent,title,total,rows,empty)=>`
+    <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-brand-100/60">
+        <div class="flex items-center gap-2"><span style="color:${accent}">${icon(icon_)}</span><h3 class="font-display font-600 text-sm text-brand-900">${title}</h3></div>
+        <span class="text-[11px] font-mono text-brand-800/40">${total} total</span>
+      </div>
+      <div class="flex-1">${rows||empty}</div>
+      <button data-view-intel class="text-[11px] font-medium text-brand-600 hover:text-brand-800 px-4 py-2.5 border-t border-brand-100/60 text-left transition">View all in Portfolio Intelligence →</button>
+    </section>`;
+
+  const expRows = expiring.slice(0,5).map(x=>attnRow(x.c, x.d===0?'today':'in '+x.d+'d', x.d<=14?'#9A342A':'#8A5E1B')).join('');
+  const riskRows = highRisk.slice(0,5).map(x=>attnRow(x.c, x.o+' high', '#9A342A')).join('');
+  const waitRows = waiting.slice(0,5).map(x=>attnRow(x.c, x.idle+'d idle', x.idle>=30?'#9A342A':'#8A5E1B')).join('');
+
+  // New-contract menu (templates + upload)
+  const menuItems = Object.values(TEMPLATES).map(t=>`
+    <button data-new="${t.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
+      <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
+      <span class="min-w-0"><span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span><span class="block text-[10px] text-brand-800/45">Template ${t.id}</span></span>
     </button>`).join('');
 
   document.getElementById('content').innerHTML = `
@@ -1273,89 +1318,70 @@ function renderDashboard(){
     <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
       <div class="px-8 py-4 flex items-center justify-between gap-4">
         <div>
-          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Dashboard</h1>
-          <p class="text-xs text-brand-800/50">Jambo, ${(currentUser()?.name||FIRST_PARTY).split(' ')[0]} — here's what needs ${FIRST_PARTY} today.</p>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Portfolio</h1>
+          <p class="text-xs text-brand-800/50 font-mono">${Number(countAll).toLocaleString('en-KE')} contracts under management · ${fmtKESshort(m.totalValue)} active</p>
         </div>
-        <button id="topbar-ai" class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
-          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI — search or research contracts…</span>
-          <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
-        </button>
+        <div class="flex items-center gap-3">
+          <button id="topbar-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
+            ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Search contracts, or ask AI…</span>
+            <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
+          </button>
+          <div class="relative">
+            <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
+            <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/45 font-semibold">Generate from template</div>
+              ${menuItems}
+              <div class="mt-1 pt-1 border-t border-brand-100/60">
+                <button id="menu-upload" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-gold-500/10 px-2.5 py-2 transition text-left">
+                  <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload')}</span>
+                  <span class="min-w-0"><span class="block text-xs font-semibold text-brand-900">Upload a received contract</span><span class="block text-[10px] text-brand-800/45">Their paper — review, scan &amp; sign</span></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <div class="px-8 py-6 max-w-[1200px] space-y-6">
-
+    <div class="px-8 py-6 max-w-[1320px] space-y-6">
       <!-- KPI strip -->
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">${kpiHtml}</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">${kpiHtml}</div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
-        <div class="space-y-6">
-          <!-- Needs attention -->
-          <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/60">
-              <div class="flex items-center gap-2">
-                <span class="text-gold-500">${icon('alert')}</span>
-                <h2 class="font-display font-600 text-brand-900">Needs your attention</h2>
-              </div>
-              <span class="text-[11px] font-mono text-brand-800/40">${m.drafts} drafts · ${m.pending} in review</span>
-            </div>
-            <div>
-              ${attention.length ? attention.map(c=>contractRow(c,{showFolder:true})).join('') :
-                `<div class="px-5 py-8 text-center text-sm text-brand-800/50">All clear — nothing waiting on you. Generate a contract to get started.</div>`}
-            </div>
-          </section>
-
-          <!-- Folders -->
-          <section>
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="font-display font-600 text-brand-900">Folders</h2>
-              <span class="text-[11px] text-brand-800/40">Contracts are filed automatically by agreement type</span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">${folderCards}</div>
-          </section>
+      <!-- Portfolio by stage -->
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-display font-600 text-brand-900">Portfolio by stage</h2>
+          <button data-view-intel class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">Open Portfolio Intelligence →</button>
         </div>
+        <div class="flex w-full overflow-hidden rounded-full mb-4 bg-brand-100/40">${segBar}</div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">${stageCards}</div>
+      </section>
 
-        <!-- Right rail -->
-        <aside class="space-y-4">
-          <div class="rounded-2xl bg-brand-900 text-white p-5">
-            <div class="flex items-center gap-2">
-              <span class="text-gold-400">${icon('sparkle')}</span>
-              <h3 class="font-display font-600">HaTi AI</h3>
-            </div>
-            <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
-            <div class="mt-3 space-y-1.5">
-              ${['What is pending counterparty action?','Total value of signed contracts','Summarize the Naivas listing agreement'].map(q=>`
-                <button data-ai-q="${q}" class="w-full text-left text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 transition text-brand-100/90">"${q}"</button>`).join('')}
-            </div>
-            <button id="rail-ai-open" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-gold-500 text-brand-900 py-2.5 text-sm font-semibold hover:brightness-105 transition">${icon('sparkle')} Open assistant</button>
-          </div>
+      <!-- Attention snapshot -->
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <h2 class="font-display font-600 text-brand-900">Attention snapshot</h2>
+        <p class="text-xs text-brand-800/50 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">${snapHtml}</div>
+      </section>
 
-          <div class="rounded-2xl border border-brand-100/70 bg-white p-5">
-            <h3 class="font-display font-600 text-brand-900 text-sm">Quick create</h3>
-            <p class="text-xs text-brand-800/50 mt-0.5 mb-3">Vetted Kenyan boilerplate templates.</p>
-            <div class="space-y-2">${templateChips}</div>
-            <div class="mt-3 pt-3 border-t border-brand-100/60">
-              <button id="dash-upload" class="group w-full flex items-center gap-2.5 rounded-xl border border-dashed border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 hover:border-gold-500/60 px-3.5 py-2.5 transition-all text-left">
-                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload','w-4 h-4')}</span>
-                <span class="min-w-0">
-                  <span class="block text-xs font-semibold text-brand-900">Upload a received contract</span>
-                  <span class="block text-[10px] text-brand-800/50">Their paper — review, scan &amp; sign it here</span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </aside>
+      <!-- Three attention columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        ${col('history','#8A5E1B','Expiring soon',expiring.length,expRows,emptyCol('Nothing expiring in the next 90 days.'))}
+        ${col('alert','#9A342A','Highest risk',highRisk.length,riskRows,emptyCol('No high-risk findings open.'))}
+        ${col('clock','#086B54','Waiting longest',waiting.length,waitRows,emptyCol('Nothing waiting on a counterparty.'))}
       </div>
     </div>
   </div>`;
 
   wireOpens();
-  document.querySelectorAll('[data-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-folder'))));
+  document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
+  document.querySelectorAll('[data-view-intel]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
-  document.getElementById('dash-upload').addEventListener('click',openUploadModal);
+  const nb=document.getElementById('new-contract-btn'), nm=document.getElementById('new-menu');
+  nb.addEventListener('click',e=>{ e.stopPropagation(); nm.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ if(nm && !nm.classList.contains('hidden') && !nm.contains(e.target) && e.target!==nb) nm.classList.add('hidden'); });
+  document.getElementById('menu-upload').addEventListener('click',openUploadModal);
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
-  document.getElementById('rail-ai-open').addEventListener('click',()=>openAI());
-  document.querySelectorAll('[data-ai-q]').forEach(el=>el.addEventListener('click',()=>openAI(el.getAttribute('data-ai-q'))));
   setActiveNav('dashboard');
 }
 
