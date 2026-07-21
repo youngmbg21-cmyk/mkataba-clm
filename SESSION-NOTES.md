@@ -5,6 +5,54 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E1 — AI metadata extraction on upload ("file it for me")
+
+**Done**
+
+- **E1-T1** — Metadata concept: contracts carry `c.metadata` (JSON within
+  the existing row — additive, works in both modes) with counterparty,
+  contractType, effective/expiry dates, value + currency, renewalType
+  (auto-renew/fixed/evergreen/unknown), noticePeriodDays, governingLaw,
+  paymentTerms, plus a per-field `confidence` map (high/medium/low).
+- **E1-T2** — Extraction on upload: new `POST /api/ai/extract` proxies the
+  document text to Claude with a strict `file_contract` tool (JSON-only,
+  per-field confidence). Client `extractMetadata()` calls it in server
+  mode with a key; otherwise a regex/heuristic fallback
+  (`heuristicExtract`) pulls dates, KES/USD values, governing law, payment
+  terms, notice period and renewal signals — everything else left blank.
+- **E1-T3** — Review-and-confirm panel (`openMetaReview`): every field
+  editable, low-confidence fields highlighted amber; nothing is saved
+  until the human confirms. Wired into the upload flow before the contract
+  is persisted; confirmed values fold back into the contract
+  (`applyMetadata`) and log an audit entry.
+- **E1-T4** — Metadata in the Register: new renewal-type filter and a
+  renewal chip on rows; value/expiry/counterparty sorting already existed;
+  Home KPIs use the real values that extraction now populates.
+- **E1-T5** — Backfill: admin action in Settings ("Extract metadata for
+  existing contracts") that walks uploads lacking confirmed metadata one
+  at a time, each queued through the same review panel before saving.
+
+**Design notes.** Metadata lives in the contract JSON blob, not new SQL
+columns — inherently additive (guardrail 6) and identical in server and
+static mode. The uploader's own typed values seed the extraction at high
+confidence so the AI/heuristic never downgrades what the human already
+stated. The AI-engine Settings card (and thus backfill) is server-mode
+only, matching the existing key-storage design; the heuristic path keeps
+static-mode uploads working with no key.
+
+**Tested.** 8-case heuristic extraction check on realistic Kenyan supply
+text (value, currency, governing law, payment, notice, renewal, expiry,
+confidence map) + review-panel confirm + applyMetadata fold-in + register
+filter presence — all pass, no page errors. Full E0 21-check regression
+suite still green. Server boots; `/api/ai/extract` registered and
+auth-gated (401 unauth). Signing seal untouched.
+
+**Definition of Done** — met: upload → confirm extracted fields → contract
+carries expiry/value/renewal; register filter works; no-key path uses the
+heuristic fallback.
+
+---
+
 ## E0 — Modularize the frontend
 
 **Done**

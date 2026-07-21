@@ -411,6 +411,58 @@ app.post('/api/ai/template', auth, async (req, res) => {
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
+/* ---------- AI metadata extraction (E1 "file it for me") ----------
+   Given the extracted text of a received contract, pull structured fields
+   (counterparty, type, dates, value, renewal terms, governing law, payment
+   terms), each with a confidence level. The human always confirms before it
+   is saved (client review panel); no key -> the client uses its heuristic
+   fallback and never calls this. */
+app.post('/api/ai/extract', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { text } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const today = new Date().toISOString().slice(0, 10);
+  const conf = { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence this field is correct.' };
+  const tool = {
+    name: 'file_contract',
+    description: 'Extract structured metadata from a contract document.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        counterparty: { type: 'string', description: 'The other party (not the client). Empty if unclear.' },
+        contractType: { type: 'string', description: 'e.g. Raw Material Supply, Lease, NDA, Distribution, Professional Services.' },
+        effectiveDate: { type: 'string', description: 'ISO yyyy-mm-dd, or empty.' },
+        expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date, or empty.' },
+        value: { type: 'number', description: 'Contract value as a number (no currency symbol). 0 if none/non-monetary.' },
+        currency: { type: 'string', description: 'ISO code e.g. KES, USD. Empty if none.' },
+        renewalType: { type: 'string', enum: ['auto-renew', 'fixed', 'evergreen', 'unknown'], description: 'Renewal mechanism.' },
+        noticePeriodDays: { type: 'number', description: 'Notice period in days for termination/non-renewal. 0 if none/unclear.' },
+        governingLaw: { type: 'string', description: 'e.g. Kenya, England & Wales. Empty if unclear.' },
+        paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
+        confidence: { type: 'object', properties: {
+          counterparty: conf, contractType: conf, effectiveDate: conf, expiryDate: conf, value: conf,
+          renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
+        }, description: 'Per-field confidence.' },
+      },
+      required: ['confidence'],
+    },
+  };
+  const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence. Return via the file_contract tool.\n\nDOCUMENT:\n${String(text).slice(0, 24000)}`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: aiModel(), max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    res.json({ metadata: block.input || {}, source: 'ai' });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
 app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });

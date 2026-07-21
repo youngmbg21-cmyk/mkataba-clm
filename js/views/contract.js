@@ -180,13 +180,32 @@ async function submitUpload(){
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
   c._loaded=true; c._light=false; c._v=0;
-  state.contracts.unshift(c);
-  state.activeId=c.id;
-  persist(c);
-  closeModal();
-  toast('Contract uploaded and filed in '+FOLDERS[folder].name);
-  setView('workspace');
-  renderSideFolders();
+  const saveContract=(metadata)=>{
+    if(metadata){ applyMetadata(c, metadata); }
+    state.contracts.unshift(c);
+    state.activeId=c.id;
+    persist(c);
+    closeModal();
+    toast('Contract uploaded and filed in '+FOLDERS[folder].name);
+    setView('workspace');
+    renderSideFolders();
+  };
+  // E1: extract metadata from the text, then let the human confirm before saving.
+  if(extractedText && extractedText.length>200){
+    btn.innerHTML='<span class="animate-pulse">Extracting details…</span>';
+    const meta=await extractMetadata(extractedText, {counterparty:cp, value, expiry});
+    openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null) });
+  } else {
+    saveContract(null);
+  }
+}
+/* Fold confirmed metadata back into the contract's own fields + a metadata block. */
+function applyMetadata(c, m){
+  c.metadata = m;
+  if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
+  if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
+  if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
+  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'AI-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
 function uploadDocBody(c){
@@ -775,4 +794,4 @@ async function signDocument(c){
 
 
 
-Object.assign(window,{docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openUploadModal,pdfStringsFrom,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync});
+Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openUploadModal,pdfStringsFrom,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync});
