@@ -5,6 +5,47 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E8 — Commercial hardening (server-side)
+
+**Done** (all in `server/server.js`; docs `DEPLOYMENT.md`,
+`MULTITENANCY-NOTES.md`)
+
+- **E8-T1** — Rate limiting: an in-memory sliding-window limiter (no deps)
+  guards auth/setup/reset (10 / 15 min), share OTP (8 / 15 min) and share
+  responses (30 / 15 min); excess → `429` with `Retry-After`. Verified: 10
+  rapid bad logins then `429`.
+- **E8-T2** — Security headers on every response (`X-Content-Type-Options`,
+  `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`,
+  and HSTS when TLS). Cookies gain `Secure` when `HTTPS=true`/`TRUST_PROXY`.
+  `DEPLOYMENT.md` documents running behind Caddy/nginx with TLS + systemd.
+  Verified: headers present; `Secure` + HSTS appear under `HTTPS=true`.
+- **E8-T3** — Session hardening: additive `expires_at`/`last_seen`/`ip`/`ua`
+  columns; 30-day absolute expiry enforced in `auth`; login rotates to a
+  fresh token; `GET /api/sessions` + `DELETE /api/sessions/:id` power an
+  "Active sessions" list with revoke in Team & Settings.
+- **E8-T4** — Workspace export: `GET /api/export/workspace.zip` (admin)
+  streams a real ZIP (hand-rolled with built-in `zlib` deflate + CRC32, no
+  deps) containing `workspace.json`, `contracts.json` (with versions/audit/
+  redlines), `users.json` (no password hashes) and uploaded `files/`.
+  Restore documented in `DEPLOYMENT.md`. Verified: valid zip extracts, JSON
+  parses, no salt/hash leak.
+- **E8-T5** — Multi-tenancy groundwork: additive `org_id` column
+  (`ws_default`) on `contracts`/`users`; `MULTITENANCY-NOTES.md` describes
+  exactly what remains (thread org_id through every query, per-tenant
+  settings, provisioning) and explicitly does **not** enable multi-org
+  signup or billing.
+
+**Tested.** Live server: all security headers present; `Secure`+HSTS under
+`HTTPS=true`; rate limiter trips to 429; sessions list/revoke; workspace
+zip is a valid archive that extracts with contracts + hash-free users. E0
+21-check regression green; settings render with no page errors. Signing
+seal untouched.
+
+**Definition of Done** — met: brute-force logins are throttled; deployment
+doc exists; a full workspace export is produced and extracts cleanly.
+
+---
+
 ## E7 — Analytics & reporting
 
 **Done** (new `js/views/reports.js`; `GET /api/analytics`)

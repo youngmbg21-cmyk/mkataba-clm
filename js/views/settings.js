@@ -130,11 +130,20 @@ function renderTeam(){
         <p class="text-xs text-brand-800/70 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
         <div class="flex flex-wrap gap-2">
           <button id="bk-export" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export backup</button>
+          ${(API_MODE()&&isAdmin())?`<a id="bk-zip" href="api/export/workspace.zip" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Export full workspace (.zip)</a>`:''}
           ${(!API_MODE()&&isAdmin())?`
           <label class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition cursor-pointer">${icon('upload','w-3.5 h-3.5')} Restore backup<input id="bk-import" type="file" accept=".json,application/json" class="hidden"/></label>
           <button id="bk-reset" class="ml-auto flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3.5 py-2 text-xs font-medium hover:bg-rose-50 transition">${icon('ban','w-3.5 h-3.5')} Reset workspace</button>`:''}
         </div>
       </section>
+
+      ${(API_MODE())?`
+      <section class="bg-white rounded-2xl elev-2 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('lock')}</span>
+          <h2 class="font-display font-600 text-ink">Active sessions</h2></div>
+        <p class="text-xs text-ink/70 mb-3">Devices signed in to your account. Revoke any you don't recognise — sessions also expire automatically after 30 days.</p>
+        <div id="sessions-list" class="text-xs text-ink/65">Loading…</div>
+      </section>`:''}
 
       ${(API_MODE()&&isAdmin())?`
       <section class="bg-white rounded-2xl elev-2 p-5">
@@ -173,6 +182,7 @@ function renderTeam(){
 
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   renderClauseLibrary();
+  if(API_MODE()) loadSessions();
   // AI engine config
   if(API_MODE()){
     const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
@@ -374,4 +384,23 @@ function openApprovalRuleEditor(idx){
   });
 }
 
-Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel});
+/* ---- E8-T3 active sessions ---- */
+async function loadSessions(){
+  const host=document.getElementById('sessions-list'); if(!host) return;
+  try{
+    const r=await api('sessions'); const rows=r.sessions||[];
+    host.innerHTML=rows.length?`<div class="space-y-1.5">${rows.map(s=>{
+      const ua=(s.ua||'').replace(/</g,'&lt;'); const dev=/mobile/i.test(ua)?'Mobile':/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':'Browser';
+      return `<div class="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
+        <span class="min-w-0"><span class="text-[12px] font-600 text-ink">${dev}${s.current?' <span class="text-[9px] font-mono text-brand-600">· this device</span>':''}</span>
+        <span class="block text-[10px] font-mono text-ink/50">${s.ip||'—'} · last seen ${s.lastSeen?fmtDT(s.lastSeen):'—'}</span></span>
+        ${s.current?'':`<button data-sess-revoke="${s.id}" class="ml-auto text-[11px] font-600 text-rose-500 hover:text-rose-700">Revoke</button>`}
+      </div>`; }).join('')}</div>`:`<p class="text-[11px] text-ink/55">No active sessions.</p>`;
+    host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{
+      try{ await api('sessions/'+b.getAttribute('data-sess-revoke'),'DELETE'); toast('Session revoked'); loadSessions(); }
+      catch(e){ toast(e.message,'err'); }
+    }));
+  }catch(e){ host.innerHTML='<p class="text-[11px] text-ink/55">Could not load sessions.</p>'; }
+}
+
+Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});
