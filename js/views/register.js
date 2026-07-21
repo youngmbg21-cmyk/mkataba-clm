@@ -106,12 +106,21 @@ const REG_SORTS=[
   {k:'expiry',label:'Expiring soonest'},
   {k:'name',label:'Name (A → Z)'},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',shown:REG_PAGE,sel:{}}; return state.reg; }
+const REG_VIEWS=[
+  {k:'expiring90', label:'Expiring ≤ 90 days'},
+  {k:'autosoon',   label:'Auto-renewing soon'},
+  {k:'overdueob',  label:'Overdue obligations'},
+];
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',shown:REG_PAGE,sel:{},view:null}; return state.reg; }
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
   if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
+  // E3-T5 saved views (presets over metadata/obligations)
+  if(R.view==='expiring90') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=90);
+  else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
+  else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
@@ -205,6 +214,11 @@ function renderRegister(){
           </div>
           <div class="flex flex-wrap items-center gap-2">${stageChips}</div>
         </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-[11px] font-600 text-ink/50 uppercase tracking-wide mr-1">Saved views</span>
+          ${REG_VIEWS.map(v=>`<button data-reg-view="${v.k}" class="${chip(R.view===v.k)}">${v.label}</button>`).join('')}
+          ${R.view?`<button data-reg-view="" class="text-[11px] font-600 text-brand-600 hover:text-brand-800 ml-1">clear</button>`:''}
+        </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
           <div class="flex items-center gap-3">
@@ -257,6 +271,7 @@ function renderRegister(){
   document.getElementById('reg-renewal').addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
   document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
+  document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.shown=REG_PAGE; renderRegister(); }));
   document.getElementById('reg-selall').addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
   document.getElementById('reg-export').addEventListener('click',regExportSelectedCsv);
   document.getElementById('reg-clear').addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });

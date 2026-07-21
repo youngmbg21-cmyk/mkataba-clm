@@ -164,6 +164,13 @@ function renderDashboard(){
       <section class="bg-white rounded-2xl elev-2 p-5">
         <h2 class="font-display font-600 text-brand-900">Attention snapshot</h2>
         <p class="text-xs text-brand-800/70 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
+        ${(()=>{ const od=overdueObligationCount(), rd=renewalDecisionsDue(30).length;
+          if(!od&&!rd) return '';
+          return `<button data-goto-calendar class="w-full mb-4 flex items-center gap-3 rounded-xl border border-gold-500/30 bg-gold-500/8 px-4 py-2.5 text-left hover:bg-gold-500/12 transition">
+            <span class="text-gold-600">${icon('calendar','w-4 h-4')}</span>
+            <span class="text-[13px] text-ink/80">${[od?`<b class="text-rose-600">${od}</b> obligation${od===1?'':'s'} overdue`:'', rd?`<b class="text-gold-600">${rd}</b> renewal decision${rd===1?'':'s'} due in 30 days`:''].filter(Boolean).join(' · ')}</span>
+            <span class="ml-auto text-[11px] font-600 text-brand-600">Open calendar →</span>
+          </button>`; })()}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">${snapHtml}</div>
       </section>
 
@@ -183,6 +190,7 @@ function renderDashboard(){
   document.querySelectorAll('[data-kpi]').forEach(el=>el.addEventListener('click',()=>goReg(kpis[+el.getAttribute('data-kpi')].go)));
   document.querySelectorAll('[data-snap]').forEach(el=>el.addEventListener('click',()=>goReg(snap[+el.getAttribute('data-snap')].go)));
   document.querySelectorAll('[data-view-intel]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
+  document.querySelector('[data-goto-calendar]')?.addEventListener('click',()=>setView('calendar'));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
   const nb=document.getElementById('new-contract-btn'), nm=document.getElementById('new-menu');
   nb.addEventListener('click',e=>{ e.stopPropagation(); nm.classList.toggle('hidden'); });
