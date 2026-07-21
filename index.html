@@ -359,14 +359,19 @@ const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
 /* ============================================================ HELPERS */
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
-const STATUS_STYLES = {
-  'Draft':{dot:'bg-slate-400',chip:'bg-slate-100 text-slate-700 border-slate-200'},
-  'Under Review':{dot:'bg-gold-500',chip:'bg-gold-500/10 text-gold-600 border-gold-500/25'},
-  'Signed':{dot:'bg-brand-500',chip:'bg-brand-50 text-brand-700 border-brand-200'},
-  'Declined':{dot:'bg-rose-500',chip:'bg-rose-50 text-rose-700 border-rose-200'},
+// Design status treatment: friendly lifecycle labels (Drafting/In Review/
+// Executed/Closed) over the warm palette. Internal status values stay
+// Draft/Under Review/Signed/Declined so filters, backend and logic are
+// untouched — only the visible chip label and colours change.
+const STATUS_META = {
+  'Draft':        {label:'Drafting',  dot:'#9A9484', bg:'#ECE7DC', tx:'#6B6559', bd:'#DED5C6'},
+  'Under Review': {label:'In Review', dot:'#C79A3E', bg:'#F0E6CF', tx:'#8A5E1B', bd:'#E2D2AE'},
+  'Signed':       {label:'Executed',  dot:'#086B54', bg:'#E1EBE2', tx:'#075444', bd:'#C6DCCB'},
+  'Declined':     {label:'Closed',    dot:'#B23A2E', bg:'#F4E2DD', tx:'#9A342A', bd:'#E6C9C1'},
 };
-const statusChip = s => { const st=STATUS_STYLES[s]||STATUS_STYLES.Draft;
-  return `<span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${st.chip}"><span class="h-1.5 w-1.5 rounded-full ${st.dot}"></span>${s}</span>`; };
+const statusLabel = s => (STATUS_META[s]||{}).label || s;
+const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
+  return `<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style="background:${m.bg};color:${m.tx};border:1px solid ${m.bd}"><span class="h-1.5 w-1.5 rounded-full" style="background:${m.dot}"></span>${m.label}</span>`; };
 
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
@@ -2532,10 +2537,12 @@ function openPartyModal(name){
 /* ============================================================
    AI CONTRACT SCAN  (rule engine over live contract data)
    ============================================================ */
+// Severity chips use the design's exact warm hexes (arbitrary Tailwind values
+// so existing `${sm.chip}` className call-sites keep working unchanged).
 const SEV_META = {
-  high:{label:'High', chip:'bg-rose-50 text-rose-700 border-rose-200', dot:'bg-rose-500', text:'text-rose-600'},
-  med:{label:'Medium', chip:'bg-gold-500/10 text-gold-600 border-gold-500/25', dot:'bg-gold-500', text:'text-gold-600'},
-  low:{label:'Low', chip:'bg-slate-100 text-slate-600 border-slate-200', dot:'bg-slate-400', text:'text-slate-500'},
+  high:{label:'High', chip:'bg-[#F4E2DD] text-[#9A342A] border-[#E6C9C1]', dot:'bg-[#B23A2E]', text:'text-[#9A342A]'},
+  med:{label:'Medium', chip:'bg-[#F0E6CF] text-[#8A5E1B] border-[#E2D2AE]', dot:'bg-[#C79A3E]', text:'text-[#8A5E1B]'},
+  low:{label:'Low', chip:'bg-[#ECE7DC] text-[#6B6559] border-[#DED5C6]', dot:'bg-[#9A9484]', text:'text-[#6B6559]'},
 };
 const SEV_RANK = {high:3, med:2, low:1};
 const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
