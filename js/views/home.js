@@ -98,8 +98,9 @@ function renderDashboard(){
   const riskRows = highRisk.slice(0,5).map(x=>attnRow(x.c, x.o+' high', '#9A342A')).join('');
   const waitRows = waiting.slice(0,5).map(x=>attnRow(x.c, x.idle+'d idle', x.idle>=30?'#9A342A':'#8A5E1B')).join('');
 
-  // New-contract menu (templates + upload)
-  const menuItems = Object.values(TEMPLATES).map(t=>`
+  // New-contract menu (guided wizard + templates + upload), role-gated
+  const creatable = (window.myCreatableTemplates?myCreatableTemplates():Object.values(TEMPLATES));
+  const menuItems = creatable.map(t=>`
     <button data-new="${t.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
       <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
       <span class="min-w-0"><span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span><span class="block text-[10px] text-brand-800/65">Template ${t.id}</span></span>
@@ -132,7 +133,11 @@ function renderDashboard(){
           <div class="relative">
             <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
             <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
-              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/65 font-semibold">Generate from template</div>
+              <button id="menu-wizard" class="w-full flex items-center gap-2.5 rounded-lg bg-brand-50 hover:bg-brand-100 px-2.5 py-2 transition text-left mb-1">
+                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-600 text-white">${icon('sparkle')}</span>
+                <span class="min-w-0"><span class="block text-xs font-semibold text-brand-900">Guided setup</span><span class="block text-[10px] text-brand-800/65">Pick a template &amp; answer a few questions</span></span>
+              </button>
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/65 font-semibold">Or generate directly</div>
               ${menuItems}
               <div class="mt-1 pt-1 border-t border-brand-100/60">
                 <button id="menu-upload" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-gold-500/10 px-2.5 py-2 transition text-left">
@@ -197,6 +202,7 @@ function renderDashboard(){
   nb.addEventListener('click',e=>{ e.stopPropagation(); nm.classList.toggle('hidden'); });
   document.addEventListener('click',e=>{ if(nm && !nm.classList.contains('hidden') && !nm.contains(e.target) && e.target!==nb) nm.classList.add('hidden'); });
   document.getElementById('menu-upload').addEventListener('click',openUploadModal);
+  document.getElementById('menu-wizard')?.addEventListener('click',()=>openWizard());
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
   const fb=document.getElementById('folders-btn'), fm=document.getElementById('folders-menu');
   fb.addEventListener('click',e=>{ e.stopPropagation(); fm.classList.toggle('hidden'); });

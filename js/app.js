@@ -9,6 +9,7 @@ import './versioning.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
+import './wizard.js';
 import './views/calendar.js';
 import './views/portal.js';
 import './views/home.js';

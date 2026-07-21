@@ -5,6 +5,46 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E6 — Search, templates & self-serve creation
+
+**Done** (new `js/wizard.js`; server search endpoints)
+
+- **E6-T1** — Server-side full-text search (SQLite FTS5, confirmed available
+  in node:sqlite). A `contracts_fts` virtual table is kept in sync on every
+  upsert and back-filled on boot; the search body is built from names,
+  parties, field values, uploaded text, accepted redlines, metadata and
+  obligations — no client change needed. `GET /api/search` returns hits with
+  `snippet()` previews (prefix MATCH, punctuation-sanitised, bm25-ranked),
+  with a LIKE fallback if FTS were ever unavailable. The Register search box
+  shows a live full-text dropdown with highlighted snippets in server mode.
+- **E6-T2** — AI semantic search ("Ask your portfolio"): FTS gathers
+  candidates, their text is sent to `POST /api/ai/search`, and Claude answers
+  with quoted evidence per contract. Fallback: plain FTS results / a
+  needs-key message.
+- **E6-T3** — Template variables: `templateVars(tid)` exposes a named,
+  Kenyan-defaulted variable set per template (counterparty, value, start/
+  end dates, a template-specific primary field, payment terms) mapped onto
+  the existing docBody fields.
+- **E6-T4** — Guided creation wizard: pick a template → short form → a filled
+  draft in under a minute. Role gating (`templateAllowedForRole`,
+  `state.settings.templateRoles`) — viewers never create; Admin sees all;
+  Legal sees all unless a template is restricted. Wired as "Guided setup" in
+  the New-contract menu, which is itself now role-filtered.
+
+**Tested.** Live server run: setup → create an upload with clause text →
+FTS finds words *inside the body* ("temperature", "convenience") and by
+party, with highlighted snippets; `/api/ai/search` returns needs-key
+without a key. 8 client checks (template variables incl. NDA-no-value,
+role gating for viewer/admin/legal + restriction, wizard form → filled
+draft, guided-setup menu). E0 21-check regression green; no page errors.
+Signing seal untouched.
+
+**Definition of Done** — met: full-text search finds a phrase inside a
+contract body; the wizard produces a filled supplier draft in under a
+minute.
+
+---
+
 ## E5 — Approval workflows & multi-signer signing
 
 **Done** (new `js/approvals.js`)
