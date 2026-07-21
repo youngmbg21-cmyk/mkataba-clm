@@ -584,6 +584,8 @@ function renderWorkspace(){
 
         <div id="versions-section" class="border-b border-brand-100/70 empty:hidden"></div>
 
+        <div id="obligations-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="audit-section" class="border-b border-brand-100/70"></div>
 
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
@@ -628,7 +630,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); renderAuditSection(c);
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;

@@ -5,6 +5,47 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E3 — Renewal calendar & obligation management
+
+**Done** (new `js/obligations.js`, `js/views/calendar.js`)
+
+- **E3-T1** — Calendar view (new "Calendar" nav-rail item): month grid +
+  a 60-day agenda showing expiries (red), renewal-decision deadlines
+  (gold = expiry − notice period, from E1 metadata) and obligation due
+  dates (green), each click-through to its contract, with prev/next/today.
+- **E3-T2** — Obligations as records: `c.obligations[]` (desc, due,
+  recurring, assignee, status open/done/overdue) with an add/edit UI and a
+  renewal-decision banner in a new workspace section.
+- **E3-T3** — AI obligation extraction: "Find obligations" runs
+  `POST /api/ai/obligations` (Claude proposes obligations with clause
+  quotes) in server mode; a regex heuristic (`heuristicObligations`) covers
+  payment/notice/reporting/delivery/insurance offline. Proposals go through
+  a tick-to-add review — nothing saved without confirmation.
+- **E3-T4** — Wiring: `runReminders()` now also fires renewal-decision
+  reminders (14/7/1 days before expiry − notice) and one-time
+  obligation-overdue emails, reading full JSON for metadata + obligations.
+  Home's Attention snapshot gained a banner ("N obligations overdue · M
+  renewal decisions due in 30 days") linking to the calendar.
+- **E3-T5** — Register saved views: "Expiring ≤ 90 days", "Auto-renewing
+  soon", "Overdue obligations".
+
+**Tested.** 15 checks: renewal-decision date math, 4 obligation heuristics,
+obState, calendar grid/agenda/nav render, saved-view apply, workspace
+obligations section. E0 21-check regression green; server boots and
+`/api/ai/obligations` is registered + auth-gated; calendar screenshot
+verified (7-col grid, colour-coded events, agenda). Signing seal untouched.
+
+**Harness note.** The local Tailwind build now scans `js/**/*.js` too, so
+classes introduced only in view modules (e.g. `grid-cols-7`) compile for
+screenshots; production uses the Tailwind CDN's runtime JIT and was always
+correct.
+
+**Definition of Done** — met: calendar shows sample-portfolio events; an
+assigned obligation surfaces in Attention and queues a reminder; saved
+views filter.
+
+---
+
 ## E2 — Versioning + in-document redlining
 
 **Done** (new module `js/versioning.js`)

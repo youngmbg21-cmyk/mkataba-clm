@@ -376,7 +376,7 @@ function startApp(){
   document.getElementById('app-shell').classList.remove('hidden');
   renderSideUser(); renderSideFolders();
   // resume where the user left off
-  setView(['dashboard','register','pipeline','folder','intel','workspace','team'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','folder','intel','calendar','workspace','team'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){

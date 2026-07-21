@@ -6,6 +6,8 @@ import './core.js';
 import './api.js';
 import './metadata.js';
 import './versioning.js';
+import './obligations.js';
+import './views/calendar.js';
 import './views/portal.js';
 import './views/home.js';
 import './views/register.js';
@@ -28,6 +30,7 @@ function setView(view){
   if(view==='dashboard') renderDashboard();
   else if(view==='folder') renderFolder();
   else if(view==='intel') renderIntel();
+  else if(view==='calendar') renderCalendar();
   else if(view==='register') renderRegister();
   else if(view==='pipeline') renderPipeline();
   else if(view==='team') renderTeam();

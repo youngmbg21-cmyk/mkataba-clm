@@ -463,6 +463,46 @@ app.post('/api/ai/extract', auth, async (req, res) => {
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
+/* ---------- AI obligation extraction (E3) ----------
+   Propose obligations (payment milestones, notice deadlines, deliverables,
+   reporting duties) from a contract's text, each with a clause quote. The
+   human confirms before any are saved; no key -> the client heuristic. */
+app.post('/api/ai/obligations', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { text } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const tool = {
+    name: 'list_obligations',
+    description: 'List the ongoing obligations the contract places on either party.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        obligations: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+          desc: { type: 'string', description: 'Short obligation, e.g. "Pay 30 days from invoice" or "Submit quarterly sales report".' },
+          due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
+          recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
+          quote: { type: 'string', description: 'Short verbatim clause snippet this came from.' },
+        }, required: ['desc'] } },
+      },
+      required: ['obligations'],
+    },
+  };
+  const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [] });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
 app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
@@ -617,25 +657,56 @@ app.get('/api/outbox', auth, admin, (req, res) => {
 
 /* ---------- renewal reminders ---------- */
 function runReminders() {
-  const rows = db.prepare("SELECT id,name,counterparty,expiry,status FROM contracts WHERE expiry IS NOT NULL AND status!='Declined'").all();
+  // Pull full JSON so we can also see E1 metadata (notice period) and E3
+  // obligations, not just the indexed expiry column.
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,json FROM contracts WHERE status!='Declined'").all();
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
   if (!admins.length) return { checked: 0, queued: 0 };
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  let queued = 0;
-  for (const c of rows) {
-    if (!c.expiry) continue;
-    const days = Math.ceil((new Date(c.expiry + 'T00:00:00') - today) / 86400000);
-    const milestone = [90, 60, 30].find(m => days === m);
-    if (milestone == null) continue;
-    const rkey = `${c.id}:${c.expiry}:${milestone}`;
-    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;
+  const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
+  const fire = (rkey, subj, body, tag) => {
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) return false;
     db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
-    const subj = `Renewal in ${milestone} days: ${c.name}`;
-    const body = `The contract "${c.name}" (${c.id}) with ${c.counterparty || 'a counterparty'} expires on ${c.expiry} — ${milestone} days away. Review it in HaTi to renew or let it lapse.`;
-    admins.forEach(a => sendEmail(a, subj, body, `renewal ${milestone}d: ${c.name}`));
-    queued++;
+    admins.forEach(a => sendEmail(a, subj, body, tag));
+    return true;
+  };
+  let queued = 0, checked = 0;
+  for (const c of rows) {
+    checked++;
+    let full = {}; try { full = JSON.parse(c.json) || {}; } catch (_) {}
+    const meta = full.metadata || {};
+    const expiry = meta.expiryDate || c.expiry;
+    // 1) expiry milestones (90/60/30)
+    if (expiry) {
+      const days = daysTo(expiry);
+      const ms = [90, 60, 30].find(m => days === m);
+      if (ms != null && fire(`${c.id}:${expiry}:${ms}`,
+        `Renewal in ${ms} days: ${c.name}`,
+        `"${c.name}" (${c.id}) with ${c.counterparty || 'a counterparty'} expires on ${expiry} — ${ms} days away. Review it in HaTi to renew or let it lapse.`,
+        `renewal ${ms}d: ${c.name}`)) queued++;
+      // 2) renewal DECISION deadline (expiry minus notice period) at 14/7/1 days
+      const notice = Number(meta.noticePeriodDays) || 0;
+      if (notice > 0) {
+        const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - notice);
+        const ddIso = dd.toISOString().slice(0, 10); const ddDays = daysTo(ddIso);
+        const dms = [14, 7, 1].find(m => ddDays === m);
+        if (dms != null && fire(`${c.id}:${ddIso}:decide:${dms}`,
+          `Renewal decision due in ${dms} day${dms === 1 ? '' : 's'}: ${c.name}`,
+          `To renew or exit "${c.name}" (${c.id}) you must give ${notice} days' notice before it expires on ${expiry}. The decision deadline is ${ddIso} — ${dms} day${dms === 1 ? '' : 's'} away.`,
+          `decision ${dms}d: ${c.name}`)) queued++;
+      }
+    }
+    // 3) obligations newly overdue (fire once per obligation)
+    (full.obligations || []).forEach(o => {
+      if (o.status === 'done' || !o.due) return;
+      const od = daysTo(o.due);
+      if (od === -1 && fire(`${c.id}:ob:${o.id || o.due}:overdue`,
+        `Obligation overdue: ${c.name}`,
+        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${o.due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `obligation overdue: ${c.name}`)) queued++;
+    });
   }
-  return { checked: rows.length, queued };
+  return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
 setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
