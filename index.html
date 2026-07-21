@@ -434,7 +434,7 @@ async function api(path, method='GET', body){
 async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
-  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0;
+  uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
   // on open. Capped so a very large portfolio can't blow up the initial load.
   state.contracts=[]; let offset=0; const limit=200; let total=Infinity;
@@ -3186,6 +3186,25 @@ function renderTeam(){
         </div>
       </section>
 
+      ${API_MODE()?`
+      <section class="bg-white rounded-2xl border border-line p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('sparkle','w-[18px] h-[18px]')}</span>
+          <h2 class="font-display font-600 text-ink">AI engine</h2></div>
+        <p class="text-xs text-ink/55 mb-3">Powers natural-language filtering and clustering on the <b>Portfolio Intelligence</b> graph. Paste an Anthropic API key (stored on your server, never in the browser). Without a key the graph falls back to the built-in interpreter.</p>
+        <div id="ai-cfg-status" class="text-[11px] mb-3 text-ink/50">Checking…</div>
+        ${isAdmin()?`
+        <div class="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
+          <label class="block"><span class="text-[12px] font-600 text-ink">Anthropic API key</span>
+            <input id="ai-key" type="password" placeholder="sk-ant-…" class="mt-1.5 w-full rounded-[11px] border border-inputln bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/></label>
+          <button id="ai-key-save" class="rounded-xl bg-ink text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition">Save key</button>
+        </div>
+        <div class="flex items-center gap-3 mt-2.5">
+          <label class="text-[11px] text-ink/60 flex items-center gap-1.5">Model
+            <input id="ai-model" type="text" placeholder="claude-haiku-4-5-20251001" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/></label>
+          <button id="ai-key-clear" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium">Remove key</button>
+        </div>`:`<p class="text-[11px] text-ink/45">Only an admin can configure the AI key.</p>`}
+      </section>`:''}
+
       <section class="bg-white rounded-2xl border border-line p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-ink">Data &amp; backup</h2></div>
@@ -3234,6 +3253,25 @@ function renderTeam(){
   }
 
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
+  // AI engine config
+  if(API_MODE()){
+    const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
+      try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
+        el.innerHTML=c.configured?`<span class="text-brand-600">● Configured</span> · model <span class="font-mono">${c.model}</span> · key ${c.hint}${c.source==='env'?' (from server env)':''}`
+          :`<span class="text-gold-600">● Not configured</span> — the graph uses the built-in interpreter.`;
+        const mi=document.getElementById('ai-model'); if(mi&&!mi.value) mi.value=c.model||''; }catch(e){ el.textContent='Could not read AI config.'; } };
+    refreshAiCfg();
+    document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
+      const key=document.getElementById('ai-key').value.trim(), model=document.getElementById('ai-model').value.trim();
+      if(!key&&!model){ toast('Enter a key to save','err'); return; }
+      try{ await api('ai/config','PUT',{ key, model }); document.getElementById('ai-key').value=''; toast('AI engine key saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
+      if(!confirm('Remove the stored AI key? The graph will fall back to the built-in interpreter.')) return;
+      try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
+    });
+  }
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
     const pass=document.getElementById('tm-pass').value;
