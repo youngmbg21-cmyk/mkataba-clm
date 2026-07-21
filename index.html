@@ -540,7 +540,7 @@ function renderAuth(mode){
       <button id="su-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace</button>`);
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
-  } else {
+  } else if(mode==='login'){
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg()?.name||'your workspace'}</h1>
       <p class="text-xs text-brand-800/55 mb-4">Use your workspace credentials.</p>
@@ -548,13 +548,49 @@ function renderAuth(mode){
       ${input('li-pass','Password','password')}
       <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
       <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
+      ${REMOTE?'<button id="li-forgot" class="mt-3 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Forgot password?</button>':''}
       ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
+    document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
     document.getElementById('li-reset')?.addEventListener('click',()=>{
       if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
+    });
+  } else if(mode==='forgot'){
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Reset your password</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Enter your email and we’ll send a reset link.</p>
+      ${input('fp-email','Email','email')}
+      <button id="fp-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Send reset link</button>
+      <div id="fp-result" class="mt-3"></div>
+      <button id="fp-back" class="mt-4 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Back to sign in</button>`);
+    document.getElementById('fp-back').addEventListener('click',()=>renderAuth('login'));
+    document.getElementById('fp-go').addEventListener('click',async()=>{
+      const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
+      try{
+        const r=await api('password/reset-request','POST',{ email });
+        document.getElementById('fp-result').innerHTML=`<div class="rounded-lg bg-brand-50 border border-brand-100 p-3 text-[11px] text-brand-700">If that email is registered, a reset link has been sent.${r.devToken?` <br/>Email isn’t configured yet — <button id="fp-dev" class="underline font-medium">open the reset form</button> for testing.`:''}</div>`;
+        document.getElementById('fp-dev')?.addEventListener('click',()=>renderAuth('reset:'+r.devToken));
+      }catch(e){ toast(e.message,'err'); }
+    });
+  } else if(mode && mode.startsWith('reset:')){
+    const token=mode.slice(6);
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Set a new password</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Choose a new password for your account.</p>
+      ${input('rs-pass','New password','password','Min 8 characters')}
+      <button id="rs-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Save new password</button>
+      <p id="rs-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>`);
+    document.getElementById('rs-go').addEventListener('click',async()=>{
+      const pass=document.getElementById('rs-pass').value;
+      if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+      try{
+        await api('password/reset','POST',{ token, password:pass });
+        toast('Password updated — please sign in');
+        location.hash=''; renderAuth('login');
+      }catch(e){ const el=document.getElementById('rs-err'); el.textContent=e.message; el.classList.remove('hidden'); }
     });
   }
 }
@@ -867,9 +903,10 @@ async function applyResponse(c, r, opts={}){
   const who=r.name+(r.title?', '+r.title:'');
   if(r.action==='sign'){
     c.signatures=c.signatures||[];
-    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at, docHash:r.docHash });
+    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
+      method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash });
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'})`);
     toast(`${r.name} has signed — countersignature recorded`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
@@ -982,6 +1019,8 @@ async function portalRespond(p, action){
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  // Server-backed signing: verify the signer's email with a one-time code first.
+  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment}); }
   const proposedValue = action==='changes' ? fval('pt-proposed') : '';
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment,
     proposedValue: proposedValue||null, at:nowISO() };
@@ -1010,6 +1049,45 @@ async function portalRespond(p, action){
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
     toast('Response code copied');
   });
+}
+/* two-step counterparty signing with email one-time code (server mode) */
+async function portalStartOtp(p, info){
+  const box=document.getElementById('portal-result');
+  box.innerHTML=`<div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5 text-[11px] text-brand-800/60">Sending a one-time code to <strong>${info.email}</strong>…</div>`;
+  let devCode=null;
+  try{
+    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{ email:info.email });
+    devCode=r.devCode;
+  }catch(e){ toast(e.message,'err'); box.innerHTML=''; return; }
+  box.innerHTML=`
+    <div class="rounded-xl border border-brand-200 bg-white p-3.5">
+      <div class="text-xs font-semibold text-brand-900 mb-1 flex items-center gap-1.5">${icon('key','w-3.5 h-3.5')} Verify your email to sign</div>
+      <p class="text-[11px] text-brand-800/60 mb-2">We sent a 6-digit code to <strong>${info.email}</strong>. Enter it to complete your signature.</p>
+      ${devCode?`<p class="mb-2 text-[11px] rounded-lg bg-gold-500/10 border border-gold-500/25 text-gold-700 px-2.5 py-1.5">Email isn’t configured on this server yet, so for testing your code is <strong class="font-mono">${devCode}</strong>.</p>`:''}
+      <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" class="w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-center text-lg font-mono tracking-[0.4em] outline-none focus:border-brand-400"/>
+      <button id="pt-otp-go" class="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-2.5 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
+      <button id="pt-otp-resend" class="mt-1.5 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Resend code</button>
+    </div>`;
+  document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
+  document.getElementById('pt-otp-resend').addEventListener('click',()=>portalStartOtp(p, info));
+  document.getElementById('pt-otp').focus();
+}
+async function portalVerifyAndSign(p, info){
+  const codeVal=fval('pt-otp');
+  if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
+  let verify;
+  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
+  catch(e){ toast(e.message,'err'); return; }
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
+    name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO() };
+  try{
+    await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+    document.getElementById('portal-result').innerHTML=`
+      <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 text-center">
+        <div class="flex items-center justify-center gap-1.5 text-brand-700 text-sm font-semibold mb-1">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
+        <p class="text-[11px] text-brand-800/70">Your email-verified signature has been delivered to ${p.sharedBy} at ${p.org}. You're all done.</p>
+      </div>`;
+  }catch(e){ toast(e.message,'err'); }
 }
 
 /* ---------- PDF export (print pipeline) ---------- */
@@ -2966,8 +3044,41 @@ function renderTeam(){
           <button id="bk-reset" class="ml-auto flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3.5 py-2 text-xs font-medium hover:bg-rose-50 transition">${icon('ban','w-3.5 h-3.5')} Reset workspace</button>`:''}
         </div>
       </section>
+
+      ${(API_MODE()&&isAdmin())?`
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('send')}</span>
+          <h2 class="font-display font-600 text-brand-900">Email &amp; notifications</h2></div>
+        <p class="text-xs text-brand-800/55 mb-3">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span class="font-mono">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button id="rem-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
+          <button id="ob-refresh" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
+        </div>
+        <div id="outbox-list" class="text-xs text-brand-800/45">Loading outbox…</div>
+      </section>`:''}
     </div>
   </div>`;
+
+  if(API_MODE()&&isAdmin()){
+    const loadOutbox=async()=>{
+      try{ const r=await api('outbox');
+        const host=document.getElementById('outbox-list'); if(!host) return;
+        host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured?'text-brand-600':'text-gold-600'}">${r.emailConfigured?'Email delivery is configured (Resend).':'Email delivery not configured — showing queued messages & dev codes.'}</div>`+
+          (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
+            <div class="rounded-lg border border-brand-100 bg-white p-2.5">
+              <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?'sent':it.provider}</span></div>
+              <div class="text-[10px] font-mono text-brand-800/45 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
+              ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
+            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/45">No messages yet.</div>`);
+      }catch(e){}
+    };
+    setTimeout(loadOutbox,50);
+    document.getElementById('ob-refresh')?.addEventListener('click',loadOutbox);
+    document.getElementById('rem-run')?.addEventListener('click',async()=>{
+      try{ const r=await api('reminders/run','POST',{}); toast(`Checked ${r.checked} contracts — ${r.queued} reminder${r.queued===1?'':'s'} queued`); loadOutbox(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+  }
 
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
@@ -2983,7 +3094,7 @@ function renderTeam(){
       const salt=newSalt();
       saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
-    toast(`${name} added as ${ROLE_LABEL[role]} — share their temporary password securely`);
+    toast(`${name} added as ${ROLE_LABEL[role]}${API_MODE()?' — an invite email was queued':' — share their temporary password securely'}`);
     renderTeam();
   });
   document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',async()=>{
@@ -3115,10 +3226,12 @@ document.getElementById('nav').addEventListener('click',e=>{
 (async function boot(){
   const m=location.hash.match(/^#share=(.+)$/);
   if(m){ await portalEntry(m[1]); return; }
+  const rs=location.hash.match(/^#reset=(.+)$/);
   let st=null;
   try{ const r=await fetch('api/status',{credentials:'same-origin'}); if(r.ok) st=await r.json(); }catch(e){}
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    if(rs){ renderAuth('reset:'+rs[1]); return; }
     if(!st.setup){ renderAuth('setup'); return; }
     if(!st.authed){ renderAuth('login'); return; }
     try{ await loadBootstrap(); startApp(); }

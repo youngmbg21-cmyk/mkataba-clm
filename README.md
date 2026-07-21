@@ -47,7 +47,10 @@ The demo data is organised into six value-stream folders, each with genuine cont
 | **Central storage** | In server mode the whole team shares one SQLite-backed workspace across devices; in static mode data lives in the browser with JSON backup export/restore |
 | **Contract workspace** | Live editable contract documents from the built-in Kenyan templates, with status flow Draft → Under Review → Signed/Declined |
 | **Upload received contracts** | "Their paper" too: upload a contract another company sent you (PDF, Word, image or text), file it, run an AI review checklist, comment, and sign — the seal is a SHA-256 of the actual file, so it proves exactly which version you signed |
-| **E-signature & audit trail** | SHA-256 document sealing on signature, per-contract audit trail of every edit/comment/scan/share, seal verification, downloadable JSON evidence pack |
+| **E-signature & audit trail** | Freezes the exact rendered text at signature and seals it with SHA-256 (signed contracts render from the frozen copy); captures signer identity, method, time, user-agent and IP; counterparty verifies by email one-time code; per-contract audit trail, seal verification, downloadable evidence pack. Honest about IPRS/CAK-PKI not yet being integrated |
+| **Negotiation & approvals** | Counterparty change-requests with proposed value counters; owner accepts/rejects, every round archived; spend-threshold approval gate before signing (configurable) |
+| **AI reads received documents** | Real client-side text extraction from uploaded PDFs; the review analyses the actual clauses and quotes them verbatim (foreign governing law, payment terms, auto-renewal, liability, stamp duty, data-protection), with confidence labels and a "not legal advice" disclaimer |
+| **Email & reminders** | Renewal reminders (90/60/30 days), team invites, password reset and counterparty signing codes by email (via `RESEND_API_KEY`; otherwise an admin-visible outbox). Server-side sessions, scrypt passwords, optimistic-locking sync, server-side file storage |
 | **Counterparty sharing** | Generate a short share link — the counterparty opens a no-login review portal and approves & signs, requests changes, or declines. Server mode: their response lands on the contract automatically (each link accepts one response). Static mode: the response travels back as a code you import |
 | **PDF export** | Clean print-ready export of any contract with its seal and audit trail |
 | **AI contract scan** | Rule engine flagging missing clauses, enforceability gaps and market-norm deviations tuned to Kenyan practice |
@@ -59,11 +62,20 @@ The demo data is organised into six value-stream folders, each with genuine cont
 - `index.html` — the entire frontend (Tailwind CDN + vanilla JS, no build step). A small "platform core" layer inside it handles storage/auth and auto-detects server vs static mode.
 - `server/server.js` — Express API + built-in `node:sqlite` (Node ≥ 22.5, zero native dependencies). Endpoints for auth, bootstrap, contract data, team management and counterparty shares. Serves the frontend.
 
+## Configuration (server mode)
+
+| Variable | Purpose |
+|---|---|
+| `RESEND_API_KEY` | Turns on real email delivery (invites, password reset, signing OTP, renewal reminders). Without it, mail queues to an admin-visible outbox. |
+| `EMAIL_FROM` | From-address for outgoing email. |
+| `HATI_DATA` | Directory for the SQLite database and stored files (default `server/data`). |
+| `PORT` | HTTP port (default 3000). |
+
 ## Honest limitations (MVP)
 
-Designed for demos and design-partner pilots; before charging customers you'd want:
+See [SECURITY.md](SECURITY.md) for the full posture. In short, before charging customers you'd still want:
 
-- HTTPS deployment, rate limiting, password reset, email invites.
-- Per-contract server records with optimistic locking (currently the contract set syncs as one document — fine for one team, not for heavy concurrent editing).
-- Real IPRS identity checks and CAK-accredited PKI signatures (currently simulated).
-- Multi-tenancy and billing for self-serve SaaS.
+- HTTPS deployment and rate limiting (not shipped by default).
+- Real IPRS identity checks and CAK-accredited PKI signatures (disclosed in-product as not yet integrated).
+- Per-contract server records for very large, heavily-concurrent portfolios (today the workspace syncs as one optimistically-locked document — safe against overwrite, not optimised for scale).
+- ODPC registration / DPA paperwork and multi-tenancy + billing for a hosted SaaS offering.

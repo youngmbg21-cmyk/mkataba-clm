@@ -29,6 +29,14 @@ db.exec(`
     response TEXT, applied INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS files (
     id TEXT PRIMARY KEY, name TEXT, mime TEXT, data TEXT NOT NULL, created_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS outbox (
+    id TEXT PRIMARY KEY, to_addr TEXT, subject TEXT, body TEXT,
+    sent INTEGER NOT NULL DEFAULT 0, provider TEXT, dev_hint TEXT, created_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS share_otp (
+    token TEXT PRIMARY KEY, email TEXT, code_hash TEXT, verify TEXT, verified INTEGER DEFAULT 0, expires INTEGER);
+  CREATE TABLE IF NOT EXISTS resets (
+    id TEXT PRIMARY KEY, user_id TEXT, token_hash TEXT, expires INTEGER, used INTEGER DEFAULT 0);
+  CREATE TABLE IF NOT EXISTS reminders (rkey TEXT PRIMARY KEY, created_at TEXT);
 `);
 
 const now = () => new Date().toISOString();
@@ -46,6 +54,32 @@ const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
 app.use(express.json({ limit: '15mb' }));
 const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
+const sha = s => crypto.createHash('sha256').update(String(s)).digest('hex');
+const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+
+/* ---------- email (pluggable) ----------
+   With RESEND_API_KEY set, transactional email is delivered via Resend.
+   Without it, mail is queued to the outbox table so the flow still works and
+   an admin can read what would have been sent (including dev codes) — the
+   single place a key turns this from demo into production email. */
+const EMAIL_ON = () => !!process.env.RESEND_API_KEY;
+async function sendEmail(to, subject, body, devHint) {
+  const id = 'e_' + rid(8), at = now();
+  let sent = 0, provider = 'outbox';
+  if (EMAIL_ON()) {
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>', to: [to], subject, text: body }),
+      });
+      if (r.ok) { sent = 1; provider = 'resend'; } else provider = 'resend-http-' + r.status;
+    } catch (e) { provider = 'resend-error'; }
+  }
+  db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), at);
+  return { id, sent, provider };
+}
 
 /* ---------- session handling (httpOnly cookie) ---------- */
 const COOKIE = 'hati_session';
@@ -161,7 +195,11 @@ app.post('/api/users', auth, admin, (req, res) => {
   const u = { id: 'u_' + rid(8), name, email: String(email).toLowerCase(), role, salt, hash: hashPw(password, salt), created_at: now() };
   db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at) VALUES (?,?,?,?,?,?,?)')
     .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at);
-  res.json({ ok: true, user: publicUser(u) });
+  const org = getSetting('org');
+  sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
+    `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
+    `invite: ${u.email} (${role})`);
+  res.json({ ok: true, user: publicUser(u), emailSent: EMAIL_ON() });
 });
 
 app.patch('/api/users/:id', auth, admin, (req, res) => {
@@ -217,6 +255,30 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   res.json({ payload: JSON.parse(s.payload), responded: !!s.response });
 });
 
+// Counterparty signing is verified by an email one-time code.
+app.post('/api/shares/:token/otp', (req, res) => {           // public: request a code
+  const s = db.prepare('SELECT token FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  const email = String((req.body || {}).email || '').toLowerCase();
+  if (!/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  const code = code6(), expires = Date.now() + 10 * 60 * 1000;
+  db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires) VALUES (?,?,?,?,0,?) ' +
+    'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
+    .run(req.params.token, email, sha(code + req.params.token), null, expires);
+  sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+  res.json({ ok: true, emailSent: EMAIL_ON(), devCode: EMAIL_ON() ? undefined : code });
+});
+app.post('/api/shares/:token/verify-otp', (req, res) => {    // public: verify the code
+  const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
+  const { email, code } = req.body || {};
+  if (!row || row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
+  if (Date.now() > row.expires) return res.status(400).json({ error: 'Code expired — request a new one' });
+  if (row.code_hash !== sha(String(code || '') + req.params.token)) return res.status(400).json({ error: 'Incorrect code' });
+  const verify = rid(12);
+  db.prepare('UPDATE share_otp SET verified=1, verify=? WHERE token=?').run(verify, req.params.token);
+  res.json({ ok: true, verify });
+});
+
 app.post('/api/shares/:token/respond', (req, res) => {       // public: counterparty responds
   const s = db.prepare('SELECT token, response FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -224,9 +286,75 @@ app.post('/api/shares/:token/respond', (req, res) => {       // public: counterp
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
+  if (r.action === 'sign') {   // require a verified email OTP to attribute the signature
+    const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
+    if (!otp || !otp.verified || !r.verify || otp.verify !== r.verify)
+      return res.status(403).json({ error: 'Email verification required before signing' });
+    r.email = otp.email; r.method = 'email one-time code'; r.ip = clientIp(req);
+  }
   db.prepare('UPDATE shares SET response=? WHERE token=?').run(JSON.stringify(r), req.params.token);
   res.json({ ok: true });
 });
+
+/* ---------- password reset ---------- */
+app.post('/api/password/reset-request', (req, res) => {
+  const email = String((req.body || {}).email || '').toLowerCase();
+  const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+  let devToken;
+  if (u) {
+    const token = rid(16), id = 'r_' + rid(6);
+    db.prepare('INSERT INTO resets (id,user_id,token_hash,expires,used) VALUES (?,?,?,?,0)').run(id, u.id, sha(token), Date.now() + 30 * 60 * 1000);
+    const link = `${req.protocol}://${req.get('host')}/#reset=${id}.${token}`;
+    sendEmail(email, 'Reset your HaTi password', `Open this link to set a new password (valid 30 minutes):\n${link}`, `Reset link: ${link}`);
+    devToken = EMAIL_ON() ? undefined : `${id}.${token}`;
+  }
+  res.json({ ok: true, emailSent: EMAIL_ON(), devToken }); // never leak whether the email exists
+});
+app.post('/api/password/reset', (req, res) => {
+  const { token, password } = req.body || {};
+  const [id, raw] = String(token || '').split('.');
+  const row = db.prepare('SELECT * FROM resets WHERE id=?').get(id || '');
+  if (!row || row.used || Date.now() > row.expires || row.token_hash !== sha(raw || ''))
+    return res.status(400).json({ error: 'This reset link is invalid or expired' });
+  if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  const salt = rid(16);
+  db.prepare('UPDATE users SET salt=?, hash=? WHERE id=?').run(salt, hashPw(password, salt), row.user_id);
+  db.prepare('UPDATE resets SET used=1 WHERE id=?').run(id);
+  db.prepare('DELETE FROM sessions WHERE user_id=?').run(row.user_id); // force re-login everywhere
+  res.json({ ok: true });
+});
+
+/* ---------- outbox (admin can see what was emailed / dev codes) ---------- */
+app.get('/api/outbox', auth, admin, (req, res) => {
+  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
+  res.json({ emailConfigured: EMAIL_ON(), items: rows });
+});
+
+/* ---------- renewal reminders ---------- */
+function runReminders() {
+  const data = getStore('data');
+  if (!data || !Array.isArray(data.contracts)) return { checked: 0, queued: 0 };
+  const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
+  if (!admins.length) return { checked: 0, queued: 0 };
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let queued = 0;
+  for (const c of data.contracts) {
+    if (!c.expiry || c.status === 'Declined') continue;
+    const days = Math.ceil((new Date(c.expiry + 'T00:00:00') - today) / 86400000);
+    const milestone = [90, 60, 30].find(m => days === m);
+    if (milestone == null) continue;
+    const rkey = `${c.id}:${c.expiry}:${milestone}`;
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) continue;
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(rkey, now());
+    const subj = `Renewal in ${milestone} days: ${c.name}`;
+    const body = `The contract "${c.name}" (${c.id}) with ${c.counterparty || 'a counterparty'} expires on ${c.expiry} — ${milestone} days away. Review it in HaTi to renew or let it lapse.`;
+    admins.forEach(a => sendEmail(a, subj, body, `renewal ${milestone}d: ${c.name}`));
+    queued++;
+  }
+  return { checked: data.contracts.length, queued };
+}
+app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
+setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   db.prepare('UPDATE shares SET applied=1 WHERE token=?').run(req.params.token);
