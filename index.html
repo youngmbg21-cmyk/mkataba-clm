@@ -282,6 +282,7 @@ const state = {
   activeId:null,
   folderId:null,
   folderQuery:'',
+  settings:{}, dataVersion:0,
   mapPos:{}, mapSel:null,
   contracts:[
     // — Procurement & Raw Materials —
@@ -401,7 +402,9 @@ async function loadBootstrap(){
   if(b.data && Array.isArray(b.data.contracts)){
     uid=b.data.uid||uid;
     state.contracts=b.data.contracts.map(migrateContract);
-  } else state.contracts=[];
+    state.settings=b.data.settings||{};
+  } else { state.contracts=[]; state.settings={}; }
+  state.dataVersion = b.version||0;   // optimistic-locking baseline
   // screen position is per-device, not shared with teammates
   const ui=lsGet(LS.ui)||{};
   state.view=ui.view||'dashboard';
@@ -415,24 +418,50 @@ const fmtDT = iso => new Date(iso).toLocaleString('en-KE',{dateStyle:'medium',ti
 const todayStr = () => new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 const fval = id => (document.getElementById(id)?.value||'').trim();
 
-/* ---------- persistence ---------- */
-let syncTimer=null;
+/* ---------- persistence ----------
+   API mode syncs with optimistic locking: the client sends the version it
+   last saw; the server rejects a stale write (409) so a teammate's edit is
+   never silently overwritten — we refetch and re-render instead. */
+let syncTimer=null, syncing=false;
 function persist(){
   if(API_MODE()){
     lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
     if(!canEdit()) return; // server rejects viewer writes
-    const snapshot={ uid, contracts:state.contracts };
     clearTimeout(syncTimer);
-    syncTimer=setTimeout(()=>api('data','PUT',snapshot).catch(e=>toast('Sync failed: '+e.message,'err')),400);
+    syncTimer=setTimeout(syncNow,400);
     return;
   }
-  lsSet(LS.data, { uid, contracts:state.contracts, view:state.view, activeId:state.activeId, folderId:state.folderId });
+  lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
+}
+// Strip server-stored file bytes from the synced record so a few PDFs don't
+// re-upload on every edit; the bytes live in the files table, referenced by fileId.
+function contractsForSync(){
+  return state.contracts.map(c=>{
+    if(c.upload && c.upload.fileId && c.upload.dataUrl){
+      const up={...c.upload}; delete up.dataUrl; return {...c, upload:up};
+    }
+    return c;
+  });
+}
+async function syncNow(){
+  if(syncing){ clearTimeout(syncTimer); syncTimer=setTimeout(syncNow,300); return; }
+  syncing=true;
+  try{
+    const r=await api('data','PUT',{ uid, contracts:contractsForSync(), settings:state.settings, baseVersion:state.dataVersion });
+    state.dataVersion=r.version;
+  }catch(e){
+    if(/conflict|stale|version/i.test(e.message)){
+      toast('A teammate saved changes — reloading the latest','err');
+      try{ await loadBootstrap(); setView(state.view||'dashboard'); }catch(_){}
+    } else toast('Sync failed: '+e.message,'err');
+  }finally{ syncing=false; }
 }
 function hydrate(){
   const d = lsGet(LS.data);
   if(d && Array.isArray(d.contracts)){
     uid = d.uid || uid;
     state.contracts = d.contracts.map(migrateContract);
+    state.settings = d.settings || {};
     state.view = d.view || 'dashboard';
     state.activeId = d.activeId || null;
     state.folderId = d.folderId || null;
@@ -441,7 +470,28 @@ function hydrate(){
 }
 function migrateContract(c){
   return Object.assign({ audit:[], signatures:[], comments:[], fields:{}, scan:null,
-    compliance:{iprs:false,pki:false}, hash:null, signedAt:null, expiry:null }, c);
+    compliance:{}, hash:null, signedAt:null, expiry:null, execution:null, approval:null, rounds:[] }, c);
+}
+
+/* ---------- approvals (spend-threshold sign-off) ---------- */
+const DEFAULT_APPROVAL={ threshold:5000000, approverRole:'admin' };
+const getApprovalCfg=()=>Object.assign({}, DEFAULT_APPROVAL, (state.settings&&state.settings.approval)||{});
+function approvalState(c){
+  const cfg=getApprovalCfg();
+  const required = Number(cfg.threshold)>0 && isMonetary(c) && Number(c.value)>=Number(cfg.threshold) && c.status!=='Signed';
+  const me=currentUser();
+  const canApprove = !!me && (me.role==='admin' || (cfg.approverRole==='legal' && me.role==='legal'));
+  const approverLabel = cfg.approverRole==='legal' ? 'an Admin or Legal approver' : 'an Admin';
+  return { required, ok: !required || !!c.approval, threshold:Number(cfg.threshold),
+    by:c.approval?.by, approverLabel, canApprove };
+}
+function approveContract(c){
+  if(!approvalState(c).canApprove){ toast('You do not have approver rights','err'); return; }
+  const u=currentUser();
+  c.approval={ by:u.name, byId:u.id, role:ROLE_LABEL[u.role], at:nowISO() };
+  logAudit(c,'Approved',`Approved for signing by ${u.name} (${ROLE_LABEL[u.role]})`);
+  persist(); renderSignButton(c); renderAuditSection(c);
+  toast('Contract approved — signing unlocked');
 }
 
 /* ---------- workspace / auth ---------- */
@@ -490,7 +540,7 @@ function renderAuth(mode){
       <button id="su-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace</button>`);
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
-  } else {
+  } else if(mode==='login'){
     root.innerHTML = shell(`
       <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg()?.name||'your workspace'}</h1>
       <p class="text-xs text-brand-800/55 mb-4">Use your workspace credentials.</p>
@@ -498,13 +548,49 @@ function renderAuth(mode){
       ${input('li-pass','Password','password')}
       <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
       <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
+      ${REMOTE?'<button id="li-forgot" class="mt-3 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Forgot password?</button>':''}
       ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/40 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
+    document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
     document.getElementById('li-reset')?.addEventListener('click',()=>{
       if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
+    });
+  } else if(mode==='forgot'){
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Reset your password</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Enter your email and we’ll send a reset link.</p>
+      ${input('fp-email','Email','email')}
+      <button id="fp-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Send reset link</button>
+      <div id="fp-result" class="mt-3"></div>
+      <button id="fp-back" class="mt-4 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Back to sign in</button>`);
+    document.getElementById('fp-back').addEventListener('click',()=>renderAuth('login'));
+    document.getElementById('fp-go').addEventListener('click',async()=>{
+      const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
+      try{
+        const r=await api('password/reset-request','POST',{ email });
+        document.getElementById('fp-result').innerHTML=`<div class="rounded-lg bg-brand-50 border border-brand-100 p-3 text-[11px] text-brand-700">If that email is registered, a reset link has been sent.${r.devToken?` <br/>Email isn’t configured yet — <button id="fp-dev" class="underline font-medium">open the reset form</button> for testing.`:''}</div>`;
+        document.getElementById('fp-dev')?.addEventListener('click',()=>renderAuth('reset:'+r.devToken));
+      }catch(e){ toast(e.message,'err'); }
+    });
+  } else if(mode && mode.startsWith('reset:')){
+    const token=mode.slice(6);
+    root.innerHTML = shell(`
+      <h1 class="font-display font-700 text-lg text-brand-900">Set a new password</h1>
+      <p class="text-xs text-brand-800/55 mb-4">Choose a new password for your account.</p>
+      ${input('rs-pass','New password','password','Min 8 characters')}
+      <button id="rs-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Save new password</button>
+      <p id="rs-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>`);
+    document.getElementById('rs-go').addEventListener('click',async()=>{
+      const pass=document.getElementById('rs-pass').value;
+      if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
+      try{
+        await api('password/reset','POST',{ token, password:pass });
+        toast('Password updated — please sign in');
+        location.hash=''; renderAuth('login');
+      }catch(e){ const el=document.getElementById('rs-err'); el.textContent=e.message; el.classList.remove('hidden'); }
     });
   }
 }
@@ -613,6 +699,56 @@ function renderAuditSection(c){
     </div>`;
 }
 
+/* ---------- negotiation rounds ---------- */
+function renderNegotiationSection(c){
+  const host=document.getElementById('nego-section'); if(!host) return;
+  const rounds=c.rounds||[];
+  if(!rounds.length){ host.innerHTML=''; return; }
+  const open=rounds.filter(r=>r.status==='open').length;
+  host.innerHTML=`
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-gold-500">${icon('history')}</span>
+        <h3 class="text-sm font-display font-600 text-brand-900">Negotiation</h3>
+        ${open?`<span class="ml-auto inline-flex items-center gap-1 rounded-full border border-gold-500/25 bg-gold-500/10 text-gold-600 px-2 py-0.5 text-[10px] font-medium">${open} open</span>`:`<span class="ml-auto text-[10px] font-mono text-brand-800/40">${rounds.length} round${rounds.length===1?'':'s'}</span>`}
+      </div>
+      <div class="space-y-2">
+        ${rounds.slice().reverse().map(r=>`
+          <div class="rounded-lg border ${r.status==='open'?'border-gold-500/30 bg-gold-500/5':'border-brand-100 bg-white'} p-3">
+            <div class="flex items-center gap-2 text-[11px] mb-1">
+              <span class="font-semibold text-brand-900">Round ${r.n} — changes requested</span>
+              <span class="ml-auto text-brand-800/40 font-mono">${fmtDT(r.at)}</span>
+            </div>
+            <div class="text-[11px] text-brand-800/45 mb-1">by ${r.by}</div>
+            <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
+            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/50">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
+            ${r.status==='open'?(canEdit()?`
+              <div class="mt-2 flex items-center gap-2">
+                <button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>
+              </div>`:`<div class="mt-2 text-[11px] text-brand-800/45">Awaiting an approver to resolve.</div>`)
+            :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
+          </div>`).join('')}
+      </div>
+      <p class="mt-2 text-[10px] text-brand-800/40">After resolving, re-share the updated document to send the next round.</p>
+    </div>`;
+  host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
+  host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
+}
+function resolveRound(c, n, accept){
+  if(!canEdit()){ toast('Viewers cannot resolve negotiation rounds','err'); return; }
+  const r=(c.rounds||[]).find(x=>x.n===n); if(!r||r.status!=='open') return;
+  const u=currentUser();
+  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO() };
+  if(accept && r.proposedValue!=null){
+    c.value=Number(r.proposedValue);
+    c.approval=null; // value changed — any prior approval is void
+  }
+  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
+  persist(); renderWorkspace();
+  toast(`Round ${n} ${accept?'accepted':'rejected'}`);
+}
+
 /* ---------- modal helper ---------- */
 function openModal(html){
   const root=document.getElementById('modal-root');
@@ -630,18 +766,48 @@ function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
    For a generated contract the seal covers the field values; for an uploaded
    ("inbound") document it covers the file's own hash, so the seal proves
    exactly which file you signed. */
+// Used only for the share-link doc fingerprint (change detection).
 const canonicalDoc = c => isUpload(c)
   ? JSON.stringify({ id:c.id, source:'upload', fileName:c.upload?.fileName, fileHash:c.upload?.fileHash,
       firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value })
   : JSON.stringify({ id:c.id, template:c.template, name:c.name,
       firstParty:FIRST_PARTY, counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields });
 
+/* Evidence-grade sealing:
+   at signature we FREEZE the fully-rendered contract text (values baked in),
+   hash that exact text, and from then on the workspace renders the frozen
+   copy — so what was sealed is always what is shown. The seal binds the
+   frozen text (or, for uploads, the file bytes) to the parties and value. */
+function freezeContractHtml(c){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=docBody(c);
+  tmp.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
+  tmp.querySelectorAll('input,textarea').forEach(inp=>{
+    const s=document.createElement('span');
+    s.className='font-mono font-semibold text-brand-900';
+    s.textContent=(inp.value||'').trim()||'—';
+    inp.replaceWith(s);
+  });
+  return tmp.innerHTML;
+}
+const normText = html => { const d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').replace(/\s+/g,' ').trim(); };
+function sealString(c){
+  const content = isUpload(c) ? 'file:'+(c.upload?.fileHash||'') : 'text:'+(c.execution?.textHash||'');
+  return JSON.stringify({ id:c.id, firstParty:FIRST_PARTY, counterparty:c.counterparty,
+    value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' });
+}
+
 async function verifySeal(c){
   if(!c.hash){ toast('Document is not sealed yet','err'); return; }
-  if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before hashing was enabled','err'); return; }
-  const h=await sha256(canonicalDoc(c));
-  if(h===c.hash) toast('Seal valid — document matches its SHA-256 hash');
-  else toast('Seal MISMATCH — document changed after signing','err');
+  if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before evidence hashing existed','err'); return; }
+  if(!isUpload(c)){
+    if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
+    const th=await sha256(normText(c.execution.html));
+    if(th!==c.execution.textHash){ toast('Seal MISMATCH — the sealed text was altered','err'); return; }
+  }
+  const h=await sha256(sealString(c));
+  if(h===c.hash) toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
+  else toast('Seal MISMATCH — the record changed after signing','err');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -650,10 +816,19 @@ function downloadFile(name, content, type='application/json'){
 }
 function downloadEvidence(c){
   downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
-    generatedAt:nowISO(), platform:'HaTi CLM (MVP)', org:FIRST_PARTY,
-    contract:{ id:c.id, name:c.name, template:c.template, counterparty:c.counterparty,
-      value:c.value, valueType:c.valueType, fields:c.fields, status:c.status },
-    sha256DocumentSeal:c.hash, signedAt:c.signedAt, signatures:c.signatures||[], auditTrail:c.audit||[],
+    generatedAt:nowISO(), platform:'HaTi CLM', org:FIRST_PARTY,
+    legalBasis:'Electronic signature under the Business Laws (Amendment) Act 2020 (Kenya).',
+    disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
+    contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
+      value:c.value, valueType:c.valueType, status:c.status },
+    seal:{ sha256:c.hash, signedAt:c.signedAt,
+      sealedTextSha256:c.execution?.textHash||null,
+      sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
+      sealedText:isUpload(c)?null:normText(c.execution?.html||''),
+      uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
+    signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
+      method:s.method||null, ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
+    auditTrail:c.audit||[],
   },null,2));
   logAudit(c,'Exported','Evidence pack downloaded'); persist(); renderAuditSection(c);
   toast('Evidence pack downloaded');
@@ -728,14 +903,19 @@ async function applyResponse(c, r, opts={}){
   const who=r.name+(r.title?', '+r.title:'');
   if(r.action==='sign'){
     c.signatures=c.signatures||[];
-    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at, docHash:r.docHash });
+    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
+      method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash });
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'})`);
     toast(`${r.name} has signed — countersignature recorded`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
-    logAudit(c,'Changes requested',`${who} requested changes via share link`);
-    toast(`${r.name} requested changes — see comments`);
+    c.rounds=c.rounds||[];
+    c.rounds.push({ n:c.rounds.length+1, at:r.at, by:who, comment:r.comment,
+      proposedValue:(r.proposedValue!=null&&r.proposedValue!=='')?Number(r.proposedValue):null,
+      status:'open', resolution:null });
+    logAudit(c,'Changes requested',`${who} requested changes${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
+    toast(`${r.name} requested changes — review in Negotiation`);
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, ts:fmtDT(r.at) });
@@ -817,6 +997,8 @@ function renderSharePortal(p, opts={}){
         ${input('pt-email','Work email','you@company.co.ke')}
         <label class="block mb-3"><span class="text-[11px] font-medium text-brand-800/70">Comment</span>
         <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"></textarea></label>
+        ${isMonetary(c)?`<label class="block mb-3"><span class="text-[11px] font-medium text-brand-800/70">Propose a different value (optional, for change requests)</span>
+        <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`:''}
         <div class="space-y-2">
           <button id="pt-sign" class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
           <div class="grid grid-cols-2 gap-2">
@@ -837,7 +1019,11 @@ async function portalRespond(p, action){
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
+  // Server-backed signing: verify the signer's email with a one-time code first.
+  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment}); }
+  const proposedValue = action==='changes' ? fval('pt-proposed') : '';
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment,
+    proposedValue: proposedValue||null, at:nowISO() };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
   if(PORTAL_OPTS.token){
     try{
@@ -863,6 +1049,45 @@ async function portalRespond(p, action){
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
     toast('Response code copied');
   });
+}
+/* two-step counterparty signing with email one-time code (server mode) */
+async function portalStartOtp(p, info){
+  const box=document.getElementById('portal-result');
+  box.innerHTML=`<div class="rounded-xl border border-brand-200 bg-brand-50 p-3.5 text-[11px] text-brand-800/60">Sending a one-time code to <strong>${info.email}</strong>…</div>`;
+  let devCode=null;
+  try{
+    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{ email:info.email });
+    devCode=r.devCode;
+  }catch(e){ toast(e.message,'err'); box.innerHTML=''; return; }
+  box.innerHTML=`
+    <div class="rounded-xl border border-brand-200 bg-white p-3.5">
+      <div class="text-xs font-semibold text-brand-900 mb-1 flex items-center gap-1.5">${icon('key','w-3.5 h-3.5')} Verify your email to sign</div>
+      <p class="text-[11px] text-brand-800/60 mb-2">We sent a 6-digit code to <strong>${info.email}</strong>. Enter it to complete your signature.</p>
+      ${devCode?`<p class="mb-2 text-[11px] rounded-lg bg-gold-500/10 border border-gold-500/25 text-gold-700 px-2.5 py-1.5">Email isn’t configured on this server yet, so for testing your code is <strong class="font-mono">${devCode}</strong>.</p>`:''}
+      <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" class="w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-center text-lg font-mono tracking-[0.4em] outline-none focus:border-brand-400"/>
+      <button id="pt-otp-go" class="mt-2 w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-2.5 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
+      <button id="pt-otp-resend" class="mt-1.5 w-full text-[11px] text-brand-800/45 hover:text-brand-700 transition">Resend code</button>
+    </div>`;
+  document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
+  document.getElementById('pt-otp-resend').addEventListener('click',()=>portalStartOtp(p, info));
+  document.getElementById('pt-otp').focus();
+}
+async function portalVerifyAndSign(p, info){
+  const codeVal=fval('pt-otp');
+  if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
+  let verify;
+  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
+  catch(e){ toast(e.message,'err'); return; }
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
+    name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO() };
+  try{
+    await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+    document.getElementById('portal-result').innerHTML=`
+      <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 text-center">
+        <div class="flex items-center justify-center gap-1.5 text-brand-700 text-sm font-semibold mb-1">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
+        <p class="text-[11px] text-brand-800/70">Your email-verified signature has been delivered to ${p.sharedBy} at ${p.org}. You're all done.</p>
+      </div>`;
+  }catch(e){ toast(e.message,'err'); }
 }
 
 /* ---------- PDF export (print pipeline) ---------- */
@@ -1166,6 +1391,108 @@ function renderFolderListOnly(){
    ============================================================ */
 const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
 
+/* ---------- document text extraction (client-side, no external service) ----------
+   Uses the browser's built-in DecompressionStream to inflate FlateDecode PDF
+   streams, then pulls the text-showing strings. Works for standard text PDFs
+   and .txt; image-only PDFs / Word fall back to the manual checklist. */
+async function inflateBytes(bytes){
+  for(const fmt of ['deflate','deflate-raw']){
+    try{ const ds=new DecompressionStream(fmt);
+      const stream=new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }catch(e){}
+  }
+  return null;
+}
+function pdfStringsFrom(content){
+  const res=[]; const re=/\(((?:\\.|[^()\\])*)\)/g; let m;
+  while((m=re.exec(content))){
+    res.push(m[1].replace(/\\(\d{1,3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\([()\\nrt])/g,(x,c)=>({n:'\n',r:'',t:' '}[c]??c)));
+  }
+  return res.join(' ');
+}
+async function extractPdfText(buf){
+  const bytes=new Uint8Array(buf);
+  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
+  while((m=re.exec(bin))){
+    const raw=m[1];
+    const arr=Uint8Array.from(raw,ch=>ch.charCodeAt(0)&0xff);
+    const inf=await inflateBytes(arr);
+    let text; if(inf){ text=''; for(let i=0;i<inf.length;i++) text+=String.fromCharCode(inf[i]); } else text=raw;
+    if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
+  }
+  return out.join(' ').replace(/\s+/g,' ').trim();
+}
+async function extractDocText(dataUrl, mime){
+  try{
+    if(/text\//.test(mime)){ return (await (await fetch(dataUrl)).text()).slice(0,40000); }
+    if(/pdf/.test(mime)){ const buf=await (await fetch(dataUrl)).arrayBuffer(); return (await extractPdfText(buf)).slice(0,40000); }
+  }catch(e){}
+  return '';
+}
+// Heuristic clause analysis over the REAL extracted text — quotes verbatim.
+function sentenceAround(text, idx){
+  let s=text.lastIndexOf('.',idx); s=s<0?Math.max(0,idx-140):s+1;
+  let e=text.indexOf('.',idx); e=e<0?Math.min(text.length,idx+220):e+1;
+  return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,260);
+}
+function findingsFromText(c, text){
+  const F=[]; const low=text.toLowerCase();
+  const add=(id,sev,kind,title,quote,why,fix,conf)=>F.push({id,sev,kind,title,anchor:'doc',confidence:conf,
+    what:quote?`The document reads: “${quote}”`:'(clause not located in the extracted text)', why, fix});
+  const firstIdx=(...ks)=>{ for(const k of ks){ const i=low.indexOf(k); if(i>=0) return i; } return -1; };
+  // 1) governing law — scan ALL candidate mentions and pick the one that names a
+  //    jurisdiction (a ref-line like "governing law as stated below" is ignored).
+  const foreign=['switzerland','geneva','england','wales','united kingdom','london','delaware','new york','singapore','dubai','u.a.e','uae','netherlands','paris','france','uganda','tanzania','rwanda','south africa'];
+  const govKeys=['governing law','governed by the laws','laws of the republic','exclusive jurisdiction','jurisdiction of','arbitration seated','arbitration in','governed by'];
+  const cands=[]; for(const k of govKeys){ let i=low.indexOf(k); while(i>=0){ cands.push(i); i=low.indexOf(k,i+1); } }
+  let foreignSen=null,foreignHit=null,kenyaSen=null;
+  for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){ const sen=sentenceAround(text,idx), sl=sen.toLowerCase();
+    const fh=foreign.find(f=>sl.includes(f)), hk=sl.includes('kenya');
+    if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
+    if(hk&&!kenyaSen) kenyaSen=sen;
+  }
+  if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
+    `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a Kenyan business and may bypass Kenyan protections.`,
+    'Negotiate Kenyan governing law and forum, or budget for foreign enforcement before signing.','high');
+  else if(kenyaSen) add('t-law','low','ambiguity','Governing law: Kenya (found in text)',kenyaSen,
+    'Kenyan governing law keeps enforcement local and predictable.','No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+  else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
+    'No clause naming a governing law or forum was found in the extracted text.','Every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
+  // 2) payment terms
+  const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
+  if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
+    add('t-pay', d>45?'med':'low', d>45?'risk':'ambiguity', `Payment terms: ${d} days`, sentenceAround(text,i),
+      d>45?`${d}-day terms tie up working capital and raise exposure if the payer delays.`:'Payment terms look within a healthy range.',
+      d>45?'Negotiate toward 30–45 days, or price the extended terms into the deal.':'Confirm this matches what was agreed.','high'); }
+  // 3) auto-renewal
+  const ar=low.search(/auto(?:matically)?[\s-]*renew|renews?\s+automatically/);
+  if(ar>=0) add('t-renew','med','risk','Automatic renewal clause',sentenceAround(text,ar),
+    'Auto-renewing contracts with long notice windows are a common way to get locked in.',
+    'Confirm the renewal is intended and the exit notice period is workable.','high');
+  // 4) termination notice
+  const tn=low.match(/(\d{1,3})\s*days'?\s*(?:written\s*)?notice/);
+  if(tn){ const i=low.indexOf(tn[0]); add('t-term','low','ambiguity',`Termination notice: ${tn[1]} days`,sentenceAround(text,i),
+    'The exit notice period sets how quickly you can walk away.','Confirm the notice period is acceptable for your exposure.','high'); }
+  // 5) liability / indemnity
+  const li=firstIdx('limitation of liability','total liability','liability is limited','liability shall','indemnif');
+  if(li>=0) add('t-liab','med','risk','Liability / indemnity — review carefully',sentenceAround(text,li),
+    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+    'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.','medium');
+  // 6) stamp duty for leases
+  if((low.includes('lease')||low.includes('landlord')||low.includes('tenant')) && !low.includes('stamp duty'))
+    add('t-stamp','med','risk','Lease with no stamp-duty provision','',
+      'An unstamped lease is inadmissible in evidence in Kenya until duty and penalties are paid (Stamp Duty Act, Cap 480).',
+      'Ensure stamp duty is assessed and paid via iTax within 30 days of execution.','medium');
+  // 7) data protection for corporate/IT paper
+  if(c.folder==='corp' && !/(data protection|data processing|personal data|odpc)/.test(low))
+    add('t-dp','low','missing','No data-protection terms detected','',
+      'Under the Data Protection Act 2019 you remain responsible for how vendors process personal data.',
+      'Confirm a data-processing / DPA clause with ODPC-aligned obligations is included.','low');
+  return F;
+}
+
 function openUploadModal(){
   if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
   const folderOpts=Object.values(FOLDERS).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
@@ -1212,20 +1539,28 @@ async function submitUpload(){
   const vtype=document.getElementById('up-vtype').value;
   const value=vtype==='none'?0:Number(fval('up-value')||0);
   const expiry=fval('up-expiry')||null;
-  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Adding…</span>';
+  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading document…</span>';
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
   if(!dataUrl){ toast('Could not read that file','err'); return; }
   const fileHash=await sha256(dataUrl);
+  const mime=file.type||'application/octet-stream';
+  const extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   const u=currentUser();
+  const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
+    extractedText, textChars:extractedText.length, dataUrl };
+  // API mode: store bytes on the server and keep only a reference in the synced record.
+  if(API_MODE()){
+    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
+      upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
+  }
   const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
-    compliance:{iprs:false,pki:false},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}. Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    compliance:{},
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for AI review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null,
-    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received document “${file.name}” (${Math.round(file.size/1024)} KB) added`}],
-    signatures:[],
-    upload:{ fileName:file.name, mime:file.type||'application/octet-stream', size:file.size, dataUrl, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System' } };
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
+    signatures:[], upload };
   state.contracts.unshift(c);
   state.activeId=c.id;
   persist();
@@ -1260,13 +1595,17 @@ function uploadDocBody(c){
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
-    <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="mb-4 inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+    </div>
     ${preview}
     ${signatureBlock(c)}`;
 }
 
 function uploadScanRules(c){
   const F=[]; const add=(id,sev,kind,title,what,why,fix)=>F.push({id,sev,kind,title,anchor:'doc',what,why,fix});
+  // metadata checks (always)
   if(!c.counterparty) add('u-cp','high','missing','Counterparty not recorded',
     'No counterparty name is recorded against this uploaded document.',
     'A signed contract with no recorded party is hard to enforce and clutters the register.',
@@ -1275,30 +1614,35 @@ function uploadScanRules(c){
     'The value field is empty for a document marked as monetary.',
     'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
     'Record the agreed KES value, or mark the contract non-monetary if none passes.');
-  add('u-law','med','risk','Confirm governing law is Kenyan',
-    'This is an external document — confirm its governing-law and jurisdiction clause.',
-    'A foreign governing law or arbitration seat can make enforcement slow and expensive for a Kenyan business.',
-    'Find the governing-law clause and confirm it is the laws of Kenya with a Kenyan forum; negotiate if not.');
-  add('u-liab','med','risk','Check liability cap & indemnities',
-    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
-    'An unbalanced liability/indemnity split can expose you to costs far beyond the deal value.',
-    'Confirm the liability cap is mutual and reasonable, and that indemnities are limited to their fault.');
-  if(c.folder==='sales'||c.folder==='proc'||c.folder==='dist') add('u-pay','med','risk','Confirm payment terms & pricing',
-    'Check the payment days, pricing basis and any escalation or penalty clauses.',
-    'Extended terms or one-sided price-variation clauses quietly erode margin and cash flow.',
-    'Confirm payment terms are workable and price changes are capped or index-linked.');
-  if(c.folder==='corp') add('u-dp','low','risk','Confirm Data Protection (DPA 2019) terms',
-    'Corporate and IT agreements should address personal-data handling.',
-    'Under the Data Protection Act 2019 you remain responsible for how vendors process your data.',
-    'Confirm a data-processing clause / DPA with ODPC-aligned obligations is included.');
-  add('u-term','low','ambiguity','Confirm term, renewal & exit',
-    'Check the term length, any automatic renewal, and your notice period to exit.',
-    'Auto-renewing contracts with long notice periods are a common way to get locked in.',
-    'Confirm renewal is not automatic (or is acceptable) and the exit notice period is workable.');
-  add('u-legal','low','missing','Independent legal review before signing',
-    'This checklist is a prompt, not a substitute for reading the full document.',
-    'External paper is drafted for the other side’s benefit; a clause-by-clause read catches what a checklist can’t.',
-    'Have counsel review before signing where the value or risk is material.');
+
+  const text=(c.upload&&c.upload.extractedText)||'';
+  if(text.length>200){
+    // real analysis over the extracted text
+    findingsFromText(c, text).forEach(f=>F.push(f));
+  } else {
+    // image-only PDF / Word / extraction failed → honest manual checklist
+    add('u-noext','low','missing','Document text could not be read automatically',
+      'This file did not yield extractable text (a scanned image, or a Word file). The points below are a manual checklist, not a read of the clauses.',
+      'Image-only PDFs and Word documents need OCR or conversion before automated clause review.',
+      'Upload a text-based PDF for clause-level AI review, or review the document manually.');
+    add('u-law','med','risk','Confirm governing law is Kenyan',
+      'Confirm the governing-law and jurisdiction clause names Kenya.',
+      'A foreign governing law or arbitration seat makes enforcement slow and expensive for a Kenyan business.',
+      'Find the governing-law clause and confirm Kenya and a Kenyan forum; negotiate if not.');
+    add('u-liab','med','risk','Check liability cap & indemnities',
+      'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+      'An unbalanced liability/indemnity split can expose you well beyond the deal value.',
+      'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.');
+    add('u-term','low','ambiguity','Confirm term, renewal & exit',
+      'Check the term length, any automatic renewal, and your notice period to exit.',
+      'Auto-renewing contracts with long notice periods are a common way to get locked in.',
+      'Confirm renewal is acceptable and the exit notice period is workable.');
+  }
+  // always — honest disclaimer
+  add('u-legal','low','missing','Have qualified counsel review before signing',
+    'This AI review flags common issues but is not legal advice and cannot catch everything.',
+    'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
+    'Obtain independent legal review before signing where the value or risk is material.');
   return F;
 }
 
@@ -1307,6 +1651,7 @@ function uploadScanRules(c){
    ============================================================ */
 function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
+  if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
   const t=TEMPLATES[c.template];
   const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
   const dis=locked?'disabled':'';
@@ -1435,30 +1780,31 @@ function docBody(c){
 function signatureBlock(c){
   const locked=c.status==='Signed';
   if(locked){
-    const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('a7f3'+generatePseudo(c.id));
+    const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
+    const first=(c.signatures||[]).find(s=>s.party==='first');
+    const cp=(c.signatures||[]).find(s=>s.party==='counterparty');
+    const sub=s=>`<div class="text-[10px] text-brand-800/45 font-normal leading-snug">${[s.email,s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
+    const party=(label,ic,s,fallback)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+      <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(ic,'w-3 h-3')} ${label}</div>
+      ${s?`<div class="font-medium text-brand-700">${s.name}${s.title?', '+s.title:''}</div>${sub(s)}`:`<div class="text-brand-800/40 text-xs">${fallback}</div>`}</div>`;
     return `
     <div class="seal-in mt-8 rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5">
       <div class="flex items-start gap-4">
         <div class="h-14 w-14 shrink-0 grid place-items-center rounded-full bg-brand-900 text-gold-400 ring-4 ring-gold-500/15">${icon('seal','w-7 h-7')}</div>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2"><span class="font-display font-700 text-brand-900">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
-          <div class="mt-1 text-xs text-brand-800/60">${(()=>{ const cp=(c.signatures||[]).find(s=>s.party==='counterparty');
-            return `Signed by <strong>${c.signatory}</strong> for ${FIRST_PARTY}${cp?`, countersigned by <strong>${cp.name}${cp.title?', '+cp.title:''}</strong> for ${c.counterparty||'the Counterparty'} (${fmtDT(cp.at)})`:` — counterparty signature pending; share the document to collect it`}.`; })()}</div>
+          <div class="mt-1 text-xs text-brand-800/60">Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
-            <div class="rounded-lg bg-white border border-brand-100 p-2.5">
-              <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon('finger','w-3 h-3')} IPRS Identity</div>
-              <div class="font-medium text-brand-700">Verified</div>
-            </div>
-            <div class="rounded-lg bg-white border border-brand-100 p-2.5">
-              <div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon('key','w-3 h-3')} CAK PKI Token</div>
-              <div class="font-medium text-brand-700">Attached</div>
-            </div>
+            ${party('First party', 'finger', first||(c.signatory?{name:c.signatory,method:'session-authenticated',at:c.execution?.at}:null), 'Not recorded')}
+            ${party('Counterparty', 'users', cp, 'Pending — share the document to collect a verified counter-signature')}
           </div>
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/45 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
-            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} SHA-256 DOCUMENT SEAL</div>
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} DOCUMENT SEAL (SHA-256)</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
-            <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded on ledger'}</div>
+            <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded'}</div>
           </div>
+          <div class="mt-2 text-[10px] text-brand-800/40 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
         </div>
       </div>
     </div>`;
@@ -1467,8 +1813,11 @@ function signatureBlock(c){
     <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
       <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
       <div class="text-sm font-medium text-brand-800/70">Signature block — pending execution</div>
-      <div class="text-xs text-brand-800/45 mt-0.5">Complete verification and sign from the panel on the right.</div>
+      <div class="text-xs text-brand-800/45 mt-0.5">Confirm intent to sign from the panel on the right.</div>
     </div>`;
+}
+function frozenDocBody(c){
+  return `${c.execution.html}${signatureBlock(c)}`;
 }
 
 function renderWorkspace(){
@@ -1537,6 +1886,8 @@ function renderWorkspace(){
 
         <div id="scan-section" class="border-b border-brand-100/70"></div>
 
+        <div id="nego-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="audit-section" class="border-b border-brand-100/70"></div>
 
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
@@ -1558,22 +1909,21 @@ function renderWorkspace(){
         <div class="px-5 py-4 border-b border-brand-100/70">
           <div class="flex items-center gap-2 mb-3">
             <span class="text-gold-500">${icon('shield')}</span>
-            <h3 class="text-sm font-display font-600 text-brand-900">Kenyan Legal Verification</h3>
+            <h3 class="text-sm font-display font-600 text-brand-900">Signer verification &amp; consent</h3>
           </div>
-          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition mb-2 ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
-            <input type="checkbox" data-comp="iprs" ${c.compliance.iprs?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
-            <span class="text-xs">
-              <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('finger','w-3.5 h-3.5')} Verify Identity via National IPRS Database</span>
-              <span class="text-brand-800/50">Integrated Population Registration System check on signatory.</span>
-            </span>
-          </label>
+          <div class="rounded-lg border border-brand-100 bg-brand-50/40 p-3 mb-2 text-xs">
+            <div class="font-medium text-brand-900 flex items-center gap-1.5 mb-0.5">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
+            <div class="text-brand-800/55 font-mono text-[11px] truncate">${currentUser()?.email||''}</div>
+            <div class="text-brand-800/45 text-[11px] mt-0.5">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
+          </div>
           <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
-            <input type="checkbox" data-comp="pki" ${c.compliance.pki?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
+            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
             <span class="text-xs">
-              <span class="font-medium text-brand-900 flex items-center gap-1.5">${icon('key','w-3.5 h-3.5')} Attach CAK-Approved PKI Token</span>
-              <span class="text-brand-800/50">Advanced e-signature under the Kenya Information &amp; Communications Act.</span>
+              <span class="font-medium text-brand-900">I intend to sign electronically</span>
+              <span class="text-brand-800/50 block">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
             </span>
           </label>
+          <div class="mt-2 text-[10px] text-brand-800/40 leading-snug flex items-start gap-1">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
         </div>
 
         <div class="px-5 py-4 sticky bottom-0 bg-white border-t border-brand-100/70"><div id="sign-wrap"></div></div>
@@ -1582,7 +1932,13 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderAuditSection(c);
+  // rehydrate a server-stored uploaded file's bytes for preview/download
+  if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
+    api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
+      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
+    }).catch(()=>{});
+  }
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
@@ -1668,8 +2024,9 @@ function wireComments(c){
 /* -------- compliance + signing -------- */
 function wireCompliance(c){
   document.querySelectorAll('[data-comp]').forEach(cb=>cb.addEventListener('change',()=>{
-    c.compliance[cb.getAttribute('data-comp')]=cb.checked;
-    logAudit(c,'Verification',`${cb.getAttribute('data-comp')==='iprs'?'IPRS identity check':'CAK PKI token'} ${cb.checked?'completed':'cleared'}`);
+    const key=cb.getAttribute('data-comp');
+    c.compliance[key]=cb.checked;
+    if(key==='consent') logAudit(c,'Consent',`Intent-to-sign ${cb.checked?'confirmed':'withdrawn'} by ${currentUser()?.name||'user'}`);
     persist(); renderSignButton(c); renderAuditSection(c);
   }));
 }
@@ -1690,39 +2047,54 @@ function renderSignButton(c){
     wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/45 py-2">Viewer access — signing is disabled for your role.</div>`;
     return;
   }
-  const ready=c.compliance.iprs&&c.compliance.pki&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
+  const appr=approvalState(c);
+  const ready=c.counterparty&&(!isMonetary(c)||Number(c.value)>0)&&c.compliance.consent&&appr.ok;
   const missing=[];
   if(!c.counterparty)missing.push('counterparty name');
   if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
-  if(!c.compliance.iprs)missing.push('IPRS check');
-  if(!c.compliance.pki)missing.push('PKI token');
+  if(!c.compliance.consent)missing.push('intent-to-sign consent');
   wrap.innerHTML=`
+    ${appr.required?`<div class="mb-2 rounded-lg border ${appr.ok?'border-brand-200 bg-brand-50':'border-gold-500/30 bg-gold-500/10'} p-2.5 text-[11px]">
+      <div class="font-medium ${appr.ok?'text-brand-700':'text-gold-700'} flex items-center gap-1.5">${icon(appr.ok?'check2':'alert','w-3 h-3')} ${appr.ok?`Approved by ${appr.by}`:`Approval required (value ≥ ${fmtKESshort(appr.threshold)})`}</div>
+      ${!appr.ok?`<div class="text-brand-800/55 mt-0.5">Needs sign-off from ${appr.approverLabel}.${appr.canApprove?'':' You do not have approver rights.'}</div>
+        ${appr.canApprove?`<button id="approve-btn" class="mt-1.5 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">Approve this contract</button>`:''}`:''}
+    </div>`:''}
     <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/40 cursor-not-allowed'}">
       ${icon('finger','w-[18px] h-[18px]')} Sign Document
     </button>
-    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/45">Applies a SHA-256 seal and locks the document.</p>`
-           :`<p class="mt-2 text-[11px] text-center text-brand-800/45">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')}</span></p>`}
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/45">Freezes the exact text, applies a tamper-evident SHA-256 seal, and locks the document.</p>`
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/45">Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span></p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
       return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
+  document.getElementById('approve-btn')?.addEventListener('click',()=>approveContract(c));
 }
 async function signDocument(c){
   if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
+  if(!c.compliance.consent){ toast('Tick the intent-to-sign box first','err'); return; }
+  if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
   const btn=document.getElementById('sign-btn');
   btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
   const u=currentUser(), at=nowISO();
+  // capture server-stamped IP + time where available (honest attribution)
+  let meta={ ip:null, at };
+  if(API_MODE()){ try{ meta=await api('sign-meta','POST',{}); }catch(e){} }
+  const exec={ at, method:'session-authenticated', consent:true, ua:navigator.userAgent, ip:meta.ip||null };
+  if(!isUpload(c)){ exec.html=freezeContractHtml(c); exec.textHash=await sha256(normText(exec.html)); }
+  c.execution=exec;
   c.signedAt=fmtDT(at)+' EAT';
   c.lastAction=todayStr();
   c.signatory=`${u.name} (${ROLE_LABEL[u.role]})`;
-  c.hash=await sha256(canonicalDoc(c));
+  c.hash=await sha256(sealString(c));
   c.signatures=c.signatures||[];
-  c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at, docHash:c.hash });
+  c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
+    method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent, docHash:c.hash });
   c.status='Signed';
-  logAudit(c,'Signed',`Document sealed by ${u.name} — SHA-256 ${c.hash.slice(0,16)}…`);
+  logAudit(c,'Signed',`Sealed by ${u.name} (${u.email}) — ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
   persist();
   document.getElementById('doc-canvas').innerHTML=docBody(c);
   updateStatusUI(c); renderSignButton(c); renderAuditSection(c);
-  toast('Document signed and cryptographically sealed');
+  toast('Signed & sealed — the exact text is frozen and fingerprinted');
 }
 
 
@@ -2133,10 +2505,10 @@ function scanRules(c){
     'The commencement date field in the recital is empty.',
     'Obligations, term length and notice periods all count from this date; leaving it open invites disputes about when duties began.',
     'Pick the effective date in the recital\u2019s date field.');
-  if(c.status!=='Signed' && (!c.compliance.iprs || !c.compliance.pki)) add('g-comp','low','missing','Signature verification incomplete','sig',
-    'IPRS identity verification and/or the CAK PKI token have not been completed.',
-    'Under the Kenya Information & Communications Act an advanced e-signature needs verified identity and an accredited certificate to carry full evidentiary weight.',
-    'Run the IPRS check and attach the PKI token in the verification panel before signing.');
+  if(c.status!=='Signed' && !c.compliance.consent) add('g-comp','low','missing','Intent-to-sign not yet confirmed','sig',
+    'The signer has not yet confirmed intent to sign electronically.',
+    'A recorded intent-to-sign strengthens attribution of the electronic signature under the Business Laws (Amendment) Act 2020.',
+    'Tick the intent-to-sign consent box in the verification panel before signing.');
 
   // --- template-specific (tuned to FMCG contract types & Kenyan practice) ---
   if(c.template==='RM'){
@@ -2333,12 +2705,13 @@ function renderScanSection(c){
         <button data-scan-toggle="${x.id}" class="w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-brand-50/50 transition">
           <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
           <span class="text-xs font-medium text-brand-900 flex-1 min-w-0 truncate">${x.title}</span>
+          ${x.confidence?`<span class="hidden sm:inline text-[8px] uppercase tracking-wider text-brand-800/35" title="Heuristic confidence">${x.confidence}</span>`:''}
           <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
           <span class="text-brand-300 transition ${exp?'rotate-180':''}">${icon('chevD','w-3.5 h-3.5')}</span>
         </button>
         ${exp?`
         <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
+          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/45 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
@@ -2643,6 +3016,24 @@ function renderTeam(){
       </section>
 
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('check2')}</span>
+          <h2 class="font-display font-600 text-brand-900">Approval policy</h2></div>
+        <p class="text-xs text-brand-800/55 mb-3">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
+        ${(()=>{ const cfg=getApprovalCfg(); return `
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="block"><span class="text-xs font-medium text-brand-800/70">Approval threshold (KES)</span>
+            <input id="ap-threshold" type="number" value="${cfg.threshold}" ${isAdmin()?'':'disabled'} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 ${isAdmin()?'':'opacity-60'}"/></label>
+          <label class="block"><span class="text-xs font-medium text-brand-800/70">Who can approve</span>
+            <select id="ap-role" ${isAdmin()?'':'disabled'} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 ${isAdmin()?'':'opacity-60'}">
+              <option value="admin" ${cfg.approverRole==='admin'?'selected':''}>Admins only</option>
+              <option value="legal" ${cfg.approverRole==='legal'?'selected':''}>Admins &amp; Legal</option>
+            </select></label>
+        </div>
+        ${isAdmin()?`<button id="ap-save" class="mt-3 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">Save approval policy</button>`
+          :`<p class="mt-2 text-[11px] text-brand-800/45">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
+      </section>
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
         <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
@@ -2653,8 +3044,41 @@ function renderTeam(){
           <button id="bk-reset" class="ml-auto flex items-center gap-1.5 rounded-lg border border-rose-200 text-rose-600 px-3.5 py-2 text-xs font-medium hover:bg-rose-50 transition">${icon('ban','w-3.5 h-3.5')} Reset workspace</button>`:''}
         </div>
       </section>
+
+      ${(API_MODE()&&isAdmin())?`
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('send')}</span>
+          <h2 class="font-display font-600 text-brand-900">Email &amp; notifications</h2></div>
+        <p class="text-xs text-brand-800/55 mb-3">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span class="font-mono">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button id="rem-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
+          <button id="ob-refresh" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
+        </div>
+        <div id="outbox-list" class="text-xs text-brand-800/45">Loading outbox…</div>
+      </section>`:''}
     </div>
   </div>`;
+
+  if(API_MODE()&&isAdmin()){
+    const loadOutbox=async()=>{
+      try{ const r=await api('outbox');
+        const host=document.getElementById('outbox-list'); if(!host) return;
+        host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured?'text-brand-600':'text-gold-600'}">${r.emailConfigured?'Email delivery is configured (Resend).':'Email delivery not configured — showing queued messages & dev codes.'}</div>`+
+          (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
+            <div class="rounded-lg border border-brand-100 bg-white p-2.5">
+              <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?'sent':it.provider}</span></div>
+              <div class="text-[10px] font-mono text-brand-800/45 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
+              ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
+            </div>`).join('')}</div>`:`<div class="text-[11px] text-brand-800/45">No messages yet.</div>`);
+      }catch(e){}
+    };
+    setTimeout(loadOutbox,50);
+    document.getElementById('ob-refresh')?.addEventListener('click',loadOutbox);
+    document.getElementById('rem-run')?.addEventListener('click',async()=>{
+      try{ const r=await api('reminders/run','POST',{}); toast(`Checked ${r.checked} contracts — ${r.queued} reminder${r.queued===1?'':'s'} queued`); loadOutbox(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+  }
 
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
@@ -2670,7 +3094,7 @@ function renderTeam(){
       const salt=newSalt();
       saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
-    toast(`${name} added as ${ROLE_LABEL[role]} — share their temporary password securely`);
+    toast(`${name} added as ${ROLE_LABEL[role]}${API_MODE()?' — an invite email was queued':' — share their temporary password securely'}`);
     renderTeam();
   });
   document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',async()=>{
@@ -2691,6 +3115,14 @@ function renderTeam(){
     } else saveUsers(us.filter(x=>x.id!==u.id));
     toast(`${u.name} removed`); renderTeam();
   }));
+  document.getElementById('ap-save')?.addEventListener('click',()=>{
+    const threshold=Math.max(0, Number(document.getElementById('ap-threshold').value||0));
+    const approverRole=document.getElementById('ap-role').value;
+    state.settings=state.settings||{};
+    state.settings.approval={ threshold, approverRole };
+    persist();
+    toast(threshold>0?`Approval required at ≥ ${fmtKESshort(threshold)}`:'Approvals disabled');
+  });
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
@@ -2794,10 +3226,12 @@ document.getElementById('nav').addEventListener('click',e=>{
 (async function boot(){
   const m=location.hash.match(/^#share=(.+)$/);
   if(m){ await portalEntry(m[1]); return; }
+  const rs=location.hash.match(/^#reset=(.+)$/);
   let st=null;
   try{ const r=await fetch('api/status',{credentials:'same-origin'}); if(r.ok) st=await r.json(); }catch(e){}
   if(st && st.mode==='api'){
     REMOTE={ org:st.orgName?{name:st.orgName}:null, me:null, users:[] };
+    if(rs){ renderAuth('reset:'+rs[1]); return; }
     if(!st.setup){ renderAuth('setup'); return; }
     if(!st.authed){ renderAuth('login'); return; }
     try{ await loadBootstrap(); startApp(); }
