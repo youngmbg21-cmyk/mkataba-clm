@@ -21,8 +21,13 @@ npm start
 
 ```bash
 python3 -m http.server 8000
-# → http://localhost:8000, or just open index.html
+# → http://localhost:8000
 ```
+
+> The frontend is split into native ES modules (`js/`), which browsers
+> load under CORS rules — so opening `index.html` directly from the
+> filesystem (`file://`) no longer works. Serve it over HTTP with the
+> one-line command above (any static server works).
 
 On first launch you create a workspace (organization + admin account), optionally seeded with a sample portfolio of **30 realistic contracts** modelled on a **diversified Kenyan FMCG company** — spanning the full value stream from raw materials to market.
 
@@ -62,7 +67,12 @@ The demo data is organised into six value-stream folders, each with genuine cont
 
 ## Architecture
 
-- `index.html` — the entire frontend (Tailwind CDN + vanilla JS, no build step). A small "platform core" layer inside it handles storage/auth and auto-detects server vs static mode.
+- `index.html` — page shell (Tailwind CDN, fonts, styles) plus a single `<script type="module" src="js/app.js">`. No build step.
+- `js/` — the frontend as native ES modules, loaded in original execution order by `js/app.js`:
+  - `components.js` (icons, shared contract row), `templates.js` (Kenyan contract/folder constants + sample seeds), `core.js` (state, storage/auth, server↔static mode detection, signing seal, sharing, export), `api.js` (fetch layer), `ai.js` (AI scan rules + assistant).
+  - `views/` — one module per screen: `home`, `register` (register + folder), `queue` (pipeline), `intelligence` (deal map + portfolio intelligence graph), `settings` (team & settings), `contract` (workspace + inbound uploads), `portal` (counterparty share portal).
+  - `app.js` — entry point: imports every module, then wires navigation and boot.
+  - The app runs on one shared global scope (inline handlers, cross-module calls); modules give per-file editing isolation, not scope isolation, so cross-module bindings are attached to `window`.
 - `server/server.js` — Express API + built-in `node:sqlite` (Node ≥ 22.5, zero native dependencies). Endpoints for auth, bootstrap, contract data, team management and counterparty shares. Serves the frontend.
 
 ## Configuration (server mode)
