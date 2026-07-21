@@ -7,26 +7,38 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
+  // HaTi design system (from the Claude Design redesign): DM Sans throughout,
+  // the warm green-and-gold palette, and warmed neutrals/semantic reds. The
+  // brand/gold scales already matched the design; slate & rose are overridden
+  // to the design's warm greige and earthy red so existing utilities repaint.
   tailwind.config = {
     theme: { extend: {
       fontFamily: {
-        display: ['"Space Grotesk"','system-ui','sans-serif'],
-        sans: ['Inter','system-ui','sans-serif'],
+        display: ['"DM Sans"','system-ui','sans-serif'],
+        sans: ['"DM Sans"','system-ui','sans-serif'],
         mono: ['"JetBrains Mono"','ui-monospace','monospace'],
       },
       colors: {
         canvas:'#F4F7F5',
         brand:{50:'#EAF6F1',100:'#CFEAE0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
         gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
+        // warm greige (was slate) — design neutrals
+        slate:{50:'#F5F2EA',100:'#ECE7DC',200:'#DED5C6',300:'#CFC6B4',400:'#9A9484',500:'#807A6C',600:'#6B6559',700:'#57524A',800:'#413D37',900:'#2B2823'},
+        // earthy red (was rose) — design danger
+        rose:{50:'#F4E2DD',100:'#E6C9C1',200:'#E6C9C1',300:'#DCA99D',400:'#C56555',500:'#B23A2E',600:'#9A342A',700:'#822C24',900:'#3E1712'},
       },
     }},
   };
 </script>
 <style>
-  html { scroll-behavior: smooth; } body { background:#F4F7F5; }
+  html { scroll-behavior: smooth; } body { background:#F4F7F5; color:#08211E; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.006em; }
+  h1,h2,h3,.font-display { letter-spacing:-0.018em; }
+  a { color:#086B54; }
   ::selection { background:#CFEAE0; }
+  /* warmer, softer scrollbar to match the design */
+  .scroll-thin::-webkit-scrollbar-thumb{ background:#C6E0D5; border-radius:8px; }
   .view-enter { animation: viewIn .25s cubic-bezier(.22,.61,.36,1); }
   @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
@@ -1111,7 +1123,7 @@ function exportPDF(c){
     const u=c.upload||{};
     bodyHtml=`
       <div style="border:1px solid #CFEAE0;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
+        <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
@@ -1137,14 +1149,14 @@ function exportPDF(c){
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
     <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
+    <div style="font-family:'DM Sans',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0B7A5F;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       ${bodyHtml}
       ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
-      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
