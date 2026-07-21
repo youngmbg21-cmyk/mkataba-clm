@@ -111,6 +111,7 @@ function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
   if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
+  if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
   const q=R.query.trim().toLowerCase();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
@@ -132,7 +133,7 @@ function regRowsHtml(cs){
       <td class="px-2 py-3.5">
         <div class="min-w-0"><span class="block text-[14.5px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/65 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'—'}</span></div>
       </td>
-      <td class="px-2 py-3.5 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-[13px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span></td>
+      <td class="px-2 py-3.5 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-[13px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span>${c.metadata&&c.metadata.renewalType&&c.metadata.renewalType!=='unknown'?`<span class="ml-1.5 inline-block text-[9px] font-mono uppercase tracking-wide rounded px-1 py-0.5 ${c.metadata.renewalType==='auto-renew'?'bg-gold-500/15 text-amber':'bg-brand-50 text-brand-600'}">${(RENEWAL_LABEL[c.metadata.renewalType]||'').replace(' term','')}</span>`:''}</span></td>
       <td class="px-2 py-3.5 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700 font-mono" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
       <td class="px-2 py-3.5 text-right whitespace-nowrap text-[13px] font-600 tnum ${isMonetary(c)?'text-ink':'text-ink/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
       <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum text-ink/65">${c.lastAction||'—'}</td>
@@ -206,9 +207,16 @@ function renderRegister(){
         </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
-          <label class="flex items-center gap-2 text-[13px] text-ink/70">Sort
-            <select id="reg-sort" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">${sortOpts}</select>
-          </label>
+          <div class="flex items-center gap-3">
+            <label class="flex items-center gap-2 text-[13px] text-ink/70">Renewal
+              <select id="reg-renewal" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">
+                ${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}
+              </select>
+            </label>
+            <label class="flex items-center gap-2 text-[13px] text-ink/70">Sort
+              <select id="reg-sort" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">${sortOpts}</select>
+            </label>
+          </div>
         </div>
       </div>
 
@@ -246,6 +254,7 @@ function renderRegister(){
   const si=document.getElementById('reg-search');
   si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.getElementById('reg-sort').addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.getElementById('reg-renewal').addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
   document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
   document.getElementById('reg-selall').addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });

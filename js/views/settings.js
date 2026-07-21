@@ -116,6 +116,11 @@ function renderTeam(){
           <label class="text-[11px] text-ink/60 flex items-center gap-1.5">Model
             <input id="ai-model" type="text" placeholder="claude-haiku-4-5-20251001" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/></label>
           <button id="ai-key-clear" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium">Remove key</button>
+        </div>
+        <div class="mt-4 pt-4 border-t border-hair">
+          <div class="text-[12px] font-600 text-ink mb-1">File existing contracts</div>
+          <p class="text-[11px] text-ink/65 mb-2.5">Extract structured details (counterparty, dates, value, renewal terms, governing law) from uploaded contracts that don't have them yet. Each is presented for your review before saving — nothing is written automatically.</p>
+          <button id="meta-backfill" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3.5 py-2 text-xs font-600 hover:bg-brand-50 transition">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">Extract metadata for existing contracts</span></button>
         </div>`:`<p class="text-[11px] text-ink/65">Only an admin can configure the AI key.</p>`}
       </section>`:''}
 
@@ -186,6 +191,7 @@ function renderTeam(){
       try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
   }
+  document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
     const pass=document.getElementById('tm-pass').value;
