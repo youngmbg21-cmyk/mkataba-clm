@@ -5,6 +5,36 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E7 — Analytics & reporting
+
+**Done** (new `js/views/reports.js`; `GET /api/analytics`)
+
+- **E7-T1** — Lifecycle events derived from the existing audit trail
+  (`lifecycleEvents`, `firstAuditAt`) — Created/Uploaded → … → Signed —
+  reused rather than duplicated.
+- **E7-T2** — A Reports view (new nav-rail item) with decision-grade
+  metrics: average cycle time draft→signed (from audit timestamps), average
+  age in each open stage, negotiation rounds per contract type, portfolio
+  value by value-stream and by top counterparty, and the renewal-pipeline
+  value for each of the next 12 months — rendered as clean CSS bar charts
+  (no chart library, no build step). A server `GET /api/analytics` does the
+  value-by-folder/party/status and pipeline aggregates in SQL over indexed
+  columns so they stay fast at 1,200+ contracts.
+- **E7-T3** — CSV export of the report tables (metrics, value by stream,
+  top counterparties, renewal pipeline), reusing the existing download
+  helper.
+
+**Tested.** 10 client checks (cycle-time ≈7d from seeded audit, value-by-
+folder, ranked counterparties, pipeline months, rounds-by-type, view
+render, bar charts, CSV download) + live server run confirming
+`/api/analytics` returns byStatus/byFolder/byParty/pipeline SQL aggregates.
+Reports screenshot verified. E0 21-check regression green; no page errors.
+
+**Definition of Done** — met: reports render from the sample portfolio in
+well under a second and export to CSV.
+
+---
+
 ## E6 — Search, templates & self-serve creation
 
 **Done** (new `js/wizard.js`; server search endpoints)

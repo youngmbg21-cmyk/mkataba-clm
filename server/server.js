@@ -283,6 +283,24 @@ app.get('/api/stats', auth, (req, res) => {
   res.json({ ...g, byFolder });
 });
 
+// E7-T2: decision-grade aggregates, computed in SQL over indexed columns so
+// they stay fast at thousands of contracts.
+app.get('/api/analytics', auth, (req, res) => {
+  const byStatus = db.prepare('SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts GROUP BY status').all();
+  const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts GROUP BY folder ORDER BY val DESC`).all();
+  const byParty = db.prepare(`SELECT counterparty, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val
+      FROM contracts WHERE counterparty!='' GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all();
+  // renewal pipeline: active value expiring in each of the next 12 months
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rows = db.prepare(`SELECT expiry, value FROM contracts WHERE expiry IS NOT NULL AND status!='Declined'`).all();
+  const pipeline = {};
+  for (const r of rows) {
+    const d = new Date(r.expiry + 'T00:00:00'); const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
+    if (months >= 0 && months < 12) { const k = r.expiry.slice(0, 7); pipeline[k] = (pipeline[k] || 0) + (Number(r.value) || 0); }
+  }
+  res.json({ byStatus, byFolder, byParty, pipeline });
+});
+
 // Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
 app.get('/api/contracts', auth, (req, res) => {
   const { folder, status, q } = req.query;
