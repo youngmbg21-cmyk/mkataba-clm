@@ -210,8 +210,10 @@ function renderRegister(){
         <div class="flex flex-wrap items-center gap-3">
           <div class="relative flex-1 min-w-[220px] max-w-md">
             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-300">${icon('search','w-4 h-4')}</span>
-            <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Filter by name, party or ID…" class="w-full rounded-xl bg-white elev-1 pl-10 pr-3 py-2.5 text-sm outline-none focus:elev-2 transition"/>
+            <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${API_MODE()?'Search names, parties & full text…':'Filter by name, party or ID…'}" class="w-full rounded-xl bg-white elev-1 pl-10 pr-3 py-2.5 text-sm outline-none focus:elev-2 transition"/>
+            <div id="reg-fts" class="hidden absolute z-40 mt-1 w-full bg-white rounded-xl border border-line shadow-xl max-h-80 overflow-y-auto scroll-thin"></div>
           </div>
+          ${API_MODE()?`<button id="reg-ask" class="flex items-center gap-1.5 rounded-xl bg-white elev-1 px-3 py-2.5 text-sm text-brand-700 font-600 hover:elev-2 transition">${icon('sparkle','w-4 h-4 text-gold-500')} Ask your portfolio</button>`:''}
           <div class="flex flex-wrap items-center gap-2">${stageChips}</div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -266,7 +268,9 @@ function renderRegister(){
   wireRegRows();
   renderRegSelBar();
   const si=document.getElementById('reg-search');
-  si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
+  document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
+  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); });
   document.getElementById('reg-sort').addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.getElementById('reg-renewal').addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
@@ -279,4 +283,56 @@ function renderRegister(){
   setActiveNav('register');
 }
 
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,REG_TYPES,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows});
+/* ---- E6-T1 full-text search dropdown (server mode) ---- */
+let ftsTimer=null;
+function ftsSearch(q){
+  const box=document.getElementById('reg-fts'); if(!box) return;
+  q=(q||'').trim();
+  clearTimeout(ftsTimer);
+  if(q.length<2){ box.classList.add('hidden'); return; }
+  ftsTimer=setTimeout(async()=>{
+    try{
+      const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
+      if(!r.hits||!r.hits.length){ box.innerHTML=`<div class="px-3 py-2.5 text-[12px] text-ink/55">No full-text matches.</div>`; box.classList.remove('hidden'); return; }
+      box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" class="w-full text-left px-3 py-2 hover:bg-brand-50 border-b border-hair last:border-0">
+        <div class="text-[12.5px] font-600 text-ink truncate">${(h.name||h.id).replace(/</g,'&lt;')} <span class="font-mono text-[10px] text-ink/45">${h.id}</span></div>
+        ${h.snippet?`<div class="text-[11px] text-ink/60 mt-0.5">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark class="bg-gold-500/25 rounded px-0.5">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div class="text-[11px] text-ink/50">${h.counterparty}</div>`:'')}
+      </button>`).join('');
+      box.classList.remove('hidden');
+      box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));
+    }catch(e){ box.classList.add('hidden'); }
+  },220);
+}
+/* ---- E6-T2 semantic "Ask your portfolio" ---- */
+async function openPortfolioAsk(){
+  openModal(`<div class="p-6">
+    <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
+      <h3 class="font-serif font-600 text-lg text-ink">Ask your portfolio</h3></div>
+    <p class="text-xs text-ink/60 mb-3">Ask a question in plain language, e.g. “which contracts let the counterparty terminate without cause?” — answered with quoted evidence from the contract text.</p>
+    <div class="flex gap-2 mb-3"><input id="pa-q" placeholder="Ask a question…" class="flex-1 rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
+      <button id="pa-go" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Ask</button></div>
+    <div id="pa-out" class="text-[12px] text-ink/55"></div></div>`);
+  const run=async()=>{
+    const q=document.getElementById('pa-q').value.trim(); if(!q) return;
+    const out=document.getElementById('pa-out'); out.innerHTML='<span class="text-brand-600">Searching…</span>';
+    try{
+      // gather candidate contracts by FTS, then load their text for the AI
+      const fts=await api('search?q='+encodeURIComponent(q.split(/\s+/).slice(0,6).join(' '))+'&limit=20');
+      const ids=(fts.hits||[]).map(h=>h.id).slice(0,15);
+      const cands=[];
+      for(const id of ids){ const c=getContract(id); if(!c) continue; try{ await ensureFull(c); }catch(e){}
+        cands.push({ id:c.id, name:c.name, counterparty:c.counterparty||'', text:(window.docPlainText?docPlainText(c):'')||(c.upload&&c.upload.extractedText)||'' }); }
+      if(!cands.length){ out.innerHTML='<span class="text-ink/55">No candidate contracts matched — try different keywords.</span>'; return; }
+      const r=await api('ai/search','POST',{ question:q, candidates:cands });
+      out.innerHTML=`<div class="rounded-lg bg-canvas border border-line px-3 py-2.5 text-[12.5px] text-ink/85 mb-2">${(r.answer||'').replace(/</g,'&lt;')}</div>`+
+        (r.matches||[]).map(m=>{ const c=getContract(m.id); if(!c) return ''; return `<button data-pa-open="${m.id}" class="w-full text-left rounded-lg border border-line bg-white hover:border-brand-300 px-3 py-2 mb-1.5 transition">
+          <div class="text-[12px] font-600 text-ink">${c.name.replace(/</g,'&lt;')} <span class="font-mono text-[10px] text-ink/45">${c.id}</span></div>
+          ${m.evidence?`<div class="text-[11px] text-ink/55 italic mt-0.5">“${m.evidence.replace(/</g,'&lt;')}”</div>`:''}</button>`; }).join('');
+      out.querySelectorAll('[data-pa-open]').forEach(b=>b.addEventListener('click',()=>{ closeModal(); openWorkspace(b.getAttribute('data-pa-open')); }));
+    }catch(e){ out.innerHTML=`<span class="text-rose-600">${/key|configure|401/.test(e.message)?'The AI engine needs a key for semantic search.':'Search failed: '+e.message}</span>`; }
+  };
+  document.getElementById('pa-go').addEventListener('click',run);
+  document.getElementById('pa-q').addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
+}
+
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,REG_TYPES,REG_VIEWS,ftsSearch,openPortfolioAsk,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows});

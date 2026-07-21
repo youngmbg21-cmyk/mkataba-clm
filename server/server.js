@@ -73,6 +73,31 @@ const HEAVY = c => { // strip the big fields for list/index responses
   x._light = true;
   return x;
 };
+// E6-T1: full-text search over contract bodies + metadata. FTS5 is available
+// in node:sqlite; the index is kept in sync on every upsert.
+let ftsOk = true;
+try { db.exec('CREATE VIRTUAL TABLE IF NOT EXISTS contracts_fts USING fts5(id UNINDEXED, name, counterparty, body)'); }
+catch (e) { ftsOk = false; }
+// Build a searchable text blob from whatever the stored JSON already holds
+// (no client change needed): names, parties, field values, uploaded text,
+// accepted redline, extracted metadata, obligations.
+function contractSearchBody(c) {
+  const parts = [c.name, c.counterparty, c.id, c.searchText];
+  if (c.fields) parts.push(Object.values(c.fields).join(' '));
+  if (c.upload && c.upload.extractedText) parts.push(c.upload.extractedText);
+  if (c.redlineText) parts.push(c.redlineText);
+  if (c.metadata) parts.push(Object.values(c.metadata).filter(v => typeof v === 'string').join(' '));
+  if (Array.isArray(c.obligations)) parts.push(c.obligations.map(o => o.desc).join(' '));
+  return parts.filter(Boolean).join('  ').slice(0, 40000);
+}
+function syncFts(c) {
+  if (!ftsOk) return;
+  try {
+    db.prepare('DELETE FROM contracts_fts WHERE id=?').run(c.id);
+    db.prepare('INSERT INTO contracts_fts (id,name,counterparty,body) VALUES (?,?,?,?)')
+      .run(c.id, c.name || '', c.counterparty || '', contractSearchBody(c));
+  } catch (_) {}
+}
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
   db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at)
@@ -84,6 +109,17 @@ function upsertContract(c, version) {
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || null, is_upload: c.source === 'upload' ? 1 : 0,
     seq: c._seq != null ? c._seq : nextSeq(), version, updated_at: now(),
   });
+  syncFts(c);
+}
+// One-time FTS backfill for rows that predate the index.
+function backfillFts() {
+  if (!ftsOk) return;
+  try {
+    const have = db.prepare('SELECT COUNT(*) n FROM contracts_fts').get().n;
+    const total = db.prepare('SELECT COUNT(*) n FROM contracts').get().n;
+    if (have >= total || total === 0) return;
+    txn(() => { for (const r of db.prepare('SELECT json FROM contracts').all()) { try { syncFts(JSON.parse(r.json)); } catch (_) {} } });
+  } catch (_) {}
 }
 function txn(fn) { db.exec('BEGIN'); try { fn(); db.exec('COMMIT'); } catch (e) { try { db.exec('ROLLBACK'); } catch (_) {} throw e; } }
 let seqCounter = null;
@@ -106,6 +142,7 @@ function migrateBlobIfNeeded() {
   }
 }
 migrateBlobIfNeeded();
+backfillFts();
 
 const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
@@ -261,6 +298,56 @@ app.get('/api/contracts', auth, (req, res) => {
     .all({ ...args, limit, offset })
     .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(c); });
   res.json({ total, offset, limit, rows });
+});
+
+// E6-T1: full-text search across bodies + metadata, with snippet previews.
+app.get('/api/search', auth, (req, res) => {
+  const q = String(req.query.q || '').trim();
+  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+  if (!q) return res.json({ hits: [], fts: ftsOk });
+  if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
+    const like = '%' + q.toLowerCase() + '%';
+    const rows = db.prepare('SELECT id,name,counterparty FROM contracts WHERE lower(name) LIKE ? OR lower(counterparty) LIKE ? LIMIT ?').all(like, like, limit);
+    return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false });
+  }
+  // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
+  const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
+  if (!match) return res.json({ hits: [], fts: true });
+  try {
+    const rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
+      FROM contracts_fts f WHERE contracts_fts MATCH ? ORDER BY rank LIMIT ?`).all(match, limit);
+    res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: r.snippet })), fts: true });
+  } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
+});
+
+// E6-T2: AI semantic search — answer a portfolio question with quoted evidence.
+app.post('/api/ai/search', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { question, candidates } = req.body || {};
+  if (!question || !Array.isArray(candidates)) return res.status(400).json({ error: 'question and candidates are required' });
+  const tool = {
+    name: 'answer_portfolio',
+    description: 'Answer the question and cite the contracts that support it.',
+    input_schema: { type: 'object', properties: {
+      answer: { type: 'string', description: '2-4 sentence answer.' },
+      matches: { type: 'array', items: { type: 'object', properties: {
+        id: { type: 'string' }, evidence: { type: 'string', description: 'Short verbatim quote that supports the match.' } }, required: ['id'] } },
+    }, required: ['answer'] },
+  };
+  const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
+  const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [] });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
 app.get('/api/contracts/:id', auth, (req, res) => {
