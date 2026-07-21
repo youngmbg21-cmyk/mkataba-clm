@@ -18,7 +18,9 @@ This is an honest description of where the MVP stands today, for pilot customers
 
 ## Data handling
 
-- Server mode stores data in a local **SQLite** database; uploaded files live in a `files` table referenced by id (kept out of the per-edit sync payload). Concurrent edits use **optimistic locking** (version check) so a teammate's changes are never silently overwritten.
+- Server mode stores each contract as its **own row** in a local **SQLite** database, with its **own version**. A save touches one contract (never the whole portfolio), and each contract has independent **optimistic locking** so a teammate's change to a different contract can't be clobbered.
+- Lists are **paginated and searched server-side**; portfolio aggregates (KPIs, folder counts) are computed in SQL; full contract bodies load on open. This keeps the client fast whether the workspace holds 30 contracts or thousands.
+- Uploaded files live in a `files` table referenced by id, kept out of the contract record so bytes never re-sync on an edit.
 - Static mode stores everything in the browser's localStorage (single-device; for demos).
 - Admins can export a full JSON **backup** at any time.
 
@@ -33,7 +35,7 @@ This is an honest description of where the MVP stands today, for pilot customers
 - No transport hardening shipped by default — **deploy behind HTTPS** (a reverse proxy or the host platform's TLS).
 - No rate limiting on auth/OTP endpoints yet.
 - Email delivery requires a provider key (`RESEND_API_KEY`); without it, messages and one-time codes queue to an admin-visible outbox.
-- Workspace data syncs as a single versioned document rather than per-contract records — safe against concurrent overwrite, but not optimised for very large portfolios with heavy simultaneous editing.
+- The client loads a working set of up to 5,000 contract summaries; beyond that, older contracts are reachable by search but not all held in memory at once (the server list/search/stats endpoints have no such limit).
 - No third-party security audit has been performed.
 
 ## Configuration

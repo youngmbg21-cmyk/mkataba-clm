@@ -50,7 +50,8 @@ The demo data is organised into six value-stream folders, each with genuine cont
 | **E-signature & audit trail** | Freezes the exact rendered text at signature and seals it with SHA-256 (signed contracts render from the frozen copy); captures signer identity, method, time, user-agent and IP; counterparty verifies by email one-time code; per-contract audit trail, seal verification, downloadable evidence pack. Honest about IPRS/CAK-PKI not yet being integrated |
 | **Negotiation & approvals** | Counterparty change-requests with proposed value counters; owner accepts/rejects, every round archived; spend-threshold approval gate before signing (configurable) |
 | **AI reads received documents** | Real client-side text extraction from uploaded PDFs; the review analyses the actual clauses and quotes them verbatim (foreign governing law, payment terms, auto-renewal, liability, stamp duty, data-protection), with confidence labels and a "not legal advice" disclaimer |
-| **Email & reminders** | Renewal reminders (90/60/30 days), team invites, password reset and counterparty signing codes by email (via `RESEND_API_KEY`; otherwise an admin-visible outbox). Server-side sessions, scrypt passwords, optimistic-locking sync, server-side file storage |
+| **Email & reminders** | Renewal reminders (90/60/30 days), team invites, password reset and counterparty signing codes by email (via `RESEND_API_KEY`; otherwise an admin-visible outbox). Server-side sessions, scrypt passwords, server-side file storage |
+| **Scales to large portfolios** | Each contract is stored as its own versioned row; a save touches one contract (never the whole book); lists are paginated and searched server-side; KPIs/folder counts are SQL aggregates; full bodies load on open. Tested with 1,200+ contracts (summaries load in well under a second) |
 | **Counterparty sharing** | Generate a short share link — the counterparty opens a no-login review portal and approves & signs, requests changes, or declines. Server mode: their response lands on the contract automatically (each link accepts one response). Static mode: the response travels back as a code you import |
 | **PDF export** | Clean print-ready export of any contract with its seal and audit trail |
 | **AI contract scan** | Rule engine flagging missing clauses, enforceability gaps and market-norm deviations tuned to Kenyan practice |
@@ -77,5 +78,4 @@ See [SECURITY.md](SECURITY.md) for the full posture. In short, before charging c
 
 - HTTPS deployment and rate limiting (not shipped by default).
 - Real IPRS identity checks and CAK-accredited PKI signatures (disclosed in-product as not yet integrated).
-- Per-contract server records for very large, heavily-concurrent portfolios (today the workspace syncs as one optimistically-locked document — safe against overwrite, not optimised for scale).
 - ODPC registration / DPA paperwork and multi-tenancy + billing for a hosted SaaS offering.
