@@ -653,6 +653,56 @@ function renderAuditSection(c){
     </div>`;
 }
 
+/* ---------- negotiation rounds ---------- */
+function renderNegotiationSection(c){
+  const host=document.getElementById('nego-section'); if(!host) return;
+  const rounds=c.rounds||[];
+  if(!rounds.length){ host.innerHTML=''; return; }
+  const open=rounds.filter(r=>r.status==='open').length;
+  host.innerHTML=`
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-gold-500">${icon('history')}</span>
+        <h3 class="text-sm font-display font-600 text-brand-900">Negotiation</h3>
+        ${open?`<span class="ml-auto inline-flex items-center gap-1 rounded-full border border-gold-500/25 bg-gold-500/10 text-gold-600 px-2 py-0.5 text-[10px] font-medium">${open} open</span>`:`<span class="ml-auto text-[10px] font-mono text-brand-800/40">${rounds.length} round${rounds.length===1?'':'s'}</span>`}
+      </div>
+      <div class="space-y-2">
+        ${rounds.slice().reverse().map(r=>`
+          <div class="rounded-lg border ${r.status==='open'?'border-gold-500/30 bg-gold-500/5':'border-brand-100 bg-white'} p-3">
+            <div class="flex items-center gap-2 text-[11px] mb-1">
+              <span class="font-semibold text-brand-900">Round ${r.n} — changes requested</span>
+              <span class="ml-auto text-brand-800/40 font-mono">${fmtDT(r.at)}</span>
+            </div>
+            <div class="text-[11px] text-brand-800/45 mb-1">by ${r.by}</div>
+            <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
+            ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/50">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
+            ${r.status==='open'?(canEdit()?`
+              <div class="mt-2 flex items-center gap-2">
+                <button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>
+              </div>`:`<div class="mt-2 text-[11px] text-brand-800/45">Awaiting an approver to resolve.</div>`)
+            :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
+          </div>`).join('')}
+      </div>
+      <p class="mt-2 text-[10px] text-brand-800/40">After resolving, re-share the updated document to send the next round.</p>
+    </div>`;
+  host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
+  host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
+}
+function resolveRound(c, n, accept){
+  if(!canEdit()){ toast('Viewers cannot resolve negotiation rounds','err'); return; }
+  const r=(c.rounds||[]).find(x=>x.n===n); if(!r||r.status!=='open') return;
+  const u=currentUser();
+  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO() };
+  if(accept && r.proposedValue!=null){
+    c.value=Number(r.proposedValue);
+    c.approval=null; // value changed — any prior approval is void
+  }
+  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
+  persist(); renderWorkspace();
+  toast(`Round ${n} ${accept?'accepted':'rejected'}`);
+}
+
 /* ---------- modal helper ---------- */
 function openModal(html){
   const root=document.getElementById('modal-root');
@@ -813,8 +863,12 @@ async function applyResponse(c, r, opts={}){
     toast(`${r.name} has signed — countersignature recorded`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
-    logAudit(c,'Changes requested',`${who} requested changes via share link`);
-    toast(`${r.name} requested changes — see comments`);
+    c.rounds=c.rounds||[];
+    c.rounds.push({ n:c.rounds.length+1, at:r.at, by:who, comment:r.comment,
+      proposedValue:(r.proposedValue!=null&&r.proposedValue!=='')?Number(r.proposedValue):null,
+      status:'open', resolution:null });
+    logAudit(c,'Changes requested',`${who} requested changes${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
+    toast(`${r.name} requested changes — review in Negotiation`);
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, ts:fmtDT(r.at) });
@@ -896,6 +950,8 @@ function renderSharePortal(p, opts={}){
         ${input('pt-email','Work email','you@company.co.ke')}
         <label class="block mb-3"><span class="text-[11px] font-medium text-brand-800/70">Comment</span>
         <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"></textarea></label>
+        ${isMonetary(c)?`<label class="block mb-3"><span class="text-[11px] font-medium text-brand-800/70">Propose a different value (optional, for change requests)</span>
+        <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`:''}
         <div class="space-y-2">
           <button id="pt-sign" class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
           <div class="grid grid-cols-2 gap-2">
@@ -916,7 +972,9 @@ async function portalRespond(p, action){
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment, at:nowISO() };
+  const proposedValue = action==='changes' ? fval('pt-proposed') : '';
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment,
+    proposedValue: proposedValue||null, at:nowISO() };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
   if(PORTAL_OPTS.token){
     try{
@@ -1621,6 +1679,8 @@ function renderWorkspace(){
 
         <div id="scan-section" class="border-b border-brand-100/70"></div>
 
+        <div id="nego-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="audit-section" class="border-b border-brand-100/70"></div>
 
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
@@ -1665,7 +1725,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderAuditSection(c);
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
@@ -2742,6 +2802,24 @@ function renderTeam(){
       </section>
 
       <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('check2')}</span>
+          <h2 class="font-display font-600 text-brand-900">Approval policy</h2></div>
+        <p class="text-xs text-brand-800/55 mb-3">Contracts at or above this value need sign-off before they can be signed. Set the threshold to 0 to disable approvals.</p>
+        ${(()=>{ const cfg=getApprovalCfg(); return `
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="block"><span class="text-xs font-medium text-brand-800/70">Approval threshold (KES)</span>
+            <input id="ap-threshold" type="number" value="${cfg.threshold}" ${isAdmin()?'':'disabled'} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 ${isAdmin()?'':'opacity-60'}"/></label>
+          <label class="block"><span class="text-xs font-medium text-brand-800/70">Who can approve</span>
+            <select id="ap-role" ${isAdmin()?'':'disabled'} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 ${isAdmin()?'':'opacity-60'}">
+              <option value="admin" ${cfg.approverRole==='admin'?'selected':''}>Admins only</option>
+              <option value="legal" ${cfg.approverRole==='legal'?'selected':''}>Admins &amp; Legal</option>
+            </select></label>
+        </div>
+        ${isAdmin()?`<button id="ap-save" class="mt-3 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">Save approval policy</button>`
+          :`<p class="mt-2 text-[11px] text-brand-800/45">Only an admin can change the approval policy. Current: ${cfg.threshold>0?`sign-off required at ≥ ${fmtKESshort(cfg.threshold)} by ${cfg.approverRole==='legal'?'admins & legal':'admins'}`:'approvals disabled'}.</p>`}`; })()}
+      </section>
+
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
         <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('shield')}</span>
           <h2 class="font-display font-600 text-brand-900">Data &amp; backup</h2></div>
         <p class="text-xs text-brand-800/55 mb-3">${API_MODE()?'This workspace runs on your HaTi server — every device sees the same contracts and accounts. Export a backup any time for your records.':'This build stores everything in this browser’s local storage. Export a backup to move workspaces between machines — run the HaTi server for central storage.'}</p>
@@ -2790,6 +2868,14 @@ function renderTeam(){
     } else saveUsers(us.filter(x=>x.id!==u.id));
     toast(`${u.name} removed`); renderTeam();
   }));
+  document.getElementById('ap-save')?.addEventListener('click',()=>{
+    const threshold=Math.max(0, Number(document.getElementById('ap-threshold').value||0));
+    const approverRole=document.getElementById('ap-role').value;
+    state.settings=state.settings||{};
+    state.settings.approval={ threshold, approverRole };
+    persist();
+    toast(threshold>0?`Approval required at ≥ ${fmtKESshort(threshold)}`:'Approvals disabled');
+  });
   document.getElementById('bk-export')?.addEventListener('click',()=>{
     downloadFile(`hati-backup-${new Date().toISOString().slice(0,10)}.json`,
       JSON.stringify({ kind:'hati-backup', v:1, exportedAt:nowISO(), org:getOrg(), users:getUsers(),
