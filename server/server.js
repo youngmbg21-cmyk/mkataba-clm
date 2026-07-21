@@ -503,6 +503,49 @@ app.post('/api/ai/obligations', auth, async (req, res) => {
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
+/* ---------- AI playbook review (E4) ----------
+   Review a document against the org's playbook (preferred/fallback positions,
+   ranges). Returns per-clause verdicts (aligned/deviation/missing) with a
+   verbatim quote, the playbook position, and a suggested redline in the
+   preferred wording. No key -> client heuristic. */
+app.post('/api/ai/playbook', auth, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { text, playbook, kind } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const tool = {
+    name: 'playbook_review',
+    description: 'Judge the document against the playbook positions and ranges.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        verdicts: { type: 'array', items: { type: 'object', properties: {
+          category: { type: 'string', description: 'The playbook category being judged.' },
+          status: { type: 'string', enum: ['aligned','deviation','missing'], description: 'aligned = meets the position; deviation = present but off-position; missing = absent.' },
+          quote: { type: 'string', description: 'Verbatim clause snippet from the document (empty if missing).' },
+          position: { type: 'string', description: 'The playbook’s preferred position, briefly.' },
+          redline: { type: 'string', description: 'Suggested replacement wording in the preferred position (only for deviation/missing).' },
+          escalate: { type: 'boolean', description: 'True if this deviation/absence requires Legal approval per the playbook.' },
+        }, required: ['category','status'] } },
+      },
+      required: ['verdicts'],
+    },
+  };
+  const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: aiModel(), max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
+    const data = await r.json();
+    const block = (data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [] });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
 app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });

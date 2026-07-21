@@ -5,6 +5,47 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E4 — Kenya playbook engine + clause library
+
+**Done** (new `js/playbook.js`)
+
+- **E4-T1** — Clause library: seeded standard clauses (category, name,
+  preferred + fallback wording, guidance) for governing law, payment,
+  liability cap, confidentiality, data protection, termination. Admin/Legal
+  add/edit/remove in Settings (stored in `state.settings.clauseLibrary`,
+  synced via the existing settings API). "Insert clause" in the workspace
+  adds the preferred wording as an E2 redline.
+- **E4-T2** — Playbook data model: per contract type, positions
+  (required/preferred/forbidden, with escalate flag) and numeric ranges
+  (payment ≤ 45 days, liability ≥ 12 months). Types extend a `_default`
+  baseline; a Settings viewer shows the resolved positions per type.
+- **E4-T3** — Seeded Kenya FMCG playbook covering supply/services/lease/NDA
+  plus baseline Kenya-specific checks (Kenyan governing law & forum, Data
+  Protection Act 2019 / ODPC, stamp duty for leases, KEBS quality).
+- **E4-T4** — AI playbook review: `POST /api/ai/playbook` sends the document
+  + resolved playbook to Claude → per-clause verdicts (aligned / deviation /
+  missing) with verbatim quote, preferred position, and a suggested redline;
+  applied via E2's redline mechanism. Fallback: a deterministic heuristic
+  (`playbookReviewHeuristic`) that detects foreign law, over-long payment
+  terms, missing data-protection/liability/confidentiality etc.
+- **E4-T5** — Deviation report: a workspace panel summarising
+  deviations/missing with escalate flags; the count also feeds the Home
+  Attention banner and is available to E5's approval gate
+  (`deviationSummary`).
+
+**Tested.** 20 checks (playbook key mapping, `_default` inheritance,
+heuristic review producing aligned/deviation/missing with quotes +
+redlines + escalation, deviation summary, clause library seed, insert-
+clause → redline+version, workspace panel + run, settings library editor +
+playbook viewer). E0 21-check regression green; `/api/ai/playbook`
+registered + auth-gated; no page errors. Signing seal untouched.
+
+**Definition of Done** — met: review a supplier contract → aligned/
+deviating/missing clauses with quotes → apply a suggested redline as a new
+version.
+
+---
+
 ## E3 — Renewal calendar & obligation management
 
 **Done** (new `js/obligations.js`, `js/views/calendar.js`)

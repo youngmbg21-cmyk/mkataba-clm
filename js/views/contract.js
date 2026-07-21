@@ -580,6 +580,8 @@ function renderWorkspace(){
 
         <div id="scan-section" class="border-b border-brand-100/70"></div>
 
+        <div id="playbook-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="nego-section" class="border-b border-brand-100/70 empty:hidden"></div>
 
         <div id="versions-section" class="border-b border-brand-100/70 empty:hidden"></div>
@@ -630,7 +632,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); renderAuditSection(c);
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
