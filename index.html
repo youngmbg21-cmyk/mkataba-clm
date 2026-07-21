@@ -7,26 +7,38 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script>
+  // HaTi design system (from the Claude Design redesign): DM Sans throughout,
+  // the warm green-and-gold palette, and warmed neutrals/semantic reds. The
+  // brand/gold scales already matched the design; slate & rose are overridden
+  // to the design's warm greige and earthy red so existing utilities repaint.
   tailwind.config = {
     theme: { extend: {
       fontFamily: {
-        display: ['"Space Grotesk"','system-ui','sans-serif'],
-        sans: ['Inter','system-ui','sans-serif'],
+        display: ['"DM Sans"','system-ui','sans-serif'],
+        sans: ['"DM Sans"','system-ui','sans-serif'],
         mono: ['"JetBrains Mono"','ui-monospace','monospace'],
       },
       colors: {
         canvas:'#F4F7F5',
         brand:{50:'#EAF6F1',100:'#CFEAE0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
         gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
+        // warm greige (was slate) — design neutrals
+        slate:{50:'#F5F2EA',100:'#ECE7DC',200:'#DED5C6',300:'#CFC6B4',400:'#9A9484',500:'#807A6C',600:'#6B6559',700:'#57524A',800:'#413D37',900:'#2B2823'},
+        // earthy red (was rose) — design danger
+        rose:{50:'#F4E2DD',100:'#E6C9C1',200:'#E6C9C1',300:'#DCA99D',400:'#C56555',500:'#B23A2E',600:'#9A342A',700:'#822C24',900:'#3E1712'},
       },
     }},
   };
 </script>
 <style>
-  html { scroll-behavior: smooth; } body { background:#F4F7F5; }
+  html { scroll-behavior: smooth; } body { background:#F4F7F5; color:#08211E; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.006em; }
+  h1,h2,h3,.font-display { letter-spacing:-0.018em; }
+  a { color:#086B54; }
   ::selection { background:#CFEAE0; }
+  /* warmer, softer scrollbar to match the design */
+  .scroll-thin::-webkit-scrollbar-thumb{ background:#C6E0D5; border-radius:8px; }
   .view-enter { animation: viewIn .25s cubic-bezier(.22,.61,.36,1); }
   @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
@@ -120,7 +132,15 @@
     <nav class="px-3 py-4 flex-1 overflow-y-auto scroll-thin" id="nav">
       <button data-view="dashboard" class="nav-item active w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative">
         <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
-        <span data-ic="grid"></span> Dashboard
+        <span data-ic="grid"></span> Home
+      </button>
+      <button data-view="register" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="file"></span> Contract Register
+      </button>
+      <button data-view="pipeline" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
+        <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
+        <span data-ic="grid"></span> Pipeline
       </button>
       <button data-view="intel" class="nav-item w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-brand-100/70 hover:text-white hover:bg-white/5 transition relative mt-1">
         <span class="nav-rail absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gold-500 opacity-0 transition"></span>
@@ -347,14 +367,19 @@ const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
 /* ============================================================ HELPERS */
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
-const STATUS_STYLES = {
-  'Draft':{dot:'bg-slate-400',chip:'bg-slate-100 text-slate-700 border-slate-200'},
-  'Under Review':{dot:'bg-gold-500',chip:'bg-gold-500/10 text-gold-600 border-gold-500/25'},
-  'Signed':{dot:'bg-brand-500',chip:'bg-brand-50 text-brand-700 border-brand-200'},
-  'Declined':{dot:'bg-rose-500',chip:'bg-rose-50 text-rose-700 border-rose-200'},
+// Design status treatment: friendly lifecycle labels (Drafting/In Review/
+// Executed/Closed) over the warm palette. Internal status values stay
+// Draft/Under Review/Signed/Declined so filters, backend and logic are
+// untouched — only the visible chip label and colours change.
+const STATUS_META = {
+  'Draft':        {label:'Drafting',  dot:'#9A9484', bg:'#ECE7DC', tx:'#6B6559', bd:'#DED5C6'},
+  'Under Review': {label:'In Review', dot:'#C79A3E', bg:'#F0E6CF', tx:'#8A5E1B', bd:'#E2D2AE'},
+  'Signed':       {label:'Executed',  dot:'#086B54', bg:'#E1EBE2', tx:'#075444', bd:'#C6DCCB'},
+  'Declined':     {label:'Closed',    dot:'#B23A2E', bg:'#F4E2DD', tx:'#9A342A', bd:'#E6C9C1'},
 };
-const statusChip = s => { const st=STATUS_STYLES[s]||STATUS_STYLES.Draft;
-  return `<span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${st.chip}"><span class="h-1.5 w-1.5 rounded-full ${st.dot}"></span>${s}</span>`; };
+const statusLabel = s => (STATUS_META[s]||{}).label || s;
+const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
+  return `<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style="background:${m.bg};color:${m.tx};border:1px solid ${m.bd}"><span class="h-1.5 w-1.5 rounded-full" style="background:${m.dot}"></span>${m.label}</span>`; };
 
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
@@ -1111,7 +1136,7 @@ function exportPDF(c){
     const u=c.upload||{};
     bodyHtml=`
       <div style="border:1px solid #CFEAE0;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
+        <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${c.name}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
@@ -1137,14 +1162,14 @@ function exportPDF(c){
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
     <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
+    <div style="font-family:'DM Sans',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#0A3B32;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0B7A5F;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       ${bodyHtml}
       ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #CFEAE0;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:10px;word-break:break-all;"><strong>SHA-256 DOCUMENT SEAL</strong><br/>${c.hash}<br/><span style="color:#666;">${c.signedAt||''}</span></div>`:''}
-      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #CFEAE0;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
@@ -1197,58 +1222,103 @@ function wireOpens(root=document){
    VIEW: DASHBOARD (lean — attention queue + folders, no giant table)
    ============================================================ */
 function renderDashboard(){
+  const cs=state.contracts;
   const m=metrics();
+  const countAll = (state.serverStats && state.serverStats.total!=null) ? state.serverStats.total : cs.length;
+
+  // ---- per-stage counts & values (design "Portfolio by stage") ----
+  const STAGE_DEF=[
+    {k:'Draft',        label:'Drafting',  color:'#9A9484'},
+    {k:'Under Review', label:'In Review', color:'#C79A3E'},
+    {k:'Signed',       label:'Executed',  color:'#086B54'},
+    {k:'Declined',     label:'Closed',    color:'#B23A2E'},
+  ];
+  const valOf = arr => arr.reduce((s,c)=>s+Number(c.value||0),0);
+  const stages = STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
+  const stageTotal = stages.reduce((s,x)=>s+x.n,0)||1;
+
+  // ---- attention slices ----
+  const expiring = cs.filter(c=>c.expiry && c.status!=='Declined')
+    .map(c=>({c, d:daysUntil(c.expiry)})).filter(x=>x.d>=0 && x.d<=90).sort((a,b)=>a.d-b.d);
+  const highRisk = cs.map(c=>({c, o:openFindings(c).filter(f=>f.sev==='high').length, r:riskScore(c)}))
+    .filter(x=>x.o>0).sort((a,b)=>b.r-a.r);
+  const idleOf = c => Math.max(0, Math.floor((Date.now()-new Date(c.lastAction))/86400000));
+  const waiting = cs.filter(c=>c.status==='Under Review')
+    .map(c=>({c, idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
+
   const kpis=[
-    {label:'Active value',val:fmtKESshort(m.totalValue),ic:'coins',cls:'text-brand-500'},
-    {label:'Pending counterparty',val:m.pending,ic:'clock',cls:'text-gold-500'},
-    {label:'Signed this month',val:m.signed,ic:'seal',cls:'text-brand-500'},
-    {label:'Declined / expired',val:m.declined,ic:'ban',cls:'text-rose-500'},
+    {label:'Contracts under management', val:Number(countAll).toLocaleString('en-KE'), ic:'file',  bg:'#EEF2F0', color:'#5B6B64'},
+    {label:'Active portfolio value',     val:fmtKESshort(m.totalValue),               ic:'coins', bg:'#EAF6F1', color:'#086B54'},
+    {label:'Awaiting counterparty',      val:Number(m.pending).toLocaleString('en-KE'),ic:'clock', bg:'#F0E6CF', color:'#8A5E1B'},
+    {label:'Expiring within 90 days',    val:Number(expiring.length).toLocaleString('en-KE'), ic:'history', bg:'#F0E6CF', color:'#8A5E1B'},
+    {label:'High-risk open findings',    val:Number(highRisk.length).toLocaleString('en-KE'), ic:'alert', bg:'#F4E2DD', color:'#9A342A'},
   ];
   const kpiHtml = kpis.map(k=>`
-    <div class="flex items-center gap-3 bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
-      <span class="h-9 w-9 grid place-items-center rounded-lg bg-canvas border border-brand-100 ${k.cls}">${icon(k.ic)}</span>
-      <div class="leading-tight">
-        <div class="font-display font-700 text-xl tracking-tight text-brand-900">${k.val}</div>
-        <div class="text-[11px] text-brand-800/50">${k.label}</div>
-      </div>
+    <div class="bg-white rounded-xl border border-brand-100/70 px-4 py-3.5">
+      <span class="h-8 w-8 grid place-items-center rounded-lg mb-2.5" style="background:${k.bg};color:${k.color}">${icon(k.ic,'w-4 h-4')}</span>
+      <div class="font-display font-700 text-2xl tracking-tight text-brand-900 leading-none">${k.val}</div>
+      <div class="text-[11px] text-brand-800/50 mt-1">${k.label}</div>
     </div>`).join('');
 
-  // attention queue: drafts + under review, newest action first, cap 5
-  const attention = state.contracts
-    .filter(c=>c.status==='Draft'||c.status==='Under Review')
-    .slice(0,5);
-
-  const byFolder={}; (state.serverStats?.byFolder||[]).forEach(r=>byFolder[r.folder]=r);
-  const folderCards = Object.values(FOLDERS).map(f=>{
-    const sf=byFolder[f.id];                       // server aggregate (accurate at scale)
-    const cs=folderContracts(f.id);
-    const count = sf? sf.n : cs.length;
-    const val = sf? sf.val : cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
-    const pending = sf? sf.pending : cs.filter(c=>c.status==='Under Review').length;
-    return `
-    <button data-folder="${f.id}" class="group text-left bg-white rounded-2xl border border-brand-100/70 p-5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-900/5 hover:-translate-y-0.5 transition-all">
-      <div class="flex items-start justify-between">
-        <span class="h-10 w-10 grid place-items-center rounded-xl bg-brand-900 text-gold-400">${icon(f.ic,'w-5 h-5')}</span>
-        <span class="text-brand-300 group-hover:text-brand-500 transition">${icon('chevR')}</span>
-      </div>
-      <div class="mt-3 font-display font-600 text-brand-900">${f.name}</div>
-      <div class="text-xs text-brand-800/50 mt-0.5">${f.desc}</div>
-      <div class="mt-4 pt-3 border-t border-brand-100/60 flex items-center gap-4 text-xs">
-        <span class="font-mono text-brand-900 font-medium">${count} <span class="text-brand-800/45 font-sans font-normal">contracts</span></span>
-        <span class="font-mono text-brand-900 font-medium">${fmtKESshort(val)}</span>
-        ${pending?`<span class="ml-auto inline-flex items-center gap-1 text-gold-600 font-medium">${icon('clock','w-3.5 h-3.5')}${pending} pending</span>`:''}
-      </div>
-    </button>`;
-  }).join('');
-
-  const templateChips = Object.values(TEMPLATES).map(t=>`
-    <button data-new="${t.id}" class="group flex items-center gap-2.5 rounded-xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-md hover:shadow-brand-900/5 px-3.5 py-2.5 transition-all text-left">
-      <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
+  // segmented stage bar
+  const segBar = stages.map(s=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color}" class="h-2.5 first:rounded-l-full last:rounded-r-full"></span>`).join('');
+  const stageCards = stages.map(s=>`
+    <button data-stage="${s.k}" class="group flex items-center justify-between gap-2 rounded-xl border border-brand-100/70 bg-white px-4 py-3 hover:border-brand-300 hover:shadow-sm transition text-left">
       <span class="min-w-0">
-        <span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span>
-        <span class="block text-[10px] text-brand-800/45">Template ${t.id} · opens in workspace</span>
+        <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full" style="background:${s.color}"></span><span class="text-sm font-medium text-brand-900">${s.label}</span></span>
+        <span class="block mt-1 text-[11px] font-mono text-brand-800/50">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
       </span>
-      <span class="ml-1 text-brand-400 group-hover:text-brand-600 transition">${icon('plus','w-3.5 h-3.5')}</span>
+      <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
+    </button>`).join('');
+
+  // donut helper
+  const donut=(count,pct,color)=>{ const r=30,c=2*Math.PI*r,off=c*(1-Math.min(1,pct/100));
+    return `<svg width="76" height="76" viewBox="0 0 76 76" class="shrink-0">
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="#ECE7DC" stroke-width="7"/>
+      <circle cx="38" cy="38" r="${r}" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 38 38)"/>
+      <text x="38" y="37" text-anchor="middle" font-size="17" font-weight="700" fill="#08211E" style="font-family:'DM Sans',sans-serif">${count}</text>
+      <text x="38" y="50" text-anchor="middle" font-size="9" font-weight="600" fill="${color}">${pct.toFixed(1)}%</text>
+    </svg>`; };
+  const snap=[
+    {donut:donut(expiring.length, countAll?expiring.length/countAll*100:0, '#C79A3E'), title:'Expiring ≤ 90 days', sub:`${expiring.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {donut:donut(highRisk.length, countAll?highRisk.length/countAll*100:0, '#B23A2E'), title:'High-risk findings', sub:`${highRisk.length} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+    {donut:donut(m.pending, countAll?m.pending/countAll*100:0, '#086B54'), title:'Awaiting counterparty', sub:`${m.pending} of ${Number(countAll).toLocaleString('en-KE')} contracts`},
+  ];
+  const snapHtml = snap.map(s=>`
+    <div class="flex items-center gap-4 rounded-xl border border-brand-100/60 bg-canvas/40 px-4 py-4">
+      ${s.donut}
+      <div class="min-w-0"><div class="text-sm font-medium text-brand-900">${s.title}</div><div class="text-[11px] text-brand-800/50 mt-0.5">${s.sub}</div></div>
+    </div>`).join('');
+
+  // attention column row (name + meta + right tag)
+  const attnRow=(c,tag,tagColor)=>`
+    <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-2.5 hover:bg-brand-50/40 transition border-b border-brand-100/50 last:border-0">
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
+        <span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''}</span>
+      </span>
+      <span class="shrink-0 text-[11px] font-mono font-semibold whitespace-nowrap" style="color:${tagColor}">${tag}</span>
+    </button>`;
+  const emptyCol = msg => `<div class="px-4 py-8 text-center text-xs text-brand-800/45">${msg}</div>`;
+  const col=(icon_,accent,title,total,rows,empty)=>`
+    <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden flex flex-col">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-brand-100/60">
+        <div class="flex items-center gap-2"><span style="color:${accent}">${icon(icon_)}</span><h3 class="font-display font-600 text-sm text-brand-900">${title}</h3></div>
+        <span class="text-[11px] font-mono text-brand-800/40">${total} total</span>
+      </div>
+      <div class="flex-1">${rows||empty}</div>
+      <button data-view-intel class="text-[11px] font-medium text-brand-600 hover:text-brand-800 px-4 py-2.5 border-t border-brand-100/60 text-left transition">View all in Portfolio Intelligence →</button>
+    </section>`;
+
+  const expRows = expiring.slice(0,5).map(x=>attnRow(x.c, x.d===0?'today':'in '+x.d+'d', x.d<=14?'#9A342A':'#8A5E1B')).join('');
+  const riskRows = highRisk.slice(0,5).map(x=>attnRow(x.c, x.o+' high', '#9A342A')).join('');
+  const waitRows = waiting.slice(0,5).map(x=>attnRow(x.c, x.idle+'d idle', x.idle>=30?'#9A342A':'#8A5E1B')).join('');
+
+  // New-contract menu (templates + upload)
+  const menuItems = Object.values(TEMPLATES).map(t=>`
+    <button data-new="${t.id}" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-brand-50 px-2.5 py-2 transition text-left">
+      <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon(t.ic)}</span>
+      <span class="min-w-0"><span class="block text-xs font-medium text-brand-900 truncate">${t.name}</span><span class="block text-[10px] text-brand-800/45">Template ${t.id}</span></span>
     </button>`).join('');
 
   document.getElementById('content').innerHTML = `
@@ -1256,89 +1326,71 @@ function renderDashboard(){
     <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
       <div class="px-8 py-4 flex items-center justify-between gap-4">
         <div>
-          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Dashboard</h1>
-          <p class="text-xs text-brand-800/50">Jambo, ${(currentUser()?.name||FIRST_PARTY).split(' ')[0]} — here's what needs ${FIRST_PARTY} today.</p>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Portfolio</h1>
+          <p class="text-xs text-brand-800/50 font-mono">${Number(countAll).toLocaleString('en-KE')} contracts under management · ${fmtKESshort(m.totalValue)} active</p>
         </div>
-        <button id="topbar-ai" class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
-          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI — search or research contracts…</span>
-          <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
-        </button>
+        <div class="flex items-center gap-3">
+          <button id="topbar-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-72 hover:border-brand-300 transition text-left">
+            ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Search contracts, or ask AI…</span>
+            <kbd class="text-[10px] font-mono bg-canvas border border-brand-100 rounded px-1.5 py-0.5 text-brand-800/40">/</kbd>
+          </button>
+          <div class="relative">
+            <button id="new-contract-btn" class="flex items-center gap-2 rounded-xl bg-brand-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition shadow-sm">${icon('plus','w-4 h-4')} New contract</button>
+            <div id="new-menu" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-brand-100 shadow-xl shadow-brand-900/10 p-2 z-40 max-h-[70vh] overflow-y-auto scroll-thin">
+              <div class="px-2 py-1.5 text-[10px] uppercase tracking-wider text-brand-800/45 font-semibold">Generate from template</div>
+              ${menuItems}
+              <div class="mt-1 pt-1 border-t border-brand-100/60">
+                <button id="menu-upload" class="w-full flex items-center gap-2.5 rounded-lg hover:bg-gold-500/10 px-2.5 py-2 transition text-left">
+                  <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload')}</span>
+                  <span class="min-w-0"><span class="block text-xs font-semibold text-brand-900">Upload a received contract</span><span class="block text-[10px] text-brand-800/45">Their paper — review, scan &amp; sign</span></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <div class="px-8 py-6 max-w-[1200px] space-y-6">
-
+    <div class="px-8 py-6 max-w-[1320px] space-y-6">
       <!-- KPI strip -->
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">${kpiHtml}</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">${kpiHtml}</div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
-        <div class="space-y-6">
-          <!-- Needs attention -->
-          <section class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-brand-100/60">
-              <div class="flex items-center gap-2">
-                <span class="text-gold-500">${icon('alert')}</span>
-                <h2 class="font-display font-600 text-brand-900">Needs your attention</h2>
-              </div>
-              <span class="text-[11px] font-mono text-brand-800/40">${m.drafts} drafts · ${m.pending} in review</span>
-            </div>
-            <div>
-              ${attention.length ? attention.map(c=>contractRow(c,{showFolder:true})).join('') :
-                `<div class="px-5 py-8 text-center text-sm text-brand-800/50">All clear — nothing waiting on you. Generate a contract to get started.</div>`}
-            </div>
-          </section>
-
-          <!-- Folders -->
-          <section>
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="font-display font-600 text-brand-900">Folders</h2>
-              <span class="text-[11px] text-brand-800/40">Contracts are filed automatically by agreement type</span>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">${folderCards}</div>
-          </section>
+      <!-- Portfolio by stage -->
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-display font-600 text-brand-900">Portfolio by stage</h2>
+          <button data-open-register class="text-xs font-medium text-brand-600 hover:text-brand-800 transition">Open full register →</button>
         </div>
+        <div class="flex w-full overflow-hidden rounded-full mb-4 bg-brand-100/40">${segBar}</div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">${stageCards}</div>
+      </section>
 
-        <!-- Right rail -->
-        <aside class="space-y-4">
-          <div class="rounded-2xl bg-brand-900 text-white p-5">
-            <div class="flex items-center gap-2">
-              <span class="text-gold-400">${icon('sparkle')}</span>
-              <h3 class="font-display font-600">HaTi AI</h3>
-            </div>
-            <p class="mt-1.5 text-xs text-brand-100/70 leading-relaxed">Ask in plain language — it searches and analyzes every contract in your workspace.</p>
-            <div class="mt-3 space-y-1.5">
-              ${['What is pending counterparty action?','Total value of signed contracts','Summarize the Naivas listing agreement'].map(q=>`
-                <button data-ai-q="${q}" class="w-full text-left text-xs rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-2 transition text-brand-100/90">"${q}"</button>`).join('')}
-            </div>
-            <button id="rail-ai-open" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-gold-500 text-brand-900 py-2.5 text-sm font-semibold hover:brightness-105 transition">${icon('sparkle')} Open assistant</button>
-          </div>
+      <!-- Attention snapshot -->
+      <section class="bg-white rounded-2xl border border-brand-100/70 p-5">
+        <h2 class="font-display font-600 text-brand-900">Attention snapshot</h2>
+        <p class="text-xs text-brand-800/50 mt-0.5 mb-4">Share of the book that needs a closer look right now.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">${snapHtml}</div>
+      </section>
 
-          <div class="rounded-2xl border border-brand-100/70 bg-white p-5">
-            <h3 class="font-display font-600 text-brand-900 text-sm">Quick create</h3>
-            <p class="text-xs text-brand-800/50 mt-0.5 mb-3">Vetted Kenyan boilerplate templates.</p>
-            <div class="space-y-2">${templateChips}</div>
-            <div class="mt-3 pt-3 border-t border-brand-100/60">
-              <button id="dash-upload" class="group w-full flex items-center gap-2.5 rounded-xl border border-dashed border-gold-500/40 bg-gold-500/5 hover:bg-gold-500/10 hover:border-gold-500/60 px-3.5 py-2.5 transition-all text-left">
-                <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg bg-gold-500 text-brand-900">${icon('upload','w-4 h-4')}</span>
-                <span class="min-w-0">
-                  <span class="block text-xs font-semibold text-brand-900">Upload a received contract</span>
-                  <span class="block text-[10px] text-brand-800/50">Their paper — review, scan &amp; sign it here</span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </aside>
+      <!-- Three attention columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        ${col('history','#8A5E1B','Expiring soon',expiring.length,expRows,emptyCol('Nothing expiring in the next 90 days.'))}
+        ${col('alert','#9A342A','Highest risk',highRisk.length,riskRows,emptyCol('No high-risk findings open.'))}
+        ${col('clock','#086B54','Waiting longest',waiting.length,waitRows,emptyCol('Nothing waiting on a counterparty.'))}
       </div>
     </div>
   </div>`;
 
   wireOpens();
-  document.querySelectorAll('[data-folder]').forEach(el=>el.addEventListener('click',()=>openFolder(el.getAttribute('data-folder'))));
+  document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-stage'); regState().type='all'; regState().sel={}; setView('register'); }));
+  document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ regState().stage='all'; regState().sel={}; setView('register'); }));
+  document.querySelectorAll('[data-view-intel]').forEach(el=>el.addEventListener('click',()=>setView('intel')));
   document.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>createFromTemplate(el.getAttribute('data-new'))));
-  document.getElementById('dash-upload').addEventListener('click',openUploadModal);
+  const nb=document.getElementById('new-contract-btn'), nm=document.getElementById('new-menu');
+  nb.addEventListener('click',e=>{ e.stopPropagation(); nm.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ if(nm && !nm.classList.contains('hidden') && !nm.contains(e.target) && e.target!==nb) nm.classList.add('hidden'); });
+  document.getElementById('menu-upload').addEventListener('click',openUploadModal);
   document.getElementById('topbar-ai').addEventListener('click',()=>openAI());
-  document.getElementById('rail-ai-open').addEventListener('click',()=>openAI());
-  document.querySelectorAll('[data-ai-q]').forEach(el=>el.addEventListener('click',()=>openAI(el.getAttribute('data-ai-q'))));
   setActiveNav('dashboard');
 }
 
@@ -2520,10 +2572,12 @@ function openPartyModal(name){
 /* ============================================================
    AI CONTRACT SCAN  (rule engine over live contract data)
    ============================================================ */
+// Severity chips use the design's exact warm hexes (arbitrary Tailwind values
+// so existing `${sm.chip}` className call-sites keep working unchanged).
 const SEV_META = {
-  high:{label:'High', chip:'bg-rose-50 text-rose-700 border-rose-200', dot:'bg-rose-500', text:'text-rose-600'},
-  med:{label:'Medium', chip:'bg-gold-500/10 text-gold-600 border-gold-500/25', dot:'bg-gold-500', text:'text-gold-600'},
-  low:{label:'Low', chip:'bg-slate-100 text-slate-600 border-slate-200', dot:'bg-slate-400', text:'text-slate-500'},
+  high:{label:'High', chip:'bg-[#F4E2DD] text-[#9A342A] border-[#E6C9C1]', dot:'bg-[#B23A2E]', text:'text-[#9A342A]'},
+  med:{label:'Medium', chip:'bg-[#F0E6CF] text-[#8A5E1B] border-[#E2D2AE]', dot:'bg-[#C79A3E]', text:'text-[#8A5E1B]'},
+  low:{label:'Low', chip:'bg-[#ECE7DC] text-[#6B6559] border-[#DED5C6]', dot:'bg-[#9A9484]', text:'text-[#6B6559]'},
 };
 const SEV_RANK = {high:3, med:2, low:1};
 const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
@@ -3191,6 +3245,299 @@ function renderTeam(){
   setActiveNav('team');
 }
 
+/* ============================================================
+   VIEW: REGISTER (global filterable / sortable table + bulk select)
+   Client-side over the loaded working set, consistent with the folder
+   view. Filters: search, lifecycle stage, contract type (folder), sort.
+   ============================================================ */
+const REG_PAGE=40;
+const REG_STAGES=[
+  {k:'all',label:'All stages'},
+  {k:'Draft',label:'Drafting'},
+  {k:'Under Review',label:'In Review'},
+  {k:'Signed',label:'Executed'},
+  {k:'Declined',label:'Closed'},
+];
+const REG_TYPES=[
+  {k:'all',label:'All types'},
+  {k:'proc',label:'Procurement'},
+  {k:'mfg',label:'Manufacturing'},
+  {k:'dist',label:'Distribution'},
+  {k:'sales',label:'Sales'},
+  {k:'mktg',label:'Marketing'},
+  {k:'corp',label:'Corporate'},
+];
+const REG_SORTS=[
+  {k:'updated',label:'Recently updated'},
+  {k:'value',label:'Value (high → low)'},
+  {k:'expiry',label:'Expiring soonest'},
+  {k:'name',label:'Name (A → Z)'},
+];
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',shown:REG_PAGE,sel:{}}; return state.reg; }
+function regFiltered(){
+  const R=regState(); let cs=state.contracts.slice();
+  if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
+  if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
+  const q=R.query.trim().toLowerCase();
+  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
+  if(R.sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
+  else if(R.sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  else if(R.sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(R.sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
+  return cs;
+}
+function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function regRowsHtml(cs){
+  const R=regState();
+  if(!cs.length) return `<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-brand-800/50">No contracts match the current filters.</td></tr>`;
+  const shown=Math.min(cs.length, R.shown||REG_PAGE);
+  const ini=regOwnerInitials();
+  return cs.slice(0,shown).map(c=>`
+    <tr data-open="${c.id}" class="group border-b border-brand-100/50 last:border-0 hover:bg-brand-50/40 transition cursor-pointer">
+      <td class="pl-4 pr-1 py-3 w-8" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></td>
+      <td class="px-2 py-3">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}">${icon(cIcon(c))}</span>
+          <span class="min-w-0"><span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] font-mono text-brand-800/45 truncate">${c.id} · ${c.counterparty||'—'}</span></span>
+        </div>
+      </td>
+      <td class="px-2 py-3 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-xs text-brand-800/70">${icon(cIcon(c),'w-3.5 h-3.5')}${cKind(c)}</span></td>
+      <td class="px-2 py-3 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-700 text-[9px] font-semibold text-brand-100" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
+      <td class="px-2 py-3 text-right whitespace-nowrap text-xs font-mono ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td class="px-2 py-3 hidden sm:table-cell whitespace-nowrap text-[11px] font-mono text-brand-800/45">${c.lastAction||'—'}</td>
+      <td class="px-2 pr-4 py-3 text-right">${statusChip(c.status)}</td>
+    </tr>`).join('') + (cs.length>shown
+      ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3 text-xs font-medium text-brand-600 hover:bg-brand-50 border-t border-brand-100/60 transition">Show more — ${cs.length-shown} of ${cs.length} remaining</button></td></tr>`
+      : '');
+}
+function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
+function renderRegisterBody(){
+  const cs=regFiltered();
+  const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
+  const cnt=document.getElementById('reg-count'); if(cnt) cnt.textContent=cs.length.toLocaleString('en-KE');
+  renderRegSelBar();
+}
+function renderRegSelBar(){
+  const bar=document.getElementById('reg-selbar'); if(!bar) return; const n=regSelCount();
+  bar.classList.toggle('hidden',n===0);
+  const lbl=document.getElementById('reg-sel-count'); if(lbl) lbl.textContent=n+' selected';
+}
+function wireRegRows(){
+  document.querySelectorAll('#reg-tbody [data-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-open'))));
+  document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
+  document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
+}
+function regExportSelectedCsv(){
+  const R=regState(); const ids=Object.keys(R.sel).filter(k=>R.sel[k]);
+  const rows=state.contracts.filter(c=>ids.includes(c.id));
+  if(!rows.length){ toast('Nothing selected','err'); return; }
+  const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const head=['ID','Name','Counterparty','Type','Folder','Value (KES)','Status','Last action','Expiry'];
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',isMonetary(c)?(c.value||0):'',statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const csv=[head.map(esc).join(','),...body].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='hati-register-selection.csv'; a.click(); URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
+}
+function renderRegister(){
+  const R=regState(); R.shown=REG_PAGE;
+  const cs=regFiltered();
+  const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
+  const chip=(active)=>active
+    ? 'inline-flex items-center rounded-full bg-brand-900 text-white border border-brand-900 px-3 py-1.5 text-xs font-medium transition'
+    : 'inline-flex items-center rounded-full bg-white text-brand-800/70 border border-brand-100 px-3 py-1.5 text-xs font-medium hover:border-brand-300 transition';
+  const stageChips=REG_STAGES.map(s=>`<button data-reg-stage="${s.k}" class="${chip(R.stage===s.k)}">${s.label}</button>`).join('');
+  const typeChips=REG_TYPES.map(t=>`<button data-reg-type="${t.k}" class="${chip(R.type===t.k)}">${t.label}</button>`).join('');
+  const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Contract Register</h1>
+          <p class="text-xs text-brand-800/50 font-mono"><span id="reg-count">${cs.length.toLocaleString('en-KE')}</span> of ${Number(countAll).toLocaleString('en-KE')} contracts · filter, sort and act in bulk</p>
+        </div>
+        <button id="reg-ai" class="hidden md:flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3.5 py-2.5 text-sm text-brand-800/50 w-64 hover:border-brand-300 transition text-left">
+          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI about the register…</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="px-8 py-6 max-w-[1320px] space-y-4">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <div class="relative flex-1 min-w-[220px] max-w-md">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-brand-300">${icon('search','w-4 h-4')}</span>
+            <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Filter by name, party or ID…" class="w-full rounded-xl border border-brand-100 bg-white pl-9 pr-3 py-2.5 text-sm outline-none focus:border-brand-400 transition"/>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">${stageChips}</div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
+          <label class="flex items-center gap-2 text-xs text-brand-800/50">Sort
+            <select id="reg-sort" class="rounded-xl border border-brand-100 bg-white px-3 py-2 text-xs text-brand-900 outline-none focus:border-brand-400">${sortOpts}</select>
+          </label>
+        </div>
+      </div>
+
+      <div id="reg-selbar" class="hidden flex items-center justify-between gap-3 rounded-xl border border-brand-200 bg-slate-50 px-4 py-2.5">
+        <span id="reg-sel-count" class="text-xs font-medium text-brand-900">0 selected</span>
+        <div class="flex items-center gap-2">
+          <button id="reg-export" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-xs font-medium hover:bg-brand-800 transition">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="reg-clear" class="rounded-lg border border-brand-100 bg-white px-3 py-1.5 text-xs font-medium text-brand-800/70 hover:border-brand-300 transition">Clear</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-brand-100/70 overflow-hidden">
+        <div class="overflow-x-auto scroll-thin">
+          <table class="w-full text-left">
+            <thead>
+              <tr class="border-b border-brand-100 bg-canvas/50 text-[10px] uppercase tracking-wider text-brand-800/45">
+                <th class="pl-4 pr-1 py-2.5 w-8"><input id="reg-selall" type="checkbox" class="h-3.5 w-3.5 rounded border-brand-200 accent-brand-700 align-middle"/></th>
+                <th class="px-2 py-2.5 font-semibold">Contract</th>
+                <th class="px-2 py-2.5 font-semibold hidden md:table-cell">Type</th>
+                <th class="px-2 py-2.5 font-semibold hidden lg:table-cell">Owner</th>
+                <th class="px-2 py-2.5 font-semibold text-right">Value</th>
+                <th class="px-2 py-2.5 font-semibold hidden sm:table-cell">Updated</th>
+                <th class="px-2 pr-4 py-2.5 font-semibold text-right">Stage</th>
+              </tr>
+            </thead>
+            <tbody id="reg-tbody">${regRowsHtml(cs)}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  wireRegRows();
+  renderRegSelBar();
+  const si=document.getElementById('reg-search');
+  si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.getElementById('reg-sort').addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
+  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
+  document.getElementById('reg-selall').addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
+  document.getElementById('reg-export').addEventListener('click',regExportSelectedCsv);
+  document.getElementById('reg-clear').addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
+  document.getElementById('reg-ai').addEventListener('click',()=>openAI());
+  setActiveNav('register');
+}
+
+/* ============================================================
+   VIEW: PIPELINE (Kanban board — drag between lifecycle stages)
+   Safe drag rules: Draft <-> Under Review move freely; dragging onto
+   Executed opens the workspace to verify & sign (never force-signs);
+   dragging onto Closed asks to confirm the decline. Executed cards are
+   locked. Viewers cannot drag. Every move persists through the normal
+   path (audit + optimistic-locked server save).
+   ============================================================ */
+const PIPE_COLS=[
+  {k:'Draft',        label:'Drafting',  color:'#9A9484'},
+  {k:'Under Review', label:'In Review', color:'#C79A3E'},
+  {k:'Signed',       label:'Executed',  color:'#086B54'},
+  {k:'Declined',     label:'Closed',    color:'#B23A2E'},
+];
+const PIPE_CAP=60;
+let pipeDrag=null;
+function pipeCard(c){
+  const drag = canEdit() && c.status!=='Signed';
+  return `
+    <div data-card="${c.id}" ${drag?'draggable="true"':''} class="group bg-white rounded-xl border border-brand-100/70 p-3.5 mb-2.5 ${drag?'cursor-grab active:cursor-grabbing':'cursor-pointer'} hover:border-brand-300 hover:shadow-sm transition">
+      <div class="flex items-center justify-between gap-2 mb-1.5">
+        <span class="inline-flex items-center gap-1.5 text-[10px] font-mono text-brand-800/45">
+          <span class="h-5 w-5 grid place-items-center rounded-md border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}">${icon(cIcon(c),'w-3 h-3')}</span>${c.id}
+        </span>
+        ${(()=>{ const o=openFindings(c).filter(f=>f.sev==='high').length; return o?`<span class="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold" style="background:#F4E2DD;color:#9A342A">${icon('scan','w-2.5 h-2.5')}${o}</span>`:''; })()}
+      </div>
+      <div class="text-sm font-medium text-brand-900 leading-snug line-clamp-2 group-hover:text-brand-600 transition">${c.name}</div>
+      <div class="text-[11px] text-brand-800/45 truncate mt-0.5">${c.counterparty||'No counterparty yet'}</div>
+      <div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-brand-100/50">
+        <span class="inline-flex items-center gap-1 text-[10px] text-brand-800/45 truncate">${icon('folder','w-3 h-3')}<span class="truncate">${FOLDERS[c.folder]?.name||''}</span></span>
+        <span class="text-[11px] font-mono font-medium whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
+      </div>
+    </div>`;
+}
+function pipeColumnInner(col, list){
+  const shown=list.slice(0,PIPE_CAP);
+  const more=list.length>PIPE_CAP?`<button data-pipe-more="${col.k}" class="w-full mt-1 rounded-lg border border-brand-100 bg-white px-3 py-2 text-[11px] font-medium text-brand-600 hover:border-brand-300 transition">+${list.length-PIPE_CAP} more in Register →</button>`:'';
+  const empty=list.length?'':`<div class="rounded-xl border border-dashed border-brand-100 px-3 py-8 text-center text-[11px] text-brand-800/40">Nothing here</div>`;
+  return shown.map(pipeCard).join('')+empty+more;
+}
+function renderPipeline(){
+  const cs=state.contracts;
+  const valOf=arr=>arr.reduce((s,c)=>s+Number(c.value||0),0);
+  const groups=PIPE_COLS.map(col=>{ const list=cs.filter(c=>c.status===col.k); return {col, list, val:valOf(list)}; });
+  const total=cs.length;
+
+  const columnsHtml=groups.map(g=>`
+    <div class="flex flex-col min-w-0">
+      <div class="flex items-center justify-between gap-2 px-1 pb-2.5 mb-0.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="h-2.5 w-2.5 rounded-full shrink-0" style="background:${g.col.color}"></span>
+          <span class="text-xs font-semibold uppercase tracking-wider text-brand-800/70 truncate">${g.col.label}</span>
+          <span class="text-[10px] font-mono text-brand-800/40 bg-brand-50 rounded-full px-1.5 py-0.5">${g.list.length}</span>
+        </div>
+        <span class="text-[10px] font-mono text-brand-800/40 shrink-0">${fmtKESshort(g.val)}</span>
+      </div>
+      <div data-drop="${g.col.k}" class="pipe-col flex-1 rounded-2xl bg-brand-50/30 border border-transparent p-2 min-h-[120px] transition">
+        ${pipeColumnInner(g.col, g.list)}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('content').innerHTML=`
+  <div class="view-enter">
+    <header class="sticky top-0 z-20 bg-canvas/85 backdrop-blur border-b border-brand-100/70">
+      <div class="px-8 py-4 flex items-center justify-between gap-4">
+        <div>
+          <h1 class="font-display font-700 text-xl tracking-tight text-brand-900">Pipeline</h1>
+          <p class="text-xs text-brand-800/50 font-mono">${total.toLocaleString('en-KE')} contracts · ${canEdit()?'drag a card between stages to advance it':'read-only — you have viewer access'}</p>
+        </div>
+      </div>
+    </header>
+    <div class="px-8 py-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">${columnsHtml}</div>
+    </div>
+  </div>`;
+
+  wirePipeline();
+  setActiveNav('pipeline');
+}
+function pipeMove(id, target){
+  const c=getContract(id); if(!c) return;
+  if(!canEdit()){ toast('Viewers cannot move contracts','err'); return; }
+  if(c.status===target) return;
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and cannot be moved','err'); return; }
+  const label=(PIPE_COLS.find(x=>x.k===target)||{}).label||target;
+  if(target==='Signed'){ toast('Open the contract to complete verification & signing'); openWorkspace(id); return; }
+  if(target==='Declined'){
+    if(!confirm(`Move “${c.name}” to Closed? This declines the contract.`)) return;
+    c.status='Declined'; logAudit(c,'Declined','Moved to Closed on the pipeline board');
+    toast(`${c.name.split(' —')[0]} moved to Closed`,'err');
+  } else {
+    const from=(PIPE_COLS.find(x=>x.k===c.status)||{}).label||c.status;
+    c.status=target; logAudit(c,'Status changed',`${from} → ${label} (pipeline board)`);
+    toast(`${c.name.split(' —')[0]} moved to ${label}`);
+  }
+  c.lastAction=todayStr(); persist(c);
+  renderPipeline(); renderSideFolders();
+}
+function wirePipeline(){
+  document.querySelectorAll('[data-card]').forEach(el=>{
+    const id=el.getAttribute('data-card');
+    el.addEventListener('click',()=>{ if(!el.getAttribute('draggable')||!pipeDrag) openWorkspace(id); });
+    el.addEventListener('dragstart',e=>{ pipeDrag=id; el.classList.add('opacity-40'); try{e.dataTransfer.effectAllowed='move';}catch(_){} });
+    el.addEventListener('dragend',()=>{ el.classList.remove('opacity-40'); pipeDrag=null; });
+  });
+  document.querySelectorAll('[data-drop]').forEach(col=>{
+    col.addEventListener('dragover',e=>{ if(!pipeDrag) return; e.preventDefault(); col.classList.add('border-brand-300','bg-brand-50/70'); });
+    col.addEventListener('dragleave',()=>col.classList.remove('border-brand-300','bg-brand-50/70'));
+    col.addEventListener('drop',e=>{ e.preventDefault(); col.classList.remove('border-brand-300','bg-brand-50/70'); const id=pipeDrag; pipeDrag=null; if(id) pipeMove(id, col.getAttribute('data-drop')); });
+  });
+  document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-pipe-more'); regState().type='all'; regState().sel={}; setView('register'); }));
+}
+
 /* ============================================================ NAV */
 function setActiveNav(view){
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.getAttribute('data-view')===view));
@@ -3205,6 +3552,8 @@ function setView(view){
   if(view==='dashboard') renderDashboard();
   else if(view==='folder') renderFolder();
   else if(view==='intel') renderIntel();
+  else if(view==='register') renderRegister();
+  else if(view==='pipeline') renderPipeline();
   else if(view==='team') renderTeam();
   else renderWorkspace();
   if(getOrg()&&!API_MODE()) persist();
