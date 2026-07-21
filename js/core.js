@@ -445,11 +445,14 @@ function renderNegotiationSection(c){
             </div>
             <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>
             <p class="text-xs text-brand-800/80 leading-relaxed">${(r.comment||'').replace(/</g,'&lt;')}</p>
+            ${r.proposedText?`<div class="mt-1.5 text-[11px] inline-flex items-center gap-1 rounded-full bg-gold-500/12 text-gold-600 px-2 py-0.5 font-600">${icon('history','w-3 h-3')} proposed edits (redline)</div>`:''}
             ${r.proposedValue!=null?`<div class="mt-1.5 text-[11px]"><span class="text-brand-800/70">Proposed value:</span> <span class="font-mono font-semibold text-brand-900">${fmtKES(r.proposedValue)}</span></div>`:''}
             ${r.status==='open'?(canEdit()?`
               <div class="mt-2 flex items-center gap-2">
-                <button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
-                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>
+                ${r.proposedText?`<button data-nego-redline="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('history','w-3 h-3')} Review redline</button>
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>`
+                :`<button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
+                <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>`}
               </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">Awaiting an approver to resolve.</div>`)
             :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
           </div>`).join('')}
@@ -457,6 +460,7 @@ function renderNegotiationSection(c){
       <p class="mt-2 text-[10px] text-brand-800/60">After resolving, re-share the updated document to send the next round.</p>
     </div>`;
   host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
+  host.querySelectorAll('[data-nego-redline]').forEach(b=>b.addEventListener('click',()=>reviewProposedRound(c,Number(b.getAttribute('data-nego-redline')))));
   host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
 }
 function resolveRound(c, n, accept){
@@ -503,6 +507,12 @@ const canonicalDoc = c => isUpload(c)
    copy — so what was sealed is always what is shown. The seal binds the
    frozen text (or, for uploads, the file bytes) to the parties and value. */
 function freezeContractHtml(c){
+  // E2: if an accepted redline replaced the drafted text, seal that exact text.
+  if(c.redlineText){
+    const d=document.createElement('div');
+    d.innerHTML=`<div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
+    return d.innerHTML;
+  }
   const tmp=document.createElement('div');
   tmp.innerHTML=docBody(c);
   tmp.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
@@ -570,9 +580,11 @@ async function openShareModal(c){
     return;
   }
   const docHash=await sha256(canonicalDoc(c));
+  // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
   const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
-      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder } };
+      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder, redlineText:c.redlineText||undefined } };
   let link;
   if(API_MODE()){
     try{ const r=await api('shares','POST',{ payload:payloadObj });
@@ -635,10 +647,15 @@ async function applyResponse(c, r, opts={}){
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
+    // E2: a change request may carry proposed edited text (a redline). Capture
+    // the base text it was edited from so the owner can review a clean diff.
+    const hasRedline = typeof r.proposedText==='string' && r.proposedText.trim().length>0;
     c.rounds.push({ n:c.rounds.length+1, at:r.at, by:who, comment:r.comment,
       proposedValue:(r.proposedValue!=null&&r.proposedValue!=='')?Number(r.proposedValue):null,
+      proposedText: hasRedline ? r.proposedText : null,
+      baseText: hasRedline ? (r.baseText || docPlainText(c)) : null,
       status:'open', resolution:null });
-    logAudit(c,'Changes requested',`${who} requested changes${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
+    logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
     toast(`${r.name} requested changes — review in Negotiation`);
   } else if(r.action==='decline'){
     c.status='Declined';

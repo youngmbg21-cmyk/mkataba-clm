@@ -582,6 +582,8 @@ function renderWorkspace(){
 
         <div id="nego-section" class="border-b border-brand-100/70 empty:hidden"></div>
 
+        <div id="versions-section" class="border-b border-brand-100/70 empty:hidden"></div>
+
         <div id="audit-section" class="border-b border-brand-100/70"></div>
 
         <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
@@ -626,7 +628,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderAuditSection(c);
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
@@ -768,6 +770,16 @@ async function signDocument(c){
   if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
   if(!c.compliance.consent){ toast('Tick the intent-to-sign box first','err'); return; }
   if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
+  // E2-T5: don't seal over unresolved proposed edits. Admin/Legal may override.
+  const openRedlines=unresolvedRedlines(c);
+  if(openRedlines){
+    const u=currentUser();
+    const canOverride = u && (u.role==='admin' || u.role==='legal');
+    const msg=`${openRedlines} proposed edit${openRedlines===1?'':'s'} from the counterparty ${openRedlines===1?'is':'are'} still open. Signing now seals the current text and leaves ${openRedlines===1?'it':'them'} unresolved.`;
+    if(!canOverride){ toast(msg+' Resolve the redline(s) first, or ask an Admin/Legal approver.','err'); return; }
+    if(!confirm(msg+'\n\nSign anyway? (recorded as an Admin/Legal override)')) return;
+    logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
+  }
   const btn=document.getElementById('sign-btn');
   btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
   const u=currentUser(), at=nowISO();
@@ -785,6 +797,7 @@ async function signDocument(c){
   c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
     method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent, docHash:c.hash });
   c.status='Signed';
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u.name);   // final version = the sealed text
   logAudit(c,'Signed',`Sealed by ${u.name} (${u.email}) — ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
   persist(c);
   document.getElementById('doc-canvas').innerHTML=docBody(c);

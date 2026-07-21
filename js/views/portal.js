@@ -62,10 +62,17 @@ function renderSharePortal(p, opts={}){
         <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/></label>`:''}
         <div class="space-y-2">
           <button id="pt-sign" class="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
+          <button id="pt-redline" class="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-200 text-brand-700 py-2.5 text-xs font-medium hover:bg-brand-50 transition">${icon('history','w-3.5 h-3.5')} Propose edits (redline)</button>
           <div class="grid grid-cols-2 gap-2">
             <button id="pt-changes" class="rounded-xl border border-brand-200 text-brand-700 py-2.5 text-xs font-medium hover:bg-brand-50 transition">Request changes</button>
             <button id="pt-decline" class="rounded-xl border border-rose-200 text-rose-600 py-2.5 text-xs font-medium hover:bg-rose-50 transition">Decline</button>
           </div>
+        </div>
+        <div id="portal-redline" class="mt-3 hidden">
+          <div class="text-[11px] font-600 text-ink mb-1">Edit the text directly</div>
+          <p class="text-[10px] text-ink/60 mb-1.5">Change any wording below. ${p.org} sees your edits as a tracked redline (additions and deletions highlighted) and can accept, reject or counter.</p>
+          <textarea id="pt-redline-text" rows="12" class="w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-[12px] leading-relaxed outline-none focus:border-brand-400 font-sans"></textarea>
+          <button id="pt-redline-submit" class="mt-2 w-full rounded-lg bg-brand-900 text-white py-2.5 text-xs font-600 hover:bg-brand-800 transition">Submit proposed edits</button>
         </div>
         <div id="portal-result" class="mt-4"></div>
       </aside>
@@ -74,18 +81,36 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
+  // E2: reveal the redline editor, pre-filled with the current document text.
+  document.getElementById('pt-redline').addEventListener('click',()=>{
+    const box=document.getElementById('portal-redline');
+    box.classList.toggle('hidden');
+    const ta=document.getElementById('pt-redline-text');
+    if(!ta.value) ta.value = (c.redlineText) ? c.redlineText : normText(freezeContractHtml(c));
+    ta.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
 }
 async function portalRespond(p, action){
   const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
-  if(action!=='sign' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
   // Server-backed signing: verify the signer's email with a one-time code first.
   if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment}); }
-  const proposedValue = action==='changes' ? fval('pt-proposed') : '';
-  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action, name, title, email, comment,
-    proposedValue: proposedValue||null, at:nowISO() };
-  const label={sign:'signature',changes:'change request',decline:'decline notice'}[action];
+  // E2: a redline is a change request carrying proposed edited text + its base.
+  let proposedText=null, baseText=null, sendAction=action;
+  if(action==='redline'){
+    proposedText=(document.getElementById('pt-redline-text')?.value||'').trim();
+    if(!proposedText){ toast('Edit the text before submitting','err'); return; }
+    baseText=p.contract.redlineText || normText(freezeContractHtml(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'})));
+    sendAction='changes';
+  }
+  const proposedValue = (action==='changes') ? fval('pt-proposed') : '';
+  const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:sendAction, name, title, email, comment,
+    proposedValue: proposedValue||null, proposedText, baseText, at:nowISO() };
+  const label={sign:'signature',changes:'change request',decline:'decline notice'}[sendAction];
   if(PORTAL_OPTS.token){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);

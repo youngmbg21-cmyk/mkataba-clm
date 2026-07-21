@@ -5,6 +5,7 @@ import './templates.js';
 import './core.js';
 import './api.js';
 import './metadata.js';
+import './versioning.js';
 import './views/portal.js';
 import './views/home.js';
 import './views/register.js';

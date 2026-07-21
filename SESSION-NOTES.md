@@ -5,6 +5,56 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## E2 — Versioning + in-document redlining
+
+**Done** (new module `js/versioning.js`)
+
+- **E2-T1** — Contract versions as records: `c.versions[]` (`n`, `at`, `by`,
+  `label`, `text`). `captureVersion()` snapshots the current document text,
+  deduped so identical text never spawns a version. Captured at share
+  ("Shared for review"), on redline acceptance, at signing ("Signed &
+  sealed"), and via a manual "Snapshot current version" button.
+- **E2-T2** — Version compare: a hand-written word-level LCS diff
+  (`wordDiff`) over whitespace tokens, rendered inline with additions in
+  green `<ins>` and deletions in struck red `<del>` (`diffHtml`), plus
+  add/remove counts. A Versions panel in the workspace lists every version
+  with a per-row "diff" (vs previous) and a "Compare any two…" picker.
+- **E2-T3** — Counterparty redlining in the share portal: a "Propose edits
+  (redline)" button reveals the document text as an editable textarea; the
+  submission is stored as a change-request round carrying `proposedText`
+  (their edited text) + `baseText` (what they edited from) — the owner's
+  draft is never overwritten.
+- **E2-T4** — Owner review: rounds carrying proposed text show a "Review
+  redline" action that opens a diff (base → proposal) with Accept / Reject.
+  Accepting captures a pre-redline version, adopts the proposed text as
+  `c.redlineText`, captures it as a new version attributed to the round,
+  and archives the round (extends the existing negotiation archive).
+- **E2-T5** — Pre-sign guard: `signDocument` blocks when open proposed
+  edits remain; Admin/Legal may override with a confirm (logged as an
+  override in the audit trail). Signing seals the latest accepted version.
+
+**Seal integrity (guardrail 1).** `freezeContractHtml` gained a single
+additive branch: when `c.redlineText` is set it seals that exact text;
+otherwise it behaves exactly as before. Existing seals use the already-
+frozen `c.execution.html` and verify unchanged — nothing about the
+SHA-256 freeze/hash path changed. A test confirms a new seal covers the
+adopted redline text.
+
+**Tested.** 13 unit checks (word diff eq/add/del, diff HTML tags, diff
+stats, version capture + dedup, redline accept → version + seal, the
+open-redline guard, response round carrying proposedText/baseText) + a
+7-step end-to-end UI run (create draft → snapshot → simulated redline
+round → review-diff modal → accept → adopted/versioned/closed). Full E0
+21-check regression still green; no page errors. Server unchanged — it
+stores the response JSON verbatim, so `proposedText`/`baseText` pass
+through the existing share flow.
+
+**Definition of Done** — met: owner drafts → shares → counterparty
+proposes edits → owner accepts/rejects → version history shows every
+round → sign seals the accepted text.
+
+---
+
 ## E1 — AI metadata extraction on upload ("file it for me")
 
 **Done**
