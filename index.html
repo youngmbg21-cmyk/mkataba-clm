@@ -54,10 +54,13 @@
 
   /* Intel contract graph */
   #ig-svg{touch-action:none}
-  .ig-link{stroke:#C6DCCB;stroke-width:1.4;fill:none;opacity:.6}
+  .ig-link{stroke:#C6DCCB;stroke-width:1.4;fill:none;opacity:.55;transition:stroke .15s,opacity .15s,stroke-width .15s}
+  .ig-link.hi{stroke:#086B54;opacity:1;stroke-width:2.2}
+  .ig-link.dim{opacity:.08}
   .ig-node{cursor:pointer}
-  .ig-chip{stroke:#DCEDE5;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(8,33,30,.06))}
-  .ig-node:hover .ig-chip{stroke:#086B54;stroke-width:2}
+  .ig-chip{stroke:#DCEDE5;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(8,33,30,.06));transition:stroke .15s,filter .15s}
+  .ig-node.hi .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 8px 18px rgba(8,33,30,.14))}
+  .ig-node.dim{opacity:.22;transition:opacity .15s}
   .ig-lab{pointer-events:none;font-size:11.5px;font-family:'DM Sans',system-ui,sans-serif}
   .ig-sub{pointer-events:none;font-size:9px;font-family:'JetBrains Mono',monospace}
 
@@ -2398,7 +2401,7 @@ function buildGraphModel(){
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
     nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#9A9484'});
-    edges.push({from:c.id, to:'hub:'+g});
+    edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
   return { nodes, edges, capped, shown:cs.length, total:state.contracts.filter(c=>!intel.visible||intel.visible.has(c.id)).length };
 }
@@ -2418,7 +2421,9 @@ function makeIntelGraph(model){
   nodes.filter(n=>n.kind==='contract').forEach(n=>{ const h=byId['hub:'+n.group]||{x:W/2,y:H/2}; n.x=h.x+(rnd()-.5)*120; n.y=h.y+(rnd()-.5)*120; n.vx=n.vy=0; });
   nodes.forEach(n=>{ if(n.kind==='hub'){ n.w=Math.max(96,Math.min(180,n.label.length*7+30)); n.h=40; } else { n.w=Math.max(92,Math.min(190,n.label.length*6.3+26)); n.h=n.sub?40:30; } });
   // svg build
-  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'); gLinks.appendChild(e.el); });
+  edges.forEach(e=>{ e.el=document.createElementNS('http://www.w3.org/2000/svg','path'); e.el.setAttribute('class','ig-link'); e.el.setAttribute('marker-end','url(#ig-arrow)'); gLinks.appendChild(e.el); });
+  // adjacency (undirected) for the hover-focus highlight
+  const adj={}; nodes.forEach(n=>adj[n.id]=new Set()); edges.forEach(e=>{ adj[e.from].add(e.to); adj[e.to].add(e.from); });
   nodes.forEach(n=>{
     const g=document.createElementNS('http://www.w3.org/2000/svg','g'); g.setAttribute('class','ig-node'); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
@@ -2436,10 +2441,21 @@ function makeIntelGraph(model){
       sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#7C8983'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     gNodes.appendChild(g);
     g.addEventListener('pointerdown',e=>igStartDrag(e,n));
+    g.addEventListener('pointerenter',()=>{ if(IG&&!IG.dragging) igPaint(n); });
+    g.addEventListener('pointerleave',()=>{ if(IG&&!IG.dragging) igPaint(null); });
     g.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return;
       if(n.kind==='contract') openWorkspace(n.id); else { /* click hub -> keep only its group */ igFilterToGroup(n.label); } });
   });
-  return { svg, vp, nodes, edges, byId, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false };
+  return { svg, vp, nodes, edges, byId, adj, W, H, view:{x:0,y:0,k:1}, dragging:null, dragMoved:false };
+}
+// hover-focus: highlight the card + its connections, dim the rest (mirrors the reference)
+function igPaint(focus){
+  if(!IG) return;
+  if(!focus){ IG.nodes.forEach(n=>n.g.classList.remove('hi','dim'));
+    IG.edges.forEach(e=>{ e.el.classList.remove('hi','dim'); e.el.setAttribute('marker-end','url(#ig-arrow)'); }); return; }
+  const near=IG.adj[focus.id]||new Set();
+  IG.nodes.forEach(n=>{ const on=n.id===focus.id||near.has(n.id); n.g.classList.toggle('hi',n.id===focus.id); n.g.classList.toggle('dim',!on); });
+  IG.edges.forEach(e=>{ const on=e.from===focus.id||e.to===focus.id; e.el.classList.toggle('hi',on); e.el.classList.toggle('dim',!on); e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
 }
 function igFilterToGroup(label){ const ids=state.contracts.filter(c=>groupLabelOf(c,intel.groupBy,intel.groups)===label).map(c=>c.id);
   intel.visible=new Set(ids); intel.note='Group: '+label; rebuildIntelGraph(); }
@@ -2467,7 +2483,9 @@ function igTick(){
 function igRender(){
   IG.nodes.forEach(n=>n.g.setAttribute('transform',`translate(${n.x-n.w/2},${n.y-n.h/2})`));
   IG.edges.forEach(e=>{ const dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1,nx=dx/d,ny=dy/d;
-    const a=igClamp(e.s,nx,ny), b=igClamp(e.t,-nx,-ny); e.el.setAttribute('d',`M${a.x},${a.y} L${b.x},${b.y}`); });
+    const a=igClamp(e.s,nx,ny), b=igClamp(e.t,-nx,-ny);
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, cx=mx-ny*16, cy=my+nx*16;   // gentle curve, like the reference
+    e.el.setAttribute('d',`M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`); });
 }
 function igClamp(n,dx,dy){ const hw=n.w/2+2,hh=n.h/2+2,sx=dx?hw/Math.abs(dx):1e9,sy=dy?hh/Math.abs(dy):1e9,s=Math.min(sx,sy); return {x:n.x+dx*s,y:n.y+dy*s}; }
 
@@ -2521,7 +2539,10 @@ function renderIntel(){
       <div id="ig-note" class="px-[26px] pb-2 text-[11.5px]"></div>
     </header>
     <div class="relative flex-1 min-h-0 bg-canvas">
-      <svg id="ig-svg" class="w-full h-full block cursor-grab"><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
+      <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
+        <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#C6DCCB"></path></marker>
+        <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#086B54"></path></marker>
+      </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
       <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(8,33,30,.3)]"></div>
       <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to open</div>
     </div>
