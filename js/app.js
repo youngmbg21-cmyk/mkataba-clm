@@ -11,6 +11,7 @@ import './playbook.js';
 import './approvals.js';
 import './wizard.js';
 import './views/calendar.js';
+import './views/reports.js';
 import './views/portal.js';
 import './views/home.js';
 import './views/register.js';
@@ -34,6 +35,7 @@ function setView(view){
   else if(view==='folder') renderFolder();
   else if(view==='intel') renderIntel();
   else if(view==='calendar') renderCalendar();
+  else if(view==='reports') renderReports();
   else if(view==='register') renderRegister();
   else if(view==='pipeline') renderPipeline();
   else if(view==='team') renderTeam();
