@@ -184,7 +184,10 @@ function selectContract(id){
 function applyPanelLayout(){
   const grid=document.getElementById('body-grid'); const panel=document.getElementById('context-panel');
   if(!grid) return;
-  if(state.panelOpen){ grid.style.gridTemplateColumns='1fr 292px'; if(panel) panel.style.display='flex'; }
+  // Intel owns its right side with its embedded portfolio chatbot dock, so the
+  // global Activity/Summary panel is suppressed there to avoid two right panels.
+  const show = state.panelOpen && state.view!=='intel';
+  if(show){ grid.style.gridTemplateColumns='1fr 292px'; if(panel) panel.style.display='flex'; }
   else { grid.style.gridTemplateColumns='1fr'; if(panel) panel.style.display='none'; }
 }
 function panelTermsFor(c){
