@@ -322,12 +322,30 @@ const AI_SUGGESTIONS = [
   'Compare my two highest-value contracts',
 ];
 
+/* Expand / shrink the panel leftward (Horizon-style). The preference sticks
+   per device, so a user who likes it wide gets it wide on every open. */
+function toggleAIExpand(force){
+  const panel=document.getElementById('ai-panel'); if(!panel) return;
+  const want=(typeof force==='boolean')?force:!panel.classList.contains('expanded');
+  panel.classList.toggle('expanded',want);
+  try{ if(typeof lsSet==='function') lsSet('hati.v1.aiExpanded',want); }catch(_){}
+  const b=document.getElementById('ai-expand');
+  if(b){
+    b.title=want?'Shrink the panel':'Expand the panel';
+    // chevrons flip: « to grow leftward, » to shrink back
+    b.innerHTML=want
+      ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
+      :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>';
+  }
+}
 function openAI(prefill){
   document.getElementById('ai-panel').classList.add('open');
   document.getElementById('ai-scrim').classList.add('open');
   ai.open=true;
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(typeof updateAiBrainPill==='function') updateAiBrainPill();   // show which brain is live
+  // restore the remembered width preference
+  try{ toggleAIExpand(!!(typeof lsGet==='function'&&lsGet('hati.v1.aiExpanded'))); }catch(_){}
   if(!ai.history.length){
     aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, and I know what's on your screen. Try a suggestion below, or just ask.`});
   }
@@ -796,6 +814,7 @@ async function aiSubmit(){
 }
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);
+document.getElementById('ai-expand')?.addEventListener('click',()=>toggleAIExpand());
 document.getElementById('ai-input').addEventListener('keydown',e=>{if(e.key==='Enter')aiSubmit();});
 document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-min').addEventListener('click',minimizeAI);
@@ -807,4 +826,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});

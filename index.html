@@ -244,7 +244,11 @@
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 
   /* AI slide-over */
-  #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1),max-width .28s cubic-bezier(.22,.61,.36,1);}
+  /* Expanded: the panel stretches leftward (it stays anchored right), giving
+     comparison tables and long answers real room. clamp() keeps it sane on
+     narrow screens (never below the normal width; w-full caps tiny viewports). */
+  #ai-panel.expanded{max-width:clamp(430px,72vw,940px)!important;}
   #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
   #ai-badge.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
@@ -425,6 +429,7 @@
       <div class="font-display font-600">HaTi Copilot</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>Searching your live contract data</div>
     </div>
+    <button id="ai-expand" title="Expand the panel" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
     <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
     <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
     <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
