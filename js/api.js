@@ -9,6 +9,9 @@ async function api(path, method='GET', body){
     body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
   let data=null; try{ data=await res.json(); }catch(e){}
   if(!res.ok) throw new Error(data?.error||('Request failed ('+res.status+')'));
+  // The server folds a `notice` into an AI response when the configured model
+  // was rejected and a default was used in its place — surface it to the user.
+  if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');
   return data;
 }
 async function loadBootstrap(){
