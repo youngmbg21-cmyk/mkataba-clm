@@ -306,26 +306,41 @@ function intelPushChatResult(res){
 }
 
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
-// Falls back with a clear note when the AI engine isn't configured.
+// With no AI key, comparisons still work via the deterministic local table;
+// other free-form questions get a clear nudge instead of silence.
 async function intelChatAsk(q){
-  if(!(API_MODE() && state.aiConfigured)){
+  const ids=(String(q).match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
+  if(!(typeof copilotAvailable==='function' && copilotAvailable())){
+    if(ids.length>=2 && typeof localCompareData==='function'){
+      const cmp=localCompareData(ids);
+      if(cmp){ intel.history.push({role:'assistant', text:'Side-by-side from your live contract data.'+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+    }
     intel.history.push({role:'assistant', err:true,
-      text:'The AI engine needs a Claude API key (Settings → AI Keys) for comparisons and free-form questions. You can still filter, highlight and regroup the map.'});
+      text:'For free-form questions I need an Anthropic API key (Team &amp; Settings → AI engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
     return;
   }
-  const res=await api('ai/chat','POST',{ messages:intelChatMessages(), context:{ view:'intel' } });
-  intelPushChatResult(res);
+  try{
+    const res=await copilotAsk(intelChatMessages(), { view:'intel' });
+    intelPushChatResult(res);
+  }catch(e){
+    // AI failed mid-flight → still deliver a local comparison if we can.
+    if(ids.length>=2 && typeof localCompareData==='function'){
+      const cmp=localCompareData(ids);
+      if(cmp){ intel.history.push({role:'assistant', text:'The AI engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+    }
+    intel.history.push({role:'assistant', err:true, text:'AI error: '+igEsc(e.message||String(e))});
+  }
 }
 
 // Node click → an instant facts card PLUS an async Copilot insight beneath it.
 function intelAIExplain(id){
   const c=getContract(id); if(!c) return;
-  if(!(API_MODE() && state.aiConfigured)) return;   // facts card already shown by igExplain
+  if(!(typeof copilotAvailable==='function' && copilotAvailable())) return;   // facts card already shown by igExplain
   intel.busy=true; renderIntelDock();
-  api('ai/chat','POST',{
-    messages:[{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
-    context:{ view:'intel', activeContractId:id, activeContractName:c.name },
-  }).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
+  copilotAsk(
+    [{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
+    { view:'intel', activeContractId:id, activeContractName:c.name },
+  ).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
     .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
       text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
 }
@@ -339,21 +354,28 @@ function intelToggleCompare(id){
   igPaintIds(intel.compareSel);
   renderIntelDock();
 }
-// Run the comparison over the staged nodes.
+// Run the comparison over the staged nodes. With no AI key (or on AI failure)
+// it still delivers the deterministic local table, so Compare ALWAYS works.
 async function intelRunCompare(){
-  const ids=intel.compareSel.slice(); if(ids.length<2) return;
+  const ids=intel.compareSel.slice();
+  if(ids.length<2){ if(typeof toast==='function') toast('Stage at least 2 contracts — tap "+ Compare" on another node','err'); return; }
   const names=ids.map(id=>getContract(id)?.name||id);
   intel.history.push({role:'user', text:'Compare '+names.join(', ')});
   intel.compareSel=[]; intel.busy=true; renderIntelDock();
+  const localFallback=(prefix)=>{
+    const cmp=(typeof localCompareData==='function')?localCompareData(ids):null;
+    if(cmp) intel.history.push({role:'assistant', text:(prefix||'Side-by-side from your live contract data.')+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids});
+    else intel.history.push({role:'assistant', err:true, text:'Could not build the comparison.'});
+  };
   try{
-    if(!(API_MODE() && state.aiConfigured)){
-      intel.history.push({role:'assistant', err:true, text:'The AI engine needs a Claude API key (Settings → AI Keys) to compare contracts.'});
-    } else {
-      const res=await api('ai/chat','POST',{ messages:[{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], context:{ view:'intel' } });
+    if(typeof copilotAvailable==='function' && copilotAvailable()){
+      const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
       intelPushChatResult(res);
+    } else {
+      localFallback('Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">Add an AI key in Team &amp; Settings for a clause-level comparison.</span>');
     }
-  }catch(e){ intel.history.push({role:'assistant', err:true, text:'Comparison failed: '+igEsc(e.message||String(e))}); }
-  intel.busy=false; rebuildIntelGraph(); renderIntelDock();
+  }catch(e){ localFallback('The AI engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
+  intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
 }
 
 /* ---- build the node/edge model from current state + lenses/group ---- */
@@ -687,6 +709,7 @@ function renderIntelDock(){
     <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
       <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
       <span class="font-display font-700 text-[13px] text-ink flex-1">Intelligence panel</span>
+      ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
     </div>
     ${intel.lenses.length?`
@@ -710,7 +733,7 @@ function renderIntelDock(){
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
       <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">Comparing <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
       <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">Clear</button>
-      <button id="igd-cmp-run" ${intel.compareSel.length<2?'disabled':''} class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-400 cursor-not-allowed':'bg-brand-600 text-white hover:bg-brand-700'}">Compare ${intel.compareSel.length}</button>
+      <button id="igd-cmp-run" class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-500':'bg-brand-600 text-white hover:bg-brand-700'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
       <input id="igd-input" placeholder="Ask about the portfolio…" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
@@ -751,6 +774,12 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-cmp]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
   document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
   document.getElementById('igd-cmp-run')?.addEventListener('click',()=>intelRunCompare());
+  // clear the dock conversation (lenses are separate and survive on purpose)
+  document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
+    if(!confirm('Delete this conversation? Pinned lenses stay.')) return;
+    intel.history=[]; intel.compareSel=[]; igPaintIds(null); renderIntelDock();
+    if(typeof toast==='function') toast('Conversation deleted');
+  });
 }
 
 function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }
