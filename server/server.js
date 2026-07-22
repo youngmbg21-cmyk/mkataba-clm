@@ -189,28 +189,68 @@ app.set('trust proxy', true);          // so req.ip reflects the client behind a
 // only when told we're behind TLS (HTTPS=true or TRUST_PROXY set), so local
 // http development still works.
 const HTTPS_ON = () => process.env.HTTPS === 'true' || process.env.TRUST_PROXY === 'true';
+
+// E9-FIX4: force HTTPS when we know we're behind TLS. Honours x-forwarded-proto
+// (the app runs behind a proxy). No-op when HTTPS_ON() is false, so local http
+// development and static mode are untouched.
+app.use((req, res, next) => {
+  if (HTTPS_ON()) {
+    const proto = String(req.headers['x-forwarded-proto'] || req.protocol || '').split(',')[0].trim();
+    if (proto === 'http' && req.headers.host) return res.redirect(301, 'https://' + req.headers.host + req.originalUrl);
+  }
+  next();
+});
+
+// E9-FIX5: Content-Security-Policy. Deliberately permissive-but-useful: the app
+// loads Tailwind (Play CDN, which needs 'unsafe-eval') and Google Fonts, and
+// uses inline styles + inline event handlers ('unsafe-inline'). We still lock
+// down framing, plugins and base-uri, and name the Anthropic API origin for
+// connect-src. Loosen an individual directive rather than dropping the header.
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' data: blob:",
+  "connect-src 'self' https://api.anthropic.com",
+  "frame-ancestors 'self'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "object-src 'none'",
+].join('; ');
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-XSS-Protection', '0');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader('Content-Security-Policy', CSP);
   if (HTTPS_ON()) res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   next();
 });
 app.use(express.json({ limit: '15mb' }));
 const clientIp = req => (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || null;
 
-// E8-T1: in-memory sliding-window rate limiter (no deps). Keyed by ip+bucket.
+// E8-T1: in-memory sliding-window rate limiter (no deps). Keyed by ip+bucket by
+// default; pass opts.keyFn to key by something else (e.g. the signed-in user),
+// and pass a function for `max` to make the cap settings-driven at runtime.
+// NOTE: in-memory + single-instance — this map (and the daily counter below)
+// would need a shared store (Redis/DB) if HaTi is ever run on multiple nodes.
 const rlHits = new Map();
-function rateLimit(bucket, max, windowMs) {
+function rateLimit(bucket, max, windowMs, opts = {}) {
+  const limitOf = typeof max === 'function' ? max : () => max;
+  const keyFn = opts.keyFn;
+  const message = opts.message || 'Too many attempts — please wait and try again';
   return (req, res, next) => {
-    const key = bucket + ':' + (clientIp(req) || 'unknown');
+    const id = (keyFn ? keyFn(req) : clientIp(req)) || 'unknown';
+    const key = bucket + ':' + id;
     const nowMs = Date.now();
     const arr = (rlHits.get(key) || []).filter(t => nowMs - t < windowMs);
-    if (arr.length >= max) {
-      res.setHeader('Retry-After', Math.ceil(windowMs / 1000));
-      return res.status(429).json({ error: 'Too many attempts — please wait and try again' });
+    if (arr.length >= limitOf(req)) {
+      const retry = Math.ceil(windowMs / 1000);
+      res.setHeader('Retry-After', retry);
+      return res.status(429).json({ error: message, retryAfter: retry });
     }
     arr.push(nowMs); rlHits.set(key, arr);
     next();
@@ -221,6 +261,87 @@ setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { c
 const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000);   // 10 / 15 min per IP
 const rlOtp = rateLimit('otp', 8, 15 * 60 * 1000);
 const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
+
+/* ---------- AI cost controls (rate limit, input caps, daily backstop) ------
+   Each AI endpoint calls Anthropic and costs real money. These controls reuse
+   the settings store so an admin can tune them from Team & Settings, each with
+   an env-var fallback and a built-in default. Like the rate limiter above, the
+   daily counter is single-instance (persisted per workspace in settings) and
+   would need a shared store for a multi-node deployment. */
+const intSetting = (key, envVar, def) => {
+  const v = getSetting(key);
+  if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v;
+  const e = parseInt(process.env[envVar] || '', 10);
+  if (Number.isFinite(e) && e >= 0) return e;
+  return def;
+};
+
+// FIX 1 — per-user AI rate limits, two tiers reflecting cost. DEEP (playbook,
+// obligations — larger prompts + the Sonnet-class model) is tighter than LIGHT
+// (search, graph, template, extract). Keyed by user id so an office behind one
+// IP isn't a single shared budget and a signed-in abuser can't dodge it by
+// switching networks. Defaults: LIGHT 40 / DEEP 15 per 15 min — generous for a
+// real demo or a busy reviewer, but a runaway client loop is stopped fast.
+const AI_WINDOW_MS = 15 * 60 * 1000;
+const aiUserKey = req => 'u:' + ((req.user && req.user.id) || clientIp(req) || 'unknown');
+const AI_LIMIT_MSG = 'AI limit reached — try again in a few minutes';
+const rlAiLight = rateLimit('ai-light', () => intSetting('aiRateLight', 'AI_RATE_LIGHT', 40), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
+const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE_DEEP',  15), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
+
+// FIX 2 — per-request input caps (a backstop over the 15mb global json limit).
+// Defaults sit above what the client sends, so genuine use is never trimmed,
+// but a pasted-in monster document or a scripted bulk payload is bounded before
+// it reaches (and is billed by) Anthropic. Truncation sets req.aiInputCapped so
+// the endpoint can tell the user their input was shortened.
+const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to AI…]';
+function capAiInput(req, res, next) {
+  const b = req.body || {};
+  let capped = false;
+  const maxN = intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400);
+  const maxC = intSetting('aiMaxChars', 'AI_MAX_CHARS', 50000);
+  for (const f of ['contracts', 'candidates']) {
+    if (Array.isArray(b[f]) && b[f].length > maxN) { b[f] = b[f].slice(0, maxN); capped = true; }
+  }
+  if (typeof b.text === 'string' && b.text.length > maxC) { b.text = b.text.slice(0, maxC) + AI_TRUNC_MARK; capped = true; }
+  for (const f of ['contracts', 'candidates']) {
+    if (Array.isArray(b[f]) && b[f].length) {
+      const per = Math.max(2000, Math.floor((maxC * 3) / b[f].length));
+      for (const it of b[f]) {
+        if (it && typeof it.text === 'string' && it.text.length > per) { it.text = it.text.slice(0, per) + AI_TRUNC_MARK; capped = true; }
+        if (it && typeof it.clauses === 'string' && it.clauses.length > per) { it.clauses = it.clauses.slice(0, per) + AI_TRUNC_MARK; capped = true; }
+      }
+    }
+  }
+  req.aiInputCapped = capped;
+  next();
+}
+
+// FIX 3 — per-workspace daily AI-call ceiling, persisted in settings and reset
+// on date change (UTC). Default 500/day; set to 0 to disable. The counter is
+// bumped in anthropicMessages() so only real Anthropic calls are counted.
+const aiDailyLimit = () => intSetting('aiDailyLimit', 'AI_DAILY_LIMIT', 500);
+const aiToday = () => new Date().toISOString().slice(0, 10);
+function aiUsageToday() {
+  const u = getSetting('aiUsageDay');
+  return (u && u.date === aiToday()) ? { date: u.date, count: u.count | 0 } : { date: aiToday(), count: 0 };
+}
+function recordAiCall() {
+  const u = aiUsageToday();
+  setSetting('aiUsageDay', { date: u.date, count: u.count + 1 });
+  return u.count + 1;
+}
+function aiDailyGuard(req, res, next) {
+  const ceiling = aiDailyLimit();
+  if (ceiling > 0) {
+    const u = aiUsageToday();
+    if (u.count >= ceiling) {
+      console.warn(`[ai] daily ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further AI calls.`);
+      res.setHeader('Retry-After', 3600);
+      return res.status(429).json({ error: `Daily AI limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
+    }
+  }
+  next();
+}
 const sha = s => crypto.createHash('sha256').update(String(s)).digest('hex');
 const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 
@@ -443,7 +564,7 @@ app.get('/api/search', auth, (req, res) => {
 });
 
 // E6-T2: AI semantic search — answer a portfolio question with quoted evidence.
-app.post('/api/ai/search', auth, async (req, res) => {
+app.post('/api/ai/search', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { question, candidates } = req.body || {};
@@ -465,7 +586,7 @@ app.post('/api/ai/search', auth, async (req, res) => {
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [], ...aiFallbackNotice(out) });
+    res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [], ...aiNotice(req, out) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -556,6 +677,7 @@ async function anthropicMessages(key, tier, payload) {
   const t = tier === 'deep' ? 'deep' : 'fast';
   const chosen = aiModelForTier(t);
   const def = AI_TIER_DEFAULTS[t];
+  recordAiCall();   // count this as one AI request against the daily ceiling
   const send = (model) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -575,10 +697,14 @@ async function anthropicMessages(key, tier, payload) {
   return { ok: true, data: await r.json(), model: chosen };
 }
 
-// A user-facing notice to fold into a response when a fallback happened.
-const aiFallbackNotice = (out) => out && out.fellBack
-  ? { notice: `The configured AI model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.` }
-  : {};
+// A user-facing notice to fold into a response: combines the input-was-shortened
+// warning (FIX 2) and the model-fell-back warning into one `notice` string.
+const aiNotice = (req, out) => {
+  const parts = [];
+  if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the AI.');
+  if (out && out.fellBack) parts.push(`The configured AI model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
+  return parts.length ? { notice: parts.join(' ') } : {};
+};
 
 app.get('/api/ai/config', auth, (req, res) => {
   const k = aiKey();
@@ -594,10 +720,21 @@ app.get('/api/ai/config', auth, (req, res) => {
     },
     globalOverride: getSetting('aiModel') || process.env.ANTHROPIC_MODEL || '',
     model: aiModelForTier('fast'), // legacy field for older clients
+    // FIX 1/2/3: cost-control limits + today's usage (visible before it bites)
+    limits: {
+      rateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 40),
+      rateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
+      windowMinutes: Math.round(AI_WINDOW_MS / 60000),
+      dailyLimit: aiDailyLimit(),          // 0 = disabled
+      maxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 50000),
+      maxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
+    },
+    usage: (() => { const u = aiUsageToday(); return { date: u.date, count: u.count, dailyLimit: aiDailyLimit() }; })(),
   });
 });
 app.put('/api/ai/config', auth, admin, (req, res) => {
-  const { key, model, modelFast, modelDeep, clear } = req.body || {};
+  const { key, model, modelFast, modelDeep, clear,
+    rateLight, rateDeep, dailyLimit, maxChars, maxContracts } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
   // Validate every supplied model string before storing; a blank clears that
@@ -614,9 +751,24 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   setModel('aiModelFast', modelFast);
   setModel('aiModelDeep', modelDeep);
   if (bad.length) return res.status(400).json({ error: `Invalid model name "${bad[0]}". Use a plausible model id like "claude-haiku-4-5-20251001" (no spaces).` });
+  // Numeric cost-control limits: non-negative integers only. 0 means "disable"
+  // for the daily ceiling; for the others it is a valid (if aggressive) cap.
+  const badNum = [];
+  const setNum = (field, val, min) => {
+    if (val === undefined || val === null || val === '') return;
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < (min ?? 0) || Math.floor(n) !== n) { badNum.push(field); return; }
+    setSetting(field, n);
+  };
+  setNum('aiRateLight', rateLight, 1);
+  setNum('aiRateDeep', rateDeep, 1);
+  setNum('aiDailyLimit', dailyLimit, 0);
+  setNum('aiMaxChars', maxChars, 1000);
+  setNum('aiMaxContracts', maxContracts, 1);
+  if (badNum.length) return res.status(400).json({ error: `Invalid value for ${badNum[0]} — must be a whole number within range.` });
   res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') } });
 });
-app.post('/api/ai/graph', auth, async (req, res) => {
+app.post('/api/ai/graph', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, contracts, history, activeIds } = req.body || {};
@@ -654,7 +806,7 @@ app.post('/api/ai/graph', auth, async (req, res) => {
       action: out.action === 'highlight' ? 'highlight' : 'filter',
       badges: (out.badges && typeof out.badges === 'object') ? out.badges : null,
       answer: typeof out.answer === 'string' ? out.answer : '',
-      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiFallbackNotice(resp) });
+      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -664,7 +816,7 @@ app.post('/api/ai/graph', auth, async (req, res) => {
    value and text richness. Stage 2: Claude (FAST tier — this is a ranking
    task over a small shortlist) ranks the top 3 as templates for the new
    contract described. */
-app.post('/api/ai/template', auth, async (req, res) => {
+app.post('/api/ai/template', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, candidates } = req.body || {};
@@ -705,7 +857,7 @@ app.post('/api/ai/template', auth, async (req, res) => {
     const ids = new Set(scored.map(c => c.id));
     const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
     if (!ranked.length) return res.status(502).json({ error: 'AI returned no usable ranking' });
-    res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiFallbackNotice(resp) });
+    res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -715,7 +867,7 @@ app.post('/api/ai/template', auth, async (req, res) => {
    terms), each with a confidence level. The human always confirms before it
    is saved (client review panel); no key -> the client uses its heuristic
    fallback and never calls this. */
-app.post('/api/ai/extract', auth, async (req, res) => {
+app.post('/api/ai/extract', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text } = req.body || {};
@@ -753,7 +905,7 @@ app.post('/api/ai/extract', auth, async (req, res) => {
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ metadata: block.input || {}, source: 'ai', ...aiFallbackNotice(resp) });
+    res.json({ metadata: block.input || {}, source: 'ai', ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -761,7 +913,7 @@ app.post('/api/ai/extract', auth, async (req, res) => {
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The
    human confirms before any are saved; no key -> the client heuristic. */
-app.post('/api/ai/obligations', auth, async (req, res) => {
+app.post('/api/ai/obligations', auth, rlAiDeep, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text } = req.body || {};
@@ -789,7 +941,7 @@ app.post('/api/ai/obligations', auth, async (req, res) => {
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiFallbackNotice(resp) });
+    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -798,7 +950,7 @@ app.post('/api/ai/obligations', auth, async (req, res) => {
    ranges). Returns per-clause verdicts (aligned/deviation/missing) with a
    verbatim quote, the playbook position, and a suggested redline in the
    preferred wording. No key -> client heuristic. */
-app.post('/api/ai/playbook', auth, async (req, res) => {
+app.post('/api/ai/playbook', auth, rlAiDeep, aiDailyGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text, playbook, kind } = req.body || {};
@@ -828,7 +980,7 @@ app.post('/api/ai/playbook', auth, async (req, res) => {
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [], ...aiFallbackNotice(resp) });
+    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [], ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
