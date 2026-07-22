@@ -310,7 +310,7 @@ function renderScanSection(c){
 /* ============================================================
    AI ASSISTANT  (local intent engine over live state)
    ============================================================ */
-const ai = { open:false, minimized:false, unread:false, history:[] };
+const ai = { open:false, minimized:false, unread:false, busy:false, history:[] };
 const AI_SUGGESTIONS = [
   'What is pending counterparty action?',
   'Total value of signed contracts',
@@ -319,6 +319,7 @@ const AI_SUGGESTIONS = [
   'How many drafts do I have?',
   'Which contracts have open risk findings?',
   'What expires in the next 90 days?',
+  'Compare my two highest-value contracts',
 ];
 
 function openAI(prefill){
@@ -327,7 +328,7 @@ function openAI(prefill){
   ai.open=true;
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(!ai.history.length){
-    aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
+    aiPush('assistant',{text:`Habari! I'm **HaTi Copilot**, your contract-intelligence assistant. I can search, summarize and compare any contracts in your workspace, and answer questions about what's on screen — try a suggestion below, or ask in your own words.`});
   }
   renderAIFeed(); renderAISuggest();
   const inp=document.getElementById('ai-input');
@@ -349,7 +350,7 @@ function minimizeAI(){
 function clearAIHistory(){
   if(!confirm('Delete this conversation? This cannot be undone.')) return;
   ai.history=[];
-  aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
+  aiPush('assistant',{text:`Habari! I'm **HaTi Copilot**, your contract-intelligence assistant. I can search, summarize and compare any contracts in your workspace, and answer questions about what's on screen — try a suggestion below, or ask in your own words.`});
   renderAIFeed();
   toast('Conversation deleted');
 }
@@ -487,19 +488,105 @@ function aiAnswer(qRaw){
   return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Naivas"</em>).` };
 }
 
-function aiSubmit(){
+/* Tiny safe escaper for AI-authored text (the keyword engine and contract
+   cards render trusted app data raw, but model output must be escaped before
+   we apply our own light markdown). */
+const _aiEsc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+
+/* Light markdown → safe HTML for Copilot replies: escapes first, then bold,
+   inline code, and simple bullet lists. Deliberately minimal. */
+function aiFmt(raw){
+  let s=_aiEsc(raw);
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/`([^`]+)`/g,'<code class="px-1 rounded bg-brand-50 text-brand-800 text-[11px]">$1</code>');
+  const lines=s.split(/\n/); let out='', inList=false;
+  for(const ln of lines){
+    const m=ln.match(/^\s*[-*•]\s+(.*)$/);
+    if(m){ if(!inList){ out+='<ul class="list-disc pl-4 space-y-0.5 my-1">'; inList=true; } out+='<li>'+m[1]+'</li>'; }
+    else { if(inList){ out+='</ul>'; inList=false; } if(ln.trim()) out+='<div>'+ln+'</div>'; }
+  }
+  if(inList) out+='</ul>';
+  return out||'<div></div>';
+}
+
+/* Side-by-side comparison table from the server's structured `compare` block.
+   Cells are model text, so escape them; the shape is validated server-side. */
+function aiCompareTable(cmp){
+  if(!cmp||!Array.isArray(cmp.columns)||!cmp.columns.length) return '';
+  const cols=cmp.columns;
+  const head=`<tr><th class="text-left px-2 py-1"></th>${cols.map(c=>`<th class="text-left font-600 text-brand-900 px-2 py-1 whitespace-nowrap">${_aiEsc(c.label)}</th>`).join('')}</tr>`;
+  const rows=(cmp.rows||[]).map(r=>`<tr class="border-t border-brand-100/60 align-top"><td class="px-2 py-1 text-ink/50 font-medium whitespace-nowrap">${_aiEsc(r.label)}</td>${cols.map((_,i)=>`<td class="px-2 py-1 text-brand-900">${_aiEsc((r.cells||[])[i]||'—')}</td>`).join('')}</tr>`).join('');
+  const verdict=cmp.verdict?`<div class="mt-1.5 px-1 text-[11.5px] text-brand-800/80 leading-relaxed"><strong>Verdict:</strong> ${_aiEsc(cmp.verdict)}</div>`:'';
+  return `<div class="rounded-xl border border-brand-100 bg-white overflow-x-auto"><table class="w-full text-[11.5px] border-collapse"><thead>${head}</thead><tbody>${rows}</tbody></table></div>${verdict}`;
+}
+
+/* Map the live conversation to the server's message shape (role + plain text),
+   stripping any HTML we rendered into earlier assistant turns. Last 8 turns. */
+function aiChatMessages(){
+  const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  return ai.history
+    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text)
+    .map(m=>({ role:m.role, content:strip(m.text) }))
+    .filter(m=>m.content).slice(-8);
+}
+
+/* Page-awareness snapshot: which screen the user is on and which contract is
+   open, so Copilot can answer about what's visible without being told. */
+function aiChatContext(){
+  const ctx={ view: state.view||'' };
+  if(state.activeId){ const c=getContract(state.activeId); if(c){ ctx.activeContractId=c.id; ctx.activeContractName=c.name; } }
+  return ctx;
+}
+
+/* Turn a server chat response into a renderable assistant message: formatted
+   answer text, an optional compare table, and cited contract cards resolved
+   from live state (so they're clickable and always in sync). */
+function aiRenderServerAnswer(res){
+  const list=(res.cards||[]).map(cd=>getContract(cd.id)).filter(Boolean);
+  let extra='';
+  if(res.compare) extra+=aiCompareTable(res.compare);
+  if(list.length) extra+=aiCards(list);
+  let text=aiFmt(res.answer||'');
+  if(res.notice) text+=`<div class="text-[11px] text-amber-700 mt-2 leading-relaxed">${_aiEsc(res.notice)}</div>`;
+  return { text, cards:extra };
+}
+
+async function aiSubmit(){
   const inp=document.getElementById('ai-input');
-  const q=inp.value.trim(); if(!q) return;
+  const q=inp.value.trim(); if(!q||ai.busy) return;
   inp.value='';
   aiPush('user',{text:q});
+  ai.busy=true;
   renderAIFeed(true);
-  setTimeout(()=>{
-    const ans=aiAnswer(q);
+  const finish=(ans)=>{
+    ai.busy=false;
     aiPush('assistant',ans);
     renderAIFeed();
     // answer arrived while the panel was minimized/closed -> light up the launcher
     if(!ai.open){ ai.unread=true; updateAIBadge(); }
-  }, 650+Math.random()*500);
+  };
+  // Real, server-mediated HaTi Copilot when an AI key is configured; otherwise
+  // (static mode, or no key) fall back to the built-in keyword assistant so the
+  // panel always works.
+  if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured){
+    try{
+      const res=await api('ai/chat','POST',{ messages:aiChatMessages(), context:aiChatContext() });
+      finish(aiRenderServerAnswer(res));
+    }catch(e){
+      // Graceful degrade: answer from the keyword engine, note the fallback.
+      const local=aiAnswer(q);
+      const why=/key|configure|401|needsKey/i.test(e.message||'')
+        ? 'Add your Claude API key in Settings → AI Keys to unlock the full assistant.'
+        : 'The AI engine is unavailable right now, so this is a basic answer.';
+      local.text=(local.text||'')+`<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
+      finish(local);
+    }
+    return;
+  }
+  // No server / no key → keyword engine, with a short delay for feel.
+  const ans=aiAnswer(q);
+  await new Promise(r=>setTimeout(r,300));
+  finish(ans);
 }
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);
@@ -514,4 +601,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,_aiEsc,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
