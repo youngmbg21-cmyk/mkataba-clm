@@ -35,57 +35,60 @@ function renderFolder(){
   const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
   const sortOpts=FOLDER_SORTS.map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
   document.getElementById('content').innerHTML=`
-  <div class="view-enter h-full flex flex-col">
-    <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
-      <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1240px] mx-auto w-full">
-        <div class="flex items-center gap-3 min-w-0">
-          <button id="back-dash" class="h-9 w-9 grid place-items-center rounded-lg border border-brand-100 bg-white text-brand-700 hover:bg-brand-50 transition shrink-0">${icon('arrowLeft')}</button>
-          <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400 shrink-0">${icon(f.ic)}</span>
-          <div class="min-w-0">
-            <h1 class="font-display font-700 text-lg tracking-tight text-brand-900 truncate">${f.name}</h1>
-            <p class="text-[11px] font-mono text-brand-800/65"><span id="fold-count">${cs.length}</span> contracts · ${fmtKESshort(val)} active value</p>
-          </div>
+  <div class="view-enter" style="padding:14px 16px 28px">
+    <style>
+      .fold-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-surface)}
+      .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
+      .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+    </style>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button id="back-dash" style="width:28px;height:28px;flex:none;display:inline-grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;color:var(--color-accent-700);cursor:pointer" title="Back to portfolio">${icon('arrowLeft','w-4 h-4')}</button>
+        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
+        <div style="min-width:0">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.name}</div>
+          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts · ${fmtKESshort(val)} active value</div>
         </div>
-        <div class="flex items-center gap-2.5 shrink-0">
-          <label class="hidden sm:flex items-center gap-2 text-[12px] text-ink/60">Sort
-            <select id="folder-sort" class="rounded-xl border border-brand-100 bg-white px-3 py-2 text-[12px] text-ink outline-none focus:border-brand-400">${sortOpts}</select>
-          </label>
-          <div class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 w-64 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition">
-            ${icon('search','w-4 h-4 text-brand-800/60')}
-            <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" class="flex-1 text-sm outline-none bg-transparent"/>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <div class="flex-1 min-h-0 flex flex-col gap-3 px-8 pt-5 pb-7 max-w-[1240px] mx-auto w-full">
-      <div id="fold-selbar" class="shrink-0 hidden items-center justify-between gap-3 rounded-xl bg-ink text-white px-4 py-2.5 elev-2">
-        <span id="fold-sel-count" class="text-[13px] font-600">0 selected</span>
-        <div class="flex items-center gap-2">
-          <button id="fold-export" class="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 text-xs font-600 transition">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="fold-clear" class="rounded-lg text-white/70 hover:text-white px-2 py-1.5 text-xs font-600 transition">Clear</button>
+        <span style="flex:1"></span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
+          <select id="folder-sort" style="${selStyle}">${sortOpts}</select>
+        </label>
+        <div style="position:relative">
+          <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
+          <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" style="width:230px;max-width:60vw;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 bg-white rounded-2xl elev-2 overflow-hidden flex flex-col">
-        <div class="flex-1 min-h-0 overflow-auto scroll-thin">
-          <table class="w-full text-left">
-            <thead class="sticky top-0 z-10">
-              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.06),0 1px 0 rgba(60,40,10,.05)">
-                <th class="pl-5 pr-1 py-3 w-8"><input id="fold-selall" type="checkbox" class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></th>
-                <th class="px-2 py-3 font-700">Contract</th>
-                <th class="px-2 py-3 font-700 hidden md:table-cell">Type</th>
-                <th class="px-2 py-3 font-700 text-right">Value</th>
-                <th class="px-2 py-3 font-700 hidden sm:table-cell">Expires</th>
-                <th class="px-2 py-3 font-700 hidden lg:table-cell">Updated</th>
-                <th class="px-2 pr-5 py-3 font-700 text-right">Status</th>
+      <div id="fold-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
+        <span id="fold-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="fold-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">Clear</button>
+        </div>
+      </div>
+
+      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="overflow-x:auto">
+          <table class="fold-table">
+            <thead>
+              <tr>
+                <th style="width:26px;padding-left:12px"><input id="fold-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
+                <th>Contract</th>
+                <th>Type</th>
+                <th style="text-align:right">Value</th>
+                <th>Expires</th>
+                <th>Updated</th>
+                <th style="text-align:right;padding-right:12px">Status</th>
               </tr>
             </thead>
             <tbody id="fold-tbody" class="stagger">${folderRowsHtml(cs)}</tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   </div>`;
 
@@ -108,41 +111,43 @@ function renderFolder(){
 // Expiry cell: the date, plus a coloured "in Nd" / "Nd ago" hint when it's
 // close or past (only for live contracts).
 function folderExpiryCell(c){
-  if(!c.expiry) return '<span class="text-ink/35">—</span>';
+  if(!c.expiry) return '<span style="color:var(--color-neutral-400)">—</span>';
   const dt=new Date(c.expiry+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  let cls='text-ink/65', hint='';
+  let col='var(--color-neutral-700)', hint='';
   if(c.status!=='Declined'){ const d=daysUntil(c.expiry);
-    if(d<0){ cls='text-rose-600'; hint=`${-d}d ago`; }
-    else if(d<=90){ cls='text-amber'; hint=`in ${d}d`; }
+    if(d<0){ col='#8f322b'; hint=`${-d}d ago`; }
+    else if(d<=90){ col='#7d5a14'; hint=`in ${d}d`; }
   }
-  return `<span class="${cls}">${dt}</span>${hint?`<span class="block text-[10px] ${cls} opacity-80">${hint}</span>`:''}`;
+  return `<span style="color:${col}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
-  if(!cs.length) return `<tr><td colspan="7" class="px-5 py-14 text-center">
-      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
-      <div class="text-sm font-medium text-brand-900">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
-      <div class="text-xs text-brand-800/70 mt-1">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi AI to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+  if(!cs.length) return `<tr><td colspan="7" style="padding:44px 20px;text-align:center">
+      <div style="font-size:13px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
+      <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi AI to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
   return cs.slice(0,shown).map((c,i)=>{
     const o=(window.openFindings?openFindings(c):[])||[];
-    const scan=o.length?`<span class="ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${SEV_META[worstSevOf(o)].chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
+    const scan=o.length?`<span class="badge" style="margin-left:6px;background:#f1dcd8;color:#8f322b" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
     return `
-    <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.05);animation-delay:${Math.min(i,14)*22}ms">
-      <td class="pl-5 pr-1 py-3.5 w-8 align-middle" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></td>
-      <td class="px-2 py-3.5"><div class="flex items-center gap-2.5 min-w-0">
-        <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
-        <span class="min-w-0"><span class="block text-[14px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/60 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'No counterparty yet'}</span></span>
+    <tr data-open="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
+      <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
+      <td style="max-width:260px"><div style="display:flex;align-items:center;gap:9px;min-width:0">
+        <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:4px;border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
+        <span style="min-width:0">
+          <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
+          <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-heading)">${c.id}</span> · ${c.counterparty||'No counterparty yet'}</span>
+        </span>
       </div></td>
-      <td class="px-2 py-3.5 hidden md:table-cell whitespace-nowrap"><span class="inline-flex items-center gap-1.5 text-[12.5px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span>${scan}</td>
-      <td class="px-2 py-3.5 text-right whitespace-nowrap text-[13px] font-600 tnum ${isMonetary(c)?'text-ink':'text-ink/40'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
-      <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum">${folderExpiryCell(c)}</td>
-      <td class="px-2 py-3.5 hidden lg:table-cell whitespace-nowrap text-[12px] tnum text-ink/60">${c.lastAction||'—'}</td>
-      <td class="px-2 pr-5 py-3.5 text-right">${statusChip(c.status)}</td>
+      <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
+      <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
+      <td style="text-align:right;padding-right:12px">${statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
-      ? `<tr><td colspan="7"><button id="folder-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(60,40,10,.06)">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      ? `<tr><td colspan="7" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
@@ -200,7 +205,7 @@ const REG_STAGES=[
   {k:'Declined',label:'Closed'},
 ];
 const REG_TYPES=[
-  {k:'all',label:'All types'},
+  {k:'all',label:'All streams'},
   {k:'proc',label:'Procurement'},
   {k:'mfg',label:'Manufacturing'},
   {k:'dist',label:'Distribution'},
@@ -211,6 +216,7 @@ const REG_TYPES=[
 const REG_SORTS=[
   {k:'updated',label:'Recently updated'},
   {k:'value',label:'Value (high → low)'},
+  {k:'risk',label:'Risk (high → low)'},
   {k:'expiry',label:'Expiring soonest'},
   {k:'name',label:'Name (A → Z)'},
 ];
@@ -234,36 +240,72 @@ function regFiltered(){
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
   if(R.sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
   else if(R.sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  else if(R.sort==='risk') cs.sort((a,b)=>contractRisk(b)-contractRisk(a));
   else if(R.sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
   else if(R.sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
   return cs;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+// Row ⋯ actions — label + which real handler runs. All close the menu first.
+const REG_ROW_ACTIONS=[
+  {k:'open',   label:'Open workspace'},
+  {k:'share',  label:'Share with counterparty'},
+  {k:'scan',   label:'Run AI scan'},
+  {k:'pdf',    label:'Export PDF'},
+  {k:'decline',label:'Decline & close', ruby:true},
+];
 function regRowsHtml(cs){
   const R=regState();
-  if(!cs.length) return `<tr><td colspan="7" class="px-4 py-12 text-center text-sm text-brand-800/70">No contracts match the current filters.</td></tr>`;
+  if(!cs.length) return `<tr><td colspan="12" style="padding:34px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No contracts match the current filters.</td></tr>`;
   const shown=Math.min(cs.length, R.shown||REG_PAGE);
   const ini=regOwnerInitials();
-  return cs.slice(0,shown).map((c,i)=>`
-    <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.05);animation-delay:${Math.min(i,14)*22}ms">
-      <td class="pl-5 pr-1 py-3.5 w-8 align-middle" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></td>
-      <td class="px-2 py-3.5">
-        <div class="min-w-0"><span class="block text-[14.5px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/65 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'—'}</span></div>
+  const ownerT=((currentUser()&&currentUser().name)||FIRST_PARTY||'').replace(/"/g,'&quot;');
+  const actBtns=id=>REG_ROW_ACTIONS.map(a=>`<button data-act="${a.k}" data-id="${id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
+  return cs.slice(0,shown).map((c,i)=>{
+    const risk=contractRisk(c), rp=riskPal(risk);
+    const din=c.expiry?daysUntil(c.expiry):null;
+    const renDate=c.expiry?new Date(c.expiry+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
+    const renColor=din==null?'transparent':(din<0?'#8f322b':din<=90?'#7d5a14':'var(--color-neutral-500)');
+    const appr=approvalLabel(c);
+    const apprColor=appr==='Approved'?'#1e6b4d':appr==='Rejected'?'#8f322b':appr==='—'?'var(--color-neutral-400)':/escalat/i.test(appr)?'#8f322b':'#7d5a14';
+    const val=!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—');
+    return `
+    <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
+      <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
+      <td style="font-family:var(--font-heading);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
+      <td style="max-width:230px">
+        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'—'}</span>
       </td>
-      <td class="px-2 py-3.5 hidden md:table-cell"><span class="inline-flex items-center gap-1.5 text-[13px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span>${c.metadata&&c.metadata.renewalType&&c.metadata.renewalType!=='unknown'?`<span class="ml-1.5 inline-block text-[9px] font-mono uppercase tracking-wide rounded px-1 py-0.5 ${c.metadata.renewalType==='auto-renew'?'bg-gold-500/15 text-amber':'bg-brand-50 text-brand-600'}">${(RENEWAL_LABEL[c.metadata.renewalType]||'').replace(' term','')}</span>`:''}</span></td>
-      <td class="px-2 py-3.5 hidden lg:table-cell"><span class="h-6 w-6 grid place-items-center rounded-full bg-brand-100 text-[9px] font-semibold text-brand-700 font-mono" title="${(currentUser()&&currentUser().name)||FIRST_PARTY}">${ini}</span></td>
-      <td class="px-2 py-3.5 text-right whitespace-nowrap text-[13px] font-600 tnum ${isMonetary(c)?'text-ink':'text-ink/40'}">${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
-      <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum text-ink/65">${c.lastAction||'—'}</td>
-      <td class="px-2 pr-5 py-3.5 text-right">${statusChip(c.status)}</td>
-    </tr>`).join('') + (cs.length>shown
-      ? `<tr><td colspan="7"><button id="reg-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(60,40,10,.06)">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>
+      <td><span style="width:22px;height:22px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700" title="${ownerT}">${ini}</span></td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:36px;height:5px;background:var(--color-neutral-200);display:inline-block"><span style="display:block;width:${Math.min(100,risk)}%;height:100%;background:${rp.dot}"></span></span>
+          <span style="font-size:11px;font-weight:600;color:${rp.fg};font-variant-numeric:tabular-nums">${risk}</span>
+        </span>
+      </td>
+      <td style="white-space:nowrap"><span style="font-size:11.5px">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
+      <td>${statusChip(c.status)}</td>
+      <td><span style="font-size:10.5px;font-weight:500;white-space:nowrap;color:${apprColor}">${appr}</span></td>
+      <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
+      <td style="position:relative;width:30px" onclick="event.stopPropagation()">
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px" title="Row actions">⋯</button>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c.id)}</div>
+      </td>
+    </tr>`;}).join('') + (cs.length>shown
+      ? `<tr><td colspan="12" style="padding:0"><button id="reg-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
 }
 function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
+function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
 function renderRegisterBody(){
   const cs=regFiltered();
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   const cnt=document.getElementById('reg-count'); if(cnt) cnt.textContent=cs.length.toLocaleString('en-KE');
+  const aggr=document.getElementById('reg-aggr'); if(aggr) aggr.textContent=fmtKESshort(regAggregate(cs));
   renderRegSelBar();
 }
 function renderRegSelBar(){
@@ -271,9 +313,20 @@ function renderRegSelBar(){
   bar.classList.toggle('hidden',n===0);
   const lbl=document.getElementById('reg-sel-count'); if(lbl) lbl.textContent=n+' selected';
 }
+function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
-  document.querySelectorAll('#reg-tbody [data-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-open'))));
+  // whole-row click selects the contract into the Summary panel (does not navigate)
+  document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
   document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
+  // ⋯ popover: toggle one open at a time
+  document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open) pop.style.display='flex'; }));
+  document.querySelectorAll('#reg-tbody [data-act]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); regCloseMenus();
+    const id=b.getAttribute('data-id'), act=b.getAttribute('data-act'), c=getContract(id); if(!c) return;
+    if(act==='open') openWorkspace(id);
+    else if(act==='share') openShareModal(c);
+    else if(act==='scan') runScan(c);
+    else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
+  }));
   document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
 }
 function regExportSelectedCsv(){
@@ -292,102 +345,113 @@ function renderRegister(){
   const R=regState(); R.shown=REG_PAGE;
   const cs=regFiltered();
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
-  const chip=(active)=>active
-    ? 'inline-flex items-center rounded-full bg-brand-900 text-white border border-brand-900 px-3 py-1.5 text-xs font-medium transition'
-    : 'inline-flex items-center rounded-full bg-white text-brand-800/70 border border-brand-100 px-3 py-1.5 text-xs font-medium hover:border-brand-300 transition';
-  const stageChips=REG_STAGES.map(s=>`<button data-reg-stage="${s.k}" class="${chip(R.stage===s.k)}">${s.label}</button>`).join('');
-  const typeChips=REG_TYPES.map(t=>`<button data-reg-type="${t.k}" class="${chip(R.type===t.k)}">${t.label}</button>`).join('');
+  // Industry filter pill: accent fill when active, hairline box + accent-border hover when not.
+  const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:4px 11px;border-radius:4px;cursor:pointer`;
+  const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
+  const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
+  const typePills=REG_TYPES.map(t=>`<button class="reg-pill" data-reg-type="${t.k}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
   const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+  const viewPills=REG_VIEWS.map(v=>`<button class="reg-pill" data-reg-view="${v.k}" style="${pill(R.view===v.k)}">${v.label}</button>`).join('');
+  const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
+    <select id="reg-renewal" style="${selStyle}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+  // Server-mode full-text search + semantic ask live in a secondary strip (the
+  // command bar owns the primary search); kept here so FTS wiring stays intact.
+  const ftsBlock=API_MODE()?`
+    <div style="position:relative;flex:1;min-width:200px;max-width:340px">
+      <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
+      <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Full-text: names, parties &amp; clauses…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
+      <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
+    </div>
+    <button id="reg-ask" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${icon('sparkle','w-3.5 h-3.5')} Ask your portfolio</button>`:'';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter h-full flex flex-col">
-    <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
-      <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1240px] mx-auto w-full">
-        <div>
-          <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Contract Register</h1>
-          <p class="text-[13px] text-ink/70 mt-0.5"><span id="reg-count" class="tnum font-600 text-ink/70">${cs.length.toLocaleString('en-KE')}</span> of <span class="tnum">${Number(countAll).toLocaleString('en-KE')}</span> contracts · filter, sort and act in bulk</p>
-        </div>
-        <button id="reg-ai" class="hidden md:flex items-center gap-2 rounded-xl bg-white elev-1 px-3.5 py-2.5 text-sm text-ink/70 w-64 hover:elev-2 lift text-left">
-          ${icon('sparkle','w-4 h-4 text-gold-500')}<span class="flex-1 truncate">Ask AI about the register…</span>
-        </button>
+  <div class="view-enter" style="padding:14px 16px 28px">
+    <style>
+      .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .reg-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-surface)}
+      .reg-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
+      .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+      .reg-pill:hover{border-color:var(--color-accent)}
+    </style>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <!-- filter row: stage pills · divider · stream pills · Sort -->
+      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+        ${stagePills}
+        <span style="width:1px;height:18px;background:var(--color-divider);margin:0 4px"></span>
+        ${typePills}
+        <span style="flex:1"></span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
+          <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
+        </label>
       </div>
-    </header>
+      <!-- secondary controls: saved views · renewal · full-text (server mode) -->
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+          <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-right:2px">Saved views</span>
+          ${viewPills}
+          ${R.view?`<button data-reg-view="" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;margin-left:2px">clear</button>`:''}
+        </div>
+        <span style="flex:1;min-width:8px"></span>
+        ${renewalSel}
+        ${ftsBlock}
+      </div>
 
-    <div class="flex-1 min-h-0 flex flex-col gap-4 px-8 pt-5 pb-7 max-w-[1240px] mx-auto w-full">
-      <div class="shrink-0 flex flex-col gap-3">
-        <div class="flex flex-wrap items-center gap-3">
-          <div class="relative flex-1 min-w-[220px] max-w-md">
-            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-300">${icon('search','w-4 h-4')}</span>
-            <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="${API_MODE()?'Search names, parties & full text…':'Filter by name, party or ID…'}" class="w-full rounded-xl bg-white elev-1 pl-10 pr-3 py-2.5 text-sm outline-none focus:elev-2 transition"/>
-            <div id="reg-fts" class="hidden absolute z-40 mt-1 w-full bg-white rounded-xl border border-line shadow-xl max-h-80 overflow-y-auto scroll-thin"></div>
-          </div>
-          ${API_MODE()?`<button id="reg-ask" class="flex items-center gap-1.5 rounded-xl bg-white elev-1 px-3 py-2.5 text-sm text-brand-700 font-600 hover:elev-2 transition">${icon('sparkle','w-4 h-4 text-gold-500')} Ask your portfolio</button>`:''}
-          <div class="flex flex-wrap items-center gap-2">${stageChips}</div>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-[11px] font-600 text-ink/50 uppercase tracking-wide mr-1">Saved views</span>
-          ${REG_VIEWS.map(v=>`<button data-reg-view="${v.k}" class="${chip(R.view===v.k)}">${v.label}</button>`).join('')}
-          ${R.view?`<button data-reg-view="" class="text-[11px] font-600 text-brand-600 hover:text-brand-800 ml-1">clear</button>`:''}
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex flex-wrap items-center gap-2">${typeChips}</div>
-          <div class="flex items-center gap-3">
-            <label class="flex items-center gap-2 text-[13px] text-ink/70">Renewal
-              <select id="reg-renewal" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">
-                ${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}
-              </select>
-            </label>
-            <label class="flex items-center gap-2 text-[13px] text-ink/70">Sort
-              <select id="reg-sort" class="rounded-xl bg-white elev-1 px-3 py-2 text-[13px] text-ink outline-none">${sortOpts}</select>
-            </label>
-          </div>
+      <div id="reg-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
+        <span id="reg-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="reg-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="reg-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">Clear</button>
         </div>
       </div>
 
-      <div id="reg-selbar" class="shrink-0 hidden items-center justify-between gap-3 rounded-xl bg-ink text-white px-4 py-2.5 elev-2">
-        <span id="reg-sel-count" class="text-[13px] font-600">0 selected</span>
-        <div class="flex items-center gap-2">
-          <button id="reg-export" class="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 text-xs font-600 transition">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="reg-clear" class="rounded-lg text-white/70 hover:text-white px-2 py-1.5 text-xs font-600 transition">Clear</button>
-        </div>
-      </div>
-
-      <div class="flex-1 min-h-0 bg-white rounded-2xl elev-2 overflow-hidden flex flex-col">
-        <div class="flex-1 min-h-0 overflow-auto scroll-thin">
-          <table class="w-full text-left">
-            <thead class="sticky top-0 z-10">
-              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 var(--sh1,rgba(60,40,10,.06)),0 1px 0 rgba(60,40,10,.05)">
-                <th class="pl-5 pr-1 py-3 w-8"><input id="reg-selall" type="checkbox" class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></th>
-                <th class="px-2 py-3 font-700">Contract</th>
-                <th class="px-2 py-3 font-700 hidden md:table-cell">Type</th>
-                <th class="px-2 py-3 font-700 hidden lg:table-cell">Owner</th>
-                <th class="px-2 py-3 font-700 text-right">Value</th>
-                <th class="px-2 py-3 font-700 hidden sm:table-cell">Updated</th>
-                <th class="px-2 pr-5 py-3 font-700 text-right">Stage</th>
+      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="overflow-x:auto">
+          <table class="reg-table">
+            <thead>
+              <tr>
+                <th style="width:26px;padding-left:12px"><input id="reg-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
+                <th>ID</th>
+                <th>Contract</th>
+                <th>Stream</th>
+                <th>Owner</th>
+                <th style="text-align:right">Value</th>
+                <th>Risk</th>
+                <th>Renewal</th>
+                <th>Stage</th>
+                <th>Approval</th>
+                <th style="text-align:right;padding-right:12px">Updated</th>
+                <th style="width:30px"></th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
-      </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--color-divider);font-size:11px;color:var(--color-neutral-600)">
+          <span>Showing <b id="reg-count" style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b> of ${Number(countAll).toLocaleString('en-KE')} contracts · working set aggregate <b id="reg-aggr" style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b></span>
+          <span>CSV export includes filters · server-side pagination active</span>
+        </div>
+      </section>
     </div>
   </div>`;
 
   wireRegRows();
   renderRegSelBar();
   const si=document.getElementById('reg-search');
-  si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
-  document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); });
-  document.getElementById('reg-sort').addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
-  document.getElementById('reg-renewal').addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  if(si){
+    si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
+    document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
+  }
+  // outside click closes the FTS dropdown and any open row ⋯ menu
+  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
+  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
+  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
   document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
   document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.shown=REG_PAGE; renderRegister(); }));
-  document.getElementById('reg-selall').addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
-  document.getElementById('reg-export').addEventListener('click',regExportSelectedCsv);
-  document.getElementById('reg-clear').addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
-  document.getElementById('reg-ai').addEventListener('click',()=>openAI());
+  document.getElementById('reg-selall')?.addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
+  document.getElementById('reg-export')?.addEventListener('click',regExportSelectedCsv);
+  document.getElementById('reg-clear')?.addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
   setActiveNav('register');
 }
 
@@ -401,10 +465,10 @@ function ftsSearch(q){
   ftsTimer=setTimeout(async()=>{
     try{
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
-      if(!r.hits||!r.hits.length){ box.innerHTML=`<div class="px-3 py-2.5 text-[12px] text-ink/55">No full-text matches.</div>`; box.classList.remove('hidden'); return; }
-      box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" class="w-full text-left px-3 py-2 hover:bg-brand-50 border-b border-hair last:border-0">
-        <div class="text-[12.5px] font-600 text-ink truncate">${(h.name||h.id).replace(/</g,'&lt;')} <span class="font-mono text-[10px] text-ink/45">${h.id}</span></div>
-        ${h.snippet?`<div class="text-[11px] text-ink/60 mt-0.5">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark class="bg-gold-500/25 rounded px-0.5">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div class="text-[11px] text-ink/50">${h.counterparty}</div>`:'')}
+      if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px 12px;font-size:12px;color:var(--color-neutral-600)">No full-text matches.</div>`; box.classList.remove('hidden'); return; }
+      box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
+        <div style="font-size:12.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(h.name||h.id).replace(/</g,'&lt;')} <span style="font-family:var(--font-heading);font-size:10px;color:var(--color-neutral-500)">${h.id}</span></div>
+        ${h.snippet?`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:#f1e6cd;border-radius:2px;padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:11px;color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');
       box.querySelectorAll('[data-fts-open]').forEach(b=>b.addEventListener('click',()=>{ box.classList.add('hidden'); openWorkspace(b.getAttribute('data-fts-open')); }));
@@ -443,4 +507,4 @@ async function openPortfolioAsk(){
   document.getElementById('pa-q').addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
 }
 
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,REG_TYPES,REG_VIEWS,ftsSearch,openPortfolioAsk,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,REG_TYPES,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,openPortfolioAsk,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows});
