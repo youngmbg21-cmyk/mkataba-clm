@@ -117,7 +117,7 @@ function renderTeam(){
 
         <section style="${cardStyle}">
           <h4 style="${h4Style}">AI engine</h4>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers natural-language filtering and clustering on the Portfolio Intelligence graph. Without a key, AI features fall back to the built-in interpreter.</p>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Portfolio Intelligence graph. Without a key, AI features fall back to the built-in interpreter.</p>
           <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">Checking…</div>
           ${isAdmin()?`
           <div style="display:flex;gap:8px;align-items:flex-end">
@@ -174,7 +174,7 @@ function renderTeam(){
             <p style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">Extract structured details (counterparty, dates, value, renewal terms, governing law) from uploaded contracts that don't have them yet. Each is presented for your review before saving — nothing is written automatically.</p>
             <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">Extract metadata for existing contracts</span></button>
           </div>`:`
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">The key is stored in this browser (local mode). AI features currently run on the built-in interpreter; run the HaTi server to route calls through Anthropic with this key. Model routing and usage limits are managed on the server.</div>`}`
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Local mode: the key is stored only in this browser, and HaTi Copilot calls Anthropic directly from this browser with it. Saving clears the input box for safety — the key is kept (see the status above). Run the HaTi server for team-shared keys, model routing and usage limits.</div>`}`
           :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the AI key.</p>`}
         </section>
 
@@ -297,13 +297,14 @@ function renderTeam(){
   if(!API_MODE() && isAdmin()){
     const st=document.getElementById('ai-cfg-status');
     const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
-      st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key stored in this browser`
-                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — AI features use the built-in interpreter.`; };
+      st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
+                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — Copilot and AI features use the built-in interpreter.`; };
     refresh();
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
       const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
       if(!key){ toast('Enter a key to save','err'); return; }
-      lsSet('hati.v1.aikey', key); inp.value=''; toast('AI engine key saved'); refresh();
+      lsSet('hati.v1.aikey', key); inp.value='';
+      toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',()=>{
       if(!confirm('Remove the stored AI key?')) return;
