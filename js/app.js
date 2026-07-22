@@ -254,7 +254,7 @@ function renderContextPanel(){
         ${recent}
       </div>
       <div style="display:flex;gap:6px;margin-top:14px;">
-        <button id="panel-open-ws" class="ui-btn ui-btn-primary blueprint" style="flex:1;padding:5px 11px;font-size:12px;"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>Open workspace</button>
+        <button id="panel-open-ws" class="ui-btn ui-btn-primary" style="flex:1;padding:5px 11px;font-size:12px;">Open workspace</button>
         <button id="panel-scan" class="ui-btn" style="padding:5px 11px;font-size:12px;">Run AI scan</button>
       </div>
     </div>`;

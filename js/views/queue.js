@@ -55,26 +55,26 @@ function renderPipeline(){
   const groups=PIPE_COLS.map(col=>{ const list=cs.filter(c=>c.status===col.k); return {col, list, val:valOf(list)}; });
 
   const columnsHtml=groups.map(g=>`
-    <div style="min-width:0">
-      <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0">
+    <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
+      <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
         <span style="font-family:var(--font-mono);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
         <span style="font-size:10.5px;border:1px solid var(--color-divider);padding:0 6px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
         <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtKESshort(g.val)}</span>
       </div>
-      <div data-drop="${g.col.k}" class="pipe-col" style="background:rgba(29,31,32,.03);border:1px solid var(--color-divider);padding:8px;display:flex;flex-direction:column;gap:8px;min-height:200px">
+      <div data-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:rgba(29,31,32,.03);border:1px solid var(--color-divider);border-radius:4px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${pipeColumnInner(g.col, g.list)}
       </div>
     </div>`).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
     <style>
       .q-card{transition:border-color .12s ease,box-shadow .12s ease}
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
-    <div style="display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px;align-items:start">${columnsHtml}</div>
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px">${columnsHtml}</div>
   </div>`;
 
   wirePipeline();

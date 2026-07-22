@@ -552,11 +552,11 @@ function renderWorkspace(){
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   content.innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 300px;gap:14px">
 
-      <!-- ============ LEFT: document card ============ -->
-      <section style="${CARD};overflow:hidden">
+      <!-- ============ LEFT: document card (own scroll) ============ -->
+      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document toolbar -->
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--color-divider)">
           <button id="ws-back" title="Back to register" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
@@ -571,10 +571,10 @@ function renderWorkspace(){
           <button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>`:''}
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
-          <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary blueprint" style="font-size:12px;padding:5px 12px"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
+          <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
         </div>
-        <!-- document body -->
-        <div style="padding:20px 28px;background:var(--color-bg)">
+        <!-- document body (scrolls within the left pane) -->
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 28px;background:var(--color-bg)">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
@@ -586,8 +586,8 @@ function renderWorkspace(){
         </div>
       </section>
 
-      <!-- ============ RIGHT: context stack ============ -->
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <!-- ============ RIGHT: context stack (own scroll, pinned sign) ============ -->
+      <div class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
 
         <!-- Key terms -->
         <section style="${CARD};padding:12px">
@@ -648,8 +648,8 @@ function renderWorkspace(){
           <div style="margin-top:8px;font-size:10px;color:var(--color-neutral-600);line-height:1.4;display:flex;align-items:flex-start;gap:4px">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
         </section>
 
-        <!-- Sign action (renderSignButton) -->
-        <section style="${CARD};padding:12px"><div id="sign-wrap"></div></section>
+        <!-- Sign action (renderSignButton) — pinned to the bottom of the panel -->
+        <section style="${CARD};padding:12px;position:sticky;bottom:0;z-index:1;box-shadow:var(--shadow-md)"><div id="sign-wrap"></div></section>
 
       </div>
     </div>

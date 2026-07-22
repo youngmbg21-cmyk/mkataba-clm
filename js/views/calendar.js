@@ -4,10 +4,12 @@ let calState = { ym:null };   // {y, m} current month; null -> this month resolv
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
 const CAL_EVENT = {
-  expiry:     { dot:'#b0453c', fg:'#8f322b', label:'Expiry' },
-  renewal:    { dot:'#b8862b', fg:'#7d5a14', label:'Renewal decision' },
-  obligation: { dot:'#2e8763', fg:'#1e6b4d', label:'Obligation' },
+  expiry:     { dot:'#b0453c', fg:'#8f322b', label:'Expiry',           tint:'rgba(176,69,60,.13)' },
+  renewal:    { dot:'#b8862b', fg:'#7d5a14', label:'Renewal decision', tint:'rgba(184,134,43,.15)' },
+  obligation: { dot:'#2e8763', fg:'#1e6b4d', label:'Obligation',       tint:'rgba(46,135,99,.13)' },
 };
+// priority when a day carries more than one kind of event (drives its tint)
+const CAL_PRIORITY = ['expiry','renewal','obligation'];
 /* Gather every lifecycle event as {date, type, cid, cname, note}. */
 function calendarEvents(){
   const out=[];
@@ -40,16 +42,22 @@ function renderCalendar(){
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const today=iso===todayIso;
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
-    const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;`+
-      `background:${today?'rgba(89,128,166,.1)':'var(--color-bg)'};border:1px solid ${today?'var(--color-accent)':'var(--color-divider)'}`;
-    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':'var(--color-neutral-500)'};font-weight:${today?700:400}`;
+    // dominant event kind drives the cell tint + border so days with an
+    // expiry / renewal / obligation read as coloured boxes at a glance
+    const kind=CAL_PRIORITY.find(t=>list.some(e=>e.type===t&&!e.done)) || CAL_PRIORITY.find(t=>list.some(e=>e.type===t));
+    const ev=kind?CAL_EVENT[kind]:null;
+    const bg=today?'rgba(89,128,166,.1)':(ev?ev.tint:'var(--color-bg)');
+    const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
+    const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;`+
+      `background:${bg};border:1px solid ${bd}`;
+    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
       return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
     }).join('');
     const moreLine=more>0?`<span style="font-size:9px;color:var(--color-neutral-500);padding-left:2px">+${more} more</span>`:'';
-    return `<div style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
+    return `<div class="cal-day" style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
   };
   const cells=[]; for(let i=0;i<42;i++) cells.push(cell(i-start+1));
 
@@ -76,6 +84,10 @@ function renderCalendar(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
+    <style>
+      .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
+      .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}
+    </style>
     <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
       <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
