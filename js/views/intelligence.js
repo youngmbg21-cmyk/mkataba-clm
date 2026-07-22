@@ -472,20 +472,19 @@ function renderIntel(){
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
-    <header class="sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair shrink-0">
-      <div class="px-[26px] py-[13px] flex items-center gap-4">
-        <div class="shrink-0 flex-1">
-          <h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Portfolio Intelligence</h1>
-          <p class="text-xs text-ink/70 font-mono">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the AI panel to filter, analyse or regroup</p>
-        </div>
-        <label class="shrink-0 flex items-center gap-2 text-xs text-ink/70">Group
-          <select id="ig-group" class="rounded-lg border border-inputln bg-white px-2.5 py-2 text-xs text-ink outline-none focus:border-brand-500">
+    <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
+      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to filter, analyse or regroup</span>
+      <span style="flex:1"></span>
+      <label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+        <span style="position:relative;display:inline-flex;align-items:center">
+          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:4px;cursor:pointer;outline:none">
             ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
           </select>
-        </label>
-      </div>
-      <div id="ig-note" class="px-[26px] pb-2 text-[11.5px]"></div>
+          <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:9px">▼</span>
+        </span>
+      </label>
     </header>
+    <div id="ig-note" style="flex:none;padding:0 16px 4px;font-size:11.5px"></div>
     <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
       <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
         <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>

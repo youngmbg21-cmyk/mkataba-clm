@@ -90,7 +90,7 @@ function renderReports(){
   <div class="view-enter" style="padding:14px 16px 28px">
     <div style="display:flex;flex-direction:column;gap:14px">
       <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px;display:grid;grid-template-columns:repeat(4,1fr)">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        
         ${stats}
       </section>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">

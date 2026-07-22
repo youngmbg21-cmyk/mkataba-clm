@@ -71,7 +71,7 @@ function renderFolder(){
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        
         <div style="overflow-x:auto">
           <table class="fold-table">
             <thead>
@@ -405,7 +405,7 @@ function renderRegister(){
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        
         <div style="overflow-x:auto">
           <table class="reg-table">
             <thead>

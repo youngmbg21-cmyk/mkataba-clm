@@ -83,14 +83,14 @@ function renderCalendar(){
   const btnBase='width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:13px;color:var(--color-neutral-700);line-height:1';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
     <style>
       .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
       .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}
     </style>
-    <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:stretch">
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex:none">
           <h4 style="margin:0;font-family:var(--font-heading);font-size:16px;color:var(--color-text)">${monthName}</h4>
           <div style="display:flex;gap:4px">
             <button id="cal-prev" style="${btnBase}">‹</button>
@@ -98,17 +98,17 @@ function renderCalendar(){
             <button id="cal-today" style="height:26px;padding:0 9px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;color:var(--color-neutral-700)">Today</button>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px;flex:none">
           ${weekdays}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells.join('')}</div>
-        <div style="display:flex;gap:14px;margin-top:9px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-700)">
+        <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:3px">${cells.join('')}</div>
+        <div style="display:flex;gap:14px;margin-top:9px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-700);flex:none">
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:5px">${_dot(v.dot,7)}${v.label}</span>`).join('')}
         </div>
       </section>
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px">
-        <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text)">Next 60 days</h4>
-        ${agendaRows}
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0">
+        <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text);flex:none">Next 60 days</h4>
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
       </section>
     </div>
   </div>`;

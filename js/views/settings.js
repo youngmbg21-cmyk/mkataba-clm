@@ -60,7 +60,7 @@ function renderTeam(){
 
       <!-- ============ LEFT · MEMBERS (blueprint) ============ -->
       <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        
         <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
           <h4 style="margin:0;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">Members · ${users.length}</h4>
           ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-mono);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">+ Invite member</button>`:''}
@@ -115,7 +115,6 @@ function renderTeam(){
           <p style="font-size:10.5px;color:var(--color-neutral-600);margin:8px 0 0">Delivered by email via Resend.</p>
         </section>
 
-        ${API_MODE()?`
         <section style="${cardStyle}">
           <h4 style="${h4Style}">AI engine</h4>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers natural-language filtering and clustering on the Portfolio Intelligence graph. Without a key, AI features fall back to the built-in interpreter.</p>
@@ -127,7 +126,7 @@ function renderTeam(){
             <button id="ai-key-save" style="${primaryBtn}">Save key</button>
           </div>
           <button id="ai-key-clear" style="margin-top:6px;font-size:11px;font-weight:600;color:#b0453c;background:none;border:0;cursor:pointer;padding:0">Remove key</button>
-
+          ${API_MODE()?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="font-size:12px;font-weight:600;color:var(--color-text)">Model routing</div>
             <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px">Leave an override blank to use the recommended default.</p>
@@ -174,9 +173,10 @@ function renderTeam(){
             <div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:2px">File existing contracts</div>
             <p style="font-size:10.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">Extract structured details (counterparty, dates, value, renewal terms, governing law) from uploaded contracts that don't have them yet. Each is presented for your review before saving — nothing is written automatically.</p>
             <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">Extract metadata for existing contracts</span></button>
-          </div>`
+          </div>`:`
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">The key is stored in this browser (local mode). AI features currently run on the built-in interpreter; run the HaTi server to route calls through Anthropic with this key. Model routing and usage limits are managed on the server.</div>`}`
           :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the AI key.</p>`}
-        </section>`:''}
+        </section>
       </div>
     </div>
 
@@ -302,6 +302,24 @@ function renderTeam(){
       for(const [k,v] of Object.entries(body)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ toast(`"${k}" must be a whole number`,'err'); return; }
       try{ await api('ai/config','PUT',body); toast('AI limits saved'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
+    });
+  }
+  // local mode: no server to hold the key — persist it in this browser so the
+  // field is present and remembered; AI still uses the built-in interpreter.
+  if(!API_MODE() && isAdmin()){
+    const st=document.getElementById('ai-cfg-status');
+    const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
+      st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key stored in this browser`
+                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — AI features use the built-in interpreter.`; };
+    refresh();
+    document.getElementById('ai-key-save')?.addEventListener('click',()=>{
+      const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
+      if(!key){ toast('Enter a key to save','err'); return; }
+      lsSet('hati.v1.aikey', key); inp.value=''; toast('AI engine key saved'); refresh();
+    });
+    document.getElementById('ai-key-clear')?.addEventListener('click',()=>{
+      if(!confirm('Remove the stored AI key?')) return;
+      localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh();
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());

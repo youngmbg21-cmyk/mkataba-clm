@@ -122,7 +122,7 @@ function renderDashboard(){
 
     <!-- KPI strip -->
     <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px;display:grid;grid-template-columns:repeat(6,1fr);">
-      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      
       ${kpiHtml}
     </section>
 

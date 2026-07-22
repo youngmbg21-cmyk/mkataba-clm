@@ -119,8 +119,8 @@ function createFromTemplate(tid){
 function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
   const creatable=(window.myCreatableTemplates?myCreatableTemplates():Object.values(TEMPLATES));
-  const item=(id,ic,bg,fg,title,sub,extra='')=>`
-    <button ${extra} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:4px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(89,128,166,.1)'" onmouseout="this.style.background='none'">
+  const item=(ic,bg,fg,title,sub,attrs='')=>`
+    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:4px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(89,128,166,.1)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:4px;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;

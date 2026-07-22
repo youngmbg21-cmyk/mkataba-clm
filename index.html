@@ -132,6 +132,10 @@
 
   /* slight rounding on boxes/controls per stakeholder request */
   .bp-round{border-radius:6px;}
+  /* the Doc right panel is a scrolling flex column; its cards carry
+     overflow:hidden (→ flex min-height:0), so pin flex-shrink to stop them
+     collapsing to zero height when the content is taller than the panel */
+  #doc-right>*{flex-shrink:0;}
 
   /* status badge */
   .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:3px;white-space:nowrap;font-family:var(--font-body);}
