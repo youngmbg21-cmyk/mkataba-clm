@@ -41,11 +41,13 @@ function computeReports(){
 }
 function lastActivity(c){ const a=c.audit||[]; return a.length?Date.parse(a[a.length-1].at):Date.now(); }
 
-function bar(label, value, max, fmt, color){
-  const pct=max>0?Math.round(value/max*100):0;
-  return `<div class="mb-2">
-    <div class="flex items-center justify-between text-[11.5px] mb-0.5"><span class="text-ink/70 truncate pr-2">${label}</span><span class="font-mono font-600 text-ink tnum">${fmt(value)}</span></div>
-    <div class="h-2 rounded-full bg-slate-100 overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background:${color||'#086B54'}"></div></div>
+const _esc = s => String(s==null?'':s).replace(/</g,'&lt;');
+/* E7: one labelled horizontal bar — label + tabular value over a 7px track. */
+function bar(label, value, max, valStr, color){
+  const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
+  return `<div style="margin-bottom:7px">
+    <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:500;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
+    <div style="height:7px;background:var(--color-neutral-200)"><div style="width:${pct}%;height:100%;background:${color}"></div></div>
   </div>`;
 }
 function renderReports(){
@@ -56,35 +58,49 @@ function renderReports(){
   const pipeMonths=Object.keys(r.pipeline).sort();
   const maxPipe=Math.max(1,...Object.values(r.pipeline));
   const pipeTotal=Object.values(r.pipeline).reduce((a,b)=>a+b,0);
-  const card=(title,body)=>`<div class="bg-white rounded-2xl elev-2 p-5"><h2 class="font-display font-600 text-ink mb-3">${title}</h2>${body}</div>`;
-  const stat=(label,val,sub)=>`<div class="bg-white rounded-2xl elev-2 p-4"><div class="text-[10px] font-mono uppercase tracking-wide text-ink/45 mb-1">${label}</div><div class="font-display font-700 text-[22px] text-ink tnum">${val}</div>${sub?`<div class="text-[11px] text-ink/55 mt-0.5">${sub}</div>`:''}</div>`;
+  const roundsEntries=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
+  const maxRounds=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
+  const empty=t=>`<p style="font-size:12px;color:var(--color-neutral-600)">${t}</p>`;
+
+  // TOP — blueprint stat strip: 4 equal cells, hairline left-borders, corner marks
+  const stat=(label,val,sub,i)=>`
+    <div style="display:flex;flex-direction:column;gap:3px;padding:12px 14px;${i?'border-left:1px solid var(--color-divider)':''}">
+      <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</span>
+      <span style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums">${val}</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600)">${sub}</span>
+    </div>`;
+  const stats=[
+    stat('Avg cycle · draft→signed', r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', r.cycleN+' signed sampled', 0),
+    stat('Avg age · in review', Math.round(r.stageAge['Under Review']||0)+'d', 'time on counterparty', 1),
+    stat('Avg age · drafting', Math.round(r.stageAge['Draft']||0)+'d', 'time internal', 1),
+    stat('Renewal pipeline · 12mo', kes(pipeTotal), pipeMonths.length+' months with expiries', 1),
+  ].join('');
+
+  // BELOW — 2×2 chart cards
+  const card=(title,body)=>`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px">
+      <h4 style="font-size:14px;margin:0 0 10px">${title}</h4>${body}
+    </section>`;
+  const streamCard=card('Portfolio value by value stream', Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bar(k,v,maxFolder,kes(v),'var(--color-accent)')).join('')||empty('No data.'));
+  const partyCard=card('Top counterparties by value', r.topParty.map(([k,v])=>bar(k,v,maxParty,kes(v),'var(--color-accent-700)')).join('')||empty('No data.'));
+  const pipeCard=card('Renewal pipeline · next 12 months', pipeMonths.length?pipeMonths.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],maxPipe,kes(r.pipeline[m]),'#2e8763')).join(''):empty('Nothing expiring in the next 12 months.'));
+  const roundsCard=card('Negotiation rounds by type (avg)', roundsEntries.length?roundsEntries.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, maxRounds, (v.rounds/v.n).toFixed(1), '#b8862b')).join(''):empty('No negotiation data.'));
+
   document.getElementById('content').innerHTML=`
-  <div class="view-enter h-full flex flex-col">
-    <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
-      <div class="px-8 py-4 max-w-[1240px] mx-auto w-full flex items-center justify-between gap-4">
-        <div><h1 class="font-display font-700 text-[26px] tracking-tight text-ink">Reports</h1>
-          <p class="text-[13px] text-ink/70 mt-0.5">Cycle time, bottlenecks, portfolio value and the renewal pipeline.</p></div>
-        <button id="rep-export" class="flex items-center gap-1.5 rounded-xl bg-white elev-1 px-3.5 py-2.5 text-sm text-brand-700 font-600 hover:elev-2 transition">${icon('download','w-4 h-4')} Export CSV</button>
-      </div>
-    </header>
-    <div class="flex-1 min-h-0 overflow-auto scroll-thin px-8 py-6 max-w-[1240px] mx-auto w-full space-y-5">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        ${stat('Avg cycle · draft→signed', r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', r.cycleN+' signed')}
-        ${stat('Avg age · in review', Math.round(r.stageAge['Under Review']||0)+'d', 'time on counterparty')}
-        ${stat('Avg age · drafting', Math.round(r.stageAge['Draft']||0)+'d', 'time internal')}
-        ${stat('Renewal pipeline · 12mo', kes(pipeTotal), pipeMonths.length+' months with expiries')}
-      </div>
-      <div class="grid lg:grid-cols-2 gap-5">
-        ${card('Portfolio value by value stream', Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bar(k,v,maxFolder,kes)).join('')||'<p class="text-[12px] text-ink/55">No data.</p>')}
-        ${card('Top counterparties by value', r.topParty.map(([k,v])=>bar(k,v,maxParty,kes,'#C79A3E')).join('')||'<p class="text-[12px] text-ink/55">No data.</p>')}
-      </div>
-      <div class="grid lg:grid-cols-2 gap-5">
-        ${card('Renewal pipeline · next 12 months', pipeMonths.length?pipeMonths.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],maxPipe,kes,'#0B7A5F')).join(''):'<p class="text-[12px] text-ink/55">Nothing expiring in the next 12 months.</p>')}
-        ${card('Negotiation rounds by type', Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8).map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n)), n=>n.toFixed(1)+' avg','#8A5E1B')).join('')||'<p class="text-[12px] text-ink/55">No negotiation data.</p>')}
+  <div class="view-enter" style="padding:14px 16px 28px">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px;display:grid;grid-template-columns:repeat(4,1fr)">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        ${stats}
+      </section>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${streamCard}
+        ${partyCard}
+        ${pipeCard}
+        ${roundsCard}
       </div>
     </div>
   </div>`;
-  document.getElementById('rep-export').addEventListener('click',()=>exportReportsCsv(r));
   setActiveNav('reports');
 }
 function exportReportsCsv(r){

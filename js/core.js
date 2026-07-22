@@ -129,6 +129,21 @@ function contractRisk(c){
 // small risk chip: "R nn" in the band colour
 const riskChip = (r,withR=true) => { const p=riskPal(r); return `<span class="badge tnum" style="background:${p.bg};color:${p.fg}">${withR?'R ':''}${r}</span>`; };
 
+// short value-stream label for dense grids (folder → single word)
+const STREAM_SHORT = { proc:'Procurement', mfg:'Manufacturing', dist:'Distribution', sales:'Sales', mktg:'Marketing', corp:'Corporate' };
+const streamLabel = c => STREAM_SHORT[c && c.folder] || (FOLDERS[c && c.folder]?.name) || '—';
+// display owner initials (the app has no per-contract owner field; use the
+// signed-in user, matching the existing register behaviour)
+const ownerInitials = () => { const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); };
+// short approval label derived from the real approval gate
+function approvalLabel(c){
+  if(c && c.approval) return 'Approved';
+  const st=approvalState(c);
+  if(st.required) return 'Pending '+(getApprovalCfg().approverRole==='legal'?'Legal':'CFO');
+  if(c && c.status==='Declined') return 'Rejected';
+  return '—';
+}
+
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
   const bg = kind==='ok'?'bg-brand-900 border-brand-700':'bg-rose-900 border-rose-700';
@@ -145,7 +160,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,RISK_PAL,UPLOAD_MAX,cIcon,cKind,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,riskBand,riskPal,riskChip,seedComments,sha256,state,statusChip,statusLabel,toast,uid});
+Object.assign(window,{STATUS_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,approvalLabel,cIcon,cKind,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
