@@ -43,10 +43,11 @@ function wordDiff(aStr, bStr){
 }
 function diffHtml(aStr, bStr){
   const esc=s=>s.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  // clear diff convention: additions emerald, deletions ruby (struck through)
   return wordDiff(aStr,bStr).map(p=>
     p.t==='eq' ? esc(p.text)
-    : p.t==='add' ? `<ins class="bg-brand-50 text-brand-700 no-underline rounded px-0.5">${esc(p.text)}</ins>`
-    : `<del class="bg-rose-50 text-rose-600 rounded px-0.5">${esc(p.text)}</del>`).join('');
+    : p.t==='add' ? `<ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 1px">${esc(p.text)}</ins>`
+    : `<del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 1px">${esc(p.text)}</del>`).join('');
 }
 function diffStats(aStr,bStr){ let add=0,del=0; wordDiff(aStr,bStr).forEach(p=>{ const w=p.text.trim()?p.text.trim().split(/\s+/).length:0; if(p.t==='add') add+=w; else if(p.t==='del') del+=w; }); return {add,del}; }
 
@@ -55,62 +56,104 @@ function renderVersionsSection(c){
   const host=document.getElementById('versions-section'); if(!host) return;
   const vs=c.versions||[];
   const canSnap=canEdit()&&c.status!=='Signed';
+  const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
   host.innerHTML=`
-    <div class="px-5 py-4">
-      <div class="flex items-center gap-2 mb-3">
-        <span class="text-brand-500">${icon('history')}</span>
-        <h3 class="text-sm font-display font-600 text-ink">Versions</h3>
-        <span class="ml-auto text-[10px] font-mono text-ink/60">${vs.length} version${vs.length===1?'':'s'}</span>
+    <div style="padding:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
+        <h6 style="${H6};flex:1">Versions &amp; changes</h6>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--color-neutral-500)">${vs.length} version${vs.length===1?'':'s'}</span>
       </div>
-      ${vs.length?`<div class="space-y-1.5">${vs.slice().reverse().map(v=>`
-        <div class="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 text-[11px]">
-          <span class="font-mono font-600 text-brand-700">v${v.n}</span>
-          <span class="text-ink/75 truncate">${(v.label||'').replace(/</g,'&lt;')}</span>
-          <span class="ml-auto text-ink/50 font-mono shrink-0">${fmtDT(v.at)}</span>
-          ${v.n>1?`<button data-ver-diff="${v.n}" class="shrink-0 text-brand-600 hover:text-brand-800 font-600" title="Compare with previous">diff</button>`:''}
+      ${vs.length?`<div style="display:flex;flex-direction:column;gap:5px">${vs.slice().reverse().map(v=>`
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:6px 9px;font-size:11px">
+          <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)">v${v.n}</span>
+          <span style="color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${(v.label||'').replace(/</g,'&lt;')}</span>
+          <span style="margin-left:auto;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${fmtDT(v.at)}</span>
+          ${v.n>1?`<button data-ver-diff="${v.n}" style="flex:none;border:0;background:none;cursor:pointer;color:var(--color-accent);font:inherit;font-size:11px;font-weight:600;padding:0" title="Compare with previous version">diff</button>`:''}
         </div>`).join('')}</div>`
-      :`<p class="text-[11px] text-ink/60">No versions captured yet.</p>`}
-      ${canSnap?`<button id="ver-snap" class="mt-2.5 flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Snapshot current version</button>`:''}
-      ${vs.length>1?`<button id="ver-compare" class="mt-2.5 ml-2 text-[11px] text-brand-600 hover:text-brand-800 font-600">Compare any two…</button>`:''}
+      :`<p style="font-size:11px;color:var(--color-neutral-600);line-height:1.5;margin:0">No versions captured yet. Snapshots are taken automatically when a counterparty redline is accepted and at signing — or capture one now to start tracking changes.</p>`}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+        <button id="ver-compare" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 11px">${icon('history','w-3.5 h-3.5')} Compare versions</button>
+        ${canSnap?`<button id="ver-snap" class="ui-btn" style="font-size:11.5px;padding:5px 11px">${icon('plus','w-3 h-3')} Snapshot now</button>`:''}
+      </div>
     </div>`;
   host.querySelectorAll('[data-ver-diff]').forEach(b=>b.addEventListener('click',()=>{ const n=Number(b.getAttribute('data-ver-diff'));
     const cur=vs.find(v=>v.n===n), prev=vs.find(v=>v.n===n-1); if(cur&&prev) openDiffModal(prev.text,cur.text,`v${prev.n}`,`v${cur.n}`); }));
-  document.getElementById('ver-snap')?.addEventListener('click',()=>{ const v=captureVersion(c,'Manual snapshot'); if(v){ persist(c); renderVersionsSection(c); toast('Captured v'+v.n); } else toast('No changes since the last version'); });
+  document.getElementById('ver-snap')?.addEventListener('click',()=>{ const v=captureVersion(c,'Manual snapshot'); if(v&&v.n>(vs.length)){ persist(c); renderVersionsSection(c); toast('Captured v'+v.n); } else toast('No changes since the last version'); });
   document.getElementById('ver-compare')?.addEventListener('click',()=>openCompareModal(c));
 }
+
+const _diffLegend = `<span style="display:inline-flex;align-items:center;gap:8px"><ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 4px">added</ins><del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 4px">removed</del></span>`;
+const _diffBox = (a,b)=>`<div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-surface);padding:14px 16px;font-size:12.5px;line-height:1.85;color:var(--color-neutral-800);max-height:56vh;overflow-y:auto;white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a,b)}</div>`;
+const _statLine = (st)=>`<span style="font-weight:600;color:#1e6b4d">+${st.add}</span> added · <span style="font-weight:600;color:#8f322b">−${st.del}</span> removed`;
 
 function openDiffModal(aText, bText, labelA, labelB){
   const st=diffStats(aText,bText);
   openModal(`
-    <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('history','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">Compare ${labelA} → ${labelB}</h3></div>
-      <p class="text-xs text-ink/60 mb-3"><span class="text-brand-700 font-600">+${st.add}</span> added · <span class="text-rose-600 font-600">−${st.del}</span> removed · <ins class="bg-brand-50 text-brand-700 no-underline rounded px-0.5">additions</ins> <del class="bg-rose-50 text-rose-600 rounded px-0.5">deletions</del></p>
-      <div class="rounded-xl border border-line bg-white p-4 text-[12.5px] leading-relaxed text-ink/85 max-h-[55vh] overflow-y-auto scroll-thin whitespace-pre-wrap">${diffHtml(aText,bText)}</div>
-      <div class="flex justify-end mt-4"><button id="dm-close" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Close</button></div>
-    </div>`);
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Compare ${labelA} → ${labelB}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${_statLine(st)} · ${_diffLegend}</p>
+      ${_diffBox(aText,bText)}
+      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="dm-close" class="ui-btn ui-btn-primary">Close</button></div>
+    </div>`, {maxWidth:'860px'});
   document.getElementById('dm-close').addEventListener('click',closeModal);
 }
+
+// Compare any two comparables. Comparables = every captured version PLUS the
+// live document text (so a diff is always available once the doc has changed),
+// which fixes the old silent no-op when fewer than two versions existed.
 function openCompareModal(c){
-  const vs=c.versions||[]; if(vs.length<2) return;
-  const opts=vs.map(v=>`<option value="${v.n}">v${v.n} · ${(v.label||'').replace(/"/g,'')}</option>`).join('');
+  const vs=c.versions||[];
+  const live=docPlainText(c);
+  const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text}));
+  const lastText=vs.length?vs[vs.length-1].text:null;
+  if(!vs.length || live!==lastText) items.push({label:'Current (live document)', short:'Current', text:live});
+  const canSnap=canEdit()&&c.status!=='Signed';
+
+  if(items.length<2){
+    openModal(`
+      <div style="padding:20px 22px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Compare versions</h3></div>
+        <p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.6;margin:0">There's only one version of this contract so far, so there's nothing to compare yet. New versions are captured automatically when a <b>counterparty redline is accepted</b> and at <b>signing</b>. ${canSnap?'Capture a snapshot now, make your edits, then compare to see exactly what changed.':''}</p>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+          ${canSnap?`<button id="cmp-snap" class="ui-btn ui-btn-primary">${icon('plus','w-3 h-3')} Snapshot current version</button>`:''}
+          <button id="cmp-close" class="ui-btn">Close</button>
+        </div>
+      </div>`);
+    document.getElementById('cmp-close').addEventListener('click',closeModal);
+    document.getElementById('cmp-snap')?.addEventListener('click',()=>{ const v=captureVersion(c,'Manual snapshot'); persist(c); closeModal(); renderVersionsSection(c); toast(v?('Captured v'+v.n):'Snapshot taken'); });
+    return;
+  }
+
+  const opts=items.map((it,i)=>`<option value="${i}">${it.label}</option>`).join('');
+  const selStyle='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:6px 8px;border-radius:4px;color:inherit;min-width:0;flex:1';
   openModal(`
-    <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink mb-3">Compare versions</h3>
-      <div class="flex items-center gap-2 mb-4 text-sm">
-        <select id="cmp-a" class="rounded-lg border border-inputln bg-white px-2.5 py-2">${opts}</select>
-        <span class="text-ink/50">→</span>
-        <select id="cmp-b" class="rounded-lg border border-inputln bg-white px-2.5 py-2">${opts}</select>
-        <button id="cmp-go" class="ml-auto rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Compare</button>
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Compare versions</h3></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <select id="cmp-a" style="${selStyle}">${opts}</select>
+        <span style="color:var(--color-neutral-500);flex:none">→</span>
+        <select id="cmp-b" style="${selStyle}">${opts}</select>
+        <button id="cmp-go" class="ui-btn ui-btn-primary" style="flex:none">Compare</button>
       </div>
-      <div id="cmp-out" class="text-[11px] text-ink/50">Pick two versions and compare.</div>
-    </div>`);
-  document.getElementById('cmp-a').value=String(Math.max(1,vs.length-1));
-  document.getElementById('cmp-b').value=String(vs.length);
-  document.getElementById('cmp-go').addEventListener('click',()=>{
-    const a=vs.find(v=>v.n===Number(document.getElementById('cmp-a').value)), b=vs.find(v=>v.n===Number(document.getElementById('cmp-b').value));
-    if(a&&b) openDiffModal(a.text,b.text,`v${a.n}`,`v${b.n}`);
-  });
+      <div id="cmp-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin-bottom:10px"></div>
+      <div id="cmp-out" style="font-size:12px;color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</div>
+    </div>`, {maxWidth:'860px'});
+  document.getElementById('cmp-a').value=String(items.length-2);
+  document.getElementById('cmp-b').value=String(items.length-1);
+  const run=()=>{
+    const a=items[Number(document.getElementById('cmp-a').value)], b=items[Number(document.getElementById('cmp-b').value)];
+    if(!a||!b) return;
+    if(a.text===b.text){ document.getElementById('cmp-legend').innerHTML=''; document.getElementById('cmp-out').innerHTML=`<div style="font-size:12px;color:var(--color-neutral-500)">These two versions are identical — no changes between <b>${a.short}</b> and <b>${b.short}</b>.</div>`; return; }
+    const st=diffStats(a.text,b.text);
+    document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · ${_diffLegend}`;
+    document.getElementById('cmp-out').innerHTML=_diffBox(a.text,b.text);
+  };
+  document.getElementById('cmp-go').addEventListener('click',run);
+  run();   // show the default (previous → latest) comparison immediately
 }
 
 /* ---- owner review of a counterparty's proposed edit (E2-T4) ---- */
@@ -119,18 +162,18 @@ function reviewProposedRound(c, n){
   const base=r.baseText || (c.versions&&c.versions.length?c.versions[c.versions.length-1].text:docPlainText(c));
   const st=diffStats(base, r.proposedText);
   openModal(`
-    <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('history','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">Proposed edits — round ${n}</h3></div>
-      <p class="text-xs text-ink/60 mb-1">by ${(r.by||'counterparty')} · ${fmtDT(r.at)}</p>
-      <p class="text-xs text-ink/60 mb-3"><span class="text-brand-700 font-600">+${st.add}</span> added · <span class="text-rose-600 font-600">−${st.del}</span> removed</p>
-      ${r.comment?`<div class="rounded-lg bg-canvas border border-line px-3 py-2 text-[12px] text-ink/75 mb-3">“${(r.comment||'').replace(/</g,'&lt;')}”</div>`:''}
-      <div class="rounded-xl border border-line bg-white p-4 text-[12.5px] leading-relaxed text-ink/85 max-h-[48vh] overflow-y-auto scroll-thin whitespace-pre-wrap">${diffHtml(base, r.proposedText)}</div>
-      <div class="flex justify-end gap-2 mt-4">
-        <button id="pr-reject" class="rounded-lg border border-rose-200 text-rose-600 px-4 py-2 text-sm font-600 hover:bg-rose-50">Reject</button>
-        <button id="pr-accept" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Accept — adopt as new version</button>
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:#b8862b">${icon('history','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Proposed edits — round ${n}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 2px">by ${(r.by||'counterparty')} · ${fmtDT(r.at)}</p>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${_statLine(st)} · ${_diffLegend}</p>
+      ${r.comment?`<div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--color-neutral-700);margin-bottom:12px">“${(r.comment||'').replace(/</g,'&lt;')}”</div>`:''}
+      ${_diffBox(base, r.proposedText)}
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+        <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject</button>
+        <button id="pr-accept" class="ui-btn ui-btn-primary">Accept — adopt as new version</button>
       </div>
-    </div>`);
+    </div>`, {maxWidth:'860px'});
   document.getElementById('pr-accept').addEventListener('click',()=>{ closeModal(); acceptProposedRound(c,n); });
   document.getElementById('pr-reject').addEventListener('click',()=>{ closeModal(); resolveRound(c,n,false); });
 }

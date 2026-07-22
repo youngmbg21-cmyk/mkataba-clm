@@ -570,6 +570,7 @@ function renderWorkspace(){
           ${canEdit()?`
           <button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>`:''}
+          <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
         </div>
@@ -667,6 +668,7 @@ function renderWorkspace(){
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
+  document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(c.upload?.dataUrl, c.upload?.fileName||c.name));
   setActiveNav('workspace');

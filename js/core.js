@@ -538,12 +538,13 @@ function resolveRound(c, n, accept){
 }
 
 /* ---------- modal helper ---------- */
-function openModal(html){
+function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
+  const maxw=opts.maxWidth||'32rem';
   root.innerHTML=`
-  <div class="fixed inset-0 z-[70] grid place-items-center px-4">
-    <div id="modal-scrim" class="absolute inset-0" style="background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in relative w-full max-w-lg max-h-[85vh] overflow-y-auto scroll-thin" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
+  <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px">
+    <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
+    <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};max-height:88vh;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
   </div>`;
   document.getElementById('modal-scrim').addEventListener('click',closeModal);
   return root;
