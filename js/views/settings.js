@@ -9,19 +9,19 @@ function renderTeam(){
   const me=currentUser();
 
   // --- Industry token style fragments (inline, per design handoff) ---
-  const cardStyle='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px';
+  const cardStyle='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px';
   const h4Style='font-family:var(--font-mono);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
-  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
-  const inputMono='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
-  const primaryBtn='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer;white-space:nowrap';
-  const primaryBtnSm='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer';
-  const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:4px;cursor:pointer';
-  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:#b0453c;border:1px solid #e3c9c4;border-radius:4px;cursor:pointer';
-  const tagAccent='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:var(--color-accent-200);color:var(--color-accent-800)';
+  const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+  const inputMono='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
+  const primaryBtn='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer;white-space:nowrap';
+  const primaryBtnSm='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:5px;cursor:pointer';
+  const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:5px;cursor:pointer';
+  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:#b0453c;border:1px solid #e3c9c4;border-radius:5px;cursor:pointer';
+  const tagAccent='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:var(--color-accent-200);color:var(--color-accent-800)';
   const avStyle='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
-  const roleTag=r=>{ const map={admin:['#d6ebff','#2c455d'],legal:['#f1e6cd','#7d5a14'],viewer:['#e3e3e6','#5d5d60']};
+  const roleTag=r=>{ const map={admin:['#eef4fb','#2c455d'],legal:['#fbf4e3','#7d5a14'],viewer:['#eceae6','#5d5d60']};
     const [bg,fg]=map[r]||map.viewer;
-    return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:${bg};color:${fg}`; };
+    return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:${bg};color:${fg}`; };
 
   const users=getUsers();
   const rows=users.map(x=>{
@@ -55,13 +55,12 @@ function renderTeam(){
       <input id="${id}" type="number" min="${min}" style="margin-top:3px;${inputMono}"/></label>`;
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
-    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px;align-items:start">
+  <div class="view-enter" style="padding:16px 18px 28px">
+    <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start">
 
       <!-- ============ LEFT · MEMBERS (blueprint) ============ -->
-      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px">
-        
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
+      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
           <h4 style="margin:0;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">Members · ${users.length}</h4>
           ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-mono);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">+ Invite member</button>`:''}
         </div>
@@ -96,7 +95,7 @@ function renderTeam(){
       </section>
 
       <!-- ============ RIGHT · SETTINGS STACK ============ -->
-      <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:18px">
 
         <section style="${cardStyle}">
           <h4 style="${h4Style}">Approval rules</h4>
@@ -383,7 +382,7 @@ function renderClauseLibrary(){
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
   const lib=clauseLibrary();
   host.innerHTML=lib.map((cl,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:10px 12px">
+    <div style="border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:11px 13px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
         <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${cl.name}</span>
@@ -401,10 +400,10 @@ function renderClauseLibrary(){
   if(pv){ const pb=playbook();
     pv.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:8px">Playbook positions by contract type</div>`+
       Object.entries(pb).filter(([k])=>k!=='_default').map(([k,p])=>{ const rp=resolvePlaybook(k);
-        return `<div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:9px 10px">
+        return `<div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px">
           <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:5px">${p.label||k}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px">${rp.positions.map(pos=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:3px;padding:1px 6px;${pos.pos==='required'||pos.pos==='forbidden'?'background:#f1dcd8;color:#8f322b':'background:#d6ebff;color:#2c455d'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
-          ${rp.ranges.map(rg=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:3px;padding:1px 6px;background:#f1e6cd;color:#7d5a14">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${rp.positions.map(pos=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;${pos.pos==='required'||pos.pos==='forbidden'?'background:#fdece9;color:#8f322b':'background:#eef4fb;color:#2c455d'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
+          ${rp.ranges.map(rg=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;background:#fbf4e3;color:#7d5a14">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
         </div>`; }).join('')+`<p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.</p>`;
   }
 }
@@ -445,9 +444,9 @@ function renderApprovalRules(){
   const host=document.getElementById('approval-rules'); if(!host) return;
   const rules=approvalRules().slice().sort((a,b)=>(a.order||99)-(b.order||99));
   host.innerHTML=rules.length?rules.map((r,i)=>`
-    <div style="border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:9px 10px;margin-bottom:8px">
+    <div style="border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:20px;height:20px;display:inline-grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);font-size:10px;font-weight:700;color:var(--color-neutral-700);flex:none">${r.order||1}</span>
+        <span style="width:22px;height:22px;display:inline-grid;place-items:center;border-radius:50%;background:var(--tile-steel-bg);font-size:10px;font-weight:700;color:var(--tile-steel-fg);flex:none">${r.order||1}</span>
         <span style="font-size:12px;color:var(--color-text)"><b>IF</b> ${condLabel(r.cond)} <b>THEN</b> ${approverLabelOf(r.approver)}</span>
         ${isAdmin()?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600"><button data-ar-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button><button data-ar-del="${i}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button></span>`:''}
       </div>

@@ -169,15 +169,18 @@ function openTemplatePreview(tpl){
 
 /* ============================================================ TEMPLATES PAGE */
 function renderTemplatesPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px';
   const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
   const my=customTemplates();
   const canManage=tplCanManage();
+  // tone icon-tile per value stream (tile-bg / tile-fg tokens)
+  const TPL_TONE={proc:'steel',mfg:'amber',dist:'emerald',sales:'steel',mktg:'amber',corp:'ruby'};
+  const tplTile=folder=>{ const t=TPL_TONE[folder]||'steel'; return `background:var(--tile-${t}-bg);color:var(--tile-${t}-fg)`; };
 
   const myCards=my.map(t=>`
-    <div style="${CARD};padding:11px 12px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};padding:14px;display:flex;flex-direction:column;gap:6px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent-800)">${icon('copy','w-3.5 h-3.5')}</span>
+        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(t.name)}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder]?.name||'—'} · ${(t.chars||t.text.length).toLocaleString()} chars</span>
@@ -192,9 +195,9 @@ function renderTemplatesPage(){
     </div>`).join('');
 
   const builtinCards=Object.values(TEMPLATES).map(t=>`
-    <div style="${CARD};padding:11px 12px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};padding:14px;display:flex;flex-direction:column;gap:6px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:4px;background:var(--color-bg);color:var(--color-accent-700)">${icon(t.ic,'w-3.5 h-3.5')}</span>
+        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder].name} · Template ${t.id}</span>
@@ -213,35 +216,35 @@ function renderTemplatesPage(){
         <span style="display:block;font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono)">${s.file} · ${FOLDERS[s.folder].name}</span>
       </span>
       ${already.has(s.file)
-        ?`<span class="badge" style="background:#d9eae0;color:#1e6b4d">Imported</span>`
+        ?`<span class="badge" style="background:#e8f4ee;color:#1e6b4d"><span class="dot" style="background:#2e8763"></span>Imported</span>`
         :canManage?`<button data-sample-imp="${i}" class="ui-btn" style="font-size:11px;padding:4px 10px;flex:none">Import as template</button>`:''}
     </div>`).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px;display:flex;flex-direction:column;gap:14px">
+  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:18px">
 
-    <section style="${CARD};padding:12px 14px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'10px':'6px'}">
+    <section style="${CARD};padding:16px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
         <h4 style="${H4}">My templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${my.length} saved</span>
         <span style="flex:1"></span>
         ${canManage?`<button id="tpl-upload" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('upload','w-3.5 h-3.5')} Upload a template</button>`:''}
       </div>
       ${my.length
-        ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${myCards}</div>`
+        ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${myCards}</div>`
         :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">No custom templates yet. <b>Upload</b> your company's standard paper here, <b>import</b> a HaTi sample below, or open any contract and use <b>Save as template</b> in its workspace toolbar. Saved templates appear in the + New contract menu.</p>`}
     </section>
 
-    <section style="${CARD};padding:12px 14px">
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px">
+    <section style="${CARD};padding:16px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
         <h4 style="${H4}">HaTi standard templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, Kenyan practice defaults</span>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${builtinCards}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${builtinCards}</div>
     </section>
 
     <section style="${CARD}">
-      <div style="display:flex;align-items:baseline;gap:10px;padding:11px 12px;border-bottom:1px solid var(--color-divider)">
+      <div style="display:flex;align-items:baseline;gap:10px;padding:13px 16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="${H4}">HaTi sample documents</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world Kenyan examples — import one to start your library</span>
       </div>
@@ -264,7 +267,7 @@ function renderTemplatesPage(){
 
 /* ============================================================ PLAYBOOK PAGE */
 function renderPlaybookPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px';
   const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
   const canEditLib=isAdmin()||currentUser()?.role==='legal';
 
@@ -279,15 +282,15 @@ function renderPlaybookPage(){
         <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.c.name}</span>
         <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${x.c.id} · ${x.c.counterparty||'—'}</span>
       </span>
-      <span class="badge" style="background:#f1e6cd;color:#7d5a14;flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
+      <span class="badge" style="background:#fbf4e3;color:#7d5a14;flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')
     :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">No playbook deviations recorded yet. Run the <b>AI review</b> from a contract's workspace — deviations from these positions will be listed here.</p>`;
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start">
+  <div class="view-enter" style="padding:16px 18px 28px">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:18px;align-items:start">
 
-      <section style="${CARD};padding:12px 14px">
+      <section style="${CARD};padding:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <h4 style="${H4}">Clause library</h4>
           <span style="font-size:10.5px;color:var(--color-neutral-600)">preferred &amp; fallback wording · ${canEditLib?'Admin / Legal can edit':'read-only for your role'}</span>
@@ -298,13 +301,13 @@ function renderPlaybookPage(){
         <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <section style="${CARD};padding:12px 14px">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <section style="${CARD};padding:16px">
           <h4 style="${H4};margin-bottom:8px">Negotiation playbook</h4>
           <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Positions per contract type. Red = required / forbidden, steel = preferred, amber = numeric range.</p>
           <div id="playbook-view"></div>
         </section>
-        <section style="${CARD};padding:12px 14px">
+        <section style="${CARD};padding:16px">
           <h4 style="${H4};margin-bottom:8px">Portfolio deviations</h4>
           ${devHtml}
         </section>

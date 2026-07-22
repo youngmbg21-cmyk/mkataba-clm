@@ -43,26 +43,31 @@ function renderDashboard(){
   }).filter(x=>x!=null);
   const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
 
-  const C={steel:'#2c455d',green:'#1e6b4d',amber:'#7d5a14',ruby:'#8f322b',ink:'var(--color-text)'};
+  // Gradient hero cards — one semantic tone per KPI (steel / emerald / amber /
+  // amber / ruby / emerald), white text + a 30px white icon tile on top.
+  const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
   const kpis=[
-    {label:'Under management', val:Number(countAll).toLocaleString('en-KE'), delta:`+${newThisWeek} this week`, num:C.ink, dc:C.steel, go:{stage:'all'}},
-    {label:'Active value', val:fmtKESshort(m.totalValue), delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`, num:C.ink, dc:C.green, go:{stage:'all',sort:'value'}},
-    {label:'Awaiting counterparty', val:Number(m.pending).toLocaleString('en-KE'), delta:`${stalled} stalled > 14d`, num:C.amber, dc:C.amber, go:{stage:'Under Review'}},
-    {label:'Expiring ≤ 90 days', val:Number(expiring.length).toLocaleString('en-KE'), delta:`${fmtKESshort(expValue)} exposure`, num:C.amber, dc:C.amber, go:{stage:'Signed',sort:'expiry'}},
-    {label:'High-risk findings', val:Number(highRisk.length).toLocaleString('en-KE'), delta:`${onExecuted} on executed paper`, num:C.ruby, dc:C.ruby, go:{stage:'all',sort:'risk'}},
-    {label:'Avg cycle · draft→signed', val:avgCycle, delta:cycles.length?`${cycles.length} signed sampled`:'—', num:C.green, dc:C.green, go:{stage:'Signed'}},
+    {label:'Under management', val:Number(countAll).toLocaleString('en-KE'), delta:`+${newThisWeek} this week`, grad:G.steel, ic:'building', go:{stage:'all'}},
+    {label:'Active value', val:fmtKESshort(m.totalValue), delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`, grad:G.green, ic:'coins', go:{stage:'all',sort:'value'}},
+    {label:'Awaiting counterparty', val:Number(m.pending).toLocaleString('en-KE'), delta:`${stalled} stalled > 14d`, grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    {label:'Expiring ≤ 90 days', val:Number(expiring.length).toLocaleString('en-KE'), delta:`${fmtKESshort(expValue)} exposure`, grad:G.amber, ic:'calendar', go:{stage:'Signed',sort:'expiry'}},
+    {label:'High-risk findings', val:Number(highRisk.length).toLocaleString('en-KE'), delta:`${onExecuted} on executed paper`, grad:G.ruby, ic:'alert', go:{stage:'all',sort:'risk'}},
+    {label:'Avg cycle · draft→signed', val:avgCycle, delta:cycles.length?`${cycles.length} signed sampled`:'—', grad:G.green, ic:'clock', go:{stage:'Signed'}},
   ];
   const kpiHtml=kpis.map((k,i)=>`
-    <button data-kpi="${i}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:0;${i?'border-left:1px solid var(--color-divider);':''}background:none;padding:11px 14px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.background='rgba(89,128,166,.07)'" onmouseout="this.style.background='none'">
-      <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);">${k.label}</span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:24px;line-height:1.05;color:${k.num};">${k.val}</span>
-      <span style="font-size:10px;color:${k.dc};font-weight:500;">${k.delta}</span>
+    <button data-kpi="${i}" style="position:relative;display:flex;flex-direction:column;gap:10px;align-items:flex-start;border:0;border-radius:10px;background:${k.grad};padding:15px 16px;font:inherit;color:#fff;cursor:pointer;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease);" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
+      <span style="display:flex;align-items:center;gap:9px;">
+        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff;">${icon(k.ic,'w-4 h-4',1.7)}</span>
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25;">${k.label}</span>
+      </span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff;">${k.val}</span>
+      <span style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:500;">${k.delta}</span>
     </button>`).join('');
 
   // ---- segmented stage bar + cards ----
   const segBar=stages.map((s,i)=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color};"></span>`).join('');
   const stageCards=stages.map(s=>`
-    <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-bg);padding:8px 10px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
+    <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600);">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
@@ -88,7 +93,7 @@ function renderDashboard(){
   const pipeBars=months.map(x=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
-      <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:2px;overflow:hidden;"><div style="width:${(x.v/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);"></div></div>
+      <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;"><div style="width:${(x.v/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);border-radius:999px;"></div></div>
       <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${x.v?fmtKESshort(x.v).replace('KES ',''):'—'}</span>
     </div>`).join('');
 
@@ -109,9 +114,9 @@ function renderDashboard(){
       </span>
       <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:${tagColor};flex:none;">${tag}</span>
     </button>`;
-  const attnCol=(title,dot,rows,total)=>`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--color-divider);">
+  const attnCol=(title,dot,rows,total,wash)=>`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${wash};border-bottom:1px solid var(--color-divider);">
         <span style="display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-weight:600;font-size:14px;"><span style="width:8px;height:8px;border-radius:50%;background:${dot};"></span>${title}</span>
         <span style="font-size:10.5px;color:var(--color-neutral-600);">${total} shown</span>
       </div>
@@ -129,7 +134,7 @@ function renderDashboard(){
       <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
     </div>`; }).join('');
   const decisionsSection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:${decisions.length?'6px':'0'}">
         <h4 style="font-size:15px;margin:0;display:flex;align-items:center;gap:8px">Decisions due
           ${decisions.length?`<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--color-accent-700);background:var(--color-accent-100);border-radius:999px;padding:1px 8px">${decisions.length}</span>`:''}</h4>
@@ -143,11 +148,10 @@ function renderDashboard(){
   const waitRows=waiting.slice(0,5).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="display:flex;flex-direction:column;gap:14px;padding:14px 16px 28px;">
+  <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
 
-    <!-- KPI strip -->
-    <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px;display:grid;grid-template-columns:repeat(6,1fr);">
-      
+    <!-- KPI ribbon — gradient hero cards -->
+    <section style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;">
       ${kpiHtml}
     </section>
 
@@ -156,12 +160,12 @@ function renderDashboard(){
 
     <!-- Stage + pipeline row -->
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px;">
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;">
           <h4 style="font-size:15px;margin:0;">Portfolio by stage</h4>
           <button data-open-register style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0;">Open full register →</button>
         </div>
-        <div style="display:flex;height:9px;overflow:hidden;margin-bottom:10px;border:1px solid var(--color-divider);border-radius:2px;">${segBar}</div>
+        <div style="display:flex;height:9px;overflow:hidden;margin-bottom:10px;border-radius:999px;">${segBar}</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">${stageCards}</div>
         <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:10px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
@@ -173,12 +177,12 @@ function renderDashboard(){
       </section>
 
       <div style="display:flex;flex-direction:column;gap:14px;">
-        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px;">
+        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
           <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
           ${pipeBars}
           <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}</div>
         </section>
-        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px;">
+        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
           <h4 style="font-size:15px;margin:0 0 8px;">Approvals waiting</h4>
           ${apprRows}
         </section>
@@ -187,9 +191,9 @@ function renderDashboard(){
 
     <!-- Attention columns -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start;">
-      ${attnCol('Expiring soon','#b8862b',expRows,expiring.length)}
-      ${attnCol('Highest risk','#b0453c',riskRows,highRisk.length)}
-      ${attnCol('Waiting longest','#2e8763',waitRows,waiting.length)}
+      ${attnCol('Expiring soon','#b8862b',expRows,expiring.length,'#fbf4e3')}
+      ${attnCol('Highest risk','#b0453c',riskRows,highRisk.length,'#fdece9')}
+      ${attnCol('Waiting longest','#2e8763',waitRows,waiting.length,'#e8f4ee')}
     </div>
   </div>`;
 

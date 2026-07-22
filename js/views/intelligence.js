@@ -738,7 +738,7 @@ function renderIntelDock(){
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
     </div>`:''}
-    <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3">
+    <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:var(--color-bg)">
       ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b>. Ask me to filter, highlight or regroup the map, click any node for a briefing, or stage nodes with <b>+ Compare</b> for a side-by-side. Answers pin as lenses you can toggle or stack.</div>`}
       ${typing}
     </div>
