@@ -5,79 +5,187 @@
 /* ============================================================
    VIEW: FOLDER (filtered register + local search)
    ============================================================ */
+const FOLDER_PAGE=50;
+const FOLDER_SORTS=[
+  {k:'updated',label:'Recently updated'},
+  {k:'value',label:'Value (high → low)'},
+  {k:'expiry',label:'Expiring soonest'},
+  {k:'name',label:'Name (A → Z)'},
+];
+// The filtered + sorted contracts for the current folder (shared by the full
+// render and the search/keystroke body re-render).
+function folderFiltered(){
+  const f=FOLDERS[state.folderId]; if(!f) return [];
+  const q=(state.folderQuery||'').trim().toLowerCase();
+  let cs=folderContracts(f.id);
+  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  const sort=state.folderSort||'updated';
+  const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
+  if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
+  else if(sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
+  else if(sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
+  return cs;
+}
 function renderFolder(){
   const f=FOLDERS[state.folderId];
   if(!f){ setView('dashboard'); return; }
-  const q=state.folderQuery.trim().toLowerCase();
-  let cs=folderContracts(f.id);
-  if(q) cs=cs.filter(c=>(c.name+' '+c.counterparty+' '+c.id).toLowerCase().includes(q));
+  state.folderShown=FOLDER_PAGE; state.folderSel={};   // fresh selection on entry
+  const cs=folderFiltered();
   const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
+  const sortOpts=FOLDER_SORTS.map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter">
-    <header class="sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
-      <div class="px-8 py-4 flex items-center justify-between gap-4">
+  <div class="view-enter h-full flex flex-col">
+    <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
+      <div class="px-8 py-4 flex items-center justify-between gap-4 max-w-[1240px] mx-auto w-full">
         <div class="flex items-center gap-3 min-w-0">
           <button id="back-dash" class="h-9 w-9 grid place-items-center rounded-lg border border-brand-100 bg-white text-brand-700 hover:bg-brand-50 transition shrink-0">${icon('arrowLeft')}</button>
           <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400 shrink-0">${icon(f.ic)}</span>
           <div class="min-w-0">
             <h1 class="font-display font-700 text-lg tracking-tight text-brand-900 truncate">${f.name}</h1>
-            <p class="text-[11px] font-mono text-brand-800/65">${cs.length} contracts · ${fmtKESshort(val)} active value</p>
+            <p class="text-[11px] font-mono text-brand-800/65"><span id="fold-count">${cs.length}</span> contracts · ${fmtKESshort(val)} active value</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 w-72 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition">
-          ${icon('search','w-4 h-4 text-brand-800/60')}
-          <input id="folder-search" value="${state.folderQuery.replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" class="flex-1 text-sm outline-none bg-transparent"/>
+        <div class="flex items-center gap-2.5 shrink-0">
+          <label class="hidden sm:flex items-center gap-2 text-[12px] text-ink/60">Sort
+            <select id="folder-sort" class="rounded-xl border border-brand-100 bg-white px-3 py-2 text-[12px] text-ink outline-none focus:border-brand-400">${sortOpts}</select>
+          </label>
+          <div class="flex items-center gap-2 rounded-xl border border-brand-100 bg-white px-3 py-2 w-64 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 transition">
+            ${icon('search','w-4 h-4 text-brand-800/60')}
+            <input id="folder-search" value="${(state.folderQuery||'').replace(/"/g,'&quot;')}" type="text" placeholder="Search in this folder…" class="flex-1 text-sm outline-none bg-transparent"/>
+          </div>
         </div>
       </div>
     </header>
 
-    <div class="px-8 py-6 max-w-[1000px]">
-      <section class="bg-white rounded-2xl elev-2 overflow-hidden">${folderListHtml(cs)}</section>
+    <div class="flex-1 min-h-0 flex flex-col gap-3 px-8 pt-5 pb-7 max-w-[1240px] mx-auto w-full">
+      <div id="fold-selbar" class="shrink-0 hidden items-center justify-between gap-3 rounded-xl bg-ink text-white px-4 py-2.5 elev-2">
+        <span id="fold-sel-count" class="text-[13px] font-600">0 selected</span>
+        <div class="flex items-center gap-2">
+          <button id="fold-export" class="inline-flex items-center gap-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 text-xs font-600 transition">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+          <button id="fold-clear" class="rounded-lg text-white/70 hover:text-white px-2 py-1.5 text-xs font-600 transition">Clear</button>
+        </div>
+      </div>
+
+      <div class="flex-1 min-h-0 bg-white rounded-2xl elev-2 overflow-hidden flex flex-col">
+        <div class="flex-1 min-h-0 overflow-auto scroll-thin">
+          <table class="w-full text-left">
+            <thead class="sticky top-0 z-10">
+              <tr class="bg-brand-50 text-[10px] uppercase tracking-wider text-ink/65" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.06),0 1px 0 rgba(60,40,10,.05)">
+                <th class="pl-5 pr-1 py-3 w-8"><input id="fold-selall" type="checkbox" class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></th>
+                <th class="px-2 py-3 font-700">Contract</th>
+                <th class="px-2 py-3 font-700 hidden md:table-cell">Type</th>
+                <th class="px-2 py-3 font-700 text-right">Value</th>
+                <th class="px-2 py-3 font-700 hidden sm:table-cell">Expires</th>
+                <th class="px-2 py-3 font-700 hidden lg:table-cell">Updated</th>
+                <th class="px-2 pr-5 py-3 font-700 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="fold-tbody" class="stagger">${folderRowsHtml(cs)}</tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>`;
 
-  wireOpens();
   document.getElementById('back-dash').addEventListener('click',()=>setView('dashboard'));
   const si=document.getElementById('folder-search');
   si.addEventListener('input',()=>{ state.folderQuery=si.value; state.folderShown=FOLDER_PAGE; renderFolderListOnly(); });
   si.focus(); si.setSelectionRange(si.value.length,si.value.length);
-  wireFolderMore();
+  document.getElementById('folder-sort').addEventListener('change',e=>{ state.folderSort=e.target.value; state.folderShown=FOLDER_PAGE; renderFolderListOnly(); });
+  // controls that live OUTSIDE the tbody — bound once (the tbody re-renders on
+  // search/sort, so binding these here avoids stacking duplicate listeners).
+  document.getElementById('fold-selall').addEventListener('change',e=>{ const on=e.target.checked; const cs=folderFiltered();
+    cs.slice(0,Math.min(cs.length,state.folderShown||FOLDER_PAGE)).forEach(c=>{ state.folderSel=state.folderSel||{}; if(on) state.folderSel[c.id]=true; else delete state.folderSel[c.id]; });
+    renderFolderListOnly(); });
+  document.getElementById('fold-export').addEventListener('click',folderExportSelectedCsv);
+  document.getElementById('fold-clear').addEventListener('click',()=>{ state.folderSel={}; renderFolderListOnly(); });
+  wireFolderRows();
+  renderFolderSelBar();
   setActiveNav('folder');
 }
-const FOLDER_PAGE=50;
-// Render only up to state.folderShown rows, with a "Show more" pager — so a
-// folder with hundreds of contracts never dumps them all into the DOM at once.
-function folderListHtml(cs){
-  if(!cs.length) return `
-    <div class="px-5 py-10 text-center">
-      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
-      <div class="text-sm font-medium text-brand-900">No contracts match "${state.folderQuery}"</div>
-      <div class="text-xs text-brand-800/70 mt-1">Clear the search, or ask HaTi AI to look across all folders.</div>
-    </div>`;
-  const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
-  const rows=cs.slice(0,shown).map(c=>contractRow(c)).join('');
-  const more = cs.length>shown
-    ? `<button id="folder-more" class="w-full px-5 py-3 text-xs font-medium text-brand-600 hover:bg-brand-50 border-t border-brand-100/60 transition">Show more — ${cs.length-shown} of ${cs.length} remaining</button>`
-    : '';
-  return rows+more;
+// Expiry cell: the date, plus a coloured "in Nd" / "Nd ago" hint when it's
+// close or past (only for live contracts).
+function folderExpiryCell(c){
+  if(!c.expiry) return '<span class="text-ink/35">—</span>';
+  const dt=new Date(c.expiry+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  let cls='text-ink/65', hint='';
+  if(c.status!=='Declined'){ const d=daysUntil(c.expiry);
+    if(d<0){ cls='text-rose-600'; hint=`${-d}d ago`; }
+    else if(d<=90){ cls='text-amber'; hint=`in ${d}d`; }
+  }
+  return `<span class="${cls}">${dt}</span>${hint?`<span class="block text-[10px] ${cls} opacity-80">${hint}</span>`:''}`;
 }
-function wireFolderMore(){
+// Render up to state.folderShown rows as a table body, with a "Show more" pager.
+function folderRowsHtml(cs){
+  if(!cs.length) return `<tr><td colspan="7" class="px-5 py-14 text-center">
+      <div class="mx-auto h-12 w-12 grid place-items-center rounded-xl bg-canvas border border-brand-100 text-brand-300 mb-3">${icon('search','w-5 h-5')}</div>
+      <div class="text-sm font-medium text-brand-900">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
+      <div class="text-xs text-brand-800/70 mt-1">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi AI to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+    </td></tr>`;
+  const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
+  const sel=state.folderSel||{};
+  return cs.slice(0,shown).map((c,i)=>{
+    const o=(window.openFindings?openFindings(c):[])||[];
+    const scan=o.length?`<span class="ml-1.5 inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${SEV_META[worstSevOf(o)].chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`:'';
+    return `
+    <tr data-open="${c.id}" class="group hover:bg-brand-50/50 transition cursor-pointer" style="box-shadow:inset 0 -1px 0 rgba(60,40,10,.05);animation-delay:${Math.min(i,14)*22}ms">
+      <td class="pl-5 pr-1 py-3.5 w-8 align-middle" onclick="event.stopPropagation()"><input type="checkbox" data-fsel="${c.id}" ${sel[c.id]?'checked':''} class="h-4 w-4 rounded border-brand-200 accent-brand-700 align-middle"/></td>
+      <td class="px-2 py-3.5"><div class="flex items-center gap-2.5 min-w-0">
+        <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg border ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'}" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
+        <span class="min-w-0"><span class="block text-[14px] font-600 text-ink truncate group-hover:text-brand-600 transition">${c.name}</span><span class="block text-[11px] text-ink/60 truncate mt-0.5"><span class="font-mono">${c.id}</span> · ${c.counterparty||'No counterparty yet'}</span></span>
+      </div></td>
+      <td class="px-2 py-3.5 hidden md:table-cell whitespace-nowrap"><span class="inline-flex items-center gap-1.5 text-[12.5px] text-ink/70">${icon(cIcon(c),'w-4 h-4 text-brand-500')}${cKind(c)}</span>${scan}</td>
+      <td class="px-2 py-3.5 text-right whitespace-nowrap text-[13px] font-600 tnum ${isMonetary(c)?'text-ink':'text-ink/40'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td class="px-2 py-3.5 hidden sm:table-cell whitespace-nowrap text-[12px] tnum">${folderExpiryCell(c)}</td>
+      <td class="px-2 py-3.5 hidden lg:table-cell whitespace-nowrap text-[12px] tnum text-ink/60">${c.lastAction||'—'}</td>
+      <td class="px-2 pr-5 py-3.5 text-right">${statusChip(c.status)}</td>
+    </tr>`; }).join('') + (cs.length>shown
+      ? `<tr><td colspan="7"><button id="folder-more" class="w-full px-4 py-3.5 text-[13px] font-600 text-brand-600 hover:bg-brand-50 transition" style="box-shadow:inset 0 1px 0 rgba(60,40,10,.06)">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+      : '');
+}
+function folderSelCount(){ const s=state.folderSel||{}; return Object.keys(s).filter(k=>s[k]).length; }
+function renderFolderSelBar(){
+  const bar=document.getElementById('fold-selbar'); if(!bar) return; const n=folderSelCount();
+  bar.classList.toggle('hidden',n===0);
+  const lbl=document.getElementById('fold-sel-count'); if(lbl) lbl.textContent=n+' selected';
+}
+// per-body wiring — safe to call on every tbody re-render (row checkboxes,
+// the row "open" handler and the pager all live inside #fold-tbody).
+function wireFolderRows(){
+  wireOpens(document.getElementById('fold-tbody')||document);
+  document.querySelectorAll('#fold-tbody [data-fsel]').forEach(el=>el.addEventListener('change',()=>{
+    state.folderSel=state.folderSel||{}; const id=el.getAttribute('data-fsel');
+    if(el.checked) state.folderSel[id]=true; else delete state.folderSel[id];
+    renderFolderSelBar(); }));
   document.getElementById('folder-more')?.addEventListener('click',()=>{ state.folderShown=(state.folderShown||FOLDER_PAGE)+FOLDER_PAGE; renderFolderListOnly(); });
 }
-// re-render only list body on keystroke (keeps input focus)
+function folderExportSelectedCsv(){
+  const sel=state.folderSel||{}; const ids=Object.keys(sel).filter(k=>sel[k]);
+  const rows=folderContracts(state.folderId).filter(c=>ids.includes(c.id));
+  if(!rows.length){ toast('Nothing selected','err'); return; }
+  const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const head=['ID','Name','Counterparty','Type','Value stream','Value (KES)','Status','Last action','Expiry'];
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',isMonetary(c)?(c.value||0):'',statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const csv=[head.map(esc).join(','),...body].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`hati-${FOLDERS[state.folderId]?.id||'folder'}-selection.csv`; a.click(); URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
+}
+// re-render only the table body + header count on keystroke/sort/selection
+// (keeps the search input focused)
 function renderFolderListOnly(){
   const f=FOLDERS[state.folderId]; if(!f) return;
-  const q=state.folderQuery.trim().toLowerCase();
-  let cs=folderContracts(f.id);
-  if(q) cs=cs.filter(c=>(c.name+' '+c.counterparty+' '+c.id).toLowerCase().includes(q));
-  const section=document.querySelector('#content section');
-  if(!section) return;
-  section.innerHTML = folderListHtml(cs);
-  wireOpens(section); wireFolderMore();
+  const cs=folderFiltered();
+  const tb=document.getElementById('fold-tbody'); if(!tb) return;
+  tb.innerHTML=folderRowsHtml(cs);
+  const cnt=document.getElementById('fold-count'); if(cnt) cnt.textContent=cs.length;
+  const all=document.getElementById('fold-selall'); if(all){ const shownIds=cs.slice(0,Math.min(cs.length,state.folderShown||FOLDER_PAGE)); all.checked=shownIds.length>0 && shownIds.every(c=>state.folderSel&&state.folderSel[c.id]); }
+  wireFolderRows(); renderFolderSelBar();
 }
 
-Object.assign(window,{FOLDER_PAGE,folderListHtml,renderFolder,renderFolderListOnly,wireFolderMore});
+Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,folderExpiryCell,renderFolder,renderFolderListOnly,renderFolderSelBar,wireFolderRows,folderExportSelectedCsv});
 /* ============================================================
    VIEW: REGISTER (global filterable / sortable table + bulk select)
    Client-side over the loaded working set, consistent with the folder
