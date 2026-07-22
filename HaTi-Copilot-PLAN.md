@@ -1,10 +1,17 @@
 # HaTi Copilot — AI Assistant Plan
 
-> **Status: plan only. No code written yet.** This document is the agreed roadmap
-> for adding real AI to HaTi. It folds together two pieces: (1) the main
-> **HaTi Copilot** chat assistant, and (2) the **Intel-page node interactions**.
-> It sits alongside the other planning docs (`MULTITENANCY-NOTES.md`,
-> `DEFERRED.md`, `SESSION-NOTES.md`) as a shared reference for the team.
+> **Status: launch scope IMPLEMENTED (Parts 1 & 2) on branch
+> `claude/review-claude-chatbot-9fk1ze`.** Build steps 1–4 below are done —
+> the server-mediated `/api/ai/chat` tool loop, the main Copilot panel, the
+> comparison table, and the Intel-page node interactions. Steps 5–6 remain
+> deliberately deferred (post-launch). See **Implementation status** at the
+> foot of this document for exactly what shipped and what didn't.
+>
+> This document is the agreed roadmap for adding real AI to HaTi. It folds
+> together two pieces: (1) the main **HaTi Copilot** chat assistant, and (2) the
+> **Intel-page node interactions**. It sits alongside the other planning docs
+> (`MULTITENANCY-NOTES.md`, `DEFERRED.md`, `SESSION-NOTES.md`) as a shared
+> reference for the team.
 
 ---
 
@@ -210,3 +217,43 @@ layer "expiring soon" ∩ "high value."
 - AI writing or rewriting contract wording (needs its own legal framing).
 - Any AI-driven mutation of contracts, status, approvals, or map relationships.
 - A bolder Swahili brand name (branding upgrade once trust is established).
+
+---
+
+## Implementation status (this branch)
+
+**Shipped (build steps 1–4):**
+- `server/server.js` — `POST /api/ai/chat`: a server-side agentic **tool loop**
+  (`search_contracts`, `get_contract`, `get_scan_findings`, `list_portfolio`,
+  `compare_contracts`, and a final `deliver_answer`). Org-scoped DB queries,
+  reuses `anthropicMessages` + all AI middleware (rate/daily/input caps),
+  returns `{ answer, citations, cards, compare, notice }`. Injection-hardened
+  system prompt (document text is data, not instructions).
+- `js/ai.js` — the main Copilot panel now calls `/api/ai/chat` with a
+  page-context snapshot and conversation history; renders a safe-markdown
+  answer, cited contract cards (resolved from live state), and the comparison
+  table; keeps the keyword `aiAnswer` engine as the no-key / offline / error
+  fallback. Rebranded to "HaTi Copilot".
+- `js/views/intelligence.js` — Intel dock node interactions: click a node for an
+  instant facts card **plus** an async Copilot briefing; a node-driven
+  **+ Compare** tray (stage 2–4 nodes → side-by-side table); typed "compare …"
+  routed to Copilot; cited nodes light up on the map. Filter/highlight/regroup
+  and the lens system are unchanged.
+- `SECURITY.md` — new **AI Copilot** section (server-mediated, grounded/cited,
+  suggest-not-mutate, untrusted-document handling, tenant scoping).
+
+**Verified:** all files parse; server boots; `/api/ai/chat` enforces auth +
+guards and returns `needsKey` with no key; the tool-loop DB queries
+(FTS search with org-rescoping, expiry/status filtering, single-contract fetch,
+status counts) return correct data against a seeded workspace; the client
+globals wire up and the markdown/compare renderers are correct and XSS-safe
+(headless-browser checked). **Not exercisable in the build sandbox:** a live
+Claude call (no API key present) — the loop uses the identical `anthropicMessages`
+plumbing as the five existing, proven AI endpoints.
+
+**Deferred (unchanged from the plan):** token streaming (request/response for
+now, matching every other endpoint; a typing indicator covers the wait);
+step 5 advisory features (clause explanation + wording suggestions,
+counterparty-response triage, conversational front door to obligations/playbook,
+proactive digest); and step 6 (portfolio benchmarking, counterparty memory,
+what-if).

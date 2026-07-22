@@ -100,7 +100,8 @@ const INTEL_CAP = 120;
 const STATUS_DOT = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from AI*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
-  history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,err?}*/,
+  history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
+  compareSel:[] /*contract ids staged for a node-driven comparison*/,
   busy:false, dockOpen:true, seq:1 };
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -200,7 +201,11 @@ async function intelAsk(qRaw){
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
-    if(IG_TEMPLATE_RE.test(q)) await intelTemplateAsk(q);
+    // Explicit comparison ("compare X and Y", or two+ contract ids) → Copilot
+    // Q&A over the real contracts, rendered as a side-by-side table in the dock.
+    const idHits=(q.match(/MK-\d+/gi)||[]).length;
+    if(/\bcompare\b/i.test(q) || idHits>=2) await intelChatAsk(q);
+    else if(IG_TEMPLATE_RE.test(q)) await intelTemplateAsk(q);
     else await intelGraphAsk(q);
   }catch(e){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
@@ -275,6 +280,80 @@ function applyTemplateResult(ranked, answer){
   const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
   addLens({ label:'Template picks · '+ranked.length, ids:ranked.map(r=>r.id), action:'highlight', badges });
   intel.history.push({role:'assistant', text:answer||'Ranked the best template candidates.', ranked});
+}
+
+/* ---- HaTi Copilot in the Intel dock: node-aware Q&A, comparison & insight ----
+   These call the same server-mediated /api/ai/chat endpoint the main Copilot
+   panel uses, so answers are grounded in the real contracts and cite them. The
+   graph then lights up the cited nodes. All degrade gracefully with no key. */
+
+// Map the dock conversation to the server's message shape (role + plain text).
+function intelChatMessages(){
+  const strip=s=>String(s||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  return intel.history
+    .filter(m=>(m.role==='user'||m.role==='assistant') && m.text)
+    .map(m=>({ role:m.role, content:strip(m.text) }))
+    .filter(m=>m.content).slice(-8);
+}
+
+// Turn a chat response into a dock message + light the cited nodes.
+function intelPushChatResult(res){
+  const cardIds=(res.cards||[]).map(c=>c.id).filter(id=>getContract(id));
+  const text=(typeof aiFmt==='function') ? aiFmt(res.answer||'') : igEsc(res.answer||'');
+  const notice=res.notice?`<div class="text-[11px] text-amber-700 mt-2">${igEsc(res.notice)}</div>`:'';
+  intel.history.push({ role:'assistant', text:text+notice, compare:res.compare||null, cardIds });
+  if(cardIds.length) igPaintIds(cardIds);
+}
+
+// General Copilot Q&A in the Intel dock (used for compare + typed questions).
+// Falls back with a clear note when the AI engine isn't configured.
+async function intelChatAsk(q){
+  if(!(API_MODE() && state.aiConfigured)){
+    intel.history.push({role:'assistant', err:true,
+      text:'The AI engine needs a Claude API key (Settings → AI Keys) for comparisons and free-form questions. You can still filter, highlight and regroup the map.'});
+    return;
+  }
+  const res=await api('ai/chat','POST',{ messages:intelChatMessages(), context:{ view:'intel' } });
+  intelPushChatResult(res);
+}
+
+// Node click → an instant facts card PLUS an async Copilot insight beneath it.
+function intelAIExplain(id){
+  const c=getContract(id); if(!c) return;
+  if(!(API_MODE() && state.aiConfigured)) return;   // facts card already shown by igExplain
+  intel.busy=true; renderIntelDock();
+  api('ai/chat','POST',{
+    messages:[{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
+    context:{ view:'intel', activeContractId:id, activeContractName:c.name },
+  }).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
+    .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
+      text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
+}
+
+// Node-driven comparison tray: toggle a contract in/out of the selection.
+function intelToggleCompare(id){
+  if(!getContract(id)) return;
+  const i=intel.compareSel.indexOf(id);
+  if(i>=0) intel.compareSel.splice(i,1); else intel.compareSel.push(id);
+  intel.compareSel=intel.compareSel.slice(0,4);   // cap matches the server tool
+  igPaintIds(intel.compareSel);
+  renderIntelDock();
+}
+// Run the comparison over the staged nodes.
+async function intelRunCompare(){
+  const ids=intel.compareSel.slice(); if(ids.length<2) return;
+  const names=ids.map(id=>getContract(id)?.name||id);
+  intel.history.push({role:'user', text:'Compare '+names.join(', ')});
+  intel.compareSel=[]; intel.busy=true; renderIntelDock();
+  try{
+    if(!(API_MODE() && state.aiConfigured)){
+      intel.history.push({role:'assistant', err:true, text:'The AI engine needs a Claude API key (Settings → AI Keys) to compare contracts.'});
+    } else {
+      const res=await api('ai/chat','POST',{ messages:[{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], context:{ view:'intel' } });
+      intelPushChatResult(res);
+    }
+  }catch(e){ intel.history.push({role:'assistant', err:true, text:'Comparison failed: '+igEsc(e.message||String(e))}); }
+  intel.busy=false; rebuildIntelGraph(); renderIntelDock();
 }
 
 /* ---- build the node/edge model from current state + lenses/group ---- */
@@ -385,6 +464,9 @@ function igExplain(id){
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
   intel.history.push({role:'assistant', explainId:id});
   renderIntelDock(); igPaintIds([id]);
+  // Layer a real Copilot insight beneath the instant facts card (no-op if the
+  // AI engine isn't configured — the facts card still stands on its own).
+  intelAIExplain(id);
 }
 function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
   const p=igToWorld(e.clientX,e.clientY); IG.dragOff={x:n.x-p.x,y:n.y-p.y};
@@ -465,6 +547,7 @@ const IG_SUGGESTIONS=[
   'Which contracts end in the next 6 months?',
   'Group by customer',
   'Show all leases',
+  'Compare my two highest-value contracts',
   'Best template for a new supply agreement?',
 ];
 function renderIntel(){
@@ -563,7 +646,10 @@ function igExplainCard(id){
     ${row('Status',statusLabel(c.status))}
     ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
-    <button data-ig-ws="${c.id}" class="mt-2 w-full rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">Open workspace →</button>
+    <div class="mt-2 flex items-center gap-1.5">
+      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">Open workspace →</button>
+      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="Stage this contract for a side-by-side comparison">${intel.compareSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button>
+    </div>
   </div>`;
 }
 function igMsgHTML(m){
@@ -571,7 +657,8 @@ function igMsgHTML(m){
     return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
     : m.explainId ? igExplainCard(m.explainId)
-    : (m.cardIds||[]).map(id=>igMiniCard(id)).join('');
+    : ((m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare) : '')
+       + (m.cardIds||[]).map(id=>igMiniCard(id)).join(''));
   return `<div class="ai-msg flex gap-2">
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
@@ -612,12 +699,18 @@ function renderIntelDock(){
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3">
-      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! Ask me anything about this portfolio — I filter, highlight and regroup the nodes as I answer. Answers pin as lenses you can toggle or stack.</div>`}
+      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b>. Ask me to filter, highlight or regroup the map, click any node for a briefing, or stage nodes with <b>+ Compare</b> for a side-by-side. Answers pin as lenses you can toggle or stack.</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
       ${IG_SUGGESTIONS.map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+    </div>`:''}
+    ${intel.compareSel.length?`
+    <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
+      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">Comparing <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
+      <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">Clear</button>
+      <button id="igd-cmp-run" ${intel.compareSel.length<2?'disabled':''} class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-400 cursor-not-allowed':'bg-brand-600 text-white hover:bg-brand-700'}">Compare ${intel.compareSel.length}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
       <input id="igd-input" placeholder="Ask about the portfolio…" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
@@ -654,6 +747,10 @@ function renderIntelDock(){
     el.addEventListener('pointerleave',()=>igPaintIds(null));
   });
   dock.querySelectorAll('[data-ig-ws]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); openWorkspace(b.getAttribute('data-ig-ws')); }));
+  // node-driven comparison: stage/unstage a contract, run or clear the tray
+  dock.querySelectorAll('[data-ig-cmp]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intelToggleCompare(b.getAttribute('data-ig-cmp')); }));
+  document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
+  document.getElementById('igd-cmp-run')?.addEventListener('click',()=>intelRunCompare());
 }
 
 function closePartyModal(){ document.getElementById('party-scrim')?.classList.remove('open'); }
@@ -725,4 +822,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
