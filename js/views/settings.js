@@ -104,9 +104,33 @@ function renderTeam(){
           <button id="ai-key-save" class="rounded-xl bg-ink text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-800 transition">Save key</button>
         </div>
         <div class="flex items-center gap-3 mt-2.5">
-          <label class="text-[11px] text-ink/60 flex items-center gap-1.5">Model
-            <input id="ai-model" type="text" placeholder="claude-haiku-4-5-20251001" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/></label>
           <button id="ai-key-clear" class="text-[11px] text-rose-500 hover:text-rose-700 font-medium">Remove key</button>
+        </div>
+        <div class="mt-3 pt-3 border-t border-hair">
+          <div class="text-[12px] font-600 text-ink">Model routing</div>
+          <p class="text-[11px] text-ink/60 mt-0.5 mb-2.5">HaTi routes each AI task to one of two tiers. Leave an override blank to use the recommended default.</p>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <div class="rounded-lg border border-hair p-2.5">
+              <div class="text-[11px] font-600 text-ink">Fast tier</div>
+              <div class="text-[10px] text-ink/55 mb-1.5">Search · graph filtering &amp; clustering · metadata extraction · template suggestions</div>
+              <div class="text-[10px] text-ink/70 mb-1.5">Current: <span id="ai-model-fast-cur" class="font-mono">—</span></div>
+              <input id="ai-model-fast" type="text" placeholder="default (recommended)" class="w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/>
+            </div>
+            <div class="rounded-lg border border-hair p-2.5">
+              <div class="text-[11px] font-600 text-ink">Deep tier</div>
+              <div class="text-[10px] text-ink/55 mb-1.5">Legal / playbook review · obligation extraction</div>
+              <div class="text-[10px] text-ink/70 mb-1.5">Current: <span id="ai-model-deep-cur" class="font-mono">—</span></div>
+              <input id="ai-model-deep" type="text" placeholder="default (recommended)" class="w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/>
+            </div>
+          </div>
+          <details class="text-[11px] mt-2">
+            <summary class="cursor-pointer text-ink/60">Advanced: override every tier</summary>
+            <div class="mt-1.5 flex flex-wrap items-center gap-2">
+              <input id="ai-model-global" type="text" placeholder="(none)" class="rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono w-64 outline-none focus:border-brand-500"/>
+              <span class="text-[10px] text-ink/50">Forces this one model for both tiers (equivalent to the <span class="font-mono">ANTHROPIC_MODEL</span> env var).</span>
+            </div>
+          </details>
+          <button id="ai-model-save" class="mt-2.5 rounded-lg bg-ink text-white px-3.5 py-2 text-[12px] font-600 hover:bg-brand-800 transition">Save model settings</button>
         </div>
         <div class="mt-4 pt-4 border-t border-hair">
           <div class="text-[12px] font-600 text-ink mb-1">File existing contracts</div>
@@ -187,18 +211,35 @@ function renderTeam(){
   if(API_MODE()){
     const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
       try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
-        el.innerHTML=c.configured?`<span class="text-brand-600">● Configured</span> · model <span class="font-mono">${c.model}</span> · key ${c.hint}${c.source==='env'?' (from server env)':''}`
-          :`<span class="text-gold-600">● Not configured</span> — the graph uses the built-in interpreter.`;
-        const mi=document.getElementById('ai-model'); if(mi&&!mi.value) mi.value=c.model||''; }catch(e){ el.textContent='Could not read AI config.'; } };
+        const fast=c.tiers?.fast?.model||c.models?.fast||c.model||'', deep=c.tiers?.deep?.model||c.models?.deep||'';
+        el.innerHTML=c.configured
+          ?`<span class="text-brand-600">● Configured</span> · key ${c.hint}${c.source==='env'?' (from server env)':''}`
+          :`<span class="text-gold-600">● Not configured</span> — AI features fall back to the built-in interpreter.`;
+        const set=(id,v)=>{ const n=document.getElementById(id); if(n) n.textContent=v||'—'; };
+        set('ai-model-fast-cur',fast); set('ai-model-deep-cur',deep);
+        // fill overrides without clobbering a field the admin is editing
+        const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n) n.value=v||''; };
+        fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
+      }catch(e){ el.textContent='Could not read AI config.'; } };
     refreshAiCfg();
+    // basic shape check mirroring the server (blank = clear override)
+    const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
     document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
-      const key=document.getElementById('ai-key').value.trim(), model=document.getElementById('ai-model').value.trim();
-      if(!key&&!model){ toast('Enter a key to save','err'); return; }
-      try{ await api('ai/config','PUT',{ key, model }); document.getElementById('ai-key').value=''; toast('AI engine key saved'); refreshAiCfg(); }
+      const key=document.getElementById('ai-key').value.trim();
+      if(!key){ toast('Enter a key to save','err'); return; }
+      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast('AI engine key saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
+      const modelFast=document.getElementById('ai-model-fast').value.trim();
+      const modelDeep=document.getElementById('ai-model-deep').value.trim();
+      const model=document.getElementById('ai-model-global').value.trim();
+      for(const m of [modelFast,modelDeep,model]) if(!okModel(m)){ toast(`Invalid model name "${m}" — expected a claude-… id with no spaces`,'err'); return; }
+      try{ await api('ai/config','PUT',{ modelFast, modelDeep, model }); toast('Model settings saved'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!confirm('Remove the stored AI key? The graph will fall back to the built-in interpreter.')) return;
+      if(!confirm('Remove the stored AI key? AI features will fall back to the built-in interpreter.')) return;
       try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
   }

@@ -460,15 +460,12 @@ app.post('/api/ai/search', auth, async (req, res) => {
   const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }),
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] });
+    if (!out.ok) return res.status(502).json({ error: 'AI provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+    const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [] });
+    res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [], ...aiFallbackNotice(out) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -511,18 +508,113 @@ app.put('/api/settings', auth, admin, (req, res) => {
    contracts to show and how to group them. No key → the client falls back
    to its built-in interpreter. */
 const aiKey = () => getSetting('aiKey') || process.env.ANTHROPIC_API_KEY || '';
-const aiModel = () => getSetting('aiModel') || 'claude-haiku-4-5-20251001';
+
+/* ---- Per-task model routing --------------------------------------------
+   Two capability tiers instead of one global model. FAST = mechanical work
+   (filtering, grouping, simple field extraction); DEEP = judgement work
+   (legal risk, obligations, drafting-quality summaries). The two tier
+   defaults below are current model IDs confirmed against the Anthropic docs
+   "Models overview" page (https://docs.claude.com): a Haiku-class model for
+   FAST and a Sonnet-class model for DEEP. */
+const AI_TIER_DEFAULTS = { fast: 'claude-haiku-4-5-20251001', deep: 'claude-sonnet-5' };
+// Which tier each AI endpoint runs on.
+const AI_TASK_TIER = {
+  search: 'fast', graph: 'fast', extract: 'fast', template: 'fast',
+  obligations: 'deep', playbook: 'deep',
+};
+// Basic shape check for an admin-entered model string: non-empty, no
+// whitespace, plausible claude-* id. It does NOT prove the model exists —
+// a well-formed but unknown name is handled at call time (retry-once).
+const validModelName = (m) => typeof m === 'string' && !/\s/.test(m.trim()) && /^claude-[a-z0-9][a-z0-9.\-]*$/i.test(m.trim());
+// Resolve the model for a tier. Order: (a) explicit per-tier override
+// (aiModelFast / aiModelDeep), else (b) the single global aiModel setting or
+// ANTHROPIC_MODEL env var — a deliberate "use this everywhere" switch, else
+// (c) the built-in tier default.
+const aiModelForTier = (tier) => {
+  const t = tier === 'deep' ? 'deep' : 'fast';
+  const perTier = getSetting(t === 'deep' ? 'aiModelDeep' : 'aiModelFast');
+  if (validModelName(perTier)) return perTier.trim();
+  const global = getSetting('aiModel') || process.env.ANTHROPIC_MODEL || '';
+  if (validModelName(global)) return global.trim();
+  return AI_TIER_DEFAULTS[t];
+};
+const aiModelForTask = (task) => aiModelForTier(AI_TASK_TIER[task] || 'fast');
+
+// Does an Anthropic error response mean the model name itself was rejected?
+const isModelRejection = (status, text) => {
+  const t = String(text || '').toLowerCase();
+  return (status === 400 || status === 404) && t.includes('model') &&
+    /not[_ ]?found|not exist|invalid|unknown|unrecognized|unsupported/.test(t);
+};
+
+/* Call the Anthropic Messages API with tier-based model resolution. If a
+   well-formed but unknown model is rejected, retry ONCE with the built-in
+   tier default, log a server-side warning, and report the fallback so the
+   caller can tell the user. Network errors propagate to the caller's
+   try/catch (never crash, never fall silent). */
+async function anthropicMessages(key, tier, payload) {
+  const t = tier === 'deep' ? 'deep' : 'fast';
+  const chosen = aiModelForTier(t);
+  const def = AI_TIER_DEFAULTS[t];
+  const send = (model) => fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+    body: JSON.stringify({ ...payload, model }),
+  });
+  const r = await send(chosen);
+  if (!r.ok) {
+    const text = await r.text();
+    if (chosen !== def && isModelRejection(r.status, text)) {
+      console.warn(`[ai] model "${chosen}" rejected by Anthropic (HTTP ${r.status}); retrying once with tier default "${def}".`);
+      const r2 = await send(def);
+      if (!r2.ok) return { ok: false, status: r2.status, error: await r2.text(), model: def };
+      return { ok: true, data: await r2.json(), model: def, fellBack: true, rejectedModel: chosen };
+    }
+    return { ok: false, status: r.status, error: text, model: chosen };
+  }
+  return { ok: true, data: await r.json(), model: chosen };
+}
+
+// A user-facing notice to fold into a response when a fallback happened.
+const aiFallbackNotice = (out) => out && out.fellBack
+  ? { notice: `The configured AI model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.` }
+  : {};
+
 app.get('/api/ai/config', auth, (req, res) => {
   const k = aiKey();
-  res.json({ configured: !!k, model: aiModel(), source: getSetting('aiKey') ? 'settings' : (process.env.ANTHROPIC_API_KEY ? 'env' : null),
-    hint: k ? ('••••' + k.slice(-4)) : '' });
+  res.json({
+    configured: !!k,
+    source: getSetting('aiKey') ? 'settings' : (process.env.ANTHROPIC_API_KEY ? 'env' : null),
+    hint: k ? ('••••' + k.slice(-4)) : '',
+    // resolved model per tier — never the key
+    models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') },
+    tiers: {
+      fast: { model: aiModelForTier('fast'), override: getSetting('aiModelFast') || '', uses: 'Search, graph filtering & clustering, metadata extraction, template suggestions' },
+      deep: { model: aiModelForTier('deep'), override: getSetting('aiModelDeep') || '', uses: 'Playbook / legal review and obligation extraction' },
+    },
+    globalOverride: getSetting('aiModel') || process.env.ANTHROPIC_MODEL || '',
+    model: aiModelForTier('fast'), // legacy field for older clients
+  });
 });
 app.put('/api/ai/config', auth, admin, (req, res) => {
-  const { key, model, clear } = req.body || {};
+  const { key, model, modelFast, modelDeep, clear } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
-  if (typeof model === 'string' && model.trim()) setSetting('aiModel', model.trim());
-  res.json({ ok: true, configured: !!aiKey(), model: aiModel() });
+  // Validate every supplied model string before storing; a blank clears that
+  // override, a malformed value is rejected with a clear message.
+  const bad = [];
+  const setModel = (field, val) => {
+    if (val === undefined) return;
+    const s = String(val).trim();
+    if (s === '') { setSetting(field, ''); return; }
+    if (!validModelName(s)) { bad.push(s); return; }
+    setSetting(field, s);
+  };
+  setModel('aiModel', model);
+  setModel('aiModelFast', modelFast);
+  setModel('aiModelDeep', modelDeep);
+  if (bad.length) return res.status(400).json({ error: `Invalid model name "${bad[0]}". Use a plausible model id like "claude-haiku-4-5-20251001" (no spaces).` });
+  res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') } });
 });
 app.post('/api/ai/graph', auth, async (req, res) => {
   const key = aiKey();
@@ -552,13 +644,9 @@ app.post('/api/ai/graph', auth, async (req, res) => {
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] })
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
     const out = block.input || {};
@@ -566,15 +654,16 @@ app.post('/api/ai/graph', auth, async (req, res) => {
       action: out.action === 'highlight' ? 'highlight' : 'filter',
       badges: (out.badges && typeof out.badges === 'object') ? out.badges : null,
       answer: typeof out.answer === 'string' ? out.answer : '',
-      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '' });
+      groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiFallbackNotice(resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
 /* ---------- AI template advisor (two-stage) ----------
    Stage 1: the client sends candidate contracts (metadata + full clause text);
    the server re-scores on metadata and keeps at most 8 — Signed first, then by
-   value and text richness. Stage 2: Claude (Sonnet — a deeper read than the
-   graph model) ranks the top 3 as templates for the described new contract. */
+   value and text richness. Stage 2: Claude (FAST tier — this is a ranking
+   task over a small shortlist) ranks the top 3 as templates for the new
+   contract described. */
 app.post('/api/ai/template', auth, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
@@ -607,20 +696,16 @@ app.post('/api/ai/template', auth, async (req, res) => {
   const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] })
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
     const out = block.input || {};
     const ids = new Set(scored.map(c => c.id));
     const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
     if (!ranked.length) return res.status(502).json({ error: 'AI returned no usable ranking' });
-    res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '' });
+    res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiFallbackNotice(resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -663,16 +748,12 @@ app.post('/api/ai/extract', auth, async (req, res) => {
   };
   const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence. Return via the file_contract tool.\n\nDOCUMENT:\n${String(text).slice(0, 24000)}`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }),
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ metadata: block.input || {}, source: 'ai' });
+    res.json({ metadata: block.input || {}, source: 'ai', ...aiFallbackNotice(resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -703,16 +784,12 @@ app.post('/api/ai/obligations', auth, async (req, res) => {
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }),
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [] });
+    res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiFallbackNotice(resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
@@ -746,16 +823,12 @@ app.post('/api/ai/playbook', auth, async (req, res) => {
   };
   const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: aiModel(), max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }),
-    });
-    if (!r.ok) { const t = await r.text(); return res.status(502).json({ error: 'AI provider error (' + r.status + '): ' + t.slice(0, 300) }); }
-    const data = await r.json();
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [] });
+    res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [], ...aiFallbackNotice(resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 

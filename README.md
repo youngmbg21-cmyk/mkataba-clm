@@ -80,10 +80,25 @@ The demo data is organised into six value-stream folders, each with genuine cont
 | Variable | Purpose |
 |---|---|
 | `RESEND_API_KEY` | Turns on real email delivery (invites, password reset, signing OTP, renewal reminders). Without it, mail queues to an admin-visible outbox. |
-| `ANTHROPIC_API_KEY` | Powers the Portfolio Intelligence AI graph (natural-language filter/cluster via Claude). Optional — an admin can also paste a key in **Team & Settings**, which is stored server-side and takes precedence. Without either, the graph uses the built-in interpreter. |
+| `ANTHROPIC_API_KEY` | Powers the AI features (Portfolio Intelligence graph, search, metadata extraction, obligations, playbook review). Optional — an admin can also paste a key in **Team & Settings**, which is stored server-side and takes precedence. Without either, features fall back to the built-in interpreter/heuristics. |
+| `ANTHROPIC_MODEL` | Optional "override every tier" model. When set to a valid `claude-*` id, it forces that one model for **both** the FAST and DEEP tiers (see model routing below). Leave unset to use the per-tier defaults. |
 | `EMAIL_FROM` | From-address for outgoing email. |
 | `HATI_DATA` | Directory for the SQLite database and stored files (default `server/data`). |
 | `PORT` | HTTP port (default 3000). |
+
+Copy `.env.example` to `.env` and fill in real values — `.env` (and `.env.*`) are gitignored; never commit a real key.
+
+### AI model routing (Team & Settings)
+
+Each AI task runs on one of two capability tiers, resolved per request. Admins can override either tier — or force one model everywhere — from **Team & Settings → AI engine → Model routing** (stored server-side; never returned to the browser). `GET /api/ai/config` reports the resolved model for each tier.
+
+| Setting | Used by | Default | Notes |
+|---|---|---|---|
+| `aiModelFast` | Search, graph filter/cluster, metadata extraction, template suggestions | `claude-haiku-4-5-20251001` | Fast/mechanical work. Blank = default. |
+| `aiModelDeep` | Playbook / legal review, obligation extraction | `claude-sonnet-5` | Judgement work. Blank = default. |
+| `aiModel` / `ANTHROPIC_MODEL` | Everything (override switch) | — | If set, overrides **both** tiers. |
+
+Resolution order per tier: (a) the per-tier override, else (b) the global `aiModel` setting / `ANTHROPIC_MODEL` env var, else (c) the built-in tier default. Model names are shape-validated on save; if the provider rejects a saved model at call time, HaTi retries once with the built-in tier default, logs a warning, and tells the user a default was used.
 
 ## Honest limitations (MVP)
 
