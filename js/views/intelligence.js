@@ -394,6 +394,24 @@ function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=fals
 }
 function igToWorld(cx,cy){ const r=IG.svg.getBoundingClientRect(); return {x:(cx-r.left-IG.view.x)/IG.view.k,y:(cy-r.top-IG.view.y)/IG.view.k}; }
 function igApplyView(){ IG.vp.setAttribute('transform',`translate(${IG.view.x},${IG.view.y}) scale(${IG.view.k})`); }
+// Zoom-to-fit: frame the whole graph so you land zoomed OUT (see everything),
+// then zoom in by choice. Measures the node bounding box and centres it in the
+// live viewport with padding. Clamped to the wheel-zoom range (0.35–2.4) and
+// capped at 1.05 so a tiny portfolio isn't blown up.
+function igFitView(){
+  if(!IG||!IG.nodes||!IG.nodes.length) return;
+  const r=IG.svg.getBoundingClientRect();
+  const vw=r.width||IG.W||1000, vh=r.height||IG.H||600;
+  let minX=1e9,minY=1e9,maxX=-1e9,maxY=-1e9;
+  IG.nodes.forEach(n=>{ minX=Math.min(minX,n.x-n.w/2); maxX=Math.max(maxX,n.x+n.w/2);
+    minY=Math.min(minY,n.y-n.h/2); maxY=Math.max(maxY,n.y+n.h/2); });
+  const pad=64, gw=(maxX-minX)+pad*2, gh=(maxY-minY)+pad*2;
+  const k=Math.max(0.35,Math.min(1.05, Math.min(vw/gw, vh/gh)));
+  IG.view.k=k;
+  IG.view.x=(vw-(minX+maxX)*k)/2;
+  IG.view.y=(vh-(minY+maxY)*k)/2;
+  igApplyView();
+}
 function igTick(){
   const {nodes,edges,W,H}=IG;
   for(let i=0;i<nodes.length;i++){ const a=nodes[i];
@@ -421,7 +439,7 @@ function rebuildIntelGraph(){
   IG=makeIntelGraph(model); if(!IG) return;
   // pre-settle
   for(let i=0;i<220;i++) igTick();
-  igRender(); igApplyView();
+  igRender(); igFitView();   // land zoomed-out, framing the whole graph
   updateIntelNote(); renderIntelLegend(model);
 }
 function updateIntelNote(){
@@ -483,6 +501,8 @@ function renderIntel(){
 
   renderIntelDock();
   rebuildIntelGraph();
+  // re-fit once layout settles so the fit uses the true viewport size
+  requestAnimationFrame(()=>{ if(state.view==='intel'&&IG) igFitView(); });
 
   // pan & zoom
   const svg=document.getElementById('ig-svg');
@@ -706,4 +726,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
