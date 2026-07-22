@@ -310,7 +310,7 @@ function renderScanSection(c){
 /* ============================================================
    AI ASSISTANT  (local intent engine over live state)
    ============================================================ */
-const ai = { open:false, history:[] };
+const ai = { open:false, minimized:false, unread:false, history:[] };
 const AI_SUGGESTIONS = [
   'What is pending counterparty action?',
   'Total value of signed contracts',
@@ -325,6 +325,7 @@ function openAI(prefill){
   document.getElementById('ai-panel').classList.add('open');
   document.getElementById('ai-scrim').classList.add('open');
   ai.open=true;
+  ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
   if(!ai.history.length){
     aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
   }
@@ -336,6 +337,27 @@ function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
   document.getElementById('ai-scrim').classList.remove('open');
   ai.open=false;
+  ai.minimized=false; updateAIBadge();   // full close: no minimized dot (unread glow may still arrive)
+}
+/* Minimize: hide the panel but keep the conversation "live" — the launcher
+   shows a dot, and pulses if an answer lands while minimized. */
+function minimizeAI(){
+  document.getElementById('ai-panel').classList.remove('open');
+  document.getElementById('ai-scrim').classList.remove('open');
+  ai.open=false; ai.minimized=true; updateAIBadge();
+}
+function clearAIHistory(){
+  if(!confirm('Delete this conversation? This cannot be undone.')) return;
+  ai.history=[];
+  aiPush('assistant',{text:`Habari! I'm your contract intelligence assistant. I can search, aggregate and summarize everything in your HaTi workspace — try one of the suggestions below, or ask in your own words.`});
+  renderAIFeed();
+  toast('Conversation deleted');
+}
+/* Launcher badge: solid dot when minimized, pulsing when an unread answer waits. */
+function updateAIBadge(){
+  const b=document.getElementById('ai-badge'); if(!b) return;
+  b.classList.toggle('hidden', !(ai.minimized||ai.unread));
+  b.classList.toggle('pulse', ai.unread);
 }
 function aiPush(role,payload){ ai.history.push({role,...payload}); }
 
@@ -475,12 +497,16 @@ function aiSubmit(){
     const ans=aiAnswer(q);
     aiPush('assistant',ans);
     renderAIFeed();
+    // answer arrived while the panel was minimized/closed -> light up the launcher
+    if(!ai.open){ ai.unread=true; updateAIBadge(); }
   }, 650+Math.random()*500);
 }
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);
 document.getElementById('ai-input').addEventListener('keydown',e=>{if(e.key==='Enter')aiSubmit();});
 document.getElementById('ai-close').addEventListener('click',closeAI);
+document.getElementById('ai-min').addEventListener('click',minimizeAI);
+document.getElementById('ai-clear').addEventListener('click',clearAIHistory);
 document.getElementById('ai-scrim').addEventListener('click',closeAI);
 document.getElementById('ai-open-side').addEventListener('click',()=>openAI());
 document.addEventListener('keydown',e=>{
@@ -489,4 +515,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,closeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
