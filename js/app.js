@@ -297,6 +297,7 @@ function wireShell(){
 
   // AI
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
+  document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
 
   // panel toggle + tabs
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); });

@@ -327,6 +327,7 @@ function openAI(prefill){
   document.getElementById('ai-scrim').classList.add('open');
   ai.open=true;
   ai.minimized=false; ai.unread=false; updateAIBadge();   // opening clears the glow
+  if(typeof updateAiBrainPill==='function') updateAiBrainPill();   // show which brain is live
   if(!ai.history.length){
     aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, and I know what's on your screen. Try a suggestion below, or just ask.`});
   }
@@ -391,6 +392,8 @@ function renderAIFeed(typing=false){
     </div>`:'');
   feed.scrollTop=feed.scrollHeight;
   feed.querySelectorAll('[data-ai-open]').forEach(el=>el.addEventListener('click',()=>{ closeAI(); openWorkspace(el.getAttribute('data-ai-open')); }));
+  // keep the brain indicator current (a key can be added/removed mid-session)
+  if(typeof updateAiBrainPill==='function') updateAiBrainPill();
 }
 
 function aiContractCard(c){
@@ -701,6 +704,25 @@ function copilotAvailable(){
   if(typeof API_MODE==='function' && API_MODE()) return !!state.aiConfigured;
   return !!_localAiKey();
 }
+
+/* Which brain is live right now — shown as an always-visible indicator in the
+   chat header and the Intel dock, so there's never any doubt which one is
+   answering. */
+function copilotBrainInfo(){
+  const server = typeof API_MODE==='function' && API_MODE();
+  if(server && state.aiConfigured) return { live:true,  label:'Claude AI · via server',    hint:'Answers come from Claude, routed through your HaTi server.' };
+  if(!server && _localAiKey())     return { live:true,  label:'Claude AI · this browser',  hint:'Answers come from Claude, called directly from this browser with your saved key.' };
+  return { live:false, label:'Basic mode — add a key for AI', hint:'No AI key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → AI engine.' };
+}
+/* Refresh the main panel's header subtitle to show the live brain. */
+function updateAiBrainPill(){
+  const el=document.getElementById('ai-brain-sub'); if(!el) return;
+  const b=copilotBrainInfo();
+  el.title=b.hint;
+  el.innerHTML=b.live
+    ? `<span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>✦ ${b.label}`
+    : `<span class="h-1.5 w-1.5 rounded-full" style="background:#c79a3e;"></span>${b.label}`;
+}
 async function copilotAsk(messages, context){
   if(typeof API_MODE==='function' && API_MODE() && state.aiConfigured)
     return await api('ai/chat','POST',{ messages, context });
@@ -785,4 +807,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,copilotAvailable,copilotAsk,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});

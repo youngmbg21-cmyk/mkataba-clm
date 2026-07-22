@@ -709,6 +709,10 @@ function renderIntelDock(){
     <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
       <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
       <span class="font-display font-700 text-[13px] text-ink flex-1">Intelligence panel</span>
+      ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,label:'Basic mode',hint:''};
+        return b.live
+          ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
+          :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:#F0E6CF;color:#8A5E1B">○ Basic mode</span>`; })()}
       ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
       <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
     </div>
