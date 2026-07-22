@@ -7,185 +7,247 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
-  // HaTi warm-paper design system (Horizon Finance OS pivot):
-  // DM Sans for interface, JetBrains Mono for IDs/values/timestamps,
-  // Fraunces serif for page titles. Warm beige surfaces (Horizon light
-  // theme), warm greige neutrals, and a strict colour discipline —
-  // green demoted from wallpaper to accent: colour reserved for actions,
-  // active state, status, severity and key metrics.
+  // HaTi — Industry design system (steel-blue on a light technical ground).
+  // Barlow / Barlow Condensed typography, white surfaces on a very light-grey
+  // ground (#eff0f2), a steel accent (#5980a6), hairline borders, 4–6px radii
+  // and a grey / amber / emerald / ruby status model. The Tailwind palette
+  // below is repointed onto the Industry tokens so class-based views inherit
+  // the flip; new work sources exact values from the CSS variables in :root.
   tailwind.config = {
     theme: { extend: {
       fontFamily: {
-        display: ['"DM Sans"','system-ui','sans-serif'],
-        serif: ['Fraunces','Georgia','serif'],
-        sans: ['"DM Sans"','system-ui','sans-serif'],
-        mono: ['"JetBrains Mono"','ui-monospace','monospace'],
+        display: ['"Barlow Condensed"','system-ui','sans-serif'],
+        heading: ['"Barlow Condensed"','system-ui','sans-serif'],
+        serif:   ['"Barlow Condensed"','system-ui','sans-serif'],
+        sans:    ['Barlow','system-ui','sans-serif'],
+        mono:    ['"Barlow Condensed"','ui-monospace','monospace'],
       },
-      // numeric weight utilities — Tailwind ships only named weights
-      // (medium/semibold/bold), so font-600/700/800 used across the app
-      // were silently no-ops (everything rendered at 400). Make them real.
-      fontWeight: {
-        400:'400', 500:'500', 600:'600', 700:'700', 800:'800', 900:'900',
-      },
+      fontWeight: { 400:'400', 500:'500', 600:'600', 700:'700', 800:'700', 900:'700' },
       colors: {
-        // cards & panels: warm white, not pure white (Horizon bg2)
-        white:'#FDFAF6',
-        canvas:'#F0EBE1',     // page ground (Horizon bg0)
-        ink:'#1a1208',        // warm brown-black text (Horizon text)
-        // brand greens stay — green is the accent story, not the ground.
-        // 50/100 shift to sage tints so hovers/chips sit on warm paper.
-        brand:{50:'#E4EFE7',100:'#C6DED0',200:'#9FD5C2',300:'#66BCA1',400:'#2E9F80',500:'#0B7A5F',600:'#086B54',700:'#075444',800:'#0A3B32',900:'#08211E'},
-        gold:{300:'#EBD08C',400:'#E0BC63',500:'#C79A3E',600:'#A97D2A'},
-        // warm greige neutrals (Horizon text2/text3 ramp)
-        slate:{50:'#F7F3ED',100:'#F0EBE1',200:'#E4DDD2',300:'#D6CFBF',400:'#B8AD99',500:'#8a7d6a',600:'#6B5F4B',700:'#4a3f2e',800:'#31281A',900:'#1a1208'},
-        // earthy red — design danger / severity high
-        rose:{50:'#F4E2DD',100:'#E6C9C1',200:'#E6C9C1',300:'#DCA99D',400:'#C56555',500:'#B23A2E',600:'#9A342A',700:'#822C24',900:'#3E1712'},
-        // chrome tokens, warmed (Horizon border pair)
-        hair:'#E2DBCC',       // chrome hairline (rail / top-bar borders)
-        line:'#D6CFBF',       // card border
-        inputln:'#DCD3C0',    // input / chip / button border
-        faint:'#FDFAF6',      // donut cards
-        docbg:'#EDE8DF',      // workspace document canvas (Horizon bg3)
-        amber:'#B0791F',      // expiring / awaiting metrics
-        danger:'#C0392B',     // high-risk metric
+        white:'#ffffff',
+        canvas:'#eff0f2',     // page ground
+        ink:'#1d1f20',        // text
+        // steel accent ramp (Industry)
+        brand:{50:'#eef6ff',100:'#d6ebff',200:'#d6ebff',300:'#b5d9fd',400:'#94bce3',500:'#749dc4',600:'#5980a6',700:'#416180',800:'#2c455d',900:'#1d2d3d'},
+        // amber (In Review / pending)
+        gold:{300:'#f1e6cd',400:'#b8862b',500:'#b8862b',600:'#7d5a14'},
+        // neutral ramp
+        slate:{50:'#f5f5f8',100:'#e7e7ea',200:'#e7e7ea',300:'#d4d4d7',400:'#b7b7ba',500:'#98989b',600:'#7a7a7d',700:'#5d5d60',800:'#424244',900:'#2b2b2d'},
+        // ruby (Closed / Expired / risk / danger)
+        rose:{50:'#f1dcd8',100:'#f1dcd8',200:'#e6c9c1',300:'#dca99d',400:'#b0453c',500:'#b0453c',600:'#8f322b',700:'#8f322b',900:'#3e1712'},
+        // emerald (Executed / active)
+        emerald:{50:'#d9eae0',100:'#d9eae0',200:'#c7ddce',400:'#2e8763',500:'#2e8763',600:'#1e6b4d',700:'#1e6b4d'},
+        // chrome tokens (hairline dividers)
+        hair:'#e3e3e6',
+        line:'#dcdcdf',
+        inputln:'#d4d4d7',
+        faint:'#ffffff',
+        docbg:'#eff0f2',
+        amber:'#b8862b',
+        danger:'#b0453c',
       },
     }},
   };
 </script>
 <style>
-  /* ---- premium design tokens (elevation, depth, motion) ---- */
+  /* ============================================================
+     INDUSTRY DESIGN TOKENS — source of truth for the redesign.
+     ============================================================ */
   :root{
-    --ring:0 0 0 1px rgba(60,40,10,.08);
-    --sh1:0 1px 2px rgba(60,40,10,.06),0 1px 1px rgba(60,40,10,.04);
-    --sh2:0 2px 4px rgba(60,40,10,.05),0 16px 30px -14px rgba(60,40,10,.20);
-    --sh3:0 18px 40px -18px rgba(60,40,10,.24),0 6px 16px -8px rgba(60,40,10,.13);
-    --sh4:0 34px 64px -26px rgba(60,40,10,.32);
-    --focus:0 0 0 3px rgba(11,122,95,.20);
-    --ease:cubic-bezier(.2,.7,.3,1);
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    color:#1a1208; font-family:'DM Sans',system-ui,sans-serif;
-    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; letter-spacing:-0.006em;
-    background:
-      radial-gradient(1100px 560px at 86% -12%, rgba(199,154,62,.07), transparent 60%),
-      linear-gradient(180deg,#F3EFE6,#EAE3D4);
-    min-height:100vh;
-  }
-  h1,h2,h3,.font-display { letter-spacing:-0.022em; }
-  /* editorial serif voice — page titles only (Horizon's "calm instrument");
-     h1.font-display outranks the .font-display utility so titles stay serif */
-  h1, h1.font-display { font-family:'Fraunces',Georgia,serif; letter-spacing:-0.012em; }
-  a { color:#086B54; }
-  ::selection { background:#C6DED0; }
-  /* elevation + motion utilities */
-  /* every elevated card carries a crisp hairline ring so white cards separate
-     from the canvas AND nested white tiles separate from white parents */
-  .elev-1{box-shadow:var(--ring),var(--sh1)} .elev-2{box-shadow:var(--ring),var(--sh2)} .elev-3{box-shadow:var(--ring),var(--sh3)} .elev-4{box-shadow:var(--ring),var(--sh4)}
-  .lift{transition:transform .22s var(--ease), box-shadow .22s var(--ease), border-color .18s}
-  .lift:hover{transform:translateY(-3px); box-shadow:0 0 0 1px rgba(60,40,10,.10),var(--sh3)}
-  .tnum{font-variant-numeric:tabular-nums}
-  button,[role=button]{transition:background .16s, color .16s, box-shadow .16s, transform .12s}
-  button:active:not(:disabled){transform:translateY(.5px)}
-  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:none; box-shadow:var(--focus)}
-  /* list stagger */
-  .stagger>*{opacity:0; animation:rowIn .4s var(--ease) forwards}
-  @keyframes rowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-  /* seal + status motion */
-  .seal-pop{animation:sealPop .6s cubic-bezier(.34,1.56,.64,1) forwards}
-  @keyframes sealPop{0%{opacity:0;transform:scale(1.5) rotate(-14deg)}60%{opacity:1}100%{opacity:1;transform:scale(1) rotate(-7deg)}}
-  .warm-flip{animation:warmFlip .4s var(--ease)}
-  @keyframes warmFlip{from{opacity:.3;transform:translateY(-3px)}to{opacity:1;transform:none}}
-  /* warmer, softer scrollbar */
-  .scroll-thin::-webkit-scrollbar-thumb{ background:#D6CFBF; border-radius:8px; }
-  .view-enter { animation: viewIn .28s var(--ease); }
-  @keyframes viewIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+    --color-bg:#eff0f2;
+    --color-surface:#ffffff;
+    --color-text:#1d1f20;
+    --color-accent:#5980a6;
+    --color-divider:color-mix(in srgb,#1d1f20 16%,transparent);
 
-  /* Intel contract graph */
+    --color-neutral-100:#f5f5f8; --color-neutral-200:#e7e7ea; --color-neutral-300:#d4d4d7;
+    --color-neutral-400:#b7b7ba; --color-neutral-500:#98989b; --color-neutral-600:#7a7a7d;
+    --color-neutral-700:#5d5d60; --color-neutral-800:#424244; --color-neutral-900:#2b2b2d;
+
+    --color-accent-100:#eef6ff; --color-accent-200:#d6ebff; --color-accent-300:#b5d9fd;
+    --color-accent-400:#94bce3; --color-accent-500:#749dc4; --color-accent-600:#597ea3;
+    --color-accent-700:#416180; --color-accent-800:#2c455d; --color-accent-900:#1d2d3d;
+
+    --font-heading:"Barlow Condensed",system-ui,sans-serif;
+    --font-body:"Barlow",system-ui,sans-serif;
+
+    --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
+    --radius-sm:2px; --radius-md:4px; --radius-lg:7px;
+
+    --shadow-sm:0 1px 2px color-mix(in srgb,#2b2b2d 14%,transparent);
+    --shadow-md:0 3px 10px color-mix(in srgb,#2b2b2d 16%,transparent);
+    --shadow-lg:0 12px 32px color-mix(in srgb,#2b2b2d 22%,transparent);
+
+    /* legacy elevation aliases kept so un-migrated views still separate cleanly */
+    --ring:0 0 0 1px var(--color-divider);
+    --sh1:var(--shadow-sm); --sh2:var(--shadow-sm); --sh3:var(--shadow-md); --sh4:var(--shadow-lg);
+    --focus:0 0 0 2px color-mix(in srgb,var(--color-accent) 45%,transparent);
+    --ease:cubic-bezier(.2,.7,.3,1);
+
+    /* status palette (bg / fg / dot) */
+    --st-gray-bg:#e3e3e6;  --st-gray-fg:#5d5d60;  --st-gray-dot:#98989b;
+    --st-amber-bg:#f1e6cd; --st-amber-fg:#7d5a14; --st-amber-dot:#b8862b;
+    --st-green-bg:#d9eae0; --st-green-fg:#1e6b4d; --st-green-dot:#2e8763;
+    --st-ruby-bg:#f1dcd8;  --st-ruby-fg:#8f322b;  --st-ruby-dot:#b0453c;
+    --st-steel-bg:#d6ebff; --st-steel-fg:#2c455d; --st-steel-dot:#5980a6;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;}
+  .hidden{display:none!important;}
+  html{scroll-behavior:smooth;}
+  body{
+    color:var(--color-text);
+    font-family:var(--font-body);
+    background:var(--color-bg);
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    min-height:100vh; font-size:13px; line-height:1.5;
+  }
+  h1,h2,h3,h4,h5,h6,.font-display{font-family:var(--font-heading);font-weight:600;letter-spacing:-0.01em;}
+  a{color:var(--color-accent-700);}
+  a:hover{color:var(--color-accent-800);}
+  ::selection{background:color-mix(in srgb,var(--color-accent) 30%,transparent);}
+  input::placeholder,textarea::placeholder{color:var(--color-neutral-500);}
+
+  /* elevation utilities (mapped onto the Industry shadow scale) */
+  .elev-1{box-shadow:var(--shadow-sm)} .elev-2{box-shadow:var(--shadow-sm)}
+  .elev-3{box-shadow:var(--shadow-md)} .elev-4{box-shadow:var(--shadow-lg)}
+  .lift{transition:transform .18s var(--ease), box-shadow .18s var(--ease), border-color .15s}
+  .lift:hover{box-shadow:var(--shadow-md)}
+  .tnum{font-variant-numeric:tabular-nums}
+  button,[role=button]{transition:background .15s,color .15s,box-shadow .15s,border-color .15s}
+  button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
+
+  /* ---- blueprint frame: hairline box with corner registration marks ---- */
+  .blueprint{position:relative;border:1px solid var(--color-divider);}
+  .blueprint>.corner{position:absolute;width:11px;height:11px;color:color-mix(in srgb,var(--color-text) 45%,transparent);pointer-events:none;}
+  .blueprint>.corner::before,.blueprint>.corner::after{content:"";position:absolute;background:currentColor;}
+  .blueprint>.corner::before{left:5px;top:0;width:1px;height:100%;}
+  .blueprint>.corner::after{top:5px;left:0;width:100%;height:1px;}
+  .blueprint>.corner.tl{top:-6px;left:-6px;} .blueprint>.corner.tr{top:-6px;right:-6px;}
+  .blueprint>.corner.bl{bottom:-6px;left:-6px;} .blueprint>.corner.br{bottom:-6px;right:-6px;}
+
+  /* slight rounding on boxes/controls per stakeholder request */
+  .bp-round{border-radius:6px;}
+
+  /* status badge */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:3px;white-space:nowrap;font-family:var(--font-body);}
+
+  /* buttons (Industry) */
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
+  .ui-btn-primary{background:var(--color-accent);color:#fff;border-color:var(--color-accent);}
+  .ui-btn-primary:hover{background:var(--color-accent-600);}
+  .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* view enter */
+  .view-enter{animation:viewIn .24s var(--ease);}
+  @keyframes viewIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .stagger>*{opacity:0;animation:rowIn .34s var(--ease) forwards}
+  @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+  /* live ping (workspace status + activity live dots) */
+  @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(89,128,166,.45)}70%{box-shadow:0 0 0 6px rgba(89,128,166,0)}100%{box-shadow:0 0 0 0 rgba(89,128,166,0)}}
+  .live-ping{animation:livePing 2.4s infinite;}
+  .live-dot{position:relative;}
+  .live-dot::after{content:'';position:absolute;inset:-3px;border-radius:9999px;background:currentColor;opacity:.35;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
+  @keyframes ping{75%,100%{transform:scale(2.1);opacity:0;}}
+
+  /* scrollbars */
+  .scroll-thin::-webkit-scrollbar{width:9px;height:9px;}
+  .scroll-thin::-webkit-scrollbar-thumb{background:var(--color-neutral-300);border-radius:8px;}
+  .scroll-thin::-webkit-scrollbar-track{background:transparent;}
+  main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
+
+  /* ============================================================
+     SHELL — sidebar / command bar / context panel
+     ============================================================ */
+  .nav-item{position:relative;display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--color-neutral-700);font:inherit;font-family:var(--font-body);font-size:12.5px;font-weight:400;padding:7px 8px 7px 10px;cursor:pointer;text-align:left;border-radius:4px;transition:background .12s,color .12s;}
+  .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:2px;}
+  .nav-item svg{flex:none;opacity:.85;}
+  .nav-item:hover{background:rgba(29,31,32,.05);}
+  .nav-item.active{background:rgba(89,128,166,.14);color:var(--color-accent-800);font-weight:600;}
+  .nav-item.active .nav-rail{background:var(--color-accent);}
+  .nav-item.active svg{opacity:1;}
+  .nav-count{font-size:10px;font-family:var(--font-heading);color:var(--color-neutral-500);}
+  .nav-item.active .nav-count{color:var(--color-accent-700);}
+
+  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
+  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-800);}
+  .panel-tab:hover{color:var(--color-text);}
+
+  /* command-bar search */
+  .cmd-search{display:flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-bg);padding:5px 9px;width:250px;border-radius:4px;}
+  .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12px;flex:1;min-width:0;color:inherit;}
+
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}html{scroll-behavior:auto;}}
+
+  /* ---- Intel contract graph ---- */
   #ig-svg{touch-action:none}
-  .ig-link{stroke:#CDC2AB;stroke-width:1.4;fill:none;opacity:.55;transition:stroke .15s,opacity .15s,stroke-width .15s}
-  .ig-link.hi{stroke:#086B54;opacity:1;stroke-width:2.2}
+  .ig-link{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.55;transition:stroke .15s,opacity .15s,stroke-width .15s}
+  .ig-link.hi{stroke:var(--color-accent);opacity:1;stroke-width:2.2}
   .ig-link.dim{opacity:.08}
   .ig-node{cursor:pointer}
-  .ig-chip{stroke:#DCD3C0;stroke-width:1.4;filter:drop-shadow(0 4px 10px rgba(60,40,10,.06));transition:stroke .15s,filter .15s}
-  .ig-node.hi .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 8px 18px rgba(60,40,10,.14))}
+  .ig-chip{stroke:var(--color-divider);stroke-width:1.4;filter:drop-shadow(0 3px 8px rgba(43,43,45,.08));transition:stroke .15s,filter .15s}
+  .ig-node.hi .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 6px 14px rgba(43,43,45,.14))}
   .ig-node.dim{opacity:.22;transition:opacity .15s}
-  .ig-lab{pointer-events:none;font-size:11.5px;font-family:'DM Sans',system-ui,sans-serif}
-  .ig-sub{pointer-events:none;font-size:9px;font-family:'JetBrains Mono',monospace}
-  /* lens states: mut = dimmed by an AI highlight lens (independent of hover dim);
-     hit = matched by the active lens — stronger border + soft glow */
+  .ig-lab{pointer-events:none;font-size:11.5px;font-family:var(--font-body)}
+  .ig-sub{pointer-events:none;font-size:9px;font-family:var(--font-heading)}
   .ig-node.mut{opacity:.28;transition:opacity .15s}
-  .ig-node.hit .ig-chip{stroke:#086B54;stroke-width:2;filter:drop-shadow(0 0 7px rgba(8,107,84,.35)) drop-shadow(0 4px 10px rgba(60,40,10,.08))}
-  .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace}
-  /* right-hand AI dock */
+  .ig-node.hit .ig-chip{stroke:var(--color-accent);stroke-width:2;filter:drop-shadow(0 0 7px rgba(89,128,166,.4)) drop-shadow(0 3px 8px rgba(43,43,45,.08))}
+  .ig-badge-txt{pointer-events:none;font-size:8px;font-weight:700;font-family:var(--font-heading)}
   #ig-dock{transition:width .25s cubic-bezier(.22,.61,.36,1)}
   .ig-lens{transition:background .15s,border-color .15s,color .15s}
 
-  .field{font-family:'JetBrains Mono',monospace;font-size:.9em;color:#075444;background:#E4EFE7;border:none;border-bottom:1.5px dashed #66BCA1;padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
-  .field:hover{background:#D9E8DD;}
-  .field:focus{background:#fff;border-bottom-color:#0B7A5F;box-shadow:0 2px 0 0 #0B7A5F,0 0 0 3px rgba(11,122,95,.12);}
+  /* inline editable fields (contract workspace) */
+  .field{font-family:var(--font-heading);font-size:.95em;color:var(--color-accent-800);background:var(--color-accent-100);border:none;border-bottom:1.5px dashed var(--color-accent-400);padding:1px 6px;border-radius:4px 4px 0 0;min-width:90px;transition:background .15s,border-color .15s,box-shadow .15s;outline:none;}
+  .field:hover{background:var(--color-accent-200);}
+  .field:focus{background:#fff;border-bottom-color:var(--color-accent);box-shadow:0 2px 0 0 var(--color-accent),0 0 0 2px color-mix(in srgb,var(--color-accent) 18%,transparent);}
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
-  .field:disabled{color:#0A3B32;background:transparent;border-bottom:1.5px solid #C6DED0;-webkit-text-fill-color:#0A3B32;opacity:1;cursor:default;font-weight:600;}
+  .field:disabled{color:var(--color-text);background:transparent;border-bottom:1.5px solid var(--color-divider);-webkit-text-fill-color:var(--color-text);opacity:1;cursor:default;font-weight:600;}
 
-  .scroll-thin::-webkit-scrollbar{width:8px;height:8px;}
-  .scroll-thin::-webkit-scrollbar-thumb{background:#D6CFBF;border-radius:8px;}
-  .scroll-thin::-webkit-scrollbar-track{background:transparent;}
-
-  .live-dot{position:relative;}
-  .live-dot::after{content:'';position:absolute;inset:-4px;border-radius:9999px;background:currentColor;opacity:.4;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
-  @keyframes ping{75%,100%{transform:scale(2.2);opacity:0;}}
-
-  .seal-in{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1);}
-  @keyframes sealIn{from{opacity:0;transform:scale(.9) rotate(-3deg);}to{opacity:1;transform:none;}}
-  .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
-  @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
-
-  /* Icon-rail nav (warm light theme) */
-  .nav-item{color:#8a7d6a;}
-  .nav-item:hover{color:#075444;background:#F3EEE4;}
-  .nav-item.active{background:#E4EFE7;color:#075444;}
-  .nav-item.active .nav-rail{opacity:1;}
-  @media (prefers-reduced-motion: reduce){ *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;} html{scroll-behavior:auto;} }
-
-  /* AI panel slide-over */
-  #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
-  #ai-panel.open{transform:none;}
-  /* unread glow on the rail launcher: dot = minimized, pulse = answer waiting */
-  #ai-badge.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
-  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(199,154,62,.6);}50%{box-shadow:0 0 0 8px rgba(199,154,62,0);}}
-  #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
-  #ai-scrim.open{opacity:1;pointer-events:auto;}
-  .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
-  .typing span{display:inline-block;width:5px;height:5px;border-radius:9999px;background:#66BCA1;margin-right:3px;animation:blink 1.2s infinite;}
-  .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
-  @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
-
-  .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:8px;}
-  @keyframes anchorFlash{0%{background:#FBF2DC;box-shadow:0 0 0 4px rgba(199,154,62,.30);}100%{background:transparent;box-shadow:0 0 0 4px transparent;}}
-  .scan-pulse{animation:scanPulse 1s ease infinite;}
-  @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
-
-  .mlink{stroke:#CDC2AB;stroke-width:1.4;fill:none;opacity:.6;transition:stroke .15s,opacity .15s,stroke-width .15s;}
-  .mlink.hi{stroke:#0B7A5F;opacity:1;stroke-width:2.2;}
+  /* map graph (folder view) */
+  .mlink{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.6;transition:stroke .15s,opacity .15s,stroke-width .15s;}
+  .mlink.hi{stroke:var(--color-accent);opacity:1;stroke-width:2.2;}
   .mlink.dim{opacity:.08;}
-  .mlabel{fill:#6B5F4B;font-size:9.5px;font-family:'JetBrains Mono',monospace;pointer-events:none;opacity:0;transition:opacity .15s;}
+  .mlabel{fill:var(--color-neutral-700);font-size:9.5px;font-family:var(--font-heading);pointer-events:none;opacity:0;transition:opacity .15s;}
   .mlabel.show{opacity:1;}
   .mnode{cursor:pointer;}
-  .mnode .chipbg{fill:#FDFAF6;stroke:#DCD3C0;stroke-width:1.4;transition:stroke .15s;}
-  .mnode.hi .chipbg{stroke:#0B7A5F;stroke-width:2;}
-  .mnode.sel .chipbg{stroke:#C79A3E;stroke-width:2.4;}
+  .mnode .chipbg{fill:var(--color-surface);stroke:var(--color-divider);stroke-width:1.4;transition:stroke .15s;}
+  .mnode.hi .chipbg{stroke:var(--color-accent);stroke-width:2;}
+  .mnode.sel .chipbg{stroke:var(--color-accent-700);stroke-width:2.4;}
   .mnode.dim{opacity:.18;transition:opacity .15s;}
   #map-svg{cursor:grab;}
   #map-svg.panning{cursor:grabbing;}
 
   .qdot{cursor:pointer;transition:r .15s;}
-  .qdot:hover{stroke:#08211E;stroke-width:2;}
+  .qdot:hover{stroke:var(--color-accent-900);stroke-width:2;}
   #party-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #party-scrim.open{opacity:1;pointer-events:auto;}
-
   .modal-in{animation:viewIn .2s cubic-bezier(.22,.61,.36,1);}
+
+  .seal-in{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes sealIn{from{opacity:0;transform:scale(.9) rotate(-3deg);}to{opacity:1;transform:none;}}
+  .seal-pop{animation:sealIn .5s cubic-bezier(.34,1.56,.64,1) forwards}
+  .toast-in{animation:toastIn .3s cubic-bezier(.22,.61,.36,1);}
+  @keyframes toastIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+  .anchor-flash{animation:anchorFlash 1.8s ease;border-radius:4px;}
+  @keyframes anchorFlash{0%{background:var(--color-accent-100);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-accent) 30%,transparent);}100%{background:transparent;box-shadow:0 0 0 3px transparent;}}
+  .scan-pulse{animation:scanPulse 1s ease infinite;}
+  @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
+
+  /* AI slide-over */
+  #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-panel.open{transform:none;}
+  #ai-badge.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
+  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(89,128,166,.6);}50%{box-shadow:0 0 0 8px rgba(89,128,166,0);}}
+  #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
+  #ai-scrim.open{opacity:1;pointer-events:auto;}
+  .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
+  .typing span{display:inline-block;width:5px;height:5px;border-radius:9999px;background:var(--color-accent-400);margin-right:3px;animation:blink 1.2s infinite;}
+  .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
 
   /* PDF export — print only the prepared document */
   #print-root{display:none;}
@@ -194,93 +256,162 @@
     #print-root{display:block!important;}
     body{background:#fff;}
   }
-
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 </style>
 </head>
-<body class="font-sans text-brand-900 antialiased">
+<body>
 
 <div id="auth-root"></div>
 <div id="share-root"></div>
 
-<div id="app-shell" class="flex min-h-screen hidden">
+<div id="app-shell" style="display:none;grid-template-columns:210px 1fr;height:100vh;background:var(--color-bg);">
 
-  <!-- ================= ICON RAIL (84px, white) ================= -->
-  <aside class="w-[84px] shrink-0 bg-white border-r border-hair flex flex-col items-center fixed inset-y-0 left-0 z-30 py-4">
-    <!-- logo -->
-    <div class="h-11 w-11 rounded-[13px] bg-brand-600 grid place-items-center text-white shrink-0 mb-4" id="brand-mark" title="HaTi — Contract Lifecycle"></div>
+  <!-- ================= SIDEBAR (210px) ================= -->
+  <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+    <!-- brand block -->
+    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
+      <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
+      <div style="line-height:1.15;">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
+        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
+      </div>
+    </div>
 
-    <nav class="flex flex-col items-center gap-1 flex-1 w-full px-1" id="nav">
-      <button data-view="dashboard" class="nav-item active relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Home">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="grid" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Home</span>
+    <nav id="nav" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;" class="scroll-thin">
+      <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500);padding:4px 8px 5px;">Workspace</div>
+
+      <button data-view="dashboard" class="nav-item active" title="Home">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        <span style="flex:1;">Home</span><span class="nav-count" data-count="dashboard"></span>
       </button>
-      <button data-view="register" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Register">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="list" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Register</span>
+      <button data-view="register" class="nav-item" title="Register">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <span style="flex:1;">Register</span><span class="nav-count" data-count="register"></span>
       </button>
-      <button data-view="pipeline" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Queue">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="columns" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Queue</span>
+      <button data-view="pipeline" class="nav-item" title="Queue">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18"/></svg>
+        <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
       </button>
-      <button data-view="intel" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Intel">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="network" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Intel</span>
+      <button data-view="intel" class="nav-item" title="Intel">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/></svg>
+        <span style="flex:1;">Intel</span><span class="nav-count" data-count="intel"></span>
       </button>
-      <button data-view="calendar" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Calendar">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="calendar" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Calendar</span>
+      <button data-view="calendar" class="nav-item" title="Calendar">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
       </button>
-      <button data-view="reports" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Reports">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="trend" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Reports</span>
+      <button data-view="reports" class="nav-item" title="Reports">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6"/></svg>
+        <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
       </button>
-      <button data-view="workspace" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Doc">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="file" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Doc</span>
+      <button data-view="workspace" class="nav-item" title="Doc">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
       </button>
-      <button data-view="team" class="nav-item relative w-[60px] h-[56px] rounded-xl grid place-content-center justify-items-center gap-1 transition" title="Team">
-        <span class="nav-rail absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-brand-600 opacity-0 transition"></span>
-        <span data-ic="users" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-medium">Team</span>
+      <button data-view="team" class="nav-item" title="Team">
+        <span class="nav-rail"></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span style="flex:1;">Team</span><span class="nav-count" data-count="team"></span>
       </button>
     </nav>
 
-    <button id="ai-open-side" title="Ask HaTi AI" class="relative h-14 w-14 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white grid place-content-center justify-items-center gap-0.5 transition shrink-0 mb-3">
-      <span data-ic="sparkle" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-semibold">AI</span>
-      <span id="ai-badge" class="hidden absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-gold-500 ring-2 ring-white"></span>
-    </button>
-    <button id="rail-avatar" title="Team &amp; settings" class="h-10 w-10 rounded-full bg-brand-50 grid place-items-center text-[11px] font-semibold text-brand-700 font-mono shrink-0 hover:ring-2 hover:ring-brand-100 transition"></button>
+    <!-- footer: live status + user -->
+    <div style="border-top:1px solid var(--color-divider);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);">
+        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
+        <span id="side-status">Server mode · SQLite · 4 online</span>
+      </div>
+      <button id="rail-avatar" title="Team &amp; settings" style="display:flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
+        <span id="side-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-heading);flex:none;">AM</span>
+        <span style="line-height:1.2;min-width:0;">
+          <span id="side-name" style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Amina Mwangi</span>
+          <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin</span>
+        </span>
+      </button>
+    </div>
   </aside>
 
-  <!-- ================= MAIN ================= -->
-  <!-- viewport-fixed shell: the top bar of each view pins, the region scrolls -->
-  <main class="flex-1 ml-[84px] min-w-0 h-screen overflow-hidden">
-    <div id="content" class="h-full overflow-y-auto scroll-thin"></div>
-  </main>
+  <!-- ================= MAIN COLUMN ================= -->
+  <div style="display:flex;flex-direction:column;min-width:0;min-height:0;">
+
+    <!-- Command bar (52px) -->
+    <header style="display:flex;align-items:center;gap:12px;padding:0 16px;height:52px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;">
+      <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
+        <h1 id="cmd-title" style="font-size:19px;margin:0;white-space:nowrap;">Portfolio</h1>
+        <span id="cmd-sub" style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw;"></span>
+      </div>
+      <div style="flex:1;"></div>
+      <div class="cmd-search">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.5;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="cmd-search" placeholder="Search contracts, parties, IDs…"/>
+        <span style="font-size:9px;border:1px solid var(--color-divider);padding:0 4px;color:var(--color-neutral-600);font-family:var(--font-heading);border-radius:2px;">/</span>
+      </div>
+      <button id="cmd-export" class="ui-btn" title="Export the working set">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export
+      </button>
+      <div style="position:relative;">
+        <button id="cmd-new" class="ui-btn ui-btn-primary blueprint" style="padding:6px 14px;">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          + New contract
+        </button>
+        <div id="new-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:5px;padding:6px;z-index:50;max-height:70vh;overflow-y:auto;"></div>
+      </div>
+      <button id="cmd-ai" class="ui-btn" title="Ask HaTi AI" style="width:30px;height:30px;padding:0;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
+      </button>
+      <button id="cmd-panel" class="ui-btn" title="Toggle context panel" style="width:30px;height:30px;padding:0;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M15 3v18"/></svg>
+      </button>
+    </header>
+
+    <!-- body grid: content + context panel -->
+    <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr 292px;min-height:0;">
+      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;">
+        <div id="content"></div>
+      </main>
+
+      <!-- context panel (292px) -->
+      <aside id="context-panel" style="border-left:1px solid var(--color-divider);background:var(--color-surface);display:flex;flex-direction:column;min-height:0;">
+        <div style="display:flex;flex:none;border-bottom:1px solid var(--color-divider);">
+          <button id="panel-tab-activity" class="panel-tab active">Activity</button>
+          <button id="panel-tab-summary" class="panel-tab">Summary</button>
+        </div>
+        <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
+      </aside>
+    </div>
+  </div>
 </div>
 
 <!-- ================= AI ASSISTANT (slide-over) ================= -->
-<div id="ai-scrim" class="fixed inset-0 bg-brand-900/30 backdrop-blur-[2px] z-40"></div>
-<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full max-w-[430px] bg-brand-50 z-50 flex flex-col border-l border-inputln shadow-2xl shadow-brand-900/20">
-  <header class="px-5 py-4 flex items-center gap-3 bg-ink text-white">
-    <div class="h-9 w-9 rounded-xl bg-gold-500 text-brand-900 grid place-items-center shrink-0" data-ic-big="sparkle"></div>
+<div id="ai-scrim" class="fixed inset-0 z-40" style="background:rgba(29,45,61,.35);backdrop-filter:blur(2px);"></div>
+<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
+  <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
+    <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:4px;" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
       <div class="font-display font-600">HaTi AI</div>
-      <div class="text-[11px] text-brand-200 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-brand-300 live-dot"></span>Searching your live contract data</div>
+      <div class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>Searching your live contract data</div>
     </div>
-    <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="trash"></button>
-    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="minus"></button>
-    <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
+    <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
+    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
+    <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
   </header>
 
-  <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4"></div>
+  <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-bg);"></div>
 
-  <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5"></div>
+  <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5" style="background:var(--color-bg);"></div>
 
-  <footer class="px-5 pb-5 pt-3 border-t border-inputln">
+  <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
-      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 rounded-xl border border-inputln bg-white px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-brand-600 text-white hover:bg-brand-700 transition" data-ic-big="send"></button>
+      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;"/>
+      <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:4px;" data-ic-big="send"></button>
     </div>
   </footer>
 </section>
@@ -292,4 +423,3 @@
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
-

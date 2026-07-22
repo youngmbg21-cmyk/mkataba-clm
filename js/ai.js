@@ -508,10 +508,9 @@ document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-min').addEventListener('click',minimizeAI);
 document.getElementById('ai-clear').addEventListener('click',clearAIHistory);
 document.getElementById('ai-scrim').addEventListener('click',closeAI);
-document.getElementById('ai-open-side').addEventListener('click',()=>openAI());
+// AI is opened from the command bar (#cmd-ai, wired in app.js). The "/" key
+// focuses the command-bar search (app.js); Esc closes the AI panel.
 document.addEventListener('keydown',e=>{
-  const appHidden=document.getElementById('app-shell').classList.contains('hidden');
-  if(e.key==='/'&&!appHidden&&!ai.open&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)){ e.preventDefault(); openAI(); }
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 

@@ -89,15 +89,45 @@ const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFi
 // Executed/Closed) over the warm palette. Internal status values stay
 // Draft/Under Review/Signed/Declined so filters, backend and logic are
 // untouched — only the visible chip label and colours change.
+// Industry status model: Draft=grey · In Review=amber · Executed=emerald ·
+// Closed/Expired=ruby. Internal status values stay Draft/Under Review/Signed/
+// Declined so filters, backend and logic are untouched — only the visible
+// chip label and colours change.
 const STATUS_META = {
-  'Draft':        {label:'Drafting',  dot:'#9A9484', bg:'#ECE7DC', tx:'#6B6559', bd:'#DED5C6'},
-  'Under Review': {label:'In Review', dot:'#C79A3E', bg:'#F0E6CF', tx:'#8A5E1B', bd:'#E2D2AE'},
-  'Signed':       {label:'Executed',  dot:'#086B54', bg:'#E1EBE2', tx:'#075444', bd:'#C6DCCB'},
-  'Declined':     {label:'Closed',    dot:'#B23A2E', bg:'#F4E2DD', tx:'#9A342A', bd:'#E6C9C1'},
+  'Draft':        {label:'Drafting',  dot:'#98989b', bg:'#e3e3e6', tx:'#5d5d60', bd:'#d4d4d7'},
+  'Under Review': {label:'In Review', dot:'#b8862b', bg:'#f1e6cd', tx:'#7d5a14', bd:'#e6d3ab'},
+  'Signed':       {label:'Executed',  dot:'#2e8763', bg:'#d9eae0', tx:'#1e6b4d', bd:'#c1ddce'},
+  'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#f1dcd8', tx:'#8f322b', bd:'#e6c9c1'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
+// Industry badge: flat bg+fg, 10.5px 600, .03em, 3px radius, no dot.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium" style="background:${m.bg};color:${m.tx};border:1px solid ${m.bd}"><span class="h-1.5 w-1.5 rounded-full" style="background:${m.dot}"></span>${m.label}</span>`; };
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
+
+// ---- Risk model (Industry): bands ≥60 ruby / 35–59 amber / <35 emerald ----
+const RISK_PAL = {
+  ruby:  {bg:'#f1dcd8', fg:'#8f322b', dot:'#b0453c'},
+  amber: {bg:'#f1e6cd', fg:'#7d5a14', dot:'#b8862b'},
+  green: {bg:'#d9eae0', fg:'#1e6b4d', dot:'#2e8763'},
+};
+const riskBand = r => r>=60?'ruby':r>=35?'amber':'green';
+const riskPal  = r => RISK_PAL[riskBand(r)];
+// A 0–100 risk score for display. Prefers the real scan-driven signal; for
+// un-scanned contracts it derives a stable pseudo-score from immutable fields
+// (display only — never persisted, never alters data flow or logic).
+function contractRisk(c){
+  if(!c) return 0;
+  const open=(window.openFindings?openFindings(c):[]);
+  if(open.length){ const w={high:34,med:16,low:7}; return Math.min(98, 22 + open.reduce((a,f)=>a+(w[f.sev]||8),0)); }
+  let h=0; const seed=(c.id||'')+'|'+(c.counterparty||'')+'|'+(c.status||'');
+  for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0;
+  let base = 8 + (h % 70);
+  if(c.status==='Declined') base = 62 + (h%36);
+  else if(c.status==='Signed') base = Math.min(base, 46);
+  return base;
+}
+// small risk chip: "R nn" in the band colour
+const riskChip = (r,withR=true) => { const p=riskPal(r); return `<span class="badge tnum" style="background:${p.bg};color:${p.fg}">${withR?'R ':''}${r}</span>`; };
 
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
@@ -115,7 +145,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,UPLOAD_MAX,cIcon,cKind,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,seedComments,sha256,state,statusChip,statusLabel,toast,uid});
+Object.assign(window,{STATUS_META,RISK_PAL,UPLOAD_MAX,cIcon,cKind,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,riskBand,riskPal,riskChip,seedComments,sha256,state,statusChip,statusLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -373,8 +403,10 @@ function logout(){
 function startApp(){
   FIRST_PARTY = getOrg().name;
   document.getElementById('auth-root').innerHTML='';
-  document.getElementById('app-shell').classList.remove('hidden');
+  document.getElementById('app-shell').style.display='grid';
   renderSideUser(); renderSideFolders();
+  window.renderNewMenu&&renderNewMenu();
+  window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
   setView(['dashboard','register','pipeline','folder','intel','calendar','reports','workspace','team'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
@@ -382,11 +414,15 @@ function startApp(){
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
   const org=getOrg().name||'HaTi';
-  // rail avatar shows the ORG initials (per spec) and links to Team & Settings
-  const initials=org.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
-  if(av){ av.textContent=initials; av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`;
-    av.onclick=()=>setView('team'); }
+  if(av){ av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`; av.onclick=()=>setView('team'); }
+  const setTxt=(id,t)=>{ const el=document.getElementById(id); if(el) el.textContent=t; };
+  setTxt('side-avatar', initials);
+  setTxt('side-name', u.name||org);
+  setTxt('side-role', `${ROLE_LABEL[u.role]||'Member'} · ${org}`);
+  const online=(getUsers()||[]).length||1;
+  setTxt('side-status', `${API_MODE()?'Server mode · SQLite':'Local mode'} · ${online} online`);
 }
 // folders/quick-create moved into the Register + New-contract menu; no rail list.
 function renderSideFolders(){ /* rail has no folder list in the light-theme redesign */ }
