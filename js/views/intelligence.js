@@ -102,7 +102,17 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from AI*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
-  busy:false, dockOpen:true, seq:1 };
+  busy:false, dockOpen:true,
+  // Horizon-style leftward expand; the preference sticks per device.
+  dockWide:(()=>{ try{ return !!(typeof lsGet==='function'&&lsGet('hati.v1.intelWide')); }catch(_){ return false; } })(),
+  seq:1 };
+// Dock width: collapsed sliver, normal, or wide (capped so the graph always
+// keeps meaningful room; on narrow screens wide degrades gracefully).
+function igDockWidth(){
+  if(!intel.dockOpen) return 46;
+  if(!intel.dockWide) return 380;
+  return Math.max(380, Math.min(660, Math.round((window.innerWidth||1200)*0.45)));
+}
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
 const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
@@ -599,7 +609,7 @@ function renderIntel(){
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
       </div>
-      <aside id="ig-dock" class="shrink-0 bg-white border-l border-hair flex flex-col min-h-0 overflow-hidden" style="width:${intel.dockOpen?380:46}px"></aside>
+      <aside id="ig-dock" class="shrink-0 bg-white border-l border-hair flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
     </div>
   </div>`;
 
@@ -628,7 +638,7 @@ function renderIntel(){
 /* ---- right-hand AI dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
-  dock.style.width=(intel.dockOpen?380:46)+'px';
+  dock.style.width=igDockWidth()+'px';
   // the canvas flexes — re-measure and re-settle once the width transition lands
   setTimeout(()=>{ if(state.view==='intel') rebuildIntelGraph(); },280);
 }
@@ -714,6 +724,9 @@ function renderIntelDock(){
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
           :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:#F0E6CF;color:#8A5E1B">○ Basic mode</span>`; })()}
       ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
+        ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
+        :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
       <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
     </div>
     ${intel.lenses.length?`
@@ -746,6 +759,12 @@ function renderIntelDock(){
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   // wiring
   document.getElementById('igd-collapse').addEventListener('click',()=>{ intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); });
+  // widen the dock leftward / shrink back; the graph re-fits automatically
+  document.getElementById('igd-expand')?.addEventListener('click',()=>{
+    intel.dockWide=!intel.dockWide;
+    try{ if(typeof lsSet==='function') lsSet('hati.v1.intelWide',intel.dockWide); }catch(_){}
+    renderIntelDock(); igSyncDockWidth();
+  });
   const go=()=>{ const inp=document.getElementById('igd-input'); const v=inp.value; inp.value=''; intelAsk(v); };
   document.getElementById('igd-go').addEventListener('click',go);
   document.getElementById('igd-input').addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
@@ -855,4 +874,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
