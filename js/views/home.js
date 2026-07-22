@@ -51,7 +51,7 @@ function renderDashboard(){
   const kpiHtml=kpis.map((k,i)=>`
     <button data-kpi="${i}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:0;${i?'border-left:1px solid var(--color-divider);':''}background:none;padding:11px 14px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.background='rgba(89,128,166,.07)'" onmouseout="this.style.background='none'">
       <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);">${k.label}</span>
-      <span class="tnum" style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:1.05;color:${k.num};">${k.val}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:24px;line-height:1.05;color:${k.num};">${k.val}</span>
       <span style="font-size:10px;color:${k.dc};font-weight:500;">${k.delta}</span>
     </button>`).join('');
 
@@ -60,14 +60,14 @@ function renderDashboard(){
   const stageCards=stages.map(s=>`
     <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-bg);padding:8px 10px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
-      <span class="tnum" style="font-family:var(--font-heading);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600);">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
     </button>`).join('');
 
   // ---- needs your action ----
   const actionRows=reviewByRisk.slice(0,5).map(x=>{ const c=x.c;
     return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-      <span style="font-family:var(--font-heading);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${c.name}</span>
       <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
       ${riskChip(x.r)}
@@ -83,7 +83,7 @@ function renderDashboard(){
   const pipeCount=cs.filter(c=>{ if(!c.expiry||c.status==='Declined') return false; const t=Date.parse(c.expiry); if(isNaN(t)) return false; const d=new Date(t); return months.some(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); }).length;
   const pipeBars=months.map(x=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <span style="font-family:var(--font-heading);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
       <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:2px;overflow:hidden;"><div style="width:${(x.v/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);"></div></div>
       <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${x.v?fmtKESshort(x.v).replace('KES ',''):'—'}</span>
     </div>`).join('');
@@ -103,12 +103,12 @@ function renderDashboard(){
         <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</span>
         <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${c.counterparty||'—'}</span>
       </span>
-      <span style="font-size:10.5px;font-weight:600;font-family:var(--font-heading);color:${tagColor};flex:none;">${tag}</span>
+      <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:${tagColor};flex:none;">${tag}</span>
     </button>`;
   const attnCol=(title,dot,rows,total)=>`
     <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-bottom:1px solid var(--color-divider);">
-        <span style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-weight:600;font-size:14px;"><span style="width:8px;height:8px;border-radius:50%;background:${dot};"></span>${title}</span>
+        <span style="display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-weight:600;font-size:14px;"><span style="width:8px;height:8px;border-radius:50%;background:${dot};"></span>${title}</span>
         <span style="font-size:10.5px;color:var(--color-neutral-600);">${total} shown</span>
       </div>
       ${rows||`<div style="padding:14px 12px;font-size:11.5px;color:var(--color-neutral-600);">Nothing to show.</div>`}

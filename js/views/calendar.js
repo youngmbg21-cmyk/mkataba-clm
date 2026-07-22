@@ -42,7 +42,7 @@ function renderCalendar(){
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
     const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;`+
       `background:${today?'rgba(89,128,166,.1)':'var(--color-bg)'};border:1px solid ${today?'var(--color-accent)':'var(--color-divider)'}`;
-    const numStyle=`font-family:var(--font-heading);font-size:10px;color:${today?'var(--color-accent-800)':'var(--color-neutral-500)'};font-weight:${today?700:400}`;
+    const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':'var(--color-neutral-500)'};font-weight:${today?700:400}`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
       return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
@@ -68,7 +68,7 @@ function renderCalendar(){
         `<span style="display:block;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
         `<span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
       `</span>`+
-      `<span style="font-size:10px;font-weight:600;font-family:var(--font-heading);color:${ev.fg};flex:none">${inTxt}</span>`+
+      `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none">${inTxt}</span>`+
     `</button>`;
   }).join(''):`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:2px 0 0">Nothing due in the next 60 days.</p>`;
 
@@ -86,7 +86,7 @@ function renderCalendar(){
             <button id="cal-today" style="height:26px;padding:0 9px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;color:var(--color-neutral-700)">Today</button>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-heading);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px">
           ${weekdays}
         </div>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells.join('')}</div>

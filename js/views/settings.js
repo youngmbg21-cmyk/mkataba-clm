@@ -10,15 +10,15 @@ function renderTeam(){
 
   // --- Industry token style fragments (inline, per design handoff) ---
   const cardStyle='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px';
-  const h4Style='font-family:var(--font-heading);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
+  const h4Style='font-family:var(--font-mono);font-weight:600;font-size:14px;margin:0 0 6px;color:var(--color-text)';
   const inputStyle='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:12.5px;color:inherit;outline:none';
-  const inputMono='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 8px;font-family:var(--font-heading);font-size:11px;color:inherit;outline:none';
-  const primaryBtn='font-family:var(--font-heading);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer;white-space:nowrap';
-  const primaryBtnSm='font-family:var(--font-heading);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer';
-  const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:4px;cursor:pointer';
-  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:#b0453c;border:1px solid #e3c9c4;border-radius:4px;cursor:pointer';
+  const inputMono='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 8px;font-family:var(--font-mono);font-size:11px;color:inherit;outline:none';
+  const primaryBtn='font-family:var(--font-mono);font-weight:600;font-size:12.5px;padding:6px 14px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer;white-space:nowrap';
+  const primaryBtnSm='font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 12px;background:var(--color-accent);color:#fff;border:1px solid var(--color-accent);border-radius:4px;cursor:pointer';
+  const secondaryBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:var(--color-accent-800);border:1px solid var(--color-divider);border-radius:4px;cursor:pointer';
+  const dangerBtn='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:600;font-size:12px;padding:5px 11px;background:var(--color-surface);color:#b0453c;border:1px solid #e3c9c4;border-radius:4px;cursor:pointer';
   const tagAccent='display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:var(--color-accent-200);color:var(--color-accent-800)';
-  const avStyle='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-heading)';
+  const avStyle='width:24px;height:24px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700;flex:none;font-family:var(--font-mono)';
   const roleTag=r=>{ const map={admin:['#d6ebff','#2c455d'],legal:['#f1e6cd','#7d5a14'],viewer:['#e3e3e6','#5d5d60']};
     const [bg,fg]=map[r]||map.viewer;
     return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:${bg};color:${fg}`; };
@@ -63,7 +63,7 @@ function renderTeam(){
         <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
           <h4 style="margin:0;font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">Members · ${users.length}</h4>
-          ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-heading);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">+ Invite member</button>`:''}
+          ${isAdmin()?`<button id="tm-invite" style="font-family:var(--font-mono);font-weight:600;font-size:12px;padding:4px 10px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;color:var(--color-accent-800)">+ Invite member</button>`:''}
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;border-collapse:collapse;font-size:12.5px">
@@ -80,7 +80,7 @@ function renderTeam(){
         </div>
         ${isAdmin()?`
         <div style="padding:12px 14px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
-          <div style="font-family:var(--font-heading);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Add team member</div>
+          <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Add team member</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <input id="tm-name" type="text" placeholder="Full name" style="${inputStyle}"/>
             <input id="tm-email" type="email" placeholder="Work email" style="${inputStyle}"/>
@@ -135,13 +135,13 @@ function renderTeam(){
               <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
                 <div style="font-size:11px;font-weight:600;color:var(--color-text)">Fast tier</div>
                 <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">Search · graph · extraction</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-fast-cur" style="font-family:var(--font-heading)">—</span></div>
+                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-fast-cur" style="font-family:var(--font-mono)">—</span></div>
                 <input id="ai-model-fast" type="text" placeholder="default (recommended)" style="${inputMono}"/>
               </div>
               <div style="border:1px solid var(--color-divider);border-radius:4px;padding:8px">
                 <div style="font-size:11px;font-weight:600;color:var(--color-text)">Deep tier</div>
                 <div style="font-size:10px;color:var(--color-neutral-500);margin:2px 0 4px">Playbook review · obligations</div>
-                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-deep-cur" style="font-family:var(--font-heading)">—</span></div>
+                <div style="font-size:10px;color:var(--color-neutral-700);margin-bottom:4px">Current: <span id="ai-model-deep-cur" style="font-family:var(--font-mono)">—</span></div>
                 <input id="ai-model-deep" type="text" placeholder="default (recommended)" style="${inputMono}"/>
               </div>
             </div>
@@ -149,7 +149,7 @@ function renderTeam(){
               <summary style="cursor:pointer;color:var(--color-neutral-600)">Advanced: override every tier</summary>
               <div style="margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">
                 <input id="ai-model-global" type="text" placeholder="(none)" style="${inputMono};width:220px"/>
-                <span style="font-size:10px;color:var(--color-neutral-500)">Forces this one model for both tiers (<span style="font-family:var(--font-heading)">ANTHROPIC_MODEL</span>).</span>
+                <span style="font-size:10px;color:var(--color-neutral-500)">Forces this one model for both tiers (<span style="font-family:var(--font-mono)">ANTHROPIC_MODEL</span>).</span>
               </div>
             </details>
             <button id="ai-model-save" style="margin-top:8px;${primaryBtnSm}">Save model settings</button>
@@ -213,7 +213,7 @@ function renderTeam(){
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Email &amp; notifications</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-heading)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-mono)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
           <button id="rem-run" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
           <button id="ob-refresh" style="${secondaryBtn}">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
@@ -377,7 +377,7 @@ function renderClauseLibrary(){
   host.innerHTML=lib.map((cl,i)=>`
     <div style="border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:10px 12px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-size:9.5px;font-family:var(--font-heading);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
+        <span style="font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-500)">${cl.category}</span>
         <span style="font-size:12.5px;font-weight:600;color:var(--color-text)">${cl.name}</span>
         ${canEditLib?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-cl-edit="${i}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
@@ -395,8 +395,8 @@ function renderClauseLibrary(){
       Object.entries(pb).filter(([k])=>k!=='_default').map(([k,p])=>{ const rp=resolvePlaybook(k);
         return `<div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:9px 10px">
           <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:5px">${p.label||k}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px">${rp.positions.map(pos=>`<span style="font-size:9.5px;font-family:var(--font-heading);border-radius:3px;padding:1px 6px;${pos.pos==='required'||pos.pos==='forbidden'?'background:#f1dcd8;color:#8f322b':'background:#d6ebff;color:#2c455d'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
-          ${rp.ranges.map(rg=>`<span style="font-size:9.5px;font-family:var(--font-heading);border-radius:3px;padding:1px 6px;background:#f1e6cd;color:#7d5a14">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">${rp.positions.map(pos=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:3px;padding:1px 6px;${pos.pos==='required'||pos.pos==='forbidden'?'background:#f1dcd8;color:#8f322b':'background:#d6ebff;color:#2c455d'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
+          ${rp.ranges.map(rg=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:3px;padding:1px 6px;background:#f1e6cd;color:#7d5a14">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
         </div>`; }).join('')+`<p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.</p>`;
   }
 }
@@ -494,8 +494,8 @@ async function loadSessions(){
     host.innerHTML=rows.length?`<div style="display:flex;flex-direction:column;gap:6px">${rows.map(s=>{
       const ua=(s.ua||'').replace(/</g,'&lt;'); const dev=/mobile/i.test(ua)?'Mobile':/chrome/i.test(ua)?'Chrome':/firefox/i.test(ua)?'Firefox':/safari/i.test(ua)?'Safari':'Browser';
       return `<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:4px;background:var(--color-surface);padding:7px 10px">
-        <span style="min-width:0"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${dev}${s.current?' <span style="font-size:9px;font-family:var(--font-heading);color:var(--color-accent-700)">· this device</span>':''}</span>
-        <span style="display:block;font-size:10px;font-family:var(--font-heading);color:var(--color-neutral-500)">${s.ip||'—'} · last seen ${s.lastSeen?fmtDT(s.lastSeen):'—'}</span></span>
+        <span style="min-width:0"><span style="font-size:12px;font-weight:600;color:var(--color-text)">${dev}${s.current?' <span style="font-size:9px;font-family:var(--font-mono);color:var(--color-accent-700)">· this device</span>':''}</span>
+        <span style="display:block;font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500)">${s.ip||'—'} · last seen ${s.lastSeen?fmtDT(s.lastSeen):'—'}</span></span>
         ${s.current?'':`<button data-sess-revoke="${s.id}" style="margin-left:auto;font-size:11px;font-weight:600;color:#b0453c;background:none;border:0;cursor:pointer">Revoke</button>`}
       </div>`; }).join('')}</div>`:`<p style="font-size:11px;color:var(--color-neutral-500)">No active sessions.</p>`;
     host.querySelectorAll('[data-sess-revoke]').forEach(b=>b.addEventListener('click',async()=>{

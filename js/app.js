@@ -219,7 +219,7 @@ function renderContextPanel(){
             <span style="width:8px;height:8px;border-radius:50%;background:${CAT_DOT[a.cat]};flex:none;margin-top:4px;"></span>
             <span style="flex:1;min-width:0;">
               <span style="display:block;font-size:11.5px;line-height:1.4;">${a.txt}</span>
-              <span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-heading);">${a.id} · ${a.when}</span>
+              <span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${a.id} · ${a.when}</span>
             </span>
           </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">No activity recorded yet.</div>`}
       </div>`;
@@ -235,11 +235,11 @@ function renderContextPanel(){
   const rp=riskPal(rs);
   const terms=panelTermsFor(c);
   const recent=(c.audit||[]).slice().sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0)).slice(0,3)
-    .map(a=>`<div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(29,31,32,.05);"><span style="font-family:var(--font-heading);color:var(--color-neutral-500);flex:none;width:44px;">${relTime(a.at).replace(' ago','')}</span><span style="color:var(--color-neutral-800);">${a.detail||a.action||''}</span></div>`).join('')
+    .map(a=>`<div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(29,31,32,.05);"><span style="font-family:var(--font-mono);color:var(--color-neutral-500);flex:none;width:44px;">${relTime(a.at).replace(' ago','')}</span><span style="color:var(--color-neutral-800);">${a.detail||a.action||''}</span></div>`).join('')
     || `<div style="font-size:11px;color:var(--color-neutral-600);">No recent activity.</div>`;
   body.innerHTML=`
     <div style="padding:12px;">
-      <div style="font-family:var(--font-heading);font-size:11px;color:var(--color-neutral-600);">${c.id}</div>
+      <div style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);">${c.id}</div>
       <div style="font-size:14px;font-weight:600;line-height:1.3;margin:2px 0 6px;">${c.name}</div>
       <span class="badge" style="background:${m.bg};color:${m.tx};">${m.label}</span>
       <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:8px;">

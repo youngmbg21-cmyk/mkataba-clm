@@ -713,7 +713,7 @@ function openPartyModal(name){
         <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
         <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
         <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#2c455d">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
-        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#7a7a7d">${n.sub}</text>
+        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'IBM Plex Mono',monospace" fill="#7a7a7d">${n.sub}</text>
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">

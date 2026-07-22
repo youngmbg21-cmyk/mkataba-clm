@@ -32,7 +32,7 @@ function pipeCard(c){
   return `
     <div data-card="${c.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;box-shadow:var(--shadow-sm);padding:9px 10px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
-        <span style="font-family:var(--font-heading);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
+        <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:1px 6px;border-radius:3px;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
       <div style="font-size:12.5px;font-weight:500;line-height:1.3">${c.name}</div>
@@ -58,7 +58,7 @@ function renderPipeline(){
     <div style="min-width:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px 8px;min-width:0">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-family:var(--font-mono);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
         <span style="font-size:10.5px;border:1px solid var(--color-divider);padding:0 6px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
         <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtKESshort(g.val)}</span>

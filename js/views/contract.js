@@ -464,7 +464,7 @@ function docBody(c){
   const title=built.title, recital=built.recital, clauses=built.clauses;
   return `
     <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:10px;font-family:var(--font-heading);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
       <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
     </div>
     <p class="text-[13px] leading-[1.7] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
@@ -488,8 +488,8 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="'DM Sans',sans-serif" font-weight="700" font-size="12.5" fill="#086B54">SEALED</text>
-          <text x="48" y="58" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#075444">SHA-256</text>
+          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
@@ -593,7 +593,7 @@ function renderWorkspace(){
         <section style="${CARD};padding:12px">
           <h6 style="${H6};margin-bottom:8px">Key terms</h6>
           <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">${c.counterparty||'—'}</span></div>
-          <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-heading)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+          <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
           <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
           ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
           ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
@@ -635,7 +635,7 @@ function renderWorkspace(){
           <h6 style="${H6};margin-bottom:8px">Signer verification &amp; consent</h6>
           <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px;margin-bottom:8px;font-size:12px">
             <div style="font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:2px">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
-            <div style="color:var(--color-neutral-700);font-family:var(--font-heading);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
+            <div style="color:var(--color-neutral-700);font-family:var(--font-mono);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
             <div style="color:var(--color-neutral-600);font-size:11px;margin-top:2px;line-height:1.4">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
           </div>
           <label class="${(locked||!canEdit())?'opacity-70 pointer-events-none':''}" style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">

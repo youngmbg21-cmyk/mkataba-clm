@@ -291,9 +291,9 @@ function renderAuth(mode){
   <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:40px 16px;">
     <div style="width:100%;max-width:420px;">
       <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px;">
-        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.02em;border-radius:4px;">HT</div>
+        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:17px;letter-spacing:.02em;border-radius:4px;">HT</div>
         <div style="line-height:1.15;">
-          <div style="font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
+          <div style="font-family:var(--font-mono);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
           <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
         </div>
       </div>
@@ -303,9 +303,9 @@ function renderAuth(mode){
   </div>`;
   const input=(id,label,type='text',ph='')=>`
     <label style="display:block;margin-bottom:14px;">
-      <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
+      <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
       <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
-  const H1='font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
+  const H1='font-family:var(--font-mono);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
   const SUB='font-size:12px;color:var(--color-neutral-700);margin:4px 0 18px;line-height:1.5;';
   const PBTN='width:100%;padding:9px;font-size:13px;margin-top:2px;';
   const LINKBTN='margin-top:14px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
@@ -656,7 +656,7 @@ async function openShareModal(c){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55;">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
-      <textarea id="share-link" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-heading);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <textarea id="share-link" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close" class="ui-btn">Close</button>
         <button id="share-copy" class="ui-btn ui-btn-primary">${icon('copy','w-3.5 h-3.5')} Copy link</button>
@@ -678,7 +678,7 @@ function openImportModal(c){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Import counterparty response</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Paste the response code the counterparty sent back after opening your share link.</p>
-      <textarea id="imp-code" rows="5" placeholder="Paste response code…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-heading);color:var(--color-text);outline:none;"></textarea>
+      <textarea id="imp-code" rows="5" placeholder="Paste response code…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="imp-cancel" class="ui-btn">Cancel</button>
         <button id="imp-go" class="ui-btn ui-btn-primary">Import</button>

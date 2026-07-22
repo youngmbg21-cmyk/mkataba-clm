@@ -66,7 +66,7 @@ function renderReports(){
   const stat=(label,val,sub,i)=>`
     <div style="display:flex;flex-direction:column;gap:3px;padding:12px 14px;${i?'border-left:1px solid var(--color-divider)':''}">
       <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</span>
-      <span style="font-family:var(--font-heading);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums">${val}</span>
+      <span style="font-family:var(--font-mono);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums">${val}</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600)">${sub}</span>
     </div>`;
   const stats=[
