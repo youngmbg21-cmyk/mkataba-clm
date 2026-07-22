@@ -1,0 +1,15 @@
+{
+  "name": "hati-clm",
+  "version": "0.2.0",
+  "description": "HaTi — Contract Lifecycle Management platform for the Kenyan market",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dependencies": {
+    "express": "^4.19.0"
+  }
+}
