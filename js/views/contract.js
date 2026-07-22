@@ -340,7 +340,21 @@ function docBody(c){
   const fNum=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" class="field field-num"/>`;
   const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
   const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" class="field field-num"/>`;
-  const clause=(n,title,body)=>`<div class="mb-5 px-2 -mx-2 py-1" data-anchor="c${n}"><h4 class="font-display font-600 text-brand-900 text-[13px] mb-1.5">${n}. ${title}</h4><p class="text-[13.5px] leading-[1.85] text-brand-800/85">${body}</p></div>`;
+  // Presentational clause flags — reuse the app's EXISTING scan findings
+  // (openFindings), map each to its clause anchor, keep the worst severity.
+  const flags={};
+  try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
+    if(/^c\d+$/.test(a||'')){ const r=(window.SEV_RANK&&SEV_RANK[x.sev])||{high:3,med:2,low:1}[x.sev]||0;
+      if(!flags[a]||r>flags[a].r) flags[a]={r,sev:x.sev}; } }); }catch(e){}
+  const FLAGPAL={ high:{tag:'High',bg:'#f1dcd8',fg:'#8f322b',box:'rgba(176,69,60,.05)',line:'rgba(176,69,60,.3)'},
+    med:{tag:'Deviation',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'},
+    low:{tag:'Check',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'} };
+  const clause=(n,title,body)=>{
+    const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
+    const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:4px;padding:6px 10px;margin-bottom:14px"`:'';
+    const tag=p?`<span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:3px;flex:none">${p.tag}</span>`:'';
+    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85] text-brand-800/85" style="margin:0">${body}</p></div>`;
+  };
   const f=c.fields;
   const D=id=>fDate(id,f[id]);                    // date field
   const T=(id,ph)=>fText(id,f[id],ph);            // text field
@@ -449,11 +463,11 @@ function docBody(c){
   const built=(BUILD[c.template]||BUILD.ND)();
   const title=built.title, recital=built.recital, clauses=built.clauses;
   return `
-    <div class="mb-6 pb-5 border-b border-brand-100">
-      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${t.kind} · Republic of Kenya · ${c.id}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${title}</h3>
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:10px;font-family:var(--font-heading);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
     </div>
-    <p class="text-[13.5px] leading-[1.9] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
+    <p class="text-[13px] leading-[1.7] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
     ${clauses.join('')}
     ${signatureBlock(c)}`;
 }
@@ -530,106 +544,114 @@ function renderWorkspace(){
     return;
   }
   const locked=c.status==='Signed';
+  // Industry design-system tokens — inline styles per the design handoff.
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
+  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px';
+  const KKEY='color:var(--color-neutral-600);flex:none';
+  const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
   content.innerHTML=`
-  <div class="view-enter h-full flex flex-col">
-    <header class="shrink-0 sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair">
-      <div class="px-6 py-3.5 flex items-center justify-between gap-4">
-        <div class="flex items-center gap-3 min-w-0">
-          <button id="ws-back" class="h-9 w-9 grid place-items-center rounded-lg border border-brand-100 bg-white text-brand-700 hover:bg-brand-50 transition shrink-0">${icon('arrowLeft')}</button>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <h1 class="font-display font-600 text-brand-900 truncate">${c.name}</h1>
-              <span id="ws-status">${statusChip(c.status)}</span>
-            </div>
-            <div class="text-[11px] font-mono text-brand-800/65">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5 shrink-0">
-          ${canEdit()?`
-          <button id="ws-share" title="Share with counterparty" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('share','w-3.5 h-3.5')}<span class="hidden xl:inline">Share</span></button>
-          <button id="ws-import" title="Import counterparty response" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('upload','w-3.5 h-3.5')}<span class="hidden xl:inline">Import response</span></button>`:''}
-          <button id="ws-pdf" title="Export as PDF" class="flex items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">${icon('printer','w-3.5 h-3.5')}<span class="hidden xl:inline">PDF</span></button>
-          <button id="ws-ai" class="hidden sm:flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-2.5 py-2 text-xs font-medium text-brand-700 hover:border-brand-300 transition">
-            ${icon('sparkle','w-3.5 h-3.5 text-gold-500')}<span class="hidden xl:inline">Ask AI</span>
-          </button>
-        </div>
-      </div>
-    </header>
+  <div class="view-enter" style="padding:14px 16px 28px">
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
 
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-0 flex-1 min-h-0">
-      <section class="overflow-y-auto scroll-thin border-r border-hair bg-docbg">
-        <div class="px-6 lg:px-10 py-8 max-w-[760px] mx-auto">
-          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-900 text-brand-100 px-3 py-2 text-[11px]">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
-            :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-[11px] text-slate-600">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
-            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
-            :`<div class="mb-5 flex items-center gap-2 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the summary on the right.</span></div>`}
-          <article class="bg-white rounded-[4px] border border-brand-100/60 shadow-[0_24px_60px_-30px_rgba(60,40,10,.35),0_2px_6px_rgba(60,40,10,.06)] p-7 lg:p-10" id="doc-canvas">${docBody(c)}</article>
-          <div class="h-8"></div>
+      <!-- ============ LEFT: document card ============ -->
+      <section style="${CARD};overflow:hidden">
+        <!-- document toolbar -->
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--color-divider)">
+          <button id="ws-back" title="Back to register" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
+          <div style="min-width:0;flex:1">
+            <div style="display:flex;align-items:center;gap:8px">
+              <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</h3>
+              <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+          </div>
+          ${canEdit()?`
+          <button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
+          <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>`:''}
+          <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary blueprint" style="font-size:12px;padding:5px 12px"><i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
+        </div>
+        <!-- document body -->
+        <div style="padding:20px 28px;background:var(--color-bg)">
+          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
+            :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
+            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
+            :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
+          <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <article id="doc-canvas" style="background:transparent">${docBody(c)}</article>
+          </div>
         </div>
       </section>
 
-      <aside class="overflow-y-auto scroll-thin bg-white flex flex-col">
-        <div class="px-5 pt-5 pb-4 border-b border-brand-100/70">
-          <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-800/65 mb-2.5">Deal summary</div>
-          <div class="space-y-2.5">
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Counterparty</span><span id="meta-cp" class="text-sm font-medium text-brand-900 text-right max-w-[200px] truncate">${c.counterparty||'—'}</span></div>
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Contract value</span><span id="meta-value" class="text-sm font-mono font-semibold ${isMonetary(c)?'text-brand-700':'text-brand-800/65'}">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-            <div class="flex items-center justify-between"><span class="text-xs text-brand-800/70">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+      <!-- ============ RIGHT: context stack ============ -->
+      <div style="display:flex;flex-direction:column;gap:12px">
+
+        <!-- Key terms -->
+        <section style="${CARD};padding:12px">
+          <h6 style="${H6};margin-bottom:8px">Key terms</h6>
+          <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">${c.counterparty||'—'}</span></div>
+          <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-heading)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+          <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+          ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+          ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
+          ${kv('Expiry',c.expiry||'—')}
+          <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
+        </section>
+
+        <!-- AI scan (renderScanSection) -->
+        <div id="scan-section" style="${CARD};overflow:hidden"></div>
+
+        <!-- Playbook / negotiation / versions / obligations / engagement (empty:hidden) -->
+        <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+
+        <!-- Audit trail (renderAuditSection) -->
+        <div id="audit-section" style="${CARD};overflow:hidden"></div>
+
+        <!-- Activity & comments -->
+        <section style="${CARD};padding:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <h6 style="${H6};flex:1">Activity &amp; comments</h6>
+            <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
           </div>
-        </div>
-
-        <div id="scan-section" class="border-b border-brand-100/70"></div>
-
-        <div id="playbook-section" class="border-b border-brand-100/70 empty:hidden"></div>
-
-        <div id="nego-section" class="border-b border-brand-100/70 empty:hidden"></div>
-
-        <div id="versions-section" class="border-b border-brand-100/70 empty:hidden"></div>
-
-        <div id="obligations-section" class="border-b border-brand-100/70 empty:hidden"></div>
-
-        <div id="engagement-section" class="border-b border-brand-100/70 empty:hidden"></div>
-
-        <div id="audit-section" class="border-b border-brand-100/70"></div>
-
-        <div class="px-5 py-4 border-b border-brand-100/70 flex-1 min-h-[200px] flex flex-col">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="text-brand-500">${icon('msg')}</span>
-            <h3 class="text-sm font-display font-600 text-brand-900">Activity &amp; Comments</h3>
-            <span class="ml-auto flex items-center gap-1 text-[10px] text-brand-500 font-medium"><span class="h-1.5 w-1.5 rounded-full bg-brand-500 live-dot"></span>live</span>
-          </div>
-          <div id="feed" class="space-y-3 overflow-y-auto scroll-thin flex-1 pr-1"></div>
-          <div class="mt-3 pt-3 border-t border-brand-100/60">
-            <div class="text-[10px] text-brand-800/60 mb-2">Commenting as <span class="font-medium text-brand-700">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
-            <div class="flex items-center gap-2">
-              <input id="comment-input" type="text" placeholder="Add a comment on the terms…" class="flex-1 rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition"/>
-              <button id="comment-send" class="h-9 w-9 shrink-0 grid place-items-center rounded-lg bg-brand-900 text-white hover:bg-brand-800 transition">${icon('send')}</button>
+          <div id="feed" class="space-y-3 scroll-thin" style="max-height:280px;overflow-y:auto;padding-right:4px"></div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
+            <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
+            <div style="display:flex;gap:6px">
+              <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+              <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
             </div>
           </div>
-        </div>
+        </section>
 
-        <div class="px-5 py-4 border-b border-brand-100/70">
-          <div class="flex items-center gap-2 mb-3">
-            <span class="text-gold-500">${icon('shield')}</span>
-            <h3 class="text-sm font-display font-600 text-brand-900">Signer verification &amp; consent</h3>
+        <!-- Signer verification & consent -->
+        <section style="${CARD};padding:12px">
+          <h6 style="${H6};margin-bottom:8px">Signer verification &amp; consent</h6>
+          <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px;margin-bottom:8px;font-size:12px">
+            <div style="font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:2px">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
+            <div style="color:var(--color-neutral-700);font-family:var(--font-heading);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
+            <div style="color:var(--color-neutral-600);font-size:11px;margin-top:2px;line-height:1.4">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
           </div>
-          <div class="rounded-lg border border-brand-100 bg-brand-50/40 p-3 mb-2 text-xs">
-            <div class="font-medium text-brand-900 flex items-center gap-1.5 mb-0.5">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
-            <div class="text-brand-800/70 font-mono text-[11px] truncate">${currentUser()?.email||''}</div>
-            <div class="text-brand-800/65 text-[11px] mt-0.5">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
-          </div>
-          <label class="flex items-start gap-3 rounded-lg border border-brand-100 p-3 cursor-pointer hover:border-brand-300 hover:bg-brand-50/40 transition ${(locked||!canEdit())?'opacity-70 pointer-events-none':''}">
-            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-brand-400"/>
-            <span class="text-xs">
-              <span class="font-medium text-brand-900">I intend to sign electronically</span>
-              <span class="text-brand-800/70 block">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
+          <label class="${(locked||!canEdit())?'opacity-70 pointer-events-none':''}" style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
+            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+            <span style="font-size:12px">
+              <span style="font-weight:600;display:block">I intend to sign electronically</span>
+              <span style="color:var(--color-neutral-700);display:block;line-height:1.4">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
             </span>
           </label>
-          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug flex items-start gap-1">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
-        </div>
+          <div style="margin-top:8px;font-size:10px;color:var(--color-neutral-600);line-height:1.4;display:flex;align-items:flex-start;gap:4px">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
+        </section>
 
-        <div class="px-5 py-4 sticky bottom-0 bg-white border-t border-brand-100/70"><div id="sign-wrap"></div></div>
-      </aside>
+        <!-- Sign action (renderSignButton) -->
+        <section style="${CARD};padding:12px"><div id="sign-wrap"></div></section>
+
+      </div>
     </div>
   </div>`;
 
