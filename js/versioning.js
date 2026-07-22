@@ -3,11 +3,37 @@
 // leaves the signing seal untouched: an accepted redline just becomes the
 // text that freezeContractHtml seals, hashed exactly as before.
 
+/* HTML → structured plain text: preserves the document's shape (headings,
+   clauses, paragraphs on their own lines) instead of collapsing to one blob.
+   normText stays as-is for seal hashing — this is only the WORKING copy. */
+function htmlToStructuredText(html){
+  const d=document.createElement('div'); d.innerHTML=html||'';
+  d.querySelectorAll('script,style').forEach(n=>n.remove());
+  const BLOCK=new Set(['P','DIV','H1','H2','H3','H4','H5','H6','LI','TR','TABLE','UL','OL','SECTION','ARTICLE','HEADER','FOOTER','BLOCKQUOTE','ADDRESS']);
+  let out='';
+  (function walk(node){
+    node.childNodes.forEach(ch=>{
+      if(ch.nodeType===3){ out+=ch.nodeValue.replace(/\s+/g,' '); return; }
+      if(ch.nodeType!==1) return;
+      if(ch.tagName==='BR'){ out+='\n'; return; }
+      if(ch.tagName==='INPUT'){ out+=(ch.value||ch.getAttribute('value')||''); return; }
+      const isBlock=BLOCK.has(ch.tagName);
+      const anchored=ch.hasAttribute&&ch.hasAttribute('data-anchor');
+      if(isBlock&&out&&!out.endsWith('\n')) out+='\n';
+      walk(ch);
+      if(isBlock&&!out.endsWith('\n')) out+='\n';
+      if(anchored) out+='\n';   // blank line between document sections/clauses
+    });
+  })(d);
+  return out.split('\n').map(l=>l.replace(/\s+/g,' ').trim()).join('\n')
+    .replace(/\n{3,}/g,'\n\n').trim();
+}
+
 /* Plain text of a contract's current body — the unit versions/diffs work on. */
 function docPlainText(c){
+  if(c.redlineText) return c.redlineText;                 // edited/adopted working text is the live text
   if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
-  if(c.redlineText) return c.redlineText;                 // an accepted redline is the live text
-  try{ return normText(freezeContractHtml(c)); }catch(e){ return ''; }
+  try{ return htmlToStructuredText(freezeContractHtml(c)); }catch(e){ return ''; }
 }
 
 /* ---- version records (E2-T1) ---- */
@@ -195,4 +221,4 @@ function acceptProposedRound(c, n){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{docPlainText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{docPlainText,htmlToStructuredText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

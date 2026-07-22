@@ -91,7 +91,7 @@ function renderSharePortal(p, opts={}){
     const box=document.getElementById('portal-redline');
     box.classList.toggle('hidden');
     const ta=document.getElementById('pt-redline-text');
-    if(!ta.value) ta.value = (c.redlineText) ? c.redlineText : normText(freezeContractHtml(c));
+    if(!ta.value) ta.value = docPlainText(c);
     ta.scrollIntoView({behavior:'smooth',block:'nearest'});
   });
   document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
