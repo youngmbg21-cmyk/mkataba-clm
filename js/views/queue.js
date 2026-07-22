@@ -80,7 +80,7 @@ function renderPipeline(){
   wirePipeline();
   setActiveNav('pipeline');
 }
-function pipeMove(id, target){
+async function pipeMove(id, target){
   const c=getContract(id); if(!c) return;
   if(!canEdit()){ toast('Viewers cannot move contracts','err'); return; }
   if(c.status===target) return;
@@ -88,7 +88,7 @@ function pipeMove(id, target){
   const label=(PIPE_COLS.find(x=>x.k===target)||{}).label||target;
   if(target==='Signed'){ toast('Open the contract to complete verification & signing'); openWorkspace(id); return; }
   if(target==='Declined'){
-    if(!confirm(`Move “${c.name}” to Closed? This declines the contract.`)) return;
+    if(!await confirmDialog({title:`Move “${c.name}” to Closed?`, message:'This declines the contract and moves it out of the active pipeline.', confirmLabel:'Decline & close', danger:true})) return;
     c.status='Declined'; logAudit(c,'Declined','Moved to Closed on the pipeline board');
     toast(`${c.name.split(' —')[0]} moved to Closed`,'err');
   } else {

@@ -78,7 +78,12 @@ function renderCalendar(){
       `</span>`+
       `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none">${inTxt}</span>`+
     `</button>`;
-  }).join(''):`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:2px 0 0">Nothing due in the next 60 days.</p>`;
+  }).join(''):`<div style="text-align:center;padding:22px 8px">
+      <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">Nothing due in the next 60 days</div>
+      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">Expiry and renewal dates on your contracts show up here automatically.</div>
+      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">Open the register</button>
+    </div>`;
 
   const btnBase='width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:13px;color:var(--color-neutral-700);line-height:1';
 
@@ -117,6 +122,7 @@ function renderCalendar(){
   document.getElementById('cal-next').addEventListener('click',()=>{ let {y,m}=calMonth(); m++; if(m>11){m=0;y++;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-today').addEventListener('click',()=>{ calState.ym=null; renderCalendar(); });
   document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>selectContract(b.getAttribute('data-sel'))));
+  document.getElementById('cal-empty-reg')?.addEventListener('click',()=>setView('register'));
   setActiveNav('calendar');
 }
 

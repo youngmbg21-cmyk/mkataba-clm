@@ -113,12 +113,13 @@ function renderFolder(){
 function folderExpiryCell(c){
   if(!c.expiry) return '<span style="color:var(--color-neutral-400)">—</span>';
   const dt=new Date(c.expiry+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  let col='var(--color-neutral-700)', hint='';
+  let col='var(--color-neutral-700)', hint='', weight=400;
   if(c.status!=='Declined'){ const d=daysUntil(c.expiry);
-    if(d<0){ col='#8f322b'; hint=`${-d}d ago`; }
+    if(d<0){ col='#8f322b'; weight=600; hint=`${-d}d ago`; }
+    else if(d<30){ col='#8f322b'; weight=600; hint=`in ${d}d`; }
     else if(d<=90){ col='#7d5a14'; hint=`in ${d}d`; }
   }
-  return `<span style="color:${col}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
+  return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
 // Render up to state.folderShown rows as a table body, with a "Show more" pager.
 function folderRowsHtml(cs){
@@ -256,7 +257,21 @@ const REG_ROW_ACTIONS=[
 ];
 function regRowsHtml(cs){
   const R=regState();
-  if(!cs.length) return `<tr><td colspan="12" style="padding:34px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No contracts match the current filters.</td></tr>`;
+  if(!cs.length){
+    const filtered = R.query.trim()||R.stage!=='all'||R.type!=='all'||R.view||(R.renewal&&R.renewal!=='all');
+    const line = filtered ? 'No contracts match the current filters.' : 'No contracts in your register yet.';
+    const sub  = filtered ? 'Try widening the filters, or clear them to see everything.' : 'Create one from a template, or upload a contract you received.';
+    const btn  = filtered
+      ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">Clear all filters</button>`
+      : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
+    return `<tr><td colspan="12" style="padding:48px 12px;text-align:center">
+      <div style="max-width:340px;margin:0 auto">
+        <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--color-text)">${line}</div>
+        <div style="font-size:12px;color:var(--color-neutral-600);margin:4px 0 14px;line-height:1.5">${sub}</div>
+        ${btn}
+      </div></td></tr>`;
+  }
   const shown=Math.min(cs.length, R.shown||REG_PAGE);
   const ini=regOwnerInitials();
   const ownerT=((currentUser()&&currentUser().name)||FIRST_PARTY||'').replace(/"/g,'&quot;');
@@ -266,7 +281,10 @@ function regRowsHtml(cs){
     const din=c.expiry?daysUntil(c.expiry):null;
     const renDate=c.expiry?new Date(c.expiry+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
     const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
-    const renColor=din==null?'transparent':(din<0?'#8f322b':din<=90?'#7d5a14':'var(--color-neutral-500)');
+    // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
+    const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
+    const renColor=din==null?'transparent':(renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-500)');
+    const renDateColor=renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-700)';
     const appr=approvalLabel(c);
     const apprColor=appr==='Approved'?'#1e6b4d':appr==='Rejected'?'#8f322b':appr==='—'?'var(--color-neutral-400)':/escalat/i.test(appr)?'#8f322b':'#7d5a14';
     const val=!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—');
@@ -287,7 +305,7 @@ function regRowsHtml(cs){
           <span style="font-size:11px;font-weight:600;color:${rp.fg};font-variant-numeric:tabular-nums">${risk}</span>
         </span>
       </td>
-      <td style="white-space:nowrap"><span style="font-size:11.5px">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
+      <td style="white-space:nowrap"><span style="font-size:11.5px;font-weight:${renUrgent?600:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
       <td>${statusChip(c.status)}</td>
       <td><span style="font-size:10.5px;font-weight:500;white-space:nowrap;color:${apprColor}">${appr}</span></td>
       <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
@@ -328,6 +346,9 @@ function wireRegRows(){
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
+  // empty-state actions
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.shown=REG_PAGE; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
+  document.getElementById('reg-empty-new')?.addEventListener('click',()=>{ const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu'); if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); } else if(nb){ nb.click(); } });
 }
 function regExportSelectedCsv(){
   const R=regState(); const ids=Object.keys(R.sel).filter(k=>R.sel[k]);

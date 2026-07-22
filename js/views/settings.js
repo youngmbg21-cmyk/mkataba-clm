@@ -281,7 +281,7 @@ function renderTeam(){
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!confirm('Remove the stored AI key? AI features will fall back to the built-in interpreter.')) return;
+      if(!await confirmDialog({title:'Remove the stored AI key?', message:'AI features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
       try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
@@ -306,8 +306,8 @@ function renderTeam(){
       lsSet('hati.v1.aikey', key); inp.value='';
       toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh();
     });
-    document.getElementById('ai-key-clear')?.addEventListener('click',()=>{
-      if(!confirm('Remove the stored AI key?')) return;
+    document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
+      if(!await confirmDialog({title:'Remove the stored AI key?', message:'HaTi Copilot and AI features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
       localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh();
     });
   }
@@ -340,7 +340,8 @@ function renderTeam(){
   }));
   document.querySelectorAll('[data-remove-user]').forEach(b=>b.addEventListener('click',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===b.getAttribute('data-remove-user'));
-    if(!u || !confirm(`Remove ${u.name} from the workspace?`)) return;
+    if(!u) return;
+    if(!await confirmDialog({title:`Remove ${u.name}?`, message:`${u.name} will lose access to this workspace. You can re-invite them later.`, confirmLabel:'Remove member', danger:true})) return;
     if(API_MODE()){
       try{ await api('users/'+u.id,'DELETE'); REMOTE.users=REMOTE.users.filter(x=>x.id!==u.id); }
       catch(e){ toast(e.message,'err'); return; }
@@ -358,17 +359,17 @@ function renderTeam(){
   document.getElementById('bk-import')?.addEventListener('change',e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{
-        const b=JSON.parse(rd.result);
-        if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad');
-        if(!confirm('Restoring replaces this workspace, its users and contracts with the backup. Continue?')) return;
-        lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
-        localStorage.removeItem(LS.session); location.reload();
-      }catch(err){ toast('That file is not a valid HaTi backup','err'); } };
+    rd.onload=async()=>{ let b;
+      try{ b=JSON.parse(rd.result); if(b.kind!=='hati-backup'||!b.org||!b.users) throw new Error('bad'); }
+      catch(err){ toast('That file is not a valid HaTi backup','err'); return; }
+      if(!await confirmDialog({title:'Restore from backup?', message:'Restoring replaces this workspace, its users and contracts with the backup. The current data will be overwritten.', confirmLabel:'Restore backup', danger:true})) return;
+      lsSet(LS.org,b.org); saveUsers(b.users); if(b.data) lsSet(LS.data,b.data);
+      localStorage.removeItem(LS.session); location.reload();
+    };
     rd.readAsText(f);
   });
-  document.getElementById('bk-reset')?.addEventListener('click',()=>{
-    if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
+  document.getElementById('bk-reset')?.addEventListener('click',async()=>{
+    if(await confirmDialog({title:'Erase this workspace?', message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
       Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
     }
   });

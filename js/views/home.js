@@ -23,6 +23,10 @@ function renderDashboard(){
   const stageTotal=stages.reduce((s,x)=>s+x.n,0)||1;
 
   const expiring=cs.filter(c=>c.expiry&&c.status!=='Declined').map(c=>({c,d:dU(c.expiry)})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+  // renewal decisions due (expiry − notice period), within 90 days, live contracts only
+  const rdd=window.renewalDecisionDate||(()=>null);
+  const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   const waiting=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const reviewByRisk=cs.filter(c=>c.status==='Under Review').map(c=>({c,r:contractRisk(c)})).sort((a,b)=>b.r-a.r);
@@ -113,6 +117,27 @@ function renderDashboard(){
       </div>
       ${rows||`<div style="padding:14px 12px;font-size:11.5px;color:var(--color-neutral-600);">Nothing to show.</div>`}
     </section>`;
+  // ---- decisions due (leads the page: the thing you open HaTi to act on) ----
+  const decisionRows=decisions.slice(0,6).map(x=>{ const c=x.c, urgent=x.d<=30;
+    return `<div style="display:flex;align-items:center;gap:11px;padding:9px 4px;border-bottom:1px solid rgba(29,31,32,.07)">
+      <span style="width:9px;height:9px;border-radius:50%;background:${urgent?'#b0453c':'#b8862b'};flex:none"></span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'—'} · decide by ${fmtDDay(x.dd)}</span>
+      </span>
+      <span style="font-size:11.5px;font-weight:600;font-family:var(--font-mono);color:${urgent?'#8f322b':'#7d5a14'};flex:none;white-space:nowrap">${x.d===0?'today':'in '+x.d+'d'}</span>
+      <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
+    </div>`; }).join('');
+  const decisionsSection=`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:${decisions.length?'6px':'0'}">
+        <h4 style="font-size:15px;margin:0;display:flex;align-items:center;gap:8px">Decisions due
+          ${decisions.length?`<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--color-accent-700);background:var(--color-accent-100);border-radius:999px;padding:1px 8px">${decisions.length}</span>`:''}</h4>
+        ${decisions.length>6?`<button data-open-decisions style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0">See all in the calendar →</button>`:''}
+      </div>
+      ${decisions.length?decisionRows
+        :`<div style="display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12.5px;color:var(--color-neutral-600)"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>No renewal decisions due in the next 90 days — you're all caught up.</div>`}
+    </section>`;
   const expRows=expiring.slice(0,5).map(x=>attnRow(x.c,'in '+x.d+'d',x.d<=30?'#8f322b':'#7d5a14')).join('');
   const riskRows=highRisk.slice(0,5).map(x=>attnRow(x.c,'R '+x.r,'#8f322b')).join('');
   const waitRows=waiting.slice(0,5).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('');
@@ -125,6 +150,9 @@ function renderDashboard(){
       
       ${kpiHtml}
     </section>
+
+    <!-- Decisions due — leads with what needs acting on, not statistics -->
+    ${decisionsSection}
 
     <!-- Stage + pipeline row -->
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;">
@@ -171,6 +199,8 @@ function renderDashboard(){
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
+  document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
+  document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
   setActiveNav('dashboard');
 }
 
