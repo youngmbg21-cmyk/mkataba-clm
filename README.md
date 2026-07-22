@@ -85,8 +85,27 @@ The demo data is organised into six value-stream folders, each with genuine cont
 | `EMAIL_FROM` | From-address for outgoing email. |
 | `HATI_DATA` | Directory for the SQLite database and stored files (default `server/data`). |
 | `PORT` | HTTP port (default 3000). |
+| `HTTPS` / `TRUST_PROXY` | Set either to `true` when running behind TLS/a proxy. Enables secure cookies + HSTS **and** an http→https redirect (honouring `x-forwarded-proto`). Leave unset for local http development. |
+| `AI_RATE_LIGHT` | Per-user cap on *light* AI requests (search, graph, template, extract) per 15 min. Default `40`. Overridden by the `aiRateLight` setting. |
+| `AI_RATE_DEEP` | Per-user cap on *deep* AI requests (playbook, obligations) per 15 min. Default `15`. Overridden by the `aiRateDeep` setting. |
+| `AI_DAILY_LIMIT` | Whole-workspace daily AI-request ceiling. Default `500`; `0` disables. Overridden by the `aiDailyLimit` setting. |
+| `AI_MAX_CHARS` | Max characters of prompt/document content sent to Anthropic per request; longer input is truncated with a notice. Default `50000`. Overridden by `aiMaxChars`. |
+| `AI_MAX_CONTRACTS` | Max contracts included in a single portfolio-wide AI request. Default `400`. Overridden by `aiMaxContracts`. |
 
 Copy `.env.example` to `.env` and fill in real values — `.env` (and `.env.*`) are gitignored; never commit a real key.
+
+### AI cost controls (Team & Settings)
+
+Every AI request calls Anthropic and costs money, so the AI endpoints are rate-limited, input-capped, and backstopped by a daily ceiling. All are admin-editable under **Team & Settings → AI engine → Usage & cost controls** (each with the env-var fallback above), and today's usage is shown there (e.g. "142 of 500 AI requests today").
+
+| Setting | Purpose | Default |
+|---|---|---|
+| `aiRateLight` / `aiRateDeep` | Per-**user** sliding-window limits (per 15 min). Two tiers: light endpoints are looser, the pricier deep endpoints tighter. Keyed by signed-in user, not IP. | `40` / `15` |
+| `aiDailyLimit` | Per-**workspace** daily request ceiling; `0` disables it. Resets on date change (UTC). | `500` |
+| `aiMaxChars` | Character cap on content sent per request (truncated with a marker + user notice). | `50000` |
+| `aiMaxContracts` | Cap on contracts per portfolio-wide request. | `400` |
+
+Rate-limit and daily-ceiling responses use the standard `429` + `Retry-After` shape; the frontend surfaces a friendly "AI limit reached" message. **These limiters and the daily counter are in-memory / single-instance** — running HaTi across multiple servers would need a shared store (e.g. Redis) instead.
 
 ### AI model routing (Team & Settings)
 

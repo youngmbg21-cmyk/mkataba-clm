@@ -8,9 +8,13 @@ async function api(path, method='GET', body){
     headers:body?{'Content-Type':'application/json'}:undefined,
     body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
   let data=null; try{ data=await res.json(); }catch(e){}
+  // Rate-limit / daily-ceiling responses (429) carry a friendly message —
+  // surface it centrally so every caller shows it, even ones that otherwise
+  // fall back silently to a heuristic.
+  if(res.status===429&&data&&data.error&&typeof toast==='function') toast(data.error,'err');
   if(!res.ok) throw new Error(data?.error||('Request failed ('+res.status+')'));
-  // The server folds a `notice` into an AI response when the configured model
-  // was rejected and a default was used in its place — surface it to the user.
+  // The server folds a `notice` into an AI response when the input was
+  // shortened or the configured model was rejected — surface it to the user.
   if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');
   return data;
 }

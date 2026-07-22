@@ -132,6 +132,24 @@ function renderTeam(){
           </details>
           <button id="ai-model-save" class="mt-2.5 rounded-lg bg-ink text-white px-3.5 py-2 text-[12px] font-600 hover:bg-brand-800 transition">Save model settings</button>
         </div>
+        <div class="mt-3 pt-3 border-t border-hair">
+          <div class="text-[12px] font-600 text-ink">Usage &amp; cost controls</div>
+          <p class="text-[11px] text-ink/60 mt-0.5 mb-2">Each AI request calls Anthropic and costs money. These limits protect against runaway loops and surprise bills.</p>
+          <div id="ai-usage" class="text-[11px] text-ink/75 mb-2.5">Today: —</div>
+          <div class="grid gap-2.5 sm:grid-cols-2">
+            <label class="block"><span class="text-[10px] text-ink/60">Light requests / 15 min · per user<br><span class="text-ink/40">search, graph, template, extract</span></span>
+              <input id="ai-rate-light" type="number" min="1" class="mt-1 w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/></label>
+            <label class="block"><span class="text-[10px] text-ink/60">Deep requests / 15 min · per user<br><span class="text-ink/40">playbook review, obligations</span></span>
+              <input id="ai-rate-deep" type="number" min="1" class="mt-1 w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/></label>
+            <label class="block"><span class="text-[10px] text-ink/60">Daily request ceiling · whole workspace<br><span class="text-ink/40">0 disables the daily backstop</span></span>
+              <input id="ai-daily" type="number" min="0" class="mt-1 w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/></label>
+            <label class="block"><span class="text-[10px] text-ink/60">Max characters / request<br><span class="text-ink/40">longer input is shortened first</span></span>
+              <input id="ai-maxchars" type="number" min="1000" class="mt-1 w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/></label>
+            <label class="block"><span class="text-[10px] text-ink/60">Max contracts / request<br><span class="text-ink/40">portfolio-wide AI calls</span></span>
+              <input id="ai-maxcontracts" type="number" min="1" class="mt-1 w-full rounded-lg border border-inputln bg-white px-2.5 py-1.5 text-[11px] font-mono outline-none focus:border-brand-500"/></label>
+          </div>
+          <button id="ai-limits-save" class="mt-2.5 rounded-lg bg-ink text-white px-3.5 py-2 text-[12px] font-600 hover:bg-brand-800 transition">Save limits</button>
+        </div>
         <div class="mt-4 pt-4 border-t border-hair">
           <div class="text-[12px] font-600 text-ink mb-1">File existing contracts</div>
           <p class="text-[11px] text-ink/65 mb-2.5">Extract structured details (counterparty, dates, value, renewal terms, governing law) from uploaded contracts that don't have them yet. Each is presented for your review before saving — nothing is written automatically.</p>
@@ -220,6 +238,16 @@ function renderTeam(){
         // fill overrides without clobbering a field the admin is editing
         const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n) n.value=v||''; };
         fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
+        // usage + cost-control limits (admin-only fields; helpers null-check)
+        const lim=c.limits||{}, use=c.usage||{};
+        const uEl=document.getElementById('ai-usage');
+        if(uEl){ const cap=use.dailyLimit||0;
+          uEl.innerHTML=cap>0
+            ?`<b>${use.count||0}</b> of <b>${cap}</b> AI requests today (${use.date||''})`
+            :`<b>${use.count||0}</b> AI requests today (${use.date||''}) · daily ceiling disabled`; }
+        const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
+        fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
+        fillN('ai-maxchars',lim.maxChars); fillN('ai-maxcontracts',lim.maxContracts);
       }catch(e){ el.textContent='Could not read AI config.'; } };
     refreshAiCfg();
     // basic shape check mirroring the server (blank = clear override)
@@ -241,6 +269,13 @@ function renderTeam(){
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
       if(!confirm('Remove the stored AI key? AI features will fall back to the built-in interpreter.')) return;
       try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
+      const num=id=>{ const v=document.getElementById(id).value.trim(); return v===''?undefined:Number(v); };
+      const body={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts') };
+      for(const [k,v] of Object.entries(body)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ toast(`"${k}" must be a whole number`,'err'); return; }
+      try{ await api('ai/config','PUT',body); toast('AI limits saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
