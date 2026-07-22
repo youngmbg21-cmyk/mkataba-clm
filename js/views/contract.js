@@ -208,6 +208,64 @@ function applyMetadata(c, m){
   logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'AI-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
+/* Working-text document body: shown once a contract carries edited wording
+   (an owner edit or an accepted counterparty redline). This exact text is
+   what versions/compare diff and what the seal will bind. */
+function redlineDocBody(c){
+  const esc=s=>String(s||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return `
+    <div class="mb-6 pb-5 border-b border-brand-100">
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
+    </div>
+    <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
+      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
+    </div>
+    <div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${esc(c.redlineText)}</div>
+    ${signatureBlock(c)}`;
+}
+
+/* Plain-text document editor (Admin + Legal). Saves are versioned so
+   Compare shows exactly what changed; the audit trail records the edit. */
+function openEditDocModal(c){
+  if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  const cur=docPlainText(c);
+  if(!cur){ toast('This document has no editable text yet','err'); return; }
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const firstEdit=!c.redlineText&&!isUpload(c);
+  openModal(`
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
+      <textarea id="ed-text" rows="20" class="scroll-thin" spellcheck="false" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:12px 14px;font:inherit;font-size:12.5px;line-height:1.75;resize:vertical;outline:none;min-height:300px">${esc(cur)}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
+        <span style="display:flex;gap:8px">
+          <button id="ed-cancel" class="ui-btn">Cancel</button>
+          <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
+        </span>
+      </div>
+    </div>`, {maxWidth:'860px'});
+  const ta=document.getElementById('ed-text');
+  ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=ta.value.length.toLocaleString()+' characters'; });
+  document.getElementById('ed-cancel').addEventListener('click',closeModal);
+  document.getElementById('ed-save').addEventListener('click',()=>{
+    const txt=ta.value;
+    if(txt.trim()===cur.trim()){ toast('No changes made'); closeModal(); return; }
+    if(!txt.trim()){ toast('The document text cannot be empty','err'); return; }
+    const u=currentUser();
+    if(!(c.versions||[]).length) captureVersion(c,'Original text','System');
+    c.redlineText=txt;
+    const v=captureVersion(c,`Edited by ${u?.name||'user'}`,u?.name);
+    logAudit(c,'Edited',`Document wording edited in the workspace${v?` — captured as v${v.n}`:''}`);
+    c.lastAction=todayStr(); persist(c);
+    closeModal(); renderWorkspace();
+    toast('Changes saved — open Compare to review them');
+  });
+}
+
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
@@ -245,6 +303,15 @@ function uploadDocBody(c){
       <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
       <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
     </div>
+    ${c.redlineText?`
+    <div class="mb-4" data-anchor="redline">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
+      </div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--color-neutral-800)">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>
+      <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
+    </div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
 }
@@ -332,6 +399,7 @@ function uploadScanRules(c){
 function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
+  if(c.redlineText) return redlineDocBody(c);
   const t=TEMPLATES[c.template];
   const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
   const dis=locked?'disabled':'';
@@ -567,9 +635,12 @@ function renderWorkspace(){
             </div>
             <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
           </div>
+          ${(canEdit()&&!locked)?`
+          <button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
           ${canEdit()?`
           <button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
-          <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>`:''}
+          <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
+          <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
@@ -579,6 +650,7 @@ function renderWorkspace(){
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
+            :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
             
@@ -669,6 +741,8 @@ function renderWorkspace(){
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
+  document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
+  document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(c.upload?.dataUrl, c.upload?.fileName||c.name));
   setActiveNav('workspace');
@@ -853,4 +927,4 @@ async function signDocument(c){
 
 
 
-Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openUploadModal,pdfStringsFrom,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync});
+Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync});

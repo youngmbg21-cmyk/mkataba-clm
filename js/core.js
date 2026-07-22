@@ -432,7 +432,7 @@ function startApp(){
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
-  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','workspace','team'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){

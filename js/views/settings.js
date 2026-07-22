@@ -185,10 +185,8 @@ function renderTeam(){
 
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Clause library &amp; playbook</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Your standard clauses (preferred and fallback wording) and the Kenya FMCG playbook the AI review checks incoming paper against. ${isAdmin()||currentUser()?.role==='legal'?'Edit the library below; the playbook ships seeded per contract type.':'Only Admin or Legal can edit these.'}</p>
-        <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
-        ${(isAdmin()||currentUser()?.role==='legal')?`<button id="cl-add" style="margin-top:10px;${secondaryBtn}">${icon('plus','w-3.5 h-3.5')} Add clause</button>`:''}
-        <div id="playbook-view" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)"></div>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The clause library and negotiation playbook now live on their own page — standard wording, per-type positions and portfolio deviations, all in one place.</p>
+        <button id="goto-playbook" style="${secondaryBtn}">${icon('scroll','w-3.5 h-3.5')} Open the Playbook page</button>
       </section>
 
       <section style="${cardStyle}">
@@ -322,6 +320,7 @@ function renderTeam(){
       localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh();
     });
   }
+  document.getElementById('goto-playbook')?.addEventListener('click',()=>setView('playbook'));
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
