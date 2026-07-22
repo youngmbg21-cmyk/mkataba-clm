@@ -471,7 +471,7 @@ function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
-  <div class="view-enter h-full flex flex-col">
+  <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
     <header class="sticky top-0 z-20 bg-white/70 backdrop-blur-xl border-b border-hair shrink-0">
       <div class="px-[26px] py-[13px] flex items-center gap-4">
         <div class="shrink-0 flex-1">
@@ -486,9 +486,9 @@ function renderIntel(){
       </div>
       <div id="ig-note" class="px-[26px] pb-2 text-[11.5px]"></div>
     </header>
-    <div class="relative flex-1 min-h-0 bg-canvas flex">
-      <div class="relative flex-1 min-w-0">
-        <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
+    <div class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
+      <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative">
+        <svg id="ig-svg" class="w-full h-full block cursor-grab" style="width:100%;height:100%;display:block"><defs>
           <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b7b7ba"></path></marker>
           <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5980a6"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
