@@ -252,9 +252,9 @@ function renderTemplatesPage(){
   document.getElementById('tpl-upload')?.addEventListener('click',openUploadTemplateModal);
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
-  document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',async()=>{
     const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-del')); if(!t) return;
-    if(!confirm(`Delete template “${t.name}”? Existing contracts created from it are not affected.`)) return;
+    if(!await confirmDialog({title:`Delete template “${t.name}”?`, message:'Existing contracts created from it are not affected.', confirmLabel:'Delete template', danger:true})) return;
     saveCustomTemplates(customTemplates().filter(x=>x.id!==t.id)); toast('Template deleted'); renderTemplatesPage();
   }));
   document.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>createFromTemplate(b.getAttribute('data-tpl-builtin'))));

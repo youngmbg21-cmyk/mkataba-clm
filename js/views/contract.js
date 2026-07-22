@@ -138,13 +138,31 @@ function openUploadModal(){
         ${upField('up-value','Contract value (KES)','e.g. 2500000','number')}
         ${upField('up-expiry','Expiry date (optional)','','date')}
       </div>
-      <div class="flex items-center gap-2 justify-end">
+      <div id="up-steps" class="hidden" style="margin-bottom:4px"></div>
+      <div id="up-actions" class="flex items-center gap-2 justify-end">
         <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
         <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('upload','w-3.5 h-3.5')} Add contract</button>
       </div>
     </div>`);
   document.getElementById('up-cancel').addEventListener('click',closeModal);
   document.getElementById('up-go').addEventListener('click',submitUpload);
+}
+/* Named progress line for an upload — turns the anxious wait into visible steps
+   and reinforces that a human confirms at the end. active is 1-based; steps at
+   an index < active read as done, == active as in-progress, > active as pending. */
+const UPLOAD_STEPS=['Reading document','Extracting details','Ready for your review'];
+function renderUploadSteps(active){
+  const host=document.getElementById('up-steps'); if(!host) return;
+  host.classList.remove('hidden');
+  host.innerHTML=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px">
+    ${UPLOAD_STEPS.map((s,i)=>{ const n=i+1; const done=n<active, cur=n===active;
+      const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:#2e8763;color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
+        :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
+        :`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`;
+      const col=done?'#1e6b4d':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
+      return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
+        + (n<UPLOAD_STEPS.length?`<span style="color:var(--color-neutral-400);margin:0 1px">→</span>`:''); }).join('')}
+  </div>`;
 }
 async function submitUpload(){
   const fileInput=document.getElementById('up-file');
@@ -157,9 +175,12 @@ async function submitUpload(){
   const vtype=document.getElementById('up-vtype').value;
   const value=vtype==='none'?0:Number(fval('up-value')||0);
   const expiry=fval('up-expiry')||null;
-  const btn=document.getElementById('up-go'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading document…</span>';
+  const btn=document.getElementById('up-go'); const cancelBtn=document.getElementById('up-cancel');
+  btn.disabled=true; if(cancelBtn) cancelBtn.disabled=true;
+  btn.innerHTML='<span class="animate-pulse">Working…</span>';
+  renderUploadSteps(1);   // Step 1 — Reading document
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
-  if(!dataUrl){ toast('Could not read that file','err'); return; }
+  if(!dataUrl){ toast('Could not read that file','err'); btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false; return; }
   const fileHash=await sha256(dataUrl);
   const mime=file.type||'application/octet-stream';
   const extractedText=await extractDocText(dataUrl, mime);   // real text extraction
@@ -192,8 +213,9 @@ async function submitUpload(){
   };
   // E1: extract metadata from the text, then let the human confirm before saving.
   if(extractedText && extractedText.length>200){
-    btn.innerHTML='<span class="animate-pulse">Extracting details…</span>';
+    renderUploadSteps(2);   // Step 2 — Extracting details
     const meta=await extractMetadata(extractedText, {counterparty:cp, value, expiry});
+    renderUploadSteps(3);   // Step 3 — Ready for your review (the confirm screen)
     openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null) });
   } else {
     saveContract(null);
@@ -588,6 +610,25 @@ function frozenDocBody(c){
   return `${c.execution.html}${signatureBlock(c)}`;
 }
 
+/* One clear next action per lifecycle stage — drives the sticky bar at the top
+   of the open contract so the single most useful verb is never buried in the
+   rich workspace. Returns {label, ic, guide, kind} or null. */
+function wsNextAction(c){
+  if(c.status==='Signed') return { label:'Evidence pack', ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
+  if(c.status==='Declined') return null;
+  if(!canEdit()) return null;
+  const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
+  const appr=(window.approvalState?approvalState(c):{ok:true});
+  if(c.status==='Draft'){
+    if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
+    return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
+  }
+  // Under Review
+  if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
+  if(!c.compliance.consent) return { label:'Sign', ic:'finger', guide:'Approved — confirm intent and sign below.', kind:'sign-scroll' };
+  return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+}
+
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -647,6 +688,12 @@ function renderWorkspace(){
         </div>
         <!-- document body (scrolls within the left pane) -->
         <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 28px;background:var(--color-bg)">
+          ${(()=>{ const na=wsNextAction(c); if(!na) return '';
+            return `<div style="position:sticky;top:-20px;z-index:6;margin:-20px -28px 16px;padding:9px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+              <span style="flex:none">${statusChip(c.status)}</span>
+              <span style="flex:1;min-width:120px;font-size:12px;color:var(--color-neutral-700)">${na.guide}</span>
+              <button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px;flex:none">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>
+            </div>`; })()}
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
@@ -736,6 +783,28 @@ function renderWorkspace(){
       if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
     }).catch(()=>{});
   }
+  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+    const kind=e.currentTarget.getAttribute('data-na');
+    if(kind==='evidence'){ downloadEvidence(c); return; }
+    if(kind==='share'){ openShareModal(c); return; }
+    if(kind==='terms'){
+      const first=document.querySelector('#doc-canvas [data-sync], #doc-canvas [data-field]');
+      if(first){ first.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>first.focus(),300); }
+      else toast('Add the counterparty and value in the key terms panel','err');
+      return;
+    }
+    if(kind==='review'){
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
+      return;
+    }
+    if(kind==='sign-scroll'){
+      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
+      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      toast('Tick intent-to-sign, then Sign');
+      return;
+    }
+    if(kind==='sign'){ signDocument(c); return; }
+  });
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
@@ -885,7 +954,7 @@ async function signDocument(c){
     const canOverride = u && (u.role==='admin' || u.role==='legal');
     const msg=`${openRedlines} proposed edit${openRedlines===1?'':'s'} from the counterparty ${openRedlines===1?'is':'are'} still open. Signing now seals the current text and leaves ${openRedlines===1?'it':'them'} unresolved.`;
     if(!canOverride){ toast(msg+' Resolve the redline(s) first, or ask an Admin/Legal approver.','err'); return; }
-    if(!confirm(msg+'\n\nSign anyway? (recorded as an Admin/Legal override)')) return;
+    if(!await confirmDialog({title:'Sign with open redlines?', message:msg+' This will be recorded as an Admin/Legal override.', confirmLabel:'Sign anyway', danger:true})) return;
     logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
   }
   const btn=document.getElementById('sign-btn');
@@ -927,4 +996,4 @@ async function signDocument(c){
 
 
 
-Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync});
+Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

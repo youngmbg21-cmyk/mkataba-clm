@@ -366,8 +366,8 @@ function minimizeAI(){
   document.getElementById('ai-scrim').classList.remove('open');
   ai.open=false; ai.minimized=true; updateAIBadge();
 }
-function clearAIHistory(){
-  if(!confirm('Delete this conversation? This cannot be undone.')) return;
+async function clearAIHistory(){
+  if(!await confirmDialog({title:'Delete this conversation?', message:'This clears your HaTi Copilot chat history and cannot be undone.', confirmLabel:'Delete', danger:true})) return;
   ai.history=[];
   aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, and I know what's on your screen. Try a suggestion below, or just ask.`});
   renderAIFeed();

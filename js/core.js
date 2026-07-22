@@ -334,8 +334,8 @@ function renderAuth(mode){
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
-    document.getElementById('li-reset')?.addEventListener('click',()=>{
-      if(confirm('This permanently erases the workspace, all users and contracts stored in this browser. Continue?')){
+    document.getElementById('li-reset')?.addEventListener('click',async()=>{
+      if(await confirmDialog({title:'Reset workspace?', message:'This permanently erases the workspace, all users and contracts stored in this browser. This cannot be undone.', confirmLabel:'Erase everything', danger:true})){
         Object.values(LS).forEach(k=>localStorage.removeItem(k)); location.reload();
       }
     });
@@ -551,6 +551,48 @@ function openModal(html, opts={}){
 }
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
 
+/* Styled confirm — a branded replacement for the native window.confirm().
+   Returns a Promise<boolean>. Self-contained overlay (appended to <body>) so it
+   never clobbers an open modal in #modal-root. Usage:
+     if(!await confirmDialog({title, message})) return; */
+function confirmDialog(opts={}){
+  const title=opts.title||'Are you sure?';
+  const message=opts.message||'';
+  const confirmLabel=opts.confirmLabel||'Confirm';
+  const cancelLabel=opts.cancelLabel||'Cancel';
+  const danger=!!opts.danger;
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return new Promise(resolve=>{
+    const prev=document.getElementById('confirm-overlay'); if(prev) prev.remove();
+    const ov=document.createElement('div');
+    ov.id='confirm-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:16px';
+    const btnFg=danger?'#fff':'#fff';
+    const btnBg=danger?'var(--danger)':'var(--color-accent)';
+    ov.innerHTML=`
+      <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
+      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:22px 24px">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${message?'6px':'14px'}">
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:6px;background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--color-accent-100)'};color:${danger?'var(--danger)':'var(--color-accent-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
+        </div>
+        ${message?`<p style="font-size:13px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 16px;padding-left:46px">${esc(message)}</p>`:''}
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>
+          <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey); resolve(val); };
+    function onKey(e){ if(e.key==='Escape') done(false); else if(e.key==='Enter') done(true); }
+    document.addEventListener('keydown',onKey);
+    ov.querySelector('#cf-cancel').addEventListener('click',()=>done(false));
+    ov.querySelector('#cf-ok').addEventListener('click',()=>done(true));
+    ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(false); });
+    ov.querySelector('#cf-ok').focus();
+  });
+}
+
 /* ---------- document sealing ----------
    For a generated contract the seal covers the field values; for an uploaded
    ("inbound") document it covers the file's own hash, so the seal proves
@@ -743,4 +785,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,currentUser,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,renderAuditSection,renderAuth,renderNegotiationSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,startApp,todayStr,userById,verifySeal});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,renderAuditSection,renderAuth,renderNegotiationSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,startApp,todayStr,userById,verifySeal});

@@ -159,6 +159,77 @@ function exportWorkingSetCsv(){
   toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
 }
 
+/* ============================================================ GLOBAL SEARCH PALETTE (Cmd/Ctrl+K)
+   A jump-anywhere search over the loaded working set — matches contract names,
+   counterparties and IDs, plus value-stream folders — and opens the match
+   directly. Keyboard-first: ↑/↓ to move, Enter to open, Esc to close. */
+function commandPaletteResults(q){
+  q=(q||'').trim().toLowerCase();
+  const out=[];
+  const folders=Object.values(FOLDERS||{});
+  if(q){
+    folders.filter(f=>f.name.toLowerCase().includes(q)).slice(0,4)
+      .forEach(f=>out.push({kind:'folder',id:f.id,title:f.name,sub:'Value stream',ic:f.ic||'folder'}));
+  }
+  let cs=state.contracts.slice();
+  if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
+  else cs=cs.slice().sort((a,b)=>Date.parse(b.lastAction||0)-Date.parse(a.lastAction||0));
+  cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
+    title:c.name, sub:`${c.id}${c.counterparty?' · '+c.counterparty:''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
+  return out.slice(0,14);
+}
+function openCommandPalette(){
+  const prev=document.getElementById('cmd-palette'); if(prev){ prev.querySelector('#cp-input')?.focus(); return; }
+  const ov=document.createElement('div');
+  ov.id='cmd-palette';
+  ov.style.cssText='position:fixed;inset:0;z-index:85;display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px';
+  ov.innerHTML=`
+    <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 42%,transparent)"></div>
+    <div class="modal-in" style="position:relative;width:100%;max-width:560px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:8px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1px solid var(--color-divider)">
+        <span style="color:var(--color-neutral-500);display:inline-flex">${icon('search','w-4 h-4')}</span>
+        <input id="cp-input" placeholder="Search contracts, counterparties, streams…" autocomplete="off" style="flex:1;border:0;outline:0;background:transparent;font:inherit;font-size:14px;color:inherit"/>
+        <span style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;border-radius:3px;color:var(--color-neutral-600);font-family:var(--font-mono)">ESC</span>
+      </div>
+      <div id="cp-list" class="scroll-thin" style="max-height:52vh;overflow-y:auto;padding:6px"></div>
+    </div>`;
+  document.body.appendChild(ov);
+  const input=ov.querySelector('#cp-input'), list=ov.querySelector('#cp-list');
+  let results=[], active=0;
+  const close=()=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); };
+  const openItem=it=>{ close(); if(it.kind==='folder') openFolder(it.id); else openWorkspace(it.id); };
+  const paint=()=>{
+    results=commandPaletteResults(input.value);
+    if(active>=results.length) active=Math.max(0,results.length-1);
+    if(!results.length){ list.innerHTML=`<div style="padding:22px 12px;text-align:center;font-size:12.5px;color:var(--color-neutral-600)">No matches${input.value.trim()?` for “${input.value.replace(/</g,'&lt;')}”`:''}.</div>`; return; }
+    list.innerHTML=results.map((r,i)=>`
+      <button data-cp-i="${i}" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;border-radius:5px;cursor:pointer;padding:8px 10px;font:inherit;color:inherit;background:${i===active?'rgba(89,128,166,.12)':'none'}">
+        <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:5px;border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
+        <span style="min-width:0;flex:1">
+          <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
+          <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
+        </span>
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:9.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--color-neutral-500)">${r.kind}</span>`}
+      </button>`).join('');
+    list.querySelectorAll('[data-cp-i]').forEach(b=>{
+      const i=+b.getAttribute('data-cp-i');
+      b.addEventListener('click',()=>openItem(results[i]));
+      b.addEventListener('mousemove',()=>{ if(active!==i){ active=i; paint(); } });
+    });
+    const act=list.querySelector(`[data-cp-i="${active}"]`); if(act) act.scrollIntoView({block:'nearest'});
+  };
+  function onKey(e){
+    if(e.key==='Escape'){ e.preventDefault(); close(); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); if(results.length){ active=(active+1)%results.length; paint(); } }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); if(results.length){ active=(active-1+results.length)%results.length; paint(); } }
+    else if(e.key==='Enter'){ e.preventDefault(); if(results[active]) openItem(results[active]); }
+  }
+  document.addEventListener('keydown',onKey,true);
+  input.addEventListener('input',()=>{ active=0; paint(); });
+  ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) close(); });
+  paint(); input.focus();
+}
+
 /* ============================================================ CONTEXT PANEL */
 const relTime = iso => {
   const t=Date.parse(iso); if(isNaN(t)) return '';
@@ -293,9 +364,14 @@ function wireShell(){
       const rs=document.getElementById('reg-search'); if(rs&&rs!==search) rs.value=q;
     });
     document.addEventListener('keydown',e=>{
-      if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); search.focus(); }
+      // Cmd/Ctrl+K → global jump palette (works even while typing in a field)
+      if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){ e.preventDefault(); openCommandPalette(); return; }
+      if(e.key==='/'&&!/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)){ e.preventDefault(); openCommandPalette(); }
     });
   }
+
+  // global jump palette (⌘K hint button in the search box)
+  document.getElementById('cmd-k-hint')?.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); openCommandPalette(); });
 
   // export
   document.getElementById('cmd-export')?.addEventListener('click',exportWorkingSetCsv);
@@ -351,4 +427,4 @@ if(!state.panel) state.panel='activity';
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell});
+Object.assign(window,{createFromTemplate,openFolder,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults});
