@@ -14,8 +14,8 @@ const REL_SEEDS = [ // name-matched so IDs stay dynamic \u2014 traces the value 
   { from:'Crude Edible Oil Supply', to:'Tolling Agreement \u2014 Detergent Powder', label:'feeds' },
   { from:'Mutual NDA \u2014 New Product Development', to:'Contract Manufacturing \u2014 Bar Soap', label:'precedes' },
 ];
-const STATUS_BAR = {'Draft':'#94a3b8','Under Review':'#C79A3E','Signed':'#0B7A5F','Declined':'#f43f5e'};
-const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'#C79A3E'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'#0B7A5F'},party:{t:'PARTY',c:'#08211E'}};
+const STATUS_BAR = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
+const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'#b8862b'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'#2e8763'},party:{t:'PARTY',c:'#2c455d'}};
 
 function buildGraph(){
   const nodes=[], edges=[];
@@ -32,7 +32,7 @@ function buildGraph(){
   Object.entries(parties).forEach(([name,cs])=>{
     const val=cs.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
     nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtKESshort(val),
-      kind:'party', bar:'#08211E', w:0,h:0,x:0,y:0 });
+      kind:'party', bar:'#2c455d', w:0,h:0,x:0,y:0 });
     cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
   });
   // seeded contract-to-contract relations
@@ -97,7 +97,7 @@ function scanPortfolio(){
    key is configured; otherwise the built-in interpreter.
    ============================================================ */
 const INTEL_CAP = 120;
-const STATUS_DOT = {'Draft':'#9A9484','Under Review':'#C79A3E','Signed':'#086B54','Declined':'#B23A2E'};
+const STATUS_DOT = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
 window.intel = { groupBy:'folder', groups:null /*{id:label} override from AI*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,err?}*/,
@@ -297,7 +297,7 @@ function buildGraphModel(){
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#9A9484',
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#98989b',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
@@ -327,24 +327,24 @@ function makeIntelGraph(model){
     g.setAttribute('class','ig-node'+(n.mut?' mut':'')+(n.hit?' hit':'')); n.g=g;
     const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
     rect.setAttribute('class','ig-chip'); rect.setAttribute('rx','10'); rect.setAttribute('width',n.w); rect.setAttribute('height',n.h);
-    rect.setAttribute('fill', n.kind==='hub'?'#08211E':'#FDFAF6');
+    rect.setAttribute('fill', n.kind==='hub'?'#2c455d':'#ffffff');
     g.appendChild(rect);
     if(n.kind==='contract'){ const bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
       bar.setAttribute('x',0); bar.setAttribute('y',0); bar.setAttribute('width',5); bar.setAttribute('height',n.h); bar.setAttribute('rx',2.5); bar.setAttribute('fill',n.dot); bar.setAttribute('pointer-events','none'); g.appendChild(bar); }
     const lab=document.createElementNS('http://www.w3.org/2000/svg','text');
     lab.setAttribute('class','ig-lab'); lab.setAttribute('x',n.kind==='hub'?11:13); lab.setAttribute('y',n.sub?17:19);
-    lab.setAttribute('fill', n.kind==='hub'?'#EAF6F1':'#08211E'); lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
+    lab.setAttribute('fill', n.kind==='hub'?'#eef6ff':'#2c455d'); lab.setAttribute('font-weight', n.kind==='hub'?'700':'600');
     lab.textContent = n.label.length>24?n.label.slice(0,23)+'…':n.label; g.appendChild(lab);
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
-      sub.setAttribute('fill', n.kind==='hub'?'#9FD5C2':'#8a7d6a'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
+      sub.setAttribute('fill', n.kind==='hub'?'#b5d9fd':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
     if(n.badge){ // gold pill pinned to the chip's top-right corner (AI annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
       br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
-      br.setAttribute('fill','#C79A3E'); br.setAttribute('stroke','#FDFAF6'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
+      br.setAttribute('fill','#b8862b'); br.setAttribute('stroke','#ffffff'); br.setAttribute('stroke-width','1.5'); br.setAttribute('pointer-events','none'); g.appendChild(br);
       const bl=document.createElementNS('http://www.w3.org/2000/svg','text');
-      bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#231A05');
+      bl.setAttribute('class','ig-badge-txt'); bl.setAttribute('x',n.w-bw+14); bl.setAttribute('y',2.5); bl.setAttribute('fill','#1d1f20');
       bl.textContent=bt; g.appendChild(bl); }
     gNodes.appendChild(g);
     g.addEventListener('pointerdown',e=>igStartDrag(e,n));
@@ -489,8 +489,8 @@ function renderIntel(){
     <div class="relative flex-1 min-h-0 bg-canvas flex">
       <div class="relative flex-1 min-w-0">
         <svg id="ig-svg" class="w-full h-full block cursor-grab"><defs>
-          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#CDC2AB"></path></marker>
-          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#086B54"></path></marker>
+          <marker id="ig-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b7b7ba"></path></marker>
+          <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5980a6"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
@@ -672,14 +672,14 @@ function openPartyModal(name){
   });
   const nodes=[], edges=[];
   const trunc=(s,n=22)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
-  nodes.push({id:'p:'+name, type:'party', label:trunc(name), sub:own.length+' deals', bar:'#08211E', kind:'party'});
+  nodes.push({id:'p:'+name, type:'party', label:trunc(name), sub:own.length+' deals', bar:'#2c455d', kind:'party'});
   const addC=c=>{ if(nodes.some(n=>n.id===c.id)) return;
     nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
   own.forEach(c=>{ addC(c); edges.push({from:c.id,to:'p:'+name,label:'party to'}); });
   linked.forEach(c=>{ addC(c);
     if(c.counterparty && c.counterparty!==name){
       const pid='p:'+c.counterparty;
-      if(!nodes.some(n=>n.id===pid)) nodes.push({id:pid,type:'party',label:trunc(c.counterparty),sub:'counterparty',bar:'#08211E',kind:'party'});
+      if(!nodes.some(n=>n.id===pid)) nodes.push({id:pid,type:'party',label:trunc(c.counterparty),sub:'counterparty',bar:'#2c455d',kind:'party'});
       edges.push({from:c.id,to:pid,label:'party to'});
     }});
   REL_SEEDS.forEach(r=>{
@@ -712,8 +712,8 @@ function openPartyModal(name){
       <g class="mnode" ${n.type==='contract'?`data-open="${n.id}"`:''} transform="translate(${n.x},${n.y})">
         <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
         <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
-        <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#08211E">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
-        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#8aa198">${n.sub}</text>
+        <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#2c455d">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
+        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'JetBrains Mono',monospace" fill="#7a7a7d">${n.sub}</text>
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">

@@ -146,10 +146,14 @@ function approvalLabel(c){
 
 function toast(msg,kind='ok'){
   const root=document.getElementById('toast-root');
-  const bg = kind==='ok'?'bg-brand-900 border-brand-700':'bg-rose-900 border-rose-700';
+  const isErr = kind!=='ok';
   const el=document.createElement('div');
-  el.className=`toast-in flex items-center gap-2.5 rounded-xl border ${bg} text-white px-4 py-3 shadow-xl text-sm max-w-xs`;
-  el.innerHTML=`<span class="text-gold-400">${icon(kind==='ok'?'check2':'ban')}</span><span>${msg}</span>`;
+  el.className='toast-in';
+  el.style.cssText=`display:flex;align-items:center;gap:10px;border-radius:4px;`
+    +`border:1px solid ${isErr?'color-mix(in srgb,#fff 22%,transparent)':'color-mix(in srgb,#fff 14%,transparent)'};`
+    +`background:${isErr?'#b0453c':'var(--color-accent-900)'};color:#fff;`
+    +`padding:11px 15px;box-shadow:var(--shadow-lg);font-size:13px;font-family:var(--font-body);max-width:20rem;`;
+  el.innerHTML=`<span style="display:inline-flex;color:${isErr?'#fff':'var(--color-accent-300)'};">${icon(kind==='ok'?'check2':'ban')}</span><span>${msg}</span>`;
   root.appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity=0;el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),300);},3200);
 }
@@ -284,44 +288,49 @@ function renderAuth(mode){
   document.getElementById('app-shell').classList.add('hidden');
   const root=document.getElementById('auth-root');
   const shell = inner => `
-  <div class="min-h-screen grid place-items-center bg-brand-900 px-4 py-10">
-    <div class="w-full max-w-md">
-      <div class="flex items-center gap-3 justify-center mb-6">
-        <div class="h-11 w-11 rounded-xl bg-gold-500 grid place-items-center text-brand-900">${icon('scroll','w-6 h-6',2.2)}</div>
-        <div class="leading-tight">
-          <div class="font-display font-700 text-white text-2xl tracking-tight">HaTi</div>
-          <div class="text-[10px] uppercase tracking-[0.18em] text-brand-300">Contract Lifecycle</div>
+  <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:40px 16px;">
+    <div style="width:100%;max-width:420px;">
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:20px;">
+        <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.02em;border-radius:4px;">HT</div>
+        <div style="line-height:1.15;">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
+          <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
         </div>
       </div>
-      <div class="bg-white rounded-[20px] border border-line shadow-[0_24px_48px_-20px_rgba(60,40,10,.35)] p-7">${inner}</div>
-      <p class="text-center text-[11px] text-brand-300/70 mt-4 leading-relaxed">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:26px;">${inner}</div>
+      <p style="text-align:center;font-size:11px;color:var(--color-neutral-600);margin-top:14px;line-height:1.6;">${REMOTE?'Connected to your HaTi server — accounts and contracts are stored centrally.':'MVP demo — no data leaves this browser.'}</p>
     </div>
   </div>`;
   const input=(id,label,type='text',ph='')=>`
-    <label class="block mb-3.5"><span class="text-[12px] font-600 text-ink">${label}</span>
-    <input id="${id}" type="${type}" placeholder="${ph}" class="mt-1.5 w-full rounded-[11px] border border-inputln bg-canvas px-3.5 py-2.5 text-sm outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/></label>`;
+    <label style="display:block;margin-bottom:14px;">
+      <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:5px;font-family:var(--font-heading);letter-spacing:.02em;">${label}</span>
+      <input id="${id}" type="${type}" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
+  const H1='font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-0.01em;color:var(--color-text);margin:0;';
+  const SUB='font-size:12px;color:var(--color-neutral-700);margin:4px 0 18px;line-height:1.5;';
+  const PBTN='width:100%;padding:9px;font-size:13px;margin-top:2px;';
+  const LINKBTN='margin-top:14px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);';
   if(mode==='setup'){
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-[22px] tracking-[-0.01em] text-ink">Create your workspace</h1>
-      <p class="text-xs text-ink/70 mb-5 mt-1">Set up your organization and the first admin account.</p>
+      <h1 style="${H1}">Create your workspace</h1>
+      <p style="${SUB}">Set up your organization and the first admin account.</p>
       ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
       ${input('su-name','Your full name','text','e.g. Amina Otieno')}
       ${input('su-email','Work email','email','you@company.co.ke')}
       ${input('su-pass','Password','password','Min 8 characters')}
-      <label class="flex items-center gap-2.5 text-xs text-ink/70 mb-5 mt-1"><input id="su-sample" type="checkbox" checked class="h-[18px] w-[18px] rounded accent-brand-600"/> Load sample Kenyan FMCG portfolio (30 demo contracts)</label>
-      <button id="su-go" class="w-full rounded-xl bg-ink text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Create workspace &amp; sign in</button>`);
+      <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample Kenyan FMCG portfolio (30 demo contracts)</label>
+      <button id="su-go" class="ui-btn ui-btn-primary" style="${PBTN}">Create workspace &amp; sign in</button>`);
     document.getElementById('su-go').addEventListener('click',doSetup);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doSetup();}));
   } else if(mode==='login'){
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-lg text-brand-900">Sign in to ${getOrg()?.name||'your workspace'}</h1>
-      <p class="text-xs text-brand-800/70 mb-4">Use your workspace credentials.</p>
+      <h1 style="${H1}">Sign in to ${getOrg()?.name||'your workspace'}</h1>
+      <p style="${SUB}">Use your workspace credentials.</p>
       ${input('li-email','Email','email')}
       ${input('li-pass','Password','password')}
-      <button id="li-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Sign in</button>
-      <p id="li-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>
-      ${REMOTE?'<button id="li-forgot" class="mt-3 w-full text-[11px] text-brand-800/65 hover:text-brand-700 transition">Forgot password?</button>':''}
-      ${REMOTE?'':'<button id="li-reset" class="mt-4 w-full text-[11px] text-brand-800/60 hover:text-rose-600 transition">Reset workspace (erases all local data)</button>'}`);
+      <button id="li-go" class="ui-btn ui-btn-primary" style="${PBTN}">Sign in</button>
+      <p id="li-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>
+      ${REMOTE?`<button id="li-forgot" style="${LINKBTN}">Forgot password?</button>`:''}
+      ${REMOTE?'':`<button id="li-reset" style="${LINKBTN}">Reset workspace (erases all local data)</button>`}`);
     document.getElementById('li-go').addEventListener('click',doLogin);
     root.querySelectorAll('input').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));
     document.getElementById('li-forgot')?.addEventListener('click',()=>renderAuth('forgot'));
@@ -332,29 +341,29 @@ function renderAuth(mode){
     });
   } else if(mode==='forgot'){
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-lg text-brand-900">Reset your password</h1>
-      <p class="text-xs text-brand-800/70 mb-4">Enter your email and we’ll send a reset link.</p>
+      <h1 style="${H1}">Reset your password</h1>
+      <p style="${SUB}">Enter your email and we’ll send a reset link.</p>
       ${input('fp-email','Email','email')}
-      <button id="fp-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Send reset link</button>
-      <div id="fp-result" class="mt-3"></div>
-      <button id="fp-back" class="mt-4 w-full text-[11px] text-brand-800/65 hover:text-brand-700 transition">Back to sign in</button>`);
+      <button id="fp-go" class="ui-btn ui-btn-primary" style="${PBTN}">Send reset link</button>
+      <div id="fp-result" style="margin-top:12px;"></div>
+      <button id="fp-back" style="${LINKBTN}">Back to sign in</button>`);
     document.getElementById('fp-back').addEventListener('click',()=>renderAuth('login'));
     document.getElementById('fp-go').addEventListener('click',async()=>{
       const email=fval('fp-email'); if(!email){ toast('Enter your email','err'); return; }
       try{
         const r=await api('password/reset-request','POST',{ email });
-        document.getElementById('fp-result').innerHTML=`<div class="rounded-lg bg-brand-50 border border-brand-100 p-3 text-[11px] text-brand-700">If that email is registered, a reset link has been sent.${r.devToken?` <br/>Email isn’t configured yet — <button id="fp-dev" class="underline font-medium">open the reset form</button> for testing.`:''}</div>`;
+        document.getElementById('fp-result').innerHTML=`<div style="border-radius:4px;background:var(--color-accent-100);border:1px solid var(--color-divider);padding:11px;font-size:11px;color:var(--color-accent-800);line-height:1.5;">If that email is registered, a reset link has been sent.${r.devToken?` <br/>Email isn’t configured yet — <button id="fp-dev" style="text-decoration:underline;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;">open the reset form</button> for testing.`:''}</div>`;
         document.getElementById('fp-dev')?.addEventListener('click',()=>renderAuth('reset:'+r.devToken));
       }catch(e){ toast(e.message,'err'); }
     });
   } else if(mode && mode.startsWith('reset:')){
     const token=mode.slice(6);
     root.innerHTML = shell(`
-      <h1 class="font-display font-700 text-lg text-brand-900">Set a new password</h1>
-      <p class="text-xs text-brand-800/70 mb-4">Choose a new password for your account.</p>
+      <h1 style="${H1}">Set a new password</h1>
+      <p style="${SUB}">Choose a new password for your account.</p>
       ${input('rs-pass','New password','password','Min 8 characters')}
-      <button id="rs-go" class="w-full rounded-xl bg-brand-900 text-white py-3 text-sm font-semibold hover:bg-brand-800 transition">Save new password</button>
-      <p id="rs-err" class="hidden text-center text-xs text-rose-600 mt-3"></p>`);
+      <button id="rs-go" class="ui-btn ui-btn-primary" style="${PBTN}">Save new password</button>
+      <p id="rs-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>`);
     document.getElementById('rs-go').addEventListener('click',async()=>{
       const pass=document.getElementById('rs-pass').value;
       if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
@@ -533,8 +542,8 @@ function openModal(html){
   const root=document.getElementById('modal-root');
   root.innerHTML=`
   <div class="fixed inset-0 z-[70] grid place-items-center px-4">
-    <div id="modal-scrim" class="absolute inset-0 bg-brand-900/40 backdrop-blur-[2px]"></div>
-    <div class="modal-in relative bg-white rounded-2xl border border-brand-100 shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto scroll-thin">${html}</div>
+    <div id="modal-scrim" class="absolute inset-0" style="background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
+    <div class="modal-in relative w-full max-w-lg max-h-[85vh] overflow-y-auto scroll-thin" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
   </div>`;
   document.getElementById('modal-scrim').addEventListener('click',closeModal);
   return root;
@@ -643,14 +652,14 @@ async function openShareModal(c){
     }catch(e){ toast(e.message,'err'); return; }
   } else link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
   openModal(`
-    <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('share')}</span>
-        <h2 class="font-display font-700 text-brand-900">Share with counterparty</h2></div>
-      <p class="text-xs text-brand-800/70 mb-4">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
-      <textarea id="share-link" readonly rows="4" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none break-all">${link}</textarea>
-      <div class="mt-3 flex items-center gap-2 justify-end">
-        <button id="share-close" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Close</button>
-        <button id="share-copy" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('copy','w-3.5 h-3.5')} Copy link</button>
+    <div style="padding:22px 24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55;">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
+      <textarea id="share-link" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-heading);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="share-close" class="ui-btn">Close</button>
+        <button id="share-copy" class="ui-btn ui-btn-primary">${icon('copy','w-3.5 h-3.5')} Copy link</button>
       </div>
     </div>`);
   document.getElementById('share-close').addEventListener('click',closeModal);
@@ -665,14 +674,14 @@ async function openShareModal(c){
 
 function openImportModal(c){
   openModal(`
-    <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-brand-500">${icon('upload')}</span>
-        <h2 class="font-display font-700 text-brand-900">Import counterparty response</h2></div>
-      <p class="text-xs text-brand-800/70 mb-3">Paste the response code the counterparty sent back after opening your share link.</p>
-      <textarea id="imp-code" rows="5" placeholder="Paste response code…" class="w-full rounded-lg border border-brand-100 bg-canvas p-3 text-[11px] font-mono outline-none focus:border-brand-400"></textarea>
-      <div class="mt-3 flex items-center gap-2 justify-end">
-        <button id="imp-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
-        <button id="imp-go" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">Import</button>
+    <div style="padding:22px 24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Import counterparty response</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Paste the response code the counterparty sent back after opening your share link.</p>
+      <textarea id="imp-code" rows="5" placeholder="Paste response code…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-heading);color:var(--color-text);outline:none;"></textarea>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="imp-cancel" class="ui-btn">Cancel</button>
+        <button id="imp-go" class="ui-btn ui-btn-primary">Import</button>
       </div>
     </div>`);
   document.getElementById('imp-cancel').addEventListener('click',closeModal);

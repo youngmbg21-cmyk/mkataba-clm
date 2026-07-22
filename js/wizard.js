@@ -52,30 +52,30 @@ function openWizard(preTid){
   let tid=preTid&&tmpls.some(t=>t.id===preTid)?preTid:null;
   const renderStep=()=>{
     if(!tid){
-      openModal(`<div class="p-6">
-        <h3 class="font-serif font-600 text-lg text-ink mb-1">New contract from a template</h3>
-        <p class="text-xs text-ink/60 mb-4">Pick a template, answer a few details, and HaTi drafts it for you.</p>
-        <div class="grid sm:grid-cols-2 gap-2 max-h-[55vh] overflow-y-auto scroll-thin">
-          ${tmpls.map(t=>`<button data-wz-tid="${t.id}" class="text-left rounded-xl border border-line bg-white hover:border-brand-300 hover:shadow-sm p-3 transition">
-            <span class="flex items-center gap-2"><span class="h-7 w-7 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
-            <span class="text-[13px] font-600 text-ink">${t.kind}</span></span>
-            <span class="block mt-1 text-[11px] text-ink/60">${t.blurb||''}</span></button>`).join('')}
+      openModal(`<div style="padding:22px 24px;">
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">New contract from a template</h3>
+        <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">Pick a template, answer a few details, and HaTi drafts it for you.</p>
+        <div class="scroll-thin" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;max-height:55vh;overflow-y:auto;">
+          ${tmpls.map(t=>`<button data-wz-tid="${t.id}" style="text-align:left;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px;cursor:pointer;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.boxShadow='var(--shadow-sm)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.boxShadow='none'">
+            <span style="display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:4px;background:var(--color-accent-100);color:var(--color-accent);flex:none;">${icon(t.ic||'file','w-3.5 h-3.5')}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--color-text);font-family:var(--font-heading);">${t.kind}</span></span>
+            <span style="display:block;margin-top:5px;font-size:11px;color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`).join('')}
         </div></div>`);
       document.querySelectorAll('[data-wz-tid]').forEach(b=>b.addEventListener('click',()=>{ tid=b.getAttribute('data-wz-tid'); renderStep(); }));
       return;
     }
     const t=TEMPLATES[tid], vars=templateVars(tid);
     const input=v=>{ const id='wz-'+v.key.replace(/[:]/g,'_'); const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
-      return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${v.label}</span>
-        <input id="${id}" type="${it}" value="${v.def||''}" placeholder="${v.ph||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/></label>`; };
-    openModal(`<div class="p-6">
-      <button id="wz-back" class="text-[11px] text-brand-600 hover:text-brand-800 font-600 mb-2">← templates</button>
-      <h3 class="font-serif font-600 text-lg text-ink mb-1">${t.kind}</h3>
-      <p class="text-xs text-ink/60 mb-4">${t.blurb||''}</p>
-      <div class="grid grid-cols-2 gap-3">${vars.map(input).join('')}</div>
-      <div class="flex justify-end gap-2 mt-5">
-        <button id="wz-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-        <button id="wz-create" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Create draft</button>
+      return `<label style="display:block;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-heading);letter-spacing:.02em;">${v.label}</span>
+        <input id="${id}" type="${it}" value="${v.def||''}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+    openModal(`<div style="padding:22px 24px;">
+      <button id="wz-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-heading);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
+      <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">${t.blurb||''}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${vars.map(input).join('')}</div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
+        <button id="wz-cancel" class="ui-btn">Cancel</button>
+        <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>
       </div></div>`);
     document.getElementById('wz-back').addEventListener('click',()=>{ tid=null; renderStep(); });
     document.getElementById('wz-cancel').addEventListener('click',closeModal);
