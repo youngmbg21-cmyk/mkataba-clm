@@ -177,17 +177,6 @@ function renderTeam(){
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">The key is stored in this browser (local mode). AI features currently run on the built-in interpreter; run the HaTi server to route calls through Anthropic with this key. Model routing and usage limits are managed on the server.</div>`}`
           :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the AI key.</p>`}
         </section>
-      </div>
-    </div>
-
-    <!-- ============ ADDITIONAL PANELS ============ -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-top:14px;align-items:start">
-
-      <section style="${cardStyle}">
-        <h4 style="${h4Style}">Clause library &amp; playbook</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">The clause library and negotiation playbook now live on their own page — standard wording, per-type positions and portfolio deviations, all in one place.</p>
-        <button id="goto-playbook" style="${secondaryBtn}">${icon('scroll','w-3.5 h-3.5')} Open the Playbook page</button>
-      </section>
 
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Data &amp; backup</h4>
@@ -218,6 +207,7 @@ function renderTeam(){
         </div>
         <div id="outbox-list" style="font-size:12px;color:var(--color-neutral-700)">Loading outbox…</div>
       </section>`:''}
+      </div>
     </div>
   </div>`;
 
@@ -320,7 +310,6 @@ function renderTeam(){
       localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh();
     });
   }
-  document.getElementById('goto-playbook')?.addEventListener('click',()=>setView('playbook'));
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
