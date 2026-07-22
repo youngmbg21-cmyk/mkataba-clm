@@ -135,12 +135,19 @@ const streamLabel = c => STREAM_SHORT[c && c.folder] || (FOLDERS[c && c.folder]?
 // display owner initials (the app has no per-contract owner field; use the
 // signed-in user, matching the existing register behaviour)
 const ownerInitials = () => { const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); };
-// short approval label derived from the real approval gate
+// short approval label derived from the real approval gate. The live gate is
+// the rule-chain approvalState in approvals.js (window-attached, shadowing the
+// legacy one below) — read it via window so this label matches what the sign
+// panel actually enforces, instead of the superseded spend-threshold config.
 function approvalLabel(c){
   if(c && c.approval) return 'Approved';
-  const st=approvalState(c);
-  if(st.required) return 'Pending '+(getApprovalCfg().approverRole==='legal'?'Legal':'CFO');
-  if(c && c.status==='Declined') return 'Rejected';
+  if(c && c.status==='Declined') return 'Rejected';   // closed — nothing is pending any more
+  const st=((window.approvalState)||approvalState)(c);
+  if(c && c.status!=='Signed' && st.required){
+    if(st.ok) return 'Approved';
+    const a=st.next && st.next.approver;
+    return 'Pending '+(a ? (a.kind==='member' ? a.name : (a.role==='legal'?'Legal':'Admin')) : 'approval');
+  }
   return '—';
 }
 

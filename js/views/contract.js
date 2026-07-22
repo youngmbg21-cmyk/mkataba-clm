@@ -77,7 +77,7 @@ function findingsFromText(c, text){
   else if(kenyaSen) add('t-law','low','ambiguity','Governing law: Kenya (found in text)',kenyaSen,
     'Kenyan governing law keeps enforcement local and predictable.','No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
   else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
-    'No clause naming a governing law or forum was found in the extracted text.','Every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
+    'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
   // 2) payment terms
   const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
   if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);

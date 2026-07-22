@@ -527,6 +527,7 @@ function aiAnswer(qRaw){
   // 7) highest / largest
   if(has('highest','largest','biggest','top contract','most valuable')){
     const sorted=[...cs].filter(c=>c.status!=='Declined').sort((a,b)=>b.value-a.value).slice(0,3);
+    if(!sorted.length) return { text:`There are no active contracts to rank yet — create one from a template or upload received paper and ask me again.` };
     return { text:`Your highest-value agreement is <strong>${sorted[0].name}</strong> at <strong>${fmtKES(sorted[0].value)}</strong>. Top three by value:`, cards:aiCards(sorted) };
   }
   // 8) counterparty / free-text search

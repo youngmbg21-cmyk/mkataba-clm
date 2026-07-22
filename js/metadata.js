@@ -98,8 +98,14 @@ function openMetaReview(meta, onConfirm, opts={}){
         <button id="mr-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);
-  document.getElementById('mr-cancel').addEventListener('click',()=>{ closeModal(); if(opts.onCancel) opts.onCancel(); });
+  // A scrim click closes the modal (openModal wiring) without telling the
+  // caller — for an upload that silently discarded the whole contract. Treat
+  // it exactly like Cancel so the pending save still completes.
+  let settled=false;
+  document.getElementById('modal-scrim').addEventListener('click',()=>{ if(!settled){ settled=true; if(opts.onCancel) opts.onCancel(); } });
+  document.getElementById('mr-cancel').addEventListener('click',()=>{ settled=true; closeModal(); if(opts.onCancel) opts.onCancel(); });
   document.getElementById('mr-save').addEventListener('click',()=>{
+    settled=true;
     const out={ confidence:{} };
     document.querySelectorAll('[data-mf]').forEach(el=>{ const k=el.getAttribute('data-mf'); let v=el.value;
       const f=META_FIELDS.find(x=>x.k===k); if(f.type==='num') v=v===''?0:Number(v);
