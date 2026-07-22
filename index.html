@@ -98,6 +98,7 @@
   .hidden{display:none!important;}
   html{scroll-behavior:smooth;}
   body{
+    margin:0;
     color:var(--color-text);
     font-family:var(--font-body);
     background:var(--color-bg);
@@ -238,7 +239,8 @@
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 
   /* AI slide-over */
-  #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
   #ai-badge.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(89,128,166,.6);}50%{box-shadow:0 0 0 8px rgba(89,128,166,0);}}
@@ -264,7 +266,7 @@
 <div id="auth-root"></div>
 <div id="share-root"></div>
 
-<div id="app-shell" style="display:none;grid-template-columns:210px 1fr;height:100vh;background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:210px 1fr;background:var(--color-bg);">
 
   <!-- ================= SIDEBAR (210px) ================= -->
   <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
@@ -374,12 +376,12 @@
 
     <!-- body grid: content + context panel -->
     <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr 292px;min-height:0;">
-      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;">
+      <main id="content-scroll" class="scroll-thin" style="overflow:auto;min-width:0;min-height:0;">
         <div id="content"></div>
       </main>
 
       <!-- context panel (292px) -->
-      <aside id="context-panel" style="border-left:1px solid var(--color-divider);background:var(--color-surface);display:flex;flex-direction:column;min-height:0;">
+      <aside id="context-panel" style="border-left:1px solid var(--color-divider);background:var(--color-surface);display:flex;flex-direction:column;min-height:0;overflow:hidden;">
         <div style="display:flex;flex:none;border-bottom:1px solid var(--color-divider);">
           <button id="panel-tab-activity" class="panel-tab active">Activity</button>
           <button id="panel-tab-summary" class="panel-tab">Summary</button>
