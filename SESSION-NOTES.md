@@ -5,6 +5,35 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## AI assistant chrome — delete history, minimize, unread glow
+
+**Done** (`js/ai.js`, `js/components.js`, `index.html`; no server changes)
+
+- **Delete conversation** — a trash button in the assistant header wipes
+  `ai.history` (behind a native confirm) and re-seeds the greeting, with a
+  "Conversation deleted" toast.
+- **Minimize** — a minus button hides the panel without closing the
+  conversation. A small gold dot appears on the rail launcher so you can
+  see the assistant is parked, not gone.
+- **Unread glow** — if an answer arrives while the panel is not open
+  (minimized *or* closed mid-thinking), the launcher dot pulses
+  (`aiPulse` keyframe ring). Opening the panel clears both the dot and
+  the glow; the answer is waiting in the feed.
+- New `trash`/`minus` icons in the shared ICONS map; state lives on the
+  existing `ai` object (`minimized`, `unread`) — additive only, and the
+  intel-page dock is untouched.
+
+**Tested** — 14-check Playwright suite (open/minimize/reopen, unread flag
++ pulse when an answer lands minimized, glow cleared on reopen with the
+answer in the feed, delete resets to greeting, close shows no dot,
+close-during-pending also glows; no page errors) plus the standing
+21-check Portfolio Intelligence regression — all green.
+
+**Skipped / deferred** — the guide-book page / platform-guide mode, per
+the user ("we will add a guide book page later").
+
+---
+
 ## E8 — Commercial hardening (server-side)
 
 **Done** (all in `server/server.js`; docs `DEPLOYMENT.md`,

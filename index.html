@@ -152,6 +152,9 @@
   /* AI panel slide-over */
   #ai-panel{transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1);}
   #ai-panel.open{transform:none;}
+  /* unread glow on the rail launcher: dot = minimized, pulse = answer waiting */
+  #ai-badge.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
+  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(199,154,62,.6);}50%{box-shadow:0 0 0 8px rgba(199,154,62,0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
@@ -242,8 +245,9 @@
       </button>
     </nav>
 
-    <button id="ai-open-side" title="Ask HaTi AI" class="h-14 w-14 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white grid place-content-center justify-items-center gap-0.5 transition shrink-0 mb-3">
+    <button id="ai-open-side" title="Ask HaTi AI" class="relative h-14 w-14 rounded-2xl bg-brand-600 hover:bg-brand-700 text-white grid place-content-center justify-items-center gap-0.5 transition shrink-0 mb-3">
       <span data-ic="sparkle" data-ic-cls="w-5 h-5"></span><span class="text-[9px] font-semibold">AI</span>
+      <span id="ai-badge" class="hidden absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-gold-500 ring-2 ring-white"></span>
     </button>
     <button id="rail-avatar" title="Team &amp; settings" class="h-10 w-10 rounded-full bg-brand-50 grid place-items-center text-[11px] font-semibold text-brand-700 font-mono shrink-0 hover:ring-2 hover:ring-brand-100 transition"></button>
   </aside>
@@ -264,7 +268,9 @@
       <div class="font-display font-600">HaTi AI</div>
       <div class="text-[11px] text-brand-200 flex items-center gap-1.5"><span class="h-1.5 w-1.5 rounded-full bg-brand-300 live-dot"></span>Searching your live contract data</div>
     </div>
-    <button id="ai-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
+    <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="trash"></button>
+    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="minus"></button>
+    <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10 transition text-brand-100" data-ic-big="x"></button>
   </header>
 
   <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4"></div>
