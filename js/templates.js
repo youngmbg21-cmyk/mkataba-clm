@@ -54,6 +54,17 @@ function folderColor(idOrContract){
   const id=(idOrContract && typeof idOrContract==='object') ? idOrContract.folder : idOrContract;
   return (FOLDERS[id] && FOLDERS[id].color) || 'var(--color-divider)';
 }
+/* Legend that explains the card / row edge-stripe colours. Each entry mirrors
+   the stripe (a short vertical bar) next to its stream name, so the colour code
+   is self-documenting on any striped view. Custom streams are included too. */
+function folderLegendHtml(opts={}){
+  const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
+  const items = Object.values(FOLDERS).map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:2px;background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
+  return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;${opts.style||''}">
+    <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Value streams</span>
+    ${items}
+  </div>`;
+}
 // <option> list for any "file under" select — includes a create sentinel
 function folderOptionsHtml(selectedId, includeAuto){
   return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>Auto — route by contract type</option>`:'')
@@ -126,4 +137,4 @@ const TEMPLATES = {
   LE:{ id:'LE', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'corp', valueType:'fixed', blurb:'Office, depot and premises leases.' },
   PS:{ id:'PS', name:'Professional Services Agreement', kind:'Professional Services', ic:'briefcase', folder:'corp', valueType:'fixed', blurb:'Audit, legal and advisory retainers.' },
 };
-Object.assign(window,{FOLDERS,TEMPLATES,addCustomFolder,folderColor,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+Object.assign(window,{FOLDERS,TEMPLATES,addCustomFolder,folderColor,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
