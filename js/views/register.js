@@ -225,7 +225,30 @@ const REG_VIEWS=[
   {k:'autosoon',   label:'Auto-renewing soon'},
   {k:'overdueob',  label:'Overdue obligations'},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',shown:REG_PAGE,sel:{},view:null}; return state.reg; }
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',page:1,sel:{},view:null}; return state.reg; }
+// total pages for the current filtered set (min 1)
+function regPageCount(cs){ return Math.max(1, Math.ceil(cs.length/REG_PAGE)); }
+// clamp + return the current 1-based page
+function regCurPage(cs){ const R=regState(); const n=regPageCount(cs); R.page=Math.min(Math.max(1, R.page||1), n); return R.page; }
+// numbered pager (‹ Prev · 1 … windowed … N · Next ›), shown only when >1 page
+function regPager(cs){
+  const n=regPageCount(cs); if(n<=1) return '';
+  const p=regCurPage(cs);
+  const btn=(label,to,disabled,active)=>`<button ${disabled?'disabled':''} data-reg-page="${to}" style="min-width:32px;padding:5px 10px;font:inherit;font-size:12px;font-weight:${active?700:500};border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':(disabled?'var(--color-neutral-400)':'var(--color-accent-700)')};border-radius:6px;cursor:${disabled?'default':'pointer'}">${label}</button>`;
+  const nums=[]; const lo=Math.max(1,p-2), hi=Math.min(n,p+2);
+  if(lo>1){ nums.push(btn('1',1,false,p===1)); if(lo>2) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); }
+  for(let i=lo;i<=hi;i++) nums.push(btn(String(i),i,false,i===p));
+  if(hi<n){ if(hi<n-1) nums.push('<span style="padding:0 3px;color:var(--color-neutral-500)">…</span>'); nums.push(btn(String(n),n,false,p===n)); }
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap">${btn('‹ Prev',p-1,p<=1,false)}${nums.join('')}${btn('Next ›',p+1,p>=n,false)}</div>`;
+}
+// footer text: "Showing 1–40 of 55 · page 1 of 2 · aggregate KES …"
+function regFooterText(cs){
+  const n=regPageCount(cs), p=regCurPage(cs);
+  const start=cs.length?(p-1)*REG_PAGE+1:0, end=Math.min(cs.length,p*REG_PAGE);
+  const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
+  const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString('en-KE')} total)</span>`:'';
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote} · page ${p} of ${n} · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`;
+}
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
   if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
@@ -279,7 +302,7 @@ function layoutStreamPills(){
     item.style.cssText='display:block;width:100%;text-align:left;white-space:nowrap;border:0;background:'+(on?'var(--color-accent-100)':'none')+';font:inherit;font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer;color:'+(on?'var(--color-accent-800)':'var(--color-neutral-700)')+';font-weight:'+(on?'600':'400');
     item.addEventListener('mouseenter',()=>{ if(!on) item.style.background='var(--color-neutral-100)'; });
     item.addEventListener('mouseleave',()=>{ if(!on) item.style.background='none'; });
-    item.addEventListener('click',()=>{ R.type=k; R.shown=REG_PAGE; renderRegister(); });
+    item.addEventListener('click',()=>{ R.type=k; R.page=1; renderRegister(); });
     menu.appendChild(item);
   });
   if(moreBtn && activeHidden){ moreBtn.style.borderColor='var(--color-accent)'; moreBtn.style.background='var(--color-accent)'; moreBtn.style.color='#fff'; }
@@ -311,11 +334,12 @@ function regRowsHtml(cs){
         ${btn}
       </div></td></tr>`;
   }
-  const shown=Math.min(cs.length, R.shown||REG_PAGE);
+  const p=regCurPage(cs); const start=(p-1)*REG_PAGE;
+  const pageRows=cs.slice(start, start+REG_PAGE);
   const ini=regOwnerInitials();
   const ownerT=((currentUser()&&currentUser().name)||FIRST_PARTY||'').replace(/"/g,'&quot;');
   const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
-  return cs.slice(0,shown).map((c,i)=>{
+  return pageRows.map((c,i)=>{
     const risk=contractRisk(c), rp=riskPal(risk);
     const din=c.expiry?daysUntil(c.expiry):null;
     const renDate=c.expiry?new Date(c.expiry+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
@@ -352,8 +376,8 @@ function regRowsHtml(cs){
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px" title="Row actions">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c)}</div>
       </td>
-    </tr>`;}).join('') + (cs.length>shown
-      ? `<tr><td colspan="12" style="padding:0"><button id="reg-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
+    </tr>`;}).join('') + (regPageCount(cs)>1
+      ? `<tr><td colspan="12" style="padding:11px 12px;border-top:1px solid var(--color-divider)">${regPager(cs)}</td></tr>`
       : '');
 }
 function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
@@ -361,8 +385,7 @@ function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary
 function renderRegisterBody(){
   const cs=regFiltered();
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
-  const cnt=document.getElementById('reg-count'); if(cnt) cnt.textContent=cs.length.toLocaleString('en-KE');
-  const aggr=document.getElementById('reg-aggr'); if(aggr) aggr.textContent=fmtKESshort(regAggregate(cs));
+  const sh=document.getElementById('reg-showing'); if(sh) sh.innerHTML=regFooterText(cs);
   renderRegSelBar();
 }
 function renderRegSelBar(){
@@ -385,9 +408,13 @@ function wireRegRows(){
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok) renderRegister(); });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
-  document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
+  document.querySelectorAll('#reg-tbody [data-reg-page]').forEach(b=>b.addEventListener('click',()=>{
+    const R=regState(); const cs=regFiltered(); const to=Number(b.getAttribute('data-reg-page'));
+    R.page=Math.min(Math.max(1,to), regPageCount(cs)); renderRegisterBody();
+    document.querySelector('.reg-table')?.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }));
   // empty-state actions
-  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.shown=REG_PAGE; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
+  document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',()=>{ const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu'); if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); } else if(nb){ nb.click(); } });
 }
 function regExportSelectedCsv(){
@@ -403,9 +430,8 @@ function regExportSelectedCsv(){
   toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
 }
 function renderRegister(){
-  const R=regState(); R.shown=REG_PAGE;
+  const R=regState(); R.page=1;
   const cs=regFiltered();
-  const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
   // Industry filter pill: accent fill when active, hairline box + accent-border hover when not.
   const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:999px;cursor:pointer`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
@@ -497,8 +523,8 @@ function renderRegister(){
           </table>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--color-divider);font-size:11px;color:var(--color-neutral-600)">
-          <span>Showing <b id="reg-count" style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b> of ${Number(countAll).toLocaleString('en-KE')} contracts · working set aggregate <b id="reg-aggr" style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b></span>
-          <span>CSV export includes filters · server-side pagination active</span>
+          <span id="reg-showing">${regFooterText(cs)}</span>
+          <span>${REG_PAGE} per page · CSV export respects filters</span>
         </div>
       </section>
     </div>
@@ -508,18 +534,18 @@ function renderRegister(){
   renderRegSelBar();
   const si=document.getElementById('reg-search');
   if(si){
-    si.addEventListener('input',()=>{ R.query=si.value; R.shown=REG_PAGE; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
+    si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
     document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
   document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
   document.getElementById('reg-more')?.addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('reg-more-menu')?.classList.toggle('hidden'); });
-  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
-  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
-  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
-  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.shown=REG_PAGE; renderRegister(); }));
-  document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.shown=REG_PAGE; renderRegister(); }));
-  document.getElementById('reg-selall')?.addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
+  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.page=1; renderRegisterBody(); });
+  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegisterBody(); });
+  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.page=1; renderRegister(); }));
+  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.page=1; renderRegister(); }));
+  document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.page=1; renderRegister(); }));
+  document.getElementById('reg-selall')?.addEventListener('change',e=>{ const on=e.target.checked; const cs=regFiltered(); const p=regCurPage(cs); cs.slice((p-1)*REG_PAGE, (p-1)*REG_PAGE+REG_PAGE).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
   document.getElementById('reg-export')?.addEventListener('click',regExportSelectedCsv);
   document.getElementById('reg-clear')?.addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
   layoutStreamPills();
