@@ -47,8 +47,17 @@ function computeReports(){
   const highRisk=cs.filter(c=>contractRisk(c)>=70).length;
   let openOb=0,overdueOb=0;
   if(typeof obState==='function') cs.forEach(c=>(c.obligations||[]).forEach(o=>{ const st=obState(o); if(st&&st!=='done'&&st!=='met'){ openOb++; if(st==='overdue') overdueOb++; } }));
+  // count-based breakdowns for the selectable chart cards
+  const byStatus={};
+  cs.forEach(c=>{ byStatus[c.status]=(byStatus[c.status]||0)+1; });
+  const countByFolder={};
+  cs.forEach(c=>{ const k=FOLDERS[c.folder]?.name||'Other'; countByFolder[k]=(countByFolder[k]||0)+1; });
+  const riskBands={Low:0,Medium:0,High:0};
+  cs.forEach(c=>{ const b=riskBand(contractRisk(c)); riskBands[b==='ruby'?'High':b==='amber'?'Medium':'Low']++; });
+  const obByState={Overdue:overdueOb, Open:Math.max(0,openOb-overdueOb), Completed:0};
+  if(typeof obState==='function') cs.forEach(c=>(c.obligations||[]).forEach(o=>{ if(obState(o)==='done') obByState.Completed++; }));
   return { total:cs.length, active:active.length, avgCycle, cycleN:cycles.length, stageAge, roundsByType, byFolder, topParty, pipeline,
-    totalValue, pipeTotal, pipeMonthsN, expiring90, avgRisk, highRisk, openOb, overdueOb };
+    totalValue, pipeTotal, pipeMonthsN, expiring90, avgRisk, highRisk, openOb, overdueOb, byStatus, countByFolder, riskBands, obByState };
 }
 function lastActivity(c){ const a=c.audit||[]; return a.length?Date.parse(a[a.length-1].at):Date.now(); }
 
@@ -81,17 +90,48 @@ function reportMetricSel(){
   for(let i=0;i<4;i++) if(!REPORT_METRICS.some(m=>m.k===s[i])) s[i]=DEFAULT_REPORT_METRICS[i];
   return s;
 }
+const emptyMsg = t => `<p style="font-size:12px;color:var(--color-neutral-600)">${_esc(t)}</p>`;
+/* Chart catalogue for the four lower cards. Like the hero stat cards, each card
+   follows a KPI the user picks — value isn't forced. `render(r)` returns the bar
+   HTML from the computed report object. */
+const REPORT_CHARTS=[
+  {k:'streamValue', label:'Portfolio value by value stream', render:r=>{
+    const e=Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
+    return e.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent)')).join('')||emptyMsg('No data.'); }},
+  {k:'partyValue', label:'Top counterparties by value', render:r=>{
+    const mx=Math.max(1,...r.topParty.map(x=>x[1]));
+    return r.topParty.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
+  {k:'renewalPipe', label:'Renewal pipeline · next 12 months', render:r=>{
+    const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
+    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtKESshort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
+  {k:'roundsType', label:'Negotiation rounds by type (avg)', render:r=>{
+    const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
+    const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
+    return e.length?e.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'#b8862b')).join(''):emptyMsg('No negotiation data.'); }},
+  {k:'stageCount', label:'Contracts by stage', render:r=>{
+    const order=['Draft','Under Review','Signed','Declined']; const e=order.filter(k=>r.byStatus[k]).map(k=>[k,r.byStatus[k]]);
+    const mx=Math.max(1,...e.map(x=>x[1]));
+    return e.length?e.map(([k,v])=>bar(statusLabel(k),v,mx,String(v),(STATUS_META[k]||{}).dot||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
+  {k:'streamCount', label:'Contract count by value stream', render:r=>{
+    const e=Object.entries(r.countByFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
+    return e.length?e.map(([k,v])=>bar(k,v,mx,String(v),'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
+  {k:'riskBand', label:'Contracts by risk band', render:r=>{
+    const e=Object.entries(r.riskBands); const mx=Math.max(1,...e.map(x=>x[1]));
+    const col={Low:'#2e8763',Medium:'#b8862b',High:'#b0453c'};
+    return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
+  {k:'obState', label:'Obligations by status', render:r=>{
+    const e=Object.entries(r.obByState); const mx=Math.max(1,...e.map(x=>x[1]));
+    const col={Overdue:'#b0453c',Open:'#b8862b',Completed:'#2e8763'};
+    return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No obligations tracked yet.'); }},
+];
+const DEFAULT_REPORT_CHARTS=['streamValue','partyValue','renewalPipe','roundsType'];
+function reportChartSel(){
+  const s=(state.settings&&Array.isArray(state.settings.reportCharts))?state.settings.reportCharts.slice():DEFAULT_REPORT_CHARTS.slice();
+  for(let i=0;i<4;i++) if(!REPORT_CHARTS.some(c=>c.k===s[i])) s[i]=DEFAULT_REPORT_CHARTS[i];
+  return s;
+}
 function renderReports(){
   const r=computeReports();
-  const kes=v=>fmtKESshort(v);
-  const maxFolder=Math.max(1,...Object.values(r.byFolder));
-  const maxParty=Math.max(1,...r.topParty.map(x=>x[1]));
-  const pipeMonths=Object.keys(r.pipeline).sort();
-  const maxPipe=Math.max(1,...Object.values(r.pipeline));
-  const pipeTotal=Object.values(r.pipeline).reduce((a,b)=>a+b,0);
-  const roundsEntries=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
-  const maxRounds=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
-  const empty=t=>`<p style="font-size:12px;color:var(--color-neutral-600)">${t}</p>`;
 
   // TOP — gradient hero stat cards. Each card's metric is user-selectable via
   // the dropdown built into its label, so revenue/value is never forced.
@@ -115,31 +155,39 @@ function renderReports(){
   };
   const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
 
-  // BELOW — 2×2 chart cards
-  const card=(title,body)=>`
+  // BELOW — 2×2 chart cards. Each card follows a KPI the user picks via the
+  // dropdown built into its title, so no chart is forced.
+  const csel=reportChartSel();
+  const chartSlot=(idx)=>{
+    const ch=REPORT_CHARTS.find(x=>x.k===csel[idx])||REPORT_CHARTS[idx];
+    const opts=REPORT_CHARTS.map(x=>`<option value="${x.k}" ${x.k===ch.k?'selected':''}>${x.label}</option>`).join('');
+    return `
     <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px">
-      <h4 style="font-size:14px;margin:0 0 10px">${title}</h4>${body}
+      <label class="rpt-chart" title="Choose the chart this card follows" style="display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0 0 10px;padding:3px 8px 3px 11px;border:1px solid var(--color-divider);border-radius:999px;cursor:pointer;transition:background .12s,border-color .12s">
+        <select data-report-chart="${idx}" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--color-text);cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${opts}</select>
+        <span style="color:var(--color-neutral-500);font-size:10px;flex:none;pointer-events:none">▾</span>
+      </label>
+      ${ch.render(r)}
     </section>`;
-  const streamCard=card('Portfolio value by value stream', Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bar(k,v,maxFolder,kes(v),'var(--color-accent)')).join('')||empty('No data.'));
-  const partyCard=card('Top counterparties by value', r.topParty.map(([k,v])=>bar(k,v,maxParty,kes(v),'var(--color-accent-700)')).join('')||empty('No data.'));
-  const pipeCard=card('Renewal pipeline · next 12 months', pipeMonths.length?pipeMonths.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],maxPipe,kes(r.pipeline[m]),'#2e8763')).join(''):empty('Nothing expiring in the next 12 months.'));
-  const roundsCard=card('Negotiation rounds by type (avg)', roundsEntries.length?roundsEntries.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, maxRounds, (v.rounds/v.n).toFixed(1), '#b8862b')).join(''):empty('No negotiation data.'));
+  };
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
     <style>
       .rpt-metric:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
       .rpt-metric:focus-within{background:rgba(255,255,255,.30)!important;border-color:#fff!important}
+      .rpt-chart:hover{background:var(--color-bg);border-color:var(--color-accent)}
+      .rpt-chart:focus-within{background:var(--color-bg);border-color:var(--color-accent)}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
         ${stats}
       </section>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-        ${streamCard}
-        ${partyCard}
-        ${pipeCard}
-        ${roundsCard}
+        ${chartSlot(0)}
+        ${chartSlot(1)}
+        ${chartSlot(2)}
+        ${chartSlot(3)}
       </div>
     </div>
   </div>`;
@@ -147,6 +195,13 @@ function renderReports(){
     const i=Number(selEl.getAttribute('data-report-metric'));
     const arr=reportMetricSel(); arr[i]=selEl.value;
     state.settings=state.settings||{}; state.settings.reportMetrics=arr;
+    if(typeof saveSettings==='function') saveSettings();
+    renderReports();
+  }));
+  document.querySelectorAll('[data-report-chart]').forEach(selEl=>selEl.addEventListener('change',()=>{
+    const i=Number(selEl.getAttribute('data-report-chart'));
+    const arr=reportChartSel(); arr[i]=selEl.value;
+    state.settings=state.settings||{}; state.settings.reportCharts=arr;
     if(typeof saveSettings==='function') saveSettings();
     renderReports();
   }));
