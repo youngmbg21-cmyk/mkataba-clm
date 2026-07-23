@@ -456,14 +456,16 @@ function startApp(){
   FIRST_PARTY = getOrg().name;
   document.getElementById('auth-root').innerHTML='';
   const shell=document.getElementById('app-shell');
-  shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important, so inline display alone can't win
+  shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important so the class must go
   shell.style.display='grid';
   renderSideUser(); renderSideFolders();
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
-  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); }
+  window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
+  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000);
+    window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
@@ -667,6 +669,7 @@ function sealString(c){
 async function verifySeal(c){
   if(!c.hash){ toast('Document is not sealed yet','err'); return; }
   if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before evidence hashing existed','err'); return; }
+  if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
   if(!isUpload(c)){
     if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
     const th=await sha256(normText(c.execution.html));
