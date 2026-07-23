@@ -700,6 +700,8 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`
+          <button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
           <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
         </div>
         <!-- document body (scrolls within the left pane) -->
@@ -849,6 +851,7 @@ function renderWorkspace(){
     rez.addEventListener('dblclick',()=>{ setW(DOC_PANEL_MIN); save(DOC_PANEL_MIN); });
   })();
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
+  document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
