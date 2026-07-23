@@ -104,10 +104,10 @@ function renderReports(){
     <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
         <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
-        <span style="position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:3px">
-          <select data-report-metric="${idx}" title="Choose the metric this card follows" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#fff;font:inherit;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;line-height:1.25;cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${optsHtml}</select>
-          <span style="color:rgba(255,255,255,.75);font-size:9px;flex:none;pointer-events:none">▾</span>
-        </span>
+        <label class="rpt-metric" title="Choose the metric this card follows" style="position:relative;flex:1;min-width:0;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38);border-radius:999px;padding:3px 6px 3px 10px;cursor:pointer;transition:background .12s,border-color .12s">
+          <select data-report-metric="${idx}" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#fff;font:inherit;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;line-height:1.25;cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${optsHtml}</select>
+          <span style="color:#fff;font-size:9px;flex:none;pointer-events:none">▾</span>
+        </label>
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
       <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${d.sub}</span>
@@ -127,6 +127,10 @@ function renderReports(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
+    <style>
+      .rpt-metric:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
+      .rpt-metric:focus-within{background:rgba(255,255,255,.30)!important;border-color:#fff!important}
+    </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
         ${stats}
