@@ -130,6 +130,48 @@ function reportChartSel(){
   for(let i=0;i<4;i++) if(!REPORT_CHARTS.some(c=>c.k===s[i])) s[i]=DEFAULT_REPORT_CHARTS[i];
   return s;
 }
+/* Shared soft dropdown for the report cards. A native <select> can't have its
+   OS-drawn option list rounded/softened, so this renders a custom rounded menu
+   that matches the dashboard. `variant`: 'hero' = translucent pill on the
+   gradient stat cards, 'card' = shaded pill on the white chart cards (so it
+   reads against the white surface). */
+function reportDropdown(variant, kind, idx, catalog, selKey){
+  const cur=catalog.find(x=>x.k===selKey)||catalog[idx];
+  const hero=variant==='hero';
+  const trig=hero
+    ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
+    : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:14px;font-weight:600';
+  const chev=hero?'#fff':'var(--color-neutral-500)';
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="Choose the ${hero?'metric':'chart'} this card follows" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
+      <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
+    </button>
+    <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:10px;padding:5px">${opts}</div>
+  </div>`;
+}
+// Toggle / select / outside-close wiring for every reportDropdown on the page.
+function wireReportDropdowns(){
+  const closeAll=()=>document.querySelectorAll('[data-rd-menu]').forEach(m=>m.style.display='none');
+  document.querySelectorAll('[data-rd-trigger]').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const menu=document.querySelector('[data-rd-menu="'+btn.getAttribute('data-rd-trigger')+'"]');
+    const open=menu&&menu.style.display==='block'; closeAll();
+    if(menu&&!open) menu.style.display='block';
+  }));
+  document.querySelectorAll('[data-rd-opt]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation(); closeAll();
+    const p=b.getAttribute('data-rd-opt').split(':'), kind=p[0], idx=Number(p[1]), val=p[2];
+    state.settings=state.settings||{};
+    if(kind==='metric'){ const arr=reportMetricSel(); arr[idx]=val; state.settings.reportMetrics=arr; }
+    else { const arr=reportChartSel(); arr[idx]=val; state.settings.reportCharts=arr; }
+    if(typeof saveSettings==='function') saveSettings();
+    renderReports();
+  }));
+  // one global outside-click closer, registered once so renders don't stack it
+  if(!window.__rdWired){ window.__rdWired=true; document.addEventListener('click',()=>document.querySelectorAll('[data-rd-menu]').forEach(m=>m.style.display='none')); }
+}
 function renderReports(){
   const r=computeReports();
 
@@ -139,15 +181,11 @@ function renderReports(){
   const statSlot=(idx)=>{
     const m=REPORT_METRICS.find(x=>x.k===sel[idx])||REPORT_METRICS[idx];
     const d=m.get(r);
-    const optsHtml=REPORT_METRICS.map(x=>`<option value="${x.k}" ${x.k===m.k?'selected':''} style="color:#1d1f20;background:#fff">${x.label}</option>`).join('');
     return `
     <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
         <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
-        <label class="rpt-metric" title="Choose the metric this card follows" style="position:relative;flex:1;min-width:0;display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.38);border-radius:999px;padding:3px 6px 3px 10px;cursor:pointer;transition:background .12s,border-color .12s">
-          <select data-report-metric="${idx}" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#fff;font:inherit;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;line-height:1.25;cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${optsHtml}</select>
-          <span style="color:#fff;font-size:9px;flex:none;pointer-events:none">▾</span>
-        </label>
+        ${reportDropdown('hero','metric',idx,REPORT_METRICS,sel[idx])}
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
       <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${d.sub}</span>
@@ -160,13 +198,9 @@ function renderReports(){
   const csel=reportChartSel();
   const chartSlot=(idx)=>{
     const ch=REPORT_CHARTS.find(x=>x.k===csel[idx])||REPORT_CHARTS[idx];
-    const opts=REPORT_CHARTS.map(x=>`<option value="${x.k}" ${x.k===ch.k?'selected':''}>${x.label}</option>`).join('');
     return `
     <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px">
-      <label class="rpt-chart" title="Choose the chart this card follows" style="display:inline-flex;align-items:center;gap:6px;max-width:100%;margin:0 0 10px;padding:3px 8px 3px 11px;border:1px solid var(--color-divider);border-radius:999px;cursor:pointer;transition:background .12s,border-color .12s">
-        <select data-report-chart="${idx}" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--color-text);cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${opts}</select>
-        <span style="color:var(--color-neutral-500);font-size:10px;flex:none;pointer-events:none">▾</span>
-      </label>
+      ${reportDropdown('card','chart',idx,REPORT_CHARTS,csel[idx])}
       ${ch.render(r)}
     </section>`;
   };
@@ -174,10 +208,14 @@ function renderReports(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
     <style>
-      .rpt-metric:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
-      .rpt-metric:focus-within{background:rgba(255,255,255,.30)!important;border-color:#fff!important}
-      .rpt-chart:hover{background:var(--color-bg);border-color:var(--color-accent)}
-      .rpt-chart:focus-within{background:var(--color-bg);border-color:var(--color-accent)}
+      .rd-trigger-hero:hover{background:rgba(255,255,255,.30)!important;border-color:rgba(255,255,255,.7)!important}
+      .rd-trigger-card:hover{background:var(--color-neutral-100)!important;border-color:var(--color-accent)!important}
+      .rd-chev{font-size:14px;line-height:1}
+      .rd-menu{animation:rdIn .1s ease}
+      .rd-opt{color:var(--color-text)}
+      .rd-opt:hover{background:var(--color-bg)}
+      .rd-opt-on{background:var(--color-accent-100);color:var(--color-accent-800);font-weight:600}
+      @keyframes rdIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
     </style>
     <div style="display:flex;flex-direction:column;gap:18px">
       <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
@@ -191,20 +229,7 @@ function renderReports(){
       </div>
     </div>
   </div>`;
-  document.querySelectorAll('[data-report-metric]').forEach(selEl=>selEl.addEventListener('change',()=>{
-    const i=Number(selEl.getAttribute('data-report-metric'));
-    const arr=reportMetricSel(); arr[i]=selEl.value;
-    state.settings=state.settings||{}; state.settings.reportMetrics=arr;
-    if(typeof saveSettings==='function') saveSettings();
-    renderReports();
-  }));
-  document.querySelectorAll('[data-report-chart]').forEach(selEl=>selEl.addEventListener('change',()=>{
-    const i=Number(selEl.getAttribute('data-report-chart'));
-    const arr=reportChartSel(); arr[i]=selEl.value;
-    state.settings=state.settings||{}; state.settings.reportCharts=arr;
-    if(typeof saveSettings==='function') saveSettings();
-    renderReports();
-  }));
+  wireReportDropdowns();
   setActiveNav('reports');
 }
 function exportReportsCsv(r){
