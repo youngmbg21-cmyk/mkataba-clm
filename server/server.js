@@ -199,6 +199,8 @@ addColumnIfMissing('shares', 'first_opened_at', 'TEXT');
 addColumnIfMissing('shares', 'responded_at', 'TEXT');
 addColumnIfMissing('shares', 'reminded_at', 'TEXT');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
+addColumnIfMissing('share_otp', 'phone', 'TEXT');    // WhatsApp OTP delivery target (E164 digits)
+addColumnIfMissing('share_otp', 'channel', 'TEXT');  // how the code was delivered: 'email' | 'whatsapp'
 // backfill contract_id for shares created before the column existed
 try {
   for (const r of db.prepare('SELECT token, payload FROM shares WHERE contract_id IS NULL').all()) {
@@ -393,6 +395,36 @@ async function sendEmail(to, subject, body, devHint) {
   }
   db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,?,?,?,?)')
     .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), at);
+  return { id, sent, provider };
+}
+
+/* ---------- WhatsApp delivery (mirrors sendEmail) ----------
+   Automatic WhatsApp needs a Business API provider. This wires Meta's WhatsApp
+   Cloud API when WHATSAPP_TOKEN + WHATSAPP_PHONE_ID are set; otherwise the
+   message queues to the same admin outbox (code visible in dev_hint), so the
+   whole flow is testable before a provider exists — exactly like email's
+   dev-code fallback. Note: business-initiated messages outside the 24h service
+   window require a Meta-approved template; this sends a plain-text body, which
+   is correct for the outbox fallback and within-session sends. */
+const WA_ON = () => !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID);
+const maskPhone = p => { const d = String(p || '').replace(/\D/g, ''); return d.length > 3 ? '••• ••• ' + d.slice(-3) : (d || 'your number'); };
+async function sendWhatsApp(toPhone, body, devHint) {
+  const id = 'w_' + rid(8), at = now();
+  const to = String(toPhone || '').replace(/[^\d]/g, '');
+  let sent = 0, provider = 'outbox';
+  if (WA_ON()) {
+    try {
+      const ver = process.env.WHATSAPP_API_VERSION || 'v21.0';
+      const r = await fetch(`https://graph.facebook.com/${ver}/${process.env.WHATSAPP_PHONE_ID}/messages`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + process.env.WHATSAPP_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'text', text: { body } }),
+      });
+      if (r.ok) { sent = 1; provider = 'whatsapp-cloud'; } else provider = 'whatsapp-http-' + r.status;
+    } catch (e) { provider = 'whatsapp-error'; }
+  }
+  db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, to ? 'wa:' + to : '', 'WhatsApp message', body, sent, provider, WA_ON() ? null : (devHint || null), at);
   return { id, sent, provider };
 }
 
@@ -1444,7 +1476,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   } catch (_) {}
   res.json({
     payload: JSON.parse(s.payload), responded: !!s.response,
-    share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
+    share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
 });
@@ -1504,21 +1536,36 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
 
 // Counterparty signing is verified by an email one-time code.
 app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request a code
-  const s = db.prepare('SELECT token FROM shares WHERE token=?').get(req.params.token);
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  // A contract sent over WhatsApp is verified over WhatsApp — the code goes to
+  // the number it was sent to, and the signature is bound to that number. Every
+  // other channel verifies by email. Verification follows how the share travelled.
+  const viaWa = s.channel === 'whatsapp' && !!s.recipient_phone;
+  const code = code6(), expires = Date.now() + 10 * 60 * 1000;
+  if (viaWa) {
+    const phone = String(s.recipient_phone).replace(/[^\d]/g, '');
+    db.prepare('INSERT INTO share_otp (token,email,phone,channel,code_hash,verify,verified,expires) VALUES (?,?,?,?,?,?,0,?) ' +
+      'ON CONFLICT(token) DO UPDATE SET email=NULL, phone=excluded.phone, channel=excluded.channel, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
+      .run(req.params.token, null, phone, 'whatsapp', sha(code + req.params.token), null, expires);
+    sendWhatsApp(phone, `Your HaTi signing code is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+    return res.json({ ok: true, channel: 'whatsapp', to: maskPhone(phone), sent: WA_ON(), devCode: WA_ON() ? undefined : code });
+  }
   const email = String((req.body || {}).email || '').toLowerCase();
   if (!/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
-  const code = code6(), expires = Date.now() + 10 * 60 * 1000;
-  db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires) VALUES (?,?,?,?,0,?) ' +
-    'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
-    .run(req.params.token, email, sha(code + req.params.token), null, expires);
+  db.prepare('INSERT INTO share_otp (token,email,phone,channel,code_hash,verify,verified,expires) VALUES (?,?,?,?,?,?,0,?) ' +
+    'ON CONFLICT(token) DO UPDATE SET email=excluded.email, phone=NULL, channel=excluded.channel, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
+    .run(req.params.token, email, null, 'email', sha(code + req.params.token), null, expires);
   sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
-  res.json({ ok: true, emailSent: EMAIL_ON(), devCode: EMAIL_ON() ? undefined : code });
+  res.json({ ok: true, channel: 'email', emailSent: EMAIL_ON(), devCode: EMAIL_ON() ? undefined : code });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { email, code } = req.body || {};
-  if (!row || row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
+  if (!row) return res.status(400).json({ error: 'Request a code first' });
+  // Email codes are matched to the address that requested them; WhatsApp codes
+  // are bound server-side to the share's number, so no client identifier is sent.
+  if (row.channel !== 'whatsapp' && row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
   if (Date.now() > row.expires) return res.status(400).json({ error: 'Code expired — request a new one' });
   if (row.code_hash !== sha(String(code || '') + req.params.token)) return res.status(400).json({ error: 'Incorrect code' });
   const verify = rid(12);
@@ -1534,11 +1581,14 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
-  if (r.action === 'sign') {   // require a verified email OTP to attribute the signature
+  if (r.action === 'sign') {   // require a verified OTP to attribute the signature
     const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
     if (!otp || !otp.verified || !r.verify || otp.verify !== r.verify)
-      return res.status(403).json({ error: 'Email verification required before signing' });
-    r.email = otp.email; r.method = 'email one-time code'; r.ip = clientIp(req);
+      return res.status(403).json({ error: 'Identity verification required before signing' });
+    // Bind the signature to whatever channel actually verified the signer.
+    if (otp.channel === 'whatsapp') { r.phone = otp.phone; r.email = ''; r.method = 'WhatsApp one-time code'; }
+    else { r.email = otp.email; r.method = 'email one-time code'; }
+    r.ip = clientIp(req);
   }
   db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), now(), req.params.token);
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
@@ -1555,8 +1605,9 @@ function notifyShareResponse(s, r) {
     const subject = r.action === 'sign' ? `Signed: "${cName}"`
       : r.action === 'decline' ? `Declined: "${cName}"`
       : `Changes requested: "${cName}"`;
+    const verifiedAs = r.email ? ` (email-verified as ${r.email})` : r.phone ? ` (WhatsApp-verified as +${String(r.phone).replace(/[^\d]/g, '')})` : '';
     const detail = r.action === 'sign'
-      ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
+      ? `${who} approved and signed "${cName}"${verifiedAs}.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
@@ -1564,13 +1615,12 @@ function notifyShareResponse(s, r) {
           `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
+    const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
+    const receipt = `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`;
     const rcpt = String(r.email || s.recipient_email || '').trim();
-    if (/.+@.+\..+/.test(rcpt)) {
-      const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
-      sendEmail(rcpt, `Your response to "${cName}" was delivered`,
-        `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`,
-        'share receipt');
-    }
+    const rphone = String(r.phone || (s.channel === 'whatsapp' ? s.recipient_phone : '') || '').replace(/[^\d]/g, '');
+    if (/.+@.+\..+/.test(rcpt)) sendEmail(rcpt, `Your response to "${cName}" was delivered`, receipt, 'share receipt');
+    else if (rphone) sendWhatsApp(rphone, receipt, 'share receipt');
   } catch (_) {}
 }
 

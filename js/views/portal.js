@@ -33,6 +33,8 @@ function renderSharePortal(p, opts={}){
     return;
   }
   FIRST_PARTY=p.org;
+  // A WhatsApp share is verified over WhatsApp — no email needed to sign.
+  const waCh=!!(opts.share && opts.share.channel==='whatsapp' && opts.share.recipientPhone);
   const c=migrateContract({ ...p.contract, status:'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   const input=(id,label,ph)=>`
@@ -62,7 +64,8 @@ function renderSharePortal(p, opts={}){
         <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5;">${opts.token?`Your response is delivered to ${p.sharedBy} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${p.sharedBy} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
-        ${input('pt-email','Work email','you@company.co.ke')}
+        ${input('pt-email',waCh?'Work email (optional)':'Work email','you@company.co.ke')}
+        ${waCh?`<p style="margin:-4px 0 12px;font-size:10.5px;color:var(--color-neutral-600);line-height:1.5;display:flex;gap:5px;align-items:flex-start;">${icon('key','w-3 h-3')}<span>To sign, we'll send a 6-digit code by <strong>WhatsApp</strong> to the number this was shared to (${opts.share.recipientPhone.replace(/\d(?=\d{3})/g,'•')}). No email needed.</span></p>`:''}
         <label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Comment</span>
         <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" style="${TA}"></textarea></label>
         ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Propose a different value (optional, for change requests)</span>
@@ -106,12 +109,15 @@ function renderSharePortal(p, opts={}){
 }
 async function portalRespond(p, action){
   const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
+  // A WhatsApp share verifies over WhatsApp (to the number it was sent to), so
+  // no email is needed to sign; every other channel still verifies by email.
+  const waCh=!!(PORTAL_OPTS.share && PORTAL_OPTS.share.channel==='whatsapp' && PORTAL_OPTS.share.recipientPhone);
   if(!name){ toast('Enter your full name','err'); return; }
-  if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
+  if(action==='sign' && !email && !waCh){ toast('A work email is required to sign','err'); return; }
   if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
   if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
-  // Server-backed signing: verify the signer's email with a one-time code first.
-  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment}); }
+  // Server-backed signing: verify the signer with a one-time code first.
+  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment,waCh,phone:PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientPhone}); }
   // E2: a redline is a change request carrying proposed edited text + its base.
   let proposedText=null, baseText=null, sendAction=action;
   if(action==='redline'){
@@ -149,21 +155,25 @@ async function portalRespond(p, action){
     toast('Response code copied');
   });
 }
-/* two-step counterparty signing with email one-time code (server mode) */
+/* two-step counterparty signing with a one-time code (email or WhatsApp, server mode) */
 async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
-  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${info.email}</strong>…</div>`;
-  let devCode=null;
+  const waCh=!!info.waCh;
+  const dest=waCh?'your WhatsApp':`<strong>${info.email}</strong>`;
+  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to ${dest}…</div>`;
+  let devCode=null,sentTo=null;
   try{
-    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{ email:info.email });
-    devCode=r.devCode;
+    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',waCh?{}:{ email:info.email });
+    devCode=r.devCode; sentTo=r.to;
   }catch(e){ toast(e.message,'err'); box.innerHTML=''; return; }
+  const shownDest=waCh?`your WhatsApp${sentTo?` (${sentTo})`:''}`:`<strong>${info.email}</strong>`;
   box.innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify your email to sign</div>
-      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${info.email}</strong>. Enter it to complete your signature.</p>
-      ${(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail&&PORTAL_OPTS.share.recipientEmail.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Note: this contract was sent to <strong>${PORTAL_OPTS.share.recipientEmail}</strong>. Signing with a different address is allowed (e.g. a colleague signs) and the verified address will be recorded on the signature.</p>`:''}
-      ${devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${waCh?'Verify your WhatsApp to sign':'Verify your email to sign'}</div>
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to ${shownDest}. Enter it to complete your signature.</p>
+      ${(!waCh&&PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail&&PORTAL_OPTS.share.recipientEmail.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Note: this contract was sent to <strong>${PORTAL_OPTS.share.recipientEmail}</strong>. Signing with a different address is allowed (e.g. a colleague signs) and the verified address will be recorded on the signature.</p>`:''}
+      ${waCh&&devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">WhatsApp sending isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
+      ${!waCh&&devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
@@ -175,17 +185,20 @@ async function portalStartOtp(p, info){
 async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
   if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
+  const waCh=!!info.waCh;
   let verify;
-  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
+  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',waCh?{ code:codeVal }:{ email:info.email, code:codeVal }); verify=v.verify; }
   catch(e){ toast(e.message,'err'); return; }
+  // For a WhatsApp share the server binds the signature to the verified number,
+  // so email is left blank here and filled server-side.
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
-    name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO() };
+    name:info.name, title:info.title, email:waCh?'':info.email, comment:info.comment, verify, at:nowISO() };
   try{
     await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
     document.getElementById('portal-result').innerHTML=`
       <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your email-verified signature has been delivered to ${p.sharedBy} at ${p.org}. You're all done.</p>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your ${waCh?'WhatsApp':'email'}-verified signature has been delivered to ${p.sharedBy} at ${p.org}. You're all done.</p>
       </div>`;
   }catch(e){ toast(e.message,'err'); }
 }

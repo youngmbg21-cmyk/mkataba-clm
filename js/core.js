@@ -728,7 +728,7 @@ function downloadEvidence(c){
       sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
       uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
-    signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
+    signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null, phone:s.phone||null,
       method:s.method||null, ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     auditTrail:c.audit||[],
   },null,2));
@@ -949,10 +949,10 @@ async function applyResponse(c, r, opts={}){
   const who=r.name+(r.title?', '+r.title:'');
   if(r.action==='sign'){
     c.signatures=c.signatures||[];
-    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
+    c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', phone:r.phone||'', at:r.at,
       method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash });
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'})`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${r.phone?`, WhatsApp ${r.phone}`:r.email?`, ${r.email}`:''})`);
     toast(`${r.name} has signed — countersignature recorded`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
