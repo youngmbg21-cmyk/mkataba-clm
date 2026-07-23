@@ -671,9 +671,13 @@ function renderWorkspace(){
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
+  // Right context panel is user-resizable by dragging its left edge: 300px
+  // (default/min) → 450px (max, +50%). The chosen width is remembered.
+  const DOC_PANEL_MIN=300, DOC_PANEL_MAX=450;
+  const docPanelW=(()=>{ try{ const v=Number(typeof lsGet==='function'&&lsGet('hati.v1.docPanelW')); return (v>=DOC_PANEL_MIN&&v<=DOC_PANEL_MAX)?Math.round(v):DOC_PANEL_MIN; }catch(_){ return DOC_PANEL_MIN; } })();
   content.innerHTML=`
   <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 300px;gap:14px">
+    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:1fr ${docPanelW}px;gap:14px">
 
       <!-- ============ LEFT: document card (own scroll) ============ -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
@@ -718,6 +722,13 @@ function renderWorkspace(){
       </section>
 
       <!-- ============ RIGHT: context stack (own scroll, pinned sign) ============ -->
+      <!-- drag handle: floats in the gutter between the document and the panel
+           (a direct child of the grid, so the panel's own overflow can't clip
+           it). Drag left to widen the panel to +50%, double-click to reset. -->
+      <div id="doc-resizer" title="Drag to resize (300–450px) · double-click to reset" style="position:absolute;top:0;bottom:0;right:${docPanelW+1}px;width:12px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-divider)'">
+        <span style="width:3px;height:38px;border-radius:999px;background:var(--color-divider);transition:background .15s"></span>
+      </div>
+
       <div id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
 
         <!-- Key terms -->
@@ -818,6 +829,23 @@ function renderWorkspace(){
   });
   document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+
+  // Draggable right-panel resizer: drag the left-edge handle to widen the panel
+  // leftward (300–450px); the width is clamped and remembered. Live-updates the
+  // grid without a re-render so edit/scan state is preserved.
+  (function(){
+    const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
+    if(!grid||!rez) return;
+    const grip=rez.firstElementChild;
+    const curW=()=>{ const m=/1fr\s+([\d.]+)px/.exec(grid.style.gridTemplateColumns||''); return m?Number(m[1]):DOC_PANEL_MIN; };
+    const setW=w=>{ w=Math.max(DOC_PANEL_MIN,Math.min(DOC_PANEL_MAX,Math.round(w))); grid.style.gridTemplateColumns='1fr '+w+'px'; rez.style.right=(w+1)+'px'; return w; };
+    const save=w=>{ try{ if(typeof lsSet==='function') lsSet('hati.v1.docPanelW',w); }catch(_){} };
+    let startX=0, startW=DOC_PANEL_MIN;
+    const onMove=e=>{ const x=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX); setW(startW+(startX-x)); };  // drag left → wider
+    const onUp=()=>{ rez.dataset.drag=''; delete rez.dataset.drag; grip.style.background='var(--color-divider)'; document.body.style.cursor=''; document.body.style.userSelect=''; window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); save(curW()); };
+    rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1'; startX=e.clientX; startW=curW(); grip.style.background='var(--color-accent)'; document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+    rez.addEventListener('dblclick',()=>{ setW(DOC_PANEL_MIN); save(DOC_PANEL_MIN); });
+  })();
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));

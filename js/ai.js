@@ -624,7 +624,9 @@ function _localDetail(c){
     status:c.status||'', effectiveDate:(c.fields&&c.fields.effDate)||'',
     expiry:c.expiry||'', daysUntilExpiry:c.expiry?_daysTo(c.expiry):null,
     openFindings:open.map(f=>({severity:f.sev,kind:f.kind,title:f.title,why:f.why})),
-    text:(typeof contractPlainText==='function'?contractPlainText(c):'').slice(0,3000) };
+    // Read the whole document (up to 16k chars) so Copilot can summarise a
+    // contract in full and quote clauses verbatim — not just skim the opening.
+    text:(typeof contractPlainText==='function'?contractPlainText(c):'').slice(0,16000) };
 }
 function _localToolRun(name,a){
   a=a||{}; const cs=state.contracts||[];
