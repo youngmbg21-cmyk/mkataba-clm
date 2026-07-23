@@ -570,6 +570,28 @@ app.get('/api/contracts', auth, (req, res) => {
   res.json({ total, offset, limit, rows });
 });
 
+// Whole-workspace activity feed. The client can't build this from the contract
+// list — audit trails are stripped from the light list rows (see HEAVY) — so it
+// comes from here: flatten the audit of the most-recently-touched contracts,
+// sort by timestamp, return the newest events. Only compact fields ship, never
+// full bodies. Fixes the right-panel Activity feed being empty in server mode.
+app.get('/api/activity', auth, (req, res) => {
+  const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 40));
+  // A save appends to a contract's audit and bumps its seq, so the newest
+  // events live in the highest-seq rows. Scan a bounded recent window.
+  const rows = db.prepare('SELECT json FROM contracts ORDER BY seq DESC LIMIT 400').all();
+  const feed = [];
+  for (const r of rows) {
+    let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    const audit = Array.isArray(c.audit) ? c.audit : [];
+    for (const a of audit.slice(-40)) {
+      feed.push({ id: c.id, name: c.name, action: a.action || '', detail: a.detail || '', at: a.at || '', user: a.user || '' });
+    }
+  }
+  feed.sort((x, y) => Date.parse(y.at || 0) - Date.parse(x.at || 0));
+  res.json({ events: feed.slice(0, limit) });
+});
+
 // E6-T1: full-text search across bodies + metadata, with snippet previews.
 app.get('/api/search', auth, (req, res) => {
   const q = String(req.query.q || '').trim();

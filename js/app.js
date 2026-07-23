@@ -273,16 +273,34 @@ function activityCategory(txt){
   return 'steel';
 }
 const CAT_DOT={gray:'#98989b',amber:'#b8862b',green:'#2e8763',ruby:'#b0453c',steel:'#5980a6'};
+function activityRow(id,action,detail,at){
+  const txt=detail||action||'';
+  return {id, txt:`${action?action+' — ':''}${txt}`.replace(/^ — /,''), at, when:relTime(at), cat:activityCategory((action||'')+' '+txt)};
+}
 function buildActivityFeed(limit=40){
+  // Server mode: the light contract list carries no audit trail, so the
+  // whole-workspace feed is served by /api/activity and cached here. The
+  // client-side scan below is the fallback for local (single-device) mode.
+  if(API_MODE()&&state.activityFeed) return state.activityFeed.slice(0,limit);
   const feed=[];
   state.contracts.forEach(c=>{
-    (c.audit||[]).forEach(a=>{
-      const txt=a.detail||a.action||'';
-      feed.push({id:c.id, txt:`${a.action?a.action+' — ':''}${txt}`.replace(/^ — /,''), at:a.at, when:relTime(a.at), cat:activityCategory((a.action||'')+' '+txt)});
-    });
+    (c.audit||[]).forEach(a=>feed.push(activityRow(c.id,a.action,a.detail,a.at)));
   });
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
+}
+// Pull the workspace-wide activity feed from the server (server mode only) and
+// re-render the panel when it lands. Throttled so panel re-renders don't hammer
+// the endpoint; a fresh cache within the window is reused as-is.
+let _activityAt=0, _activityBusy=false;
+function refreshActivityFeed(force){
+  if(!API_MODE()||_activityBusy) return;
+  if(!force&&state.activityFeed&&(Date.now()-_activityAt)<15000) return;
+  _activityBusy=true;
+  api('activity?limit=40')
+    .then(r=>{ state.activityFeed=(r.events||[]).map(e=>activityRow(e.id,e.action,e.detail,e.at)); })
+    .catch(()=>{})
+    .finally(()=>{ _activityAt=Date.now(); _activityBusy=false; if(state.panelOpen&&state.view!=='intel') renderContextPanel(); });
 }
 // Selecting a contract (register row, home list, or an activity entry) now opens
 // its workspace — the right-hand panel is the live Activity feed only.
@@ -298,6 +316,7 @@ function applyPanelLayout(){
 }
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;
+  refreshActivityFeed();   // server mode: keep the whole-workspace feed current
   const feed=buildActivityFeed();
   body.innerHTML=`
       <div style="padding:10px 12px;">
@@ -361,7 +380,7 @@ function wireShell(){
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
 
   // panel toggle (Activity feed only)
-  document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); });
+  document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
 }
 
 // default panel state — closed on load/refresh; the user opens it with the
