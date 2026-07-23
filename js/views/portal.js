@@ -33,10 +33,8 @@ function renderSharePortal(p, opts={}){
     return;
   }
   FIRST_PARTY=p.org;
-  // A WhatsApp share is verified over WhatsApp — but only when the server has a
-  // WhatsApp sender configured (signChannel). Otherwise it verifies by email, so
-  // no signing code is ever shown on screen to a real counterparty.
-  const waCh=!!(opts.share && opts.share.signChannel==='whatsapp');
+  // A WhatsApp share is verified over WhatsApp — no email needed to sign.
+  const waCh=!!(opts.share && opts.share.channel==='whatsapp' && opts.share.recipientPhone);
   const c=migrateContract({ ...p.contract, status:'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   const input=(id,label,ph)=>`
@@ -113,7 +111,7 @@ async function portalRespond(p, action){
   const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
   // A WhatsApp share verifies over WhatsApp (to the number it was sent to), so
   // no email is needed to sign; every other channel still verifies by email.
-  const waCh=!!(PORTAL_OPTS.share && PORTAL_OPTS.share.signChannel==='whatsapp');
+  const waCh=!!(PORTAL_OPTS.share && PORTAL_OPTS.share.channel==='whatsapp' && PORTAL_OPTS.share.recipientPhone);
   if(!name){ toast('Enter your full name','err'); return; }
   if(action==='sign' && !email && !waCh){ toast('A work email is required to sign','err'); return; }
   if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
@@ -174,7 +172,8 @@ async function portalStartOtp(p, info){
       <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} ${waCh?'Verify your WhatsApp to sign':'Verify your email to sign'}</div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to ${shownDest}. Enter it to complete your signature.</p>
       ${(!waCh&&PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail&&PORTAL_OPTS.share.recipientEmail.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Note: this contract was sent to <strong>${PORTAL_OPTS.share.recipientEmail}</strong>. Signing with a different address is allowed (e.g. a colleague signs) and the verified address will be recorded on the signature.</p>`:''}
-      ${devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
+      ${waCh&&devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">WhatsApp sending isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
+      ${!waCh&&devCode?`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email isn’t configured on this server yet, so for testing your code is <strong style="font-family:var(--font-mono);">${devCode}</strong>.</p>`:''}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
