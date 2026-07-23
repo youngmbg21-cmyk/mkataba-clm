@@ -230,6 +230,27 @@ function persist(c){
   }
   lsSet(LS.data, { uid, contracts:state.contracts, settings:state.settings, view:state.view, activeId:state.activeId, folderId:state.folderId });
 }
+/* Permanently delete a contract. Restricted to Draft / Under Review — executed
+   (signed) and closed records are never destroyed. Returns true if deleted. */
+async function deleteContract(id){
+  const c=getContract(id); if(!c) return false;
+  if(!canEdit()){ toast('Viewers cannot delete contracts','err'); return false; }
+  if(c.status!=='Draft' && c.status!=='Under Review'){
+    toast('Only draft or in-review contracts can be deleted','err'); return false;
+  }
+  const label=(c.name||c.id).split(' —')[0];
+  if(!await confirmDialog({ title:`Delete “${c.name}”?`,
+      message:`This permanently removes ${c.id} and its history from the workspace. This cannot be undone.`,
+      confirmLabel:'Delete permanently', danger:true })) return false;
+  if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast('Delete failed: '+e.message,'err'); return false; } }
+  const idx=state.contracts.findIndex(x=>x.id===id);
+  if(idx>=0) state.contracts.splice(idx,1);
+  if(state.activeId===id) state.activeId=null;
+  persist();
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  toast(`${label} deleted`,'err');
+  return true;
+}
 async function flushSaves(){
   const items=[...dirty.values()]; dirty.clear();
   for(const c of items){ await saveContract(c); }
@@ -960,4 +981,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

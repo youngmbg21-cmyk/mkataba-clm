@@ -291,6 +291,8 @@ const REG_ROW_ACTIONS=[
   {k:'scan',   label:'Run AI scan'},
   {k:'pdf',    label:'Export PDF'},
   {k:'decline',label:'Decline & close', ruby:true},
+  // permanent delete — only offered while a contract is still a draft or in review
+  {k:'delete', label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
 function regRowsHtml(cs){
   const R=regState();
@@ -312,7 +314,7 @@ function regRowsHtml(cs){
   const shown=Math.min(cs.length, R.shown||REG_PAGE);
   const ini=regOwnerInitials();
   const ownerT=((currentUser()&&currentUser().name)||FIRST_PARTY||'').replace(/"/g,'&quot;');
-  const actBtns=id=>REG_ROW_ACTIONS.map(a=>`<button data-act="${a.k}" data-id="${id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
+  const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
   return cs.slice(0,shown).map((c,i)=>{
     const risk=contractRisk(c), rp=riskPal(risk);
     const din=c.expiry?daysUntil(c.expiry):null;
@@ -348,7 +350,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       <td style="position:relative;width:30px" onclick="event.stopPropagation()">
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px" title="Row actions">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c.id)}</div>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c)}</div>
       </td>
     </tr>`;}).join('') + (cs.length>shown
       ? `<tr><td colspan="12" style="padding:0"><button id="reg-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(REG_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
@@ -380,6 +382,7 @@ function wireRegRows(){
     if(act==='open') openWorkspace(id);
     else if(act==='share') openShareModal(c);
     else if(act==='scan') runScan(c);
+    else if(act==='delete') deleteContract(id).then(ok=>{ if(ok) renderRegister(); });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
   document.getElementById('reg-more')?.addEventListener('click',()=>{ regState().shown=(regState().shown||REG_PAGE)+REG_PAGE; renderRegisterBody(); });
