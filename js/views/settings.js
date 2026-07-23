@@ -431,18 +431,20 @@ function renderPlaybookView(){
   const canEditPb=isAdmin()||currentUser()?.role==='legal';
   const pb=playbook();
   const base=pb._default||DEFAULT_PLAYBOOK._default;
-  const card=(key,label,positions,ranges,removable)=>`
-    <div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <span style="font-size:11.5px;font-weight:600;color:var(--color-text)">${PB_ESC(label)}</span>
+  const card=(key,label,positions,ranges,removable,baseline)=>`
+    <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:8px;background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:${baseline?'2px':'6px'}">
+        <span style="font-size:11.5px;font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
+        ${baseline?`<span style="font-size:8.5px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:var(--color-accent);border-radius:999px;padding:2px 8px">Applies to all</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button>`:''}
         </span>`:''}
       </div>
+      ${baseline?`<div style="font-size:10px;color:var(--color-accent-800);margin-bottom:7px">The default positions every contract inherits — change these to shift the whole portfolio.</div>`:''}
       <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':'<span style="font-size:11px;color:var(--color-neutral-500)">No positions yet</span>')}</div>
     </div>`;
-  const baseCard=card('_default','All contracts (baseline)', base.positions||[], base.ranges||[], false);
+  const baseCard=card('_default','All contracts (baseline)', base.positions||[], base.ranges||[], false, true);
   const typeCards=Object.keys(pb).filter(k=>k!=='_default').map(k=>{ const rp=resolvePlaybook(k); return card(k, pb[k].label||k, rp.positions, rp.ranges, true); }).join('');
   pv.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
