@@ -6,19 +6,31 @@
 # Real email (invites + signing codes) turns on automatically once
 # RESEND_API_KEY is present. HTTPS=true issues Secure cookies and makes the
 # share links in emails use https://<your-render-url>.
+#
+# PERSISTENCE: the app stores its SQLite database and uploaded files under
+# HATI_DATA. That MUST point at a mounted persistent disk, otherwise Render's
+# filesystem is wiped on every deploy and all contracts/accounts are lost. The
+# `disk` below provides that permanent storage and HATI_DATA points the app at
+# it — together they keep data across deploys and restarts.
 services:
   - type: web
     name: hati-clm
     runtime: node
-    plan: free
+    plan: starter
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /api/status
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: HTTPS
         value: "true"
+      - key: HATI_DATA
+        value: /var/data
       - key: EMAIL_FROM
         value: HaTi <onboarding@resend.dev>
       - key: RESEND_API_KEY
