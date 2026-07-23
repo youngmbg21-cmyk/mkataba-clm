@@ -96,6 +96,9 @@ function updateSidebarCounts(){
 
 /* ============================================================ SHELL VIEW SWITCH */
 function setView(view){
+  // remember where the workspace was opened from, so its Back button returns
+  // there (register, a folder, the queue, …) instead of always the folder view
+  if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
   state.view=view;
   if(view==='dashboard') renderDashboard();
   else if(view==='folder') renderFolder();

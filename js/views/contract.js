@@ -672,6 +672,12 @@ function renderWorkspace(){
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
+  // Back returns to wherever the workspace was opened from (register/folder/queue…),
+  // defaulting to the register. state.wsReturn is captured in setView.
+  const _wr=state.wsReturn||{};
+  const backLabel=(_wr.view==='folder'&&_wr.folderId&&FOLDERS[_wr.folderId])
+    ? 'Back to '+FOLDERS[_wr.folderId].name
+    : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
   // Right context panel is user-resizable by dragging its left edge: 300px
   // (default/min) → 450px (max, +50%). The chosen width is remembered.
   const DOC_PANEL_MIN=300, DOC_PANEL_MAX=450;
@@ -684,7 +690,7 @@ function renderWorkspace(){
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document toolbar -->
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--color-divider)">
-          <button id="ws-back" title="Back to register" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
+          <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
           <div style="min-width:0;flex:1">
             <div style="display:flex;align-items:center;gap:8px">
               <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</h3>
@@ -831,7 +837,11 @@ function renderWorkspace(){
     }
     if(kind==='sign'){ signDocument(c); return; }
   });
-  document.getElementById('ws-back').addEventListener('click',()=>{ state.folderId=c.folder; setView('folder'); });
+  document.getElementById('ws-back').addEventListener('click',()=>{
+    const r=state.wsReturn||{};
+    if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
+    else setView(r.view&&r.view!=='workspace'?r.view:'register');
+  });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
 
   // Draggable right-panel resizer: drag the left-edge handle to widen the panel
