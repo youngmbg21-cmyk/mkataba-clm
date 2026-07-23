@@ -62,6 +62,13 @@ const DEFAULT_PLAYBOOK = {
 // Map a contract kind/folder to a playbook key.
 function playbookKeyFor(c){
   const k=(cKind(c)||'').toLowerCase(), f=c.folder;
+  // user-defined types with custom match keywords win first (so a type added in
+  // the editor actually applies to matching contracts)
+  try{ const pb=playbook();
+    for(const key in pb){ const p=pb[key];
+      if(key==='_default'||!p||!Array.isArray(p.match)||!p.match.length) continue;
+      if(p.match.some(w=>{ w=String(w||'').toLowerCase().trim(); return w && (k.includes(w)||f===w); })) return key; }
+  }catch(_){}
   if(/nda|non-disclosure/.test(k)) return 'nda';
   if(/lease/.test(k)) return 'lease';
   if(/professional|marketing|services|advisory|agency/.test(k)) return 'services';
@@ -71,6 +78,7 @@ function playbookKeyFor(c){
 
 function clauseLibrary(){ return (state.settings&&state.settings.clauseLibrary)||DEFAULT_CLAUSE_LIBRARY; }
 function playbook(){ return (state.settings&&state.settings.playbook)||DEFAULT_PLAYBOOK; }
+function savePlaybook(pb){ state.settings=state.settings||{}; state.settings.playbook=pb; if(typeof saveSettings==='function') saveSettings(); }
 function resolvePlaybook(key){
   const pb=playbook(); const p=pb[key]||pb._default||DEFAULT_PLAYBOOK._default;
   const base=(p.extends&&pb[p.extends])?pb[p.extends]:(p.extends?DEFAULT_PLAYBOOK[p.extends]:null);
@@ -205,4 +213,4 @@ function openClausePicker(c){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); applyClauseRedline(c, cl.preferred, cl.name); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker});

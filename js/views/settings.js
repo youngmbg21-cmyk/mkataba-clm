@@ -415,17 +415,136 @@ function renderClauseLibrary(){
   host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>openClauseEditor(Number(b.getAttribute('data-cl-edit')))));
   host.querySelectorAll('[data-cl-del]').forEach(b=>b.addEventListener('click',()=>{ const i=Number(b.getAttribute('data-cl-del')); const lib2=clauseLibrary().slice(); lib2.splice(i,1); saveClauseLibrary(lib2); renderClauseLibrary(); toast('Clause removed'); }));
   document.getElementById('cl-add')?.addEventListener('click',()=>openClauseEditor(-1));
-  // playbook viewer
-  const pv=document.getElementById('playbook-view');
-  if(pv){ const pb=playbook();
-    pv.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:8px">Playbook positions by contract type</div>`+
-      Object.entries(pb).filter(([k])=>k!=='_default').map(([k,p])=>{ const rp=resolvePlaybook(k);
-        return `<div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px">
-          <div style="font-size:11.5px;font-weight:600;color:var(--color-text);margin-bottom:5px">${p.label||k}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px">${rp.positions.map(pos=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;${pos.pos==='required'||pos.pos==='forbidden'?'background:#fdece9;color:#8f322b':'background:#eef4fb;color:#2c455d'}">${pos.category}${pos.escalate?' ⚑':''}</span>`).join('')}
-          ${rp.ranges.map(rg=>`<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;background:#fbf4e3;color:#7d5a14">${rg.label} ${rg.op} ${rg.value}</span>`).join('')}</div>
-        </div>`; }).join('')+`<p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.</p>`;
-  }
+  renderPlaybookView();
+}
+/* ---- playbook viewer + editor (Admin / Legal) ---- */
+const PB_ESC = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+const PB_ATTR = s => String(s==null?'':s).replace(/"/g,'&quot;');
+// position chip — red for required/forbidden, steel for preferred; ⚑ = escalate
+function pbPosChip(pos){
+  const hard=pos.pos==='required'||pos.pos==='forbidden';
+  return `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;${hard?'background:#fdece9;color:#8f322b':'background:#eef4fb;color:#2c455d'}">${PB_ESC(pos.category)}${pos.escalate?' ⚑':''}</span>`;
+}
+const pbRangeChip = rg => `<span style="font-size:9.5px;font-family:var(--font-mono);border-radius:999px;padding:2px 9px;background:#fbf4e3;color:#7d5a14">${PB_ESC(rg.label)} ${rg.op} ${rg.value}${rg.escalate?' ⚑':''}</span>`;
+function renderPlaybookView(){
+  const pv=document.getElementById('playbook-view'); if(!pv) return;
+  const canEditPb=isAdmin()||currentUser()?.role==='legal';
+  const pb=playbook();
+  const base=pb._default||DEFAULT_PLAYBOOK._default;
+  const card=(key,label,positions,ranges,removable)=>`
+    <div style="margin-bottom:8px;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-surface);padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:11.5px;font-weight:600;color:var(--color-text)">${PB_ESC(label)}</span>
+        ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:11px;font-weight:600">
+          <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--color-accent-700)">edit</button>
+          ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:#b0453c">remove</button>`:''}
+        </span>`:''}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">${positions.map(pbPosChip).join('')}${ranges.map(pbRangeChip).join('')||(positions.length?'':'<span style="font-size:11px;color:var(--color-neutral-500)">No positions yet</span>')}</div>
+    </div>`;
+  const baseCard=card('_default','All contracts (baseline)', base.positions||[], base.ranges||[], false);
+  const typeCards=Object.keys(pb).filter(k=>k!=='_default').map(k=>{ const rp=resolvePlaybook(k); return card(k, pb[k].label||k, rp.positions, rp.ranges, true); }).join('');
+  pv.innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span style="font-size:12px;font-weight:600;color:var(--color-text)">Playbook positions by contract type</span>
+      ${canEditPb?`<span style="margin-left:auto;display:flex;gap:8px">
+        <button id="pb-add" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 10px">${icon('plus','w-3 h-3')} Add type</button>
+        <button id="pb-reset" style="font-size:11px;font-weight:600;color:var(--color-neutral-600);background:none;border:0;cursor:pointer">Reset to defaults</button>
+      </span>`:''}
+    </div>
+    ${baseCard}${typeCards}
+    <p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.${canEditPb?' Baseline positions apply to every contract; each type adds its own on top.':''}</p>`;
+  if(!canEditPb) return;
+  pv.querySelectorAll('[data-pb-edit]').forEach(b=>b.addEventListener('click',()=>openPlaybookEditor(b.getAttribute('data-pb-edit'))));
+  pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',async()=>{
+    const key=b.getAttribute('data-pb-del'); const cur=playbook();
+    if(!await confirmDialog({title:`Remove “${cur[key]?.label||key}”?`, message:'Contracts of this type will fall back to the baseline playbook.', confirmLabel:'Remove type', danger:true})) return;
+    const pb2=JSON.parse(JSON.stringify(cur)); delete pb2[key]; savePlaybook(pb2); renderPlaybookView(); toast('Contract type removed');
+  }));
+  document.getElementById('pb-add')?.addEventListener('click',()=>openPlaybookEditor(null));
+  document.getElementById('pb-reset')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Reset the playbook to defaults?', message:'This discards your custom positions, thresholds and contract types and restores the built-in Kenyan-practice playbook.', confirmLabel:'Reset playbook', danger:true})) return;
+    state.settings=state.settings||{}; delete state.settings.playbook; if(typeof saveSettings==='function') saveSettings();
+    renderPlaybookView(); toast('Playbook reset to defaults');
+  });
+}
+/* Modal editor for one playbook entry (key='_default' edits the baseline,
+   null adds a new contract type). Positions and numeric limits are edited live
+   on a working copy, then committed with Save. */
+function openPlaybookEditor(key){
+  const pb=JSON.parse(JSON.stringify(playbook()));
+  const isNew=!key, isBase=key==='_default';
+  if(isNew){ key='t_'+Math.random().toString(36).slice(2,7); pb[key]={label:'',extends:'_default',positions:[],ranges:[],match:[]}; }
+  const e=pb[key]; e.positions=e.positions||[]; e.ranges=e.ranges||[]; e.match=e.match||[];
+  const inherited=(!isBase)?resolvePlaybook('_default'):null;
+  const POS=[['required','Required'],['preferred','Preferred'],['forbidden','Forbidden']];
+  const inp='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:6px 8px;font:inherit;font-size:12.5px;color:inherit;outline:none';
+  openModal(`<div style="padding:20px 22px">
+    <h3 style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin:0 0 12px">${isNew?'Add contract type':isBase?'Edit baseline positions':'Edit playbook — '+PB_ESC(e.label||key)}</h3>
+    <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">${isBase?'Name':'Contract type name'}</span>
+      <input id="pb-f-label" value="${PB_ATTR(e.label||'')}" placeholder="${isBase?'Baseline':'e.g. Distribution & logistics'}" style="${inp}"></label>
+    ${!isBase?`<label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:3px">Applies to contracts matching <span style="font-weight:400;color:var(--color-neutral-500)">(comma-separated keywords in the contract type; leave blank for the built-in types)</span></span>
+      <input id="pb-f-match" value="${PB_ATTR(e.match.join(', '))}" placeholder="e.g. distribution, warehousing, freight" style="${inp}"></label>
+    <div style="font-size:10.5px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:6px;padding:7px 9px;margin-bottom:12px">Inherited from baseline: <span style="display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle">${inherited.positions.map(pbPosChip).join('')}${inherited.ranges.map(pbRangeChip).join('')}</span></div>`:''}
+
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">${isBase?'Positions':'Positions specific to this type'}</span><button id="pb-add-pos" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">+ Add position</button></div>
+    <div id="pb-pos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+
+    <div style="display:flex;align-items:center;margin:0 0 6px"><span style="font-size:11px;font-weight:600;color:var(--color-text)">Numeric limits</span><button id="pb-add-rng" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer">+ Add limit</button></div>
+    <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button id="pb-cancel" class="ui-btn" style="font-size:12px;padding:6px 14px">Cancel</button>
+      <button id="pb-save" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 16px">Save</button>
+    </div>
+  </div>`, {maxWidth:'34rem'});
+
+  const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:10.5px;font-weight:600;border:1px solid ${on?(hard?'#d9a59d':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'#fdece9':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'#8f322b':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:4px 9px;border-radius:6px;cursor:pointer">${l}</button>`; }).join('');
+  const paint=()=>{
+    const pl=document.getElementById('pb-pos-list');
+    pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:7px;padding:7px 8px;background:var(--color-bg)">
+        <input data-pb-cat="${i}" value="${PB_ATTR(p.category||'')}" placeholder="Category e.g. Confidentiality" style="flex:1;min-width:150px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
+        <span style="display:inline-flex;gap:3px">${seg(i)}</span>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-esc="${i}" ${p.escalate?'checked':''} style="accent-color:var(--color-accent)">⚑ Legal</label>
+        <button data-pb-rmpos="${i}" title="Remove" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
+      </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">No specific positions${isBase?'':' — this type only inherits the baseline'}.</p>`;
+    const rl=document.getElementById('pb-rng-list');
+    rl.innerHTML=e.ranges.length?e.ranges.map((r,i)=>`
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;border:1px solid var(--color-divider);border-radius:7px;padding:7px 8px;background:var(--color-bg)">
+        <input data-pb-rlabel="${i}" value="${PB_ATTR(r.label||'')}" placeholder="Label e.g. Payment terms" style="flex:1;min-width:120px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
+        <select data-pb-rop="${i}" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 6px;font:inherit;font-size:12px;cursor:pointer"><option value="<=" ${r.op==='<='?'selected':''}>≤</option><option value=">=" ${r.op==='>='?'selected':''}>≥</option></select>
+        <input data-pb-rval="${i}" type="number" value="${r.value}" style="width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:5px 7px;font:inherit;font-size:12px;outline:none">
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap"><input type="checkbox" data-pb-resc="${i}" ${r.escalate?'checked':''} style="accent-color:var(--color-accent)">⚑ Legal</label>
+        <button data-pb-rmrng="${i}" title="Remove" style="background:none;border:0;cursor:pointer;color:var(--color-neutral-500);font-size:15px;line-height:1;padding:0 2px">×</button>
+      </div>`).join(''):`<p style="font-size:11px;color:var(--color-neutral-500);margin:0">No numeric limits. Payment-terms and liability-cap limits are auto-checked by the review engine.</p>`;
+    // wire row inputs → live working copy
+    pl.querySelectorAll('[data-pb-cat]').forEach(el=>el.addEventListener('input',()=>{ e.positions[+el.dataset.pbCat].category=el.value; }));
+    pl.querySelectorAll('[data-pb-esc]').forEach(el=>el.addEventListener('change',()=>{ e.positions[+el.dataset.pbEsc].escalate=el.checked; }));
+    pl.querySelectorAll('[data-pb-pos]').forEach(el=>el.addEventListener('click',()=>{ e.positions[+el.dataset.pbPos].pos=el.dataset.v; paint(); }));
+    pl.querySelectorAll('[data-pb-rmpos]').forEach(el=>el.addEventListener('click',()=>{ e.positions.splice(+el.dataset.pbRmpos,1); paint(); }));
+    rl.querySelectorAll('[data-pb-rlabel]').forEach(el=>el.addEventListener('input',()=>{ e.ranges[+el.dataset.pbRlabel].label=el.value; }));
+    rl.querySelectorAll('[data-pb-rop]').forEach(el=>el.addEventListener('change',()=>{ e.ranges[+el.dataset.pbRop].op=el.value; }));
+    rl.querySelectorAll('[data-pb-rval]').forEach(el=>el.addEventListener('input',()=>{ e.ranges[+el.dataset.pbRval].value=Number(el.value)||0; }));
+    rl.querySelectorAll('[data-pb-resc]').forEach(el=>el.addEventListener('change',()=>{ e.ranges[+el.dataset.pbResc].escalate=el.checked; }));
+    rl.querySelectorAll('[data-pb-rmrng]').forEach(el=>el.addEventListener('click',()=>{ e.ranges.splice(+el.dataset.pbRmrng,1); paint(); }));
+  };
+  paint();
+  document.getElementById('pb-add-pos').addEventListener('click',()=>{ e.positions.push({category:'',pos:'preferred',escalate:false}); paint(); });
+  document.getElementById('pb-add-rng').addEventListener('click',()=>{ e.ranges.push({key:'',label:'',op:'<=',value:30,escalate:true}); paint(); });
+  document.getElementById('pb-cancel').addEventListener('click',closeModal);
+  document.getElementById('pb-save').addEventListener('click',()=>{
+    e.label=document.getElementById('pb-f-label').value.trim();
+    if(!isBase){ const mv=document.getElementById('pb-f-match'); e.match=(mv?mv.value:'').split(',').map(s=>s.trim()).filter(Boolean); }
+    if(!e.label){ toast('Give this a name','err'); return; }
+    e.positions=e.positions.filter(p=>p.category&&p.category.trim());
+    e.ranges=e.ranges.filter(r=>r.label&&r.label.trim());
+    // help the review engine enforce the common numeric limits
+    e.ranges.forEach(r=>{ if(/pay/i.test(r.label)) r.key='paymentDays'; else if(/liab/i.test(r.label)) r.key='liabilityMonths'; else if(!r.key) r.key=r.label.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,24)||'limit'; });
+    if(!isBase) e.extends='_default';
+    savePlaybook(pb); closeModal(); renderPlaybookView(); toast('Playbook saved');
+  });
 }
 function openClauseEditor(idx){
   const lib=clauseLibrary().slice();
