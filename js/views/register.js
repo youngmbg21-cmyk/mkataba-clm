@@ -249,6 +249,14 @@ function regFooterText(cs){
   const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString('en-KE')} total)</span>`:'';
   return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote} · page ${p} of ${n} · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`;
 }
+// pinned-footer pager wiring — jump page + scroll the table body back to top
+function wireRegPager(){
+  document.querySelectorAll('#reg-pager [data-reg-page]').forEach(b=>b.addEventListener('click',()=>{
+    const R=regState(); const cs=regFiltered(); const to=Number(b.getAttribute('data-reg-page'));
+    R.page=Math.min(Math.max(1,to), regPageCount(cs)); renderRegisterBody();
+    const sc=document.getElementById('reg-scroll'); if(sc) sc.scrollTop=0;
+  }));
+}
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
   if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
@@ -376,9 +384,7 @@ function regRowsHtml(cs){
         <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px" title="Row actions">⋯</button>
         <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c)}</div>
       </td>
-    </tr>`;}).join('') + (regPageCount(cs)>1
-      ? `<tr><td colspan="12" style="padding:11px 12px;border-top:1px solid var(--color-divider)">${regPager(cs)}</td></tr>`
-      : '');
+    </tr>`;}).join('');
 }
 function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
@@ -386,6 +392,7 @@ function renderRegisterBody(){
   const cs=regFiltered();
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   const sh=document.getElementById('reg-showing'); if(sh) sh.innerHTML=regFooterText(cs);
+  const pgr=document.getElementById('reg-pager'); if(pgr){ const h=regPager(cs); pgr.innerHTML=h; pgr.style.padding=h?'9px 12px 3px':''; wireRegPager(); }
   renderRegSelBar();
 }
 function renderRegSelBar(){
@@ -407,11 +414,6 @@ function wireRegRows(){
     else if(act==='scan') runScan(c);
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok) renderRegister(); });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
-  }));
-  document.querySelectorAll('#reg-tbody [data-reg-page]').forEach(b=>b.addEventListener('click',()=>{
-    const R=regState(); const cs=regFiltered(); const to=Number(b.getAttribute('data-reg-page'));
-    R.page=Math.min(Math.max(1,to), regPageCount(cs)); renderRegisterBody();
-    document.querySelector('.reg-table')?.scrollIntoView({block:'nearest',behavior:'smooth'});
   }));
   // empty-state actions
   document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
@@ -452,15 +454,16 @@ function renderRegister(){
     <button id="reg-ask" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${icon('sparkle','w-3.5 h-3.5')} Ask your portfolio</button>`:'';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
     <style>
       .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      .reg-table thead th{position:sticky;top:0;z-index:3}
       .reg-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
       .reg-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       .reg-pill:hover{border-color:var(--color-accent)}
     </style>
-    <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
       <!-- filter row 1: stage pills · Sort -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
         ${stagePills}
@@ -499,9 +502,9 @@ function renderRegister(){
         </div>
       </div>
 
-      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm)">
-        
-        <div style="overflow-x:auto">
+      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
+
+        <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <table class="reg-table">
             <thead>
               <tr>
@@ -522,15 +525,19 @@ function renderRegister(){
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 12px;border-top:1px solid var(--color-divider);font-size:11px;color:var(--color-neutral-600)">
-          <span id="reg-showing">${regFooterText(cs)}</span>
-          <span>${REG_PAGE} per page · CSV export respects filters</span>
+        <div style="flex:none;border-top:1px solid var(--color-divider)">
+          <div id="reg-pager" style="${regPager(cs)?'padding:9px 12px 3px':''}">${regPager(cs)}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 12px;font-size:11px;color:var(--color-neutral-600)">
+            <span id="reg-showing">${regFooterText(cs)}</span>
+            <span>${REG_PAGE} per page · CSV export respects filters</span>
+          </div>
         </div>
       </section>
     </div>
   </div>`;
 
   wireRegRows();
+  wireRegPager();
   renderRegSelBar();
   const si=document.getElementById('reg-search');
   if(si){
