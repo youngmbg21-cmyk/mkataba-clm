@@ -447,7 +447,12 @@ const admin = (req, res, next) => {
 /* ---------- status & auth ---------- */
 app.get('/api/status', (req, res) => {
   const org = getSetting('org');
-  res.json({ mode: 'api', setup: !!org, orgName: org?.name || null, authed: !!readSession(req) });
+  // Expose the deployed build so "did my change go live?" is a one-second check:
+  // visit /api/status and compare `version` to the latest git commit. Render sets
+  // RENDER_GIT_COMMIT/RENDER_GIT_BRANCH on every deploy.
+  res.json({ mode: 'api', setup: !!org, orgName: org?.name || null, authed: !!readSession(req),
+    version: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'dev',
+    branch: process.env.RENDER_GIT_BRANCH || null });
 });
 
 app.post('/api/setup', rlAuth, (req, res) => {
