@@ -38,7 +38,7 @@ function renderCalendar(){
 
   const cell=(dnum)=>{
     const inMonth=dnum>=1&&dnum<=days;
-    if(!inMonth) return `<div style="min-height:62px;background:transparent;border:1px solid transparent"></div>`;
+    if(!inMonth) return `<div style="min-height:62px;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const today=iso===todayIso;
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
@@ -48,7 +48,7 @@ function renderCalendar(){
     const ev=kind?CAL_EVENT[kind]:null;
     const bg=today?'rgba(89,128,166,.1)':(ev?ev.tint:'var(--color-bg)');
     const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
-    const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;`+
+    const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
     const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
@@ -94,7 +94,7 @@ function renderCalendar(){
       .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}
     </style>
     <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:stretch">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0">
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:14px;display:flex;flex-direction:column;min-height:0">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex:none">
           <h4 style="margin:0;font-family:var(--font-heading);font-size:16px;color:var(--color-text)">${monthName}</h4>
           <div style="display:flex;gap:4px">
@@ -111,7 +111,7 @@ function renderCalendar(){
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:5px">${_dot(v.dot,7)}${v.label}</span>`).join('')}
         </div>
       </section>
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px;display:flex;flex-direction:column;min-height:0">
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:14px;display:flex;flex-direction:column;min-height:0">
         <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text);flex:none">Next 60 days</h4>
         <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
       </section>

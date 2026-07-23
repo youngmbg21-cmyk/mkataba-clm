@@ -40,7 +40,7 @@ function renderFolder(){
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
       .fold-table{width:100%;border-collapse:collapse;font-size:12.5px}
-      .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-surface)}
+      .fold-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
       .fold-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .fold-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
     </style>
@@ -301,7 +301,7 @@ function regRowsHtml(cs){
       <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       <td>
         <span style="display:inline-flex;align-items:center;gap:5px">
-          <span style="width:36px;height:5px;background:var(--color-neutral-200);display:inline-block"><span style="display:block;width:${Math.min(100,risk)}%;height:100%;background:${rp.dot}"></span></span>
+          <span style="width:40px;height:5px;background:var(--color-neutral-200);display:inline-block;border-radius:999px;overflow:hidden"><span style="display:block;width:${Math.min(100,risk)}%;height:100%;background:${rp.dot};border-radius:999px"></span></span>
           <span style="font-size:11px;font-weight:600;color:${rp.fg};font-variant-numeric:tabular-nums">${risk}</span>
         </span>
       </td>
@@ -367,7 +367,7 @@ function renderRegister(){
   const cs=regFiltered();
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
   // Industry filter pill: accent fill when active, hairline box + accent-border hover when not.
-  const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:4px 11px;border-radius:4px;cursor:pointer`;
+  const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:999px;cursor:pointer`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
   const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
   const typePills=REG_TYPES.map(t=>`<button class="reg-pill" data-reg-type="${t.k}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
@@ -389,7 +389,7 @@ function renderRegister(){
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
       .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
-      .reg-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-surface)}
+      .reg-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
       .reg-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       .reg-pill:hover{border-color:var(--color-accent)}

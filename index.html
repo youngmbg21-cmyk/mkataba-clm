@@ -27,7 +27,7 @@
       fontWeight: { 400:'400', 500:'500', 600:'600', 700:'700', 800:'700', 900:'700' },
       colors: {
         white:'#ffffff',
-        canvas:'#eff0f2',     // page ground
+        canvas:'#f4f3f0',     // page ground (warm off-white)
         ink:'#1d1f20',        // text
         // steel accent ramp (Industry)
         brand:{50:'#eef6ff',100:'#d6ebff',200:'#d6ebff',300:'#b5d9fd',400:'#94bce3',500:'#749dc4',600:'#5980a6',700:'#416180',800:'#2c455d',900:'#1d2d3d'},
@@ -40,11 +40,11 @@
         // emerald (Executed / active)
         emerald:{50:'#d9eae0',100:'#d9eae0',200:'#c7ddce',400:'#2e8763',500:'#2e8763',600:'#1e6b4d',700:'#1e6b4d'},
         // chrome tokens (hairline dividers)
-        hair:'#e3e3e6',
+        hair:'#eeece7',
         line:'#dcdcdf',
         inputln:'#d4d4d7',
         faint:'#ffffff',
-        docbg:'#eff0f2',
+        docbg:'#f4f3f0',
         amber:'#b8862b',
         danger:'#b0453c',
       },
@@ -56,11 +56,11 @@
      INDUSTRY DESIGN TOKENS — source of truth for the redesign.
      ============================================================ */
   :root{
-    --color-bg:#eff0f2;
+    --color-bg:#f4f3f0;
     --color-surface:#ffffff;
     --color-text:#1d1f20;
     --color-accent:#5980a6;
-    --color-divider:color-mix(in srgb,#1d1f20 16%,transparent);
+    --color-divider:#eeece7;
 
     --color-neutral-100:#f5f5f8; --color-neutral-200:#e7e7ea; --color-neutral-300:#d4d4d7;
     --color-neutral-400:#b7b7ba; --color-neutral-500:#98989b; --color-neutral-600:#7a7a7d;
@@ -75,10 +75,10 @@
     --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
-    --radius-sm:2px; --radius-md:4px; --radius-lg:7px;
+    --radius-sm:5px; --radius-md:10px; --radius-lg:10px;
 
-    --shadow-sm:0 1px 2px color-mix(in srgb,#2b2b2d 14%,transparent);
-    --shadow-md:0 3px 10px color-mix(in srgb,#2b2b2d 16%,transparent);
+    --shadow-sm:0 1px 2px rgba(43,43,45,.05), 0 10px 26px -12px rgba(43,43,45,.20);
+    --shadow-md:0 4px 10px rgba(43,43,45,.08), 0 18px 40px -14px rgba(43,43,45,.28);
     --shadow-lg:0 12px 32px color-mix(in srgb,#2b2b2d 22%,transparent);
 
     /* legacy elevation aliases kept so un-migrated views still separate cleanly */
@@ -87,12 +87,24 @@
     --focus:0 0 0 2px color-mix(in srgb,var(--color-accent) 45%,transparent);
     --ease:cubic-bezier(.2,.7,.3,1);
 
-    /* status palette (bg / fg / dot) */
-    --st-gray-bg:#e3e3e6;  --st-gray-fg:#5d5d60;  --st-gray-dot:#98989b;
-    --st-amber-bg:#f1e6cd; --st-amber-fg:#7d5a14; --st-amber-dot:#b8862b;
-    --st-green-bg:#d9eae0; --st-green-fg:#1e6b4d; --st-green-dot:#2e8763;
-    --st-ruby-bg:#f1dcd8;  --st-ruby-fg:#8f322b;  --st-ruby-dot:#b0453c;
-    --st-steel-bg:#d6ebff; --st-steel-fg:#2c455d; --st-steel-dot:#5980a6;
+    /* status palette (wash bg / fg / dot) */
+    --st-gray-bg:#eceae6;  --st-gray-fg:#5d5d60;  --st-gray-dot:#98989b;
+    --st-amber-bg:#fbf4e3; --st-amber-fg:#7d5a14; --st-amber-dot:#b8862b;
+    --st-green-bg:#e8f4ee; --st-green-fg:#1e6b4d; --st-green-dot:#2e8763;
+    --st-ruby-bg:#fdece9;  --st-ruby-fg:#8f322b;  --st-ruby-dot:#b0453c;
+    --st-steel-bg:#eef4fb; --st-steel-fg:#2c455d; --st-steel-dot:#5980a6;
+
+    /* tone tiles (icon tiles: tile-bg / tile-fg) */
+    --tile-steel-bg:#e2edf9;   --tile-steel-fg:#2c455d;
+    --tile-emerald-bg:#d6ece0; --tile-emerald-fg:#1e6b4d;
+    --tile-amber-bg:#f5e7c6;   --tile-amber-fg:#7d5a14;
+    --tile-ruby-bg:#f6d8d2;    --tile-ruby-fg:#8f322b;
+
+    /* tone gradients (hero stat cards only) */
+    --grad-steel:linear-gradient(135deg,#6f9bd1,#4f76c9);
+    --grad-emerald:linear-gradient(135deg,#4ec295,#2e8763);
+    --grad-amber:linear-gradient(135deg,#e8b85e,#c78a2c);
+    --grad-ruby:linear-gradient(135deg,#e58176,#c34d41);
   }
 
   *,*::before,*::after{box-sizing:border-box;}
@@ -115,33 +127,31 @@
   /* elevation utilities (mapped onto the Industry shadow scale) */
   .elev-1{box-shadow:var(--shadow-sm)} .elev-2{box-shadow:var(--shadow-sm)}
   .elev-3{box-shadow:var(--shadow-md)} .elev-4{box-shadow:var(--shadow-lg)}
-  .lift{transition:transform .18s var(--ease), box-shadow .18s var(--ease), border-color .15s}
-  .lift:hover{box-shadow:var(--shadow-md)}
+  .lift{transition:transform .2s var(--ease), box-shadow .2s var(--ease), border-color .15s}
+  .lift:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
   .tnum{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
   button,[role=button]{transition:background .15s,color .15s,box-shadow .15s,border-color .15s}
   button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--color-accent);outline-offset:1px;}
 
-  /* ---- blueprint frame: hairline box with corner registration marks ---- */
+  /* ---- soft card frame: the old "blueprint" corner-registration marks are
+     retired in favour of larger radii + diffuse layered shadows. The corner
+     adornments are hidden; the element and its (now soft) border remain. ---- */
   .blueprint{position:relative;border:1px solid var(--color-divider);}
-  .blueprint>.corner{position:absolute;width:11px;height:11px;color:color-mix(in srgb,var(--color-text) 45%,transparent);pointer-events:none;}
-  .blueprint>.corner::before,.blueprint>.corner::after{content:"";position:absolute;background:currentColor;}
-  .blueprint>.corner::before{left:5px;top:0;width:1px;height:100%;}
-  .blueprint>.corner::after{top:5px;left:0;width:100%;height:1px;}
-  .blueprint>.corner.tl{top:-6px;left:-6px;} .blueprint>.corner.tr{top:-6px;right:-6px;}
-  .blueprint>.corner.bl{bottom:-6px;left:-6px;} .blueprint>.corner.br{bottom:-6px;right:-6px;}
+  .blueprint>.corner{display:none;}
 
-  /* slight rounding on boxes/controls per stakeholder request */
-  .bp-round{border-radius:6px;}
+  /* card rounding */
+  .bp-round{border-radius:10px;}
   /* the Doc right panel is a scrolling flex column; its cards carry
      overflow:hidden (→ flex min-height:0), so pin flex-shrink to stop them
      collapsing to zero height when the content is taller than the panel */
   #doc-right>*{flex-shrink:0;}
 
-  /* status badge */
-  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:3px;white-space:nowrap;font-family:var(--font-body);}
+  /* status badge — pill-shaped chip (optional leading dot) */
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap;font-family:var(--font-body);}
+  .badge>.dot{width:6px;height:6px;border-radius:50%;flex:none;}
 
   /* buttons (Industry) */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
   .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
   .ui-btn-primary{background:var(--color-accent);color:#fff;border-color:var(--color-accent);}
   .ui-btn-primary:hover{background:var(--color-accent-600);}
@@ -278,7 +288,7 @@
 <div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:210px 1fr;background:var(--color-bg);">
 
   <!-- ================= SIDEBAR (210px) ================= -->
-  <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+  <aside style="display:flex;flex-direction:column;background:#f6f8fc;border-right:1px solid var(--color-divider);min-height:0;">
     <!-- brand block -->
     <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
       <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>

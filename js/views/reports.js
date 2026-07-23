@@ -47,7 +47,7 @@ function bar(label, value, max, valStr, color){
   const pct=max>0?Math.max(0,Math.min(100,Math.round(value/max*100))):0;
   return `<div style="margin-bottom:7px">
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:500;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
-    <div style="height:7px;background:var(--color-neutral-200)"><div style="width:${pct}%;height:100%;background:${color}"></div></div>
+    <div style="height:7px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:999px"></div></div>
   </div>`;
 }
 function renderReports(){
@@ -62,23 +62,26 @@ function renderReports(){
   const maxRounds=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
   const empty=t=>`<p style="font-size:12px;color:var(--color-neutral-600)">${t}</p>`;
 
-  // TOP — blueprint stat strip: 4 equal cells, hairline left-borders, corner marks
-  const stat=(label,val,sub,i)=>`
-    <div style="display:flex;flex-direction:column;gap:3px;padding:12px 14px;${i?'border-left:1px solid var(--color-divider)':''}">
-      <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</span>
-      <span style="font-family:var(--font-mono);font-weight:600;font-size:24px;line-height:1.1;font-variant-numeric:tabular-nums">${val}</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600)">${sub}</span>
+  // TOP — gradient hero stat cards (same treatment as the Home KPI ribbon)
+  const stat=(label,val,sub,grad,ic)=>`
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${grad};color:#fff;box-shadow:var(--shadow-sm)">
+      <span style="display:flex;align-items:center;gap:9px">
+        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(ic,'w-4 h-4',1.7)}</span>
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25">${label}</span>
+      </span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${val}</span>
+      <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${sub}</span>
     </div>`;
   const stats=[
-    stat('Avg cycle · draft→signed', r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', r.cycleN+' signed sampled', 0),
-    stat('Avg age · in review', Math.round(r.stageAge['Under Review']||0)+'d', 'time on counterparty', 1),
-    stat('Avg age · drafting', Math.round(r.stageAge['Draft']||0)+'d', 'time internal', 1),
-    stat('Renewal pipeline · 12mo', kes(pipeTotal), pipeMonths.length+' months with expiries', 1),
+    stat('Avg cycle · draft→signed', r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', r.cycleN+' signed sampled', 'var(--grad-emerald)', 'clock'),
+    stat('Avg age · in review', Math.round(r.stageAge['Under Review']||0)+'d', 'time on counterparty', 'var(--grad-amber)', 'clock'),
+    stat('Avg age · drafting', Math.round(r.stageAge['Draft']||0)+'d', 'time internal', 'var(--grad-steel)', 'file'),
+    stat('Renewal pipeline · 12mo', kes(pipeTotal), pipeMonths.length+' months with expiries', 'var(--grad-emerald)', 'trend'),
   ].join('');
 
   // BELOW — 2×2 chart cards
   const card=(title,body)=>`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 14px">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:16px">
       <h4 style="font-size:14px;margin:0 0 10px">${title}</h4>${body}
     </section>`;
   const streamCard=card('Portfolio value by value stream', Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]).map(([k,v])=>bar(k,v,maxFolder,kes(v),'var(--color-accent)')).join('')||empty('No data.'));
@@ -87,13 +90,12 @@ function renderReports(){
   const roundsCard=card('Negotiation rounds by type (avg)', roundsEntries.length?roundsEntries.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, maxRounds, (v.rounds/v.n).toFixed(1), '#b8862b')).join(''):empty('No negotiation data.'));
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:14px 16px 28px">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:6px;display:grid;grid-template-columns:repeat(4,1fr)">
-        
+  <div class="view-enter" style="padding:16px 18px 28px">
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <section style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
         ${stats}
       </section>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         ${streamCard}
         ${partyCard}
         ${pipeCard}

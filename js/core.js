@@ -94,21 +94,21 @@ const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFi
 // Declined so filters, backend and logic are untouched — only the visible
 // chip label and colours change.
 const STATUS_META = {
-  'Draft':        {label:'Drafting',  dot:'#98989b', bg:'#e3e3e6', tx:'#5d5d60', bd:'#d4d4d7'},
-  'Under Review': {label:'In Review', dot:'#b8862b', bg:'#f1e6cd', tx:'#7d5a14', bd:'#e6d3ab'},
-  'Signed':       {label:'Executed',  dot:'#2e8763', bg:'#d9eae0', tx:'#1e6b4d', bd:'#c1ddce'},
-  'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#f1dcd8', tx:'#8f322b', bd:'#e6c9c1'},
+  'Draft':        {label:'Drafting',  dot:'#98989b', bg:'#eceae6', tx:'#5d5d60', bd:'#dedcd6'},
+  'Under Review': {label:'In Review', dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14', bd:'#f0e3c2'},
+  'Signed':       {label:'Executed',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d', bd:'#cfe7d9'},
+  'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
-// Industry badge: flat bg+fg, 10.5px 600, .03em, 3px radius, no dot.
+// Pill status chip: wash bg + tone fg, leading 6px tone dot, 999px radius.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
 
-// ---- Risk model (Industry): bands ≥60 ruby / 35–59 amber / <35 emerald ----
+// ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
-  ruby:  {bg:'#f1dcd8', fg:'#8f322b', dot:'#b0453c'},
-  amber: {bg:'#f1e6cd', fg:'#7d5a14', dot:'#b8862b'},
-  green: {bg:'#d9eae0', fg:'#1e6b4d', dot:'#2e8763'},
+  ruby:  {bg:'#fdece9', fg:'#8f322b', dot:'#b0453c'},
+  amber: {bg:'#fbf4e3', fg:'#7d5a14', dot:'#b8862b'},
+  green: {bg:'#e8f4ee', fg:'#1e6b4d', dot:'#2e8763'},
 };
 const riskBand = r => r>=60?'ruby':r>=35?'amber':'green';
 const riskPal  = r => RISK_PAL[riskBand(r)];
