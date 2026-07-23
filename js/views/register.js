@@ -200,6 +200,7 @@ Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,fol
 const REG_PAGE=40;
 const REG_STAGES=[
   {k:'all',label:'All stages'},
+  {k:'awaiting',label:'Awaiting signature'},
   {k:'Draft',label:'Drafting'},
   {k:'Under Review',label:'In Review'},
   {k:'Signed',label:'Executed'},
@@ -259,7 +260,10 @@ function wireRegPager(){
 }
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
-  if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
+  // 'awaiting' is a virtual stage = every live contract still waiting to be signed
+  // (drafts + in-review). Real status pills fall through to the exact-match filter.
+  if(R.stage==='awaiting') cs=cs.filter(c=>c.status==='Draft'||c.status==='Under Review');
+  else if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
   // E3-T5 saved views (presets over metadata/obligations)
@@ -402,7 +406,7 @@ function renderRegSelBar(){
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
-  // whole-row click selects the contract into the Summary panel (does not navigate)
+  // whole-row click opens the contract's workspace
   document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
   document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
   // ⋯ popover: toggle one open at a time

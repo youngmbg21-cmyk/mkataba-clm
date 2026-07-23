@@ -284,42 +284,22 @@ function buildActivityFeed(limit=40){
   feed.sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0));
   return feed.slice(0,limit);
 }
-function selectContract(id){
-  state.selId=id; state.panel='summary'; state.panelOpen=true;
-  applyPanelLayout(); renderContextPanel();
-}
+// Selecting a contract (register row, home list, or an activity entry) now opens
+// its workspace — the right-hand panel is the live Activity feed only.
+function selectContract(id){ openWorkspace(id); }
 function applyPanelLayout(){
   const grid=document.getElementById('body-grid'); const panel=document.getElementById('context-panel');
   if(!grid) return;
   // Intel owns its right side with its embedded portfolio chatbot dock, so the
-  // global Activity/Summary panel is suppressed there to avoid two right panels.
+  // global Activity panel is suppressed there to avoid two right panels.
   const show = state.panelOpen && state.view!=='intel';
   if(show){ grid.style.gridTemplateColumns='1fr 292px'; if(panel) panel.style.display='flex'; }
   else { grid.style.gridTemplateColumns='1fr'; if(panel) panel.style.display='none'; }
 }
-function panelTermsFor(c){
-  const streamName=FOLDERS[c.folder]?.name||'—';
-  const fmtDate=d=>{ if(!d) return '—'; const t=Date.parse(d); return isNaN(t)?d:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
-  return [
-    ['Counterparty', c.counterparty||'—'],
-    ['Value', isMonetary(c)?(c.value?fmtKESshort(c.value):'—'):'n/m'],
-    ['Stream', streamName],
-    ['Expiry', fmtDate(c.expiry)],
-    ['Renewal', (c.metadata&&c.metadata.renewalType&&RENEWAL_LABEL&&RENEWAL_LABEL[c.metadata.renewalType])||'—'],
-    ['Status', statusLabel(c.status)],
-    ['Owner', (currentUser()&&currentUser().name)||FIRST_PARTY||'—'],
-  ];
-}
 function renderContextPanel(){
   const body=document.getElementById('panel-body'); if(!body) return;
-  // tab active state
-  const ta=document.getElementById('panel-tab-activity'), ts=document.getElementById('panel-tab-summary');
-  const activity=state.panel!=='summary';
-  ta&&ta.classList.toggle('active',activity); ts&&ts.classList.toggle('active',!activity);
-
-  if(activity){
-    const feed=buildActivityFeed();
-    body.innerHTML=`
+  const feed=buildActivityFeed();
+  body.innerHTML=`
       <div style="padding:10px 12px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px;">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:#2e8763;"></span>Live · whole workspace
@@ -333,43 +313,7 @@ function renderContextPanel(){
             </span>
           </button>`).join(''):`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:12px 2px;">No activity recorded yet.</div>`}
       </div>`;
-    body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
-    return;
-  }
-
-  // Summary
-  const c=getContract(state.selId)||getContract(state.activeId)||state.contracts[0];
-  if(!c){ body.innerHTML=`<div style="padding:12px;font-size:11.5px;color:var(--color-neutral-600);">No contract selected.</div>`; return; }
-  const m=STATUS_META[c.status]||STATUS_META.Draft;
-  const rs=contractRisk(c);
-  const rp=riskPal(rs);
-  const terms=panelTermsFor(c);
-  const recent=(c.audit||[]).slice().sort((a,b)=>Date.parse(b.at||0)-Date.parse(a.at||0)).slice(0,3)
-    .map(a=>`<div style="display:flex;gap:8px;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(29,31,32,.05);"><span style="font-family:var(--font-mono);color:var(--color-neutral-500);flex:none;width:44px;">${relTime(a.at).replace(' ago','')}</span><span style="color:var(--color-neutral-800);">${a.detail||a.action||''}</span></div>`).join('')
-    || `<div style="font-size:11px;color:var(--color-neutral-600);">No recent activity.</div>`;
-  body.innerHTML=`
-    <div style="padding:12px;">
-      <div style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);">${c.id}</div>
-      <div style="font-size:14px;font-weight:600;line-height:1.3;margin:2px 0 6px;">${c.name}</div>
-      <span class="badge" style="background:${m.bg};color:${m.tx};">${m.label}</span>
-      <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:8px;">
-        ${terms.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px;"><span style="color:var(--color-neutral-600);">${k}</span><span style="font-weight:500;text-align:right;">${v}</span></div>`).join('')}
-      </div>
-      <div style="margin-top:10px;">
-        <div style="display:flex;justify-content:space-between;font-size:10.5px;margin-bottom:3px;"><span style="color:var(--color-neutral-600);">Risk score</span><span style="font-weight:600;color:${rp.fg};">${rs} / 100</span></div>
-        <div style="height:6px;background:var(--color-neutral-200);border-radius:2px;overflow:hidden;"><div style="width:${rs}%;height:100%;background:${rp.dot};"></div></div>
-      </div>
-      <div style="margin-top:12px;">
-        <h6 style="margin:0 0 6px;font-size:10px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase;">Recent on this contract</h6>
-        ${recent}
-      </div>
-      <div style="display:flex;gap:6px;margin-top:14px;">
-        <button id="panel-open-ws" class="ui-btn ui-btn-primary" style="flex:1;padding:5px 11px;font-size:12px;">Open workspace</button>
-        <button id="panel-scan" class="ui-btn" style="padding:5px 11px;font-size:12px;">Run AI scan</button>
-      </div>
-    </div>`;
-  body.querySelector('#panel-open-ws')?.addEventListener('click',()=>openWorkspace(c.id));
-  body.querySelector('#panel-scan')?.addEventListener('click',()=>{ openWorkspace(c.id); });
+  body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
 }
 
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */
@@ -416,16 +360,13 @@ function wireShell(){
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
 
-  // panel toggle + tabs
+  // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); });
-  document.getElementById('panel-tab-activity')?.addEventListener('click',()=>{ state.panel='activity'; renderContextPanel(); });
-  document.getElementById('panel-tab-summary')?.addEventListener('click',()=>{ state.panel='summary'; renderContextPanel(); });
 }
 
 // default panel state — closed on load/refresh; the user opens it with the
 // panel toggle (never auto-summoned by a page load)
 if(state.panelOpen===undefined) state.panelOpen=false;
-if(!state.panel) state.panel='activity';
 
 /* BOOT
    1. #share=… in the URL → counterparty portal (no login needed)

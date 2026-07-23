@@ -30,10 +30,13 @@ function renderDashboard(){
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   const waiting=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const reviewByRisk=cs.filter(c=>c.status==='Under Review').map(c=>({c,r:contractRisk(c)})).sort((a,b)=>b.r-a.r);
+  // Awaiting counterparty = every live contract not yet executed (drafts + in-review),
+  // i.e. all paper still waiting to be signed — not just the In-Review column.
+  const awaiting=cs.filter(c=>c.status==='Draft'||c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
 
   // ---- KPIs ----
   const newThisWeek=cs.filter(c=>(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&(Date.now()-Date.parse(a.at||0))<7*864e5)).length;
-  const stalled=waiting.filter(x=>x.idle>14).length;
+  const stalled=awaiting.filter(x=>x.idle>14).length;
   const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
   const expValue=valOf(expiring.map(x=>x.c));
   // avg cycle draft→signed from audit where both stamps exist
@@ -49,7 +52,7 @@ function renderDashboard(){
   const kpis=[
     {label:'Under management', val:Number(countAll).toLocaleString('en-KE'), delta:`+${newThisWeek} this week`, grad:G.steel, ic:'building', go:{stage:'all'}},
     {label:'Active value', val:fmtKESshort(m.totalValue), delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`, grad:G.green, ic:'coins', go:{stage:'all',sort:'value'}},
-    {label:'Awaiting counterparty', val:Number(m.pending).toLocaleString('en-KE'), delta:`${stalled} stalled > 14d`, grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    {label:'Awaiting counterparty', val:Number((m.pending||0)+(m.drafts||0)).toLocaleString('en-KE'), delta:`${stalled} stalled > 14d`, grad:G.amber, ic:'clock', go:{stage:'awaiting'}},
     {label:'Expiring ≤ 90 days', val:Number(expiring.length).toLocaleString('en-KE'), delta:`${fmtKESshort(expValue)} exposure`, grad:G.amber, ic:'calendar', go:{stage:'Signed',sort:'expiry'}},
     {label:'High-risk findings', val:Number(highRisk.length).toLocaleString('en-KE'), delta:`${onExecuted} on executed paper`, grad:G.ruby, ic:'alert', go:{stage:'all',sort:'risk'}},
     {label:'Avg cycle · draft→signed', val:avgCycle, delta:cycles.length?`${cycles.length} signed sampled`:'—', grad:G.green, ic:'clock', go:{stage:'Signed'}},
