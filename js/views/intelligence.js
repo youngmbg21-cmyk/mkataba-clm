@@ -253,6 +253,13 @@ async function intelGraphAsk(q){
       intel.history.push({role:'assistant', err:true,
         text:(/key|configure|401|model/i.test(e.message)?'The AI engine needs an API key — using the built-in interpreter instead.':'AI error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
     }
+  } else if(!API_MODE() && typeof _localAiKey==='function' && _localAiKey() && typeof aiLocalGraph==='function'){
+    // local mode with a browser-stored key → browser-direct graph interpreter
+    try{ res=await aiLocalGraph(q); }
+    catch(e){
+      intel.history.push({role:'assistant', err:true,
+        text:'AI error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
+    }
   }
   if(!res) res=graphInterpret(q);           // fallback
   if(res.groupBy){ intel.groupBy=res.groupBy; intel.groups=res.groups||null; }

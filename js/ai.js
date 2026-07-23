@@ -719,6 +719,51 @@ async function aiLocalClaude(messages, context){
   return final;
 }
 
+/* Browser-direct graph interpreter (local mode). Turns a map command like
+   "highlight the customer contracts" into a filter spec via the saved key, then
+   applies it against the live workspace and returns the same shape as the
+   server /ai/graph endpoint and the local graphInterpret fallback:
+   { visibleIds, groupBy, groups, note, action, badges, answer }. */
+async function aiLocalGraph(qRaw){
+  const key=_localAiKey(); if(!key) throw new Error('needsKey');
+  const q=String(qRaw||'');
+  const folders=Object.values(FOLDERS).map(f=>`${f.id} = ${f.name}`).join('; ');
+  const kinds=[...new Set((state.contracts||[]).map(c=>cKind(c)))].slice(0,24).join(', ');
+  const sys=`You convert a user's command about a contract-portfolio map into a filter. Respond with ONLY a JSON object — no prose, no code fence.
+Value streams (return the id on the left): ${folders}.
+Statuses: Draft, Under Review, Signed, Declined. Contract types present: ${kinds}.
+All keys optional; omit any that isn't implied:
+{"folder":"<value-stream id>","status":"<status>","kind":"<type substring>","counterparty":"<party name substring>","expiryDays":<int: expiring within N days>,"valueMin":<number KES>,"groupBy":"folder|counterparty|status|valueBand|kind","action":"filter|highlight","note":"<short human label>"}
+Guidance: "customer/client/sales" → folder sales; "supplier/sourcing/procurement" → folder proc; "logistics/3PL/warehousing/distribution" → folder dist; "manufacturing/production/co-packing" → folder mfg; "marketing/brand/agency/media" → folder mktg; "corporate/legal/compliance/NDA/lease" → folder corp. "highlight" → action highlight; "only/just/filter" → action filter.
+Examples: "highlight the customer contracts" → {"folder":"sales","action":"highlight","note":"Sales & Route-to-Market"}. "show me the supplier nodes" → {"folder":"proc","action":"filter","note":"Procurement & Raw Materials"}. "group by customer" → {"groupBy":"counterparty","note":"Grouped by customer"}.`;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:250,system:sys,messages:[{role:'user',content:q}]}),
+  });
+  if(r.status===401) throw new Error('The saved AI key was rejected (401) — re-check it in Team & Settings.');
+  if(r.status===429) throw new Error('Rate limited by the AI provider — wait a moment and try again.');
+  if(!r.ok) throw new Error('AI provider error '+r.status);
+  const d=await r.json();
+  const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+  const m=txt.match(/\{[\s\S]*\}/); if(!m) return null;
+  let s; try{ s=JSON.parse(m[0]); }catch(_){ return null; }
+  let cs=(state.contracts||[]).slice(); let filtered=false;
+  if(s.folder){ cs=cs.filter(c=>c.folder===s.folder); filtered=true; }
+  if(s.status){ cs=cs.filter(c=>c.status===s.status); filtered=true; }
+  if(s.kind){ const k=String(s.kind).toLowerCase(); cs=cs.filter(c=>cKind(c).toLowerCase().includes(k)); filtered=true; }
+  if(s.counterparty){ const k=String(s.counterparty).toLowerCase(); cs=cs.filter(c=>(c.counterparty||'').toLowerCase().includes(k)); filtered=true; }
+  if(s.valueMin){ cs=cs.filter(c=>Number(c.value||0)>=Number(s.valueMin)); filtered=true; }
+  if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
+  const note=s.note||'AI filter';
+  const vis=filtered?cs:null;
+  const answer = vis===null
+    ? (s.groupBy?'Regrouped the graph.':"I couldn't turn that into a map filter — try naming a value stream, status, type, party or expiry window.")
+    : (vis.length ? `${vis.length} contract${vis.length===1?'':'s'} match (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
+                  : `No contracts match (${note}).`);
+  return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy:s.groupBy||null, groups:null, note, action:(s.action==='highlight'?'highlight':'filter'), badges:null, answer };
+}
+
 /* One front door for both surfaces (main panel + Intel dock): server-mediated
    Copilot in server mode, browser-direct in local mode, else unavailable. */
 function copilotAvailable(){
@@ -829,4 +874,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});

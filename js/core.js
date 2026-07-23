@@ -506,7 +506,11 @@ function renderSideUser(){
   setTxt('side-name', u.name||org);
   setTxt('side-role', `${ROLE_LABEL[u.role]||'Member'} · ${org}`);
   const online=(getUsers()||[]).length||1;
-  setTxt('side-status', `${API_MODE()?'Server mode · SQLite':'Local mode'} · ${online} online`);
+  // Show the storage backend AND whether the AI brain is live, so an entered key
+  // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
+  const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
+  const st=document.getElementById('side-status');
+  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude AI':'AI off'}</span> · ${online} online`;
 }
 // folders/quick-create moved into the Register + New-contract menu; no rail list.
 function renderSideFolders(){ /* rail has no folder list in the light-theme redesign */ }

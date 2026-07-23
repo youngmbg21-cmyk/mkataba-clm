@@ -317,15 +317,17 @@ function renderTeam(){
       st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
                     :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — Copilot and AI features use the built-in interpreter.`; };
     refresh();
+    // reflect the key change immediately in the sidebar status + AI panel header
+    const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
       const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
       if(!key){ toast('Enter a key to save','err'); return; }
       lsSet('hati.v1.aikey', key); inp.value='';
-      toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh();
+      toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh(); refreshAiIndicators();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
       if(!await confirmDialog({title:'Remove the stored AI key?', message:'HaTi Copilot and AI features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
-      localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh();
+      localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh(); refreshAiIndicators();
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
