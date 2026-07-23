@@ -36,6 +36,22 @@ function docPlainText(c){
   try{ return htmlToStructuredText(freezeContractHtml(c)); }catch(e){ return ''; }
 }
 
+/* Re-flow working text that was flattened by an older/lossy conversion (headings
+   glued to bodies, e.g. "…TerritoryThe Principal…"), restoring paragraph and
+   section breaks for display/editing. Non-destructive: already-structured text
+   (which has real line breaks) is returned unchanged. Relies on the fact that in
+   flattened text, normal in-sentence words keep their spaces, so the only glued
+   lowercase→UPPERCASE junctions — and a clause number right after a word/period —
+   are exactly the block boundaries that were lost. */
+function reflowWorkingText(t){
+  t=String(t||''); if(!t.trim()) return t;
+  if(t.split('\n').filter(l=>l.trim()).length>=4) return t;   // already structured
+  return t
+    .replace(/([^\n])\s*(\d{1,2}\.\s+[A-Z])/g,'$1\n\n$2')      // "…consent.2. Targets" → new paragraph before each clause
+    .replace(/([a-z])([A-Z])/g,'$1\n$2')                        // restore glued block joins ("Territory|The") — normal words keep their space, so only lost boundaries glue
+    .replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
 /* ---- version records (E2-T1) ---- */
 function captureVersion(c, label, by){
   const text=docPlainText(c); if(!text) return null;
@@ -221,4 +237,4 @@ function acceptProposedRound(c, n){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{docPlainText,htmlToStructuredText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{docPlainText,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

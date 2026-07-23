@@ -255,7 +255,7 @@ function redlineDocBody(c){
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
     </div>
-    <div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${esc(c.redlineText)}</div>
+    <div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${esc((window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText))}</div>
     ${signatureBlock(c)}`;
 }
 
@@ -264,7 +264,7 @@ function redlineDocBody(c){
 function openEditDocModal(c){
   if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
-  const cur=docPlainText(c);
+  const cur=(window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
   if(!cur){ toast('This document has no editable text yet','err'); return; }
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const firstEdit=!c.redlineText&&!isUpload(c);
@@ -343,7 +343,7 @@ function uploadDocBody(c){
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
         <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
       </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--color-neutral-800)">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--color-neutral-800)">${String(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
     </div>`:''}
     ${preview}
