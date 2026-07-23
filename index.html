@@ -163,7 +163,11 @@
   /* view enter */
   .view-enter{animation:viewIn .24s var(--ease);}
   @keyframes viewIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
-  .stagger>*{opacity:0;animation:rowIn .34s var(--ease) forwards}
+  /* `backwards` (not `forwards`) so the row settles to its normal static state
+     after the intro — a lingering forwards-filled transform animation keeps a
+     stacking context on every row, which traps absolute popovers (e.g. the row
+     ⋯ menu) behind later rows and makes them look transparent. */
+  .stagger>*{animation:rowIn .34s var(--ease) backwards}
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
   /* live ping (workspace status + activity live dots) */

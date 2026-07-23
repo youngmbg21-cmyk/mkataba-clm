@@ -392,7 +392,7 @@ function renderRegisterBody(){
   const cs=regFiltered();
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
   const sh=document.getElementById('reg-showing'); if(sh) sh.innerHTML=regFooterText(cs);
-  const pgr=document.getElementById('reg-pager'); if(pgr){ const h=regPager(cs); pgr.innerHTML=h; pgr.style.padding=h?'9px 12px 3px':''; wireRegPager(); }
+  const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   renderRegSelBar();
 }
 function renderRegSelBar(){
@@ -525,12 +525,10 @@ function renderRegister(){
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
           </table>
         </div>
-        <div style="flex:none;border-top:1px solid var(--color-divider)">
-          <div id="reg-pager" style="${regPager(cs)?'padding:9px 12px 3px':''}">${regPager(cs)}</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 12px;font-size:11px;color:var(--color-neutral-600)">
-            <span id="reg-showing">${regFooterText(cs)}</span>
-            <span>${REG_PAGE} per page · CSV export respects filters</span>
-          </div>
+        <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:11px;color:var(--color-neutral-600)">
+          <span id="reg-showing">${regFooterText(cs)}</span>
+          <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
+          <span>${REG_PAGE} per page · CSV export respects filters</span>
         </div>
       </section>
     </div>
