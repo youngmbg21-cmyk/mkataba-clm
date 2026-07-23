@@ -1477,7 +1477,10 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   res.json({
     payload: JSON.parse(s.payload), responded: !!s.response,
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
-      message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
+      message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link',
+      // The channel the signer will actually be verified over — WhatsApp only
+      // when a sender is configured, otherwise email (safe fallback).
+      signChannel: (s.channel === 'whatsapp' && s.recipient_phone && WA_ON()) ? 'whatsapp' : 'email' },
   });
 });
 
@@ -1539,9 +1542,12 @@ app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   // A contract sent over WhatsApp is verified over WhatsApp — the code goes to
-  // the number it was sent to, and the signature is bound to that number. Every
-  // other channel verifies by email. Verification follows how the share travelled.
-  const viaWa = s.channel === 'whatsapp' && !!s.recipient_phone;
+  // the number it was sent to, and the signature is bound to that number. But
+  // only when a WhatsApp sender is actually configured: without one we must NOT
+  // fall back to showing a dev code to a real signer, so we verify by email
+  // instead (still real, via Resend). Verification follows how the share
+  // travelled, degrading safely to email when WhatsApp delivery isn't available.
+  const viaWa = s.channel === 'whatsapp' && !!s.recipient_phone && WA_ON();
   const code = code6(), expires = Date.now() + 10 * 60 * 1000;
   if (viaWa) {
     const phone = String(s.recipient_phone).replace(/[^\d]/g, '');
