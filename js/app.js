@@ -4,6 +4,7 @@ import './components.js';
 import './templates.js';
 import './core.js';
 import './api.js';
+import './advice.js';
 import './metadata.js';
 import './versioning.js';
 import './obligations.js';
@@ -20,6 +21,8 @@ import './views/intelligence.js';
 import './ai.js';
 import './views/settings.js';
 import './views/queue.js';
+import './views/advice.js';
+import './views/adviceportal.js';
 import './views/library.js';
 import './views/migration.js';
 
@@ -41,6 +44,7 @@ function commandMeta(view){
     case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
+    case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
     case 'intel':     return ['Portfolio Intelligence', 'AI contract graph · clustered by value stream'];
     case 'calendar':  return ['Renewal Calendar', 'expiries, renewal decisions and obligation due dates'];
     case 'migration': return ['Migration', 'bulk-import an existing portfolio · AI extraction with human review'];
@@ -69,6 +73,7 @@ function updateSidebarCounts(){
     dashboard: total,
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
+    advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
     calendar: (window.allObligations?allObligations().filter(o=>{ const d=window.daysUntil?daysUntil((o.due||'').slice(0,10)):null; return d!=null&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
@@ -90,6 +95,7 @@ function setView(view){
   else if(view==='register') renderRegister();
   else if(view==='migration') renderMigration();
   else if(view==='pipeline') renderPipeline();
+  else if(view==='advice') renderAdviceDesk();
   else if(view==='templates') renderTemplatesPage();
   else if(view==='playbook') renderPlaybookPage();
   else if(view==='team') renderTeam();
@@ -410,6 +416,8 @@ if(!state.panel) state.panel='activity';
 (async function boot(){
   const m=location.hash.match(/^#share=(.+)$/);
   if(m){ await portalEntry(m[1]); return; }
+  const adv=location.hash.match(/^#advice(?:=(.*))?$/);
+  if(adv){ await adviceEntry(adv[1]||''); return; }
   const rs=location.hash.match(/^#reset=(.+)$/);
   let st=null;
   try{ const r=await fetch('api/status',{credentials:'same-origin'}); if(r.ok) st=await r.json(); }catch(e){}
