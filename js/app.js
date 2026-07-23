@@ -30,7 +30,17 @@ import './views/migration.js';
 function setActiveNav(view){
   // 'folder' is a sub-view of Register in the new shell
   const navFor = view==='folder' ? 'register' : view;
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.getAttribute('data-view')===navFor));
+  document.querySelectorAll('.nav-item').forEach(b=>{
+    const on=b.getAttribute('data-view')===navFor;
+    b.classList.toggle('active',on);
+    // keep the active tab visible: open its collapsible section (never closes others)
+    if(on){ const sec=b.closest('.nav-section'); if(sec && !sec.classList.contains('open')) openNavSection(sec,true); }
+  });
+}
+function openNavSection(sec, open){
+  sec.classList.toggle('open',open);
+  const head=sec.querySelector('.nav-section-head');
+  if(head) head.setAttribute('aria-expanded',open?'true':'false');
 }
 
 /* ---- command bar: per-view title + subtitle ---- */
@@ -363,7 +373,12 @@ function renderContextPanel(){
 function wireShell(){
   // nav
   const nav=document.getElementById('nav');
-  nav&&nav.addEventListener('click',e=>{ const btn=e.target.closest('[data-view]'); if(btn) setView(btn.getAttribute('data-view')); });
+  nav&&nav.addEventListener('click',e=>{
+    // a section header (+/-) toggles its tabs; a tab navigates
+    const head=e.target.closest('[data-section-toggle]');
+    if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
+    const btn=e.target.closest('[data-view]'); if(btn) setView(btn.getAttribute('data-view'));
+  });
 
   // command-bar search → register filter
   const search=document.getElementById('cmd-search');
@@ -441,4 +456,4 @@ if(!state.panel) state.panel='activity';
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults});
+Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults});
