@@ -1468,6 +1468,146 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   res.json({ ok: true });
 });
 
+/* ============================================================
+   ADVICE DESK — customer advice/review/drafting requests on a
+   transparent pipeline with published rates.
+   Public: rate card + queue load, submit a request, track by token.
+   Team:   list everything, move stages / assign / note (editor).
+   ============================================================ */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS advice_requests (
+    id TEXT PRIMARY KEY, json TEXT NOT NULL, token TEXT UNIQUE,
+    service TEXT, status TEXT, email TEXT,
+    created_at TEXT, updated_at TEXT, seq INTEGER);
+  CREATE INDEX IF NOT EXISTS idx_advice_status ON advice_requests(status);
+`);
+
+// Default numbers for the published rate card. Mirrors ADVICE_DEFAULT_RATES in
+// js/advice.js (labels/blurbs are client-only) — keep both in sync. Admin
+// overrides live in appSettings.adviceRates via the ordinary settings save.
+const ADVICE_DEFAULT_RATES = {
+  review:      { rate: 8500,  hoursMin: 3, hoursMax: 6, days: 3 },
+  draft:       { rate: 9500,  hoursMin: 4, hoursMax: 8, days: 5 },
+  advice:      { rate: 7500,  hoursMin: 1, hoursMax: 2, days: 2 },
+  negotiation: { rate: 10500, hoursMin: 3, hoursMax: 6, days: 4 },
+  compliance:  { rate: 9000,  hoursMin: 2, hoursMax: 4, days: 4 },
+};
+const ADVICE_STATUSES = ['Submitted', 'Scoping', 'In Progress', 'Delivered', 'Closed'];
+const ADVICE_ACTIVE = ['Submitted', 'Scoping', 'In Progress'];
+const rlAdvice = rateLimit('advice', 10, 15 * 60 * 1000, { message: 'Too many requests from this connection — please wait a few minutes and try again' });
+
+function adviceRateFor(sid) {
+  const over = ((getSetting('appSettings') || {}).adviceRates || {})[sid] || {};
+  const d = ADVICE_DEFAULT_RATES[sid];
+  const num = (v, fb) => (Number.isFinite(Number(v)) && Number(v) > 0) ? Number(v) : fb;
+  return { rate: num(over.rate, d.rate), hoursMin: num(over.hoursMin, d.hoursMin),
+    hoursMax: num(over.hoursMax, d.hoursMax), days: num(over.days, d.days) };
+}
+function adviceAddBusinessDays(fromIso, days) {
+  const d = new Date(fromIso);
+  let n = 0;
+  while (n < days) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) n++; }
+  return d.toISOString();
+}
+const adviceActiveCount = () => db.prepare(
+  `SELECT COUNT(*) n FROM advice_requests WHERE status IN ('Submitted','Scoping','In Progress')`).get().n;
+let adviceSeq = null;
+function nextAdviceSeq() {
+  if (adviceSeq == null) { const r = db.prepare('SELECT MAX(seq) m FROM advice_requests').get(); adviceSeq = (r && r.m) || 0; }
+  return ++adviceSeq;
+}
+function saveAdviceRequest(r) {
+  const seq = r._seq || nextAdviceSeq();
+  const clean = { ...r }; delete clean._seq;
+  db.prepare(`INSERT INTO advice_requests (id,json,token,service,status,email,created_at,updated_at,seq)
+    VALUES (@id,@json,@token,@service,@status,@email,@created_at,@updated_at,@seq)
+    ON CONFLICT(id) DO UPDATE SET json=excluded.json, status=excluded.status, updated_at=excluded.updated_at`).run({
+    id: r.id, json: JSON.stringify(clean), token: r.token, service: r.service, status: r.status,
+    email: r.email || '', created_at: r.submittedAt, updated_at: now(), seq,
+  });
+}
+// What a tracking link may see: no internal notes, no assignee.
+const advicePublicView = r => ({
+  id: r.id, token: r.token, service: r.service, status: r.status, urgency: r.urgency,
+  contractName: r.contractName || '', submittedAt: r.submittedAt, eta: r.eta,
+  quote: r.quote, history: (r.history || []).map(h => ({ at: h.at, to: h.to })),
+});
+
+// Public: the published rate card, live queue load, and the workspace name.
+// Doubles as the portal's server-mode probe.
+app.get('/api/advice/rates', (req, res) => {
+  res.json({
+    orgName: (getSetting('org') || {}).name || null,
+    rates: (getSetting('appSettings') || {}).adviceRates || null,
+    queue: { active: adviceActiveCount() },
+  });
+});
+
+// Public: submit a request. The server computes the quote and the ETA promise
+// (base turnaround, priority halving, +1 business day per 3 active requests,
+// capped at 5) so the browser is never trusted with pricing.
+app.post('/api/advice/requests', rlAdvice, (req, res) => {
+  const b = req.body || {};
+  if (!ADVICE_DEFAULT_RATES[b.service]) return res.status(400).json({ error: 'Unknown service' });
+  const name = String(b.name || '').trim().slice(0, 120);
+  const email = String(b.email || '').trim().toLowerCase().slice(0, 160);
+  const description = String(b.description || '').trim().slice(0, 4000);
+  if (!name || !description) return res.status(400).json({ error: 'Name and a description are required' });
+  if (!/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  const urgency = b.urgency === 'priority' ? 'priority' : 'standard';
+  const base = adviceRateFor(b.service);
+  const rate = urgency === 'priority' ? Math.round(base.rate * 1.25) : base.rate;
+  const days = (urgency === 'priority' ? Math.max(1, Math.ceil(base.days / 2)) : base.days)
+    + Math.min(5, Math.floor(adviceActiveCount() / 3));
+  const submittedAt = now();
+  const seq = nextAdviceSeq();
+  const r = {
+    id: 'AR-' + (100 + seq), _seq: seq, token: rid(12),
+    service: b.service, status: 'Submitted', urgency,
+    name, email, company: String(b.company || '').trim().slice(0, 160),
+    contractName: String(b.contractName || '').trim().slice(0, 200), description,
+    submittedAt, eta: adviceAddBusinessDays(submittedAt, days),
+    quote: { rate, hoursMin: base.hoursMin, hoursMax: base.hoursMax,
+      feeMin: rate * base.hoursMin, feeMax: rate * base.hoursMax, days },
+    assignee: null, notes: [], history: [{ at: submittedAt, to: 'Submitted' }],
+  };
+  saveAdviceRequest(r);
+  res.json({ ok: true, request: advicePublicView(r) });
+});
+
+// Public: the transparent tracking page behind a customer's token.
+app.get('/api/advice/track/:token', (req, res) => {
+  const row = db.prepare('SELECT json FROM advice_requests WHERE token=?').get(req.params.token);
+  if (!row) return res.status(404).json({ error: 'Request not found' });
+  res.json({ request: advicePublicView(JSON.parse(row.json)) });
+});
+
+// Team: the full pipeline.
+app.get('/api/advice/requests', auth, (req, res) => {
+  const rows = db.prepare('SELECT json FROM advice_requests ORDER BY seq DESC LIMIT 500').all();
+  res.json({ requests: rows.map(r => JSON.parse(r.json)) });
+});
+
+// Team: move stage / assign / add a note. Stage changes land on the request's
+// history so the customer's tracking timeline stays truthful.
+app.put('/api/advice/requests/:id', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, seq FROM advice_requests WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Request not found' });
+  const r = JSON.parse(row.json); r._seq = row.seq;
+  const b = req.body || {};
+  if (b.status !== undefined && b.status !== r.status) {
+    if (!ADVICE_STATUSES.includes(b.status)) return res.status(400).json({ error: 'Unknown stage' });
+    r.history = r.history || [];
+    r.history.push({ at: now(), to: b.status, by: req.user.name });
+    r.status = b.status;
+  }
+  if (b.assignee !== undefined) r.assignee = String(b.assignee || '').slice(0, 120) || null;
+  if (b.note) { r.notes = r.notes || []; r.notes.push({ at: now(), by: req.user.name, text: String(b.note).slice(0, 2000) }); }
+  saveAdviceRequest(r);
+  delete r._seq;
+  res.json({ ok: true, request: r });
+});
+
 /* ---------- frontend ---------- */
 const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));

@@ -441,8 +441,10 @@ function startApp(){
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
-  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
+  window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
+  setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
+  if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000);
+    window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
