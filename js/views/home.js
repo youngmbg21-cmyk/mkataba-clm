@@ -133,16 +133,6 @@ function renderDashboard(){
       <span style="font-size:11.5px;font-weight:600;font-family:var(--font-mono);color:${urgent?'#8f322b':'#7d5a14'};flex:none;white-space:nowrap">${x.d===0?'today':'in '+x.d+'d'}</span>
       <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
     </div>`; }).join('');
-  const decisionsSection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid var(--color-accent);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:${decisions.length?'6px':'0'}">
-        <h4 style="font-size:15px;margin:0;display:flex;align-items:center;gap:8px">Decisions due
-          ${decisions.length?`<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--color-accent-700);background:var(--color-accent-100);border-radius:999px;padding:1px 8px">${decisions.length}</span>`:''}</h4>
-        ${decisions.length>6?`<button data-open-decisions style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0">See all in the calendar →</button>`:''}
-      </div>
-      ${decisions.length?decisionRows
-        :`<div style="display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12.5px;color:var(--color-neutral-600)"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>No renewal decisions due in the next 90 days — you're all caught up.</div>`}
-    </section>`;
   // ---- out with counterparties (share dispatch traffic lights) ----
   const so=state.shareOverview||{}; const shCounts=so.counts||{}; const shItems=(so.items||[]).slice();
   const needAttn=(shCounts.changes||0)+(shCounts.declined||0);
@@ -150,24 +140,64 @@ function renderDashboard(){
   shItems.sort((a,b)=>(shPri[a.state]??9)-(shPri[b.state]??9));
   const shCountChip=(st,n)=>{ if(!n) return ''; const m=SHARE_META[st];
     return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
-  const sharesStrip=(API_MODE()&&shItems.length)?`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);${needAttn?'border-left:3px solid #b8862b;':''}box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <h4 style="font-size:15px;margin:0">Out with counterparties</h4>
-        ${needAttn?`<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;background:#fbf4e3;border-radius:999px;padding:1px 8px">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}
-        <span style="flex:1"></span>
-        ${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}
+  const shareRows=(API_MODE()?shItems:[]).slice(0,5).map(it=>`
+    <button data-share-open="${it.contractId}" style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+      ${shareChip(it.state)}
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.contractId} · with ${it.recipientName||it.recipientEmail||it.counterparty||'counterparty'} · via ${it.channel==='whatsapp'?'WhatsApp':it.channel==='email'?'email':'link'}</span>
+      </span>
+      <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none;white-space:nowrap">${fmtDT(it.at)}</span>
+    </button>`).join('');
+  const hasShares=API_MODE()&&shItems.length>0;
+  // ---- Decisions due: one collapsible card merging renewal decisions with the
+  // shares out for counterparty review — a compact summary that expands on click,
+  // so the dashboard stays tight instead of two full-height stacked cards. ----
+  const ddCount=decisions.length+(hasShares?shItems.length:0);
+  const ddTone=(needAttn||decisions.some(x=>x.d<=30))?'#b8862b':'var(--color-accent)';
+  const chevron=`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+  const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span><b>${decisions.length}</b> renewal decision${decisions.length===1?'':'s'} <span style="color:var(--color-neutral-500)">· 90d</span></span>`;
+  const shareStat=hasShares?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#eceae6;color:#5d5d60">•</span><b>${shItems.length}</b> out with counterparties</span>`:'';
+  const decisionsSection=`
+    <style>
+      .dd-card{background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid ${ddTone};box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden}
+      .dd-card>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+      .dd-card>summary::-webkit-details-marker{display:none}
+      .dd-card>summary:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
+      .dd-card>summary:hover{background:rgba(29,31,32,.02)}
+      .dd-head{display:flex;align-items:center;gap:9px}
+      .dd-ic{width:22px;height:22px;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-800);display:grid;place-items:center;flex:none}
+      .dd-title{font-size:15px;font-weight:600}
+      .dd-count{font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--color-accent-700);background:var(--color-accent-100);border-radius:999px;padding:1px 8px}
+      .dd-chev{margin-left:auto;color:var(--color-neutral-500);display:inline-flex;transition:transform .2s}
+      .dd-card[open] .dd-chev{transform:rotate(180deg)}
+      .dd-stats{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding-left:31px;font-size:12.5px;color:var(--color-neutral-600)}
+      .dd-stat{display:inline-flex;align-items:center;gap:7px}
+      .dd-stat b{color:var(--color-text);font-weight:600;font-family:var(--font-mono)}
+      .dd-badge{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;font-size:10px;flex:none}
+      .dd-sep{width:1px;height:13px;background:var(--color-divider)}
+      .dd-detail{padding:2px 14px 12px 31px;border-top:1px solid var(--color-divider)}
+      .dd-eyebrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:13px 0 5px}
+      .dd-caught{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-neutral-600);padding:3px 0}
+      .dd-more{border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:6px 0 0}
+    </style>
+    <details class="dd-card">
+      <summary>
+        <span class="dd-head">
+          <span class="dd-ic">${icon('clock','w-3.5 h-3.5')}</span>
+          <span class="dd-title">Decisions due</span>
+          ${ddCount?`<span class="dd-count">${ddCount}</span>`:''}
+          <span class="dd-chev">${chevron}</span>
+        </span>
+        <span class="dd-stats">${renewalStat}${shareStat}</span>
+      </summary>
+      <div class="dd-detail">
+        <div class="dd-eyebrow">Renewal decisions · next 90 days</div>
+        ${decisions.length?decisionRows+(decisions.length>6?`<button data-open-decisions class="dd-more">See all in the calendar →</button>`:'')
+          :`<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>None due — you're all caught up.</div>`}
+        ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
       </div>
-      ${shItems.slice(0,5).map(it=>`
-        <button data-share-open="${it.contractId}" style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-          ${shareChip(it.state)}
-          <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.contractId} · with ${it.recipientName||it.recipientEmail||it.counterparty||'counterparty'} · via ${it.channel==='whatsapp'?'WhatsApp':it.channel==='email'?'email':'link'}</span>
-          </span>
-          <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none;white-space:nowrap">${fmtDT(it.at)}</span>
-        </button>`).join('')}
-    </section>`:'';
+    </details>`;
   const expRows=expiring.slice(0,5).map(x=>attnRow(x.c,'in '+x.d+'d',x.d<=30?'#8f322b':'#7d5a14')).join('');
   const riskRows=highRisk.slice(0,5).map(x=>attnRow(x.c,'R '+x.r,'#8f322b')).join('');
   const waitRows=waiting.slice(0,5).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('');
@@ -180,11 +210,8 @@ function renderDashboard(){
       ${kpiHtml}
     </section>
 
-    <!-- Decisions due — leads with what needs acting on, not statistics -->
+    <!-- Decisions due — renewal decisions + shares out with counterparties, one collapsible card -->
     ${decisionsSection}
-
-    <!-- Share dispatch traffic lights -->
-    ${sharesStrip}
 
     <!-- Stage + pipeline row -->
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;">
