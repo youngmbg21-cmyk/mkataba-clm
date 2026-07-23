@@ -760,10 +760,11 @@ function igExplainCard(id){
 function igMsgHTML(m){
   if(m.role==='user')
     return `<div class="ai-msg flex justify-end"><div class="max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
+  // Q&A answers stay text-only — the matching contracts are still highlighted on
+  // the graph (igPaintIds), but we no longer append a card list under the answer.
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
     : m.explainId ? igExplainCard(m.explainId)
-    : ((m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare) : '')
-       + (m.cardIds||[]).map(id=>igMiniCard(id)).join(''));
+    : (m.compare && typeof aiCompareTable==='function' ? aiCompareTable(m.compare) : '');
   return `<div class="ai-msg flex gap-2">
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
