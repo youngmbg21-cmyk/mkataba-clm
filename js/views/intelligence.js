@@ -871,8 +871,8 @@ function renderIntelDock(){
   document.getElementById('igd-cmp-clear')?.addEventListener('click',()=>{ intel.compareSel=[]; igPaintIds(null); renderIntelDock(); });
   document.getElementById('igd-cmp-run')?.addEventListener('click',()=>intelRunCompare());
   // clear the dock conversation (lenses are separate and survive on purpose)
-  document.getElementById('igd-history-clear')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Delete this conversation?', message:'Your pinned lenses stay. This clears the current chat history only.', confirmLabel:'Delete', danger:true})) return;
+  document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
+    // cleared immediately — no confirm prompt (lenses are separate and survive)
     intel.history=[]; intel.compareSel=[]; igPaintIds(null); renderIntelDock();
     if(typeof toast==='function') toast('Conversation deleted');
   });
