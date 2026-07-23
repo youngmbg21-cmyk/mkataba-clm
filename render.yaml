@@ -1,0 +1,25 @@
+# Render Blueprint for HaTi CLM.
+# Deploy: on render.com choose "New +" → "Blueprint", connect this repo, and
+# Render reads this file to create the web service. Then set RESEND_API_KEY
+# (your Resend key) in the dashboard — it is intentionally not stored here.
+#
+# Real email (invites + signing codes) turns on automatically once
+# RESEND_API_KEY is present. HTTPS=true issues Secure cookies and makes the
+# share links in emails use https://<your-render-url>.
+services:
+  - type: web
+    name: hati-clm
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/status
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HTTPS
+        value: "true"
+      - key: EMAIL_FROM
+        value: HaTi <onboarding@resend.dev>
+      - key: RESEND_API_KEY
+        sync: false   # set this in the Render dashboard; never committed to git
