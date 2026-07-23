@@ -434,12 +434,14 @@ function logout(){
 function startApp(){
   FIRST_PARTY = getOrg().name;
   document.getElementById('auth-root').innerHTML='';
-  document.getElementById('app-shell').style.display='grid';
+  const shell=document.getElementById('app-shell');
+  shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important so the class must go
+  shell.style.display='grid';
   renderSideUser(); renderSideFolders();
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
-  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team'].includes(state.view)?state.view:'dashboard');
+  setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
 }
 function renderSideUser(){
@@ -644,6 +646,7 @@ function sealString(c){
 async function verifySeal(c){
   if(!c.hash){ toast('Document is not sealed yet','err'); return; }
   if(c.hash==='PRE-SEEDED'){ toast('Sample contract — sealed before evidence hashing existed','err'); return; }
+  if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
   if(!isUpload(c)){
     if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
     const th=await sha256(normText(c.execution.html));

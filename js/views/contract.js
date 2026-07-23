@@ -42,10 +42,21 @@ async function extractPdfText(buf){
   }
   return out.join(' ').replace(/\s+/g,' ').trim();
 }
+/* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
+   CSP (connect-src 'self'), so the bytes are unpacked without a request. */
+function dataUrlBytes(dataUrl){
+  const s=String(dataUrl||''); const i=s.indexOf(',');
+  if(i<0) return new Uint8Array(0);
+  const head=s.slice(0,i), body=s.slice(i+1);
+  if(/;base64/i.test(head)){ const bin=atob(body); const arr=new Uint8Array(bin.length);
+    for(let j=0;j<bin.length;j++) arr[j]=bin.charCodeAt(j); return arr; }
+  return new TextEncoder().encode(decodeURIComponent(body));
+}
 async function extractDocText(dataUrl, mime){
   try{
-    if(/text\//.test(mime)){ return (await (await fetch(dataUrl)).text()).slice(0,40000); }
-    if(/pdf/.test(mime)){ const buf=await (await fetch(dataUrl)).arrayBuffer(); return (await extractPdfText(buf)).slice(0,40000); }
+    const bytes=dataUrlBytes(dataUrl);
+    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,40000); }
+    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,40000); }
   }catch(e){}
   return '';
 }
@@ -996,4 +1007,4 @@ async function signDocument(c){
 
 
 
-Object.assign(window,{applyMetadata,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{applyMetadata,dataUrlBytes,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

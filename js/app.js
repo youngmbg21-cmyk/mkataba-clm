@@ -21,6 +21,7 @@ import './ai.js';
 import './views/settings.js';
 import './views/queue.js';
 import './views/library.js';
+import './views/migration.js';
 
 /* ============================================================ NAV */
 function setActiveNav(view){
@@ -42,6 +43,7 @@ function commandMeta(view){
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'intel':     return ['Portfolio Intelligence', 'AI contract graph · clustered by value stream'];
     case 'calendar':  return ['Renewal Calendar', 'expiries, renewal decisions and obligation due dates'];
+    case 'migration': return ['Migration', 'bulk-import an existing portfolio · AI extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
     case 'team':      return ['Team & Settings', 'members, roles, approval gate and the AI engine'];
     case 'folder': {
@@ -68,6 +70,7 @@ function updateSidebarCounts(){
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     calendar: (window.allObligations?allObligations().filter(o=>{ const d=window.daysUntil?daysUntil((o.due||'').slice(0,10)):null; return d!=null&&d>=0&&d<=60; }).length:0),
+    migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
   };
   document.querySelectorAll('[data-count]').forEach(el=>{
@@ -85,6 +88,7 @@ function setView(view){
   else if(view==='calendar') renderCalendar();
   else if(view==='reports') renderReports();
   else if(view==='register') renderRegister();
+  else if(view==='migration') renderMigration();
   else if(view==='pipeline') renderPipeline();
   else if(view==='templates') renderTemplatesPage();
   else if(view==='playbook') renderPlaybookPage();
@@ -133,6 +137,7 @@ function renderNewMenu(){
   const myTpls=(window.customTemplates&&canEdit())?customTemplates():[];
   menu.innerHTML=`
     ${item('upload','#f1e6cd','#7d5a14','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
+    ${item('box','var(--color-accent-100)','var(--color-accent-800)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
     ${item('sparkle','var(--color-accent-200)','var(--color-accent-800)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
@@ -142,6 +147,7 @@ function renderNewMenu(){
   menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromTemplate(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
+  menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
 }
 

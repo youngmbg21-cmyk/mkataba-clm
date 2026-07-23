@@ -1470,5 +1470,9 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
 const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));
 app.get('/index.html', (req, res) => res.sendFile(INDEX));
+// The frontend ships as native ES modules (js/) plus the bundled sample PDFs
+// (importable from the template library) — serve exactly those two trees.
+app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
 
 app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${PORT}`));
