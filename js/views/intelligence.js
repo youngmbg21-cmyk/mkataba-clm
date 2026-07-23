@@ -594,6 +594,8 @@ function igFitView(){
 }
 function igTick(){
   const {nodes,edges,W,H}=IG;
+  // ever-advancing clock → a tiny persistent drift so the graph never freezes
+  const t=(IG._t=(IG._t||0)+1)*0.02;
   for(let i=0;i<nodes.length;i++){ const a=nodes[i];
     for(let j=i+1;j<nodes.length;j++){ const b=nodes[j];
       let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy||1,d=Math.sqrt(d2); dx/=d;dy/=d;
@@ -602,8 +604,12 @@ function igTick(){
       if(ox>0&&oy>0){ if(ox<oy){ const s=ox/2*Math.sign(a.x-b.x||dx); a.vx+=s*0.5;b.vx-=s*0.5; } else { const s=oy/2*Math.sign(a.y-b.y||dy); a.vy+=s*0.5;b.vy-=s*0.5; } }
     } }
   edges.forEach(e=>{ let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.sqrt(dx*dx+dy*dy)||1; const f=(d-120)*0.02; dx/=d;dy/=d; e.s.vx+=dx*f;e.s.vy+=dy*f; e.t.vx-=dx*f;e.t.vy-=dy*f; });
-  nodes.forEach(n=>{ n.vx+=(W/2-n.x)*0.0016; n.vy+=(H/2-n.y)*0.0016;
-    if(n===IG.dragging)return; n.vx*=0.86;n.vy*=0.86; n.vx=Math.max(-35,Math.min(35,n.vx));n.vy=Math.max(-35,Math.min(35,n.vy)); n.x+=n.vx;n.y+=n.vy; });
+  nodes.forEach((n,idx)=>{ n.vx+=(W/2-n.x)*0.0016; n.vy+=(H/2-n.y)*0.0016;
+    if(n===IG.dragging)return;
+    // stable per-node phase (hash of id) → each node drifts on its own gentle orbit
+    if(n._ph==null){ let h=0; const s=String(n.id||idx); for(let k=0;k<s.length;k++) h=(h*31+s.charCodeAt(k))>>>0; n._ph=(h%628)/100; }
+    n.vx+=Math.cos(t+n._ph)*0.05; n.vy+=Math.sin(t*1.07+n._ph*1.3)*0.05;
+    n.vx*=0.86;n.vy*=0.86; n.vx=Math.max(-35,Math.min(35,n.vx));n.vy=Math.max(-35,Math.min(35,n.vy)); n.x+=n.vx;n.y+=n.vy; });
 }
 function igRender(){
   IG.nodes.forEach(n=>n.g.setAttribute('transform',`translate(${n.x-n.w/2},${n.y-n.h/2})`));
@@ -676,7 +682,7 @@ function renderIntel(){
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
         <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
       </div>
-      <aside id="ig-dock" class="shrink-0 bg-white border-l border-hair flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
+      <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:#f2f5f9;border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
     </div>
   </div>`;
 
@@ -805,13 +811,13 @@ function renderIntelDock(){
         </span>`).join('')}
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
     </div>`:''}
-    <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:var(--color-bg)">
+    <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
       ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
-      ${IG_SUGGESTIONS.map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+      ${IG_SUGGESTIONS.slice(0,3).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">

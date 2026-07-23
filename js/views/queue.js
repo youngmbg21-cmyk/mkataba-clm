@@ -30,7 +30,7 @@ function pipeCard(c){
   const stream = streamLabel(c);
   const val = !isMonetary(c) ? 'n/m' : (c.value ? fmtKESshort(c.value) : '—');
   return `
-    <div data-card="${c.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
+    <div data-card="${c.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
@@ -72,7 +72,8 @@ function renderPipeline(){
   <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
     <style>
       .q-card{transition:border-color .12s ease,box-shadow .12s ease}
-      .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
+      /* keep the category stripe (border-left) on hover — only the other three sides + shadow react */
+      .q-card:hover{border-top-color:var(--color-accent)!important;border-right-color:var(--color-accent)!important;border-bottom-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
     </style>
     <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:12px">${columnsHtml}</div>
   </div>`;

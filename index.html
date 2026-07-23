@@ -179,21 +179,24 @@
   /* ============================================================
      SHELL — sidebar / command bar / context panel
      ============================================================ */
-  .nav-item{position:relative;display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--color-neutral-700);font:inherit;font-family:var(--font-body);font-size:12.5px;font-weight:400;padding:7px 8px 7px 10px;cursor:pointer;text-align:left;border-radius:4px;transition:background .12s,color .12s;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--color-neutral-800);font:inherit;font-family:var(--font-body);font-size:12.5px;font-weight:500;padding:7px 8px 7px 10px;cursor:pointer;text-align:left;border-radius:4px;transition:background .12s,color .12s;}
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:2px;}
   .nav-item svg{flex:none;opacity:.85;}
-  .nav-item:hover{background:rgba(29,31,32,.05);}
-  .nav-item.active{background:rgba(89,128,166,.14);color:var(--color-accent-800);font-weight:600;}
-  .nav-item.active .nav-rail{background:var(--color-accent);}
+  /* hover AND active share the same treatment: dark-blue fill, white text */
+  .nav-item:hover{background:var(--color-accent-800);color:#fff;}
+  .nav-item:hover svg{opacity:1;}
+  .nav-item:hover .nav-count{color:rgba(255,255,255,.72);}
+  .nav-item.active{background:var(--color-accent-800);color:#fff;font-weight:600;}
+  .nav-item.active .nav-rail{background:#fff;}
   .nav-item.active svg{opacity:1;}
   .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
-  .nav-item.active .nav-count{color:var(--color-accent-700);}
+  .nav-item.active .nav-count{color:rgba(255,255,255,.75);}
   /* Collapsible nav sections: the group label is now a +/- toggle that shows or
      hides its tabs. On login only "Work" is open (see .open in the markup); the
      section holding the active view is auto-opened in setActiveNav(). */
-  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:9.5px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500);padding:10px 8px 5px;text-align:left;transition:color .12s;}
+  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);padding:10px 8px 5px;text-align:left;transition:color .12s;}
   .nav-section:first-child .nav-section-head{padding-top:4px;}
-  .nav-section-head:hover{color:var(--color-neutral-700);}
+  .nav-section-head:hover{color:var(--color-accent-800);}
   .nav-plus{margin-left:auto;position:relative;width:12px;height:12px;flex:none;opacity:.8;}
   .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:1px;transition:opacity .15s;}
   .nav-plus::before{left:1px;right:1px;top:5px;height:2px;}   /* horizontal bar (always shown) */

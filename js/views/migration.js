@@ -453,8 +453,7 @@ function renderMigration(){
     matched:M.manifest.filter(r=>r.matchedId).length,
     missing:M.manifest.filter(r=>!r.matchedId),
     extra:cs.filter(c=>!c.migration.manifest).length }:null;
-  const folderOpts=`<option value="auto" ${M.defaults.folder==='auto'?'selected':''}>Auto — route by contract type</option>`
-    +Object.values(FOLDERS).map(f=>`<option value="${f.id}" ${M.defaults.folder===f.id?'selected':''}>${f.name}</option>`).join('');
+  const folderOpts=folderOptionsHtml(M.defaults.folder||'auto', true);
   const statusOpts=[['Signed','Executed — signed outside HaTi'],['Under Review','In Review'],['Draft','Drafting']]
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
   const kpi=(n,label,color)=>`<div style="flex:1;min-width:120px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:7px;padding:12px 14px;box-shadow:var(--shadow-sm)">
@@ -585,7 +584,7 @@ function renderMigration(){
     ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('dragover'); }));
     drop.addEventListener('drop',e=>{ const fs=[...(e.dataTransfer?.files||[])].filter(f=>f.size); if(fs.length) migProcessFiles(fs); });
     document.getElementById('mig-status')?.addEventListener('change',e=>{ M.defaults.status=e.target.value; });
-    document.getElementById('mig-folder')?.addEventListener('change',e=>{ M.defaults.folder=e.target.value; });
+    bindFolderSelect(document.getElementById('mig-folder'), v=>{ M.defaults.folder=v; });
     const mf=document.getElementById('mig-manifest-file');
     document.getElementById('mig-manifest-btn')?.addEventListener('click',()=>mf.click());
     mf?.addEventListener('change',()=>{ if(mf.files[0]) migLoadManifest(mf.files[0]); });
