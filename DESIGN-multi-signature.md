@@ -1,6 +1,25 @@
 # Design: Sequential Multi-Signature Signing, Draw/Type Signature Capture & Auto-Distribution
 
-Status: **Spec for review — no code written yet** · Branch: `claude/multi-signature-contract-design-0z650b`
+Status: **Implemented** (Phases 1–3a) · Branch: `claude/multi-signature-contract-design-0z650b`
+
+> **Implementation notes / deviations from the spec.** Pragmatic choices made to fit
+> the existing code with least risk — all preserve backward compatibility:
+> - The signer plan stays a **flat `c.signerPlan[]` array** (extended with `memberId`,
+>   `role`, `signature`) rather than a new `c.signerRoute` wrapper — every existing
+>   consumer (`nextSigner`, `allSigned`, the panel) keeps working untouched. The
+>   internal→counterparty gate is **derived** (`internalAllSigned`), not a stored flag.
+> - Signature capture lives in a new module **`js/signature.js`** (`openSignaturePad`),
+>   used by both the in-app signer (`signDocument`) and the counterparty portal.
+> - Sealing is decoupled into **`finalizeExecution()`** (contract.js), called from the
+>   last internal signer *and* from `applyResponse` when the counterparty signs last.
+> - **Seal v2** (`sealVersion:2`) folds each mark's hash into `sealString`; v1 contracts
+>   verify unchanged. `verifySeal` now also re-hashes each stored mark.
+> - **Distribution** ships as Phase 3a (link + SHA-256 seal in the email body) via the
+>   new `POST /api/contracts/:id/distribute`; PDF-attachment (3b) remains a follow-up.
+> - **Adopt-and-reuse** stores the saved signature in `localStorage` (works in both
+>   modes); moving it to server `users.prefs` is a later enhancement.
+> - Signer-identity enforcement is **client-side** (a step reserved for a bound member
+>   blocks other users); server-side enforcement remains the Phase-2 hardening below.
 
 Companion to [`DESIGN-contract-sharing.md`](DESIGN-contract-sharing.md). This spec describes how to
 add ordered multi-party signing (e.g. **CEO → CFO → COO → counterparty**), per-signer **draw / type /

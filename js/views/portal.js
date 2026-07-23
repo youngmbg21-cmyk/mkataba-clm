@@ -110,8 +110,14 @@ async function portalRespond(p, action){
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
   if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
+  // Capture the counterparty's signature mark (free choice: draw / type / upload).
+  let sig=null;
+  if(action==='sign' && typeof openSignaturePad==='function'){
+    sig=await openSignaturePad({ name });
+    if(!sig) return;   // signer cancelled the pad
+  }
   // Server-backed signing: verify the signer's email with a one-time code first.
-  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment}); }
+  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment,sig}); }
   // E2: a redline is a change request carrying proposed edited text + its base.
   let proposedText=null, baseText=null, sendAction=action;
   if(action==='redline'){
@@ -122,7 +128,9 @@ async function portalRespond(p, action){
   }
   const proposedValue = (action==='changes') ? fval('pt-proposed') : '';
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:sendAction, name, title, email, comment,
-    proposedValue: proposedValue||null, proposedText, baseText, at:nowISO() };
+    proposedValue: proposedValue||null, proposedText, baseText, at:nowISO(),
+    signatureForm:sig?sig.form:null, signatureImage:sig?sig.image:null, signatureImageHash:sig?sig.imageHash:null,
+    signatureTypedName:sig?sig.typedName:null, signatureFont:sig?sig.font:null };
   const label={sign:'signature',changes:'change request',decline:'decline notice'}[sendAction];
   if(PORTAL_OPTS.token){
     try{
@@ -179,7 +187,9 @@ async function portalVerifyAndSign(p, info){
   try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
   catch(e){ toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
-    name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO() };
+    name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
+    signatureForm:info.sig?info.sig.form:null, signatureImage:info.sig?info.sig.image:null, signatureImageHash:info.sig?info.sig.imageHash:null,
+    signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
   try{
     await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
     document.getElementById('portal-result').innerHTML=`

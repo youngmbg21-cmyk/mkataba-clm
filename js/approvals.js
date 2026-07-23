@@ -98,35 +98,82 @@ function rejectApprovalStep(c){
 function signerPlan(c){ return c.signerPlan||[]; }
 function nextSigner(c){ return signerPlan(c).slice().sort((a,b)=>a.order-b.order).find(s=>!s.signed)||null; }
 function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.signed); }
+// The internal-then-counterparty gate: every internal signer must be done
+// before a counterparty signer's link goes live.
+function internalAllSigned(c){ const p=signerPlan(c).filter(s=>s.party==='internal'); return p.length===0 || p.every(s=>s.signed); }
+function signersRemaining(c){ return signerPlan(c).filter(s=>!s.signed).length; }
+// Everyone who should receive the executed copy: unique emails across the plan
+// and the recorded signatures, plus an optional workspace records mailbox.
+function distributionRecipients(c){
+  const seen=new Set(), out=[];
+  const add=(name,email,role,party)=>{ const e=String(email||'').trim().toLowerCase();
+    if(!/.+@.+\..+/.test(e)||seen.has(e)) return; seen.add(e); out.push({name:name||e,email:e,role:role||'',party:party||''}); };
+  signerPlan(c).forEach(s=>add(s.name,s.email,s.role,s.party));
+  (c.signatures||[]).forEach(s=>add(s.name,s.email,s.role||s.title,s.party));
+  const cc=(state.settings&&state.settings.recordsMailbox)||'';
+  if(cc) add('Records archive',cc,'','cc');
+  return out;
+}
 function openSignerPlanEditor(c){
   const plan=(c.signerPlan||[]).slice();
-  const row=(s,i)=>`<div class="flex items-center gap-2 mb-2" data-sp-row="${i}">
-      <select data-sp-party="${i}" class="rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]">
-        <option value="internal" ${s.party==='internal'?'selected':''}>Internal</option>
-        <option value="counterparty" ${s.party==='counterparty'?'selected':''}>Counterparty</option></select>
-      <input data-sp-name="${i}" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Name" class="flex-1 rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]"/>
-      <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="Email" class="flex-1 rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]"/>
-      <button data-sp-del="${i}" class="text-rose-500 hover:text-rose-700 text-[11px] font-600">✕</button></div>`;
-  openModal(`<div class="p-6">
-    <h3 class="font-serif font-600 text-lg text-ink mb-1">Signing order</h3>
-    <p class="text-xs text-ink/60 mb-3">Add signers in order. Internal members sign in-app; counterparty signers each get their own secure link. The seal is applied when the last signature lands.</p>
-    <div id="sp-rows">${plan.map(row).join('')||''}</div>
+  const members=(getUsers()||[]).filter(u=>u.role!=='viewer');
+  const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
+  const memberOpts=s=>`<option value="">— pick member —</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
+  const row=(s,i)=>`<div class="rounded-xl border border-line bg-slate-50/60 p-2.5 mb-2" data-sp-row="${i}">
+      <div class="flex items-center gap-2 mb-1.5">
+        <span class="h-5 w-5 grid place-items-center rounded-full bg-brand-600 text-white text-[10px] font-700">${i+1}</span>
+        <select data-sp-party="${i}" class="${IN}">
+          <option value="internal" ${s.party==='internal'?'selected':''}>Internal</option>
+          <option value="counterparty" ${s.party==='counterparty'?'selected':''}>Counterparty</option></select>
+        <span data-sp-member-wrap="${i}" class="${s.party==='counterparty'?'hidden':''}">
+          <select data-sp-member="${i}" class="${IN}">${memberOpts(s)}</select></span>
+        <div class="ml-auto flex items-center gap-1">
+          <button data-sp-up="${i}" ${i===0?'disabled':''} class="text-ink/40 hover:text-ink/70 text-[12px] disabled:opacity-30">↑</button>
+          <button data-sp-down="${i}" class="text-ink/40 hover:text-ink/70 text-[12px]">↓</button>
+          <button data-sp-del="${i}" class="text-rose-500 hover:text-rose-700 text-[11px] font-600 ml-1">✕</button></div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <input data-sp-name="${i}" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Name" class="${IN}"/>
+        <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="Title (e.g. CFO)" class="${IN}"/>
+        <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="Email" class="${IN}"/>
+      </div></div>`;
+  openModal(`<div class="p-6" style="max-width:560px">
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">Signing route</h3>
+    <p class="text-xs text-ink/60 mb-3">Signers execute <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
+    <div id="sp-rows">${plan.map(row).join('')||'<div class="text-[12px] text-ink/50 mb-2">No signers yet — add the people who must sign, in order.</div>'}</div>
     <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">+ Add signer</button>
     <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
-      <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save order</button></div>
+      <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save route</button></div>
   </div>`);
-  const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join(''); wire(); };
-  const wire=()=>{ document.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{ plan.splice(Number(b.getAttribute('data-sp-del')),1); rerow(); })); };
-  document.getElementById('sp-add').addEventListener('click',()=>{ plan.push({party:'internal',name:'',email:''}); rerow(); });
+  const rerow=()=>{ document.getElementById('sp-rows').innerHTML=plan.map(row).join('')||''; wire(); };
+  const readRow=idx=>{ const g=sel=>document.querySelector(`[data-sp-${sel}="${idx}"]`);
+    return { party:g('party').value, name:g('name').value.trim(), role:g('role').value.trim(), email:g('email').value.trim(),
+      memberId:g('member')?g('member').value:'' }; };
+  const syncPlanFromDom=()=>{ document.querySelectorAll('[data-sp-row]').forEach(r=>{ const i=Number(r.getAttribute('data-sp-row')); Object.assign(plan[i], readRow(i)); }); };
+  const wire=()=>{
+    document.querySelectorAll('[data-sp-del]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); plan.splice(Number(b.getAttribute('data-sp-del')),1); rerow(); }));
+    document.querySelectorAll('[data-sp-up]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); const i=Number(b.getAttribute('data-sp-up')); if(i>0){ [plan[i-1],plan[i]]=[plan[i],plan[i-1]]; rerow(); } }));
+    document.querySelectorAll('[data-sp-down]').forEach(b=>b.addEventListener('click',()=>{ syncPlanFromDom(); const i=Number(b.getAttribute('data-sp-down')); if(i<plan.length-1){ [plan[i+1],plan[i]]=[plan[i],plan[i+1]]; rerow(); } }));
+    document.querySelectorAll('[data-sp-party]').forEach(sel=>sel.addEventListener('change',()=>{ syncPlanFromDom(); rerow(); }));
+    document.querySelectorAll('[data-sp-member]').forEach(sel=>sel.addEventListener('change',()=>{
+      syncPlanFromDom();                       // capture any typed values first
+      const i=Number(sel.getAttribute('data-sp-member')), u=userById(sel.value);
+      if(u){ plan[i].memberId=u.id; plan[i].name=u.name; plan[i].email=u.email; if(!plan[i].role) plan[i].role=ROLE_LABEL[u.role]||''; }
+      else { plan[i].memberId=''; }
+      rerow(); }));
+  };
+  document.getElementById('sp-add').addEventListener('click',()=>{ syncPlanFromDom(); plan.push({party:'internal',name:'',role:'',email:'',memberId:''}); rerow(); });
   wire();
   document.getElementById('sp-cancel').addEventListener('click',closeModal);
   document.getElementById('sp-save').addEventListener('click',()=>{
-    const out=[]; document.querySelectorAll('[data-sp-row]').forEach((r,i)=>{ const idx=r.getAttribute('data-sp-row');
-      const name=document.querySelector(`[data-sp-name="${idx}"]`).value.trim(); if(!name) return;
-      out.push({ id:'sg_'+Math.random().toString(36).slice(2,7), party:document.querySelector(`[data-sp-party="${idx}"]`).value,
-        name, email:document.querySelector(`[data-sp-email="${idx}"]`).value.trim(), order:out.length+1, signed:false }); });
-    c.signerPlan=out; logAudit(c,'Signing order',`Set ${out.length} signer(s)`); persist(c); closeModal(); renderWorkspace();
-    toast('Signing order saved');
+    syncPlanFromDom();
+    const out=[]; plan.forEach(s=>{ if(!s.name) return;
+      const prior=(c.signerPlan||[]).find(p=>p.id===s.id);
+      out.push({ id:s.id||'sg_'+Math.random().toString(36).slice(2,7), party:s.party, name:s.name, role:s.role||'',
+        email:s.email, memberId:s.party==='internal'?(s.memberId||''):'', order:out.length+1,
+        signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
+    c.signerPlan=out; logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`); persist(c); closeModal(); renderWorkspace();
+    toast('Signing route saved');
   });
 }
 
@@ -152,15 +199,39 @@ function approvalPanelHtml(c){
   }
   const plan=signerPlan(c);
   if(plan.length){
+    const sorted=plan.slice().sort((a,b)=>a.order-b.order);
+    const ns=nextSigner(c);
+    const signedCount=sorted.filter(s=>s.signed).length;
+    const ord=n=>{ const t=['th','st','nd','rd'], v=n%100; return n+(t[(v-20)%10]||t[v]||t[0]); };
+    const node=(state,label)=>`<span class="h-7 w-7 grid place-items-center rounded-full text-[11px] font-700 z-10 shrink-0 border-2 ${
+      state==='done'?'bg-brand-600 border-brand-600 text-white':
+      state==='cur'?'bg-white border-gold-500 text-gold-600 ring-4 ring-gold-100':
+      'bg-white border-slate-300 text-ink/40'}">${label}</span>`;
     html+=`<div class="rounded-xl border border-line bg-white p-3 mb-2">
-      <div class="flex items-center gap-2 mb-1.5"><span class="text-[11px] font-600 text-ink">Signing order</span>
-        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit</button>`:''}</div>
-      ${plan.slice().sort((a,b)=>a.order-b.order).map(s=>`<div class="flex items-center gap-2 text-[11.5px] py-0.5">
-        <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.signed?'bg-brand-600 text-white':'bg-slate-200 text-ink/60'}">${s.order}</span>
-        <span class="${s.signed?'text-brand-600':'text-ink/60'}">${s.name}</span>
-        <span class="text-[9px] font-mono text-ink/40">${s.party}</span>
-        <span class="ml-auto text-[10px] text-ink/50">${s.signed?`✓ ${s.at?fmtDT(s.at):''}`:'pending'}</span>
-      </div>`).join('')}
+      <div class="flex items-center gap-2 mb-2"><span class="text-[11px] font-600 text-ink">Signature progress</span>
+        <span class="text-[9.5px] font-mono px-1.5 py-0.5 rounded-full ${signedCount===sorted.length?'bg-brand-50 text-brand-600':'bg-gold-50 text-gold-700'}">${signedCount} of ${sorted.length} signed</span>
+        ${canEdit()&&c.status!=='Signed'?`<button id="sp-edit" class="ml-auto text-[10px] font-600 text-brand-600 hover:text-brand-800">edit route</button>`:''}</div>
+      <div class="relative">
+        ${sorted.map((s,i)=>{ const isCur=ns&&ns.id===s.id; const st=s.signed?'done':isCur?'cur':'wait';
+          const gated=!s.signed&&s.party==='counterparty'&&!internalAllSigned(c);
+          const meta=s.signed
+            ? `${ord(s.order)} · ${s.at?fmtDT(s.at):''}${s.signature&&s.signature.form?' · '+s.signature.form+' signature':''}`
+            : isCur ? `${ord(s.order)} · their turn now`
+            : gated ? `${ord(s.order)} · link opens once internal signing is complete`
+            : `${ord(s.order)} · waiting`;
+          return `<div class="flex gap-3 ${i<sorted.length-1?'pb-3':''} relative">
+            ${i<sorted.length-1?`<span class="absolute left-[13px] top-7 bottom-0 w-0.5 ${s.signed?'bg-brand-500':'bg-slate-200'}"></span>`:''}
+            ${node(st, s.signed?'✓':String(s.order))}
+            <div class="min-w-0 pt-0.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[12.5px] font-600 ${s.signed?'text-ink':'text-ink/70'}">${(s.name||'').replace(/</g,'&lt;')}</span>
+                ${s.role?`<span class="text-[10.5px] text-ink/50">· ${s.role.replace(/</g,'&lt;')}</span>`:''}
+                <span class="text-[8.5px] font-mono px-1 py-px rounded ${s.party==='counterparty'?'bg-gold-50 text-gold-700':'bg-brand-50 text-brand-600'}">${s.party}</span>
+                ${isCur?`<span class="text-[8.5px] font-mono px-1 py-px rounded bg-gold-100 text-gold-700">SIGNING NOW</span>`:''}
+              </div>
+              <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
+            </div></div>`; }).join('')}
+      </div>
     </div>`;
   }
   return html;
@@ -187,4 +258,4 @@ async function loadEngagement(c){
       <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
 }
 
-Object.assign(window,{approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});
+Object.assign(window,{approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});

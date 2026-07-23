@@ -698,8 +698,15 @@ function freezeContractHtml(c){
 const normText = html => { const d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').replace(/\s+/g,' ').trim(); };
 function sealString(c){
   const content = isUpload(c) ? 'file:'+(c.upload?.fileHash||'') : 'text:'+(c.execution?.textHash||'');
-  return JSON.stringify({ id:c.id, firstParty:FIRST_PARTY, counterparty:c.counterparty,
-    value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' });
+  const base={ id:c.id, firstParty:FIRST_PARTY, counterparty:c.counterparty,
+    value:c.value, valueType:c.valueType, content, signedAt:c.execution?.at||'' };
+  // Seal v2 folds every signature MARK (its hash) into the seal, so the visible
+  // signatures are as tamper-evident as the text. v1 (sealVersion unset) keeps
+  // the exact original string — so every previously-sealed contract still verifies.
+  if(Number(c.sealVersion||0)>=2){
+    base.sigs=(c.signatures||[]).map(s=>({ name:s.name||'', at:s.at||'', form:s.form||s.method||'', imageHash:s.imageHash||'' }));
+  }
+  return JSON.stringify(base);
 }
 
 async function verifySeal(c){
@@ -710,6 +717,13 @@ async function verifySeal(c){
     if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
     const th=await sha256(normText(c.execution.html));
     if(th!==c.execution.textHash){ toast('Seal MISMATCH — the sealed text was altered','err'); return; }
+  }
+  // v2: each stored signature mark must still hash to the value bound at signing.
+  if(Number(c.sealVersion||0)>=2){
+    for(const s of (c.signatures||[])){
+      if(s.image && s.imageHash){ const ih=await sha256(s.image);
+        if(ih!==s.imageHash){ toast('Seal MISMATCH — a signature mark was altered','err'); return; } }
+    }
   }
   const h=await sha256(sealString(c));
   if(h===c.hash) toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
@@ -733,7 +747,9 @@ function downloadEvidence(c){
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
       uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
     signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
-      method:s.method||null, ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
+      method:s.method||null, form:s.form||null, signatureImageSha256:s.imageHash||null, signatureImage:s.image||null,
+      ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
+    distribution:c.distribution||null,
     auditTrail:c.audit||[],
   },null,2));
   logAudit(c,'Exported','Evidence pack downloaded'); persist(c); renderAuditSection(c);
@@ -953,11 +969,23 @@ async function applyResponse(c, r, opts={}){
   const who=r.name+(r.title?', '+r.title:'');
   if(r.action==='sign'){
     c.signatures=c.signatures||[];
+    const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,
+      typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
-      method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash });
+      method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash,
+      form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
+    // If a signing route is running, mark this counterparty's step signed and advance.
+    const ns=window.nextSigner?nextSigner(c):null;
+    if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'})`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})`);
     toast(`${r.name} has signed — countersignature recorded`);
+    // Last signature on a route ⇒ freeze, seal and distribute automatically.
+    if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){
+      c.lastAction=todayStr(); persist(c);
+      await finalizeExecution(c, { silent:!!opts.background });
+      return true;
+    }
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];

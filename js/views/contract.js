@@ -577,12 +577,15 @@ function signatureBlock(c){
   const locked=c.status==='Signed';
   if(locked){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
-    const first=(c.signatures||[]).find(s=>s.party==='first');
-    const cp=(c.signatures||[]).find(s=>s.party==='counterparty');
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
-    const party=(label,ic,s,fallback)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(ic,'w-3 h-3')} ${label}</div>
-      ${s?`<div class="font-medium text-brand-700">${s.name}${s.title?', '+s.title:''}</div>${sub(s)}`:`<div class="text-brand-800/60 text-xs">${fallback}</div>`}</div>`;
+    const sigs=(c.signatures||[]);
+    const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
+    const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
+      ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${s.title?', '+s.title:s.role?', '+s.role:''}</div>${sub(s)}</div>`;
+    const sigList = sigs.length ? sigs.map(card).join('')
+      : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${c.signatory?('Signed by '+c.signatory):'Not recorded'}</div></div>`;
     return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
       <div class="flex items-start gap-4">
@@ -596,10 +599,7 @@ function signatureBlock(c){
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
           <div class="mt-1 text-xs text-brand-800/60">Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).</div>
-          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
-            ${party('First party', 'finger', first||(c.signatory?{name:c.signatory,method:'session-authenticated',at:c.execution?.at}:null), 'Not recorded')}
-            ${party('Counterparty', 'users', cp, 'Pending — share the document to collect a verified counter-signature')}
-          </div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
           ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} DOCUMENT SEAL (SHA-256)</div>
@@ -962,9 +962,11 @@ function renderSignButton(c){
       <div class="mt-2 grid grid-cols-2 gap-2">
         <button id="verify-seal" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
         <button id="evidence-dl" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
-      </div>`;
+      </div>
+      ${distributionPanelHtml(c)}`;
     document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
     document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
+    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c); });
     return;
   }
   if(!canEdit()){
@@ -1011,43 +1013,148 @@ async function signDocument(c){
     if(!await confirmDialog({title:'Sign with open redlines?', message:msg+' This will be recorded as an Admin/Legal override.', confirmLabel:'Sign anyway', danger:true})) return;
     logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
   }
-  const btn=document.getElementById('sign-btn');
-  const u=currentUser(), at=nowISO();
+  const u=currentUser(), at0=nowISO();
   // capture server-stamped IP + time where available (honest attribution)
-  let meta={ ip:null, at };
+  let meta={ ip:null, at:at0 };
   if(API_MODE()){ try{ meta=await api('sign-meta','POST',{}); }catch(e){} }
-  // E5-T3 multi-signer: if a signing order exists and this internal signer is
-  // not the last, record their signature and advance — seal only on the last.
+  const at=meta.at||at0;
+  const ordLabel=n=>{ const t=['th','st','nd','rd'], v=n%100; return n+(t[(v-20)%10]||t[v]||t[0]); };
+  // E5-T3 multi-signer route: signers execute in order; each captures their own
+  // mark; the seal is applied only when the last signature lands.
   const plan=signerPlan(c), ns=nextSigner(c);
   if(plan.length && ns){
     if(ns.party!=='internal'){ toast(`Next signer is ${ns.name} (counterparty) — share the link to collect their signature`,'err'); return; }
-    ns.signed=true; ns.at=at; ns.by=u.name;
+    if(ns.memberId && u && u.id!==ns.memberId){ toast(`This step is reserved for ${ns.name}. Sign in as ${ns.name} to sign here.`,'err'); return; }
+    const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
+    if(!sig) return;                              // signer cancelled the pad
+    ns.signed=true; ns.at=at; ns.by=u.name; ns.signature={ form:sig.form, image:sig.image, imageHash:sig.imageHash };
     c.signatures=c.signatures||[];
-    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, email:u.email, role:ROLE_LABEL[u.role], at, method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent });
-    logAudit(c,'Signature',`${ns.name} signed (signer ${ns.order} of ${plan.length})`);
-    if(!allSigned(c)){ persist(c); renderSignButton(c); renderAuditSection(c); toast(`Recorded — ${plan.filter(s=>!s.signed).length} signer(s) remaining`); return; }
-    // last signer — fall through to freeze + seal below
+    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, role:ns.role||ROLE_LABEL[u.role], email:ns.email||u.email, at,
+      method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
+      form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
+    logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature`);
+    if(!allSigned(c)){
+      persist(c); renderSignButton(c); renderAuditSection(c);
+      const nxt=nextSigner(c);
+      if(nxt && nxt.party==='counterparty' && internalAllSigned(c)){
+        toast('Internal signing complete — now share it with the counterparty');
+        setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
+      } else {
+        toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`);
+        notifyNextSigner(c, nxt);
+      }
+      return;
+    }
+    await finalizeExecution(c, { by:u, meta });   // last signer is internal
+    return;
   }
-  btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`;
-  const exec={ at, method:'session-authenticated', consent:true, ua:navigator.userAgent, ip:meta.ip||null };
+  // Single-signer path (no route): capture the first party's mark, then seal.
+  const sig=await captureSignature(u.name);
+  if(!sig) return;
+  await finalizeExecution(c, { by:u, meta, firstPartySig:sig });
+}
+
+/* Open the free-choice signature pad; falls back to a metadata-only signature
+   if the pad module is unavailable. */
+async function captureSignature(name){
+  if(typeof openSignaturePad!=='function') return { form:'session', image:null, imageHash:null };
+  return await openSignaturePad({ name });
+}
+
+/* Freeze + seal + (single-signer) record the first mark + distribute. Called
+   once, from either completion point (last internal signer here, or a
+   counterparty's signature in applyResponse). Idempotent. */
+async function finalizeExecution(c, opts={}){
+  if(c.status==='Signed' || (c.hash && c.hash!==null)) return;   // already executed
+  const u=opts.by||currentUser();
+  const at=(opts.meta&&opts.meta.at)||nowISO();
+  const ip=(opts.meta&&opts.meta.ip)||null;
+  const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`; }
+  const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip };
   if(!isUpload(c)){ exec.html=freezeContractHtml(c); exec.textHash=await sha256(normText(exec.html)); }
   c.execution=exec;
   c.signedAt=fmtDT(at)+' EAT';
   c.lastAction=todayStr();
-  c.signatory=`${u.name} (${ROLE_LABEL[u.role]})`;
-  c.hash=await sha256(sealString(c));
+  c.signatory=u?`${u.name} (${ROLE_LABEL[u.role]})`:(c.signatory||'Authorized signatory');
   c.signatures=c.signatures||[];
-  c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
-    method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent, docHash:c.hash });
+  // Single-signer path records the first-party mark here; a route already
+  // recorded each signer's mark as they signed.
+  if(!signerPlan(c).length && opts.firstPartySig && u){
+    const s=opts.firstPartySig;
+    c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
+      method:'session-authenticated', ip, ua:navigator.userAgent,
+      form:s.form, image:s.image, imageHash:s.imageHash, typedName:s.typedName, font:s.font });
+  }
+  c.sealVersion=2;                       // fold the marks into the seal (see sealString)
+  c.hash=await sha256(sealString(c));
   c.status='Signed';
-  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u.name);   // final version = the sealed text
-  logAudit(c,'Signed',`Sealed by ${u.name} (${u.email}) — ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
-  persist(c);
-  document.getElementById('doc-canvas').innerHTML=docBody(c);
-  updateStatusUI(c); renderSignButton(c); renderAuditSection(c);
-  toast('Signed & sealed — the exact text is frozen and fingerprinted');
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System');
+  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
+  persist(c);                            // critical state saved before any DOM work
+  // Re-render if the contract is open; guarded so a headless finalize (the
+  // counterparty signs last while the contract isn't on screen) can't fail.
+  try{
+    const canvas=document.getElementById('doc-canvas'); if(canvas) canvas.innerHTML=docBody(c);
+    if(typeof updateStatusUI==='function') updateStatusUI(c);
+    renderSignButton(c); renderAuditSection(c);
+  }catch(e){ /* not on screen — fine */ }
+  if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
+  distributeExecuted(c);                 // email a sealed copy to every party
+}
+
+/* Auto-distribute the executed copy to every party (§ auto-distribution). */
+async function distributeExecuted(c){
+  if(c.distribution && c.distribution.at) return;                 // send once
+  const recipients=(typeof distributionRecipients==='function')?distributionRecipients(c):[];
+  if(!recipients.length){ return; }
+  if(API_MODE()){
+    try{
+      const appUrl=location.origin+location.pathname;
+      const res=await api('contracts/'+c.id+'/distribute','POST',{ recipients, appUrl });
+      c.distribution={ at:res.at||nowISO(), triggeredBy:'auto', recipients:res.recipients||recipients.map(r=>({...r,status:'queued'})) };
+    }catch(e){
+      c.distribution={ at:nowISO(), triggeredBy:'auto', error:e.message, recipients:recipients.map(r=>({...r,status:'failed'})) };
+    }
+  } else {
+    c.distribution={ at:nowISO(), triggeredBy:'manual', recipients:recipients.map(r=>({...r,status:'mailto'})) };
+  }
+  logAudit(c,'Distributed',`Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`);
+  persist(c); renderSignButton(c);
+}
+
+/* Best-effort "it's your turn" nudge to the next internal signer. */
+async function notifyNextSigner(c, nxt){
+  if(!API_MODE() || !nxt || nxt.party!=='internal' || !/.+@.+\..+/.test(nxt.email||'')) return;
+  try{ await api('contracts/'+c.id+'/notify-signer','POST',{ email:nxt.email, name:nxt.name, order:nxt.order }); }catch(e){}
+}
+
+/* Distribution panel shown in the sign area once a contract is executed. */
+function distributionPanelHtml(c){
+  const d=c.distribution;
+  const dot=st=>['delivered','queued','sent'].includes(st)?'#2e8763':['failed','bounced'].includes(st)?'#b0453c':'#8a8f95';
+  const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
+  if(!d){
+    if(!canEdit()) return '';
+    return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
+      <div class="text-[11px] font-600 text-ink mb-1">Distribute copies</div>
+      <div class="text-[10.5px] text-ink/60 mb-2">Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.</div>
+      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg bg-brand-900 text-white py-2 text-[11.5px] font-600 hover:bg-brand-800">${icon('share','w-3.5 h-3.5')} Send signed copies to all parties</button>
+    </div>`;
+  }
+  const rows=(d.recipients||[]).map(r=>`<div class="flex items-center gap-2 py-1 text-[11px]">
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+    <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:999px;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
+  </div>`).join('');
+  return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
+    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">Copies sent</span>
+      <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
+    ${rows||'<div class="text-[10.5px] text-ink/50">No recipients found.</div>'}
+    ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
+    ${canEdit()?`<button id="dist-send" class="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg border border-line text-brand-700 py-1.5 text-[11px] font-600 hover:bg-brand-50">${icon('share','w-3 h-3')} Send again</button>`:''}
+    ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">Static mode: run the HaTi server to send email automatically.</div>`:''}
+  </div>`;
 }
 
 
 
-Object.assign(window,{applyMetadata,dataUrlBytes,docBody,extractDocText,extractPdfText,findingsFromText,frozenDocBody,inflateBytes,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,extractDocText,extractPdfText,finalizeExecution,findingsFromText,frozenDocBody,inflateBytes,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

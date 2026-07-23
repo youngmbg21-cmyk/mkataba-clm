@@ -10,6 +10,7 @@ import './versioning.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
+import './signature.js';
 import './wizard.js';
 import './views/calendar.js';
 import './views/reports.js';

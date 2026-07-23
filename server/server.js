@@ -1301,6 +1301,49 @@ app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
 });
 
+// Auto-distribution: email a sealed copy of the executed contract to every
+// party for their own records. The platform copy remains the source of truth;
+// this is a convenience copy (link + seal). Idempotency is enforced client-side
+// via c.distribution, but re-sends are allowed (Send again).
+app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Contract not found' });
+  let c; try { c = JSON.parse(row.json); } catch (_) { return res.status(500).json({ error: 'Contract record unreadable' }); }
+  if (c.status !== 'Signed') return res.status(400).json({ error: 'Contract is not executed yet' });
+  const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
+  const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
+  const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
+  const out = [];
+  for (const r of recipients) {
+    const email = String((r && r.email) || '').trim();
+    if (!/.+@.+\..+/.test(email)) { out.push({ name: (r && r.name) || '', email, role: (r && r.role) || '', party: (r && r.party) || '', status: 'failed', at: now() }); continue; }
+    const subject = `Fully executed — "${c.name}"`;
+    const body = `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+      `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+      `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
+      `Document seal (SHA-256):\n${seal}\n\n` +
+      `Open it in HaTi:\n${appUrl}\n\n` +
+      `This is an automated notice from HaTi CLM.`;
+    const sent = await sendEmail(email, subject, body, `executed copy: ${c.id}`);
+    out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '', status: sent.sent ? 'delivered' : 'sent', via: sent.provider, at: now() });
+  }
+  res.json({ at: now(), recipients: out });
+});
+
+// "It's your turn to sign" nudge to the next internal signer on a route.
+app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
+  const { email, name, order } = req.body || {};
+  if (!/.+@.+\..+/.test(String(email || ''))) return res.status(400).json({ error: 'A valid signer email is required' });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
+  const appUrl = `${req.protocol}://${req.get('host')}/`;
+  await sendEmail(String(email), `Your signature is requested — "${cName}"`,
+    `Hello${name ? ' ' + name : ''},\n\nIt's your turn to sign "${cName}"${order ? ` (signer ${order})` : ''}. ` +
+    `Sign in to HaTi to review and add your signature:\n${appUrl}\n\nThis is an automated notice from HaTi CLM.`,
+    `sign turn: ${req.params.id}`);
+  res.json({ ok: true });
+});
+
 /* ---------- team management ---------- */
 app.post('/api/users', auth, admin, (req, res) => {
   const { name, email, role, password } = req.body || {};
