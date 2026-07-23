@@ -225,6 +225,8 @@ function renderTemplatesPage(){
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:18px">
 
+    <div>${folderLegendHtml()}</div>
+
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
         <h4 style="${H4}">My templates</h4>

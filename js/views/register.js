@@ -459,6 +459,8 @@ function renderRegister(){
         ${renewalSel}
         ${ftsBlock}
       </div>
+      <!-- legend: explains the coloured row edge-stripe (value stream) -->
+      <div style="padding-top:2px;border-top:1px solid var(--color-divider)">${folderLegendHtml({style:'padding-top:8px'})}</div>
 
       <div id="reg-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
         <span id="reg-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
