@@ -196,10 +196,21 @@ function renderTeam(){
         <div id="sessions-list" style="font-size:12px;color:var(--color-neutral-700)">Loading…</div>
       </section>`:''}
 
+      ${(API_MODE())?`
+      <section style="${cardStyle}">
+        <h4 style="${h4Style}">My notifications</h4>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">When a counterparty responds to a contract you shared (signs, requests changes or declines), you're always emailed. First-open alerts are optional:</p>
+        <label style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:5px;padding:10px;cursor:pointer;font-size:12px">
+          <input id="pref-share-opens" type="checkbox" ${me&&me.prefs&&me.prefs.notifyShareOpens?'checked':''} style="margin-top:1px;width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
+          <span><span style="font-weight:600;display:block">Email me on first open</span>
+          <span style="color:var(--color-neutral-600);display:block;line-height:1.4">Get one email the first time a counterparty opens a contract you shared.</span></span>
+        </label>
+      </section>`:''}
+
       ${(API_MODE()&&isAdmin())?`
       <section style="${cardStyle}">
         <h4 style="${h4Style}">Email &amp; notifications</h4>
-        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-mono)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
+        <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Contract share links, counterparty response alerts, share nudges (3 days unopened), renewal reminders (90/60/30 days out), team invites, password resets and counterparty signing codes are sent by email. Set a <span style="font-family:var(--font-mono)">RESEND_API_KEY</span> on the server to turn on real delivery — until then, messages (and one-time codes) appear in the outbox below for testing.</p>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">
           <button id="rem-run" style="${secondaryBtn}">${icon('clock','w-3.5 h-3.5')} Check renewals &amp; queue reminders</button>
           <button id="ob-refresh" style="${secondaryBtn}">${icon('history','w-3.5 h-3.5')} Refresh outbox</button>
@@ -231,6 +242,13 @@ function renderTeam(){
     });
   }
 
+  document.getElementById('pref-share-opens')?.addEventListener('change',async e=>{
+    try{
+      const r=await api('me/prefs','PUT',{ notifyShareOpens:e.target.checked });
+      if(REMOTE&&REMOTE.me) REMOTE.me.prefs=r.prefs;
+      toast(e.target.checked?'First-open alerts on':'First-open alerts off');
+    }catch(err){ toast(err.message,'err'); e.target.checked=!e.target.checked; }
+  });
   document.getElementById('tm-invite')?.addEventListener('click',()=>{ const n=document.getElementById('tm-name'); if(n){ n.scrollIntoView({block:'nearest'}); n.focus(); } });
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   renderClauseLibrary();

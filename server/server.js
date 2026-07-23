@@ -81,7 +81,8 @@ const getSetting = k => { const r = db.prepare('SELECT json FROM settings WHERE 
 const setSetting = (k, v) => db.prepare('INSERT INTO settings (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
-const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at });
+const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
+const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at, prefs: userPrefs(u) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -181,6 +182,29 @@ addColumnIfMissing('sessions', 'ua', 'TEXT');
 const WORKSPACE_ID = 'ws_default';
 addColumnIfMissing('contracts', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
+// Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
+// share is bound to a recipient and channel, expires, can be revoked, and
+// carries the lifecycle timestamps the derived share state is computed from.
+addColumnIfMissing('shares', 'contract_id', 'TEXT');
+addColumnIfMissing('shares', 'recipient_name', 'TEXT');
+addColumnIfMissing('shares', 'recipient_email', 'TEXT');
+addColumnIfMissing('shares', 'recipient_phone', 'TEXT');
+addColumnIfMissing('shares', 'channel', `TEXT NOT NULL DEFAULT 'link'`);
+addColumnIfMissing('shares', 'message', 'TEXT');
+addColumnIfMissing('shares', 'created_by', 'TEXT');
+addColumnIfMissing('shares', 'expires_at', 'TEXT');
+addColumnIfMissing('shares', 'revoked_at', 'TEXT');
+addColumnIfMissing('shares', 'sent_at', 'TEXT');
+addColumnIfMissing('shares', 'first_opened_at', 'TEXT');
+addColumnIfMissing('shares', 'responded_at', 'TEXT');
+addColumnIfMissing('shares', 'reminded_at', 'TEXT');
+addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
+// backfill contract_id for shares created before the column existed
+try {
+  for (const r of db.prepare('SELECT token, payload FROM shares WHERE contract_id IS NULL').all()) {
+    try { const cid = (JSON.parse(r.payload).contract || {}).id; if (cid) db.prepare('UPDATE shares SET contract_id=? WHERE token=?').run(cid, r.token); } catch (_) {}
+  }
+} catch (_) {}
 
 const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
@@ -261,6 +285,9 @@ setInterval(() => { const nowMs = Date.now(); for (const [k, arr] of rlHits) { c
 const rlAuth = rateLimit('auth', 10, 15 * 60 * 1000);   // 10 / 15 min per IP
 const rlOtp = rateLimit('otp', 8, 15 * 60 * 1000);
 const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
+// per-user daily cap on outbound shares/resends — protects sender reputation
+const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
+  { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'), message: 'Daily share limit reached — try again tomorrow' });
 
 /* ---------- AI cost controls (rate limit, input caps, daily backstop) ------
    Each AI endpoint calls Anthropic and costs real money. These controls reuse
@@ -1298,13 +1325,74 @@ app.get('/api/files/:id', auth, (req, res) => {
   res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
 
-/* ---------- counterparty shares ---------- */
-app.post('/api/shares', auth, editor, (req, res) => {
-  const { payload } = req.body || {};
+/* ---------- counterparty shares ----------
+   A share is one recipient's tracked link to one contract. The share state is
+   DERIVED (never stored): revoked/responded/expired/opened/sent — the client
+   renders it as a traffic light. Multiple concurrent shares per contract are
+   allowed (one per recipient); the existing one-response-per-token rule holds
+   per share, and the first signature wins on the contract itself. */
+const SHARE_EXPIRY_DEFAULT_DAYS = 14;
+const APP_URL = () => String(process.env.APP_URL || '').replace(/\/+$/, '');
+const shareUrl = (req, token) =>
+  (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`)) + '/#share=t:' + token;
+const shareExpired = s => !!(s.expires_at && Date.parse(s.expires_at) < Date.now());
+function shareState(s) {
+  if (s.revoked_at) return 'revoked';
+  if (s.response) {
+    try { const a = JSON.parse(s.response).action; return a === 'sign' ? 'signed' : a === 'decline' ? 'declined' : 'changes'; }
+    catch (_) { return 'changes'; }
+  }
+  if (shareExpired(s)) return 'expired';
+  if (s.first_opened_at) return 'opened';
+  return 'sent';
+}
+function shareInfo(s) {
+  let r = null; try { r = s.response ? JSON.parse(s.response) : null; } catch (_) {}
+  return {
+    token: s.token, contractId: s.contract_id, state: shareState(s), channel: s.channel || 'link',
+    recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
+    createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
+    firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
+    responseAction: r ? r.action : null, responseBy: r ? r.name : null, applied: !!s.applied,
+  };
+}
+function shareOwnerEmails(s) {   // the sender if known, else workspace admins
+  if (s.created_by) { const u = db.prepare('SELECT email FROM users WHERE id=?').get(s.created_by); if (u) return [u.email]; }
+  return db.prepare(`SELECT email FROM users WHERE role='admin'`).all().map(u => u.email);
+}
+
+app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
+  const { payload, recipient, channel, message, expiryDays } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
+  const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
+  const rec = recipient || {};
+  const email = String(rec.email || '').trim().toLowerCase();
+  const phone = String(rec.phone || '').replace(/[^\d+]/g, '');
+  if (ch === 'email' && !/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid recipient email is required to send by email' });
+  if (ch === 'whatsapp' && phone.replace(/\D/g, '').length < 9) return res.status(400).json({ error: 'A valid WhatsApp number (with country code) is required' });
+  const days = Math.min(90, Math.max(1, Number(expiryDays) || SHARE_EXPIRY_DEFAULT_DAYS));
+  const expires = new Date(Date.now() + days * 86400000).toISOString();
   const token = rid(12);
-  db.prepare('INSERT INTO shares (token,payload,created_at) VALUES (?,?,?)').run(token, JSON.stringify(payload), now());
-  res.json({ ok: true, token });
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
+      String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
+      String(message || '').slice(0, 1000) || null, req.user.id, expires);
+  const link = shareUrl(req, token);
+  let emailSent = false;
+  if (ch === 'email') {
+    const cName = (payload.contract && payload.contract.name) || 'a contract';
+    const body = [
+      `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
+      message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
+      `\nOpen the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:\n${link}`,
+      `\nThis link expires on ${expires.slice(0, 10)}. Replies to this email reach ${req.user.name} directly.`,
+    ].filter(Boolean).join('\n');
+    const r = await sendEmail(email, `${req.user.name} shared "${cName}" for your review`, body, `share link: ${link}`);
+    emailSent = !!r.sent;
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+  }
+  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, emailSent, emailConfigured: EMAIL_ON() });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -1313,17 +1401,99 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
   res.json(rows.map(r => ({ token: r.token, response: JSON.parse(r.response) })));
 });
 
+// Portfolio-wide dispatch overview: counts by traffic-light state, the
+// "hottest" state per contract (for register/folder dots) and recent items
+// (for the dashboard strip). Registered before /api/shares/:token.
+const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'expired', 'revoked'];
+app.get('/api/shares/overview', auth, (req, res) => {
+  const rows = db.prepare(`SELECT s.*, c.name AS c_name, c.counterparty AS c_counterparty
+    FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
+    WHERE s.contract_id IS NOT NULL
+    ORDER BY COALESCE(s.responded_at, s.first_opened_at, s.sent_at, s.created_at) DESC LIMIT 400`).all();
+  const counts = {}, byContract = {}, items = [];
+  for (const s of rows) {
+    const st = shareState(s);
+    const at = s.responded_at || s.first_opened_at || s.sent_at || s.created_at;
+    counts[st] = (counts[st] || 0) + 1;
+    const cur = byContract[s.contract_id];
+    if (!cur) byContract[s.contract_id] = { state: st, at, n: 1 };
+    else { cur.n++; if (SHARE_STATE_PRIORITY.indexOf(st) < SHARE_STATE_PRIORITY.indexOf(cur.state)) { cur.state = st; cur.at = at; } }
+    if (items.length < 12) items.push({
+      token: s.token, contractId: s.contract_id, name: s.c_name || s.contract_id, counterparty: s.c_counterparty || '',
+      state: st, channel: s.channel || 'link', recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', at,
+    });
+  }
+  res.json({ counts, byContract, items });
+});
+
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
-  const s = db.prepare('SELECT payload, response FROM shares WHERE token=?').get(req.params.token);
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
+  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
   try {
     const payload = JSON.parse(s.payload);
     const cid = payload && payload.contract && payload.contract.id;
     if (cid) db.prepare('INSERT INTO engagement (contract_id,token,kind,at,ip,ua) VALUES (?,?,?,?,?,?)')
       .run(cid, req.params.token, 'open', now(), clientIp(req), String(req.get('user-agent') || '').slice(0, 300));
+    if (!s.first_opened_at) {
+      db.prepare('UPDATE shares SET first_opened_at=? WHERE token=?').run(now(), s.token);
+      notifyFirstOpen(s, payload);   // opt-in, fire-and-forget
+    }
   } catch (_) {}
-  res.json({ payload: JSON.parse(s.payload), responded: !!s.response });
+  res.json({
+    payload: JSON.parse(s.payload), responded: !!s.response,
+    share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
+      message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
+  });
+});
+
+// "Counterparty just opened it" ping to the sender — strictly opt-in per user.
+function notifyFirstOpen(s, payload) {
+  try {
+    if (!s.created_by) return;
+    const u = db.prepare('SELECT * FROM users WHERE id=?').get(s.created_by);
+    if (!u || !userPrefs(u).notifyShareOpens) return;
+    const cName = (payload && payload.contract && payload.contract.name) || s.contract_id || 'your contract';
+    const who = s.recipient_name || s.recipient_email || 'The counterparty';
+    sendEmail(u.email, `Opened: "${cName}"`,
+      `${who} just opened "${cName}" for the first time. You'll get another email when they respond. Track progress in HaTi.`,
+      'share first-open');
+  } catch (_) {}
+}
+
+app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shares panel
+  const rows = db.prepare('SELECT * FROM shares WHERE contract_id=? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
+  res.json({ shares: rows.map(shareInfo) });
+});
+
+app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share not found' });
+  if (s.response) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
+  if (!s.revoked_at) db.prepare('UPDATE shares SET revoked_at=? WHERE token=?').run(now(), s.token);
+  res.json({ ok: true });
+});
+
+app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share not found' });
+  if (s.response) return res.status(409).json({ error: 'This share already has a response' });
+  if (s.revoked_at) return res.status(409).json({ error: 'This share was revoked — create a new share instead' });
+  if (shareExpired(s)) return res.status(409).json({ error: 'This share has expired — create a new share instead' });
+  const link = shareUrl(req, s.token);
+  let emailSent = false;
+  if ((s.channel || 'link') === 'email' && s.recipient_email) {
+    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
+    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
+    const r = await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
+      `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
+      `share resend: ${link}`);
+    emailSent = !!r.sent;
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+  }
+  res.json({ ok: true, link, channel: s.channel || 'link', emailSent, emailConfigured: EMAIL_ON() });
 });
 
 // E5-T4: engagement timeline for a contract (owner side)
@@ -1357,8 +1527,9 @@ app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: ver
 });
 
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
-  const s = db.prepare('SELECT token, response FROM shares WHERE token=?').get(req.params.token);
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
@@ -1369,8 +1540,46 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
       return res.status(403).json({ error: 'Email verification required before signing' });
     r.email = otp.email; r.method = 'email one-time code'; r.ip = clientIp(req);
   }
-  db.prepare('UPDATE shares SET response=? WHERE token=?').run(JSON.stringify(r), req.params.token);
+  db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), now(), req.params.token);
+  notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
   res.json({ ok: true });
+});
+
+// Close the loop by email: the sender learns the outcome without opening HaTi,
+// and the counterparty gets a receipt of what they submitted.
+function notifyShareResponse(s, r) {
+  try {
+    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
+    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
+    const who = r.name + (r.title ? `, ${r.title}` : '');
+    const subject = r.action === 'sign' ? `Signed: "${cName}"`
+      : r.action === 'decline' ? `Declined: "${cName}"`
+      : `Changes requested: "${cName}"`;
+    const detail = r.action === 'sign'
+      ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
+      : r.action === 'decline'
+        ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
+        : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
+          `${r.proposedValue ? `\n\nProposed value: KES ${Number(r.proposedValue).toLocaleString('en-KE')}` : ''}` +
+          `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
+    for (const to of shareOwnerEmails(s))
+      sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
+    const rcpt = String(r.email || s.recipient_email || '').trim();
+    if (/.+@.+\..+/.test(rcpt)) {
+      const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
+      sendEmail(rcpt, `Your response to "${cName}" was delivered`,
+        `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`,
+        'share receipt');
+    }
+  } catch (_) {}
+}
+
+/* ---------- per-user notification preferences ---------- */
+app.put('/api/me/prefs', auth, (req, res) => {
+  const prefs = userPrefs(req.user);
+  for (const k of ['notifyShareOpens']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
+  res.json({ ok: true, prefs });
 });
 
 /* ---------- password reset ---------- */
@@ -1408,12 +1617,35 @@ app.get('/api/outbox', auth, admin, (req, res) => {
 });
 
 /* ---------- renewal reminders ---------- */
+// Nudge counterparties on email shares that sat unopened for N days — one
+// reminder per share (reminded_at), never on revoked/expired/responded links.
+const SHARE_NUDGE_DAYS = 3;
+function runShareNudges() {
+  let queued = 0;
+  const stale = db.prepare(`SELECT * FROM shares WHERE channel='email' AND recipient_email IS NOT NULL
+    AND response IS NULL AND revoked_at IS NULL AND reminded_at IS NULL AND first_opened_at IS NULL`).all();
+  for (const s of stale) {
+    if (shareExpired(s)) continue;
+    const sentAt = Date.parse(s.sent_at || s.created_at);
+    if (!Number.isFinite(sentAt) || Date.now() - sentAt < SHARE_NUDGE_DAYS * 86400000) continue;
+    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
+    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
+    sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
+      `${p.sharedBy || 'The sender'} at ${p.org || 'HaTi'} shared "${cName}" with you ${SHARE_NUDGE_DAYS} days ago and it hasn't been opened yet.\n\nReview it here — no account needed:\n${shareUrl(null, s.token)}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
+      'share nudge');
+    db.prepare('UPDATE shares SET reminded_at=? WHERE token=?').run(now(), s.token);
+    queued++;
+  }
+  return queued;
+}
 function runReminders() {
+  // Share nudges go to counterparties, so they run regardless of admin setup.
+  const nudged = runShareNudges();
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
   const rows = db.prepare("SELECT id,name,counterparty,expiry,status,json FROM contracts WHERE status!='Declined'").all();
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
-  if (!admins.length) return { checked: 0, queued: 0 };
+  if (!admins.length) return { checked: 0, queued: nudged };
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const daysTo = iso => Math.ceil((new Date(iso + 'T00:00:00') - today) / 86400000);
   const fire = (rkey, subj, body, tag) => {
@@ -1422,7 +1654,7 @@ function runReminders() {
     admins.forEach(a => sendEmail(a, subj, body, tag));
     return true;
   };
-  let queued = 0, checked = 0;
+  let queued = nudged, checked = 0;
   for (const c of rows) {
     checked++;
     let full = {}; try { full = JSON.parse(c.json) || {}; } catch (_) {}
@@ -1472,5 +1704,8 @@ app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
 const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));
 app.get('/index.html', (req, res) => res.sendFile(INDEX));
+// Serve ONLY the js/ modules the page loads — never the repo root, which
+// would expose server/data (the SQLite database) to the network.
+app.use('/js', express.static(path.join(__dirname, '..', 'js')));
 
 app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${PORT}`));

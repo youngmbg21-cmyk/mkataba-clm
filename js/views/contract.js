@@ -735,8 +735,9 @@ function renderWorkspace(){
         <!-- AI scan (renderScanSection) -->
         <div id="scan-section" style="${CARD};overflow:hidden"></div>
 
-        <!-- Playbook / negotiation / versions / obligations / engagement (empty:hidden) -->
+        <!-- Playbook / shares / negotiation / versions / obligations / engagement (empty:hidden) -->
         <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
         <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
         <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
         <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
@@ -787,7 +788,7 @@ function renderWorkspace(){
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;

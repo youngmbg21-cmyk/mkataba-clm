@@ -143,6 +143,31 @@ function renderDashboard(){
       ${decisions.length?decisionRows
         :`<div style="display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:12.5px;color:var(--color-neutral-600)"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>No renewal decisions due in the next 90 days — you're all caught up.</div>`}
     </section>`;
+  // ---- out with counterparties (share dispatch traffic lights) ----
+  const so=state.shareOverview||{}; const shCounts=so.counts||{}; const shItems=(so.items||[]).slice();
+  const needAttn=(shCounts.changes||0)+(shCounts.declined||0);
+  const shPri={changes:0,declined:1,opened:2,sent:3,signed:4,expired:5,revoked:6};
+  shItems.sort((a,b)=>(shPri[a.state]??9)-(shPri[b.state]??9));
+  const shCountChip=(st,n)=>{ if(!n) return ''; const m=SHARE_META[st];
+    return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
+  const sharesStrip=(API_MODE()&&shItems.length)?`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);${needAttn?'border-left:3px solid #b8862b;':''}box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <h4 style="font-size:15px;margin:0">Out with counterparties</h4>
+        ${needAttn?`<span style="font-size:11px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;background:#fbf4e3;border-radius:999px;padding:1px 8px">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}
+        <span style="flex:1"></span>
+        ${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}
+      </div>
+      ${shItems.slice(0,5).map(it=>`
+        <button data-share-open="${it.contractId}" style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+          ${shareChip(it.state)}
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.contractId} · with ${it.recipientName||it.recipientEmail||it.counterparty||'counterparty'} · via ${it.channel==='whatsapp'?'WhatsApp':it.channel==='email'?'email':'link'}</span>
+          </span>
+          <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none;white-space:nowrap">${fmtDT(it.at)}</span>
+        </button>`).join('')}
+    </section>`:'';
   const expRows=expiring.slice(0,5).map(x=>attnRow(x.c,'in '+x.d+'d',x.d<=30?'#8f322b':'#7d5a14')).join('');
   const riskRows=highRisk.slice(0,5).map(x=>attnRow(x.c,'R '+x.r,'#8f322b')).join('');
   const waitRows=waiting.slice(0,5).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('');
@@ -157,6 +182,9 @@ function renderDashboard(){
 
     <!-- Decisions due — leads with what needs acting on, not statistics -->
     ${decisionsSection}
+
+    <!-- Share dispatch traffic lights -->
+    ${sharesStrip}
 
     <!-- Stage + pipeline row -->
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;">
@@ -204,6 +232,7 @@ function renderDashboard(){
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
+  document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
   document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
   setActiveNav('dashboard');
 }

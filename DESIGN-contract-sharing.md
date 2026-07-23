@@ -1,6 +1,11 @@
 # Design: Contract Sharing via Email & WhatsApp with Traffic-Light Response Tracking
 
-Status: proposed · Branch: `claude/contract-sharing-email-whatsapp-je5b10`
+Status: **Phases 1 & 2 implemented** · Branch: `claude/contract-sharing-email-whatsapp-je5b10`
+
+Decisions taken (§11 open questions): multiple concurrent shares per contract are
+supported (one tracked link per recipient; first signature wins, per §11.1);
+link expiry defaults to 14 days (owner-adjustable 7/14/30/60 at share time);
+first-open notifications are opt-in per user (Team & Settings → My notifications).
 
 ## 1. Goal
 

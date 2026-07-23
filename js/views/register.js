@@ -146,7 +146,7 @@ function folderRowsHtml(cs){
       <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
-      <td style="text-align:right;padding-right:12px">${statusChip(c.status)}</td>
+      <td style="text-align:right;padding-right:12px;white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}</td>
     </tr>`; }).join('') + (cs.length>shown
       ? `<tr><td colspan="7" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
@@ -306,7 +306,7 @@ function regRowsHtml(cs){
         </span>
       </td>
       <td style="white-space:nowrap"><span style="font-size:11.5px;font-weight:${renUrgent?600:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
-      <td>${statusChip(c.status)}</td>
+      <td style="white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}</td>
       <td><span style="font-size:10.5px;font-weight:500;white-space:nowrap;color:${apprColor}">${appr}</span></td>
       <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       <td style="position:relative;width:30px" onclick="event.stopPropagation()">

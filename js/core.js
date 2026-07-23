@@ -104,6 +104,27 @@ const statusLabel = s => (STATUS_META[s]||{}).label || s;
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
 
+// ---- Share dispatch traffic lights ----
+// A share (one recipient's tracked link) moves sent → opened → signed /
+// changes / declined; expired and revoked are dead ends. State is derived
+// server-side; these chips only render it. Distinct from STATUS_META — a
+// contract can be In Review while its shares are in several of these states.
+const SHARE_META = {
+  sent:    {label:'Sent',      dot:'#98989b', bg:'#eceae6', tx:'#5d5d60'},
+  opened:  {label:'Opened',    dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
+  changes: {label:'Changes',   dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
+  signed:  {label:'Signed',    dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
+  declined:{label:'Declined',  dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
+  expired: {label:'Expired',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
+  revoked: {label:'Revoked',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
+};
+const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
+// tiny traffic-light dot for dense tables — the tooltip carries the label
+const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
+  const m=SHARE_META[s.state]||SHARE_META.sent;
+  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${m.dot};margin-left:6px;vertical-align:middle;flex:none"></span>`; };
+
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
   ruby:  {bg:'#fdece9', fg:'#8f322b', dot:'#b0453c'},
@@ -171,7 +192,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,approvalLabel,cIcon,cKind,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,approvalLabel,cIcon,cKind,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -434,13 +455,15 @@ function logout(){
 function startApp(){
   FIRST_PARTY = getOrg().name;
   document.getElementById('auth-root').innerHTML='';
-  document.getElementById('app-shell').style.display='grid';
+  const shell=document.getElementById('app-shell');
+  shell.classList.remove('hidden');   // renderAuth hides the shell; .hidden is !important, so inline display alone can't win
+  shell.style.display='grid';
   renderSideUser(); renderSideFolders();
   window.renderNewMenu&&renderNewMenu();
   window.applyPanelLayout&&applyPanelLayout();
   // resume where the user left off
   setView(['dashboard','register','pipeline','folder','intel','calendar','reports','templates','playbook','workspace','team'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); pollPendingResponses(); setInterval(pollPendingResponses,45000); }
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); }
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
@@ -682,6 +705,16 @@ function downloadEvidence(c){
 const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
 
+// Prefilled WhatsApp deep link: opens the sender's own WhatsApp with the
+// message ready to send — no Business API needed, and the recipient sees a
+// number they recognise. The portal link itself carries the tracking.
+const waShareLink=(phone,text)=>'https://wa.me/'+String(phone||'').replace(/[^\d]/g,'')+'?text='+encodeURIComponent(text);
+const shareMessageText=(c,link,msg,expiresAt)=>
+  `${currentUser().name} at ${FIRST_PARTY} shared "${c.name}" for your review.`
+  +(msg?`\n\n${msg}`:'')
+  +`\n\nOpen it here — review, sign, request changes or decline, no account needed:\n${link}`
+  +(expiresAt?`\n\nThis link expires on ${String(expiresAt).slice(0,10)}.`:'');
+
 async function openShareModal(c){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -695,31 +728,163 @@ async function openShareModal(c){
   const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder, redlineText:c.redlineText||undefined } };
-  let link;
-  if(API_MODE()){
-    try{ const r=await api('shares','POST',{ payload:payloadObj });
-      link=location.origin+location.pathname+'#share=t:'+r.token;
-    }catch(e){ toast(e.message,'err'); return; }
-  } else link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
+  const server=API_MODE();
+  const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
+  const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
+  const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
+  let ch='email';
   openModal(`
     <div style="padding:22px 24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.55;">Send this secure link to ${c.counterparty||'the counterparty'}. They can review the document and respond — <strong>no account needed</strong>. ${API_MODE()?'Their signature or comments arrive on this contract automatically.':'Their response comes back as a code you import below the document.'}</p>
-      <textarea id="share-link" readonly rows="4" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${c.counterparty||'the counterparty'} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
+      <div id="share-fields">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <label><span style="${LBL}">Recipient name</span><input id="sh-name" type="text" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">Recipient email *</span><input id="sh-email" type="email" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">WhatsApp number *</span><input id="sh-phone" type="tel" placeholder="+254 7…" style="${FLD}"/></label>
+        </div>
+        <label style="display:block;margin-top:10px;"><span style="${LBL}">Personal message (optional)</span>
+          <textarea id="sh-msg" rows="2" placeholder="e.g. As discussed — please review clause 4 in particular." style="${FLD}min-height:0;"></textarea></label>
+        ${server?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--color-neutral-700)">Link expires in
+          <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px;color:inherit;">
+            ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${d} days</option>`).join('')}
+          </select></label>`:''}
+      </div>
+      <div id="sh-result" style="margin-top:12px;"></div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close" class="ui-btn">Close</button>
-        <button id="share-copy" class="ui-btn ui-btn-primary">${icon('copy','w-3.5 h-3.5')} Copy link</button>
+        <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">Send by email</span></button>
       </div>
     </div>`);
+  const setCh=k=>{ ch=k;
+    document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
+      b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
+      b.style.background=on?'var(--color-accent)':'var(--color-surface)';
+      b.style.color=on?'#fff':'var(--color-neutral-700)'; });
+    document.getElementById('sh-email-wrap').classList.toggle('hidden',k==='whatsapp');
+    document.getElementById('sh-phone-wrap').classList.toggle('hidden',k!=='whatsapp');
+    document.getElementById('sh-send-lbl').textContent=k==='email'?'Send by email':k==='whatsapp'?'Open WhatsApp':'Create link';
+  };
+  document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));
   document.getElementById('share-close').addEventListener('click',closeModal);
-  document.getElementById('share-copy').addEventListener('click',async()=>{
+
+  const resultBox=(html)=>{ document.getElementById('sh-result').innerHTML=html; };
+  const copyBox=(link,note)=>`
+    <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px;">
+      ${note?`<div style="font-size:11.5px;color:var(--color-accent-800);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
+      <textarea id="share-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all;">${link}</textarea>
+      <button id="share-copy" class="ui-btn" style="margin-top:6px;font-size:12px;">${icon('copy','w-3 h-3')} Copy link</button>
+    </div>`;
+  const wireCopy=()=>document.getElementById('share-copy')?.addEventListener('click',async()=>{
     const ta=document.getElementById('share-link'); ta.select();
     try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
     toast('Share link copied to clipboard');
   });
-  logAudit(c,'Shared',`Review link generated for ${c.counterparty||'counterparty'}`);
-  persist(c); renderAuditSection(c);
+
+  document.getElementById('share-send').addEventListener('click',async()=>{
+    const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone'), msg=fval('sh-msg');
+    if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
+    if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
+    const rcptLabel=name||email||phone||c.counterparty||'counterparty';
+    if(server){
+      let r;
+      try{ r=await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
+        recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14 }); }
+      catch(e){ toast(e.message,'err'); return; }
+      if(ch==='email'){
+        resultBox(`<div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:12px;font-size:12px;color:#1e6b4d;display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>${r.emailSent?'Email sent':'Email queued'}</strong> to ${email}.${r.emailSent?'':' Delivery isn’t configured on this server yet — an admin can see it (and the link) in the outbox under Team &amp; Settings.'} You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+      } else if(ch==='whatsapp'){
+        const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
+        window.open(wa,'_blank');
+        resultBox(copyBox(r.link,`Tracked link created for ${rcptLabel} — WhatsApp opened with the message prefilled. If it didn’t open, copy the link below.`)); wireCopy();
+      } else { resultBox(copyBox(r.link,`Tracked link created${name?` for ${name}`:''} — expires ${String(r.expiresAt).slice(0,10)}.`)); wireCopy(); }
+      logAudit(c,'Shared',`Sent to ${rcptLabel} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
+      persist(c); renderAuditSection(c);
+      refreshShareOverview(); renderSharesSection(c);
+    } else {
+      // static mode: the whole payload travels in the URL fragment
+      const link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
+      if(ch==='email'){
+        const subject=`${currentUser().name} shared "${c.name}" for your review`;
+        location.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(shareMessageText(c,link,msg,null));
+        resultBox(copyBox(link,'Your email app opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
+      } else if(ch==='whatsapp'){
+        window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
+        resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
+      } else { resultBox(copyBox(link)); wireCopy(); }
+      logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
+      persist(c); renderAuditSection(c);
+    }
+  });
+}
+
+/* ---- Shares panel (workspace): every dispatch for this contract with its
+   traffic light, timestamps and per-share actions (copy / resend / revoke). */
+async function renderSharesSection(c){
+  const host=document.getElementById('shares-section'); if(!host) return;
+  if(!API_MODE()){ host.innerHTML=''; return; }
+  let shares=[];
+  try{ const r=await api('contracts/'+c.id+'/shares'); shares=r.shares||[]; }catch(e){ host.innerHTML=''; return; }
+  if(!shares.length){ host.innerHTML=''; return; }
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
+  const chLabel={email:'Email',whatsapp:'WhatsApp',link:'Link'};
+  const live=s=>s.state==='sent'||s.state==='opened';
+  host.innerHTML=`<div class="px-5 py-4">
+    <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('send')}</span>
+      <h3 class="text-sm font-display font-600 text-brand-900">Shares</h3>
+      <span class="ml-auto text-[10px] font-mono text-brand-800/60">${shares.length} sent</span></div>
+    <div class="space-y-2">
+      ${shares.map(s=>{
+        const who=esc(s.recipientName||s.recipientEmail||s.recipientPhone||'Open link');
+        const meta=[`sent ${fmtDT(s.sentAt||s.createdAt)}`,
+          s.firstOpenedAt?`opened ${fmtDT(s.firstOpenedAt)}`:null,
+          s.respondedAt?`responded ${fmtDT(s.respondedAt)}`:null,
+          (!s.respondedAt&&!s.revokedAt&&s.expiresAt)?`expires ${String(s.expiresAt).slice(0,10)}`:null].filter(Boolean).join(' · ');
+        return `<div style="border:1px solid var(--color-divider);border-radius:6px;padding:8px 10px;background:var(--color-bg)">
+          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+            ${shareChip(s.state)}
+            <span style="flex:1;min-width:0;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${who}">${who}</span>
+            <span style="font-size:9.5px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${chLabel[s.channel]||'Link'}</span>
+          </div>
+          ${s.responseBy?`<div style="font-size:10.5px;color:var(--color-neutral-700);margin-top:3px">by ${esc(s.responseBy)}</div>`:''}
+          <div style="font-size:10px;color:var(--color-neutral-600);font-family:var(--font-mono);margin-top:3px">${meta}</div>
+          ${(live(s)&&canEdit())?`<div style="display:flex;gap:10px;margin-top:5px">
+            <button data-sh-copy="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Copy link</button>
+            ${s.channel==='email'?`<button data-sh-resend="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Resend</button>`:''}
+            <button data-sh-revoke="${s.token}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:#b0453c;cursor:pointer">Revoke</button>
+          </div>`:''}
+        </div>`; }).join('')}
+    </div></div>`;
+  host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
+    const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
+    try{ await navigator.clipboard.writeText(link); }catch(e){}
+    toast('Share link copied to clipboard');
+  }));
+  host.querySelectorAll('[data-sh-resend]').forEach(b=>b.addEventListener('click',async()=>{
+    try{ const r=await api('shares/'+b.getAttribute('data-sh-resend')+'/resend','POST',{});
+      toast(r.emailSent?'Reminder email sent':'Reminder queued to the outbox'); renderSharesSection(c);
+    }catch(e){ toast(e.message,'err'); }
+  }));
+  host.querySelectorAll('[data-sh-revoke]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Revoke this share link?', message:'The recipient will no longer be able to open the contract from this link. You can share again at any time.', confirmLabel:'Revoke link', danger:true})) return;
+    try{ await api('shares/'+b.getAttribute('data-sh-revoke')+'/revoke','POST',{});
+      logAudit(c,'Share revoked','A counterparty share link was revoked'); persist(c); renderAuditSection(c);
+      toast('Share link revoked'); renderSharesSection(c); refreshShareOverview();
+    }catch(e){ toast(e.message,'err'); }
+  }));
+}
+
+/* ---- Portfolio-wide dispatch overview: feeds the register/folder dots and
+   the dashboard "Out with counterparties" strip. Refreshed on load + poll. */
+async function refreshShareOverview(){
+  if(!API_MODE()) return;
+  try{
+    const r=await api('shares/overview');
+    state.shareOverview=r; state.shareByContract=r.byContract||{};
+    if(state.view==='dashboard') renderDashboard();
+  }catch(e){ /* transient — next refresh retries */ }
 }
 
 function openImportModal(c){
@@ -787,9 +952,9 @@ async function pollPendingResponses(){
       const c=getContract(item.response?.id);
       if(!c) continue;
       const ok=await applyResponse(c, item.response, {background:true});
-      if(ok) await api('shares/'+item.token+'/applied','POST');
+      if(ok){ await api('shares/'+item.token+'/applied','POST'); refreshShareOverview(); }
     }
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,renderAuditSection,renderAuth,renderNegotiationSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,startApp,todayStr,userById,verifySeal});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
