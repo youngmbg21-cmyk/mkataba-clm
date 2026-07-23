@@ -422,8 +422,9 @@ function wireShell(){
   document.getElementById('panel-tab-summary')?.addEventListener('click',()=>{ state.panel='summary'; renderContextPanel(); });
 }
 
-// default panel state
-if(state.panelOpen===undefined) state.panelOpen=true;
+// default panel state — closed on load/refresh; the user opens it with the
+// panel toggle (never auto-summoned by a page load)
+if(state.panelOpen===undefined) state.panelOpen=false;
 if(!state.panel) state.panel='activity';
 
 /* BOOT
