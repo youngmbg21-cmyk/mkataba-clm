@@ -203,20 +203,35 @@ function graphInterpret(qRaw){
   return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy, groups:null, note, action, badges, answer };
 }
 
-/* ---- dock entry point: routes to graph query or template advisor ---- */
+/* ---- dock entry point: routes to the right engine ----
+   The Intel dock is a notebook over the whole contract repository. Intent
+   routing:
+   • compliance/red-flag questions   → intelComplianceScan (reads every contract)
+   • compare / 2+ ids                → intelChatAsk (grounded side-by-side)
+   • template advice                 → intelTemplateAsk
+   • graph commands (group/filter/…) → intelGraphAsk (map manipulation)
+   • everything else that reads/summarises/quotes a contract → intelChatAsk
+   • otherwise                        → intelGraphAsk (safe default) */
 const IG_TEMPLATE_RE=/\btemplate\b|\bbase\b.{0,30}\b(new|next|on)\b|model (contract|agreement)|starting point|start(ing)? from/i;
+// "which contracts have risky/illegal clauses", "red flags", "compliance issues"…
+const IG_COMPLIANCE_RE=/\b(illegal|unlawful|non-?complian(?:t|ce)|red[-\s]?flags?|problematic|risky clauses?|risk(?:y)?\s+(?:or|and)\s+(?:illegal|unlawful|problematic)|onerous|unfair terms?|dodgy|complian(?:ce|t)\s+(?:issues?|risks?|review|check)|potential(?:ly)?\s+(?:illegal|unlawful|risky|problematic))\b/i;
+// reads / summarises / quotes a contract → grounded Copilot Q&A
+const IG_QA_RE=/\b(summar(?:y|ise|ize|ies)|quote|verbatim|explain|describe|read|clause|says?|state[sd]?|obligations?|payment terms?|governing law|liabilit|termination|indemnit|renewal terms?|brief(?:ing)?|what (?:does|do|is|are|kind|type)|tell me about|how much (?:is|does)|when does)\b/i;
+// manipulates the map rather than reading text → graph interpreter
+const IG_GRAPH_RE=/\b(group by|regroup|filter|show (?:only|all|me)|highlight|hide|cluster|colou?r by|which contracts? (?:end|expire|renew|are|match))\b/i;
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
-    // Explicit comparison ("compare X and Y", or two+ contract ids) → Copilot
-    // Q&A over the real contracts, rendered as a side-by-side table in the dock.
     const idHits=(q.match(/MK-\d+/gi)||[]).length;
-    if(/\bcompare\b/i.test(q) || idHits>=2) await intelChatAsk(q);
-    else if(IG_TEMPLATE_RE.test(q)) await intelTemplateAsk(q);
-    else await intelGraphAsk(q);
+    if(IG_COMPLIANCE_RE.test(q))                        await intelComplianceScan(q);
+    else if(/\bcompare\b/i.test(q) || idHits>=2)        await intelChatAsk(q);
+    else if(IG_TEMPLATE_RE.test(q))                     await intelTemplateAsk(q);
+    else if(IG_GRAPH_RE.test(q) && !IG_QA_RE.test(q))   await intelGraphAsk(q);
+    else if(IG_QA_RE.test(q) || idHits===1)             await intelChatAsk(q);
+    else                                                await intelGraphAsk(q);
   }catch(e){
     intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
   }
@@ -340,6 +355,57 @@ async function intelChatAsk(q){
     }
     intel.history.push({role:'assistant', err:true, text:'AI error: '+igEsc(e.message||String(e))});
   }
+}
+
+/* Portfolio-wide clause review. Reads every live contract through the
+   deterministic Kenyan-practice scan (the same engine behind per-contract "AI
+   review") and surfaces the ones carrying potential legal/compliance concerns —
+   risks, missing protections, ambiguous terms. Grounded, instant, and works with
+   or without an AI key. Framed as a first-pass review for counsel, not advice. */
+async function intelComplianceScan(q){
+  const cs=(state.contracts||[]).filter(c=>c.status!=='Declined');
+  const RANK=(typeof SEV_RANK==='object'&&SEV_RANK)||{high:3,med:2,low:1};
+  const worst=arr=>(typeof worstSevOf==='function')?worstSevOf(arr)
+    :(arr.some(f=>f.sev==='high')?'high':arr.some(f=>f.sev==='med')?'med':'low');
+  const rows=[];
+  cs.forEach(c=>{
+    let findings=[];
+    try{ findings = c.scan ? (typeof openFindings==='function'?openFindings(c):[])
+                           : (typeof scanRules==='function'?scanRules(c):[]); }catch(_){ findings=[]; }
+    // Genuine clause concerns only: risks, ambiguities and missing legal
+    // protections. Exclude the generic data-entry gaps (ids "g-…": no value,
+    // date, counterparty) — those are completeness prompts, not clause risk.
+    const flagged=(findings||[]).filter(f=>f&&(f.kind==='risk'||f.kind==='ambiguity'||(f.kind==='missing'&&!/^g-/.test(f.id||''))));
+    if(flagged.length) rows.push({c, findings:flagged, worst:worst(flagged)});
+  });
+  rows.sort((a,b)=> (RANK[b.worst]||0)-(RANK[a.worst]||0) || b.findings.length-a.findings.length);
+
+  if(!rows.length){
+    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>AI review</b> for a deeper per-contract check.`});
+    return;
+  }
+  const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
+    const col=s==='high'?['#fdece9','#8f322b']:s==='med'?['#fbf4e3','#7d5a14']:['#eef4fb','#2c455d'];
+    return `<span style="display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
+  const top=rows.slice(0,8);
+  const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
+  let html=`<b>Contract compliance review.</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
+  html+=top.map(r=>{
+    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
+    const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
+    return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(29,31,32,.08)">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
+        <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:12.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
+        ${sevPill(r.worst)}
+        <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
+      </div>
+      <ul style="margin:0;padding-left:16px;font-size:11.5px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
+    </div>`;
+  }).join('');
+  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>AI review</b>.</div>`;
+
+  intel.history.push({role:'assistant', text:html});
+  igPaintIds(top.map(r=>r.c.id));
 }
 
 // Node click → an instant facts card PLUS an async Copilot insight beneath it.
@@ -576,11 +642,12 @@ function renderIntelLegend(model){
 }
 
 const IG_SUGGESTIONS=[
+  'Which contracts have potentially risky or unlawful clauses?',
+  'Summarize my highest-value contract',
+  'What does MK-101 say about liability?',
+  'Compare my two highest-value contracts',
   'Which contracts end in the next 6 months?',
   'Group by customer',
-  'Show all leases',
-  'Compare my two highest-value contracts',
-  'Best template for a new supply agreement?',
 ];
 function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
@@ -588,7 +655,7 @@ function renderIntel(){
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
-      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to filter, analyse or regroup</span>
+      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
       <span style="flex:1"></span>
       <label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
         <span style="position:relative;display:inline-flex;align-items:center">
@@ -739,7 +806,7 @@ function renderIntelDock(){
       <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:var(--color-bg)">
-      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b>. Ask me to filter, highlight or regroup the map, click any node for a briefing, or stage nodes with <b>+ Compare</b> for a side-by-side. Answers pin as lenses you can toggle or stack.</div>`}
+      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`

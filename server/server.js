@@ -1044,7 +1044,9 @@ function copilotDetail(org, id) {
     status: c.status || '', effectiveDate: (c.fields && c.fields.effDate) || '',
     expiry: c.expiry || '', daysUntilExpiry: d,
     openFindings: open.map(f => ({ severity: f.sev, kind: f.kind, title: f.title, why: f.why })),
-    text: contractSearchBody(c).slice(0, 4000),
+    // Whole-document read (up to 16k chars) so Copilot can summarise a contract
+    // in full and quote clauses verbatim, not just its opening section.
+    text: contractSearchBody(c).slice(0, 16000),
   };
 }
 // FTS search, then re-scope the ids to the caller's org.
