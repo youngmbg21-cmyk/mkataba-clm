@@ -37,7 +37,18 @@ function computeReports(){
   // renewal pipeline value next 12 months (by month)
   const pipeline={};
   active.forEach(c=>{ const exp=(c.metadata&&c.metadata.expiryDate)||c.expiry; if(!exp) return; const d=daysUntil(exp); if(d>=0&&d<=365){ const k=exp.slice(0,7); pipeline[k]=(pipeline[k]||0)+Number(c.value||0); } });
-  return { total:cs.length, active:active.length, avgCycle, cycleN:cycles.length, stageAge, roundsByType, byFolder, topParty, pipeline };
+  // extra portfolio aggregates so report cards aren't forced to track value
+  const totalValue=active.reduce((s,c)=>s+Number(c.value||0),0);
+  const pipeTotal=Object.values(pipeline).reduce((a,b)=>a+b,0);
+  const pipeMonthsN=Object.keys(pipeline).length;
+  const expiring90=cs.filter(c=>{ const exp=(c.metadata&&c.metadata.expiryDate)||c.expiry; return exp&&c.status!=='Declined'&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
+  const risks=cs.map(c=>contractRisk(c)).filter(n=>typeof n==='number'&&!isNaN(n));
+  const avgRisk=risks.length?risks.reduce((a,b)=>a+b,0)/risks.length:null;
+  const highRisk=cs.filter(c=>contractRisk(c)>=70).length;
+  let openOb=0,overdueOb=0;
+  if(typeof obState==='function') cs.forEach(c=>(c.obligations||[]).forEach(o=>{ const st=obState(o); if(st&&st!=='done'&&st!=='met'){ openOb++; if(st==='overdue') overdueOb++; } }));
+  return { total:cs.length, active:active.length, avgCycle, cycleN:cycles.length, stageAge, roundsByType, byFolder, topParty, pipeline,
+    totalValue, pipeTotal, pipeMonthsN, expiring90, avgRisk, highRisk, openOb, overdueOb };
 }
 function lastActivity(c){ const a=c.audit||[]; return a.length?Date.parse(a[a.length-1].at):Date.now(); }
 
@@ -49,6 +60,26 @@ function bar(label, value, max, valStr, color){
     <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;margin-bottom:2px"><span style="color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(label)}</span><span style="font-weight:500;font-variant-numeric:tabular-nums;flex:none">${valStr}</span></div>
     <div style="height:7px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${color};border-radius:999px"></div></div>
   </div>`;
+}
+/* Metric catalogue for the top stat cards. Each customer follows what matters
+   to them — value isn't forced. `get(r)` returns {val, sub} from the computed
+   report object; grad/ic set the card's look. */
+const REPORT_METRICS=[
+  {k:'avgCycle',   label:'Avg cycle · draft→signed', grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
+  {k:'ageReview',  label:'Avg age · in review',       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', sub:'time on counterparty'})},
+  {k:'ageDraft',   label:'Avg age · drafting',        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
+  {k:'renewal',    label:'Renewal pipeline · 12mo',   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtKESshort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
+  {k:'totalValue', label:'Total portfolio value',     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtKESshort(r.totalValue), sub:r.active+' active contracts'})},
+  {k:'count',      label:'Contracts · total',         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
+  {k:'expiring',   label:'Expiring ≤ 90 days',        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
+  {k:'avgRisk',    label:'Avg risk score',            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
+  {k:'openOb',     label:'Open obligations',          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
+];
+const DEFAULT_REPORT_METRICS=['avgCycle','ageReview','ageDraft','renewal'];
+function reportMetricSel(){
+  const s=(state.settings&&Array.isArray(state.settings.reportMetrics))?state.settings.reportMetrics.slice():DEFAULT_REPORT_METRICS.slice();
+  for(let i=0;i<4;i++) if(!REPORT_METRICS.some(m=>m.k===s[i])) s[i]=DEFAULT_REPORT_METRICS[i];
+  return s;
 }
 function renderReports(){
   const r=computeReports();
@@ -62,22 +93,27 @@ function renderReports(){
   const maxRounds=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
   const empty=t=>`<p style="font-size:12px;color:var(--color-neutral-600)">${t}</p>`;
 
-  // TOP — gradient hero stat cards (same treatment as the Home KPI ribbon)
-  const stat=(label,val,sub,grad,ic)=>`
-    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${grad};color:#fff;box-shadow:var(--shadow-sm)">
+  // TOP — gradient hero stat cards. Each card's metric is user-selectable via
+  // the dropdown built into its label, so revenue/value is never forced.
+  const sel=reportMetricSel();
+  const statSlot=(idx)=>{
+    const m=REPORT_METRICS.find(x=>x.k===sel[idx])||REPORT_METRICS[idx];
+    const d=m.get(r);
+    const optsHtml=REPORT_METRICS.map(x=>`<option value="${x.k}" ${x.k===m.k?'selected':''} style="color:#1d1f20;background:#fff">${x.label}</option>`).join('');
+    return `
+    <div style="display:flex;flex-direction:column;gap:10px;padding:15px 16px;border-radius:10px;background:${m.grad};color:#fff;box-shadow:var(--shadow-sm)">
       <span style="display:flex;align-items:center;gap:9px">
-        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(ic,'w-4 h-4',1.7)}</span>
-        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25">${label}</span>
+        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff">${icon(m.ic,'w-4 h-4',1.7)}</span>
+        <span style="position:relative;flex:1;min-width:0;display:flex;align-items:center;gap:3px">
+          <select data-report-metric="${idx}" title="Choose the metric this card follows" style="appearance:none;-webkit-appearance:none;background:transparent;border:0;color:#fff;font:inherit;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;line-height:1.25;cursor:pointer;outline:none;max-width:100%;text-overflow:ellipsis">${optsHtml}</select>
+          <span style="color:rgba(255,255,255,.75);font-size:9px;flex:none;pointer-events:none">▾</span>
+        </span>
       </span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${val}</span>
-      <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${sub}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff">${d.val}</span>
+      <span style="font-size:10.5px;color:rgba(255,255,255,.85)">${d.sub}</span>
     </div>`;
-  const stats=[
-    stat('Avg cycle · draft→signed', r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', r.cycleN+' signed sampled', 'var(--grad-emerald)', 'clock'),
-    stat('Avg age · in review', Math.round(r.stageAge['Under Review']||0)+'d', 'time on counterparty', 'var(--grad-amber)', 'clock'),
-    stat('Avg age · drafting', Math.round(r.stageAge['Draft']||0)+'d', 'time internal', 'var(--grad-steel)', 'file'),
-    stat('Renewal pipeline · 12mo', kes(pipeTotal), pipeMonths.length+' months with expiries', 'var(--grad-emerald)', 'trend'),
-  ].join('');
+  };
+  const stats=[statSlot(0),statSlot(1),statSlot(2),statSlot(3)].join('');
 
   // BELOW — 2×2 chart cards
   const card=(title,body)=>`
@@ -103,6 +139,13 @@ function renderReports(){
       </div>
     </div>
   </div>`;
+  document.querySelectorAll('[data-report-metric]').forEach(selEl=>selEl.addEventListener('change',()=>{
+    const i=Number(selEl.getAttribute('data-report-metric'));
+    const arr=reportMetricSel(); arr[i]=selEl.value;
+    state.settings=state.settings||{}; state.settings.reportMetrics=arr;
+    if(typeof saveSettings==='function') saveSettings();
+    renderReports();
+  }));
   setActiveNav('reports');
 }
 function exportReportsCsv(r){

@@ -205,15 +205,12 @@ const REG_STAGES=[
   {k:'Signed',label:'Executed'},
   {k:'Declined',label:'Closed'},
 ];
-const REG_TYPES=[
-  {k:'all',label:'All streams'},
-  {k:'proc',label:'Procurement'},
-  {k:'mfg',label:'Manufacturing'},
-  {k:'dist',label:'Distribution'},
-  {k:'sales',label:'Sales'},
-  {k:'mktg',label:'Marketing'},
-  {k:'corp',label:'Corporate'},
-];
+// Derived from FOLDERS so custom (user-created) streams appear automatically.
+function regTypes(){
+  return [{k:'all',label:'All streams'}].concat(
+    Object.values(FOLDERS).map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
+  );
+}
 const REG_SORTS=[
   {k:'updated',label:'Recently updated'},
   {k:'value',label:'Value (high → low)'},
@@ -223,6 +220,8 @@ const REG_SORTS=[
 ];
 const REG_VIEWS=[
   {k:'expiring90', label:'Expiring ≤ 90 days'},
+  {k:'expiring60', label:'Expiring ≤ 60 days'},
+  {k:'expiring30', label:'Expiring ≤ 30 days'},
   {k:'autosoon',   label:'Auto-renewing soon'},
   {k:'overdueob',  label:'Overdue obligations'},
 ];
@@ -234,6 +233,8 @@ function regFiltered(){
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
   // E3-T5 saved views (presets over metadata/obligations)
   if(R.view==='expiring90') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=90);
+  else if(R.view==='expiring60') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=60);
+  else if(R.view==='expiring30') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=30);
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
@@ -247,6 +248,42 @@ function regFiltered(){
   return cs;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+/* Measure the stream-filter row and fold any pills that don't fit into a
+   "More ▾" dropdown. Runs after each full render and on window resize, so the
+   chips stay on one line no matter how many custom streams get added. */
+function layoutStreamPills(){
+  const R=regState();
+  const row=document.getElementById('reg-streams');
+  const wrap=document.getElementById('reg-more-wrap');
+  const menu=document.getElementById('reg-more-menu');
+  const moreBtn=document.getElementById('reg-more');
+  if(!row||!wrap||!menu) return;
+  const pills=Array.from(row.children);
+  pills.forEach(p=>{ p.style.display=''; });
+  menu.innerHTML=''; menu.classList.add('hidden'); wrap.style.display='none';
+  if(moreBtn){ moreBtn.style.borderColor='var(--color-divider)'; moreBtn.style.background='var(--color-surface)'; moreBtn.style.color='var(--color-neutral-700)'; }
+  const avail=row.getBoundingClientRect().width;
+  if(!avail) return;
+  const gap=6, widths=pills.map(p=>p.getBoundingClientRect().width);
+  const total=widths.reduce((s,w,i)=>s+w+(i?gap:0),0);
+  if(total<=avail) return;              // everything fits on one line — no More needed
+  const reserve=74;                     // room reserved for the "More ▾" button
+  let used=0; const hidden=[];
+  pills.forEach((p,i)=>{ used+=widths[i]+(i?gap:0); if(used>avail-reserve) hidden.push(p); });
+  if(!hidden.length) return;
+  wrap.style.display='';
+  let activeHidden=false;
+  hidden.forEach(p=>{ p.style.display='none';
+    const k=p.getAttribute('data-reg-type'); const on=p.getAttribute('data-active')==='1'; if(on) activeHidden=true;
+    const item=document.createElement('button'); item.type='button'; item.setAttribute('data-reg-type',k); item.textContent=p.textContent;
+    item.style.cssText='display:block;width:100%;text-align:left;white-space:nowrap;border:0;background:'+(on?'var(--color-accent-100)':'none')+';font:inherit;font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer;color:'+(on?'var(--color-accent-800)':'var(--color-neutral-700)')+';font-weight:'+(on?'600':'400');
+    item.addEventListener('mouseenter',()=>{ if(!on) item.style.background='var(--color-neutral-100)'; });
+    item.addEventListener('mouseleave',()=>{ if(!on) item.style.background='none'; });
+    item.addEventListener('click',()=>{ R.type=k; R.shown=REG_PAGE; renderRegister(); });
+    menu.appendChild(item);
+  });
+  if(moreBtn && activeHidden){ moreBtn.style.borderColor='var(--color-accent)'; moreBtn.style.background='var(--color-accent)'; moreBtn.style.color='#fff'; }
+}
 // Row ⋯ actions — label + which real handler runs. All close the menu first.
 const REG_ROW_ACTIONS=[
   {k:'open',   label:'Open workspace'},
@@ -290,7 +327,7 @@ function regRowsHtml(cs){
     const val=!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—');
     return `
     <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
-      <td style="padding-left:12px" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
+      <td style="padding-left:12px;border-left:4px solid ${folderColor(c)}" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
       <td style="max-width:230px">
         <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
@@ -370,7 +407,7 @@ function renderRegister(){
   const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:999px;cursor:pointer`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
   const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
-  const typePills=REG_TYPES.map(t=>`<button class="reg-pill" data-reg-type="${t.k}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
+  const typePills=regTypes().map(t=>`<button class="reg-pill" data-reg-type="${t.k}" data-active="${R.type===t.k?'1':'0'}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
   const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   const viewPills=REG_VIEWS.map(v=>`<button class="reg-pill" data-reg-view="${v.k}" style="${pill(R.view===v.k)}">${v.label}</button>`).join('');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
@@ -395,15 +432,21 @@ function renderRegister(){
       .reg-pill:hover{border-color:var(--color-accent)}
     </style>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <!-- filter row: stage pills · divider · stream pills · Sort -->
+      <!-- filter row 1: stage pills · Sort -->
       <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
         ${stagePills}
-        <span style="width:1px;height:18px;background:var(--color-divider);margin:0 4px"></span>
-        ${typePills}
-        <span style="flex:1"></span>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
+        <span style="flex:1;min-width:8px"></span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">Sort
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
+      </div>
+      <!-- filter row 2: stream pills on their own full-width line, overflow → More ▾ -->
+      <div id="reg-streambar" style="display:flex;gap:6px;align-items:center;min-width:0;position:relative">
+        <div id="reg-streams" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow:hidden;min-width:0;flex:1">${typePills}</div>
+        <div id="reg-more-wrap" style="position:relative;flex:none;display:none">
+          <button id="reg-more" type="button" class="reg-pill" style="${pill(false)}">More ▾</button>
+          <div id="reg-more-menu" class="hidden" style="position:absolute;top:calc(100% + 4px);right:0;z-index:40;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:6px;min-width:180px;max-height:300px;overflow:auto"></div>
+        </div>
       </div>
       <!-- secondary controls: saved views · renewal · full-text (server mode) -->
       <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px">
@@ -464,7 +507,8 @@ function renderRegister(){
     document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
+  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
+  document.getElementById('reg-more')?.addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('reg-more-menu')?.classList.toggle('hidden'); });
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.shown=REG_PAGE; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.shown=REG_PAGE; renderRegister(); }));
@@ -473,6 +517,8 @@ function renderRegister(){
   document.getElementById('reg-selall')?.addEventListener('change',e=>{ const on=e.target.checked; regFiltered().slice(0,Math.min(regFiltered().length,R.shown||REG_PAGE)).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
   document.getElementById('reg-export')?.addEventListener('click',regExportSelectedCsv);
   document.getElementById('reg-clear')?.addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
+  layoutStreamPills();
+  if(!window._regStreamResizeBound){ window._regStreamResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='register') layoutStreamPills(); }); }
   setActiveNav('register');
 }
 
@@ -528,4 +574,4 @@ async function openPortfolioAsk(){
   document.getElementById('pa-q').addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
 }
 
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,REG_TYPES,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,openPortfolioAsk,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,openPortfolioAsk,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows,layoutStreamPills});

@@ -124,7 +124,7 @@ function findingsFromText(c, text){
 
 function openUploadModal(){
   if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
-  const folderOpts=Object.values(FOLDERS).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  const folderOpts=folderOptionsHtml(null, false);
   openModal(`
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
@@ -157,6 +157,7 @@ function openUploadModal(){
     </div>`);
   document.getElementById('up-cancel').addEventListener('click',closeModal);
   document.getElementById('up-go').addEventListener('click',submitUpload);
+  bindFolderSelect(document.getElementById('up-folder'));
 }
 /* Named progress line for an upload — turns the anxious wait into visible steps
    and reinforces that a human confirms at the end. active is 1-based; steps at

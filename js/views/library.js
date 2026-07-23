@@ -63,7 +63,7 @@ function saveContractAsTemplate(c){
   const text=docPlainText(c);
   if(!text||text.length<40){ toast('This document has no reusable text yet','err'); return; }
   const defName=c.name.replace(/\s*\(Draft\)\s*$/,'').replace(/\s*—.*$/,'').trim()||c.name;
-  const opts=Object.values(FOLDERS).map(f=>`<option value="${f.id}" ${c.folder===f.id?'selected':''}>${f.name}</option>`).join('');
+  const opts=folderOptionsHtml(c.folder, false);
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
@@ -79,6 +79,7 @@ function saveContractAsTemplate(c){
       </div>
     </div>`);
   document.getElementById('tpl-cancel').addEventListener('click',closeModal);
+  bindFolderSelect(document.getElementById('tpl-folder'));
   document.getElementById('tpl-save').addEventListener('click',()=>{
     const name=document.getElementById('tpl-name').value.trim();
     if(!name){ toast('Give the template a name','err'); return; }
@@ -92,7 +93,7 @@ function saveContractAsTemplate(c){
 /* Upload a document (PDF / text / Word-extracted) as a reusable template. */
 function openUploadTemplateModal(){
   if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
-  const opts=Object.values(FOLDERS).map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  const opts=folderOptionsHtml(null, false);
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('upload','w-4 h-4')}</span>
@@ -111,6 +112,7 @@ function openUploadTemplateModal(){
       </div>
     </div>`);
   document.getElementById('ut-cancel').addEventListener('click',closeModal);
+  bindFolderSelect(document.getElementById('ut-folder'));
   document.getElementById('ut-save').addEventListener('click',async()=>{
     const name=document.getElementById('ut-name').value.trim();
     const file=document.getElementById('ut-file').files[0];
@@ -178,7 +180,7 @@ function renderTemplatesPage(){
   const tplTile=folder=>{ const t=TPL_TONE[folder]||'steel'; return `background:var(--tile-${t}-bg);color:var(--tile-${t}-fg)`; };
 
   const myCards=my.map(t=>`
-    <div class="lift" style="${CARD};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
@@ -195,7 +197,7 @@ function renderTemplatesPage(){
     </div>`).join('');
 
   const builtinCards=Object.values(TEMPLATES).map(t=>`
-    <div class="lift" style="${CARD};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
