@@ -107,9 +107,11 @@ const STATUS_META = {
   'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
-// Pill status chip: wash bg + tone fg, leading 6px tone dot, 999px radius.
+// Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
+// own colour carries the stage; the separate share dot (shareDot) sits outside
+// the chip so the two signals never read as one confusing double dot.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
 
 // ---- Share dispatch traffic lights ----
 // A share (one recipient's tracked link) moves sent → opened → signed /
@@ -127,10 +129,12 @@ const SHARE_META = {
 };
 const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
   return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
-// tiny traffic-light dot for dense tables — the tooltip carries the label
+// traffic-light dot for dense tables — the tooltip carries the label. This is
+// the contract's dispatch status (sent → opened → signed); it lives outside the
+// stage chip so it reads as a distinct signal.
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
-  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${m.dot};margin-left:6px;vertical-align:middle;flex:none"></span>`; };
+  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-left:8px;vertical-align:middle;flex:none"></span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
