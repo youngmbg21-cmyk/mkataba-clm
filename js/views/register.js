@@ -450,8 +450,7 @@ function renderRegister(){
       <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--color-neutral-500);display:inline-flex">${icon('search','w-3.5 h-3.5')}</span>
       <input id="reg-search" value="${R.query.replace(/"/g,'&quot;')}" placeholder="Full-text: names, parties &amp; clauses…" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px 6px 30px;font:inherit;font-size:12px;outline:none;color:inherit">
       <div id="reg-fts" class="hidden" style="position:absolute;z-index:40;margin-top:4px;width:100%;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;max-height:320px;overflow-y:auto"></div>
-    </div>
-    <button id="reg-ask" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font:inherit;font-size:12px;font-weight:600;color:var(--color-accent-700);cursor:pointer">${icon('sparkle','w-3.5 h-3.5')} Ask your portfolio</button>`:'';
+    </div>`:'';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
@@ -540,7 +539,6 @@ function renderRegister(){
   const si=document.getElementById('reg-search');
   if(si){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
-    document.getElementById('reg-ask')?.addEventListener('click',()=>openPortfolioAsk());
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
   document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
@@ -578,36 +576,4 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-/* ---- E6-T2 semantic "Ask your portfolio" ---- */
-async function openPortfolioAsk(){
-  openModal(`<div class="p-6">
-    <div class="flex items-center gap-2 mb-1"><span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
-      <h3 class="font-serif font-600 text-lg text-ink">Ask your portfolio</h3></div>
-    <p class="text-xs text-ink/60 mb-3">Ask a question in plain language, e.g. “which contracts let the counterparty terminate without cause?” — answered with quoted evidence from the contract text.</p>
-    <div class="flex gap-2 mb-3"><input id="pa-q" placeholder="Ask a question…" class="flex-1 rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
-      <button id="pa-go" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Ask</button></div>
-    <div id="pa-out" class="text-[12px] text-ink/55"></div></div>`);
-  const run=async()=>{
-    const q=document.getElementById('pa-q').value.trim(); if(!q) return;
-    const out=document.getElementById('pa-out'); out.innerHTML='<span class="text-brand-600">Searching…</span>';
-    try{
-      // gather candidate contracts by FTS, then load their text for the AI
-      const fts=await api('search?q='+encodeURIComponent(q.split(/\s+/).slice(0,6).join(' '))+'&limit=20');
-      const ids=(fts.hits||[]).map(h=>h.id).slice(0,15);
-      const cands=[];
-      for(const id of ids){ const c=getContract(id); if(!c) continue; try{ await ensureFull(c); }catch(e){}
-        cands.push({ id:c.id, name:c.name, counterparty:c.counterparty||'', text:(window.docPlainText?docPlainText(c):'')||(c.upload&&c.upload.extractedText)||'' }); }
-      if(!cands.length){ out.innerHTML='<span class="text-ink/55">No candidate contracts matched — try different keywords.</span>'; return; }
-      const r=await api('ai/search','POST',{ question:q, candidates:cands });
-      out.innerHTML=`<div class="rounded-lg bg-canvas border border-line px-3 py-2.5 text-[12.5px] text-ink/85 mb-2">${(r.answer||'').replace(/</g,'&lt;')}</div>`+
-        (r.matches||[]).map(m=>{ const c=getContract(m.id); if(!c) return ''; return `<button data-pa-open="${m.id}" class="w-full text-left rounded-lg border border-line bg-white hover:border-brand-300 px-3 py-2 mb-1.5 transition">
-          <div class="text-[12px] font-600 text-ink">${c.name.replace(/</g,'&lt;')} <span class="font-mono text-[10px] text-ink/45">${c.id}</span></div>
-          ${m.evidence?`<div class="text-[11px] text-ink/55 italic mt-0.5">“${m.evidence.replace(/</g,'&lt;')}”</div>`:''}</button>`; }).join('');
-      out.querySelectorAll('[data-pa-open]').forEach(b=>b.addEventListener('click',()=>{ closeModal(); openWorkspace(b.getAttribute('data-pa-open')); }));
-    }catch(e){ out.innerHTML=`<span class="text-rose-600">${/key|configure|401/.test(e.message)?'The AI engine needs a key for semantic search.':'Search failed: '+e.message}</span>`; }
-  };
-  document.getElementById('pa-go').addEventListener('click',run);
-  document.getElementById('pa-q').addEventListener('keydown',e=>{ if(e.key==='Enter') run(); });
-}
-
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,openPortfolioAsk,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows,layoutStreamPills});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows,layoutStreamPills});
