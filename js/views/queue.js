@@ -3,15 +3,15 @@
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
 /* ============================================================
-   VIEW: PIPELINE / MY QUEUE (Kanban board — drag between stages)
+   VIEW: PIPELINE / MY QUEUE (read-only Kanban board)
    Restyled to the Industry design system (blueprint cards on a light
    ground). The global shell owns the view title/subtitle; this module
    renders only the board body into #content.
-   Safe drag rules (unchanged): Draft <-> Under Review move freely;
-   dragging onto Executed opens the workspace to verify & sign (never
-   force-signs); dragging onto Closed asks to confirm the decline;
-   Executed cards are locked; viewers cannot drag. Every move persists
-   through the normal path (audit + optimistic-locked server save).
+   Cards are NOT draggable: a contract's stage is a consequence of real
+   actions (sending for review, signing, declining) taken in its
+   workspace, never something you set by dropping a card in a column —
+   that would let the board assert a status the contract hasn't actually
+   reached. Clicking a card opens its workspace, where those actions live.
    ============================================================ */
 const PIPE_COLS=[
   {k:'Draft',        label:'Drafting',  color:'#98989b'},
@@ -20,17 +20,15 @@ const PIPE_COLS=[
   {k:'Declined',     label:'Closed',    color:'#b0453c'},
 ];
 const PIPE_CAP=60;
-window.pipeDrag=null;
-// A single queue card. Keeps data-card + draggable so the drag wiring is
-// untouched; only the markup/inline styles change.
+// A single queue card. Click to open the workspace — cards are not draggable,
+// so a stage can't be changed from the board (see the header note).
 function pipeCard(c){
-  const drag = canEdit() && c.status!=='Signed';
   const r = contractRisk(c);
   const rp = riskPal(r);
   const stream = streamLabel(c);
   const val = !isMonetary(c) ? 'n/m' : (c.value ? fmtKESshort(c.value) : '—');
   return `
-    <div data-card="${c.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
+    <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
@@ -63,7 +61,7 @@ function renderPipeline(){
         <span style="flex:1;min-width:4px"></span>
         <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtKESshort(g.val)}</span>
       </div>
-      <div data-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:rgba(89,128,166,.05);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
+      <div class="pipe-col scroll-thin" style="background:rgba(89,128,166,.05);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${pipeColumnInner(g.col, g.list)}
       </div>
     </div>`).join('');
@@ -82,40 +80,18 @@ function renderPipeline(){
   wirePipeline();
   setActiveNav('pipeline');
 }
-async function pipeMove(id, target){
-  const c=getContract(id); if(!c) return;
-  if(!canEdit()){ toast('Viewers cannot move contracts','err'); return; }
-  if(c.status===target) return;
-  if(c.status==='Signed'){ toast('Executed contracts are sealed and cannot be moved','err'); return; }
-  const label=(PIPE_COLS.find(x=>x.k===target)||{}).label||target;
-  if(target==='Signed'){ toast('Open the contract to complete verification & signing'); openWorkspace(id); return; }
-  if(target==='Declined'){
-    if(!await confirmDialog({title:`Move “${c.name}” to Closed?`, message:'This declines the contract and moves it out of the active pipeline.', confirmLabel:'Decline & close', danger:true})) return;
-    c.status='Declined'; logAudit(c,'Declined','Moved to Closed on the pipeline board');
-    toast(`${c.name.split(' —')[0]} moved to Closed`,'err');
-  } else {
-    const from=(PIPE_COLS.find(x=>x.k===c.status)||{}).label||c.status;
-    c.status=target; logAudit(c,'Status changed',`${from} → ${label} (pipeline board)`);
-    toast(`${c.name.split(' —')[0]} moved to ${label}`);
-  }
-  c.lastAction=todayStr(); persist(c);
-  renderPipeline(); renderSideFolders();
-}
 // Restore a drop column to its resting look after a drag feedback state.
+// (Kept for the Advice Desk board in advice.js, which still uses drag; the
+// contract pipeline below no longer drags.)
 function pipeColReset(col){ col.style.borderColor='var(--color-divider)'; col.style.background='rgba(89,128,166,.05)'; }
 function wirePipeline(){
+  // Cards only open the workspace — no dragging, so the board can never set a
+  // stage the contract hasn't actually reached through a real action.
   document.querySelectorAll('[data-card]').forEach(el=>{
     const id=el.getAttribute('data-card');
-    el.addEventListener('click',()=>{ if(!el.getAttribute('draggable')||!pipeDrag) selectContract(id); });
-    el.addEventListener('dragstart',e=>{ pipeDrag=id; el.style.opacity='.4'; try{e.dataTransfer.effectAllowed='move';}catch(_){} });
-    el.addEventListener('dragend',()=>{ el.style.opacity=''; pipeDrag=null; });
-  });
-  document.querySelectorAll('[data-drop]').forEach(col=>{
-    col.addEventListener('dragover',e=>{ if(!pipeDrag) return; e.preventDefault(); col.style.borderColor='var(--color-accent)'; col.style.background='rgba(89,128,166,.08)'; });
-    col.addEventListener('dragleave',()=>pipeColReset(col));
-    col.addEventListener('drop',e=>{ e.preventDefault(); pipeColReset(col); const id=pipeDrag; pipeDrag=null; if(id) pipeMove(id, col.getAttribute('data-drop')); });
+    el.addEventListener('click',()=>selectContract(id));
   });
   document.querySelectorAll('[data-pipe-more]').forEach(el=>el.addEventListener('click',()=>{ regState().stage=el.getAttribute('data-pipe-more'); regState().type='all'; regState().sel={}; setView('register'); }));
 }
 
-Object.assign(window,{PIPE_CAP,PIPE_COLS,pipeCard,pipeColumnInner,pipeColReset,pipeDrag,pipeMove,renderPipeline,wirePipeline});
+Object.assign(window,{PIPE_CAP,PIPE_COLS,pipeCard,pipeColumnInner,pipeColReset,renderPipeline,wirePipeline});

@@ -200,7 +200,7 @@ Object.assign(window,{FOLDER_PAGE,FOLDER_SORTS,folderFiltered,folderRowsHtml,fol
 const REG_PAGE=40;
 const REG_STAGES=[
   {k:'all',label:'All stages'},
-  {k:'awaiting',label:'Awaiting signature'},
+  {k:'awaiting',label:'Awaiting counterparty'},
   {k:'Draft',label:'Drafting'},
   {k:'Under Review',label:'In Review'},
   {k:'Signed',label:'Executed'},
@@ -260,9 +260,11 @@ function wireRegPager(){
 }
 function regFiltered(){
   const R=regState(); let cs=state.contracts.slice();
-  // 'awaiting' is a virtual stage = every live contract still waiting to be signed
-  // (drafts + in-review). Real status pills fall through to the exact-match filter.
-  if(R.stage==='awaiting') cs=cs.filter(c=>c.status==='Draft'||c.status==='Under Review');
+  // 'awaiting' is a virtual stage = contracts out with a counterparty and not yet
+  // signed (a live share in 'sent' or 'opened'), matching the dashboard KPI. It
+  // reads the dispatch state, not the status column. Real status pills fall
+  // through to the exact-match filter.
+  if(R.stage==='awaiting') cs=cs.filter(c=>{ const s=state.shareByContract&&state.shareByContract[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); });
   else if(R.stage!=='all') cs=cs.filter(c=>c.status===R.stage);
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
