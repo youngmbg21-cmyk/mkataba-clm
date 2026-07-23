@@ -332,8 +332,8 @@ function regRowsHtml(cs){
       <td style="padding-left:12px;border-left:4px solid ${folderColor(c)}" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
       <td style="max-width:230px">
-        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'—'}</span>
+        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</span>
       </td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>
       <td><span style="width:22px;height:22px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700" title="${ownerT}">${ini}</span></td>

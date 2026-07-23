@@ -35,8 +35,8 @@ function pipeCard(c){
         <span style="font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600)">${c.id}</span>
         <span style="background:${rp.bg};color:${rp.fg};font-size:9.5px;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums;flex:none">R ${r}</span>
       </div>
-      <div style="font-size:12.5px;font-weight:500;line-height:1.3">${c.name}</div>
-      <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'No counterparty yet'}</div>
+      <div style="font-size:12.5px;font-weight:500;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</div>
+      <div style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-top:1px solid rgba(29,31,32,.07);padding-top:5px;margin-top:1px">
         <span style="font-size:10px;color:var(--color-neutral-600);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${stream}</span>
         <span style="font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none;color:${isMonetary(c)?'var(--color-text)':'var(--color-neutral-500)'}">${val}</span>
