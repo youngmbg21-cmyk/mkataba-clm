@@ -648,14 +648,14 @@ function wsNextAction(c){
    four inner tabs: Activity · Terms · Audit · Signing. Tab choices persist
    across re-renders of the same contract, and reset when a different contract
    opens. */
-let _docTopTab='screening';                 // 'screening' | 'signing'
-let _docInnerTab='activity';                // 'activity' | 'terms' | 'audit' | 'signing'
+let _docTopTab='screening';                 // 'screening' (= Draft & Review) | 'signing'
+let _docInnerTab='signing';                 // Signing tab inner: 'signing' | 'obligations' | 'audit'
 let _docTabsFor=null;                        // contract id the choices belong to
-const DOC_INNER_TABS=['activity','terms','audit','signing'];
+const DOC_INNER_TABS=['signing','obligations','audit'];
 function docTabDefaults(c){
   if(_docTabsFor!==c.id){                    // first open of this contract → sensible defaults
     _docTopTab = (c.status==='Signed') ? 'signing' : 'screening';
-    _docInnerTab = 'activity';
+    _docInnerTab = 'signing';
     _docTabsFor = c.id;
   }
 }
@@ -668,7 +668,7 @@ function innerTabBtn(k,label,ic){
 function applyDocTabs(){
   const root=document.getElementById('doc-right'); if(!root) return;
   if(_docTopTab!=='screening'&&_docTopTab!=='signing') _docTopTab='screening';
-  if(!DOC_INNER_TABS.includes(_docInnerTab)) _docInnerTab='activity';
+  if(!DOC_INNER_TABS.includes(_docInnerTab)) _docInnerTab='signing';
   root.querySelectorAll('[data-top-pane]').forEach(p=>{ p.style.display=(p.getAttribute('data-top-pane')===_docTopTab)?'flex':'none'; });
   root.querySelectorAll('#doc-toptabs [data-top-tab]').forEach(b=>{ const on=b.getAttribute('data-top-tab')===_docTopTab;
     b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
@@ -782,21 +782,43 @@ function renderWorkspace(){
 
         <!-- Top-level tabs -->
         <div id="doc-toptabs" style="position:sticky;top:0;z-index:4;flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm)">
-          ${topTabBtn('screening','Screening','scan')}
+          ${topTabBtn('screening','Draft &amp; Review','scan')}
           ${topTabBtn('signing','Signing','finger')}
         </div>
 
-        <!-- ===== SCREENING: Playbook review → Insert clause → AI Contract Scan ===== -->
+        <!-- ===== DRAFT & REVIEW: review → fix → negotiate (everything pre-signature) ===== -->
         <div data-top-pane="screening" style="display:flex;flex-direction:column;gap:12px">
+          <!-- review & fix -->
           <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="insert-clause-section" style="${CARD};overflow:hidden"></div>
           <div id="scan-section" style="${CARD};overflow:hidden"></div>
+
+          <!-- collaborate & negotiate -->
+          <section style="${CARD};padding:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Activity &amp; comments</h6>
+              <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
+            </div>
+            <div id="feed" class="space-y-3 scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px"></div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
+              <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
+              <div style="display:flex;gap:6px">
+                <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
+              </div>
+            </div>
+          </section>
+          <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+
           <div style="display:flex;justify-content:flex-end;padding-top:2px">
             <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
           </div>
         </div>
 
-        <!-- ===== SIGNING: Key terms (top) + 4 inner tabs (Activity/Terms/Audit/Signing) ===== -->
+        <!-- ===== SIGNING: Key terms (top) + inner tabs (Signing / Obligations / Audit) ===== -->
         <div data-top-pane="signing" style="display:none;flex-direction:column;gap:12px">
 
           <!-- Key terms (read-only, derived from the contract) -->
@@ -811,56 +833,33 @@ function renderWorkspace(){
             <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
           </div>
 
-          <!-- Bottom card: four inner tabs -->
+          <!-- Bottom card: inner tabs -->
           <div style="${CARD};overflow:hidden;display:flex;flex-direction:column">
             <div id="doc-innertabs" style="display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--color-divider)">
-              ${innerTabBtn('activity','Activity','msg')}
-              ${innerTabBtn('terms','Terms','list')}
-              ${innerTabBtn('audit','Audit','history')}
               ${innerTabBtn('signing','Signing','finger')}
+              ${innerTabBtn('obligations','Obligations','check2')}
+              ${innerTabBtn('audit','Audit','history')}
             </div>
             <div style="padding:11px">
 
-              <!-- ACTIVITY -->
-              <div data-inner-pane="activity" style="display:flex;flex-direction:column;gap:12px">
-                <div>
-                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-                    <h6 style="${H6};flex:1">Activity &amp; comments</h6>
-                    <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
-                  </div>
-                  <div id="feed" class="space-y-3 scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px"></div>
-                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
-                    <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
-                    <div style="display:flex;gap:6px">
-                      <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
-                      <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
-                    </div>
-                  </div>
-                </div>
-                <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-              </div>
-
-              <!-- TERMS -->
-              <div data-inner-pane="terms" style="display:none;flex-direction:column;gap:12px">
-                <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-                <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-                <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-                <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-              </div>
-
-              <!-- AUDIT -->
-              <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
-                <div id="audit-section" style="${CARD};overflow:hidden"></div>
-              </div>
-
               <!-- SIGNING -->
-              <div data-inner-pane="signing" style="display:none;flex-direction:column;gap:10px">
+              <div data-inner-pane="signing" style="display:flex;flex-direction:column;gap:10px">
                 ${(!locked&&canEdit())?`
                 <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
                   <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
                   <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">Binding under the Business Laws (Amendment) Act 2020.</span></span>
                 </label>`:''}
                 <div id="sign-wrap"></div>
+              </div>
+
+              <!-- OBLIGATIONS (post-execution commitments to track) -->
+              <div data-inner-pane="obligations" style="display:none;flex-direction:column;gap:12px">
+                <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+              </div>
+
+              <!-- AUDIT (the record) -->
+              <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
+                <div id="audit-section" style="${CARD};overflow:hidden"></div>
               </div>
 
             </div>
@@ -873,7 +872,7 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderInsertClauseSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
-  wireDocTabs();   // Screening | Signing top tabs; Signing has Activity/Terms/Audit/Signing inner tabs
+  wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
