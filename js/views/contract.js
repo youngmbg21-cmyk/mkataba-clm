@@ -743,7 +743,7 @@ function renderWorkspace(){
     </section>
 
     <!-- ============ BODY: contract (left half) · workspace (right half) ============ -->
-    <div id="doc-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">
+    <div id="doc-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px">
 
       <!-- LEFT: document -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
@@ -761,12 +761,12 @@ function renderWorkspace(){
         </div>
       </section>
 
-      <!-- ============ RIGHT: wide workspace — Key terms + Signing pinned, tabs below ============ -->
-      <section style="display:flex;flex-direction:column;min-height:0;gap:12px">
+      <!-- ============ RIGHT: wide workspace — one scroll: Key terms + Signing, tabs, panes ============ -->
+      <section id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
 
-        <!-- Pinned summary: Key terms + Signing, always visible -->
+        <!-- Summary: Key terms + Signing -->
         <div style="flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start">
-          <div class="scroll-thin" style="${CARD};padding:12px;max-height:300px;overflow:auto">
+          <div style="${CARD};padding:12px">
             <h6 style="${H6};margin-bottom:8px">Key terms</h6>
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">${c.counterparty||'—'}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
@@ -776,7 +776,7 @@ function renderWorkspace(){
             ${kv('Expiry',c.expiry||'—')}
             <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
           </div>
-          <div class="scroll-thin" style="${CARD};padding:12px;max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px">
+          <div style="${CARD};padding:12px;display:flex;flex-direction:column;gap:8px">
             <h6 style="${H6}">Signing</h6>
             ${(!locked&&canEdit())?`
             <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
@@ -787,16 +787,13 @@ function renderWorkspace(){
           </div>
         </div>
 
-        <!-- Tabs: the remaining working panels, in a wide half so each shows plenty without deep scroll -->
-        <div id="doc-tabs" style="flex:none;display:flex;gap:2px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:3px">
+        <!-- Tabs — sticky within the single scroll so they stay reachable -->
+        <div id="doc-tabs" style="position:sticky;top:0;z-index:3;flex:none;display:flex;gap:2px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:3px">
           ${docTabBtn('review','Review','scan')}
           ${docTabBtn('activity','Activity','msg')}
           ${docTabBtn('terms','Terms','list')}
           ${docTabBtn('audit','Audit','history')}
         </div>
-
-        <!-- Scrolling pane region -->
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding-right:2px">
 
         <!-- REVIEW: AI findings + playbook -->
         <div data-doc-pane="review" style="display:flex;flex-direction:column;gap:12px">
@@ -834,8 +831,6 @@ function renderWorkspace(){
         <!-- AUDIT: full document history -->
         <div data-doc-pane="audit" style="display:none;flex-direction:column;gap:12px">
           <div id="audit-section" style="${CARD};overflow:hidden"></div>
-        </div>
-
         </div>
       </section>
     </div>

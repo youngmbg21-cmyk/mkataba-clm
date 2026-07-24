@@ -385,19 +385,6 @@ function wireShell(){
 
   // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
-
-  // collapsible nav rail — collapse to icons only; the choice is remembered
-  const shell=document.getElementById('app-shell');
-  const applyNavCollapsed=on=>{
-    if(shell) shell.classList.toggle('nav-collapsed',!!on);
-    const t=document.getElementById('nav-toggle'); if(t){ t.title=on?'Expand navigation':'Collapse navigation'; t.setAttribute('aria-label',t.title); }
-  };
-  try{ applyNavCollapsed(!!lsGet('hati.v1.navCollapsed')); }catch(_){}
-  document.getElementById('nav-toggle')?.addEventListener('click',()=>{
-    const on=!(shell&&shell.classList.contains('nav-collapsed'));
-    applyNavCollapsed(on);
-    try{ lsSet('hati.v1.navCollapsed',on); }catch(_){}
-  });
 }
 
 // default panel state — closed on load/refresh; the user opens it with the
