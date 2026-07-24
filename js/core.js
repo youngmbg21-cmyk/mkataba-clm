@@ -341,6 +341,38 @@ const canEdit = () => { const u=currentUser(); return !!u && u.role!=='viewer'; 
 const isAdmin = () => currentUser()?.role==='admin';
 const ROLE_LABEL = { admin:'Admin', legal:'Legal', viewer:'Viewer' };
 
+/* ---------- directory & per-member folder access ----------
+   Both live in the org-wide appSettings blob, so they persist through
+   saveSettings() in server mode (PUT /api/settings) AND local mode (localStorage)
+   with no schema change:
+     state.settings.directory    = [{ name, email, title }]   (contacts for auto-fill)
+     state.settings.folderAccess = { [userId]: '*' | [folderId,…] }  (stream access) */
+// A merged people directory: imported contacts PLUS team members (so signer
+// fields can auto-fill a name → title + email). Title comes from the contact
+// record when an email matches.
+function orgDirectory(){
+  const dir=(((state.settings||{}).directory)||[]).map(p=>({ name:p.name||'', email:p.email||'', title:p.title||'' }));
+  const byEmail={}; dir.forEach(p=>{ const k=(p.email||'').toLowerCase(); if(k) byEmail[k]=p; });
+  (getUsers()||[]).forEach(u=>{ const k=(u.email||'').toLowerCase(); if(!k) return;
+    if(byEmail[k]){ if(!byEmail[k].title && u.title) byEmail[k].title=u.title; if(!byEmail[k].name) byEmail[k].name=u.name||''; }
+    else { const p={ name:u.name||'', email:u.email, title:u.title||'' }; byEmail[k]=p; dir.push(p); } });
+  return dir.filter(p=>p.name||p.email);
+}
+// Look a person up by exact name OR email (case-insensitive) — used to auto-fill.
+function directoryLookup(nameOrEmail){
+  const q=String(nameOrEmail||'').trim().toLowerCase(); if(!q) return null;
+  return orgDirectory().find(p=>(p.name||'').toLowerCase()===q || (p.email||'').toLowerCase()===q)||null;
+}
+// A user's folder access: '*' = every stream (the default, and always for admins),
+// otherwise an array of folder ids they are restricted to.
+function userFolderAccess(u){
+  u=u||currentUser(); if(!u) return '*'; if(u.role==='admin') return '*';
+  const v=(((state.settings||{}).folderAccess)||{})[u.id];
+  return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
+}
+function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder});
+
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
 
@@ -505,6 +537,13 @@ function renderSideUser(){
   const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
   if(av){ av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`; av.onclick=()=>setView('team'); }
+  const lo=document.getElementById('side-logout');
+  if(lo) lo.onclick=async()=>{
+    const ok=(typeof confirmDialog==='function')
+      ? await confirmDialog({ title:'Log out?', message:`End your session${org?` on ${org}`:''} and return to the sign-in screen?`, confirmLabel:'Log out' })
+      : true;
+    if(ok) logout();
+  };
   const setTxt=(id,t)=>{ const el=document.getElementById(id); if(el) el.textContent=t; };
   setTxt('side-avatar', initials);
   setTxt('side-name', u.name||org);

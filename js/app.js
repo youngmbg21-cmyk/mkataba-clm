@@ -123,7 +123,10 @@ function setView(view){
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
   const sc=document.getElementById('content-scroll'); if(sc) sc.scrollTo({top:0});
 }
-function openFolder(fid){ state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder'); }
+function openFolder(fid){
+  if(typeof canAccessFolder==='function' && !canAccessFolder(fid)){ toast('You do not have access to that value stream','err'); setView('register'); return; }
+  state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
+}
 function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
 function createFromTemplate(tid){
   if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
