@@ -211,6 +211,28 @@
   .nav-section.open .nav-plus::after{opacity:0;}
   .nav-section-head:hover .nav-plus{opacity:1;}
   .nav-section:not(.open) .nav-section-body{display:none;}
+  /* ---- Collapsible icon rail: hide labels, keep the icons ("signs") ---- */
+  #nav-toggle{flex:none;width:24px;height:24px;border:0;background:none;color:var(--color-neutral-500);cursor:pointer;display:grid;place-items:center;border-radius:5px;transition:background .12s,color .12s;}
+  #nav-toggle:hover{background:var(--color-accent-100);color:var(--color-accent-800);}
+  #nav-toggle svg{transition:transform .15s;}
+  #app-shell.nav-collapsed{grid-template-columns:60px 1fr;}
+  .nav-collapsed .brand-text,
+  .nav-collapsed .nav-section-head,
+  .nav-collapsed .nav-item > span:not(.nav-rail),
+  .nav-collapsed .sc-label,
+  .nav-collapsed .foot-status,
+  .nav-collapsed #side-ai-usage,
+  .nav-collapsed .foot-id-text{display:none!important;}
+  .nav-collapsed .nav-section-body{display:flex!important;flex-direction:column;gap:1px;}
+  .nav-collapsed .nav-section + .nav-section{margin-top:6px;border-top:1px solid var(--color-divider);padding-top:6px;}
+  .nav-collapsed .nav-item{justify-content:center;padding:8px;}
+  .nav-collapsed .brand-block{flex-direction:column;gap:8px;padding:12px 0 10px;}
+  .nav-collapsed #nav-toggle svg{transform:rotate(180deg);}
+  .nav-collapsed .copilot-wrap{padding:8px 8px;}
+  .nav-collapsed #side-copilot{padding:9px 0;gap:0;}
+  .nav-collapsed .foot-wrap{padding:10px 0;align-items:center;}
+  .nav-collapsed .foot-id{flex-direction:column;gap:10px;}
+  .nav-collapsed #rail-avatar{justify-content:center;flex:none;}
 
   .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
   .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-800);}
@@ -313,12 +335,15 @@
   <!-- ================= SIDEBAR (210px) ================= -->
   <aside style="display:flex;flex-direction:column;background:#f6f8fc;border-right:1px solid var(--color-divider);min-height:0;">
     <!-- brand block -->
-    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
-      <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
-      <div style="line-height:1.15;">
+    <div class="brand-block" style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
+      <div id="brand-mark" style="width:30px;height:30px;flex:none;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
+      <div class="brand-text" style="line-height:1.15;flex:1;min-width:0;">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
         <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
       </div>
+      <button id="nav-toggle" type="button" title="Collapse navigation" aria-label="Collapse navigation">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
     </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;" class="scroll-thin">
@@ -417,17 +442,17 @@
 
     <!-- HaTi Copilot launcher — pinned above the footer, deliberately dark
          blue (accent-800/900) so it stands off the light sidebar -->
-    <div style="padding:8px 10px;">
+    <div class="copilot-wrap" style="padding:8px 10px;">
       <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:9px 10px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.02em;box-shadow:0 2px 10px rgba(29,45,61,.28);transition:background .15s;" onmouseover="this.style.background='var(--color-accent-900)'" onmouseout="this.style.background='var(--color-accent-800)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
-        HaTi Copilot
+        <span class="sc-label">HaTi Copilot</span>
         <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
       </button>
     </div>
 
     <!-- footer: live status + user -->
-    <div style="border-top:1px solid var(--color-divider);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);">
+    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
+      <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);">
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
         <span id="side-status">Server mode · SQLite · 4 online</span>
       </div>
@@ -435,10 +460,10 @@
         <span style="width:7px;height:7px;border-radius:50%;background:#c79a3e;flex:none;"></span>
         <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
       </button>
-      <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+      <div class="foot-id" style="display:flex;align-items:center;gap:6px;min-width:0;">
         <button id="rail-avatar" title="Team &amp; settings" style="flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
           <span id="side-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-heading);flex:none;">AM</span>
-          <span style="line-height:1.2;min-width:0;">
+          <span class="foot-id-text" style="line-height:1.2;min-width:0;">
             <span id="side-name" style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Amina Mwangi</span>
             <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin</span>
           </span>
