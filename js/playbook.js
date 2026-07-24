@@ -193,6 +193,37 @@ function applyClauseRedline(c, clauseText, label){
   persist(c); renderWorkspace();
   toast('Preferred wording added as a redline');
 }
+/* Inline "Insert clause" card (Screening tab, part 2). Lists the standard
+   clause library; each row drops that clause into the document as a redline
+   via the existing applyClauseRedline flow. Read-only contracts hide it. */
+function renderInsertClauseSection(c){
+  const host=document.getElementById('insert-clause-section'); if(!host) return;
+  const editable=canEdit()&&c.status!=='Signed';
+  if(!editable){ host.innerHTML=''; return; }   // empty:hidden collapses it
+  const lib=clauseLibrary();
+  host.innerHTML=`
+    <div class="px-5 py-4">
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-brand-500">${icon('plus')}</span>
+        <h3 class="text-sm font-display font-600 text-ink">Insert clause</h3>
+        <span class="ml-auto text-[10px] text-ink/45">${lib.length} in library</span>
+      </div>
+      <p class="text-[11px] text-ink/60 mb-3">Drop a standard clause into the document as a redline you can review, then seal.</p>
+      <div class="space-y-1.5">
+        ${lib.map(cl=>`<div class="rounded-lg border border-line bg-white px-3 py-2 flex items-center gap-2">
+          <span class="min-w-0">
+            <span class="block text-[9.5px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
+            <span class="block text-[12px] font-600 text-ink truncate">${cl.name}</span>
+          </span>
+          <button data-ins-clause="${cl.id}" class="ml-auto shrink-0 rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">Insert</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  host.querySelectorAll('[data-ins-clause]').forEach(b=>b.addEventListener('click',()=>{
+    const cl=clauseById(b.getAttribute('data-ins-clause'));
+    if(cl) applyClauseRedline(c, cl.preferred, cl.name);
+  }));
+}
 function openClausePicker(c){
   const lib=clauseLibrary();
   openModal(`
@@ -213,4 +244,4 @@ function openClausePicker(c){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); applyClauseRedline(c, cl.preferred, cl.name); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,renderInsertClauseSection,applyClauseRedline,openClausePicker});
