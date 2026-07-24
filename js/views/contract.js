@@ -649,7 +649,7 @@ function wsNextAction(c){
    pinned outside the tabs so signature progress is always in view. The tab
    choice persists across re-renders within the session. */
 let _docTab='review';
-const DOC_TABS=['review','signing','activity','terms'];
+const DOC_TABS=['review','activity','terms','audit'];
 function docTabBtn(k,label,ic){
   return `<button data-doc-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:6px;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-600);padding:6px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
 }
@@ -703,46 +703,52 @@ function renderWorkspace(){
   const backLabel=(_wr.view==='folder'&&_wr.folderId&&FOLDERS[_wr.folderId])
     ? 'Back to '+FOLDERS[_wr.folderId].name
     : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
-  // Right context panel is user-resizable by dragging its left edge: 300px
-  // (default/min) → 450px (max, +50%). The chosen width is remembered.
-  const DOC_PANEL_MIN=300, DOC_PANEL_MAX=450;
-  const docPanelW=(()=>{ try{ const v=Number(typeof lsGet==='function'&&lsGet('hati.v1.docPanelW')); return (v>=DOC_PANEL_MIN&&v<=DOC_PANEL_MAX)?Math.round(v):DOC_PANEL_MIN; }catch(_){ return DOC_PANEL_MIN; } })();
   content.innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
-    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:1fr ${docPanelW}px;gap:14px">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
-      <!-- ============ LEFT: document card (own scroll) ============ -->
-      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
-        <!-- document toolbar -->
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 16px;border-bottom:1px solid var(--color-divider)">
-          <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
-          <div style="min-width:0;flex:1">
-            <div style="display:flex;align-items:center;gap:8px">
-              <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</h3>
-              <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
-            </div>
-            <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+    <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
+    <section style="${CARD};flex:none;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px">
+        <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</h3>
+            <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
           </div>
-          ${(canEdit()&&!locked)?`
-          <button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
-          ${canEdit()?`
-          <button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
+          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+          ${(canEdit()&&!locked)?`<button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
+          ${canEdit()?`<button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
-          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`
-          <button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
+          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
           <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
+        ${locked
+          ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span>`
+          : !canEdit()
+          ? `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`
+          : (()=>{ const na=wsNextAction(c); return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`; })()}
+        <span style="flex:1"></span>
+        ${locked
+          ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
+          : !canEdit() ? ''
+          : (()=>{ const na=wsNextAction(c); return na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:''; })()}
+      </div>
+    </section>
+
+    <!-- ============ BODY: contract (left half) · workspace (right half) ============ -->
+    <div id="doc-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px">
+
+      <!-- LEFT: document -->
+      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 28px;background:var(--color-bg)">
-          ${(()=>{ const na=wsNextAction(c); if(!na) return '';
-            return `<div style="position:sticky;top:-20px;z-index:6;margin:-20px -28px 16px;padding:9px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <span style="flex:none">${statusChip(c.status)}</span>
-              <span style="flex:1;min-width:120px;font-size:12px;color:var(--color-neutral-700)">${na.guide}</span>
-              <button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px;flex:none">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>
-            </div>`; })()}
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
@@ -755,37 +761,42 @@ function renderWorkspace(){
         </div>
       </section>
 
-      <!-- ============ RIGHT: context stack (own scroll, pinned sign) ============ -->
-      <!-- drag handle: floats in the gutter between the document and the panel
-           (a direct child of the grid, so the panel's own overflow can't clip
-           it). Drag left to widen the panel to +50%, double-click to reset. -->
-      <div id="doc-resizer" title="Drag to resize (300–450px) · double-click to reset" style="position:absolute;top:0;bottom:0;right:${docPanelW+1}px;width:12px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-divider)'">
-        <span style="width:3px;height:38px;border-radius:999px;background:var(--color-divider);transition:background .15s"></span>
-      </div>
+      <!-- ============ RIGHT: wide workspace — Key terms + Signing pinned, tabs below ============ -->
+      <section style="display:flex;flex-direction:column;min-height:0;gap:12px">
 
-      <div id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
+        <!-- Pinned summary: Key terms + Signing, always visible -->
+        <div style="flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start">
+          <div class="scroll-thin" style="${CARD};padding:12px;max-height:300px;overflow:auto">
+            <h6 style="${H6};margin-bottom:8px">Key terms</h6>
+            <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px">${c.counterparty||'—'}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+            ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
+            ${kv('Expiry',c.expiry||'—')}
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
+          </div>
+          <div class="scroll-thin" style="${CARD};padding:12px;max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:8px">
+            <h6 style="${H6}">Signing</h6>
+            ${(!locked&&canEdit())?`
+            <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
+              <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+              <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">Binding under the Business Laws (Amendment) Act 2020.</span></span>
+            </label>`:''}
+            <div id="sign-wrap"></div>
+          </div>
+        </div>
 
-        <!-- Key terms (always visible — the document's at-a-glance context) -->
-        <section style="${CARD};padding:12px">
-          <h6 style="${H6};margin-bottom:8px">Key terms</h6>
-          <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">${c.counterparty||'—'}</span></div>
-          <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-          <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
-          ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
-          ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
-          ${kv('Expiry',c.expiry||'—')}
-          <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
-        </section>
-
-        <!-- Tabbed navigation: groups the working panels so they no longer stack
-             into one long scroll. Key terms (above) and the Sign action (below)
-             stay pinned; everything else lives under a tab. -->
-        <div id="doc-tabs" style="position:sticky;top:0;z-index:3;display:flex;gap:2px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:3px">
+        <!-- Tabs: the remaining working panels, in a wide half so each shows plenty without deep scroll -->
+        <div id="doc-tabs" style="flex:none;display:flex;gap:2px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:3px">
           ${docTabBtn('review','Review','scan')}
-          ${docTabBtn('signing','Signing','finger')}
           ${docTabBtn('activity','Activity','msg')}
           ${docTabBtn('terms','Terms','list')}
+          ${docTabBtn('audit','Audit','history')}
         </div>
+
+        <!-- Scrolling pane region -->
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding-right:2px">
 
         <!-- REVIEW: AI findings + playbook -->
         <div data-doc-pane="review" style="display:flex;flex-direction:column;gap:12px">
@@ -793,28 +804,7 @@ function renderWorkspace(){
           <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
         </div>
 
-        <!-- SIGNING: verification & consent + shares out with the counterparty -->
-        <div data-doc-pane="signing" style="display:none;flex-direction:column;gap:12px">
-          <section style="${CARD};padding:12px">
-            <h6 style="${H6};margin-bottom:8px">Signer verification &amp; consent</h6>
-            <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px;margin-bottom:8px;font-size:12px">
-              <div style="font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:2px">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
-              <div style="color:var(--color-neutral-700);font-family:var(--font-mono);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
-              <div style="color:var(--color-neutral-600);font-size:11px;margin-top:2px;line-height:1.4">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
-            </div>
-            <label class="${(locked||!canEdit())?'opacity-70 pointer-events-none':''}" style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
-              <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-              <span style="font-size:12px">
-                <span style="font-weight:600;display:block">I intend to sign electronically</span>
-                <span style="color:var(--color-neutral-700);display:block;line-height:1.4">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
-              </span>
-            </label>
-            <div style="margin-top:8px;font-size:10px;color:var(--color-neutral-600);line-height:1.4;display:flex;align-items:flex-start;gap:4px">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
-          </section>
-          <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        </div>
-
-        <!-- ACTIVITY: comments feed + counterparty engagement + audit trail -->
+        <!-- ACTIVITY: comments feed + counterparty engagement -->
         <div data-doc-pane="activity" style="display:none;flex-direction:column;gap:12px">
           <section style="${CARD};padding:12px">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -831,26 +821,29 @@ function renderWorkspace(){
             </div>
           </section>
           <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <div id="audit-section" style="${CARD};overflow:hidden"></div>
         </div>
 
-        <!-- TERMS: obligations, negotiation rounds & version history -->
+        <!-- TERMS: obligations, shares, negotiation rounds & version history -->
         <div data-doc-pane="terms" style="display:none;flex-direction:column;gap:12px">
           <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
         </div>
 
-        <!-- Sign action (renderSignButton) — pinned to the bottom of the panel -->
-        <section style="${CARD};padding:12px;position:sticky;bottom:0;z-index:2;box-shadow:var(--shadow-md)"><div id="sign-wrap"></div></section>
+        <!-- AUDIT: full document history -->
+        <div data-doc-pane="audit" style="display:none;flex-direction:column;gap:12px">
+          <div id="audit-section" style="${CARD};overflow:hidden"></div>
+        </div>
 
-      </div>
+        </div>
+      </section>
     </div>
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
-  wireDocTabs();   // group the right-panel widgets into tabs (Review / Signing / Activity / Terms)
+  wireDocTabs();   // Review / Activity / Terms / Audit tabs (Key terms + Signing stay pinned above)
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
@@ -887,22 +880,7 @@ function renderWorkspace(){
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
 
-  // Draggable right-panel resizer: drag the left-edge handle to widen the panel
-  // leftward (300–450px); the width is clamped and remembered. Live-updates the
-  // grid without a re-render so edit/scan state is preserved.
-  (function(){
-    const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
-    if(!grid||!rez) return;
-    const grip=rez.firstElementChild;
-    const curW=()=>{ const m=/1fr\s+([\d.]+)px/.exec(grid.style.gridTemplateColumns||''); return m?Number(m[1]):DOC_PANEL_MIN; };
-    const setW=w=>{ w=Math.max(DOC_PANEL_MIN,Math.min(DOC_PANEL_MAX,Math.round(w))); grid.style.gridTemplateColumns='1fr '+w+'px'; rez.style.right=(w+1)+'px'; return w; };
-    const save=w=>{ try{ if(typeof lsSet==='function') lsSet('hati.v1.docPanelW',w); }catch(_){} };
-    let startX=0, startW=DOC_PANEL_MIN;
-    const onMove=e=>{ const x=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX); setW(startW+(startX-x)); };  // drag left → wider
-    const onUp=()=>{ rez.dataset.drag=''; delete rez.dataset.drag; grip.style.background='var(--color-divider)'; document.body.style.cursor=''; document.body.style.userSelect=''; window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); save(curW()); };
-    rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1'; startX=e.clientX; startW=curW(); grip.style.background='var(--color-accent)'; document.body.style.cursor='col-resize'; document.body.style.userSelect='none'; window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
-    rez.addEventListener('dblclick',()=>{ setW(DOC_PANEL_MIN); save(DOC_PANEL_MIN); });
-  })();
+  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
