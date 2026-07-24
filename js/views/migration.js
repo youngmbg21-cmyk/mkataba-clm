@@ -13,7 +13,7 @@
    Composes the existing single-upload machinery (extractDocText,
    ai/extract, openMetaReview, files API) — no new server surface.
    ============================================================ */
-const MIG_MAX_FILES = 300;                       // sanity cap per batch
+const MIG_MAX_FILES = 25;                        // realistic cap per batch (memory + AI window)
 const MIG_ACCEPT = '.pdf,.doc,.docx,.txt,.png,.jpg,.jpeg';
 const MIG_CRITICAL = ['counterparty','contractType','effectiveDate','expiryDate','value'];
 
@@ -265,6 +265,7 @@ async function migProcessFiles(fileList){
   M.running=false;
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
+  window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
   toast(`Batch ${batch}: ${saved} imported${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${errors?`, ${errors} failed`:''}`);
   renderMigration();
 }
@@ -333,6 +334,7 @@ async function migRerunAi(){
   }
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   toast(migState().aiDown?`AI re-run stopped (${migState().aiDownMsg}) — ${done} done, try again later`:`AI re-ran on ${done} contract${done===1?'':'s'}`);
+  window.refreshAiUsage&&refreshAiUsage();
   updateSidebarCounts(); renderMigration();
 }
 

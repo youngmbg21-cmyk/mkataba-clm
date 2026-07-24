@@ -496,7 +496,7 @@ function startApp(){
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000);
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
 }
 function renderSideUser(){
@@ -515,6 +515,22 @@ function renderSideUser(){
   const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
   const st=document.getElementById('side-status');
   if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude AI':'AI off'}</span> · ${online} online`;
+}
+// Bottom-left AI meter: today's real Anthropic API calls across the workspace,
+// so the owner can watch actual usage and size a per-customer daily limit.
+// Server mode only (in Local mode the browser calls Anthropic directly with no
+// server tally); the count resets at local midnight (server AI_DAY_TZ).
+async function refreshAiUsage(){
+  const box=document.getElementById('side-ai-usage'), txt=document.getElementById('side-ai-usage-txt');
+  if(!box||!txt) return;
+  if(!API_MODE()){ box.style.display='none'; return; }
+  box.onclick=()=>setView('team');
+  try{
+    const u=await api('ai/usage');
+    const limit=Number(u.dailyLimit||0);
+    txt.textContent=`Claude calls today: ${Number(u.count||0).toLocaleString('en-KE')}${limit>0?' / '+limit.toLocaleString('en-KE'):''}`;
+    box.style.display='flex';
+  }catch(e){ box.style.display='none'; }
 }
 // folders/quick-create moved into the Register + New-contract menu; no rail list.
 function renderSideFolders(){ /* rail has no folder list in the light-theme redesign */ }
@@ -1024,4 +1040,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

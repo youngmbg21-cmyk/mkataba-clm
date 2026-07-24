@@ -347,7 +347,11 @@ function capAiInput(req, res, next) {
 // on date change (UTC). Default 500/day; set to 0 to disable. The counter is
 // bumped in anthropicMessages() so only real Anthropic calls are counted.
 const aiDailyLimit = () => intSetting('aiDailyLimit', 'AI_DAILY_LIMIT', 500);
-const aiToday = () => new Date().toISOString().slice(0, 10);
+// The AI "day" rolls over at local midnight in this timezone (default EAT), so
+// the counter and the daily ceiling reset when the customer's day does — not at
+// 03:00 local (UTC midnight). Override with AI_DAY_TZ (an IANA zone name).
+const AI_DAY_TZ = process.env.AI_DAY_TZ || 'Africa/Nairobi';
+const aiToday = () => { try { return new Date().toLocaleDateString('en-CA', { timeZone: AI_DAY_TZ }); } catch (_) { return new Date().toISOString().slice(0, 10); } };
 function aiUsageToday() {
   const u = getSetting('aiUsageDay');
   return (u && u.date === aiToday()) ? { date: u.date, count: u.count | 0 } : { date: aiToday(), count: 0 };
@@ -786,6 +790,16 @@ app.get('/api/ai/config', auth, (req, res) => {
     usage: (() => { const u = aiUsageToday(); return { date: u.date, count: u.count, dailyLimit: aiDailyLimit() }; })(),
   });
 });
+
+// Lightweight, pollable counter of real Anthropic calls made today (whole
+// workspace). Only successful calls that actually reach Anthropic are counted —
+// built-in / keyword-fallback answers never increment it — so this is the true
+// number to size a per-customer daily limit against. Resets at local midnight.
+app.get('/api/ai/usage', auth, (req, res) => {
+  const u = aiUsageToday();
+  res.json({ date: u.date, count: u.count, dailyLimit: aiDailyLimit(), tz: AI_DAY_TZ });
+});
+
 app.put('/api/ai/config', auth, admin, (req, res) => {
   const { key, model, modelFast, modelDeep, clear,
     rateLight, rateDeep, dailyLimit, maxChars, maxContracts } = req.body || {};
