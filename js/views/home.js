@@ -171,7 +171,9 @@ function renderDashboard(){
     </div>`).join('');
 
   // ---- approvals waiting ----
-  const apprRows=waiting.slice(0,3).map((x,i)=>{ const c=x.c; const dotc=i===1?'#b0453c':'#b8862b';
+  // Approvals waiting: the 5 contracts that have waited longest to be signed
+  // (waiting is Under Review, sorted by idle desc). Capped at 5 so all fit.
+  const apprRows=waiting.slice(0,5).map((x,i)=>{ const c=x.c; const dotc=x.idle>=30?'#b0453c':'#b8862b';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(29,31,32,.07);font-size:12px;">
       <span style="width:7px;height:7px;border-radius:50%;background:${dotc};flex:none;"></span>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value>=(getApprovalCfg().threshold||0)?'CFO sign-off':'Legal review'} — ${c.counterparty||c.name}${isMonetary(c)&&c.value?` (${fmtKESshort(c.value)})`:''}</span>
