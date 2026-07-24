@@ -213,16 +213,24 @@ function renderScanSection(c){
   const host = document.getElementById('scan-section'); if(!host) return;
   const open = openFindings(c);
   const worst = open.length ? worstSevOf(open) : null;
+  // The scan runs on a built-in rule-based checker (scanRules) \u2014 it works with
+  // OR without an AI key. Reflect the engine honestly: when a Claude key is
+  // configured we call it AI-assisted; when not, it's plainly "rule-based" so
+  // the label never implies AI that isn't running.
+  const aiOn = (typeof copilotAvailable==='function') && copilotAvailable();
 
   let body;
   if(scanUI.running){
     body = `<div class="flex items-center gap-2.5 rounded-lg bg-brand-50 border border-brand-100 px-3 py-2.5 text-xs text-brand-700">
       <span class="scan-pulse text-brand-500">${icon('scan','w-4 h-4')}</span>
-      <span>Scanning clauses against Kenyan practice checks\u2026</span></div>`;
+      <span>Checking clauses against Kenyan practice rules\u2026</span></div>`;
   } else if(!c.scan){
+    const engineNote = aiOn
+      ? ' Your Claude key adds AI-assisted interpretation on top.'
+      : ' These are built-in checks \u2014 they run without an AI key. Add an Anthropic key in Team &amp; Settings for AI-assisted review.';
     body = `
-      <p class="text-xs text-brand-800/70 leading-relaxed">${isUpload(c)?'Run an AI review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}</p>
-      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} Run AI scan</button>`;
+      <p class="text-xs text-brand-800/70 leading-relaxed">${isUpload(c)?'Run a review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}${engineNote}</p>
+      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} ${aiOn?'Run AI scan':'Run scan'}</button>`;
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
     const counts = s => open.filter(x=>x.sev===s).length;
@@ -266,7 +274,8 @@ function renderScanSection(c){
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-gold-500">${icon('scan')}</span>
-        <h3 class="text-sm font-display font-600 text-brand-900">AI Contract Scan</h3>
+        <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'AI Contract Scan':'Contract Scan'}</h3>
+        <span title="${aiOn?'A Claude key is configured — checks run with AI-assisted interpretation.':'No AI key — checks run on built-in rules. Add a key in Team & Settings for AI-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
         ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?`${open.length} open`:'All clear'}</span>` : ''}
       </div>
       ${body}
