@@ -301,8 +301,10 @@ function renderDashboard(){
     <!-- Decisions due — renewal decisions + shares out with counterparties, one collapsible card -->
     ${decisionsSection}
 
-    <!-- Stage + pipeline row -->
-    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:start;">
+    <!-- Stage + pipeline row. align-items:stretch + the absolutely-filled right
+         column make the right side exactly as tall as the Portfolio card, so the
+         Approvals card's bottom lines up with it (Portfolio card stays untouched). -->
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:stretch;">
       <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;">
           <h4 style="font-size:15px;margin:0;">Portfolio by stage</h4>
@@ -319,16 +321,20 @@ function renderDashboard(){
         </div>
       </section>
 
-      <div style="display:flex;flex-direction:column;gap:14px;">
-        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
-          <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
-          ${pipeBars}
-          <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}</div>
-        </section>
-        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
-          <h4 style="font-size:15px;margin:0 0 8px;">Approvals waiting</h4>
-          ${apprRows}
-        </section>
+      <!-- right column: its content is absolutely filled so it never drives the row
+           height — the Portfolio card sets the height and this matches it exactly -->
+      <div style="position:relative;min-width:0;">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;min-height:0;">
+          <section style="flex:none;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
+            <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
+            ${pipeBars}
+            <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}</div>
+          </section>
+          <section style="flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;overflow:hidden;">
+            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting</h4>
+            <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${apprRows}</div>
+          </section>
+        </div>
       </div>
     </div>
   </div>`;
