@@ -373,11 +373,17 @@ function clearAIHistory(){
   renderAIFeed();
   toast('Conversation deleted');
 }
-/* Launcher badge: solid dot when minimized, pulsing when an unread answer waits. */
+/* Launcher badge: solid dot when minimized, pulsing when an unread answer waits.
+   Every Copilot entry point (sidebar #ai-badge, top-bar #cmd-ai, document-page
+   #ws-ai) carries a [data-ai-badge] dot, and they are all driven from the single
+   in-memory ai.unread/ai.minimized state here — so reading via ANY entry point
+   clears the indicator on ALL of them. */
 function updateAIBadge(){
-  const b=document.getElementById('ai-badge'); if(!b) return;
-  b.classList.toggle('hidden', !(ai.minimized||ai.unread));
-  b.classList.toggle('pulse', ai.unread);
+  const show=!!(ai.minimized||ai.unread), pulse=!!ai.unread;
+  document.querySelectorAll('[data-ai-badge]').forEach(b=>{
+    b.classList.toggle('hidden', !show);
+    b.classList.toggle('pulse', pulse);
+  });
 }
 function aiPush(role,payload){ ai.history.push({role,...payload}); }
 

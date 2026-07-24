@@ -208,8 +208,10 @@ const REG_STAGES=[
 ];
 // Derived from FOLDERS so custom (user-created) streams appear automatically.
 function regTypes(){
+  const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
+  const folders=Object.values(FOLDERS).filter(f=>acc==='*'||acc.includes(f.id));
   return [{k:'all',label:'All streams'}].concat(
-    Object.values(FOLDERS).map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
+    folders.map(f=>({ k:f.id, label:(typeof STREAM_SHORT!=='undefined'&&STREAM_SHORT[f.id])||f.name }))
   );
 }
 const REG_SORTS=[
@@ -226,7 +228,20 @@ const REG_VIEWS=[
   {k:'autosoon',   label:'Auto-renewing soon'},
   {k:'overdueob',  label:'Overdue obligations'},
 ];
-function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',page:1,sel:{},view:null}; return state.reg; }
+function regState(){ if(!state.reg) state.reg={query:'',stage:'all',type:'all',sort:'updated',dir:-1,page:1,sel:{},view:null}; return state.reg; }
+// Ascending-natural comparators; regFiltered() multiplies each by R.dir (1 = asc, -1 = desc)
+// so a column header click can toggle direction. STAGE follows lifecycle order.
+const REG_STAGE_ORDER={ 'Draft':0, 'Under Review':1, 'Signed':2, 'Declined':3 };
+const REG_CMP={
+  updated:(a,b)=>((Date.parse(a.lastAction)||0)-(Date.parse(b.lastAction)||0)),
+  value:(a,b)=>Number(a.value||0)-Number(b.value||0),
+  risk:(a,b)=>contractRisk(a)-contractRisk(b),
+  name:(a,b)=>(a.name||'').localeCompare(b.name||''),
+  expiry:(a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; },
+  stage:(a,b)=>((REG_STAGE_ORDER[a.status]??9)-(REG_STAGE_ORDER[b.status]??9)),
+};
+// direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
+const REG_SORT_DEFDIR={ updated:-1, value:-1, risk:-1, name:1, expiry:1, stage:1 };
 // total pages for the current filtered set (min 1)
 function regPageCount(cs){ return Math.max(1, Math.ceil(cs.length/REG_PAGE)); }
 // clamp + return the current 1-based page
@@ -276,12 +291,13 @@ function regFiltered(){
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
-  const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
-  if(R.sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
-  else if(R.sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
-  else if(R.sort==='risk') cs.sort((a,b)=>contractRisk(b)-contractRisk(a));
-  else if(R.sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
-  else if(R.sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
+  // Per-member folder/stream access: a restricted member only ever sees the
+  // streams an admin granted them (admins are always unrestricted).
+  const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
+  if(acc!=='*') cs=cs.filter(c=>acc.includes(c.folder));
+  const cmp=REG_CMP[R.sort]||REG_CMP.updated;
+  const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[R.sort]||-1);
+  cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
   return cs;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
@@ -446,6 +462,12 @@ function renderRegister(){
   const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
   const typePills=regTypes().map(t=>`<button class="reg-pill" data-reg-type="${t.k}" data-active="${R.type===t.k?'1':'0'}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
   const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+  // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
+  // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
+  const sortCaret=key=>R.sort===key
+    ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
+    : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
+  const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="Sort by ${label}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
   const viewPills=REG_VIEWS.map(v=>`<button class="reg-pill" data-reg-view="${v.k}" style="${pill(R.view===v.k)}">${v.label}</button>`).join('');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
     <select id="reg-renewal" style="${selStyle}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
@@ -467,6 +489,9 @@ function renderRegister(){
       .reg-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       .reg-pill:hover{border-color:var(--color-accent)}
+      .reg-th-sort:hover{color:var(--color-accent-700)!important}
+      .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
+      .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
     <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
       <!-- filter row 1: stage pills · Sort -->
@@ -515,15 +540,15 @@ function renderRegister(){
               <tr>
                 <th style="width:26px;padding-left:12px"><input id="reg-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
                 <th>ID</th>
-                <th>Contract</th>
+                ${sortableTh('name','Contract')}
                 <th>Stream</th>
                 <th>Owner</th>
-                <th style="text-align:right">Value</th>
-                <th>Risk</th>
-                <th>Renewal</th>
-                <th>Stage</th>
+                ${sortableTh('value','Value','text-align:right')}
+                ${sortableTh('risk','Risk')}
+                ${sortableTh('expiry','Renewal')}
+                ${sortableTh('stage','Stage')}
                 <th>Approval</th>
-                <th style="text-align:right;padding-right:12px">Updated</th>
+                ${sortableTh('updated','Updated','text-align:right;padding-right:12px')}
                 <th style="width:30px"></th>
               </tr>
             </thead>
@@ -549,7 +574,15 @@ function renderRegister(){
   // outside click closes the FTS dropdown and any open row ⋯ menu
   document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
   document.getElementById('reg-more')?.addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('reg-more-menu')?.classList.toggle('hidden'); });
-  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.page=1; renderRegisterBody(); });
+  document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; renderRegister(); });
+  // Column-header sorting: click a header to sort by it; click the active header
+  // again to flip ascending/descending. First click uses the column's natural
+  // direction (e.g. renewal nearest-first, value high-first).
+  document.querySelectorAll('[data-reg-sort]').forEach(el=>el.addEventListener('click',()=>{
+    const key=el.getAttribute('data-reg-sort');
+    if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }
+    R.page=1; renderRegister();
+  }));
   document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegisterBody(); });
   document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.page=1; renderRegister(); }));
   document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.page=1; renderRegister(); }));

@@ -5,6 +5,71 @@
 /* ============================================================
    VIEW: TEAM & SETTINGS
    ============================================================ */
+/* Parse an imported directory CSV into [{name,email,title}].
+   Detects a header row (Name/Email/Title in any order); without one it assumes
+   the columns are Name, Email, Title. Handles quoted fields and doubled quotes. */
+function parseDirectoryCsv(text){
+  const lines=String(text||'').replace(/\r\n?/g,'\n').split('\n').filter(l=>l.trim()!=='');
+  if(!lines.length) return [];
+  const parseLine=l=>{ const out=[]; let cur='',q=false;
+    for(let i=0;i<l.length;i++){ const ch=l[i];
+      if(q){ if(ch==='"'){ if(l[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+      else { if(ch==='"') q=true; else if(ch===','){ out.push(cur); cur=''; } else cur+=ch; } }
+    out.push(cur); return out.map(s=>s.trim()); };
+  const rows=lines.map(parseLine);
+  const head=rows[0].map(h=>h.toLowerCase());
+  let ni=0, ei=1, ti=2, dataStart=0;
+  if(head.some(h=>/name|email|mail|title/.test(h))){
+    ni=head.findIndex(h=>h.includes('name'));
+    ei=head.findIndex(h=>h.includes('mail'));
+    ti=head.findIndex(h=>h.includes('title'));
+    dataStart=1;
+  }
+  const out=[];
+  for(let i=dataStart;i<rows.length;i++){ const r=rows[i];
+    const name=ni>=0?(r[ni]||''):'', email=ei>=0?(r[ei]||''):'', title=ti>=0?(r[ti]||''):'';
+    if(!name && !email) continue;
+    out.push({ name, email:email.toLowerCase(), title });
+  }
+  return out;
+}
+/* Admin-only editor: grant a member every stream, or a specific subset. Stored
+   in state.settings.folderAccess and persisted through saveSettings() (both modes). */
+function openFolderAccessEditor(userId){
+  const u=getUsers().find(x=>x.id===userId); if(!u) return;
+  const cur=(((state.settings||{}).folderAccess)||{})[userId];
+  const isAll=(cur==null||cur==='*'||(Array.isArray(cur)&&!cur.length));
+  const set=new Set(Array.isArray(cur)?cur:[]);
+  const folders=Object.values(FOLDERS);
+  const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:12.5px">
+      <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
+      <span style="width:9px;height:9px;border-radius:2px;background:${f.color};flex:none"></span>
+      <span style="flex:1;min-width:0">${f.name}</span></label>`;
+  openModal(`<div class="p-6" style="max-width:460px">
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">Folder access — ${(u.name||u.email).replace(/</g,'&lt;')}</h3>
+    <p class="text-xs text-ink/60 mb-3">Grant every value stream, or restrict this member to a specific subset. Admins always keep full access.</p>
+    <label style="display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:10px">
+      <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> All streams &amp; folders</label>
+    <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
+    <div class="flex justify-end gap-2">
+      <button id="fa-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="fa-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save access</button></div>
+  </div>`);
+  const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
+  allBox.addEventListener('change',()=>{ list.style.display=allBox.checked?'none':'grid'; });
+  document.getElementById('fa-cancel').addEventListener('click',closeModal);
+  document.getElementById('fa-save').addEventListener('click',async()=>{
+    state.settings=state.settings||{}; state.settings.folderAccess=state.settings.folderAccess||{};
+    if(allBox.checked){ delete state.settings.folderAccess[userId]; }
+    else {
+      const ids=[...document.querySelectorAll('[data-fa-folder]')].filter(cb=>cb.checked).map(cb=>cb.getAttribute('data-fa-folder'));
+      if(!ids.length){ toast('Pick at least one stream, or choose All streams','err'); return; }
+      state.settings.folderAccess[userId]=ids;
+    }
+    try{ await saveSettings(); }catch(e){ toast('Could not save access: '+e.message,'err'); return; }
+    closeModal(); toast(`Folder access updated for ${u.name||u.email}`); renderTeam();
+  });
+}
 function renderTeam(){
   const me=currentUser();
 
@@ -24,10 +89,18 @@ function renderTeam(){
     return `display:inline-flex;align-items:center;font-size:10px;font-weight:600;letter-spacing:.04em;padding:3px 10px;border-radius:999px;background:${bg};color:${fg}`; };
 
   const users=getUsers();
+  const totalStreams=Object.keys(FOLDERS).length;
+  const accessSummary=x=>{
+    if(x.role==='admin') return 'All streams';
+    const v=(((state.settings||{}).folderAccess)||{})[x.id];
+    if(v==null||v==='*'||(Array.isArray(v)&&!v.length)) return 'All streams';
+    return `${v.length} of ${totalStreams} streams`;
+  };
   const rows=users.map(x=>{
     const ini=x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const isMe=x.id===me.id;
     const canManage=isAdmin()&&!isMe;
+    const restricted=x.role!=='admin' && accessSummary(x)!=='All streams';
     return `<tr style="border-bottom:1px solid var(--color-divider)">
       <td style="padding:8px 10px 8px 14px">
         <span style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -39,6 +112,10 @@ function renderTeam(){
         </span>
       </td>
       <td style="padding:8px 10px"><span style="${roleTag(x.role)}">${ROLE_LABEL[x.role]}</span></td>
+      <td style="padding:8px 10px;white-space:nowrap">
+        <span style="font-size:11.5px;color:${restricted?'#7d5a14':'var(--color-neutral-700)'}">${accessSummary(x)}</span>
+        ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="Edit folder access" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">Edit</button>`:''}
+      </td>
       <td style="padding:8px 10px;font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${x.status==='invited'?'Invited':'Active'}</td>
       <td style="padding:8px 14px 8px 10px;text-align:right;white-space:nowrap">
         ${canManage?`<select data-role-for="${x.id}" title="Change role" style="font-size:11px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;color:inherit;font-family:inherit;outline:none">
@@ -70,6 +147,7 @@ function renderTeam(){
               <tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:10px;letter-spacing:.08em;text-transform:uppercase">
                 <th style="padding:8px 10px 8px 14px;font-weight:600">Member</th>
                 <th style="padding:8px 10px;font-weight:600">Role</th>
+                <th style="padding:8px 10px;font-weight:600">Folder access</th>
                 <th style="padding:8px 10px;font-weight:600">Status</th>
                 <th style="padding:8px 14px 8px 10px;font-weight:600;text-align:right">Manage</th>
               </tr>
@@ -83,6 +161,7 @@ function renderTeam(){
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <input id="tm-name" type="text" placeholder="Full name" style="${inputStyle}"/>
             <input id="tm-email" type="email" placeholder="Work email" style="${inputStyle}"/>
+            <input id="tm-title" type="text" placeholder="Title (e.g. CFO) — optional" style="${inputStyle}"/>
             <select id="tm-role" style="${inputStyle}">
               <option value="legal">Legal — edit &amp; sign</option>
               <option value="viewer">Viewer — read only</option>
@@ -91,6 +170,13 @@ function renderTeam(){
             <input id="tm-pass" type="password" placeholder="Temporary password (min 8)" style="${inputStyle}"/>
           </div>
           <button id="tm-add" style="margin-top:10px;${primaryBtn}">Add member</button>
+        </div>
+        <div style="padding:12px 14px;border-top:1px solid var(--color-divider)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px">
+            <div style="font-family:var(--font-mono);font-weight:600;font-size:11px;color:var(--color-neutral-700);text-transform:uppercase;letter-spacing:.06em">Directory · ${(((state.settings||{}).directory)||[]).length} contact${(((state.settings||{}).directory)||[]).length===1?'':'s'}</div>
+            <label style="${secondaryBtn}">${icon('upload','w-3.5 h-3.5')} Import CSV<input id="dir-import" type="file" accept=".csv,text/csv" style="display:none"/></label>
+          </div>
+          <div style="font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Bulk-add signer contacts so titles &amp; emails auto-fill when adding signers on a contract. CSV columns: <b>Name, Email, Title</b>.${(((state.settings||{}).directory)||[]).length?` · <button id="dir-clear" style="color:#b0453c;background:none;border:0;cursor:pointer;font-weight:600;font-size:10.5px">Clear directory</button>`:''}</div>
         </div>`:''}
       </section>
 
@@ -333,7 +419,7 @@ function renderTeam(){
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
     const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
-    const pass=document.getElementById('tm-pass').value;
+    const title=fval('tm-title'), pass=document.getElementById('tm-pass').value;
     if(!name||!email){ toast('Name and email are required','err'); return; }
     if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
     if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
@@ -345,8 +431,38 @@ function renderTeam(){
       const salt=newSalt();
       saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
+    // Mirror the member into the directory (with their title) so signer fields auto-fill.
+    state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
+    const ex=dir.find(p=>(p.email||'').toLowerCase()===email);
+    if(ex){ ex.name=name; if(title) ex.title=title; } else dir.push({ name, email, title:title||'' });
+    state.settings.directory=dir; saveSettings();
     toast(`${name} added as ${ROLE_LABEL[role]}${API_MODE()?' — an invite email was queued':' — share their temporary password securely'}`);
     renderTeam();
+  });
+  document.querySelectorAll('[data-access-for]').forEach(b=>b.addEventListener('click',()=>openFolderAccessEditor(b.getAttribute('data-access-for'))));
+  document.getElementById('dir-import')?.addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=async()=>{
+      const parsed=parseDirectoryCsv(rd.result);
+      if(!parsed.length){ toast('No Name/Email rows found in that CSV','err'); return; }
+      state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
+      const byEmail={}; dir.forEach(p=>{ if(p.email) byEmail[p.email.toLowerCase()]=p; });
+      let added=0, updated=0;
+      parsed.forEach(r=>{ const k=(r.email||'').toLowerCase();
+        if(k && byEmail[k]){ const p=byEmail[k]; if(r.name)p.name=r.name; if(r.title)p.title=r.title; updated++; }
+        else { const p={ name:r.name||'', email:r.email||'', title:r.title||'' }; dir.push(p); if(k)byEmail[k]=p; added++; } });
+      state.settings.directory=dir;
+      try{ await saveSettings(); }catch(err){ toast('Import saved locally but server sync failed: '+err.message,'err'); }
+      toast(`Directory import: ${added} added${updated?`, ${updated} updated`:''}`);
+      renderTeam();
+    };
+    rd.readAsText(f); e.target.value='';
+  });
+  document.getElementById('dir-clear')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:'Clear the directory?', message:'Removes all imported contacts. Team members are not affected.', confirmLabel:'Clear directory', danger:true})) return;
+    state.settings=state.settings||{}; state.settings.directory=[]; await saveSettings();
+    toast('Directory cleared'); renderTeam();
   });
   document.querySelectorAll('[data-role-for]').forEach(sel=>sel.addEventListener('change',async()=>{
     const us=getUsers(); const u=us.find(x=>x.id===sel.getAttribute('data-role-for'));

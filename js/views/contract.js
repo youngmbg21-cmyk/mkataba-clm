@@ -641,6 +641,31 @@ function wsNextAction(c){
   return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
+/* ---- Document workspace right-panel tabs -------------------------------
+   The right sidebar used to stack every widget (findings, playbook, shares,
+   negotiation, versions, obligations, audit, comments, verification) into one
+   long vertical scroll with nested scrollbars. These group them into four
+   tabs so only one set shows at a time; Key terms and the Sign action stay
+   pinned outside the tabs so signature progress is always in view. The tab
+   choice persists across re-renders within the session. */
+let _docTab='review';
+const DOC_TABS=['review','signing','activity','terms'];
+function docTabBtn(k,label,ic){
+  return `<button data-doc-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:6px;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-600);padding:6px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
+}
+function applyDocTab(){
+  const root=document.getElementById('doc-right'); if(!root) return;
+  if(!DOC_TABS.includes(_docTab)) _docTab='review';
+  root.querySelectorAll('[data-doc-pane]').forEach(p=>{ p.style.display=(p.getAttribute('data-doc-pane')===_docTab)?'flex':'none'; });
+  root.querySelectorAll('#doc-tabs [data-doc-tab]').forEach(b=>{ const on=b.getAttribute('data-doc-tab')===_docTab;
+    b.style.background=on?'var(--color-accent-800)':'none';
+    b.style.color=on?'#fff':'var(--color-neutral-600)';
+  });
+}
+function wireDocTabs(){
+  document.querySelectorAll('#doc-tabs [data-doc-tab]').forEach(b=>b.addEventListener('click',()=>{ _docTab=b.getAttribute('data-doc-tab'); applyDocTab(); }));
+  applyDocTab();
+}
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -708,7 +733,7 @@ function renderWorkspace(){
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`
           <button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
-          <button id="ws-ai" title="Ask HaTi AI" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
+          <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
         </div>
         <!-- document body (scrolls within the left pane) -->
         <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 28px;background:var(--color-bg)">
@@ -740,7 +765,7 @@ function renderWorkspace(){
 
       <div id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
 
-        <!-- Key terms -->
+        <!-- Key terms (always visible — the document's at-a-glance context) -->
         <section style="${CARD};padding:12px">
           <h6 style="${H6};margin-bottom:8px">Key terms</h6>
           <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px">${c.counterparty||'—'}</span></div>
@@ -752,56 +777,72 @@ function renderWorkspace(){
           <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
         </section>
 
-        <!-- AI scan (renderScanSection) -->
-        <div id="scan-section" style="${CARD};overflow:hidden"></div>
+        <!-- Tabbed navigation: groups the working panels so they no longer stack
+             into one long scroll. Key terms (above) and the Sign action (below)
+             stay pinned; everything else lives under a tab. -->
+        <div id="doc-tabs" style="position:sticky;top:0;z-index:3;display:flex;gap:2px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:3px">
+          ${docTabBtn('review','Review','scan')}
+          ${docTabBtn('signing','Signing','finger')}
+          ${docTabBtn('activity','Activity','msg')}
+          ${docTabBtn('terms','Terms','list')}
+        </div>
 
-        <!-- Playbook / shares / negotiation / versions / obligations / engagement (empty:hidden) -->
-        <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-        <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        <!-- REVIEW: AI findings + playbook -->
+        <div data-doc-pane="review" style="display:flex;flex-direction:column;gap:12px">
+          <div id="scan-section" style="${CARD};overflow:hidden"></div>
+          <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        </div>
 
-        <!-- Audit trail (renderAuditSection) -->
-        <div id="audit-section" style="${CARD};overflow:hidden"></div>
-
-        <!-- Activity & comments -->
-        <section style="${CARD};padding:12px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <h6 style="${H6};flex:1">Activity &amp; comments</h6>
-            <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
-          </div>
-          <div id="feed" class="space-y-3 scroll-thin" style="max-height:280px;overflow-y:auto;padding-right:4px"></div>
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
-            <div style="display:flex;gap:6px">
-              <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
-              <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
+        <!-- SIGNING: verification & consent + shares out with the counterparty -->
+        <div data-doc-pane="signing" style="display:none;flex-direction:column;gap:12px">
+          <section style="${CARD};padding:12px">
+            <h6 style="${H6};margin-bottom:8px">Signer verification &amp; consent</h6>
+            <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px;margin-bottom:8px;font-size:12px">
+              <div style="font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:2px">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
+              <div style="color:var(--color-neutral-700);font-family:var(--font-mono);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
+              <div style="color:var(--color-neutral-600);font-size:11px;margin-top:2px;line-height:1.4">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
             </div>
-          </div>
-        </section>
+            <label class="${(locked||!canEdit())?'opacity-70 pointer-events-none':''}" style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
+              <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+              <span style="font-size:12px">
+                <span style="font-weight:600;display:block">I intend to sign electronically</span>
+                <span style="color:var(--color-neutral-700);display:block;line-height:1.4">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
+              </span>
+            </label>
+            <div style="margin-top:8px;font-size:10px;color:var(--color-neutral-600);line-height:1.4;display:flex;align-items:flex-start;gap:4px">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
+          </section>
+          <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        </div>
 
-        <!-- Signer verification & consent -->
-        <section style="${CARD};padding:12px">
-          <h6 style="${H6};margin-bottom:8px">Signer verification &amp; consent</h6>
-          <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px;margin-bottom:8px;font-size:12px">
-            <div style="font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:2px">${icon('finger','w-3.5 h-3.5')} Signing as ${currentUser()?.name||'you'}</div>
-            <div style="color:var(--color-neutral-700);font-family:var(--font-mono);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${currentUser()?.email||''}</div>
-            <div style="color:var(--color-neutral-600);font-size:11px;margin-top:2px;line-height:1.4">Identity is established by your authenticated account session; time, device and (on the server) IP are recorded on signing.</div>
-          </div>
-          <label class="${(locked||!canEdit())?'opacity-70 pointer-events-none':''}" style="display:flex;align-items:flex-start;gap:10px;border:1px solid var(--color-divider);border-radius:4px;padding:10px;cursor:pointer">
-            <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} ${(locked||!canEdit())?'disabled':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-            <span style="font-size:12px">
-              <span style="font-weight:600;display:block">I intend to sign electronically</span>
-              <span style="color:var(--color-neutral-700);display:block;line-height:1.4">I agree this electronic signature is legally binding under the Business Laws (Amendment) Act 2020.</span>
-            </span>
-          </label>
-          <div style="margin-top:8px;font-size:10px;color:var(--color-neutral-600);line-height:1.4;display:flex;align-items:flex-start;gap:4px">${icon('alert','w-3 h-3 mt-px shrink-0')}<span>Government IPRS identity and CAK-accredited PKI e-signatures are on the roadmap and not yet integrated. The counterparty verifies by email one-time code when signing.</span></div>
-        </section>
+        <!-- ACTIVITY: comments feed + counterparty engagement + audit trail -->
+        <div data-doc-pane="activity" style="display:none;flex-direction:column;gap:12px">
+          <section style="${CARD};padding:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Activity &amp; comments</h6>
+              <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
+            </div>
+            <div id="feed" class="space-y-3 scroll-thin" style="max-height:320px;overflow-y:auto;padding-right:4px"></div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
+              <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
+              <div style="display:flex;gap:6px">
+                <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
+              </div>
+            </div>
+          </section>
+          <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="audit-section" style="${CARD};overflow:hidden"></div>
+        </div>
+
+        <!-- TERMS: obligations, negotiation rounds & version history -->
+        <div data-doc-pane="terms" style="display:none;flex-direction:column;gap:12px">
+          <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+        </div>
 
         <!-- Sign action (renderSignButton) — pinned to the bottom of the panel -->
-        <section style="${CARD};padding:12px;position:sticky;bottom:0;z-index:1;box-shadow:var(--shadow-md)"><div id="sign-wrap"></div></section>
+        <section style="${CARD};padding:12px;position:sticky;bottom:0;z-index:2;box-shadow:var(--shadow-md)"><div id="sign-wrap"></div></section>
 
       </div>
     </div>
@@ -809,6 +850,7 @@ function renderWorkspace(){
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
+  wireDocTabs();   // group the right-panel widgets into tabs (Review / Signing / Activity / Terms)
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
@@ -843,6 +885,7 @@ function renderWorkspace(){
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+  window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
 
   // Draggable right-panel resizer: drag the left-edge handle to widen the panel
   // leftward (300–450px); the width is clamped and remembered. Live-updates the

@@ -117,6 +117,9 @@ function distributionRecipients(c){
 function openSignerPlanEditor(c){
   const plan=(c.signerPlan||[]).slice();
   const members=(getUsers()||[]).filter(u=>u.role!=='viewer');
+  // People directory (imported contacts + team members) → drives name auto-fill.
+  const people=(typeof orgDirectory==='function')?orgDirectory():[];
+  const dirList=`<datalist id="sp-dir-names">${people.map(p=>`<option value="${(p.name||p.email||'').replace(/"/g,'&quot;')}">${[p.title,p.email].filter(Boolean).join(' · ').replace(/"/g,'&quot;')}</option>`).join('')}</datalist>`;
   const IN='rounded-lg border border-inputln bg-white px-2 py-1.5 text-[12px]';
   const memberOpts=s=>`<option value="">— pick member —</option>`+members.map(u=>`<option value="${u.id}" ${s.memberId===u.id?'selected':''}>${(u.name||u.email).replace(/</g,'&lt;')}</option>`).join('');
   const row=(s,i)=>`<div class="rounded-xl border border-line bg-slate-50/60 p-2.5 mb-2" data-sp-row="${i}">
@@ -133,15 +136,17 @@ function openSignerPlanEditor(c){
           <button data-sp-del="${i}" class="text-rose-500 hover:text-rose-700 text-[11px] font-600 ml-1">✕</button></div>
       </div>
       <div class="grid grid-cols-3 gap-2">
-        <input data-sp-name="${i}" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Name" class="${IN}"/>
+        <input data-sp-name="${i}" list="sp-dir-names" value="${(s.name||'').replace(/"/g,'&quot;')}" placeholder="Name" class="${IN}"/>
         <input data-sp-role="${i}" value="${(s.role||'').replace(/"/g,'&quot;')}" placeholder="Title (e.g. CFO)" class="${IN}"/>
         <input data-sp-email="${i}" value="${(s.email||'').replace(/"/g,'&quot;')}" placeholder="Email" class="${IN}"/>
       </div></div>`;
   openModal(`<div class="p-6" style="max-width:560px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">Signing route</h3>
     <p class="text-xs text-ink/60 mb-3">Signers execute <b>in order</b>. Internal members sign in-app (bind each to a team member); counterparty signers each get their own secure link, which stays dormant until every internal signature is in. Each signer freely chooses how they sign (draw / type / upload). The seal is applied when the last signature lands.</p>
+    ${dirList}
     <div id="sp-rows">${plan.map(row).join('')||'<div class="text-[12px] text-ink/50 mb-2">No signers yet — add the people who must sign, in order.</div>'}</div>
     <button id="sp-add" class="text-[12px] font-600 text-brand-600 hover:text-brand-800 mb-4">+ Add signer</button>
+    ${people.length?`<p class="text-[11px] text-ink/45 mb-3">Tip: start typing a name — titles &amp; emails auto-fill from your directory.</p>`:''}
     <div class="flex justify-end gap-2"><button id="sp-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
       <button id="sp-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save route</button></div>
   </div>`);
@@ -158,9 +163,20 @@ function openSignerPlanEditor(c){
     document.querySelectorAll('[data-sp-member]').forEach(sel=>sel.addEventListener('change',()=>{
       syncPlanFromDom();                       // capture any typed values first
       const i=Number(sel.getAttribute('data-sp-member')), u=userById(sel.value);
-      if(u){ plan[i].memberId=u.id; plan[i].name=u.name; plan[i].email=u.email; if(!plan[i].role) plan[i].role=ROLE_LABEL[u.role]||''; }
+      if(u){ plan[i].memberId=u.id; plan[i].name=u.name; plan[i].email=u.email;
+        if(!plan[i].role){ const p=(typeof directoryLookup==='function')&&(directoryLookup(u.email)||directoryLookup(u.name)); plan[i].role=(p&&p.title)||ROLE_LABEL[u.role]||''; } }
       else { plan[i].memberId=''; }
       rerow(); }));
+    // Auto-populate: typing or selecting a directory name fills the empty Title
+    // and Email fields for that signer (never overwrites values already entered).
+    document.querySelectorAll('[data-sp-name]').forEach(inp=>inp.addEventListener('change',()=>{
+      const i=Number(inp.getAttribute('data-sp-name'));
+      const p=(typeof directoryLookup==='function')&&directoryLookup(inp.value);
+      if(!p) return;
+      const roleEl=document.querySelector(`[data-sp-role="${i}"]`), emailEl=document.querySelector(`[data-sp-email="${i}"]`);
+      if(p.title && roleEl && !roleEl.value.trim()) roleEl.value=p.title;
+      if(p.email && emailEl && !emailEl.value.trim()) emailEl.value=p.email;
+    }));
   };
   document.getElementById('sp-add').addEventListener('click',()=>{ syncPlanFromDom(); plan.push({party:'internal',name:'',role:'',email:'',memberId:''}); rerow(); });
   wire();
