@@ -211,28 +211,6 @@
   .nav-section.open .nav-plus::after{opacity:0;}
   .nav-section-head:hover .nav-plus{opacity:1;}
   .nav-section:not(.open) .nav-section-body{display:none;}
-  /* ---- Collapsible icon rail: hide labels, keep the icons ("signs") ---- */
-  #nav-toggle{flex:none;width:24px;height:24px;border:0;background:none;color:var(--color-neutral-500);cursor:pointer;display:grid;place-items:center;border-radius:5px;transition:background .12s,color .12s;}
-  #nav-toggle:hover{background:var(--color-accent-100);color:var(--color-accent-800);}
-  #nav-toggle svg{transition:transform .15s;}
-  #app-shell.nav-collapsed{grid-template-columns:60px 1fr;}
-  .nav-collapsed .brand-text,
-  .nav-collapsed .nav-section-head,
-  .nav-collapsed .nav-item > span:not(.nav-rail),
-  .nav-collapsed .sc-label,
-  .nav-collapsed .foot-status,
-  .nav-collapsed #side-ai-usage,
-  .nav-collapsed .foot-id-text{display:none!important;}
-  .nav-collapsed .nav-section-body{display:flex!important;flex-direction:column;gap:1px;}
-  .nav-collapsed .nav-section + .nav-section{margin-top:6px;border-top:1px solid var(--color-divider);padding-top:6px;}
-  .nav-collapsed .nav-item{justify-content:center;padding:8px;}
-  .nav-collapsed .brand-block{flex-direction:column;gap:8px;padding:12px 0 10px;}
-  .nav-collapsed #nav-toggle svg{transform:rotate(180deg);}
-  .nav-collapsed .copilot-wrap{padding:8px 8px;}
-  .nav-collapsed #side-copilot{padding:9px 0;gap:0;}
-  .nav-collapsed .foot-wrap{padding:10px 0;align-items:center;}
-  .nav-collapsed .foot-id{flex-direction:column;gap:10px;}
-  .nav-collapsed #rail-avatar{justify-content:center;flex:none;}
 
   .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
   .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-800);}
@@ -335,15 +313,12 @@
   <!-- ================= SIDEBAR (210px) ================= -->
   <aside style="display:flex;flex-direction:column;background:#f6f8fc;border-right:1px solid var(--color-divider);min-height:0;">
     <!-- brand block -->
-    <div class="brand-block" style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
-      <div id="brand-mark" style="width:30px;height:30px;flex:none;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
-      <div class="brand-text" style="line-height:1.15;flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
+      <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
+      <div style="line-height:1.15;">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
         <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
       </div>
-      <button id="nav-toggle" type="button" title="Collapse navigation" aria-label="Collapse navigation">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
     </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;" class="scroll-thin">
