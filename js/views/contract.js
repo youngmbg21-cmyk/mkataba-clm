@@ -682,6 +682,45 @@ function wireDocTabs(){
   document.getElementById('screening-next')?.addEventListener('click',()=>{ _docTopTab='signing'; applyDocTabs(); const r=document.getElementById('doc-right'); if(r) r.scrollTo({top:0,behavior:'smooth'}); });
   applyDocTabs();
 }
+/* Draggable divider between the contract (left) and workspace (right). The
+   contract can only grow — from its default width up to +25% — never narrower;
+   the right panel gives up the space. The chosen fraction is remembered. */
+const DOC_F0 = 1.2 / 2.2;                 // default left share (matches the 1.2fr:1fr grid)
+const DOC_FMAX = DOC_F0 * 1.25;           // +25% wider contract, max
+const DOC_GAP = 12;
+function _docLeftFrac(){
+  try{ const v=Number(lsGet('hati.v1.docLeftFrac')); return (v>=DOC_F0-0.001&&v<=DOC_FMAX+0.001)?v:DOC_F0; }catch(_){ return DOC_F0; }
+}
+function layoutDocResizer(){
+  const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
+  if(!grid||!rez) return;
+  const avail=Math.max(1, grid.clientWidth - DOC_GAP);
+  const leftPx=Math.round(_docLeftFrac()*avail);
+  grid.style.gridTemplateColumns=leftPx+'px minmax(0,1fr)';
+  rez.style.left=leftPx+'px';            // handle sits in the gap immediately right of the contract
+}
+function wireDocResizer(){
+  const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
+  if(!grid||!rez) return;
+  const grip=rez.firstElementChild;
+  const clamp=f=>Math.max(DOC_F0, Math.min(DOC_FMAX, f));
+  layoutDocResizer();
+  let startX=0, startFrac=DOC_F0;
+  const onMove=e=>{ const x=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX);
+    const avail=Math.max(1, grid.clientWidth - DOC_GAP);
+    const frac=clamp(startFrac + (x-startX)/avail);
+    try{ lsSet('hati.v1.docLeftFrac',frac); }catch(_){}
+    layoutDocResizer(); };
+  const onUp=()=>{ delete rez.dataset.drag; grip.style.background='var(--color-divider)';
+    document.body.style.cursor=''; document.body.style.userSelect='';
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); };
+  rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
+    startX=e.clientX; startFrac=_docLeftFrac();
+    grip.style.background='var(--color-accent)'; document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+  rez.addEventListener('dblclick',()=>{ try{ lsSet('hati.v1.docLeftFrac',DOC_F0); }catch(_){} layoutDocResizer(); });
+  if(!window._docResizeBound){ window._docResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='workspace') layoutDocResizer(); }); }
+}
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -758,8 +797,8 @@ function renderWorkspace(){
       </div>
     </section>
 
-    <!-- ============ BODY: contract (left half) · workspace (right half) ============ -->
-    <div id="doc-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px">
+    <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
+    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px">
 
       <!-- LEFT: document -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
@@ -866,6 +905,11 @@ function renderWorkspace(){
           </div>
         </div>
       </section>
+
+      <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
+      <div id="doc-resizer" title="Drag right to widen the contract (up to +25%) · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:12px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-divider)'">
+        <span style="width:3px;height:44px;border-radius:999px;background:var(--color-divider);transition:background .15s"></span>
+      </div>
     </div>
   </div>`;
 
@@ -873,6 +917,7 @@ function renderWorkspace(){
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderInsertClauseSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
+  wireDocResizer();   // draggable divider — contract can grow up to +25%, never below default
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
