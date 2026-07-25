@@ -396,6 +396,31 @@ function dataUrlBytes(dataUrl){
     for(let j=0;j<bin.length;j++) arr[j]=bin.charCodeAt(j); return arr; }
   return new TextEncoder().encode(decodeURIComponent(body));
 }
+/* A browsable URL for an uploaded document. The bytes are held as a data: URL,
+   but the server-mode CSP won't frame those (default-src 'self'), so the
+   preview showed Chrome's "This content is blocked" panel. A blob: URL carries
+   the same bytes, is same-document, and is what frame-src allows. */
+const _docBlobUrls=new Map();   // "<contract id>:<file hash>" → object URL
+function docFileUrl(c){
+  const u=(c&&c.upload)||{};
+  if(!u.dataUrl) return '';
+  const key=c.id+':'+(u.fileHash||u.fileName||'');
+  const hit=_docBlobUrls.get(key); if(hit) return hit;
+  let url;
+  try{ url=URL.createObjectURL(new Blob([dataUrlBytes(u.dataUrl)],{type:u.mime||'application/octet-stream'})); }
+  catch(e){ return u.dataUrl; }
+  // a session only ever reads a handful of documents; drop the oldest but never
+  // the one being rendered right now
+  if(_docBlobUrls.size>16){
+    for(const [k,v] of _docBlobUrls){
+      if(k===key) continue;
+      URL.revokeObjectURL(v); _docBlobUrls.delete(k);
+      if(_docBlobUrls.size<=8) break;
+    }
+  }
+  _docBlobUrls.set(key,url);
+  return url;
+}
 async function extractDocText(dataUrl, mime){
   try{
     const bytes=dataUrlBytes(dataUrl);
@@ -677,15 +702,16 @@ function uploadDocBody(c){
   // a generous reading surface: fills the viewport height, with an Expand
   // control that opens the document near-fullscreen for comfortable review
   const canPreview = isPdf||isText||isImg;
+  const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Document preview</div>
       <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + ((isPdf||isText)
-    ? `<iframe id="uploaded-doc-frame" src="${u.dataUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
+    ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
     : isImg
-    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${u.dataUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
@@ -705,8 +731,9 @@ function uploadDocBody(c){
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
       <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>
     ${c.redlineText?`
     <div class="mb-4" data-anchor="redline">
@@ -721,12 +748,43 @@ function uploadDocBody(c){
     ${signatureBlock(c)}`;
 }
 
+/* Read the stored original again and replace the extracted text. Documents
+   uploaded before an extraction improvement keep whatever text was read at the
+   time; the file itself is still on record, so re-reading repairs them in place
+   without a re-upload. Safe on executed contracts too — an upload's seal binds
+   the file's own hash, not this text (see sealString). */
+async function rereadUploadText(c, btn){
+  if(!canEdit()){ toast('Viewers cannot change contracts','err'); return; }
+  const u=c.upload||{};
+  const restore=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    if(!u.dataUrl && u.fileId && API_MODE()){
+      const f=await api('files/'+u.fileId); u.dataUrl=f.dataUrl;
+    }
+    if(!u.dataUrl) throw new Error('the original file is not available on this record');
+    const text=await extractDocText(u.dataUrl, u.mime||'');
+    if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+    const before=Number(u.textChars||0);
+    u.extractedText=text; u.textChars=text.length;
+    c.lastAction=todayStr();
+    logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+    persist(c);
+    toast(`Document re-read — ${text.length.toLocaleString()} characters`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not re-read this document — '+e.message,'err');
+    if(btn){ btn.disabled=false; btn.innerHTML=restore; }
+  }
+}
+
 // near-fullscreen reader for a received document — the reading surface the
 // inline preview can't give inside the split workspace
-function openDocReader(url, name){
+function openDocReader(url, name, mime){
   if(!url) return;
   const prev=document.getElementById('doc-reader'); if(prev) prev.remove();
-  const isImg=/^data:image\//.test(url);
+  // the url may be a blob: handle, which carries no type — trust the stored mime
+  const isImg=mime?/^image\//.test(mime):/^data:image\//.test(url);
   const body=isImg
     ? `<div class="flex-1 min-h-0 overflow-auto bg-docbg grid place-items-start p-4"><img src="${url}" class="max-w-full mx-auto" alt="${(name||'Document').replace(/"/g,'')}"/></div>`
     : `<iframe src="${url}" class="flex-1 min-h-0 w-full bg-white" title="${(name||'Document').replace(/"/g,'')}"></iframe>`;
@@ -1012,6 +1070,56 @@ function wsNextAction(c){
   return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
+/* The status strip under the document header. Split out so filling in the key
+   terms can refresh the guidance and the primary button in place, without
+   re-rendering the workspace under the cursor. */
+function actionBarHtml(c){
+  const locked=c.status==='Signed';
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
+  if(!canEdit()) return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`;
+  const na=wsNextAction(c);
+  return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`
+    + `<span style="flex:1"></span>`
+    + (na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:'');
+}
+function renderActionBar(c){
+  const host=document.getElementById('ws-actionbar'); if(!host) return;
+  host.innerHTML=actionBarHtml(c);
+  wireActionBar(c);
+}
+function wireActionBar(c){
+  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
+  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+    const kind=e.currentTarget.getAttribute('data-na');
+    if(kind==='evidence'){ downloadEvidence(c); return; }
+    if(kind==='share'){ openShareModal(c); return; }
+    if(kind==='terms'){ focusKeyTerms(c); return; }
+    if(kind==='review'){
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
+      return;
+    }
+    if(kind==='sign-scroll'){
+      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
+      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      toast('Tick intent-to-sign, then Sign');
+      return;
+    }
+    if(kind==='sign'){ signDocument(c); return; }
+  });
+}
+/* "Complete key terms" — put the cursor where the terms can actually be typed:
+   the quick-fill fields of a generated body, else the Key terms panel (which
+   lives on the Signing tab, so switch to it first). */
+function focusKeyTerms(c){
+  const inDoc=document.querySelector('#doc-canvas [data-sync]');
+  if(inDoc){ inDoc.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>inDoc.focus(),300); return; }
+  const panel=document.querySelector('[data-kt="counterparty"]');
+  if(!panel){ toast('This document has no editable key terms','err'); return; }
+  _docTopTab='signing'; applyDocTabs();
+  const right=document.getElementById('doc-right'); if(right) right.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>{ panel.focus(); panel.select&&panel.select(); },250);
+}
+
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → AI Contract Scan, with a "Next: Signing" button. Signing
@@ -1122,7 +1230,12 @@ function renderWorkspace(){
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
+  // Key terms stay editable until the seal binds them (sealString folds
+  // counterparty/value/valueType in), and only for roles that can edit.
+  const ktEditable=!locked&&canEdit()&&!PORTAL_MODE;
+  const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
   // Back returns to wherever the workspace was opened from (register/folder/queue…),
   // defaulting to the register. state.wsReturn is captured in setView.
   const _wr=state.wsReturn||{};
@@ -1154,18 +1267,7 @@ function renderWorkspace(){
           <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
-        ${locked
-          ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span>`
-          : !canEdit()
-          ? `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`
-          : (()=>{ const na=wsNextAction(c); return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`; })()}
-        <span style="flex:1"></span>
-        ${locked
-          ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
-          : !canEdit() ? ''
-          : (()=>{ const na=wsNextAction(c); return na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:''; })()}
-      </div>
+      <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
     <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
@@ -1231,16 +1333,38 @@ function renderWorkspace(){
         <!-- ===== SIGNING: Key terms (top) + inner tabs (Signing / Obligations / Audit) ===== -->
         <div data-top-pane="signing" style="display:none;flex-direction:column;gap:12px">
 
-          <!-- Key terms (read-only, derived from the contract) -->
+          <!-- Key terms. Editable until the contract is sealed: counterparty,
+               value and valueType are folded into the seal, and for uploaded or
+               template-based documents this panel is the ONLY place they can be
+               set (a generated body carries its own quick-fill fields). -->
           <div style="${CARD};padding:12px">
-            <h6 style="${H6};margin-bottom:8px">Key terms</h6>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Key terms</h6>
+              ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+            </div>
+            ${ktEditable?`
+            <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
+              <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Value</span>
+              <input data-kt="value" type="number" min="0" value="${c.value||''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></label>
+            <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
+                <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+            <label style="${KROW}"><span style="${KKEY}">Effective</span>
+              <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Expiry</span>
+              <input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/></label>
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`
+            :`
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
             ${kv('Expiry',c.expiry||'—')}
-            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
           </div>
 
           <!-- Bottom card: inner tabs -->
@@ -1295,28 +1419,8 @@ function renderWorkspace(){
       if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
     }).catch(()=>{});
   }
-  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
-    const kind=e.currentTarget.getAttribute('data-na');
-    if(kind==='evidence'){ downloadEvidence(c); return; }
-    if(kind==='share'){ openShareModal(c); return; }
-    if(kind==='terms'){
-      const first=document.querySelector('#doc-canvas [data-sync], #doc-canvas [data-field]');
-      if(first){ first.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>first.focus(),300); }
-      else toast('Add the counterparty and value in the key terms panel','err');
-      return;
-    }
-    if(kind==='review'){
-      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
-      return;
-    }
-    if(kind==='sign-scroll'){
-      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
-      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
-      toast('Tick intent-to-sign, then Sign');
-      return;
-    }
-    if(kind==='sign'){ signDocument(c); return; }
-  });
+  wireKeyTerms(c);
+  wireActionBar(c);
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
@@ -1325,37 +1429,56 @@ function renderWorkspace(){
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
 
-  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
-  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
+  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(c.upload?.dataUrl, c.upload?.fileName||c.name));
+  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
+  document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
   setActiveNav('workspace');
 }
 
-/* -------- doc field sync -------- */
+/* -------- doc field sync --------
+   Counterparty and value can be typed in two places: the quick-fill inputs
+   inside a generated document body, and the Key terms panel (the only place for
+   uploaded or template-based documents). Both write the same fields, so every
+   on-screen copy is refreshed after each edit. */
+function syncKeyTermsUI(c, source){
+  const put=(sel,val)=>document.querySelectorAll(sel).forEach(el=>{ if(el!==source&&el.value!==String(val)) el.value=val; });
+  put('#doc-canvas [data-sync="counterparty"], [data-kt="counterparty"]', c.counterparty||'');
+  put('#doc-canvas [data-sync="value"], [data-kt="value"]', c.value||'');
+  const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
+  const mv=document.getElementById('meta-value');
+  if(mv){
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
+  }
+}
+/* Draft leaves drafting the moment the terms needed to review it are present.
+   Everything that reads those terms is refreshed with it: the guidance strip,
+   the signing checklist ("Complete: counterparty name, contract value…") and
+   the renewal date the obligations panel derives from the expiry. */
+function keyTermsProgress(c){
+  if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
+    c.status='Under Review'; updateStatusUI(c);
+    logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
+  }
+  renderActionBar(c);
+  renderSignButton(c);
+  window.renderObligationsSection&&renderObligationsSection(c);
+}
 function wireDocumentSync(c){
   const canvas=document.getElementById('doc-canvas');
   canvas.querySelectorAll('[data-sync]').forEach(inp=>{
     inp.addEventListener('input',()=>{
       const key=inp.getAttribute('data-sync');
-      if(key==='value'){
-        c.value=inp.value===''?0:Number(inp.value);
-        const mv=document.getElementById('meta-value');
-        mv.textContent=c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—';
-        mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
-      } else if(key==='counterparty'){
-        c.counterparty=inp.value;
-        document.getElementById('meta-cp').textContent=c.counterparty||'—';
-      }
-      if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
-        c.status='Under Review'; updateStatusUI(c);
-        logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
-      }
+      if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='counterparty') c.counterparty=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
       persist(c); renderAuditSection(c);
@@ -1367,6 +1490,70 @@ function wireDocumentSync(c){
     logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
     persist(c); renderAuditSection(c);
   }));
+}
+
+/* -------- Key terms panel -------- */
+function wireKeyTerms(c){
+  const LABEL={counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
+               effDate:'effective date', expiry:'expiry date'};
+  document.querySelectorAll('[data-kt]').forEach(inp=>{
+    const key=inp.getAttribute('data-kt');
+    const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
+    inp.addEventListener(evt,()=>{
+      if(key==='counterparty') c.counterparty=inp.value.trim();
+      else if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='nonmonetary'){
+        c.valueType=inp.checked?'none':(c.valueType==='none'?'estimated':c.valueType||'estimated');
+        const v=document.querySelector('[data-kt="value"]');
+        if(v){ v.disabled=inp.checked; v.style.opacity=inp.checked?'.45':''; }
+      }
+      else if(key==='effDate'){ c.fields=c.fields||{}; c.fields.effDate=inp.value; }
+      else if(key==='expiry') c.expiry=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
+      c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated ${LABEL[key]||key}`);
+      persist(c); renderAuditSection(c);
+    });
+  });
+  document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+}
+/* Read what the document itself says and drop it into the EMPTY fields — never
+   over something already entered. Uses the AI reader when a key is configured
+   (it finds party names, which the pattern matcher can't) and the pattern
+   matcher otherwise. */
+async function fillKeyTermsFromDocument(c){
+  const btn=document.getElementById('kt-fill');
+  const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
+  if(text.length<200){ toast('No readable document text to read from','err'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    const meta=await extractMetadata(text, null);
+    const filled=[];
+    if(!c.counterparty && meta.counterparty){ c.counterparty=String(meta.counterparty).trim(); filled.push('counterparty'); }
+    // the pattern matcher just takes the first money amount it sees — in a
+    // contract that is as likely to be a unit rate as the deal value, so only
+    // trust a figure the AI reader picked out
+    if(meta._source==='ai' && isMonetary(c) && !(Number(c.value)>0) && Number(meta.value)>0){
+      c.value=Number(meta.value); if(c.valueType!=='estimated') c.valueType='estimated'; filled.push('value');
+    }
+    if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
+    if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
+    if(!filled.length){
+      toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
+                               :'Nothing found. Party names and the deal value need an AI key — type them in instead','err');
+      return;
+    }
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'AI':'pattern match'})`);
+    persist(c);
+    toast(`Filled ${filled.join(', ')} — check it before signing`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not read the document — '+(e.message||'try again'),'err');
+  }finally{
+    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
+  }
 }
 function updateStatusUI(c){
   const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
@@ -1623,4 +1810,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,documentTextHtml,extractDocText,extractPdfText,finalizeExecution,findingsFromText,frozenDocBody,inflateBytes,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
