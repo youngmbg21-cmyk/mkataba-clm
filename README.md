@@ -107,6 +107,31 @@ The demo data is organised into six value-stream folders, each with genuine cont
 
 Copy `.env.example` to `.env` and fill in real values — `.env` (and `.env.*`) are gitignored; never commit a real key.
 
+### Optional: the Mapper pulse endpoint (off by default)
+
+HaTi can expose one extra read-only route, `GET /api/pulse`, for the internal
+**HaTi-Mapper** diagnostic dashboard. **It does not exist unless you turn it
+on**, and nothing in HaTi depends on it.
+
+| Variable | Purpose |
+|---|---|
+| `MAPPER_TOKEN` | Enables `GET /api/pulse` and is the bearer credential it requires. **Unset (the default) → the route returns 404 as though it were never built.** Use a long random value and set the identical value on the Mapper service. |
+
+What the route returns: the AI caps currently in force (`aiRateLight`,
+`aiRateDeep`, `aiDailyLimit`, `aiMaxChars`, `aiMaxContracts`), today's AI
+request count against the daily limit, whether a provider key is configured
+(a boolean — **never** the key), the server mode, and the deployed commit hash.
+
+What it returns is exactly that and nothing else: **no contract text, no
+counterparty or user names, no emails, no monetary values, no file names and
+no tokens.** It is `GET`-only, rate limited (30 requests / 15 min per IP),
+sends no CORS headers — so no browser can call it cross-origin; the Mapper
+reads it server-to-server — and logs every call, accepted or rejected, so the
+owner can see the Mapper reading.
+
+**To switch it off:** clear `MAPPER_TOKEN` in the environment and restart. The
+route disappears; a request to `/api/pulse` then 404s.
+
 ### AI cost controls (Team & Settings)
 
 **AI spend is governed by money, not request count.** Every Anthropic call returns

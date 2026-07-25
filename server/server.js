@@ -723,6 +723,53 @@ app.get('/api/status', (req, res) => {
     branch: process.env.RENDER_GIT_BRANCH || null });
 });
 
+/* ---------- /api/pulse — optional, off by default ---------------------------
+   A read-only numbers feed for the HaTi-Mapper diagnostic dashboard, which is
+   an internal tool on a private URL. It exists ONLY when MAPPER_TOKEN is set;
+   with the variable unset the route 404s exactly as though it were never
+   built, so a default deployment has no extra surface at all.
+
+   What it returns is deliberately tiny: the AI caps currently in force, the
+   number of AI requests made today, whether a provider key is configured (a
+   boolean — never the key), the server mode and the deployed commit. It
+   returns NO contract text, no counterparty or user names, no emails, no
+   monetary values, no file names, and no tokens of any kind.
+
+   It is GET-only, rate limited, and carries no CORS headers — the Mapper calls
+   it server-to-server, and the absence of those headers usefully stops any
+   browser reaching it directly. To switch it off, clear MAPPER_TOKEN in the
+   environment and restart. See README → "Optional: the Mapper pulse endpoint".
+*/
+const MAPPER_TOKEN = (process.env.MAPPER_TOKEN || '').trim();
+const rlPulse = rateLimit('pulse', 30, 15 * 60 * 1000, { message: 'Too many requests' });
+if (MAPPER_TOKEN) {
+  console.log('[pulse] MAPPER_TOKEN is set — GET /api/pulse is enabled (read-only counts, no content).');
+  app.get('/api/pulse', rlPulse, (req, res) => {
+    const presented = String(req.headers.authorization || '');
+    const bearer = presented.startsWith('Bearer ') ? presented.slice(7).trim() : '';
+    if (!safeEq(bearer, MAPPER_TOKEN)) {
+      console.warn(`[pulse] rejected call from ${clientIp(req) || 'unknown'} — bad or missing token.`);
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const usage = aiUsageToday();
+    console.log(`[pulse] served to ${clientIp(req) || 'unknown'} at ${now()}.`);
+    res.json({
+      caps: {
+        aiRateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 40),
+        aiRateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
+        aiDailyLimit: aiDailyLimit(),
+        aiMaxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000),
+        aiMaxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
+        windowMinutes: Math.round(AI_WINDOW_MS / 60000),
+      },
+      usage: { date: usage.date, count: usage.count, dailyLimit: aiDailyLimit() },
+      aiKeyConfigured: !!aiKey(),
+      mode: 'api',
+      version: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || 'dev',
+    });
+  });
+}
+
 app.post('/api/setup', rlAuth, (req, res) => {
   if (getSetting('org')) return res.status(409).json({ error: 'Workspace already exists' });
   const b = req.body || {};
