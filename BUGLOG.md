@@ -1035,3 +1035,96 @@ range survived the focus change), that Escape cancels without changing the
 document or closing the modal underneath, that "Keep editing" leaves the editor
 open, and that the detected-blanks dialog names the blanks it found. Result:
 17 checks pass, **zero native dialogs**.
+
+### 19. Every PDF was extracted with guessed glyph widths, so words came apart
+
+**What was broken.** Uploading a PDF produced text like:
+
+```
+M A STER R AW M A TERIA LS PRO C U REM EN T A G REEM EN T
+TH IS M A STER R AW M A TERIA LS PRO C U REM EN T A G REEM EN T ( t h e "A g re e m e n t ")
+is e n te re d in to a so f [ Eff e c t iv e D a t e]
+```
+
+Reported from the live site as "the contract looks terrible", and it is worse
+than it looks: this text is what the AI clause review reads, what the search
+index holds, what a template made from an uploaded PDF is built out of, and what
+the migration's metadata extraction runs on. Garbled text degrades all of them
+silently.
+
+**Root cause — three defects compounding, in `js/views/contract.js`.**
+
+1. **The extractor never read the widths the PDF ships.** `pdfPageFonts()`
+   parsed `/Subtype` and `/ToUnicode` and nothing else, so every glyph advance
+   came from `pdfEstWidth()` — a hardcoded table guessing 0.63 em for any
+   capital, 0.50 em for any lowercase. Real Helvetica caps run 0.67–0.94 em.
+   Producers that position each glyph individually (Chromium's PDF writer does
+   exactly this for justified text, and it is what produced the report) leave
+   the extractor comparing each glyph's true x against a running estimate that
+   drifts. Once the drift passed the word-gap threshold, a space was inserted —
+   mid-word, every few characters.
+
+2. **`pdfArray()` stopped at the first `]`.** It matched `/\[([\s\S]*?)\]/`,
+   non-greedy. A CID font's width array nests groups inside it:
+   `/W [0 [778] 20 21 500 36 38 722 …]`. The non-greedy match returned
+   `0 [778`, so one font in the sample got **no** widths at all and the other
+   got **779 entries all equal to zero** — the truncated leftovers re-parsed as
+   `cFirst cLast w` ranges with `w = 0`. This defect was introduced while fixing
+   (1) and caught before shipping, by dumping the parsed font tables rather than
+   trusting the output.
+
+3. **The word-gap threshold was a constant.** The layout pass split a line
+   wherever `x - endX > size * 0.30`, and `TJ` inserted a space on any kern more
+   negative than a flat `-250`. Neither can be right across typefaces and point
+   sizes: whether a gap is a word break depends on how wide *that font's* space
+   actually is.
+
+**The fix.**
+
+- `pdfFontWidths()` reads the real advances: `/Widths` + `/FirstChar` for simple
+  fonts (with `/MissingWidth` from the descriptor), and `/W` + `/DW` off the
+  descendant for CID fonts, handling both `c [w…]` and `cFirst cLast w` forms.
+- `pdfArray()` now matches brackets **by depth**, and `pdfKeyIndex()` matches a
+  key as a whole name token, so `/W` no longer matches inside `/Widths` or
+  `/WinAnsiEncoding`.
+- `decode()` returns the character **codes** alongside the text, because widths
+  are indexed by code, not by the decoded character; a code whose glyph maps to
+  nothing still advances the pen, so the two are allowed to differ in length.
+- `pdfRunWidth()` sums real widths and falls back to the old estimate only for
+  codes the font did not declare.
+- The gap rules are now relative to the font's own space advance
+  (`font.spaceEm`, from the width table), and `TJ` folds its kern displacement
+  into the run's advance instead of discarding it.
+- A gap several spaces wide is treated as **column structure**, not a word
+  break, and is emitted proportionally — so a side-by-side signature block and
+  a fee table's columns survive into the text, where `documentTextHtml()`'s
+  ruled-block detection keeps them aligned.
+
+**Files touched.** `js/views/contract.js`.
+
+**How it was verified.** Against PDFs **Chromium itself produced** — real
+embedded subset CID fonts with `/W` arrays, real per-glyph positioning — not
+only hand-built fixtures. Reproducing the report took one justified,
+letter-spaced contract page; the extractor returned the user's exact garbling,
+character for character, before the fix. The suite covers justified body text,
+numbered clauses with bold runs, a bordered fee table, 7.5 pt type (where drift
+bites hardest), and a two-column signature block, plus hand-built PDFs for
+per-glyph kerning, heavy tracking, word gaps expressed as kerns, and a font with
+**no** `/Widths` at all. The central assertion is that no word is split — no
+isolated single letter survives anywhere in the output. All five bundled sample
+contracts are checked for regression, and the scanned fixture is asserted to
+still yield almost nothing, so it still routes to OCR.
+
+Before → after on the reported document:
+
+```
+M A STER R AW M A TERIA LS PRO C U REM EN T A G REEM EN T
+  →  MASTER RAW MATERIALS PROCUREMENT AGREEMENT
+
+TH IS ... is e n te re d in to a so f
+  →  THIS MASTER RAW MATERIALS PROCUREMENT AGREEMENT (the "Agreement") is entered into as of 1 August 2026
+
+APEX LOGISTICS ... LTD SAVANNAH CONSUMER GOODS LIMITED
+  →  ____________________                        ____________________
+     APEX LOGISTICS & WAREHOUSING KENYA LTD      SAVANNAH CONSUMER GOODS LIMITED
+```

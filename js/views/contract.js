@@ -127,6 +127,93 @@ function pdfParseCMap(txt){
   }
   return map;
 }
+/* An array value that may sit inline or behind an indirect reference.
+   Brackets are matched by DEPTH, not by the first `]` — a CID font's /W array
+   nests width groups inside it (`/W [0 [778] 20 21 500 …]`), so stopping at the
+   first close truncates it to noise, and the leftovers then parse as ranges of
+   zero-width glyphs. That is not a cosmetic bug: every advance downstream comes
+   out wrong, the running x-position drifts, and the layout pass turns the drift
+   into spaces in the middle of words. */
+/* Index of a dictionary key, as a whole NAME token. `/W` must not match inside
+   `/Widths` or `/WinAnsiEncoding`, which a plain indexOf happily does. */
+function pdfKeyIndex(dict, key){
+  let from=0;
+  for(;;){
+    const i=dict.indexOf(key, from); if(i<0) return -1;
+    const nx=dict[i+key.length];
+    if(nx===undefined || /[\s()<>[\]{}/%]/.test(nx)) return i;
+    from=i+1;
+  }
+}
+function pdfArray(objs, dict, key){
+  const i=pdfKeyIndex(dict, key); if(i<0) return null;
+  const tail=dict.slice(i+key.length);
+  const ref=pdfRef(tail);
+  const src = ref!=null ? (objs.get(ref)?.dict||'') : tail;
+  const start=src.indexOf('['); if(start<0) return null;
+  let depth=0;
+  for(let j=start;j<src.length;j++){
+    const c=src[j];
+    if(c==='[') depth++;
+    else if(c===']'){ depth--; if(!depth) return src.slice(start+1, j); }
+  }
+  return null;                                    // unbalanced — treat as absent
+}
+const pdfNum=(dict,key)=>{
+  const i=pdfKeyIndex(dict||'', key); if(i<0) return null;
+  const m=/^\s*(-?[\d.]+)/.exec((dict||'').slice(i+key.length));
+  return m?parseFloat(m[1]):null;
+};
+
+/* ---- glyph advance widths ----
+   THE thing that makes extracted text readable. A PDF ships the exact advance
+   of every glyph — /Widths for a simple font, /W and /DW for a CID font, both
+   in 1/1000 em. Guessing them instead (which this used to do, from a hardcoded
+   per-character table) makes the running x-position drift, and once it drifts
+   by ~a third of the point size the layout pass reads the drift as a word gap
+   and splits a word: "MASTER RAW" comes out as "MA S TE R R A W".
+   Widths are indexed by CHARACTER CODE, not by the decoded character, so the
+   decoder hands the codes along with the text. */
+async function pdfFontWidths(objs, o){
+  const W=new Map();
+  let dflt=null;
+  if(/\/Subtype\s*\/Type0/.test(o.dict)){
+    // CID font: the widths live on the descendant, /W is [ c [w…] | cFirst cLast w ]*
+    const dfRef=pdfRef((pdfArray(objs,o.dict,'/DescendantFonts')||'').trim()) ??
+                pdfRef(pdfDictVal(o.dict,'/DescendantFonts'));
+    const df=dfRef!=null?objs.get(dfRef):null;
+    if(df){
+      dflt=pdfNum(df.dict,'/DW');
+      const w=pdfArray(objs, df.dict, '/W');
+      if(w){
+        // tokenise into numbers and bracketed groups, in order
+        const re=/\[([^\]]*)\]|(-?[\d.]+)/g; let m; const seq=[];
+        while((m=re.exec(w))) seq.push(m[1]!=null ? {list:m[1].trim().split(/\s+/).map(Number)} : {n:parseFloat(m[2])});
+        for(let i=0;i<seq.length;i++){
+          if(seq[i].n==null) continue;
+          if(seq[i+1] && seq[i+1].list){                       // c [w1 w2 …]
+            const c=seq[i].n; seq[i+1].list.forEach((v,k)=>{ if(Number.isFinite(v)) W.set(c+k, v); });
+            i++;
+          } else if(seq[i+1] && seq[i+2] && seq[i+1].n!=null && seq[i+2].n!=null){   // cFirst cLast w
+            const a=seq[i].n, b=seq[i+1].n, v=seq[i+2].n;
+            if(b>=a && b-a<65536) for(let c=a;c<=b;c++) W.set(c, v);
+            i+=2;
+          }
+        }
+      }
+    }
+    if(dflt==null) dflt=1000;                                  // /DW default, per the spec
+  } else {
+    const first=pdfNum(o.dict,'/FirstChar');
+    const arr=pdfArray(objs, o.dict, '/Widths');
+    if(arr!=null && first!=null){
+      arr.trim().split(/\s+/).map(Number).forEach((v,k)=>{ if(Number.isFinite(v)) W.set(first+k, v); });
+    }
+    const fd=pdfRef(pdfDictVal(o.dict,'/FontDescriptor'));
+    if(fd!=null) dflt=pdfNum(objs.get(fd)?.dict||'','/MissingWidth');
+  }
+  return { widths:W, missing:dflt };
+}
 async function pdfPageFonts(objs, resDict){
   const fonts={};
   const fi=resDict.indexOf('/Font'); if(fi<0) return fonts;
@@ -140,9 +227,31 @@ async function pdfPageFonts(objs, resDict){
     let map=null;
     const tu=pdfRef(pdfDictVal(o.dict,'/ToUnicode'));
     if(tu!=null){ const b=await pdfStreamBytes(objs.get(tu)); if(b) map=pdfParseCMap(pdfLatin(b)); }
-    fonts[f[1]]={ twoByte:/\/Subtype\s*\/Type0/.test(o.dict), map };
+    const twoByte=/\/Subtype\s*\/Type0/.test(o.dict);
+    let widths=new Map(), missing=null;
+    try{ ({widths,missing}=await pdfFontWidths(objs,o)); }catch(e){}
+    // The font's OWN space advance is the only honest yardstick for "is this
+    // gap a word break?" — a fixed number cannot be right across point sizes,
+    // typefaces and tracking. Falls back to 0.25em when the font is silent.
+    const sp = twoByte ? null : widths.get(32);
+    fonts[f[1]]={ twoByte, map, widths, missing,
+      spaceEm: (Number.isFinite(sp)&&sp>0) ? sp/1000 : 0.25 };
   }
   return fonts;
+}
+/* Advance width of a run, in text-space em × size. Uses the real per-glyph
+   widths where the font declared them and only falls back to the estimate for
+   codes it did not. */
+function pdfRunWidth(text, codes, font, size){
+  if(!font || !font.widths || !font.widths.size) return pdfEstWidth(text, size);
+  let em=0;
+  for(let i=0;i<codes.length;i++){
+    const w=font.widths.get(codes[i]);
+    if(Number.isFinite(w)) em += w/1000;
+    else if(Number.isFinite(font.missing)) em += font.missing/1000;
+    else em += pdfEstWidth(text[i]||'x', 1);      // per-character fallback
+  }
+  return em*size;
 }
 
 /* ---- content-stream tokenizer ---- */
@@ -222,31 +331,43 @@ function pdfTextRuns(content, fonts){
     const cp=ch.charCodeAt(0);
     return (cp>=0xE000&&cp<=0xF8FF)?'•':ch;      // private-use symbol glyph = list bullet
   };
+  /* Decode a string token to text AND to the character codes behind it. The
+     codes are what the font's width table is indexed by, so both travel
+     together; a code whose glyph maps to nothing still advances the pen, which
+     is why the two arrays are allowed to differ in length. */
   const decode=tok=>{
+    const codes=[]; let s='';
     if(tok.t==='str'){
-      if(font&&font.twoByte&&font.map){
-        let s=''; for(let i=0;i+1<tok.v.length;i+=2) s+=cidChar((tok.v.charCodeAt(i)<<8)|tok.v.charCodeAt(i+1));
-        return s;
+      if(font&&font.twoByte){
+        for(let i=0;i+1<tok.v.length;i+=2){ const c=(tok.v.charCodeAt(i)<<8)|tok.v.charCodeAt(i+1);
+          codes.push(c); s+=font.map?cidChar(c):''; }
+        return {text:s, codes};
       }
-      let s='';
-      for(let i=0;i<tok.v.length;i++){ const cc=tok.v.charCodeAt(i);
+      for(let i=0;i<tok.v.length;i++){ const cc=tok.v.charCodeAt(i); codes.push(cc);
         s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:(cc>=128&&cc<=159?'':tok.v[i]); }
-      return s;
+      return {text:s, codes};
     }
     const h=tok.v;
-    if(font&&font.twoByte){ let s=''; for(let i=0;i+3<h.length;i+=4) s+=cidChar(parseInt(h.slice(i,i+4),16)); return s; }
-    let s='';
-    for(let i=0;i+1<h.length;i+=2){ const cc=parseInt(h.slice(i,i+2),16);
+    if(font&&font.twoByte){
+      for(let i=0;i+3<h.length;i+=4){ const c=parseInt(h.slice(i,i+4),16); codes.push(c); s+=cidChar(c); }
+      return {text:s, codes};
+    }
+    for(let i=0;i+1<h.length;i+=2){ const cc=parseInt(h.slice(i,i+2),16); codes.push(cc);
       s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:String.fromCharCode(cc); }
-    return s;
+    return {text:s, codes};
   };
-  const emit=text=>{
+  /* `kernEm` is the net displacement the TJ array's own numbers contribute, in
+     em. It has to be folded into the advance or the running x-position drifts
+     across a kerned line and the layout pass reads the drift as word gaps. */
+  const emit=(text, codes, kernEm=0)=>{
     if(!text) return;
     const m=pdfMul(tm, ctm);
     const size=Math.hypot(m[2],m[3])||1;
     const sx=Math.hypot(m[0],m[1])||1;
-    const w=(pdfEstWidth(text, fsize)+text.length*charSp)*hscale;
-    if(render!==3&&render!==7) runs.push({x:m[4], y:m[5], size, w:w*sx, text});
+    const glyphs=pdfRunWidth(text, codes||[], font, fsize);
+    const w=(glyphs + (codes?codes.length:text.length)*charSp + kernEm*fsize)*hscale;
+    if(render!==3&&render!==7) runs.push({x:m[4], y:m[5], size, w:w*sx, text,
+      spaceW:(font?font.spaceEm:0.25)*fsize*hscale*sx});
     tm=pdfMul([1,0,0,1,w,0], tm);   // keep runs without an explicit move from stacking
   };
 
@@ -273,20 +394,32 @@ function pdfTextRuns(content, fonts){
       case 'TD': if(nums.length>=2){ leading=-nums[nums.length-1];
                    tlm=pdfMul([1,0,0,1,nums[nums.length-2],nums[nums.length-1]], tlm); tm=tlm.slice(); } break;
       case 'T*': tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice(); break;
-      case 'Tj': { const s=lastStr(); if(s) emit(decode(s)); break; }
+      case 'Tj': { const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
       case "'": { tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
-                  const s=lastStr(); if(s) emit(decode(s)); break; }
+                  const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
       case '"': { if(nums.length>=2) charSp=nums[1];
                   tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
-                  const s=lastStr(); if(s) emit(decode(s)); break; }
-      case 'TJ': { const from=arrStack.pop(); let out='';
+                  const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
+      case 'TJ': { const from=arrStack.pop(); let out='', outCodes=[], kernEm=0;
+                   // A TJ number displaces the pen by -n/1000 em. Whether that
+                   // displacement is a WORD BREAK or just tracking cannot be
+                   // decided by a fixed threshold — it depends on the font and
+                   // the point size. The only honest yardstick is the font's
+                   // own space advance: a gap worth most of a real space is a
+                   // space, anything smaller is kerning. (This used to be a
+                   // hardcoded -250, which split words in any document tracked
+                   // out more than a quarter em.)
+                   const spEm=(font&&font.spaceEm)||0.25;
                    for(let i=(from==null?0:from+1); i<args.length; i++){
                      const a=args[i];
-                     // a big negative kern is a typeset word gap; small ones are just tracking
-                     if(a.t==='num'){ if(a.v<-250 && !/\s$/.test(out)) out+=' '; }
-                     else if(a.t==='str'||a.t==='hex') out+=decode(a);
+                     if(a.t==='num'){
+                       const gap=-a.v/1000;                 // em
+                       kernEm+=gap;
+                       if(gap>=spEm*0.72 && out && !/\s$/.test(out)){ out+=' '; outCodes.push(32); }
+                     }
+                     else if(a.t==='str'||a.t==='hex'){ const d=decode(a); out+=d.text; outCodes.push(...d.codes); }
                    }
-                   emit(out); break; }
+                   emit(out, outCodes, kernEm); break; }
       default: break;
     }
     args.length=0; arrStack.length=0;
@@ -312,8 +445,26 @@ function pdfRunsToText(runs){
     for(const r of l.runs){
       if(!r.text) continue;
       if(endX!=null){
-        const ruled=/([-=_.·])\1{2,}\s*$/.test(text);       // rule/leader run — width estimate is meaningless
-        if(r.x-endX>r.size*0.30 && !ruled && !/\s$/.test(text) && !/^[\s,.;:!?)\]}»’”%-]/.test(r.text)) text+=' ';
+        // A rule or dot-leader run: never glue a single space onto it (it is
+        // drawn, not typeset, so a hairline gap means nothing) — but a gap wide
+        // enough to be a COLUMN still separates two rules, which is exactly what
+        // a side-by-side signature block is made of.
+        const ruled=/([-=_.·])\1{2,}\s*$/.test(text);
+        // A gap is a word break when it is most of a real space in this font.
+        // Keyed off the font's own space advance rather than a flat fraction of
+        // the point size — that fraction was small enough that ordinary
+        // inter-glyph rounding read as a space and split words apart.
+        const sp=r.spaceW||r.size*0.25;
+        const gap=r.x-endX;
+        const column=gap>sp*2.5;
+        if(gap>sp*0.62 && (column||!ruled) && !/\s$/.test(text) && !/^[\s,.;:!?)\]}»’”%-]/.test(r.text)){
+          // A gap several spaces wide is COLUMN structure, not a word break —
+          // side-by-side signature blocks and fee schedules live in it. Emit it
+          // proportionally so the columns survive into the text, where
+          // documentTextHtml's ruled-block detection can keep them aligned.
+          const n=column ? Math.min(24, Math.round(gap/sp)) : 1;
+          text+=' '.repeat(n);
+        }
       }
       text+=r.text;
       endX=r.x+(r.w||pdfEstWidth(r.text, r.size));
@@ -2014,4 +2165,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,pdfRunWidth,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
