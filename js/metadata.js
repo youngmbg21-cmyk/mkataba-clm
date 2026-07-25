@@ -54,15 +54,136 @@ function heuristicExtract(text){
 }
 
 /* ---- what actually gets sent for extraction ----
-   Assembles the slice of a contract the model sees. (Task 4 replaces the head
-   slice here with front + back + term-critical windows; the shape of the return
-   value is already what the caller and the review screen expect.) */
-const AI_PAYLOAD_MAX = () => Number((state.aiCfg&&state.aiCfg.limits&&state.aiCfg.limits.maxChars)||24000);
-function buildExtractionPayload(text){
+   A blind head-slice sent the first eight to twelve pages of a long agreement
+   and nothing else — but renewal, termination, notice and expiry clauses
+   usually sit at the BACK, so exactly the fields the reminder system depends on
+   were the ones most likely to be missing or wrong.
+
+   Instead we assemble: the front (parties, recitals, definitions, commercial
+   terms), the back (signature blocks, schedules, execution dates), and a window
+   around every mention of the term-critical vocabulary — merged where they
+   overlap, joined in original document order, with explicit markers so the
+   model knows text was elided and does not infer anything from the gaps. */
+const AI_PAYLOAD_MAX = () => Number((state.aiCfg&&state.aiCfg.limits&&state.aiCfg.limits.maxChars)||60000);
+const EXTRACT_FRONT = 15000, EXTRACT_BACK = 10000, EXTRACT_WINDOW = 1500;
+/* Lower `prio` = kept longer. When the budget runs out the lowest-priority
+   windows are dropped first — definitions before termination, as it should be:
+   a missing definition costs a label, a missing termination clause costs the
+   renewal reminder. */
+const EXTRACT_TERMS = [
+  { prio:1, re:/renew|terminat|expir|notice|term of this agreement|duration/gi },
+  { prio:2, re:/govern|jurisdiction|payment|invoice|price|escalat/gi },
+  { prio:3, re:/stamp duty|force majeure|liabilit|indemnit/gi },
+  { prio:4, re:/assign|confidential/gi },
+];
+const _clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
+/* Merge overlapping / touching spans and return them in document order. */
+function _mergeSpans(spans){
+  const s=spans.slice().sort((a,b)=>a.start-b.start);
+  const out=[];
+  for(const sp of s){
+    const last=out[out.length-1];
+    if(last && sp.start<=last.end) last.end=Math.max(last.end, sp.end);
+    else out.push({ start:sp.start, end:sp.end });
+  }
+  return out;
+}
+const _spanLen = spans => spans.reduce((a,s)=>a+(s.end-s.start),0);
+
+function buildExtractionPayload(text, opts={}){
   const t = String(text||'');
-  const cap = AI_PAYLOAD_MAX();
-  if(t.length<=cap) return { text:t, sections:1, omitted:0 };
-  return { text: t.slice(0,cap), sections:1, omitted: t.length-cap };
+  const cap = Math.max(2000, Number(opts.maxChars||AI_PAYLOAD_MAX()));
+  if(t.length<=cap) return { text:t, sections:1, omitted:0, full:true };
+
+  // The anchors are never dropped. If they alone exceed the budget, split it
+  // 60/40 between them rather than losing the back of the document entirely.
+  let front=EXTRACT_FRONT, back=EXTRACT_BACK;
+  if(front+back>cap){ front=Math.floor(cap*0.6); back=cap-front; }
+  let accepted=[{ start:0, end:Math.min(front,t.length) },
+                { start:Math.max(0,t.length-back), end:t.length }];
+  accepted=_mergeSpans(accepted);
+
+  // Candidate windows around every term-critical mention, in priority order.
+  const cands=[];
+  for(const { prio, re } of EXTRACT_TERMS){
+    re.lastIndex=0; let m;
+    while((m=re.exec(t))){
+      cands.push({ prio, order:m.index,
+        start:_clamp(m.index-EXTRACT_WINDOW,0,t.length),
+        end:_clamp(m.index+m[0].length+EXTRACT_WINDOW,0,t.length) });
+      if(re.lastIndex===m.index) re.lastIndex++;   // zero-width guard
+    }
+  }
+  cands.sort((a,b)=> a.prio-b.prio || a.order-b.order);
+
+  // Greedily take windows while they fit. A window that does not fit is skipped
+  // rather than ending the loop — a later, smaller one may still fit, and the
+  // priority order is preserved either way.
+  let dropped=0;
+  for(const c of cands){
+    const trial=_mergeSpans(accepted.concat([{start:c.start,end:c.end}]));
+    if(_spanLen(trial)<=cap) accepted=trial; else dropped++;
+  }
+
+  // Join in original document order, naming every gap so the model knows text
+  // was elided and does not read meaning into the join.
+  const parts=[]; let cursor=0, omitted=0;
+  for(const s of accepted){
+    if(s.start>cursor){ const gap=s.start-cursor; omitted+=gap;
+      parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]\n\n`); }
+    parts.push(t.slice(s.start,s.end));
+    cursor=s.end;
+  }
+  if(cursor<t.length){ const gap=t.length-cursor; omitted+=gap;
+    parts.push(`\n\n[... ${gap.toLocaleString('en-KE')} characters omitted ...]`); }
+  return { text:parts.join(''), sections:accepted.length, omitted, dropped, full:false, sourceChars:t.length };
+}
+
+/* ---- thorough mode ----
+   Off by default. When on, the WHOLE document is read in overlapping 30,000-
+   character windows, one deep-tier extraction per window, merged field by
+   field. It multiplies cost, which the settings UI and the pre-flight estimate
+   both say plainly. */
+const THOROUGH_CHUNK = 30000, THOROUGH_OVERLAP = 3000;
+function thoroughChunks(text){
+  const t=String(text||'');
+  if(t.length<=THOROUGH_CHUNK) return [t];
+  const out=[]; let i=0;
+  while(i<t.length){
+    out.push(t.slice(i, i+THOROUGH_CHUNK));
+    if(i+THOROUGH_CHUNK>=t.length) break;
+    i += THOROUGH_CHUNK-THOROUGH_OVERLAP;
+  }
+  return out;
+}
+const CONF_RANK={ high:3, medium:2, low:1 };
+/* Later chunks win a tie for the fields that live at the back of an agreement;
+   earlier chunks win for the fields that are settled on page one. Anything not
+   listed defaults to earlier-wins, which is the safer bet for identity fields. */
+const LATE_WINS = new Set(['expiryDate','renewalType','noticePeriodDays']);
+function mergeThorough(results){
+  const out={ confidence:{}, sourceSpans:{} };
+  const best={};
+  results.forEach((meta,i)=>{
+    if(!meta) return;
+    for(const f of META_FIELDS){
+      const k=f.k, v=meta[k];
+      if(v==null || v==='' || (f.type==='num' && !(Number(v)>0))) continue;
+      const rank=CONF_RANK[(meta.confidence||{})[k]]||1;
+      const cur=best[k];
+      if(!cur){ best[k]={ v, rank, i, span:(meta.sourceSpans||{})[k], conf:(meta.confidence||{})[k]||'low' }; continue; }
+      if(rank>cur.rank){ best[k]={ v, rank, i, span:(meta.sourceSpans||{})[k], conf:(meta.confidence||{})[k]||'low' }; continue; }
+      if(rank===cur.rank && LATE_WINS.has(k) && i>cur.i)
+        best[k]={ v, rank, i, span:(meta.sourceSpans||{})[k], conf:(meta.confidence||{})[k]||'low' };
+      // ties on every other field keep the earlier chunk's answer
+    }
+  });
+  for(const [k,b] of Object.entries(best)){
+    out[k]=b.v; out.confidence[k]=b.conf;
+    if(b.span) out.sourceSpans[k]=b.span;
+  }
+  out._thorough={ chunks:results.length, read:results.filter(Boolean).length };
+  return out;
 }
 
 /* ---- the single server-AI extraction call ----
@@ -70,13 +191,42 @@ function buildExtractionPayload(text){
    head-slice) and which budget it draws on. Throws on failure so the caller can
    distinguish a spend ceiling from a transport error. */
 async function aiExtractMetadata(text, opts={}){
-  const payload = buildExtractionPayload(text);
-  const body = { text: payload.text, allowance: !!opts.allowance };
-  if(opts.thorough) body.thorough = true;
-  const r = await api('ai/extract','POST', body);
+  const thorough = opts.thorough!=null ? !!opts.thorough
+    : !!(state.aiCfg&&state.aiCfg.limits&&state.aiCfg.limits.thoroughExtract);
+  const t = String(text||'');
+
+  if(thorough && t.length>THOROUGH_CHUNK){
+    // one deep-tier call per overlapping window, merged field by field
+    const chunks = thoroughChunks(t);
+    const results = [];
+    for(let i=0;i<chunks.length;i++){
+      if(typeof opts.onChunk==='function') opts.onChunk(i, chunks.length);
+      try{
+        const r = await api('ai/extract','POST',
+          { text: chunks[i], allowance: !!opts.allowance, thorough: true, part: i+1, parts: chunks.length });
+        const m = r.metadata || {};
+        if(r.sourceSpans) m.sourceSpans = r.sourceSpans;
+        results.push(m);
+      }catch(e){
+        // a budget ceiling mid-way still leaves everything read so far usable
+        if(!results.length) throw e;
+        results.push(null);
+        break;
+      }
+    }
+    const merged = mergeThorough(results);
+    merged._payload = { chars:t.length, sections:chunks.length, omitted:0, thorough:true };
+    return merged;
+  }
+
+  // one AI call per contract — a 25-file batch has to get through the 15-minute
+  // light-tier limit of 40 calls
+  const payload = buildExtractionPayload(t);
+  const r = await api('ai/extract','POST', { text: payload.text, allowance: !!opts.allowance });
   const meta = r.metadata || {};
   if(r.sourceSpans) meta.sourceSpans = r.sourceSpans;
-  meta._payload = { chars: payload.text.length, sections: payload.sections, omitted: payload.omitted };
+  meta._payload = { chars: payload.text.length, sections: payload.sections,
+    omitted: payload.omitted, sourceChars: payload.sourceChars||t.length };
   return meta;
 }
 
@@ -102,7 +252,23 @@ function openMetaReview(meta, onConfirm, opts={}){
   const c = meta.confidence||{};
   const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
     : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
-  const src = meta._source==='ai' ? 'AI-extracted' : 'Pattern-matched (no AI key)';
+  const p = meta._payload;
+  // Say how much of the document was actually read — "AI-extracted" over the
+  // first eight pages is a materially different claim from over all of it.
+  const coverage = !p ? ''
+    : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
+    : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString('en-KE')}-character document`
+    : ` · read the whole ${Number(p.chars||0).toLocaleString('en-KE')}-character document`;
+  const src = (meta._source==='ai' ? 'AI-extracted' : 'Pattern-matched (no AI key)') + coverage;
+  /* The phrase each value came from, shown under the field. This is what turns
+     the confirm step from a leap of faith into a glance — the same
+     verbatim-quoting pattern the clause review already uses. */
+  const spans = meta.sourceSpans||{};
+  const esc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const spanLine = k => { const q=spans[k]; if(!q) return '';
+    const t=String(q).replace(/\s+/g,' ').trim().slice(0,180);
+    if(!t) return '';
+    return `<span style="display:block;margin-top:3px;font-size:10.5px;line-height:1.45;color:var(--color-neutral-600)">found: <i>“${esc(t)}”</i></span>`; };
   const field = f => {
     const v = meta[f.k]!=null ? meta[f.k] : '';
     const low = c[f.k]==='low';
@@ -110,11 +276,11 @@ function openMetaReview(meta, onConfirm, opts={}){
     if(f.type==='select'){
       return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
         <select data-mf="${f.k}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500">
-          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${RENEWAL_LABEL[o]||o}</option>`).join('')}</select></label>`;
+          ${f.opts.map(o=>`<option value="${o}" ${v===o?'selected':''}>${RENEWAL_LABEL[o]||o}</option>`).join('')}</select>${spanLine(f.k)}</label>`;
     }
     const it = f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label class="block"><span class="text-[11px] font-600 text-ink/70">${f.label}${badge(c[f.k])}</span>
-      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/></label>`;
+      <input data-mf="${f.k}" type="${it}" value="${String(v).replace(/"/g,'&quot;')}" class="mt-1 w-full rounded-lg border ${ring} px-2.5 py-2 text-sm outline-none focus:border-brand-500"/>${spanLine(f.k)}</label>`;
   };
   openModal(`
     <div class="p-6 max-w-lg">
@@ -142,6 +308,11 @@ function openMetaReview(meta, onConfirm, opts={}){
     document.querySelectorAll('[data-mf]').forEach(el=>{ const k=el.getAttribute('data-mf'); let v=el.value;
       const f=META_FIELDS.find(x=>x.k===k); if(f.type==='num') v=v===''?0:Number(v);
       out[k]=v; out.confidence[k]= (c[k]&&el.value===String(meta[k]!=null?meta[k]:''))?c[k]:'high'; });
+    // keep the evidence with the record — a reviewer later can see what phrase
+    // each value was read from, and how much of the document was read
+    if(meta.sourceSpans) out.sourceSpans=meta.sourceSpans;
+    if(meta._payload) out._payload=meta._payload;
+    if(meta._thorough) out._thorough=meta._thorough;
     out.confirmedAt=nowISO(); out.confirmedBy=currentUser()?.name||'';
     closeModal(); onConfirm(out);
   });
@@ -168,4 +339,4 @@ async function runMetaBackfill(){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,heuristicExtract,buildExtractionPayload,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

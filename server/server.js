@@ -1328,10 +1328,11 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
 app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
-  const { text } = req.body || {};
+  const { text, thorough, part, parts } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const today = new Date().toISOString().slice(0, 10);
   const conf = { type: 'string', enum: ['high', 'medium', 'low'], description: 'Confidence this field is correct.' };
+  const span = { type: 'string', description: 'The SHORT verbatim phrase from the document this value came from (under 140 characters, copied exactly). Omit if the field is empty.' };
   const tool = {
     name: 'file_contract',
     description: 'Extract structured metadata from a contract document.',
@@ -1352,18 +1353,45 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
           counterparty: conf, contractType: conf, effectiveDate: conf, expiryDate: conf, value: conf,
           renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
         }, description: 'Per-field confidence.' },
+        // Source spans turn the confirm step from a leap of faith into a
+        // glance: the review screen shows the phrase each value came from,
+        // reusing the verbatim-quoting pattern already in the clause review.
+        sourceSpans: { type: 'object', properties: {
+          counterparty: span, contractType: span, effectiveDate: span, expiryDate: span, value: span,
+          currency: span, renewalType: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
+        }, description: 'For each field you filled in, the short verbatim phrase it came from.' },
       },
       required: ['confidence'],
     },
   };
-  const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence. Return via the file_contract tool.\n\nDOCUMENT:\n${String(text).slice(0, 24000)}`;
+  // The input cap is governed by capAiInput / aiMaxChars — the client already
+  // decides WHICH parts of a long agreement to send (front + back + windows
+  // around the term-critical clauses), so a second blind slice here would throw
+  // away exactly the termination clause it worked to include.
+  const partNote = (thorough && parts > 1)
+    ? `\n\nThis is part ${part} of ${parts} of a longer agreement, read in overlapping sections. Extract only what THIS section supports; leave anything it does not mention empty rather than inferring it from elsewhere.`
+    : '';
+  const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence.
+
+The document may contain markers like "[... 12,000 characters omitted ...]". Those mark text that was deliberately elided to fit — do NOT infer anything from a gap, and do not treat the sections either side of one as adjacent.
+
+For every field you fill in, also return the short verbatim phrase it came from in sourceSpans, copied exactly from the document. Return via the file_contract tool.${partNote}
+
+DOCUMENT:
+${String(text)}`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
+    // Thorough mode reads the whole agreement chunk by chunk — judgement work
+    // over partial context, so it runs on the deep tier.
+    const tier = thorough ? 'deep' : 'fast';
+    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
-    res.json({ metadata: block.input || {}, source: 'ai', ...aiNotice(req, resp) });
+    const out = block.input || {};
+    const sourceSpans = (out.sourceSpans && typeof out.sourceSpans === 'object') ? out.sourceSpans : null;
+    delete out.sourceSpans;
+    res.json({ metadata: out, sourceSpans, source: 'ai', tier, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 

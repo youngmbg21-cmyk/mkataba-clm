@@ -175,3 +175,56 @@ letter with a **0-character** text layer):
 The `ocr-ai` tier could not be exercised in the build environment (no Anthropic
 key available); its request/response contract, metering and 429 handling were
 verified server-side instead. See SUMMARY.md.
+
+---
+
+### 4. Extraction read the front of a contract and missed the clauses that matter
+
+**What was broken.** `js/metadata.js` and `js/views/migration.js` both sliced the
+document to 24,000 characters before extraction, the server sliced again inside
+`/api/ai/extract`, and `extractDocText()` capped at 40,000. That is roughly the
+first eight to twelve pages. Renewal, termination, notice period and expiry
+clauses usually sit at the **back** of a long agreement — so the fields the
+90/60/30-day reminder system depends on were the ones most likely to be missing
+or wrong. Silent, and invisible until a renewal was missed.
+
+**Root cause.** Three independent blind head-slices, none of which knew anything
+about where in a contract the term-critical language lives.
+
+**The fix.**
+- Client extraction cap raised to **200,000** characters (`EXTRACT_MAX_CHARS`);
+  default `aiMaxChars` raised 50,000 → **60,000**.
+- New `buildExtractionPayload(text)` assembles front (~15k) + back (~10k) +
+  ±1,500-character windows around every term-critical term, merged where they
+  overlap, joined in document order, with explicit
+  `[... N characters omitted ...]` markers, capped at `aiMaxChars`, dropping the
+  lowest-priority windows first (definitions before termination).
+- Removed the hard 24,000 slice from `server/server.js` — `capAiInput` and
+  `aiMaxChars` govern, and the prompt now explains what the omission markers
+  mean so the model does not infer across a gap.
+- **Source spans**: the extraction tool returns the short verbatim phrase behind
+  each value; stored as `metadata.sourceSpans[field]` and shown on the review
+  screen under each field ("found: *'…expires on 31 December 2027…'*"). The
+  review header also states how much of the document was actually read.
+- **Thorough mode** (`aiThoroughExtract`, off by default): the whole document in
+  overlapping 30,000-character windows, one deep-tier call each, merged field by
+  field — highest confidence wins, ties go to later chunks for expiry, renewal
+  and notice and to earlier chunks for parties and value. The settings UI states
+  it multiplies cost and the pre-flight estimate reflects it.
+- With thorough mode off it remains exactly **one AI call per contract**.
+
+**Files touched.** `js/metadata.js`, `js/core.js`, `js/views/contract.js`,
+`js/views/migration.js`, `server/server.js`, `README.md`.
+
+**How it was verified.** Ran `buildExtractionPayload` against a synthetic
+138,390-character agreement whose term clauses sit on the last page. The old
+24,000-char head slice missed both "expires on 31 December 2027" and "90 days
+written notice"; the new payload (28,160 chars, 3 merged sections, 2 omission
+markers, within the 60,000 cap) contains the expiry date, the notice period, the
+non-renewal statement, the governing-law clause, the execution block **and** the
+front anchor and the payment window. Re-run at a tight 28,000 budget, the expiry
+clause still survives — the priority ordering drops definitions first as
+intended. Thorough chunking verified at 6 chunks with an exact 3,000-character
+overlap and full coverage of the tail; the merge rules verified to pick the
+higher-confidence counterparty and, on a confidence tie, the **later** chunk's
+expiry date, carrying its source span through.

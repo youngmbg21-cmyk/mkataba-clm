@@ -151,6 +151,43 @@ running HaTi across multiple servers would need a shared store (e.g. Redis).
 daily budget to zero. The ledger and the ceilings roll over at local midnight in
 `AI_DAY_TZ` (default `Africa/Nairobi`; set it to `UTC` to key on UTC dates).
 
+### Reading long agreements (extraction payload)
+
+Renewal, termination, notice and expiry clauses usually sit at the **back** of a
+long agreement — so a blind head-slice sent the first eight to twelve pages and
+missed exactly the fields the reminder system depends on. `buildExtractionPayload()`
+assembles what gets sent instead:
+
+- the first ~15,000 characters (parties, recitals, definitions, commercial terms);
+- the last ~10,000 characters (signature blocks, schedules, execution dates);
+- a ±1,500-character window around every mention of the term-critical vocabulary
+  (renew, terminat, notice, expir, term of this agreement, duration, govern,
+  jurisdiction, payment, invoice, price, escalat, stamp duty, force majeure,
+  liabilit, indemnit, assign, confidential);
+- overlapping windows merged, sections joined in original document order, with
+  explicit `[... N characters omitted ...]` markers so the model knows text was
+  elided and does not infer anything from the gaps;
+- the whole thing capped at `aiMaxChars`, dropping the lowest-priority windows
+  first (definitions before termination).
+
+The client keeps up to **200,000 characters** of extracted text per document
+(was 40,000), and the server no longer applies a second blind slice inside
+`/api/ai/extract` — `capAiInput` and `aiMaxChars` govern.
+
+**Source spans.** The extraction tool returns the short verbatim phrase each
+value came from. They are stored as `metadata.sourceSpans[field]` and shown on
+the review screen under each value — *found: "…expires on 31 December 2026…"* —
+which makes the confirm step a glance instead of a leap of faith.
+
+**Thorough mode** (`aiThoroughExtract`, default **off**). When on, the whole
+document is chunked into overlapping 30,000-character windows, one deep-tier
+extraction per chunk, merged field by field: highest confidence wins; on ties,
+later chunks win for expiry, renewal and notice, earlier chunks win for parties
+and value. It multiplies cost — the settings UI says so and the pre-flight
+estimate reflects it. With thorough mode **off** it is exactly **one AI call per
+contract**, so a 25-file migration batch still fits inside the 15-minute
+light-tier limit of 40 calls.
+
 ### AI model routing (Team & Settings)
 
 Each AI task runs on one of two capability tiers, resolved per request. Admins can override either tier — or force one model everywhere — from **Team & Settings → AI engine → Model routing** (stored server-side; never returned to the browser). `GET /api/ai/config` reports the resolved model for each tier.
