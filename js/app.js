@@ -142,6 +142,12 @@ function openFolder(fid){
   state.folderId=fid; state.folderQuery=''; state.folderShown=50; setView('folder');
 }
 function openWorkspace(id){ state.activeId=id; state.selId=id; setView('workspace'); }
+/* Create a draft from a built-in template WITHOUT the guided fill — every field
+   left blank for the user to complete in the document. No interface path calls
+   this any more: both routes into a built-in template (the Templates page and
+   the + New contract menu) go through openWizard(), so the questions whose
+   answers become the contract's data get asked exactly once, the same way, in
+   both places. Kept because it is window-exported and produces a valid draft. */
 function createFromTemplate(tid){
   if(!canEdit()){ toast('Viewers cannot create contracts','err'); return; }
   const t=TEMPLATES[tid], u=currentUser();
@@ -179,9 +185,14 @@ function renderNewMenu(){
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
     ${myTpls.map(t=>item('copy','var(--color-accent-100)','var(--color-accent-800)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
-    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Or generate directly</div>
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">HaTi standard templates</div>
     ${creatable.map(t=>item(t.ic,'var(--color-bg)','var(--color-accent-700)',t.name,'Template '+t.id,`data-new="${t.id}"`)).join('')}`;
-  menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromTemplate(el.getAttribute('data-new')); }));
+  // A built-in template opens the SAME guided fill the Templates page opens.
+  // It used to create an empty draft on the spot from here, so the identical
+  // action produced two different experiences depending on where you started —
+  // and the menu route silently skipped the questions whose answers become the
+  // contract's data (counterparty, value, dates, payment terms).
+  menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });

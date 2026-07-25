@@ -1342,3 +1342,51 @@ inserted "Kenyan governing law & forum", leaves exactly one highlight after a
 second jump, and restores the document's text length exactly once the flash
 ends. The formatted path is asserted to cover heading plus body and nothing
 else.
+
+### 24. The same template behaved differently depending on where you started
+
+**What was broken.** Creating a contract from one of the twelve built-in
+templates did two different things depending on the route:
+
+- **Templates page → Use template** opened the guided fill: counterparty, value,
+  start and expiry dates, payment terms, and the template's own distinctive
+  field. Fill it in, press **Create draft**.
+- **+ New contract → (a template)** created the draft immediately. No questions.
+  Every one of those fields blank.
+
+Same action, same template, two experiences — and the faster-looking route was
+the worse one. The fields it skipped are not decoration: `applyTemplateValues()`
+writes each answer onto the contract **and** into `c.metadata`, which is what
+populates the register row, the filters, folder routing and the reports. A
+contract created from the menu arrived with none of that, so it looked complete
+in the workspace while being invisible to every view that reads structured data
+— until someone noticed and re-keyed it by hand.
+
+**Root cause.** Two functions for one job. The Templates page called
+`openWizard(tid)`; the menu called `createFromTemplate(tid)`, an older path that
+predates the guided fill and was never retired when the wizard arrived.
+
+**The fix.** The menu's template entries now call `openWizard(tid)` — the same
+function, pre-selected on the same template, so both routes land on a
+byte-identical screen. The section heading above them changed from *"Or generate
+directly"* to *"HaTi standard templates"*, because generating directly is no
+longer what it does and a label that lies about the next screen is its own small
+defect.
+
+Custom templates were already consistent: both routes went through
+`createFromCustomTemplate()`, which opens the fill modal whenever the template
+has blanks. Only the built-ins diverged.
+
+`createFromTemplate()` is kept — it is window-exported and produces a valid
+draft — but is no longer reachable from the interface, and now says so in a
+comment so the next reader does not wire it back up.
+
+**Files touched.** `js/app.js`.
+
+**How it was verified.** A test drives **both** routes and compares them: the
+same template opened from the Templates page and from the menu produces the same
+field ids and the same rendered text, character for character. It then fills the
+menu route in and asserts the resulting draft carries the counterparty, the
+value, the metadata and a "Guided creation" audit entry — and, for contrast,
+that the old path leaves all three empty, which is the defect that was being
+reported.
