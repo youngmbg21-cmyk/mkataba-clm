@@ -68,7 +68,7 @@ function folderLegendHtml(opts={}){
 // <option> list for any "file under" select — includes a create sentinel
 function folderOptionsHtml(selectedId, includeAuto){
   return (includeAuto?`<option value="auto" ${selectedId==='auto'?'selected':''}>Auto — route by contract type</option>`:'')
-    + Object.values(FOLDERS).map(f=>`<option value="${f.id}" ${selectedId===f.id?'selected':''}>${f.name}</option>`).join('')
+    + Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${selectedId===f.id?'selected':''}>${esc(f.name)}</option>`).join('')
     + `<option value="__new__">＋ Create new stream…</option>`;
 }
 function rebuildFolderSelect(sel, selectedId){

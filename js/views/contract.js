@@ -971,7 +971,7 @@ function redlineDocBody(c){
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
       <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
     </div>
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
@@ -1052,11 +1052,11 @@ function uploadDocBody(c){
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
       <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">External Document · received · ${c.id}</div>
-      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
     </div>
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
       ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
-        ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${c.counterparty}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
+        ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
         : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     ${ocrBannerHtml(u)}
@@ -1672,7 +1672,7 @@ function renderWorkspace(){
         <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
         <div style="min-width:0;flex:1">
           <div style="display:flex;align-items:center;gap:8px">
-            <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</h3>
+            <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
             <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>

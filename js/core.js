@@ -284,6 +284,15 @@ async function flushSaves(){
   refreshStats();  // keep portfolio KPIs current after status/value changes
 }
 async function saveContract(c){
+  // A light row is a register summary, not a contract: the server strips audit,
+  // comments, execution.html and the upload's extracted text out of every list
+  // response. Saving one back writes those holes over the stored record and
+  // destroys the history. Back-fill exactly what the list endpoint removed —
+  // a merge, not a reload, so the caller's own changes are never discarded.
+  if(c._light && !c._loaded){
+    try{ await restoreHeavyFields(c); }
+    catch(e){ toast(`Could not load ${c.id}'s history before saving — the change was not written`,'err'); return; }
+  }
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
   try{
@@ -307,6 +316,25 @@ async function ensureFull(c){
   if(!API_MODE() || !c || c._loaded) return;
   const full=await api('contracts/'+c.id);
   Object.assign(c, full); c._loaded=true; c._light=false; c._v=full._v;
+}
+/* The exact inverse of the server's HEAVY() list-row stripper. Restores only
+   the fields a summary row is missing and leaves everything the caller has
+   already changed alone — so a save that started from a register row keeps its
+   edit AND keeps the record's history. Kept beside ensureFull deliberately:
+   if HEAVY ever strips another field, both have to change together. */
+async function restoreHeavyFields(c){
+  if(!API_MODE() || !c || c._loaded) return;
+  const full=await api('contracts/'+c.id);
+  if(!Array.isArray(c.audit)    || !c.audit.length)    c.audit    = full.audit    || [];
+  if(!Array.isArray(c.comments) || !c.comments.length) c.comments = full.comments || [];
+  if(c.execution && full.execution && !c.execution.html && full.execution.html)
+    c.execution={ ...c.execution, html: full.execution.html };
+  if(c.upload && full.upload){
+    if(!c.upload.extractedText && full.upload.extractedText) c.upload={ ...c.upload, extractedText: full.upload.extractedText };
+    if(!c.upload.dataUrl && full.upload.dataUrl)             c.upload={ ...c.upload, dataUrl: full.upload.dataUrl };
+  }
+  c._loaded=true; c._light=false;
+  if(c._v==null) c._v=full._v;
 }
 function hydrate(){
   const d = lsGet(LS.data);
@@ -832,6 +860,31 @@ const canonicalDoc = c => isUpload(c)
    hash that exact text, and from then on the workspace renders the frozen
    copy — so what was sealed is always what is shown. The seal binds the
    frozen text (or, for uploads, the file bytes) to the parties and value. */
+/* A READ-ONLY projection of a contract's document.
+   `docBody()` renders a template's terms as <input> elements so the owner can
+   complete them in place. Disabling them (PORTAL_MODE) stops the counterparty
+   typing, but an <input> still holds its text in a `value` attribute rather
+   than in the document — so the moment the document leaves the live browser
+   view (copy/paste, print, PDF, any text projection) every commercial term
+   silently disappears and the contract reads "made on ___ between X and ___".
+   This substitutes each field for the text it holds, exactly as
+   freezeContractHtml() does at signing, so what the counterparty reads, copies
+   and prints is the same text that will be sealed. An empty field becomes an
+   em-dash rather than nothing, so an unfilled term is visible as a gap the
+   reader can point at. */
+function readOnlyDocHtml(html){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=String(html||'');
+  tmp.querySelectorAll('input,textarea').forEach(inp=>{
+    const s=document.createElement('span');
+    s.className='field-frozen font-mono font-semibold text-brand-900';
+    const v=(inp.value||inp.getAttribute('value')||'').trim();
+    s.textContent=v||'—';
+    if(!v) s.setAttribute('title','This term was not filled in before the contract was sent');
+    inp.replaceWith(s);
+  });
+  return tmp.innerHTML;
+}
 function freezeContractHtml(c){
   // E2: if an accepted redline replaced the drafted text, seal that exact text.
   if(c.redlineText){
@@ -942,6 +995,55 @@ function downloadEvidence(c){
   toast('Evidence pack downloaded');
 }
 
+/* ---------- readiness: is this contract fit to leave the building? ----------
+   The workspace already knows when a contract is incomplete — the action bar
+   says "Complete key terms" and the Signing panel refuses to enable the button.
+   Sharing consulted none of it, so a draft with no price, no dates and unfilled
+   placeholders went to the counterparty in silence. This is that same knowledge
+   in one place, so the share modal and the sign gate ask the same question.
+
+   Returns [] when the contract is ready. Each problem has a `severity`:
+   'block' — must be acknowledged before sending; 'warn' — worth saying. */
+const PLACEHOLDER_RE = /\[[A-Z][A-Z0-9 ,.'&\/-]{2,60}\]|\{\{\s*[\w.-]+\s*\}\}|_{4,}/g;
+function contractPlaceholders(c){
+  if(isUpload(c)) return [];                 // their paper — brackets are theirs
+  let text='';
+  try{
+    // The rendered text projection, so a value typed into a template field
+    // counts as filled and only genuinely empty ones are reported.
+    const html=(c.status==='Signed'&&c.execution&&c.execution.html)||docBody(c);
+    const d=document.createElement('div');
+    d.innerHTML=readOnlyDocHtml(html);
+    text=d.innerText||'';
+  }catch(e){
+    text=(typeof c.redlineText==='string'?c.redlineText:'')||'';
+  }
+  const hits=String(text).match(PLACEHOLDER_RE)||[];
+  // an em-dash from readOnlyDocHtml is an unfilled template field, not a
+  // placeholder string — counted separately by the key-terms checks below
+  return [...new Set(hits.map(h=>h.trim()))].slice(0,12);
+}
+function contractReadiness(c){
+  const p=[];
+  if(!c) return p;
+  const add=(severity,key,label)=>p.push({ severity, key, label });
+  if(!String(c.counterparty||'').trim()) add('block','counterparty','No counterparty is set.');
+  if(isMonetary(c) && !(Number(c.value)>0))
+    add('block','value','No contract value is set, and this contract type carries one.');
+  if(!c.expiry && !(c.fields&&c.fields.expiry) && (c.metadata||{}).renewalType!=='evergreen')
+    add('warn','term','No expiry or term end is recorded, so no renewal reminder can be scheduled.');
+  if(!c.effectiveDate && !(c.fields&&c.fields.effDate))
+    add('warn','effective','No effective date is recorded.');
+  const ph=contractPlaceholders(c);
+  if(ph.length) add('block','placeholders',
+    `The document still contains ${ph.length} unfilled placeholder${ph.length===1?'':'s'}: ${ph.slice(0,5).join(', ')}${ph.length>5?', …':''}`);
+  if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
+  const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
+  if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
+  return p;
+}
+const readinessBlocks = c => contractReadiness(c).filter(x=>x.severity==='block');
+
 /* ---------- counterparty share links ---------- */
 const b64e = obj => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 const b64d = str => { try{ return JSON.parse(decodeURIComponent(escape(atob(String(str).trim().replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } };
@@ -956,6 +1058,26 @@ const shareMessageText=(c,link,msg,expiresAt)=>
   +`\n\nOpen it here — review, sign, request changes or decline, no account needed:\n${link}`
   +(expiresAt?`\n\nThis link expires on ${String(expiresAt).slice(0,10)}.`:'');
 
+/* The warning block at the top of the share modal. Naming what is missing is
+   the whole point — "this contract is incomplete" is not actionable, "no value
+   is set and the document still says [SUPPLIER CORPORATE NAME]" is. */
+function readinessPanelHtml(c){
+  const probs=contractReadiness(c);
+  if(!probs.length) return '';
+  const blocks=probs.filter(x=>x.severity==='block');
+  const tone=blocks.length
+    ? { bg:'#f9ecea', line:'#e3c4bf', fg:'#8f322b', head:`Not ready to send — ${blocks.length} thing${blocks.length===1?'':'s'} to fix` }
+    : { bg:'#fbf4e3', line:'#f0e3c2', fg:'#7d5a14', head:'Worth checking before you send' };
+  return `<div id="share-readiness" style="margin:0 0 12px;border:1px solid ${tone.line};background:${tone.bg};border-radius:5px;padding:10px 12px;">
+    <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
+    <ul style="margin:0;padding-left:16px;font-size:11.5px;line-height:1.65;color:${tone.fg};">
+      ${probs.map(x=>`<li>${esc(x.label)}</li>`).join('')}
+    </ul>
+    ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:11.5px;color:${tone.fg};cursor:pointer;">
+      <input id="sh-ack" type="checkbox" style="margin-top:2px;accent-color:${tone.fg}"/>
+      <span>Send it anyway. I understand the counterparty will see the contract exactly as it is above.</span></label>`:''}
+  </div>`;
+}
 async function openShareModal(c){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -982,6 +1104,7 @@ async function openShareModal(c){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${c.counterparty||'the counterparty'} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      ${readinessPanelHtml(c)}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1031,6 +1154,16 @@ async function openShareModal(c){
     const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone'), msg=fval('sh-msg');
     if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
+    // A share cannot be recalled, so an incomplete contract needs an explicit
+    // acknowledgement rather than a toast that scrolls away.
+    const ack=document.getElementById('sh-ack');
+    if(ack && !ack.checked){
+      toast('This contract is not ready to send — tick the confirmation, or close and complete it','err');
+      const panel=document.getElementById('share-readiness');
+      if(panel){ panel.style.outline='2px solid #b0453c'; setTimeout(()=>{ panel.style.outline=''; },1600);
+                 panel.scrollIntoView({ block:'nearest', behavior:'smooth' }); }
+      return;
+    }
     const rcptLabel=name||email||phone||c.counterparty||'counterparty';
     if(server){
       let r;
@@ -1152,6 +1285,22 @@ function openImportModal(c){
 async function applyResponse(c, r, opts={}){
   if(!r || r.kind!=='hati-response'){ if(!opts.background) toast('That code is not a valid HaTi response','err'); return false; }
   if(r.id!==c.id){ toast(`This response is for ${r.id}, not ${c.id}`,'err'); return false; }
+  // The caller may hand us a LIGHT register row — the list endpoint strips
+  // audit, comments, execution.html and the upload's text off every row. This
+  // function appends to the record and persists the whole object, so acting on
+  // a light row would write those absences back over the full record and
+  // destroy the audit trail at the exact moment a counterparty responds.
+  try{ await ensureFull(c); }catch(e){
+    toast('Could not load the full contract to record the response — try again','err');
+    return false;
+  }
+  // An agreement that is already executed is not a thing a share link may
+  // re-open. A stale or replayed link must not be able to flip a signed
+  // contract to Declined or bolt another signature onto a sealed record.
+  if((c.execution && c.execution.at) || isExternallyExecuted(c)){
+    if(!opts.background) toast(`${c.id} is already executed — a share response cannot change it. Record an amendment instead.`,'err');
+    return false;
+  }
   const currentHash=await sha256(canonicalDoc(c));
   if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
     toast('Note: the document changed after this share link was created','err');
@@ -1213,4 +1362,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

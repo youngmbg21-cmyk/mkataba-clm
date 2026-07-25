@@ -44,7 +44,7 @@ function openFolderAccessEditor(userId){
   const fRow=f=>`<label style="display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:6px;cursor:pointer;font-size:12.5px">
       <input type="checkbox" data-fa-folder="${f.id}" ${set.has(f.id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/>
       <span style="width:9px;height:9px;border-radius:2px;background:${f.color};flex:none"></span>
-      <span style="flex:1;min-width:0">${f.name}</span></label>`;
+      <span style="flex:1;min-width:0">${esc(f.name)}</span></label>`;
   openModal(`<div class="p-6" style="max-width:460px">
     <h3 class="font-serif font-600 text-lg text-ink mb-1">Folder access — ${(u.name||u.email).replace(/</g,'&lt;')}</h3>
     <p class="text-xs text-ink/60 mb-3">Grant every value stream, or restrict this member to a specific subset. Admins always keep full access.</p>
@@ -150,8 +150,8 @@ function renderTeam(){
         <span style="display:flex;align-items:center;gap:8px;min-width:0">
           <span style="${avStyle}">${ini}</span>
           <span style="min-width:0">
-            <span style="display:block;font-weight:500;color:var(--color-text)">${x.name}${isMe?' <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">(you)</span>':''}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.email}</span>
+            <span style="display:block;font-weight:500;color:var(--color-text)">${esc(x.name)}${isMe?' <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">(you)</span>':''}</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.email)}</span>
           </span>
         </span>
       </td>
@@ -882,7 +882,7 @@ function openApprovalRuleEditor(idx){
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
     if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Threshold (KES)</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
-    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Value stream</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${f.id}" ${r.cond.value===f.id?'selected':''}>${f.name}</option>`).join('')}</select></label>`;
+    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Value stream</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
     else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Type contains</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="e.g. lease" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">No extra value needed for this condition.</p>`; };
   document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();

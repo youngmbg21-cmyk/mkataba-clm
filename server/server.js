@@ -88,6 +88,13 @@ const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role,
    Each contract is its own row with its own version. Lists return a light
    summary (heavy fields stripped) so a client never has to load thousands of
    full bodies; the full record loads on open, and a save touches one row. */
+/* `%` and `_` are wildcards in SQL LIKE, and the search term is the user's own
+   text. Unescaped, a search for "50%" quietly matches everything containing
+   "50" and a search for "%" returns the entire register — with no error and no
+   way for the user to know the result set is wrong. Every LIKE built from user
+   input must run this and carry ESCAPE '\'. */
+const likeEscape = s => String(s == null ? '' : s).replace(/[\\%_]/g, c => '\\' + c);
+
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   if (x.execution) x.execution = { ...x.execution, html: undefined };
@@ -804,7 +811,10 @@ app.get('/api/contracts', auth, (req, res) => {
   const where = [], args = {};
   if (folder) { where.push('folder=@folder'); args.folder = folder; }
   if (status) { where.push('status=@status'); args.status = status; }
-  if (q) { where.push('(lower(name) LIKE @q OR lower(counterparty) LIKE @q OR lower(id) LIKE @q)'); args.q = '%' + String(q).toLowerCase() + '%'; }
+  if (q) {
+    where.push("(lower(name) LIKE @q ESCAPE '\\' OR lower(counterparty) LIKE @q ESCAPE '\\' OR lower(id) LIKE @q ESCAPE '\\')");
+    args.q = '%' + likeEscape(String(q).toLowerCase()) + '%';
+  }
   const w = where.length ? 'WHERE ' + where.join(' AND ') : '';
   const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
   const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
@@ -841,8 +851,8 @@ app.get('/api/search', auth, (req, res) => {
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
   if (!q) return res.json({ hits: [], fts: ftsOk });
   if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
-    const like = '%' + q.toLowerCase() + '%';
-    const rows = db.prepare('SELECT id,name,counterparty FROM contracts WHERE lower(name) LIKE ? OR lower(counterparty) LIKE ? LIMIT ?').all(like, like, limit);
+    const like = '%' + likeEscape(q.toLowerCase()) + '%';
+    const rows = db.prepare("SELECT id,name,counterparty FROM contracts WHERE lower(name) LIKE ? ESCAPE '\\' OR lower(counterparty) LIKE ? ESCAPE '\\' LIMIT ?").all(like, like, limit);
     return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false });
   }
   // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
@@ -889,15 +899,57 @@ app.get('/api/contracts/:id', auth, (req, res) => {
   res.json(c);
 });
 
+/* ---------- executed records are immutable ----------
+   A signature is a claim about a specific document. If the document, its
+   frozen copy, its value or its parties can still be changed afterwards, the
+   claim is worth nothing — and the seal cannot be the guard, because the whole
+   seal computation runs in the browser, so a caller that rewrites the record
+   can rewrite the hashes to match. The server has to hold this line itself.
+
+   Post-execution the only legitimate changes are additive: notes, comments,
+   the audit trail, distribution records, a parent link, and the reminder
+   bookkeeping. Anything that alters WHAT WAS SIGNED is rejected. A correction
+   to an executed agreement is an amendment — a new record — not an edit. */
+const EXECUTED_IMMUTABLE = [
+  'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
+  'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+];
+const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash));
+const stable = v => JSON.stringify(v === undefined ? null : v);
+
 // Save ONE contract with its own optimistic-lock version.
 app.put('/api/contracts/:id', auth, editor, (req, res) => {
   const { contract, baseVersion } = req.body || {};
   if (!contract || contract.id !== req.params.id) return res.status(400).json({ error: 'Contract id mismatch' });
-  const existing = db.prepare('SELECT version FROM contracts WHERE id=?').get(req.params.id);
+  const existing = db.prepare('SELECT version, json FROM contracts WHERE id=?').get(req.params.id);
   const cur = existing ? existing.version : 0;
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
   const c = { ...contract }; delete c._v; delete c._light; delete c._loaded;
+
+  let prev = null;
+  if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
+
+  if (prev && isExecutedRow(prev)) {
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k]));
+    if (changed.length) {
+      return res.status(409).json({
+        error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
+        immutable: changed,
+      });
+    }
+  }
+  // The audit trail is evidence, so the client never gets to shorten or rewrite
+  // it. Entries may only be appended; anything else is replaced with what is
+  // already on the record.
+  if (prev && Array.isArray(prev.audit) && prev.audit.length) {
+    const incoming = Array.isArray(c.audit) ? c.audit : [];
+    const keptPrefix = incoming.length >= prev.audit.length &&
+      prev.audit.every((a, i) => stable(a) === stable(incoming[i]));
+    c.audit = keptPrefix ? incoming : prev.audit.concat(incoming.filter(a =>
+      !prev.audit.some(b => stable(a) === stable(b))));
+  }
+
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
   upsertContract(c, next);
@@ -905,9 +957,33 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   res.json({ ok: true, version: next });
 });
 
+/* Deleting a contract has to take everything with it — the interface's "only
+   drafts can be deleted" rule has to hold here too, the uploaded file must not
+   be left in the database with nothing pointing at it, and any live share link
+   must stop working, or the counterparty keeps a working link to a contract the
+   owner believes is gone. */
 app.delete('/api/contracts/:id', auth, editor, (req, res) => {
-  db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
-  res.json({ ok: true });
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Contract not found' });
+  let c = null; try { c = JSON.parse(row.json); } catch (_) {}
+  if (c && (isExecutedRow(c) || c.status === 'Signed')) {
+    return res.status(409).json({
+      error: `${req.params.id} is executed and cannot be deleted. An executed agreement is a record; archive it or record a termination instead.`,
+    });
+  }
+  const fileIds = [];
+  if (c && c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
+  for (const d of (c && Array.isArray(c.documents) ? c.documents : []))
+    if (d && d.fileId) fileIds.push(d.fileId);
+
+  let revoked = 0;
+  txn(() => {
+    const r = db.prepare("UPDATE shares SET revoked_at=? WHERE contract_id=? AND revoked_at IS NULL").run(now(), req.params.id);
+    revoked = r.changes || 0;
+    for (const fid of fileIds) db.prepare('DELETE FROM files WHERE id=?').run(fid);
+    db.prepare('DELETE FROM contracts WHERE id=?').run(req.params.id);
+  });
+  res.json({ ok: true, sharesRevoked: revoked, filesDeleted: fileIds.length });
 });
 
 app.put('/api/settings', auth, admin, (req, res) => {
@@ -1122,7 +1198,7 @@ app.put('/api/ai/allowance', auth, admin, (req, res) => {
 
 /* Migration tells the server it consumed a document from the allowance — the
    money side is drawn automatically by every metered call. */
-app.post('/api/ai/allowance/document', auth, (req, res) => {
+app.post('/api/ai/allowance/document', auth, editor, (req, res) => {
   const n = Math.max(0, Math.min(100, Math.floor(Number((req.body || {}).count) || 1)));
   if (getAllowance().open) drawAllowance(0, n);
   res.json({ ok: true, allowance: allowanceView() });
@@ -1927,6 +2003,38 @@ app.get('/api/files/:id', auth, (req, res) => {
   if (!f) return res.status(404).json({ error: 'File not found' });
   res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
+/* A file id that no contract references is either an orphan from before the
+   delete handler cleaned up, or a leak waiting to happen. Admin-only sweep so
+   the customer can actually discharge a deletion request. */
+app.get('/api/files/orphans', auth, admin, (req, res) => {
+  const referenced = new Set();
+  for (const r of db.prepare('SELECT json FROM contracts').all()) {
+    try {
+      const c = JSON.parse(r.json);
+      if (c.upload && c.upload.fileId) referenced.add(c.upload.fileId);
+      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) referenced.add(d.fileId);
+    } catch (_) {}
+  }
+  const rows = db.prepare('SELECT id,name,mime,length(data) AS bytes,created_at FROM files').all()
+    .filter(f => !referenced.has(f.id));
+  res.json({ orphans: rows, bytes: rows.reduce((a, f) => a + (f.bytes || 0), 0) });
+});
+app.delete('/api/files/orphans', auth, admin, (req, res) => {
+  const referenced = new Set();
+  for (const r of db.prepare('SELECT json FROM contracts').all()) {
+    try {
+      const c = JSON.parse(r.json);
+      if (c.upload && c.upload.fileId) referenced.add(c.upload.fileId);
+      for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) referenced.add(d.fileId);
+    } catch (_) {}
+  }
+  let n = 0;
+  txn(() => {
+    for (const f of db.prepare('SELECT id FROM files').all())
+      if (!referenced.has(f.id)) { db.prepare('DELETE FROM files WHERE id=?').run(f.id); n++; }
+  });
+  res.json({ ok: true, deleted: n });
+});
 
 /* ---------- counterparty shares ----------
    A share is one recipient's tracked link to one contract. The share state is
@@ -2034,6 +2142,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
   if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  // The payload carries its own copy of the contract, so a link outlives the
+  // record unless this is checked: without it, a deleted contract keeps being
+  // served here — still offering "Approve & sign" — to anyone holding the link.
+  if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
+    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
   try {
     const payload = JSON.parse(s.payload);
@@ -2116,7 +2229,11 @@ app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request
     'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
     .run(req.params.token, email, sha(code + req.params.token), null, expires);
   sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
-  res.json({ ok: true, emailSent: EMAIL_ON(), devCode: EMAIL_ON() ? undefined : code });
+  // The code is NEVER returned to the caller. This endpoint is public and the
+  // caller is the party being verified — handing them the code makes the check
+  // theatre. With no mail provider the code queues to the admin-only outbox
+  // (dev_hint above), which is what the documentation has always promised.
+  res.json({ ok: true, emailSent: EMAIL_ON() });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
@@ -2133,6 +2250,8 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
+    return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)

@@ -2,6 +2,18 @@
 // purpose: the app is written against a single global scope (inline
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
+/* ============================================================
+   SHARED: HTML escaping.
+   Every user-controlled string interpolated into a template literal has to go
+   through this. A contract name is user-controlled twice over — a colleague
+   types it, and on a migrated contract it is derived from the uploaded file's
+   name, so a maliciously named file in a shared drive is enough. Quotes are
+   escaped as well as angle brackets because these values also land inside
+   attribute values (title=, data-*).
+   ============================================================ */
+const ESC_MAP = { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' };
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, ch=>ESC_MAP[ch]); }
+
 /* ============================================================ ICONS */
 const ICONS = {
   grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
@@ -75,8 +87,8 @@ function contractRow(c, {showFolder=false}={}){
   <button data-open="${c.id}" class="w-full text-left group flex items-center gap-3 px-4 py-3 hover:bg-brand-50/50 transition border-b border-brand-100/50 last:border-0">
     <span class="h-8 w-8 shrink-0 grid place-items-center rounded-lg ${isUpload(c)?'bg-gold-500/10 text-gold-600 border-gold-500/25':'bg-brand-50 text-brand-500 border-brand-100'} border" ${isUpload(c)?'title="Uploaded — received from counterparty"':''}>${icon(cIcon(c))}</span>
     <span class="min-w-0 flex-1">
-      <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${c.name}</span>
-      <span class="block text-[11px] text-brand-800/65 font-mono truncate">${c.counterparty||'No counterparty yet'}${showFolder?' · '+FOLDERS[c.folder].name:''}</span>
+      <span class="block text-sm font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
+      <span class="block text-[11px] text-brand-800/65 font-mono truncate">${esc(c.counterparty||'No counterparty yet')}${showFolder?' · '+esc(FOLDERS[c.folder].name):''}</span>
     </span>
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
@@ -90,4 +102,4 @@ function wireOpens(root=document){
   root.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-open'))));
 }
 
-Object.assign(window,{contractRow,wireOpens});
+Object.assign(window,{esc,contractRow,wireOpens});
