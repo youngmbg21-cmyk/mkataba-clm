@@ -236,6 +236,10 @@ const CSP = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob:",
+  // uploaded documents preview in an iframe. They are framed from a blob: URL
+  // built in the browser from bytes we already hold — never a remote origin,
+  // and narrower than allowing data: frames.
+  "frame-src 'self' blob:",
   "connect-src 'self' https://api.anthropic.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",

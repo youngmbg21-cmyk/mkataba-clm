@@ -10,9 +10,13 @@
 const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
 
 /* ---------- document text extraction (client-side, no external service) ----------
-   Uses the browser's built-in DecompressionStream to inflate FlateDecode PDF
-   streams, then pulls the text-showing strings. Works for standard text PDFs
-   and .txt; image-only PDFs / Word fall back to the manual checklist. */
+   A small PDF reader built on the browser's DecompressionStream: it walks the
+   page tree, replays each page's content stream through the text operators, and
+   lays the positioned runs back out as lines and paragraphs. That layout step is
+   the point — a PDF stores glyphs at coordinates, not sentences, so simply
+   concatenating the strings in a content stream yields the familiar
+   "S e r v i c e   F e e s" soup with every line break lost. Works for standard
+   text PDFs and .txt; image-only PDFs / Word fall back to the manual checklist. */
 async function inflateBytes(bytes){
   for(const fmt of ['deflate','deflate-raw']){
     try{ const ds=new DecompressionStream(fmt);
@@ -22,25 +26,365 @@ async function inflateBytes(bytes){
   }
   return null;
 }
+const pdfLatin=bytes=>{ let s=''; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return s; };
+// WinAnsiEncoding's high range — where the smart quotes, dashes and bullets that
+// fill a Word-authored contract live (bytes 128–159 are not Latin-1)
+const PDF_WINANSI={128:'€',130:'‚',131:'ƒ',132:'„',133:'…',134:'†',135:'‡',136:'ˆ',137:'‰',
+  138:'Š',139:'‹',140:'Œ',142:'Ž',145:'‘',146:'’',147:'“',148:'”',149:'•',150:'–',151:'—',
+  152:'˜',153:'™',154:'š',155:'›',156:'œ',158:'ž',159:'Ÿ',160:' ',173:'‐'};
+
+/* ---- indirect objects ---- */
+function pdfIndexObjects(bin){
+  const objs=new Map(); const re=/(\d+)\s+(\d+)\s+obj\b/g; let m;
+  while((m=re.exec(bin))){
+    const num=Number(m[1]), start=m.index+m[0].length;
+    const end=bin.indexOf('endobj', start);
+    const body=bin.slice(start, end<0?Math.min(bin.length,start+400000):end);
+    const sm=/\bstream\r?\n/.exec(body);
+    let dict=body, raw=null;
+    if(sm){
+      dict=body.slice(0, sm.index);
+      const sStart=start+sm.index+sm[0].length;
+      const lm=/\/Length\s+(\d+)(?!\s+\d+\s+R)/.exec(dict);
+      let sEnd=lm?sStart+Number(lm[1]):-1;
+      if(sEnd<0 || bin.slice(sEnd, sEnd+20).indexOf('endstream')<0){
+        const alt=bin.indexOf('endstream', sStart); sEnd=alt<0?sStart:alt;
+      }
+      raw=bin.slice(sStart, sEnd);
+    }
+    if(!objs.has(num)) objs.set(num,{dict,raw});
+  }
+  return objs;
+}
+async function pdfStreamBytes(o){
+  if(!o||o.raw==null) return null;
+  const arr=Uint8Array.from(o.raw, ch=>ch.charCodeAt(0)&0xff);
+  if(/\/Flate/.test(o.dict)){ const inf=await inflateBytes(arr); return inf||arr; }
+  return arr;
+}
+/* PDF 1.5+ keeps most non-stream objects (page dicts, fonts) inside /ObjStm containers */
+async function pdfExpandObjStreams(objs){
+  for(const [,o] of [...objs]){
+    if(!o.raw||!/\/Type\s*\/ObjStm/.test(o.dict)) continue;
+    const bytes=await pdfStreamBytes(o); if(!bytes) continue;
+    const txt=pdfLatin(bytes);
+    const n=Number((/\/N\s+(\d+)/.exec(o.dict)||[])[1]||0);
+    const first=Number((/\/First\s+(\d+)/.exec(o.dict)||[])[1]||0);
+    if(!n||!first) continue;
+    const head=txt.slice(0,first).trim().split(/\s+/).map(Number);
+    for(let i=0;i<n;i++){
+      const num=head[i*2], off=head[i*2+1];
+      if(!Number.isFinite(num)||!Number.isFinite(off)) continue;
+      const nextOff=(i+1<n&&Number.isFinite(head[i*2+3]))?first+head[i*2+3]:txt.length;
+      if(!objs.has(num)) objs.set(num,{dict:txt.slice(first+off,nextOff),raw:null});
+    }
+  }
+  return objs;
+}
+const pdfRef=s=>{ const m=/^\s*(\d+)\s+\d+\s+R/.exec(s||''); return m?Number(m[1]):null; };
+const pdfDictVal=(dict,key)=>{ const i=dict.indexOf(key); return i<0?'':dict.slice(i+key.length, i+key.length+240); };
+
+/* pages in reading order: catalog → /Pages → /Kids, else document order */
+function pdfPageObjects(objs){
+  let rootNum=null;
+  for(const [,o] of objs){ if(/\/Type\s*\/Catalog/.test(o.dict)){ rootNum=pdfRef(pdfDictVal(o.dict,'/Pages')); break; } }
+  const pages=[], seen=new Set();
+  (function walk(num){
+    if(num==null||seen.has(num)||pages.length>2000) return; seen.add(num);
+    const o=objs.get(num); if(!o) return;
+    if(/\/Type\s*\/Page[^s]/.test(o.dict)){ pages.push(num); return; }
+    const ki=o.dict.indexOf('/Kids'); if(ki<0) return;
+    const arr=/\[([\s\S]*?)\]/.exec(o.dict.slice(ki)); if(!arr) return;
+    const kre=/(\d+)\s+\d+\s+R/g; let k;
+    while((k=kre.exec(arr[1]))) walk(Number(k[1]));
+  })(rootNum);
+  if(!pages.length){
+    for(const [num,o] of objs) if(/\/Type\s*\/Page[^s]/.test(o.dict)) pages.push(num);
+    pages.sort((a,b)=>a-b);
+  }
+  return pages;
+}
+
+/* ---- /ToUnicode CMaps: the only way to read Identity-H (subset) fonts ---- */
+function pdfParseCMap(txt){
+  const map=new Map();
+  const uni=h=>{ let s=''; for(let i=0;i+3<h.length+(h.length%4?1:0);i+=4){ const c=parseInt(h.slice(i,i+4),16); if(Number.isFinite(c)) s+=String.fromCharCode(c); } return s; };
+  let m;
+  const bc=/beginbfchar([\s\S]*?)endbfchar/g;
+  while((m=bc.exec(txt))){ const pre=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g; let p;
+    while((p=pre.exec(m[1]))) map.set(parseInt(p[1],16), uni(p[2])); }
+  const br=/beginbfrange([\s\S]*?)endbfrange/g;
+  while((m=br.exec(txt))){
+    const pre=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(?:<([0-9A-Fa-f]*)>|\[([\s\S]*?)\])/g; let p;
+    while((p=pre.exec(m[1]))){
+      const lo=parseInt(p[1],16), hi=parseInt(p[2],16);
+      if(p[3]!=null){ const base=parseInt(p[3].slice(-4)||'0',16);
+        for(let c=lo;c<=hi&&c-lo<65536;c++) map.set(c,String.fromCharCode(base+(c-lo)));
+      } else if(p[4]!=null){
+        [...p[4].matchAll(/<([0-9A-Fa-f]*)>/g)].forEach((it,k)=>map.set(lo+k, uni(it[1])));
+      }
+    }
+  }
+  return map;
+}
+async function pdfPageFonts(objs, resDict){
+  const fonts={};
+  const fi=resDict.indexOf('/Font'); if(fi<0) return fonts;
+  const tail=resDict.slice(fi+5);
+  const direct=pdfRef(tail);
+  const inner=direct!=null ? (objs.get(direct)?.dict||null) : (/<<([\s\S]*?)>>/.exec(tail)||[])[1];
+  if(!inner) return fonts;
+  const fre=/\/([^\s/<>[\]()]+)\s+(\d+)\s+\d+\s+R/g; let f;
+  while((f=fre.exec(inner))){
+    const o=objs.get(Number(f[2])); if(!o) continue;
+    let map=null;
+    const tu=pdfRef(pdfDictVal(o.dict,'/ToUnicode'));
+    if(tu!=null){ const b=await pdfStreamBytes(objs.get(tu)); if(b) map=pdfParseCMap(pdfLatin(b)); }
+    fonts[f[1]]={ twoByte:/\/Subtype\s*\/Type0/.test(o.dict), map };
+  }
+  return fonts;
+}
+
+/* ---- content-stream tokenizer ---- */
+function pdfTokens(s){
+  const out=[]; let i=0; const n=s.length;
+  const isDelim=c=>'()<>[]{}/%'.indexOf(c)>=0;
+  const isWS=c=>c===' '||c==='\n'||c==='\r'||c==='\t'||c==='\f'||c==='\0';
+  while(i<n){
+    const c=s[i];
+    if(isWS(c)){ i++; continue; }
+    if(c==='%'){ while(i<n&&s[i]!=='\n'&&s[i]!=='\r') i++; continue; }
+    if(c==='('){
+      let depth=1, j=i+1, str='';
+      while(j<n&&depth){
+        const ch=s[j];
+        if(ch==='\\'){
+          const nx=s[j+1];
+          if(nx>='0'&&nx<='7'){ let oct='', k=j+1;
+            while(k<n&&oct.length<3&&s[k]>='0'&&s[k]<='7'){ oct+=s[k]; k++; }
+            str+=String.fromCharCode(parseInt(oct,8)); j=k; continue; }
+          if(nx==='\n'){ j+=2; continue; }
+          if(nx==='\r'){ j+=2; if(s[j]==='\n') j++; continue; }
+          const esc={n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'};
+          str+=(esc[nx]!==undefined?esc[nx]:nx); j+=2; continue;
+        }
+        if(ch==='('){ depth++; str+=ch; j++; continue; }
+        if(ch===')'){ depth--; if(depth) str+=ch; j++; continue; }
+        str+=ch; j++;
+      }
+      out.push({t:'str', v:str}); i=j; continue;
+    }
+    if(c==='<'&&s[i+1]==='<'){ out.push({t:'op',v:'<<'}); i+=2; continue; }
+    if(c==='>'&&s[i+1]==='>'){ out.push({t:'op',v:'>>'}); i+=2; continue; }
+    if(c==='<'){ const j=s.indexOf('>',i);
+      out.push({t:'hex', v:s.slice(i+1,j<0?n:j).replace(/[^0-9A-Fa-f]/g,'')}); i=(j<0?n:j+1); continue; }
+    if(c==='['||c===']'){ out.push({t:'op',v:c}); i++; continue; }
+    if(c==='/'){ let j=i+1; while(j<n&&!isWS(s[j])&&!isDelim(s[j])) j++;
+      out.push({t:'name', v:s.slice(i+1,j)}); i=j; continue; }
+    if(/[-+.\d]/.test(c)){ let j=i; while(j<n&&/[-+.\d]/.test(s[j])) j++;
+      const num=parseFloat(s.slice(i,j)); out.push({t:'num', v:Number.isFinite(num)?num:0}); i=j; continue; }
+    let j=i; while(j<n&&!isWS(s[j])&&!isDelim(s[j])) j++; if(j===i) j++;
+    out.push({t:'op', v:s.slice(i,j)}); i=j;
+  }
+  return out;
+}
+const pdfMul=(a,b)=>[a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3],
+                     a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
+
+/* Approximate advance width of a run. Real widths live in the embedded font
+   programme, which we deliberately don't parse — this only has to be good
+   enough to tell "the next run continues this word" from "the next run is a
+   new column". */
+function pdfEstWidth(str, size){
+  let em=0;
+  for(let i=0;i<str.length;i++){
+    const ch=str[i];
+    if(ch===' ') em+=0.28;
+    else if(/[.,;:!|'`\-()[\]]/.test(ch)) em+=0.30;
+    else if(/[ijltfrI]/.test(ch)) em+=0.33;
+    else if(/[mwMW@]/.test(ch)) em+=0.85;
+    else if(/[A-Z0-9]/.test(ch)) em+=0.63;
+    else em+=0.50;
+  }
+  return em*size;
+}
+
+/* Replay one page's content stream → positioned text runs. */
+function pdfTextRuns(content, fonts){
+  const runs=[], args=[], arrStack=[];
+  let ctm=[1,0,0,1,0,0], stack=[];
+  let tm=[1,0,0,1,0,0], tlm=[1,0,0,1,0,0];
+  let leading=0, font=null, fsize=1, charSp=0, hscale=1, render=0;
+
+  const cidChar=code=>{
+    const ch=font&&font.map?font.map.get(code):undefined;
+    if(ch===undefined||ch==='') return '•';
+    const cp=ch.charCodeAt(0);
+    return (cp>=0xE000&&cp<=0xF8FF)?'•':ch;      // private-use symbol glyph = list bullet
+  };
+  const decode=tok=>{
+    if(tok.t==='str'){
+      if(font&&font.twoByte&&font.map){
+        let s=''; for(let i=0;i+1<tok.v.length;i+=2) s+=cidChar((tok.v.charCodeAt(i)<<8)|tok.v.charCodeAt(i+1));
+        return s;
+      }
+      let s='';
+      for(let i=0;i<tok.v.length;i++){ const cc=tok.v.charCodeAt(i);
+        s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:(cc>=128&&cc<=159?'':tok.v[i]); }
+      return s;
+    }
+    const h=tok.v;
+    if(font&&font.twoByte){ let s=''; for(let i=0;i+3<h.length;i+=4) s+=cidChar(parseInt(h.slice(i,i+4),16)); return s; }
+    let s='';
+    for(let i=0;i+1<h.length;i+=2){ const cc=parseInt(h.slice(i,i+2),16);
+      s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:String.fromCharCode(cc); }
+    return s;
+  };
+  const emit=text=>{
+    if(!text) return;
+    const m=pdfMul(tm, ctm);
+    const size=Math.hypot(m[2],m[3])||1;
+    const sx=Math.hypot(m[0],m[1])||1;
+    const w=(pdfEstWidth(text, fsize)+text.length*charSp)*hscale;
+    if(render!==3&&render!==7) runs.push({x:m[4], y:m[5], size, w:w*sx, text});
+    tm=pdfMul([1,0,0,1,w,0], tm);   // keep runs without an explicit move from stacking
+  };
+
+  for(const tk of pdfTokens(content)){
+    if(tk.t!=='op'){ args.push(tk); continue; }
+    const op=tk.v;
+    if(op==='['){ arrStack.push(args.length); args.push(tk); continue; }
+    if(op===']') continue;
+    const nums=args.filter(a=>a.t==='num').map(a=>a.v);
+    const lastStr=()=>args.filter(a=>a.t==='str'||a.t==='hex').pop();
+    switch(op){
+      case 'q': stack.push(ctm.slice()); break;
+      case 'Q': ctm=stack.pop()||[1,0,0,1,0,0]; break;
+      case 'cm': if(nums.length>=6) ctm=pdfMul(nums.slice(-6), ctm); break;
+      case 'BT': tm=[1,0,0,1,0,0]; tlm=tm.slice(); break;
+      case 'Tf': { const nm=args.filter(a=>a.t==='name').pop();
+                   font=nm?(fonts[nm.v]||null):null; fsize=nums.length?nums[nums.length-1]:1; break; }
+      case 'Tc': charSp=nums[nums.length-1]||0; break;
+      case 'Tz': hscale=(nums[nums.length-1]||100)/100; break;
+      case 'TL': leading=nums[nums.length-1]||0; break;
+      case 'Tr': render=nums[nums.length-1]||0; break;
+      case 'Tm': if(nums.length>=6){ tlm=nums.slice(-6); tm=tlm.slice(); } break;
+      case 'Td': if(nums.length>=2){ tlm=pdfMul([1,0,0,1,nums[nums.length-2],nums[nums.length-1]], tlm); tm=tlm.slice(); } break;
+      case 'TD': if(nums.length>=2){ leading=-nums[nums.length-1];
+                   tlm=pdfMul([1,0,0,1,nums[nums.length-2],nums[nums.length-1]], tlm); tm=tlm.slice(); } break;
+      case 'T*': tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice(); break;
+      case 'Tj': { const s=lastStr(); if(s) emit(decode(s)); break; }
+      case "'": { tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
+                  const s=lastStr(); if(s) emit(decode(s)); break; }
+      case '"': { if(nums.length>=2) charSp=nums[1];
+                  tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
+                  const s=lastStr(); if(s) emit(decode(s)); break; }
+      case 'TJ': { const from=arrStack.pop(); let out='';
+                   for(let i=(from==null?0:from+1); i<args.length; i++){
+                     const a=args[i];
+                     // a big negative kern is a typeset word gap; small ones are just tracking
+                     if(a.t==='num'){ if(a.v<-250 && !/\s$/.test(out)) out+=' '; }
+                     else if(a.t==='str'||a.t==='hex') out+=decode(a);
+                   }
+                   emit(out); break; }
+      default: break;
+    }
+    args.length=0; arrStack.length=0;
+  }
+  return runs;
+}
+
+/* Positioned runs → text: one line per baseline, a blank line where the page
+   leaves a paragraph's worth of vertical space. */
+function pdfRunsToText(runs){
+  if(!runs.length) return '';
+  const lines=[];
+  for(const r of runs.slice().sort((a,b)=>(b.y-a.y)||(a.x-b.x))){
+    const tol=Math.max(1.6, r.size*0.32);
+    const line=lines.find(l=>Math.abs(l.y-r.y)<=tol);
+    if(line){ line.y=(line.y*line.runs.length+r.y)/(line.runs.length+1); line.runs.push(r); }
+    else lines.push({y:r.y, runs:[r]});
+  }
+  lines.sort((a,b)=>b.y-a.y);
+  const rendered=lines.map(l=>{
+    l.runs.sort((a,b)=>a.x-b.x);
+    let text='', endX=null;
+    for(const r of l.runs){
+      if(!r.text) continue;
+      if(endX!=null){
+        const ruled=/([-=_.·])\1{2,}\s*$/.test(text);       // rule/leader run — width estimate is meaningless
+        if(r.x-endX>r.size*0.30 && !ruled && !/\s$/.test(text) && !/^[\s,.;:!?)\]}»’”%-]/.test(r.text)) text+=' ';
+      }
+      text+=r.text;
+      endX=r.x+(r.w||pdfEstWidth(r.text, r.size));
+    }
+    return {y:l.y, size:Math.max(...l.runs.map(r=>r.size)), text:text.replace(/\s+$/,'')};
+  }).filter(l=>l.text);
+  if(!rendered.length) return '';
+  const gaps=[]; for(let i=1;i<rendered.length;i++) gaps.push(rendered[i-1].y-rendered[i].y);
+  const sorted=gaps.slice().sort((a,b)=>a-b);
+  const median=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
+  let out=rendered[0].text;
+  for(let i=1;i<rendered.length;i++){
+    const own=Math.max(rendered[i-1].size, rendered[i].size)*1.55;
+    const limit=median>0?Math.max(median*1.4, own):own;
+    out+=((rendered[i-1].y-rendered[i].y)>limit?'\n\n':'\n')+rendered[i].text;
+  }
+  return out;
+}
+
+/* Last resort for PDFs whose page tree we can't follow: the old flat scan of
+   every text-showing string. Loses layout, but beats returning nothing. */
 function pdfStringsFrom(content){
   const res=[]; const re=/\(((?:\\.|[^()\\])*)\)/g; let m;
   while((m=re.exec(content))){
     res.push(m[1].replace(/\\(\d{1,3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\([()\\nrt])/g,(x,c)=>({n:'\n',r:'',t:' '}[c]??c)));
   }
-  return res.join(' ');
+  return res.join('');
 }
-async function extractPdfText(buf){
-  const bytes=new Uint8Array(buf);
-  let bin=''; for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+async function pdfFlatText(bin){
   const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
   while((m=re.exec(bin))){
-    const raw=m[1];
-    const arr=Uint8Array.from(raw,ch=>ch.charCodeAt(0)&0xff);
+    const arr=Uint8Array.from(m[1],ch=>ch.charCodeAt(0)&0xff);
     const inf=await inflateBytes(arr);
-    let text; if(inf){ text=''; for(let i=0;i<inf.length;i++) text+=String.fromCharCode(inf[i]); } else text=raw;
+    const text=inf?pdfLatin(inf):m[1];
     if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
   }
   return out.join(' ').replace(/\s+/g,' ').trim();
+}
+
+async function extractPdfText(buf){
+  const bin=pdfLatin(new Uint8Array(buf));
+  let pages=[];
+  try{
+    const objs=pdfIndexObjects(bin);
+    await pdfExpandObjStreams(objs);
+    for(const pn of pdfPageObjects(objs)){
+      const po=objs.get(pn); if(!po) continue;
+      let resDict='', node=po, hops=0;                    // /Resources can be inherited from /Pages
+      while(node&&hops++<8){
+        const ri=node.dict.indexOf('/Resources');
+        if(ri>=0){ const tail=node.dict.slice(ri+10), ref=pdfRef(tail);
+          resDict=ref!=null?(objs.get(ref)?.dict||''):tail; break; }
+        const par=pdfRef(pdfDictVal(node.dict,'/Parent')); node=par!=null?objs.get(par):null;
+      }
+      const fonts=await pdfPageFonts(objs, resDict);
+      const ci=po.dict.indexOf('/Contents'); if(ci<0) continue;
+      const tail=po.dict.slice(ci+9);
+      const one=pdfRef(tail);
+      let refs=[];
+      if(one!=null) refs=[one];
+      else { const arr=/\[([\s\S]*?)\]/.exec(tail);
+        if(arr){ const re=/(\d+)\s+\d+\s+R/g; let m; while((m=re.exec(arr[1]))) refs.push(Number(m[1])); } }
+      let content='';
+      for(const r of refs){ const b=await pdfStreamBytes(objs.get(r)); if(b) content+=pdfLatin(b)+'\n'; }
+      if(!content.trim()) continue;
+      const txt=pdfRunsToText(pdfTextRuns(content, fonts)).trim();
+      if(txt) pages.push(txt);
+    }
+  }catch(e){ pages=[]; }
+  if(pages.length) return pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  return await pdfFlatText(bin);
 }
 /* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
    CSP (connect-src 'self'), so the bytes are unpacked without a request. */
@@ -52,6 +396,31 @@ function dataUrlBytes(dataUrl){
     for(let j=0;j<bin.length;j++) arr[j]=bin.charCodeAt(j); return arr; }
   return new TextEncoder().encode(decodeURIComponent(body));
 }
+/* A browsable URL for an uploaded document. The bytes are held as a data: URL,
+   but the server-mode CSP won't frame those (default-src 'self'), so the
+   preview showed Chrome's "This content is blocked" panel. A blob: URL carries
+   the same bytes, is same-document, and is what frame-src allows. */
+const _docBlobUrls=new Map();   // "<contract id>:<file hash>" → object URL
+function docFileUrl(c){
+  const u=(c&&c.upload)||{};
+  if(!u.dataUrl) return '';
+  const key=c.id+':'+(u.fileHash||u.fileName||'');
+  const hit=_docBlobUrls.get(key); if(hit) return hit;
+  let url;
+  try{ url=URL.createObjectURL(new Blob([dataUrlBytes(u.dataUrl)],{type:u.mime||'application/octet-stream'})); }
+  catch(e){ return u.dataUrl; }
+  // a session only ever reads a handful of documents; drop the oldest but never
+  // the one being rendered right now
+  if(_docBlobUrls.size>16){
+    for(const [k,v] of _docBlobUrls){
+      if(k===key) continue;
+      URL.revokeObjectURL(v); _docBlobUrls.delete(k);
+      if(_docBlobUrls.size<=8) break;
+    }
+  }
+  _docBlobUrls.set(key,url);
+  return url;
+}
 async function extractDocText(dataUrl, mime){
   try{
     const bytes=dataUrlBytes(dataUrl);
@@ -60,6 +429,31 @@ async function extractDocText(dataUrl, mime){
   }catch(e){}
   return '';
 }
+/* Render extracted document text on screen the way the paper reads: prose keeps
+   the document face and wraps, while ruled/columnar blocks (fee schedules drawn
+   with | and +---+, side-by-side signature blocks) go into a monospace block so
+   their columns still line up. Escapes its input — never pass HTML. */
+function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
+  const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const lines=String(text||'').split('\n');
+  const isRuled=l=>/^\s*[|+]/.test(l)||/[|+]\s*$/.test(l)||/\S\s{4,}\S/.test(l);
+  const out=[]; let buf=[], bufRuled=false;
+  const flush=()=>{
+    if(!buf.length) return;
+    out.push(bufRuled
+      ? `<div style="font-family:var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
+      : `<div style="white-space:pre-wrap">${esc(buf.join('\n'))}</div>`);
+    buf=[];
+  };
+  for(const l of lines){
+    const ruled=isRuled(l);
+    if(buf.length && ruled!==bufRuled) flush();
+    bufRuled=ruled; buf.push(l);
+  }
+  flush();
+  return `<div style="font-size:${size};line-height:${lh}">${out.join('')}</div>`;
+}
+
 // Heuristic clause analysis over the REAL extracted text — quotes verbatim.
 function sentenceAround(text, idx){
   let s=text.lastIndexOf('.',idx); s=s<0?Math.max(0,idx-140):s+1;
@@ -67,6 +461,9 @@ function sentenceAround(text, idx){
   return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,260);
 }
 function findingsFromText(c, text){
+  // extraction keeps the page's line breaks; these clause checks read the
+  // document as prose, so flatten the wrapping first (quotes stay verbatim)
+  text=String(text||'').replace(/\s+/g,' ');
   const F=[]; const low=text.toLowerCase();
   const add=(id,sev,kind,title,quote,why,fix,conf)=>F.push({id,sev,kind,title,anchor:'doc',confidence:conf,
     what:quote?`The document reads: “${quote}”`:'(clause not located in the extracted text)', why, fix});
@@ -246,7 +643,6 @@ function applyMetadata(c, m){
    (an owner edit or an accepted counterparty redline). This exact text is
    what versions/compare diff and what the seal will bind. */
 function redlineDocBody(c){
-  const esc=s=>String(s||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return `
     <div class="mb-6 pb-5 border-b border-brand-100">
       <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
@@ -255,7 +651,7 @@ function redlineDocBody(c){
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
     </div>
-    <div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${esc((window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText))}</div>
+    <div class="text-brand-800/85" data-anchor="redline">${documentTextHtml(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
 }
 
@@ -306,15 +702,16 @@ function uploadDocBody(c){
   // a generous reading surface: fills the viewport height, with an Expand
   // control that opens the document near-fullscreen for comfortable review
   const canPreview = isPdf||isText||isImg;
+  const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
       <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Document preview</div>
       <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + ((isPdf||isText)
-    ? `<iframe id="uploaded-doc-frame" src="${u.dataUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
+    ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
     : isImg
-    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${u.dataUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
@@ -334,8 +731,9 @@ function uploadDocBody(c){
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-2">
-      <a href="${u.dataUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
       <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>
     ${c.redlineText?`
     <div class="mb-4" data-anchor="redline">
@@ -343,19 +741,50 @@ function uploadDocBody(c){
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
         <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
       </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;font-size:13px;line-height:1.85;white-space:pre-wrap;color:var(--color-neutral-800)">${String(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-neutral-800)">${documentTextHtml(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText,{size:'13px',lh:'1.7'})}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
     </div>`:''}
     ${preview}
     ${signatureBlock(c)}`;
 }
 
+/* Read the stored original again and replace the extracted text. Documents
+   uploaded before an extraction improvement keep whatever text was read at the
+   time; the file itself is still on record, so re-reading repairs them in place
+   without a re-upload. Safe on executed contracts too — an upload's seal binds
+   the file's own hash, not this text (see sealString). */
+async function rereadUploadText(c, btn){
+  if(!canEdit()){ toast('Viewers cannot change contracts','err'); return; }
+  const u=c.upload||{};
+  const restore=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    if(!u.dataUrl && u.fileId && API_MODE()){
+      const f=await api('files/'+u.fileId); u.dataUrl=f.dataUrl;
+    }
+    if(!u.dataUrl) throw new Error('the original file is not available on this record');
+    const text=await extractDocText(u.dataUrl, u.mime||'');
+    if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+    const before=Number(u.textChars||0);
+    u.extractedText=text; u.textChars=text.length;
+    c.lastAction=todayStr();
+    logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+    persist(c);
+    toast(`Document re-read — ${text.length.toLocaleString()} characters`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not re-read this document — '+e.message,'err');
+    if(btn){ btn.disabled=false; btn.innerHTML=restore; }
+  }
+}
+
 // near-fullscreen reader for a received document — the reading surface the
 // inline preview can't give inside the split workspace
-function openDocReader(url, name){
+function openDocReader(url, name, mime){
   if(!url) return;
   const prev=document.getElementById('doc-reader'); if(prev) prev.remove();
-  const isImg=/^data:image\//.test(url);
+  // the url may be a blob: handle, which carries no type — trust the stored mime
+  const isImg=mime?/^image\//.test(mime):/^data:image\//.test(url);
   const body=isImg
     ? `<div class="flex-1 min-h-0 overflow-auto bg-docbg grid place-items-start p-4"><img src="${url}" class="max-w-full mx-auto" alt="${(name||'Document').replace(/"/g,'')}"/></div>`
     : `<iframe src="${url}" class="flex-1 min-h-0 w-full bg-white" title="${(name||'Document').replace(/"/g,'')}"></iframe>`;
@@ -641,6 +1070,56 @@ function wsNextAction(c){
   return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
 }
 
+/* The status strip under the document header. Split out so filling in the key
+   terms can refresh the guidance and the primary button in place, without
+   re-rendering the workspace under the cursor. */
+function actionBarHtml(c){
+  const locked=c.status==='Signed';
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
+  if(!canEdit()) return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`;
+  const na=wsNextAction(c);
+  return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`
+    + `<span style="flex:1"></span>`
+    + (na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:'');
+}
+function renderActionBar(c){
+  const host=document.getElementById('ws-actionbar'); if(!host) return;
+  host.innerHTML=actionBarHtml(c);
+  wireActionBar(c);
+}
+function wireActionBar(c){
+  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
+  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+    const kind=e.currentTarget.getAttribute('data-na');
+    if(kind==='evidence'){ downloadEvidence(c); return; }
+    if(kind==='share'){ openShareModal(c); return; }
+    if(kind==='terms'){ focusKeyTerms(c); return; }
+    if(kind==='review'){
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
+      return;
+    }
+    if(kind==='sign-scroll'){
+      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
+      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      toast('Tick intent-to-sign, then Sign');
+      return;
+    }
+    if(kind==='sign'){ signDocument(c); return; }
+  });
+}
+/* "Complete key terms" — put the cursor where the terms can actually be typed:
+   the quick-fill fields of a generated body, else the Key terms panel (which
+   lives on the Signing tab, so switch to it first). */
+function focusKeyTerms(c){
+  const inDoc=document.querySelector('#doc-canvas [data-sync]');
+  if(inDoc){ inDoc.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>inDoc.focus(),300); return; }
+  const panel=document.querySelector('[data-kt="counterparty"]');
+  if(!panel){ toast('This document has no editable key terms','err'); return; }
+  _docTopTab='signing'; applyDocTabs();
+  const right=document.getElementById('doc-right'); if(right) right.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>{ panel.focus(); panel.select&&panel.select(); },250);
+}
+
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
    Insert clause → AI Contract Scan, with a "Next: Signing" button. Signing
@@ -751,7 +1230,12 @@ function renderWorkspace(){
   const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
   const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
+  // Key terms stay editable until the seal binds them (sealString folds
+  // counterparty/value/valueType in), and only for roles that can edit.
+  const ktEditable=!locked&&canEdit()&&!PORTAL_MODE;
+  const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
   // Back returns to wherever the workspace was opened from (register/folder/queue…),
   // defaulting to the register. state.wsReturn is captured in setView.
   const _wr=state.wsReturn||{};
@@ -783,18 +1267,7 @@ function renderWorkspace(){
           <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">
-        ${locked
-          ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span>`
-          : !canEdit()
-          ? `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`
-          : (()=>{ const na=wsNextAction(c); return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`; })()}
-        <span style="flex:1"></span>
-        ${locked
-          ? `<button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`
-          : !canEdit() ? ''
-          : (()=>{ const na=wsNextAction(c); return na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:''; })()}
-      </div>
+      <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
     <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
@@ -860,16 +1333,38 @@ function renderWorkspace(){
         <!-- ===== SIGNING: Key terms (top) + inner tabs (Signing / Obligations / Audit) ===== -->
         <div data-top-pane="signing" style="display:none;flex-direction:column;gap:12px">
 
-          <!-- Key terms (read-only, derived from the contract) -->
+          <!-- Key terms. Editable until the contract is sealed: counterparty,
+               value and valueType are folded into the seal, and for uploaded or
+               template-based documents this panel is the ONLY place they can be
+               set (a generated body carries its own quick-fill fields). -->
           <div style="${CARD};padding:12px">
-            <h6 style="${H6};margin-bottom:8px">Key terms</h6>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Key terms</h6>
+              ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+            </div>
+            ${ktEditable?`
+            <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
+              <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Value</span>
+              <input data-kt="value" type="number" min="0" value="${c.value||''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></label>
+            <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
+                <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+            <label style="${KROW}"><span style="${KKEY}">Effective</span>
+              <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Expiry</span>
+              <input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/></label>
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`
+            :`
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
             ${kv('Expiry',c.expiry||'—')}
-            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
           </div>
 
           <!-- Bottom card: inner tabs -->
@@ -924,28 +1419,8 @@ function renderWorkspace(){
       if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
     }).catch(()=>{});
   }
-  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
-    const kind=e.currentTarget.getAttribute('data-na');
-    if(kind==='evidence'){ downloadEvidence(c); return; }
-    if(kind==='share'){ openShareModal(c); return; }
-    if(kind==='terms'){
-      const first=document.querySelector('#doc-canvas [data-sync], #doc-canvas [data-field]');
-      if(first){ first.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>first.focus(),300); }
-      else toast('Add the counterparty and value in the key terms panel','err');
-      return;
-    }
-    if(kind==='review'){
-      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
-      return;
-    }
-    if(kind==='sign-scroll'){
-      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
-      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
-      toast('Tick intent-to-sign, then Sign');
-      return;
-    }
-    if(kind==='sign'){ signDocument(c); return; }
-  });
+  wireKeyTerms(c);
+  wireActionBar(c);
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
@@ -954,37 +1429,56 @@ function renderWorkspace(){
   document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
   window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
 
-  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
-  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));
+  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(c.upload?.dataUrl, c.upload?.fileName||c.name));
+  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
+  document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
   setActiveNav('workspace');
 }
 
-/* -------- doc field sync -------- */
+/* -------- doc field sync --------
+   Counterparty and value can be typed in two places: the quick-fill inputs
+   inside a generated document body, and the Key terms panel (the only place for
+   uploaded or template-based documents). Both write the same fields, so every
+   on-screen copy is refreshed after each edit. */
+function syncKeyTermsUI(c, source){
+  const put=(sel,val)=>document.querySelectorAll(sel).forEach(el=>{ if(el!==source&&el.value!==String(val)) el.value=val; });
+  put('#doc-canvas [data-sync="counterparty"], [data-kt="counterparty"]', c.counterparty||'');
+  put('#doc-canvas [data-sync="value"], [data-kt="value"]', c.value||'');
+  const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
+  const mv=document.getElementById('meta-value');
+  if(mv){
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
+  }
+}
+/* Draft leaves drafting the moment the terms needed to review it are present.
+   Everything that reads those terms is refreshed with it: the guidance strip,
+   the signing checklist ("Complete: counterparty name, contract value…") and
+   the renewal date the obligations panel derives from the expiry. */
+function keyTermsProgress(c){
+  if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
+    c.status='Under Review'; updateStatusUI(c);
+    logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
+  }
+  renderActionBar(c);
+  renderSignButton(c);
+  window.renderObligationsSection&&renderObligationsSection(c);
+}
 function wireDocumentSync(c){
   const canvas=document.getElementById('doc-canvas');
   canvas.querySelectorAll('[data-sync]').forEach(inp=>{
     inp.addEventListener('input',()=>{
       const key=inp.getAttribute('data-sync');
-      if(key==='value'){
-        c.value=inp.value===''?0:Number(inp.value);
-        const mv=document.getElementById('meta-value');
-        mv.textContent=c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—';
-        mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
-      } else if(key==='counterparty'){
-        c.counterparty=inp.value;
-        document.getElementById('meta-cp').textContent=c.counterparty||'—';
-      }
-      if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
-        c.status='Under Review'; updateStatusUI(c);
-        logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
-      }
+      if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='counterparty') c.counterparty=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
       c.lastAction=todayStr();
       logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
       persist(c); renderAuditSection(c);
@@ -996,6 +1490,70 @@ function wireDocumentSync(c){
     logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
     persist(c); renderAuditSection(c);
   }));
+}
+
+/* -------- Key terms panel -------- */
+function wireKeyTerms(c){
+  const LABEL={counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
+               effDate:'effective date', expiry:'expiry date'};
+  document.querySelectorAll('[data-kt]').forEach(inp=>{
+    const key=inp.getAttribute('data-kt');
+    const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
+    inp.addEventListener(evt,()=>{
+      if(key==='counterparty') c.counterparty=inp.value.trim();
+      else if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='nonmonetary'){
+        c.valueType=inp.checked?'none':(c.valueType==='none'?'estimated':c.valueType||'estimated');
+        const v=document.querySelector('[data-kt="value"]');
+        if(v){ v.disabled=inp.checked; v.style.opacity=inp.checked?'.45':''; }
+      }
+      else if(key==='effDate'){ c.fields=c.fields||{}; c.fields.effDate=inp.value; }
+      else if(key==='expiry') c.expiry=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
+      c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated ${LABEL[key]||key}`);
+      persist(c); renderAuditSection(c);
+    });
+  });
+  document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+}
+/* Read what the document itself says and drop it into the EMPTY fields — never
+   over something already entered. Uses the AI reader when a key is configured
+   (it finds party names, which the pattern matcher can't) and the pattern
+   matcher otherwise. */
+async function fillKeyTermsFromDocument(c){
+  const btn=document.getElementById('kt-fill');
+  const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
+  if(text.length<200){ toast('No readable document text to read from','err'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    const meta=await extractMetadata(text, null);
+    const filled=[];
+    if(!c.counterparty && meta.counterparty){ c.counterparty=String(meta.counterparty).trim(); filled.push('counterparty'); }
+    // the pattern matcher just takes the first money amount it sees — in a
+    // contract that is as likely to be a unit rate as the deal value, so only
+    // trust a figure the AI reader picked out
+    if(meta._source==='ai' && isMonetary(c) && !(Number(c.value)>0) && Number(meta.value)>0){
+      c.value=Number(meta.value); if(c.valueType!=='estimated') c.valueType='estimated'; filled.push('value');
+    }
+    if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
+    if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
+    if(!filled.length){
+      toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
+                               :'Nothing found. Party names and the deal value need an AI key — type them in instead','err');
+      return;
+    }
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'AI':'pattern match'})`);
+    persist(c);
+    toast(`Filled ${filled.join(', ')} — check it before signing`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not read the document — '+(e.message||'try again'),'err');
+  }finally{
+    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
+  }
 }
 function updateStatusUI(c){
   const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
@@ -1252,4 +1810,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,extractDocText,extractPdfText,finalizeExecution,findingsFromText,frozenDocBody,inflateBytes,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfStringsFrom,redlineDocBody,renderFeed,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

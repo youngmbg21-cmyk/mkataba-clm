@@ -19,7 +19,9 @@ const RENEWAL_LABEL = { 'auto-renew':'Auto-renew', fixed:'Fixed term', evergreen
 
 /* ---- heuristic fallback: no API key, extract what regex reliably can ---- */
 function heuristicExtract(text){
-  const t = String(text||''); const conf = {};
+  // flatten the source document's line wrapping — these patterns read across
+  // clauses ("…laws of the\nRepublic of Kenya") and would otherwise stop at a break
+  const t = String(text||'').replace(/\s+/g,' '); const conf = {};
   const set = (o,k,v,c)=>{ if(v!=null && v!==''){ o[k]=v; conf[k]=c; } };
   const m = {};
   // dates: dd/mm/yyyy, d Month yyyy, yyyy-mm-dd
