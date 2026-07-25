@@ -23,6 +23,7 @@ import './ocr.js';
 import './dedupe.js';
 import './family.js';
 import './views/contract.js';
+import './pdfrich.js';
 import './views/intelligence.js';
 import './ai.js';
 import './views/settings.js';

@@ -222,7 +222,7 @@ function openCreateTemplateModal(mode){
       </div>
 
       <div id="ct-pane-upload" style="display:none">
-        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi extracts the text — an uploaded file becomes a <b>plain-text</b> template, because a PDF carries no reliable structure to recover. Paste it instead if you want the formatting.</p>
+        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi reads the file and <b>rebuilds its structure</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>pasting is still more faithful</b>, because the clipboard carries the structure outright instead of leaving it to be inferred.</p>
         <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
           <input id="ct-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
       </div>
@@ -348,31 +348,40 @@ function openCreateTemplateModal(mode){
       // Word is refused on the bytes, not the extension — nothing is saved.
       if(detectWordFile(dataUrl, file.type||'', file.name)){
         st(`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
-      st('Extracting text…');
-      let text=await extractDocText(dataUrl, file.type||'');
+      st('Reading the document and rebuilding its structure…');
+      // Recover the document's SHAPE, not just its words — headings, bold,
+      // italics, clause numbering and indentation are all stated by the PDF and
+      // were previously thrown away, which is why an uploaded template used to
+      // arrive as a wall of flat text next to a pasted one. Falls back to plain
+      // text whenever the reconstruction is not confidently better.
+      let rich = await extractDocRich(dataUrl, file.type||'');
+      let text = rich.text;
       // a scanned standard-form contract is still a usable template once read
       if(ocrNeeded(file.type||'', text)){
         st('This looks like a scan — reading it with OCR…');
         const ocr=await ocrDocument(dataUrl, file.type||'', {
           onProgress:(done,total,tier)=>{ st(`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`); } });
-        if(ocr.text) text=ocr.text;
+        // OCR returns words with no type information, so a scan is plain text
+        if(ocr.text){ text=ocr.text; rich={ html:'', text, format:TEXT_FORMAT, summary:null }; }
       }
       if(!text||text.length<40){ st('<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
-      const found=detectBlanks(text);
-      let extra=null;
+      const isRichBody = isRich(rich.format) && !!rich.html;
+      const body = isRichBody ? rich.html : text;
+      const found=detectBlanks(text).filter(d=>body.includes(d.raw));
+      let extra = isRichBody ? { format:RICH_FORMAT, body, chars:text.length } : null;
       if(found.length && await confirmDialog({
         title:`Turn ${found.length} marked blank${found.length===1?'':'s'} into fill-in fields?`,
         message:`This template already marks ${found.length===1?'a blank':'blanks'} the usual ways — [BRACKETS], {{curly}} or a run of underscores: ${found.slice(0,4).map(d=>d.label).join(', ')}${found.length>4?`, and ${found.length-4} more`:''}. Converting them now means whoever uses this template is asked for each one, and the answers are filed as contract data. You can edit them afterwards either way.`,
         confirmLabel:'Convert them', cancelLabel:'Not now' })){
-        const r=convertDetectedBlanks(text, found);
-        extra={ fields:r.fields, body:r.body };
+        const r=convertDetectedBlanks(body, found);
+        extra={ ...(extra||{}), fields:r.fields, body:r.body };
       }
-      const rec=saveTemplateRecord(name, folder, text, 'upload:'+file.name, extra);
+      const rec=saveTemplateRecord(name, folder, body, 'upload:'+file.name, extra);
       closeModal();
-      toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters${extra?`, ${extra.fields.length} blank${extra.fields.length===1?'':'s'} detected`:''}`);
+      toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters${isRichBody&&rich.summary&&rich.summary.label?`, structure recovered (${rich.summary.label})`:''}${extra&&extra.fields?`, ${extra.fields.length} blank${extra.fields.length===1?'':'s'} detected`:''}`);
       if(state.view==='templates') renderTemplatesPage();
       updateSidebarCounts();
-      if(extra) setTimeout(()=>openBlanksEditor(rec.id), 120);
+      if(extra&&extra.fields) setTimeout(()=>openBlanksEditor(rec.id), 120);
     }catch(e){ st('<span style="color:#8f322b">Extraction failed: '+_tplEsc(e.message)+'</span>'); }
   });
 

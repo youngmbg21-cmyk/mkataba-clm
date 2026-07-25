@@ -1128,3 +1128,85 @@ APEX LOGISTICS ... LTD SAVANNAH CONSUMER GOODS LIMITED
   →  ____________________                        ____________________
      APEX LOGISTICS & WAREHOUSING KENYA LTD      SAVANNAH CONSUMER GOODS LIMITED
 ```
+
+### 20. An uploaded PDF arrived as a wall of flat text next to a pasted one
+
+**What was broken.** Side by side, the same contract brought in two ways looked
+like two different products. Pasted: a centred title, bold party names, a real
+numbered list of the parties, section headings, italic standards references.
+Uploaded as a PDF: every line the same size, the same weight, the same left
+margin — an undifferentiated wall of text. The words were right (entry 19 fixed
+that); the *document* was gone.
+
+**Root cause.** `extractPdfText()` returned a string, and the ingestion paths
+saved that string as a plain-text template. Everything the PDF stated about the
+document's shape — the point size of each run, its weight, its slant, its exact
+position on the page — was read, used to place spaces, and then discarded. Even
+the weight and slant were never read at all: `pdfPageFonts()` parsed `/Subtype`
+and `/ToUnicode` and stopped.
+
+The product copy at the time said a PDF "carries no reliable structure to
+recover". That is not true, and saying it let the gap stand.
+
+**The fix.** A new module, `js/pdfrich.js`, reconstructs the document:
+
+| Evidence in the PDF | Recovered as |
+|---|---|
+| a larger, bolder, shorter or centred line | `<h1>`–`<h4>`, levels assigned by size rank |
+| a run set in a bold or italic face | `<strong>` / `<em>` |
+| a line opening `1.` `(b)` `iv.` `•` | `<ol>` / `<ul>` with `type` and `start` |
+| a left edge indented past the body margin | list nesting depth |
+| consecutive lines a normal line-height apart | one paragraph, wrapped lines rejoined |
+| a run of rules, or columns held apart by wide gaps | `<pre>`, alignment intact |
+
+Supporting changes in `js/views/contract.js`: `pdfFontStyle()` reads weight and
+slant from the BaseFont name, the descriptor's `/Flags` bits, `/ItalicAngle` and
+`/StemV`, in that order of trust; runs carry `bold`/`italic`; and
+`pdfRunsToLines()` was factored out of `pdfRunsToText()` so the plain and rich
+paths can never disagree about where a line begins.
+
+Three judgements are worth stating, because each protects something:
+
+- **A dotted clause number is never turned into a list.** `11.2`, `4.4.2` stay
+  paragraphs with their number as literal text, because an `<ol>` regenerates
+  its own numbering and would renumber clause 11.2 as "1." — silently breaking
+  every cross-reference in the contract. Simple markers an `<ol>` *can* redraw
+  (`1. 2. 3.`, `a. b.`) become real lists. This is the same rule the Word paste
+  converter already applies, for the same reason.
+- **A numbered line is a heading only if it looks like one** — short, not a
+  sentence, and bold or larger or capitalised. Otherwise it is a clause and
+  stays a list item, because a clause wrongly promoted to a heading loses its
+  number.
+- **The plain text is the floor.** `extractDocRich()` compares the
+  reconstruction's text projection against the plain extraction and discards the
+  reconstruction if it lost more than 10% of the characters. A scan routed
+  through OCR is always plain text, because OCR returns words with no type
+  information to reason about.
+
+**Also fixed, found while building this.**
+
+- `pdfTextRuns()` reported the text-matrix scale as the "size", ignoring `Tf`
+  entirely. A producer may set `Tf 20` and leave `Tm` unscaled (Chromium does)
+  or set `Tf 1` and bake the size into `Tm`; only the product of the two is the
+  size of anything. Every size-based judgement — line tolerance, paragraph gaps,
+  heading detection — was being made on a number that was not a point size.
+- `sanitizeRich()` left a list nested **directly** inside a list, with no `<li>`
+  between them. That is legal to write and impossible to read: `richToText()`
+  walks a list's `<li>` children, so the inner list and everything in it was
+  skipped in silence. Content disappearing from the text projection is the worst
+  class of bug in this codebase — the projection is what the diff compares, the
+  AI reads, search matches and the seal hashes. Stray inner lists are now moved
+  inside the preceding item.
+
+**Files touched.** `js/pdfrich.js` (new), `js/views/contract.js`,
+`js/richdoc.js`, `js/views/library.js`, `js/app.js`.
+
+**How it was verified.** By measuring the actual goal rather than asserting it.
+One source contract is printed to a real PDF by Chromium and also captured as
+clipboard HTML; the PDF goes through the upload route, the clipboard through the
+paste route, and the two results are compared. They now come out **structurally
+identical** — `{headings:4, lists:1, items:2, paragraphs:4, bold:4, italic:1}`
+from both — carrying the same words to within 3%. Individually asserted: the
+title is an `<h1>`, all three sections are headings, the two parties are `<li>`
+of one `<ol>`, the bold party names and the italic standard survive, and a
+paragraph split across four printed lines is rejoined into one sentence.

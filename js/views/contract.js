@@ -214,6 +214,42 @@ async function pdfFontWidths(objs, o){
   }
   return { widths:W, missing:dflt };
 }
+/* Is this font bold, italic, or both? Read in order of how much a producer can
+   be trusted to have got it right:
+     1. the BaseFont name — "…-Bold", "…-BoldItalic", "…,Italic"; subset prefixes
+        like "AAAAAA+" are stripped first;
+     2. the FontDescriptor /Flags — bit 7 (64) Italic, bit 19 (262144) ForceBold;
+     3. /ItalicAngle and /StemV, which are metrics rather than declarations.
+   A false positive here would bold half a contract, so the numeric fallbacks
+   are deliberately conservative. */
+async function pdfFontStyle(objs, o, twoByte){
+  let dict=o.dict;
+  if(twoByte){
+    const dfRef=pdfRef((pdfArray(objs,o.dict,'/DescendantFonts')||'').trim());
+    const df=dfRef!=null?objs.get(dfRef):null;
+    if(df) dict=df.dict;
+  }
+  const bf=/\/BaseFont\s*\/([^\s/<>[\]()]+)/.exec(o.dict);
+  const name=bf ? bf[1].replace(/^[A-Z]{6}\+/,'') : '';
+  let bold=/bold|black|heavy|semib|demib|[-,_]bd\b/i.test(name);
+  let italic=/italic|oblique|[-,_]it\b/i.test(name);
+
+  const fdRef=pdfRef(pdfDictVal(dict,'/FontDescriptor'));
+  const fd=fdRef!=null?objs.get(fdRef):null;
+  if(fd){
+    const flags=pdfNum(fd.dict,'/Flags');
+    if(Number.isFinite(flags)){
+      if(flags & 64) italic=true;                 // bit 7  — Italic
+      if(flags & 262144) bold=true;               // bit 19 — ForceBold
+    }
+    const ang=pdfNum(fd.dict,'/ItalicAngle');
+    if(Number.isFinite(ang) && Math.abs(ang)>=4) italic=true;
+    // StemV is the vertical stem width; a text weight sits near 70-90, a bold
+    // near 120-190. Only trust it when the name said nothing either way.
+    if(!bold){ const sv=pdfNum(fd.dict,'/StemV'); if(Number.isFinite(sv) && sv>=120) bold=true; }
+  }
+  return { bold, italic };
+}
 async function pdfPageFonts(objs, resDict){
   const fonts={};
   const fi=resDict.indexOf('/Font'); if(fi<0) return fonts;
@@ -230,11 +266,17 @@ async function pdfPageFonts(objs, resDict){
     const twoByte=/\/Subtype\s*\/Type0/.test(o.dict);
     let widths=new Map(), missing=null;
     try{ ({widths,missing}=await pdfFontWidths(objs,o)); }catch(e){}
+    // Weight and slant. A PDF states both, in three places of decreasing
+    // reliability — the BaseFont name, the descriptor's /Flags, and /ItalicAngle
+    // / /StemV. Recovering them is what lets an uploaded document keep its bold
+    // defined terms and its italic parentheticals instead of arriving flat.
+    let style={bold:false, italic:false};
+    try{ style=await pdfFontStyle(objs, o, twoByte); }catch(e){}
     // The font's OWN space advance is the only honest yardstick for "is this
     // gap a word break?" — a fixed number cannot be right across point sizes,
     // typefaces and tracking. Falls back to 0.25em when the font is silent.
     const sp = twoByte ? null : widths.get(32);
-    fonts[f[1]]={ twoByte, map, widths, missing,
+    fonts[f[1]]={ twoByte, map, widths, missing, bold:style.bold, italic:style.italic,
       spaceEm: (Number.isFinite(sp)&&sp>0) ? sp/1000 : 0.25 };
   }
   return fonts;
@@ -362,12 +404,20 @@ function pdfTextRuns(content, fonts){
   const emit=(text, codes, kernEm=0)=>{
     if(!text) return;
     const m=pdfMul(tm, ctm);
-    const size=Math.hypot(m[2],m[3])||1;
+    // The EFFECTIVE point size is the font size scaled by the matrices — Tf
+    // alone is meaningless (a producer may set `Tf 1` and bake the size into
+    // Tm), and the matrix alone is equally meaningless (Chromium sets `Tf 20`
+    // and leaves Tm unscaled). Both have to be multiplied, or every size-based
+    // judgement downstream — line tolerance, paragraph gaps, and which lines
+    // are headings — is made on a number that is not the size of anything.
+    const scale=Math.hypot(m[2],m[3])||1;
+    const size=(fsize||1)*scale;
     const sx=Math.hypot(m[0],m[1])||1;
     const glyphs=pdfRunWidth(text, codes||[], font, fsize);
     const w=(glyphs + (codes?codes.length:text.length)*charSp + kernEm*fsize)*hscale;
     if(render!==3&&render!==7) runs.push({x:m[4], y:m[5], size, w:w*sx, text,
-      spaceW:(font?font.spaceEm:0.25)*fsize*hscale*sx});
+      spaceW:(font?font.spaceEm:0.25)*fsize*hscale*sx,
+      bold:!!(font&&font.bold), italic:!!(font&&font.italic)});
     tm=pdfMul([1,0,0,1,w,0], tm);   // keep runs without an explicit move from stacking
   };
 
@@ -427,10 +477,13 @@ function pdfTextRuns(content, fonts){
   return runs;
 }
 
-/* Positioned runs → text: one line per baseline, a blank line where the page
-   leaves a paragraph's worth of vertical space. */
-function pdfRunsToText(runs){
-  if(!runs.length) return '';
+/* Positioned runs → LINES. One entry per baseline, carrying both the plain text
+   and an inline-marked-up version, plus the geometry a structure pass needs:
+   the dominant point size, the left and right edges, and whether the line is
+   set bold. Shared by the plain-text projection and the rich reconstruction, so
+   the two can never disagree about where a line begins and ends. */
+function pdfRunsToLines(runs){
+  if(!runs.length) return [];
   const lines=[];
   for(const r of runs.slice().sort((a,b)=>(b.y-a.y)||(a.x-b.x))){
     const tol=Math.max(1.6, r.size*0.32);
@@ -439,11 +492,16 @@ function pdfRunsToText(runs){
     else lines.push({y:r.y, runs:[r]});
   }
   lines.sort((a,b)=>b.y-a.y);
-  const rendered=lines.map(l=>{
+  const esc=t=>String(t).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return lines.map(l=>{
     l.runs.sort((a,b)=>a.x-b.x);
-    let text='', endX=null;
+    let text='', html='', endX=null, left=Infinity, right=-Infinity;
+    let boldChars=0, chars=0;
+    let openB=false, openI=false;
+    const closeMarks=()=>{ if(openI){ html+='</em>'; openI=false; } if(openB){ html+='</strong>'; openB=false; } };
     for(const r of l.runs){
       if(!r.text) continue;
+      let sep='';
       if(endX!=null){
         // A rule or dot-leader run: never glue a single space onto it (it is
         // drawn, not typeset, so a hairline gap means nothing) — but a gap wide
@@ -462,22 +520,44 @@ function pdfRunsToText(runs){
           // side-by-side signature blocks and fee schedules live in it. Emit it
           // proportionally so the columns survive into the text, where
           // documentTextHtml's ruled-block detection can keep them aligned.
-          const n=column ? Math.min(24, Math.round(gap/sp)) : 1;
-          text+=' '.repeat(n);
+          sep=' '.repeat(column ? Math.min(24, Math.round(gap/sp)) : 1);
         }
       }
+      text+=sep;
+      // inline marks, opened and closed only where the style actually changes
+      if(sep){ if(openI&&!r.italic){ html+='</em>'; openI=false; }
+               if(openB&&!r.bold){ html+='</strong>'; openB=false; } html+=esc(sep); }
+      if(r.bold&&!openB){ closeMarks(); html+='<strong>'; openB=true; }
+      else if(!r.bold&&openB){ if(openI){ html+='</em>'; openI=false; } html+='</strong>'; openB=false; }
+      if(r.italic&&!openI){ html+='<em>'; openI=true; }
+      else if(!r.italic&&openI){ html+='</em>'; openI=false; }
+      html+=esc(r.text);
       text+=r.text;
+      chars+=r.text.length; if(r.bold) boldChars+=r.text.length;
+      left=Math.min(left, r.x);
       endX=r.x+(r.w||pdfEstWidth(r.text, r.size));
+      right=Math.max(right, endX);
     }
-    return {y:l.y, size:Math.max(...l.runs.map(r=>r.size)), text:text.replace(/\s+$/,'')};
+    closeMarks();
+    const sizes={}; l.runs.forEach(r=>{ sizes[r.size]=(sizes[r.size]||0)+(r.text||'').length; });
+    const size=Number(Object.keys(sizes).sort((a,b)=>sizes[b]-sizes[a])[0])||l.runs[0].size;
+    return { y:l.y, size, maxSize:Math.max(...l.runs.map(r=>r.size)), left, right,
+      bold: chars>0 && boldChars/chars>=0.6,
+      text:text.replace(/\s+$/,''), html:html.replace(/\s+$/,'') };
   }).filter(l=>l.text);
+}
+
+/* Lines → text, with a blank line where the page leaves a paragraph's worth of
+   vertical space. */
+function pdfRunsToText(runs){
+  const rendered=pdfRunsToLines(runs);
   if(!rendered.length) return '';
   const gaps=[]; for(let i=1;i<rendered.length;i++) gaps.push(rendered[i-1].y-rendered[i].y);
   const sorted=gaps.slice().sort((a,b)=>a-b);
   const median=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
   let out=rendered[0].text;
   for(let i=1;i<rendered.length;i++){
-    const own=Math.max(rendered[i-1].size, rendered[i].size)*1.55;
+    const own=Math.max(rendered[i-1].maxSize, rendered[i].maxSize)*1.55;
     const limit=median>0?Math.max(median*1.4, own):own;
     out+=((rendered[i-1].y-rendered[i].y)>limit?'\n\n':'\n')+rendered[i].text;
   }
@@ -2165,4 +2245,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,pdfRunWidth,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

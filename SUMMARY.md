@@ -587,6 +587,40 @@ template writes no longer rewrite unrelated settings server-side. What makes it
 unwise to defer past thirty templates is the static-mode quota, which fails hard
 and without a useful error.
 
+## Follow-up after the run: uploaded PDFs now keep their structure
+
+Reported after delivery, with a side-by-side comparison: the same contract
+brought in by paste and by PDF upload looked like two different products. The
+paste kept its title, bold party names, numbered parties and section headings;
+the upload was an undifferentiated wall of flat text.
+
+The words were already right — that was `BUGLOG.md` #19, the glyph-width fix.
+What was missing was the *document*. `extractPdfText()` returned a string and the
+ingestion path saved it as plain text, discarding everything the PDF states about
+shape. Weight and slant were never even read.
+
+`js/pdfrich.js` now reconstructs it — headings by size rank, `<strong>`/`<em>`
+from the actual font, real lists from simple markers, nesting from indentation,
+wrapped lines rejoined into paragraphs, rules and columns preserved. Three
+judgements protect the contract: a **dotted clause number is never made into a
+list** (an `<ol>` would renumber 11.2 as "1." and break every cross-reference);
+a numbered line is a **heading only if it looks like one**, otherwise it stays a
+clause with its number; and the **plain text is the floor** — the reconstruction
+is discarded if it loses more than 10% of the characters.
+
+Verified by measuring the goal rather than asserting it: one source contract is
+printed to a real PDF and also captured as clipboard HTML, run through both
+routes, and compared. They now produce **structurally identical** output —
+`{headings:4, lists:1, items:2, paragraphs:4, bold:4, italic:1}` from both —
+with the same words. Full detail in `BUGLOG.md` #20.
+
+Two further defects surfaced while building it, both in already-shipped code:
+`pdfTextRuns()` reported the matrix scale as the point size and ignored `Tf`
+entirely, so every size-based judgement was made on a number that was not a
+size; and `sanitizeRich()` left a list nested directly inside a list, which
+`richToText()` skips in silence — content vanishing from the projection that the
+diff, the AI, search and the seal all read.
+
 ## Deliberately not done
 
 - **No formatting-aware diff.** The diff is over the text projection; a

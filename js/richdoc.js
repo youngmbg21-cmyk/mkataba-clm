@@ -159,6 +159,19 @@ function _stripAttrs(el){
    <li> that lost their list, so the fragment is well-formed enough to render
    and to serialise deterministically. */
 function _normaliseStructure(root){
+  // A list nested DIRECTLY inside a list, with no <li> around it, is legal to
+  // write and impossible to read: the text projection walks a list's <li>
+  // children, so a stray inner list — and everything in it — is skipped
+  // silently. Content vanishing from the projection is the worst kind of bug
+  // here, because the projection is what the diff compares, the AI reads,
+  // search matches and the seal hashes. Move it inside the preceding item.
+  root.querySelectorAll('ul>ul, ul>ol, ol>ul, ol>ol').forEach(inner=>{
+    const parent=inner.parentElement; if(!parent) return;
+    let host=inner.previousElementSibling;
+    while(host && host.tagName!=='LI') host=host.previousElementSibling;
+    if(!host){ host=parent.ownerDocument.createElement('li'); parent.insertBefore(host, inner); }
+    host.appendChild(inner);
+  });
   // an <li> whose parent is no longer a list becomes a paragraph
   root.querySelectorAll('li').forEach(li=>{
     const p=li.parentElement;
