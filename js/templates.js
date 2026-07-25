@@ -137,4 +137,42 @@ const TEMPLATES = {
   LE:{ id:'LE', name:'Commercial Property Lease', kind:'Lease', ic:'building', folder:'corp', valueType:'fixed', blurb:'Office, depot and premises leases.' },
   PS:{ id:'PS', name:'Professional Services Agreement', kind:'Professional Services', ic:'briefcase', folder:'corp', valueType:'fixed', blurb:'Audit, legal and advisory retainers.' },
 };
-Object.assign(window,{FOLDERS,TEMPLATES,addCustomFolder,folderColor,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});
+/* ---- unified field schema for the built-ins (Task 7) ----
+   The twelve generators now expose the SAME `fields` shape as a customer's own
+   uploaded template, so the wizard, the preview and bulk creation work off one
+   accessor (templateFields) and neither knows nor cares which kind it has.
+   `maps` is what feeds the register: a value typed here lands on the contract
+   AND in c.metadata, with no separate data-entry step.
+   TEMPLATE_PRIMARY (wizard.js) supplies each template's one distinctive field;
+   it loads after this module, so the merge happens lazily on first read. */
+const TEMPLATE_BASE_FIELDS = [
+  { key:'counterparty', label:'Counterparty', type:'party', maps:'counterparty', required:true, def:'',
+    ph:'Full registered name' },
+  { key:'value',        label:'Contract value (KES)', type:'num', maps:'value', required:false, def:'', ph:'0' },
+  { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },
+  { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry', required:false, def:'' },
+];
+const TEMPLATE_PAY_FIELD = { key:'payDays', label:'Payment terms (days)', type:'num', maps:'noticePeriodDays', required:false, def:'30', ph:'30' };
+let _tplFieldCache=null;
+function builtinTemplateFields(tid){
+  const t=TEMPLATES[tid]; if(!t) return [];
+  if(!_tplFieldCache) _tplFieldCache={};
+  if(_tplFieldCache[tid]) return _tplFieldCache[tid];
+  const out=TEMPLATE_BASE_FIELDS
+    .filter(f=>!(f.key==='value' && t.valueType==='none'))
+    .map(f=>({ ...f }));
+  const prim=(typeof TEMPLATE_PRIMARY!=='undefined') ? TEMPLATE_PRIMARY[tid] : null;
+  if(prim && prim.field) out.push({ key:prim.field, label:prim.label, type:'text', maps:'', required:false, def:prim.def||'', ph:prim.ph||'' });
+  // payDays maps to nothing standard on a template whose notice period is not
+  // the payment window; keep it as a plain document field there
+  out.push({ ...TEMPLATE_PAY_FIELD, maps:'paymentTerms' });
+  _tplFieldCache[tid]=out;
+  return out;
+}
+// give every built-in a live `fields` accessor so templateFields(t) just works
+Object.values(TEMPLATES).forEach(t=>{
+  t.builtin=true;
+  Object.defineProperty(t,'fields',{ get(){ return builtinTemplateFields(t.id); }, enumerable:false, configurable:true });
+});
+
+Object.assign(window,{TEMPLATE_BASE_FIELDS,builtinTemplateFields,FOLDERS,TEMPLATES,addCustomFolder,folderColor,folderLegendHtml,folderOptionsHtml,rebuildFolderSelect,promptNewFolder,bindFolderSelect,saveCustomFolders});

@@ -27,6 +27,7 @@ import './views/settings.js';
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
+import './templatefields.js';
 import './views/library.js';
 import './views/migration.js';
 

@@ -18,16 +18,13 @@ const TEMPLATE_PRIMARY = {
   LE:{field:'premises', label:'Premises', ph:'e.g. Industrial Area depot', def:''},
   PS:{field:'services', label:'Services', ph:'e.g. audit & advisory', def:''},
 };
+/* The wizard now reads the SAME field schema custom templates use
+   (templateFields → js/templatefields.js), so one shape drives the wizard, the
+   preview and bulk creation. Kept as templateVars() because callers use it. */
 function templateVars(tid){
   const t=TEMPLATES[tid]; if(!t) return [];
-  const vars=[ {key:'counterparty', label:'Counterparty', type:'text', ph:'Full registered name', def:''} ];
-  if(t.valueType!=='none') vars.push({key:'value', label:'Contract value (KES)', type:'num', ph:'0', def:''});
-  vars.push({key:'effDate', label:'Start date', type:'date', def:new Date().toISOString().slice(0,10)});
-  vars.push({key:'expiry', label:'End / expiry date', type:'date', def:''});
-  const prim=TEMPLATE_PRIMARY[tid];
-  if(prim&&prim.field) vars.push({key:'field:'+prim.field, label:prim.label, type:'text', ph:prim.ph, def:prim.def});
-  vars.push({key:'field:payDays', label:'Payment terms (days)', type:'num', ph:'30', def:'30'});
-  return vars;
+  return templateFields(t).map(f=>({ ...f,
+    def: f.key==='effDate' && !f.def ? new Date().toISOString().slice(0,10) : (f.def||'') }));
 }
 
 /* ---- role gating (E6-T4): which templates each role may self-serve ---- */
@@ -65,9 +62,14 @@ function openWizard(preTid){
       return;
     }
     const t=TEMPLATES[tid], vars=templateVars(tid);
-    const input=v=>{ const id='wz-'+v.key.replace(/[:]/g,'_'); const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
-      return `<label style="display:block;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}</span>
-        <input id="${id}" type="${it}" value="${v.def||''}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
+    const input=v=>{ const id='wz-'+String(v.key).replace(/[:]/g,'_');
+      const lbl=`<span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${v.label}${v.required?' <span style="color:#8f322b">*</span>':''}${v.maps?`<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → ${tplMapLabel(v.maps)}</span>`:''}</span>`;
+      if(v.type==='select') return `<label style="display:block;">${lbl}
+        <select id="${id}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;color:var(--color-text);outline:none;">
+          ${(v.opts||[]).map(o=>`<option value="${String(o).replace(/"/g,'&quot;')}" ${v.def===o?'selected':''}>${o}</option>`).join('')}</select></label>`;
+      const it=v.type==='date'?'date':(v.type==='num'?'number':'text');
+      return `<label style="display:block;">${lbl}
+        <input id="${id}" type="${it}" value="${String(v.def||'').replace(/"/g,'&quot;')}" placeholder="${v.ph||''}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`; };
     openModal(`<div style="padding:22px 24px;">
       <button id="wz-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
@@ -85,16 +87,23 @@ function openWizard(preTid){
 }
 function createFromWizard(tid, vars){
   const t=TEMPLATES[tid], u=currentUser();
-  const val=k=>{ const el=document.getElementById('wz-'+k.replace(/[:]/g,'_')); return el?el.value.trim():''; };
-  const c={ id:nextId(), name:t.name+(val('counterparty')?' — '+val('counterparty'):' (Draft)'), counterparty:val('counterparty'),
-    value: t.valueType!=='none'?Number(val('value')||0):0, status:'Draft', template:tid, folder:t.folder,
+  const val=k=>{ const el=document.getElementById('wz-'+String(k).replace(/[:]/g,'_')); return el?el.value.trim():''; };
+  // validate before creating anything — the same rules bulk creation uses
+  const values={}; const errs=[];
+  for(const f of vars){ const raw=val(f.key); const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+  if(errs.length){ toast(errs[0],'err'); return; }
+  const cp=values.counterparty||'';
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
+    value: 0, status:'Draft', template:tid, folder:t.folder,
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory', compliance:{iprs:false,pki:false},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`Drafted via the guided wizard from Template ${tid} (${t.kind}).`,ts:fmtDT(nowISO())}],
-    fields:{}, scan:null, expiry:val('expiry')||null, valueType:t.valueType,
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Drafted via the guided wizard from Template ${tid} (${t.kind}). What you typed is filed as contract data — the register, filters and reports pick it up without re-keying.`,ts:fmtDT(nowISO())}],
+    fields:{}, scan:null, expiry:null, valueType:t.valueType,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Guided creation from Template ${tid} (${t.kind})`}],
     signatures:[] };
-  vars.forEach(v=>{ if(v.key.startsWith('field:')){ const fid=v.key.slice(6); const raw=val(v.key); if(raw) c.fields[fid]=raw; }
-    else if(v.key==='effDate'){ const d=val('effDate'); if(d) c.fields.effDate=d; } });
+  // the blanks ARE the database: every value lands on the contract AND in
+  // c.metadata, with no separate data-entry step
+  applyTemplateValues(c, vars, values);
+  if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c); state.activeId=c.id;
   persist(c); closeModal();

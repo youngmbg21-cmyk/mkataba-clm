@@ -1408,6 +1408,65 @@ ${String(text)}`;
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
 });
 
+/* ---------- AI: suggest the blanks in a customer's template ----------
+   Proposes fields plus a rewritten body with {{key}} placeholders inserted.
+   The human reviews and edits every proposal in the template editor before
+   anything is saved — nothing here is written on the model's say-so. */
+app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { text } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const tool = {
+    name: 'propose_blanks',
+    description: 'Propose the fill-in blanks for a reusable contract template.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        fields: { type: 'array', maxItems: 24, items: { type: 'object', properties: {
+          key: { type: 'string', description: 'lower_snake_case placeholder name, letters/digits/underscore only, max 32 chars.' },
+          label: { type: 'string', description: 'Short human label, e.g. "Counterparty" or "Monthly rent (KES)".' },
+          type: { type: 'string', enum: ['text', 'party', 'num', 'date', 'select'], description: 'party = the name of the other company. num = a number. date = a calendar date. select = a fixed choice list.' },
+          opts: { type: 'array', items: { type: 'string' }, description: 'For select only: the allowed values.' },
+          required: { type: 'boolean', description: 'True if a contract cannot be issued without it.' },
+          maps: { type: 'string', enum: ['', 'counterparty', 'value', 'expiry', 'effDate', 'contractType', 'currency', 'noticePeriodDays', 'paymentTerms', 'governingLaw'],
+            description: 'Which standard contract field this blank feeds, or "" for none. Use counterparty/value/expiry/effDate wherever they genuinely apply — these drive the register, the filters and the renewal reminders.' },
+          find: { type: 'string', description: 'The EXACT verbatim run of text in the document that this blank replaces, copied character for character. Must appear in the document.' },
+        }, required: ['key', 'label', 'type', 'find'] } },
+        note: { type: 'string', description: 'One sentence for the human reviewing this — what you turned into blanks and anything you were unsure about.' },
+      },
+      required: ['fields'],
+    },
+  };
+  const prompt = `This is a company's standard contract template. Identify the parts that change from one contract to the next — the parties, dates, amounts, terms, territories, notice periods — and propose them as fill-in blanks.
+
+Rules:
+- Propose a blank ONLY for text that genuinely varies per contract. Do not blank out standing clause wording, boilerplate or defined terms.
+- \`find\` must be copied EXACTLY from the document, character for character, and must be a short run (a name, a date, an amount, a phrase) — never a whole clause or paragraph.
+- Set \`maps\` wherever the blank really is the counterparty, the contract value, the expiry date or the start date. Those drive the register and the renewal reminders, so getting them right is worth more than the extra fields.
+- Prefer 5–15 blanks. A template with forty blanks is a form, not a contract.
+- Use lower_snake_case keys.
+
+Return via the propose_blanks tool.
+
+TEMPLATE:
+${String(text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks' });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    const out = block.input || {};
+    // Only keep proposals whose `find` actually appears in the document — the
+    // client rewrites the body by literal replacement, so a hallucinated span
+    // would silently do nothing.
+    const fields = (Array.isArray(out.fields) ? out.fields : [])
+      .filter(f => f && typeof f.find === 'string' && f.find.length > 0 && f.find.length < 200 && String(text).includes(f.find));
+    res.json({ fields, note: typeof out.note === 'string' ? out.note : '',
+      dropped: (Array.isArray(out.fields) ? out.fields.length : 0) - fields.length, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
 /* ---------- AI obligation extraction (E3) ----------
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The

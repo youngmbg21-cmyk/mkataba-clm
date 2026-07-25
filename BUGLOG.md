@@ -350,3 +350,67 @@ expiring in exactly 90 days with a linked amendment moving the term to +400 days
 queued **zero** renewal emails; unlinking the amendment and re-running queued
 "Renewal in 90 days: Master Supply". That is precisely the defect this task
 exists to fix.
+
+---
+
+### 7. A customer's own template lost every bit of automation, and produced no data
+
+**What was broken.** The twelve built-in Kenyan templates have variables and a
+guided wizard. A customer's own uploaded template was just extracted text
+(`saveTemplateRecord` / `createFromCustomTemplate`): no blanks, no guided fill,
+no structured output. So at the exact moment that matters — when a customer uses
+their own paper, the paper they actually sign — they lost all the automation, and
+the resulting contracts carried no counterparty, no value and no expiry. The
+register row was empty and everything downstream (filters, folder routing,
+renewal reminders, reports) had nothing to work with.
+
+**Root cause.** Two unrelated shapes: `templateVars()` was bespoke to the
+built-ins, and a custom template was a bare `{name, folder, text}` record. There
+was no field schema, no placeholder mechanism, and no path from a filled-in
+value to a contract field.
+
+**The fix.** New `js/templatefields.js` (design note:
+`DESIGN-template-fields.md`).
+- **One field schema** — `{key,label,type,opts,required,def,maps}` with
+  `type ∈ text|party|num|date|select` over a body of `{{key}}` placeholders.
+  `TEMPLATES` in `js/templates.js` now exposes the same shape through a lazy
+  `fields` accessor, so the wizard, preview and bulk creation are template-kind
+  agnostic. `templateAllowedForRole` and the viewer read-only rule are preserved
+  and now also gate the built-in card list and bulk creation.
+- **Three ways to make blanks**: manual selection (always available), AI-assisted
+  via a new `POST /api/ai/blanks` on the fast tier (proposals are reviewed and
+  editable — nothing is saved unreviewed, and the server drops any proposal whose
+  `find` span is not literally present in the document), and auto-detect of
+  `[BRACKETS]` / `{{curly}}` / labelled underscore runs on import.
+- **Feed the repository**: `applyTemplateValues()` writes every value into
+  `c.metadata.templateFields` and the mapped ones into `c.counterparty`,
+  `c.value`, `c.expiry`, `c.fields.effDate`, `c.folder` and the matching
+  `c.metadata` keys, at `high` confidence — a human typed them.
+- **Bulk creation**: CSV download (one column per blank), upload, **whole-sheet
+  validation before anything is created**, per-cell errors, one creation pass
+  with a batch id and a naming audit entry, 200-row cap, reusing `parseCsv`
+  rather than writing a second CSV parser.
+
+**Files touched.** `js/templatefields.js` (new), `js/templates.js`,
+`js/wizard.js`, `js/views/library.js`, `js/app.js`, `server/server.js`,
+`README.md`, `DESIGN-template-fields.md`.
+
+**How it was verified.** In Chromium, end to end on a synthetic distribution
+agreement carrying `[SQUARE BRACKET]` markers:
+- auto-detect found **7** blanks and assigned sensible types and mappings
+  (`distributor_name:party→counterparty`, `expiry_date:date→expiry`,
+  `annual_value:num→value`, `start_date:date→effDate`);
+- creating a contract from it produced a register row with **counterparty
+  "Coast Distributors Ltd", value 4,500,000, expiry 2028-06-30, effective date
+  2026-07-01, stream `sales`**, the same values mirrored in `c.metadata` at high
+  confidence, and a document body with every placeholder substituted — nothing
+  typed twice;
+- built-in `TEMPLATES.DA` reports the unified schema, and the NDA correctly has
+  no value field;
+- **the brief's exact bulk scenario**: a 50-row CSV with two deliberately bad
+  cells ("31st of Feb 2027" in a date column, "four million" in a number column)
+  reported **both** errors with their row and column and created **nothing**;
+  after fixing the two cells the same sheet created **50** drafts in one pass,
+  all sharing one batch id, all with counterparty and expiry set, each with an
+  audit entry naming the template and the batch;
+- a 201-row sheet is refused with "201 rows — the cap is 200 per run."
