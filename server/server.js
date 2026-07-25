@@ -90,7 +90,8 @@ const setSetting = (k, v) => db.prepare('INSERT INTO settings (key,json) VALUES 
 const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
-const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at, prefs: userPrefs(u) });
+const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at,
+  prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -238,12 +239,133 @@ addColumnIfMissing('shares', 'first_opened_at', 'TEXT');
 addColumnIfMissing('shares', 'responded_at', 'TEXT');
 addColumnIfMissing('shares', 'reminded_at', 'TEXT');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
+/* Value visibility is a RIGHT, not a preference, so it is a column on the user
+   row rather than a key in the client-writable appSettings blob (see SUMMARY.md
+   for the full rationale). Default 1 — every account that exists before this
+   deploy keeps seeing exactly what it saw yesterday, until an admin turns it
+   off for someone. */
+addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
 // backfill contract_id for shares created before the column existed
 try {
   for (const r of db.prepare('SELECT token, payload FROM shares WHERE contract_id IS NULL').all()) {
     try { const cid = (JSON.parse(r.payload).contract || {}).id; if (cid) db.prepare('UPDATE shares SET contract_id=? WHERE token=?').run(cid, r.token); } catch (_) {}
   }
 } catch (_) {}
+
+/* ============================================================
+   WHO MAY SEE WHAT — the single enforcement point
+   ============================================================
+   Two per-user visibility rights, both resolved HERE, on every request, before
+   any data leaves the server:
+
+     folder access    — which value streams a member may see at all.
+                        Stored in appSettings.folderAccess (the shape the client
+                        has always written: { [userId]: '*' | [folderId,…] }).
+     can_view_values  — whether a member may see monetary amounts.
+                        Stored as a column on `users`.
+
+   Admins always have both. The client keeps its own copies of these rules for
+   cosmetics (hiding a dropdown entry, dropping a KPI card) but nothing in the
+   browser is load-bearing: every query below is filtered, and every response
+   masked, before it is serialised. If a browser can see a number, the server
+   decided to send it. */
+const ADMIN_SCOPE = '*';
+
+/* A user's folder scope: ADMIN_SCOPE (everything) or an array of folder ids.
+   Deliberately identical to userFolderAccess() in js/core.js, including the
+   "empty array means unrestricted" quirk — an admin who ticks nothing has not
+   locked a member out of the entire workspace. */
+function folderScopeFor(user) {
+  if (!user) return [];
+  if (user.role === 'admin') return ADMIN_SCOPE;
+  const map = (getSetting('appSettings') || {}).folderAccess || {};
+  const v = map[user.id];
+  if (v == null || v === ADMIN_SCOPE || !Array.isArray(v) || !v.length) return ADMIN_SCOPE;
+  return v.map(String);
+}
+const scopeIsAll = s => s === ADMIN_SCOPE;
+const inScope = (scope, folder) => scopeIsAll(scope) || scope.includes(String(folder || ''));
+
+/* SQL fragment builders. Two flavours because the queries below are split
+   between positional (?) and named (@x) parameters; both return '' when the
+   caller is unrestricted so the surrounding SQL is byte-identical to before. */
+function scopeFrag(scope, col = 'folder') {
+  if (scopeIsAll(scope)) return { sql: '', args: [] };
+  if (!scope.length) return { sql: '1=0', args: [] };
+  return { sql: `${col} IN (${scope.map(() => '?').join(',')})`, args: scope.slice() };
+}
+function scopeFragNamed(scope, col = 'folder', prefix = 'fscope') {
+  if (scopeIsAll(scope)) return { sql: '', args: {} };
+  if (!scope.length) return { sql: '1=0', args: {} };
+  const args = {};
+  const keys = scope.map((v, i) => { args[prefix + i] = v; return '@' + prefix + i; });
+  return { sql: `${col} IN (${keys.join(',')})`, args };
+}
+/* Compose a WHERE clause from fragments, dropping the empty ones. */
+const whereOf = (...parts) => { const p = parts.filter(Boolean); return p.length ? 'WHERE ' + p.join(' AND ') : ''; };
+
+/* Is this contract id inside the caller's scope? Used by every single-record
+   route — an out-of-scope id gets 404, never 403, because a 403 confirms the
+   contract exists. */
+function idInScope(scope, id) {
+  if (scopeIsAll(scope)) return true;
+  const r = db.prepare('SELECT folder FROM contracts WHERE id=?').get(String(id || ''));
+  return !!r && inScope(scope, r.folder);
+}
+/* Narrow a caller-supplied list of contract ids to the ones they may see. */
+function idsInScope(scope, ids) {
+  const list = (Array.isArray(ids) ? ids : []).map(String).filter(Boolean);
+  if (scopeIsAll(scope) || !list.length) return new Set(list);
+  const keep = new Set();
+  for (const id of list) if (idInScope(scope, id)) keep.add(id);
+  return keep;
+}
+
+/* ---------- value visibility ---------- */
+const canViewValues = u => !!u && (u.role === 'admin' || Number(u.can_view_values == null ? 1 : u.can_view_values) !== 0);
+
+/* Every template blank whose `maps` is 'value' writes a money figure into
+   c.fields[key]. Custom templates live in appSettings, so the key set is
+   workspace-specific and has to be read at request time; 'value' is the
+   built-in template's own money blank (js/templates.js). */
+function moneyFieldKeys() {
+  const keys = new Set(['value']);
+  const tpls = (getSetting('appSettings') || {}).customTemplates;
+  for (const t of (Array.isArray(tpls) ? tpls : [])) {
+    for (const f of (Array.isArray(t && t.fields) ? t.fields : [])) {
+      if (f && f.key && f.maps === 'value') keys.add(String(f.key));
+    }
+  }
+  return keys;
+}
+
+/* Strip every monetary figure from one contract record. Structural fields only:
+   this cannot redact the amount written inside the contract's own body text,
+   and does not pretend to — see SECURITY.md. */
+function maskContractValues(c, moneyKeys) {
+  if (!c || typeof c !== 'object') return c;
+  const x = { ...c };
+  delete x.value; delete x.valueType;
+  const keys = moneyKeys || moneyFieldKeys();
+  if (x.fields && typeof x.fields === 'object') {
+    const f = { ...x.fields };
+    for (const k of keys) delete f[k];
+    x.fields = f;
+  }
+  if (x.metadata && typeof x.metadata === 'object') {
+    const m = { ...x.metadata };
+    delete m.value; delete m.currency;
+    x.metadata = m;
+  }
+  // a counterparty's counter-offer is a monetary figure like any other
+  if (Array.isArray(x.rounds)) x.rounds = x.rounds.map(r => (r && r.proposedValue != null) ? { ...r, proposedValue: null } : r);
+  x._valuesHidden = true;
+  return x;
+}
+/* The one call every read route makes before it responds. */
+function visibleContract(c, user, moneyKeys) {
+  return canViewValues(user) ? c : maskContractValues(c, moneyKeys);
+}
 
 const app = express();
 app.set('trust proxy', true);          // so req.ip reflects the client behind a proxy
@@ -389,6 +511,48 @@ function capAiInput(req, res, next) {
     }
   }
   req.aiInputCapped = capped;
+  next();
+}
+
+/* FIX 4 — the AI endpoints below assemble their prompt from a contract list the
+   BROWSER posts, which means the browser was deciding what the model got to
+   read. It no longer does: every id is checked against the caller's folder
+   scope and anything they may not see is dropped before the prompt is built,
+   and every monetary field is stripped for a caller without can_view_values.
+   Runs after capAiInput so the cap applies to the caller's own portfolio
+   rather than to a padded list.
+
+   `req.aiDropped` records how many entries were removed so an endpoint can say
+   so; the count is deliberately NOT surfaced per-contract — telling someone
+   "4 contracts were withheld" is a smaller leak than naming them, but it is
+   still a leak, so nothing about the dropped rows travels. */
+const AI_VALUE_FIELDS = ['value', 'valueType', 'proposedValue', 'totalValue', 'feeMin', 'feeMax'];
+function scopeAiPortfolio(req, res, next) {
+  const scope = folderScopeFor(req.user);
+  const money = canViewValues(req.user);
+  if (scopeIsAll(scope) && money) return next();
+  const b = req.body || {};
+  let dropped = 0;
+  for (const f of ['contracts', 'candidates']) {
+    if (!Array.isArray(b[f])) continue;
+    const allowed = idsInScope(scope, b[f].map(x => x && x.id));
+    b[f] = b[f].filter(x => {
+      // An entry with no id cannot be checked against the register, so it
+      // cannot be shown to be in scope — drop it rather than trust it.
+      if (!x || !x.id || !allowed.has(String(x.id))) { dropped++; return false; }
+      return true;
+    }).map(x => {
+      if (money) return x;
+      const y = { ...x };
+      for (const k of AI_VALUE_FIELDS) delete y[k];
+      return y;
+    });
+  }
+  if (Array.isArray(b.activeIds)) {
+    const allowed = idsInScope(scope, b.activeIds);
+    b.activeIds = b.activeIds.filter(id => allowed.has(String(id)));
+  }
+  req.aiDropped = dropped;
   next();
 }
 
@@ -835,55 +999,88 @@ app.post('/api/logout', auth, (req, res) => {
 // Bootstrap no longer ships every full contract — just the workspace shell.
 // The contract list loads separately (paginated / summary), full bodies on open.
 app.get('/api/bootstrap', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const f = scopeFrag(scope);
   res.json({
     org: getSetting('org'),
     me: publicUser(req.user),
     users: db.prepare('SELECT * FROM users ORDER BY created_at').all().map(publicUser),
     uid: getSetting('uid') || 100,
     settings: getSetting('appSettings') || {},
-    count: db.prepare('SELECT COUNT(*) n FROM contracts').get().n,
+    count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,
     aiConfigured: !!(getSetting('aiKey') || process.env.ANTHROPIC_API_KEY),
   });
 });
 
-// Portfolio-wide aggregates computed in SQL — O(1) client cost at any scale.
+// Portfolio aggregates computed in SQL — O(1) client cost at any scale, and
+// scoped to what the caller may see, so "the portfolio" means THEIR portfolio.
 app.get('/api/stats', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const f = scopeFrag(scope);
+  const w = whereOf(f.sql);
   const g = db.prepare(`SELECT
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) totalValue,
       SUM(status='Under Review') pending, SUM(status='Signed') signed,
       SUM(status='Declined') declined, SUM(status='Draft') drafts, COUNT(*) total
-    FROM contracts`).get();
+    FROM contracts ${w}`).get(...f.args);
   const byFolder = db.prepare(`SELECT folder, COUNT(*) n,
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val,
-      SUM(status='Under Review') pending FROM contracts GROUP BY folder`).all();
+      SUM(status='Under Review') pending FROM contracts ${w} GROUP BY folder`).all(...f.args);
+  if (!canViewValues(req.user)) {
+    delete g.totalValue;
+    return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
+  }
   res.json({ ...g, byFolder });
 });
 
 // E7-T2: decision-grade aggregates, computed in SQL over indexed columns so
 // they stay fast at thousands of contracts.
 app.get('/api/analytics', auth, (req, res) => {
-  const byStatus = db.prepare('SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts GROUP BY status').all();
-  const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts GROUP BY folder ORDER BY val DESC`).all();
+  const scope = folderScopeFor(req.user);
+  const money = canViewValues(req.user);
+  const f = scopeFrag(scope);
+  const w = whereOf(f.sql);
+  const byStatus = db.prepare(`SELECT status, COUNT(*) n, COALESCE(SUM(value),0) val FROM contracts ${w} GROUP BY status`).all(...f.args);
+  const byFolder = db.prepare(`SELECT folder, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val FROM contracts ${w} GROUP BY folder ORDER BY val DESC`).all(...f.args);
   const byParty = db.prepare(`SELECT counterparty, COUNT(*) n, COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val
-      FROM contracts WHERE counterparty!='' GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all();
-  // renewal pipeline: active value expiring in each of the next 12 months
+      FROM contracts ${whereOf("counterparty!=''", f.sql)} GROUP BY counterparty ORDER BY val DESC LIMIT 12`).all(...f.args);
+  // renewal pipeline: active value (or, without the right, contract count)
+  // expiring in each of the next 12 months
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const rows = db.prepare(`SELECT expiry, value FROM contracts WHERE expiry IS NOT NULL AND status!='Declined'`).all();
-  const pipeline = {};
+  const rows = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("expiry IS NOT NULL", "status!='Declined'", f.sql)}`).all(...f.args);
+  const pipeline = {}, pipelineCount = {};
   for (const r of rows) {
     const d = new Date(r.expiry + 'T00:00:00'); const months = (d.getFullYear() - today.getFullYear()) * 12 + (d.getMonth() - today.getMonth());
-    if (months >= 0 && months < 12) { const k = r.expiry.slice(0, 7); pipeline[k] = (pipeline[k] || 0) + (Number(r.value) || 0); }
+    if (months >= 0 && months < 12) {
+      const k = r.expiry.slice(0, 7);
+      pipeline[k] = (pipeline[k] || 0) + (Number(r.value) || 0);
+      pipelineCount[k] = (pipelineCount[k] || 0) + 1;
+    }
   }
-  res.json({ byStatus, byFolder, byParty, pipeline });
+  if (!money) return res.json({
+    byStatus: byStatus.map(({ val, ...rest }) => rest),
+    byFolder: byFolder.map(({ val, ...rest }) => rest),
+    byParty: byParty.map(({ val, ...rest }) => rest),
+    pipelineCount, valuesHidden: true });
+  res.json({ byStatus, byFolder, byParty, pipeline, pipelineCount });
 });
 
 // Paginated, filterable, searchable list of SUMMARY rows (heavy fields stripped).
 app.get('/api/contracts', auth, (req, res) => {
   const { folder, status, q } = req.query;
+  const scope = folderScopeFor(req.user);
+  const money = canViewValues(req.user);
+  const moneyKeys = money ? null : moneyFieldKeys();
   const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 50));
   const offset = Math.max(0, Number(req.query.offset) || 0);
   const where = [], args = {};
-  if (folder) { where.push('folder=@folder'); args.folder = folder; }
+  // A folder filter can only ever narrow the caller's scope, never widen it.
+  if (folder) {
+    if (!inScope(scope, folder)) return res.json({ total: 0, offset, limit, rows: [] });
+    where.push('folder=@folder'); args.folder = folder;
+  }
+  const fs = scopeFragNamed(scope);
+  if (fs.sql) { where.push(fs.sql); Object.assign(args, fs.args); }
   if (status) { where.push('status=@status'); args.status = status; }
   if (q) {
     where.push("(lower(name) LIKE @q ESCAPE '\\' OR lower(counterparty) LIKE @q ESCAPE '\\' OR lower(id) LIKE @q ESCAPE '\\')");
@@ -893,7 +1090,7 @@ app.get('/api/contracts', auth, (req, res) => {
   const total = db.prepare(`SELECT COUNT(*) n FROM contracts ${w}`).get(args).n;
   const rows = db.prepare(`SELECT json, version FROM contracts ${w} ORDER BY seq DESC LIMIT @limit OFFSET @offset`)
     .all({ ...args, limit, offset })
-    .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(c); });
+    .map(r => { const c = JSON.parse(r.json); c._v = r.version; return HEAVY(money ? c : maskContractValues(c, moneyKeys)); });
   res.json({ total, offset, limit, rows });
 });
 
@@ -906,7 +1103,8 @@ app.get('/api/activity', auth, (req, res) => {
   const limit = Math.min(200, Math.max(1, Number(req.query.limit) || 40));
   // A save appends to a contract's audit and bumps its seq, so the newest
   // events live in the highest-seq rows. Scan a bounded recent window.
-  const rows = db.prepare('SELECT json FROM contracts ORDER BY seq DESC LIMIT 400').all();
+  const f = scopeFrag(folderScopeFor(req.user));
+  const rows = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq DESC LIMIT 400`).all(...f.args);
   const feed = [];
   for (const r of rows) {
     let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
@@ -924,23 +1122,30 @@ app.get('/api/search', auth, (req, res) => {
   const q = String(req.query.q || '').trim();
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
   if (!q) return res.json({ hits: [], fts: ftsOk });
+  // The FTS index has no folder column, so scoping is a join back onto
+  // `contracts` — the index finds candidates, the base table decides who may
+  // see them. Over-fetch so a restricted user still fills a page of results.
+  const scope = folderScopeFor(req.user);
+  const fs = scopeFrag(scope, 'c.folder');
   if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
     const like = '%' + likeEscape(q.toLowerCase()) + '%';
-    const rows = db.prepare("SELECT id,name,counterparty FROM contracts WHERE lower(name) LIKE ? ESCAPE '\\' OR lower(counterparty) LIKE ? ESCAPE '\\' LIMIT ?").all(like, like, limit);
+    const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\')", fs.sql);
+    const rows = db.prepare(`SELECT c.id, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, ...fs.args, limit);
     return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false });
   }
   // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
   const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
   if (!match) return res.json({ hits: [], fts: true });
   try {
+    const w = whereOf('contracts_fts MATCH ?', fs.sql);
     const rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
-      FROM contracts_fts f WHERE contracts_fts MATCH ? ORDER BY rank LIMIT ?`).all(match, limit);
+      FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
     res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: r.snippet })), fts: true });
   } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
 });
 
 // E6-T2: AI semantic search — answer a portfolio question with quoted evidence.
-app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { question, candidates } = req.body || {};
@@ -967,10 +1172,13 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
 });
 
 app.get('/api/contracts/:id', auth, (req, res) => {
-  const r = db.prepare('SELECT json, version FROM contracts WHERE id=?').get(req.params.id);
-  if (!r) return res.status(404).json({ error: 'Contract not found' });
+  const r = db.prepare('SELECT json, version, folder FROM contracts WHERE id=?').get(req.params.id);
+  // Out of the caller's folder scope reads exactly like "does not exist" — a
+  // 403 here would confirm the contract, its id and its existence to someone
+  // who is not allowed to know any of that.
+  if (!r || !inScope(folderScopeFor(req.user), r.folder)) return res.status(404).json({ error: 'Contract not found' });
   const c = JSON.parse(r.json); c._v = r.version;
-  res.json(c);
+  res.json(visibleContract(c, req.user));
 });
 
 /* ---------- executed records are immutable ----------
@@ -995,14 +1203,39 @@ const stable = v => JSON.stringify(v === undefined ? null : v);
 app.put('/api/contracts/:id', auth, editor, (req, res) => {
   const { contract, baseVersion } = req.body || {};
   if (!contract || contract.id !== req.params.id) return res.status(400).json({ error: 'Contract id mismatch' });
-  const existing = db.prepare('SELECT version, json FROM contracts WHERE id=?').get(req.params.id);
+  const scope = folderScopeFor(req.user);
+  const existing = db.prepare('SELECT version, json, folder FROM contracts WHERE id=?').get(req.params.id);
+  // A contract outside the caller's scope is invisible, so it is also unwritable
+  // — and answers 404 for the same reason the GET does.
+  if (existing && !inScope(scope, existing.folder)) return res.status(404).json({ error: 'Contract not found' });
+  // …and a contract may not be filed INTO a stream the caller cannot see, which
+  // would otherwise be a one-request way to make a record disappear.
+  if (!inScope(scope, contract.folder))
+    return res.status(403).json({ error: 'You do not have access to that value stream' });
   const cur = existing ? existing.version : 0;
   if (Number(baseVersion || 0) !== cur) return res.status(409).json({ error: 'Version conflict — this contract changed on the server', version: cur });
   const next = cur + 1;
-  const c = { ...contract }; delete c._v; delete c._light; delete c._loaded;
+  const c = { ...contract }; delete c._v; delete c._light; delete c._loaded; delete c._valuesHidden;
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
+
+  /* A member without can_view_values was sent a record with the money stripped
+     out. Saving it back must not write those holes over the stored contract, so
+     every monetary field is restored from what is already on the record — the
+     exact same reasoning (and failure mode) as the audit-trail guard below. */
+  if (prev && !canViewValues(req.user)) {
+    c.value = prev.value; c.valueType = prev.valueType;
+    const keys = moneyFieldKeys();
+    if (prev.fields) { c.fields = { ...(c.fields || {}) }; for (const k of keys) if (k in prev.fields) c.fields[k] = prev.fields[k]; }
+    if (prev.metadata) {
+      c.metadata = { ...(c.metadata || {}) };
+      if ('value' in prev.metadata) c.metadata.value = prev.metadata.value;
+      if ('currency' in prev.metadata) c.metadata.currency = prev.metadata.currency;
+    }
+    if (Array.isArray(c.rounds) && Array.isArray(prev.rounds))
+      c.rounds = c.rounds.map((r, i) => (r && prev.rounds[i] && r.proposedValue == null) ? { ...r, proposedValue: prev.rounds[i].proposedValue } : r);
+  }
 
   if (prev && isExecutedRow(prev)) {
     const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k]));
@@ -1037,8 +1270,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
    must stop working, or the counterparty keeps a working link to a contract the
    owner believes is gone. */
 app.delete('/api/contracts/:id', auth, editor, (req, res) => {
-  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Contract not found' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   let c = null; try { c = JSON.parse(row.json); } catch (_) {}
   if (c && (isExecutedRow(c) || c.status === 'Signed')) {
     return res.status(409).json({
@@ -1089,6 +1322,11 @@ app.put('/api/settings/templates', auth, templateManager, (req, res) => {
    contracts to show and how to group them. No key → the client falls back
    to its built-in interpreter. */
 const aiKey = () => getSetting('aiKey') || process.env.ANTHROPIC_API_KEY || '';
+/* The provider origin, so an air-gapped deployment can point at a proxy — and
+   so the test suite can point at a local recorder and assert on the prompt HaTi
+   actually assembled without ever calling (or paying) Anthropic. Defaults to
+   the real API; nothing changes unless the variable is set. */
+const ANTHROPIC_BASE = String(process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com').replace(/\/+$/, '');
 
 /* ---- Per-task model routing --------------------------------------------
    Two capability tiers instead of one global model. FAST = mechanical work
@@ -1149,7 +1387,7 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
       { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
     return spend;
   };
-  const send = (model) => fetch('https://api.anthropic.com/v1/messages', {
+  const send = (model) => fetch(ANTHROPIC_BASE + '/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ ...payload, model }),
@@ -1343,7 +1581,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') },
     limits: { dailySpendLimit: aiDailySpendLimit(), dailyLimit: aiDailyLimit() }, rates: aiRates() });
 });
-app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, contracts, history, activeIds } = req.body || {};
@@ -1466,7 +1704,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
    value and text richness. Stage 2: Claude (FAST tier — this is a ranking
    task over a small shortlist) ranks the top 3 as templates for the new
    contract described. */
-app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, candidates } = req.body || {};
@@ -1739,7 +1977,15 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
    SSE, but every existing client path is request/response and the panel shows a
    typing indicator meanwhile. */
 
-const copilotOrg = (req) => (req.user && req.user.org_id) || WORKSPACE_ID;
+/* The Copilot tool loop runs server-side against the database, so it needs the
+   caller's visibility rules travelling with it. One context object carries all
+   three facts every tool needs: the workspace, the folder scope, and whether
+   money may be shown. */
+const copilotCtx = (req) => ({
+  org: (req.user && req.user.org_id) || WORKSPACE_ID,
+  scope: folderScopeFor(req.user),
+  money: canViewValues(req.user),
+});
 
 // Open (non-dismissed) scan findings stored on a contract's json, if it was
 // ever scanned in the client. Mirrors openFindings() in js/ai.js.
@@ -1749,32 +1995,37 @@ function copilotOpenFindings(c) {
   return c.scan.findings.filter(f => f && !dismissed.has(f.id));
 }
 // Parse one contract's stored json, scoped to the caller's org.
-function copilotGetJson(org, id) {
+function copilotGetJson(ctx, id) {
   if (!id) return null;
-  const r = db.prepare('SELECT json FROM contracts WHERE id=? AND org_id=?').get(String(id), org);
-  if (!r) return null;
+  const r = db.prepare('SELECT json, folder FROM contracts WHERE id=? AND org_id=?').get(String(id), ctx.org);
+  // Out of the caller's folder scope is indistinguishable from absent, here as
+  // everywhere else — the model is told the contract was not found, so it
+  // cannot report its existence back to the user.
+  if (!r || !inScope(ctx.scope, r.folder)) return null;
   try { return JSON.parse(r.json); } catch (_) { return null; }
 }
 const copilotDaysUntil = iso => { const t = Date.parse(String(iso) + 'T00:00:00'); return Number.isFinite(t) ? Math.ceil((t - Date.now()) / 86400000) : null; };
 // A compact card the client renders (matches what aiContractCard needs).
-function copilotCard(org, id) {
-  const c = copilotGetJson(org, id);
+function copilotCard(ctx, id) {
+  const c = copilotGetJson(ctx, id);
   if (!c) return null;
   const open = copilotOpenFindings(c);
-  return {
+  const card = {
     id: c.id, name: c.name || c.id, counterparty: c.counterparty || '',
     value: Number(c.value) || 0, valueType: c.valueType || 'standard',
     status: c.status || '', folder: c.folder || '', template: c.template || '',
     source: c.source || '', expiry: c.expiry || '', openFindings: open.length,
   };
+  if (!ctx.money) { delete card.value; delete card.valueType; }
+  return card;
 }
 // Richer detail (adds searchable body text + findings) for get/compare tools.
-function copilotDetail(org, id) {
-  const c = copilotGetJson(org, id);
+function copilotDetail(ctx, id) {
+  const c = copilotGetJson(ctx, id);
   if (!c) return { id, found: false };
   const open = copilotOpenFindings(c);
   const d = copilotDaysUntil(c.expiry);
-  return {
+  const detail = {
     found: true, id: c.id, name: c.name || c.id, counterparty: c.counterparty || 'none',
     folder: c.folder || '', template: c.template || '', isUpload: c.source === 'upload',
     value: Number(c.value) || 0, monetary: c.valueType !== 'none', valueType: c.valueType || 'standard',
@@ -1785,9 +2036,11 @@ function copilotDetail(org, id) {
     // in full and quote clauses verbatim, not just its opening section.
     text: contractSearchBody(c).slice(0, 16000),
   };
+  if (!ctx.money) { delete detail.value; delete detail.valueType; delete detail.monetary; }
+  return detail;
 }
 // FTS search, then re-scope the ids to the caller's org.
-function copilotSearch(org, query, limit = 8) {
+function copilotSearch(ctx, query, limit = 8) {
   const q = String(query || '').trim();
   if (!q || !ftsOk) return [];
   const match = q.replace(/["]/g, ' ').split(/\s+/).filter(Boolean).map(w => '"' + w + '"').join(' OR ');
@@ -1799,26 +2052,33 @@ function copilotSearch(org, query, limit = 8) {
   } catch (_) { return []; }
   const out = [];
   for (const r of rows) {
-    const owned = db.prepare('SELECT 1 FROM contracts WHERE id=? AND org_id=?').get(r.id, org);
-    if (owned) out.push({ id: r.id, name: r.name, counterparty: r.counterparty || '', snippet: r.snippet || '' });
+    const owned = db.prepare('SELECT folder FROM contracts WHERE id=? AND org_id=?').get(r.id, ctx.org);
+    if (owned && inScope(ctx.scope, owned.folder))
+      out.push({ id: r.id, name: r.name, counterparty: r.counterparty || '', snippet: r.snippet || '' });
     if (out.length >= limit) break;
   }
   return out;
 }
 // List/filter the portfolio by status / folder / expiry horizon / min value.
-function copilotList(org, filter = {}) {
-  const rows = db.prepare('SELECT json FROM contracts WHERE org_id=? ORDER BY seq').all(org).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
+function copilotList(ctx, filter = {}) {
+  const fs = scopeFrag(ctx.scope);
+  const rows = db.prepare(`SELECT json FROM contracts ${whereOf('org_id=?', fs.sql)} ORDER BY seq`)
+    .all(ctx.org, ...fs.args).map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
   let cs = rows;
   if (filter.status) cs = cs.filter(c => (c.status || '') === filter.status);
   if (filter.folder) cs = cs.filter(c => (c.folder || '') === filter.folder);
-  if (Number(filter.minValue) > 0) cs = cs.filter(c => Number(c.value || 0) >= Number(filter.minValue));
+  // A minimum-value filter is itself a way to read values by binary search, so
+  // it is ignored (not rejected) for a caller who may not see them.
+  if (ctx.money && Number(filter.minValue) > 0) cs = cs.filter(c => Number(c.value || 0) >= Number(filter.minValue));
   if (Number(filter.expiringWithinDays) > 0) {
     const h = Number(filter.expiringWithinDays);
     cs = cs.filter(c => { const d = copilotDaysUntil(c.expiry); return c.expiry && c.status !== 'Declined' && d != null && d >= 0 && d <= h; });
   }
   return cs.slice(0, 40).map(c => {
     const d = copilotDaysUntil(c.expiry);
-    return { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
+    const row = { id: c.id, name: c.name || c.id, counterparty: c.counterparty || '', folder: c.folder || '', status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || '', daysUntilExpiry: d, openFindings: copilotOpenFindings(c).length };
+    if (!ctx.money) delete row.value;
+    return row;
   });
 }
 
@@ -1850,25 +2110,28 @@ const COPILOT_TOOLS = [
       required: ['answer'] } },
 ];
 
-function runCopilotTool(org, name, input) {
+function runCopilotTool(ctx, name, input) {
   const a = input || {};
   try {
-    if (name === 'search_contracts') return { results: copilotSearch(org, a.query) };
-    if (name === 'get_contract') return copilotDetail(org, a.id);
-    if (name === 'get_scan_findings') { const d = copilotDetail(org, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
-    if (name === 'list_portfolio') return { contracts: copilotList(org, a) };
-    if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(org, id)) };
+    if (name === 'search_contracts') return { results: copilotSearch(ctx, a.query) };
+    if (name === 'get_contract') return copilotDetail(ctx, a.id);
+    if (name === 'get_scan_findings') { const d = copilotDetail(ctx, a.id); return d.found ? { id: d.id, name: d.name, openFindings: d.openFindings } : { id: a.id, found: false }; }
+    if (name === 'list_portfolio') return { contracts: copilotList(ctx, a) };
+    if (name === 'compare_contracts') return { contracts: (Array.isArray(a.ids) ? a.ids : []).slice(0, 4).map(id => copilotDetail(ctx, id)) };
   } catch (e) { return { error: 'tool failed: ' + e.message }; }
   return { error: 'unknown tool' };
 }
 
-function buildCopilotSystem(context, org) {
+function buildCopilotSystem(context, scopeCtx) {
   const ctx = context || {};
-  // Live workspace facts so Copilot knows what exists without blind searching.
-  const counts = db.prepare('SELECT status, COUNT(*) n FROM contracts WHERE org_id=? GROUP BY status').all(org);
+  // Live workspace facts so Copilot knows what exists without blind searching —
+  // counted over the caller's own scope, so the opening line of every Copilot
+  // conversation is not itself a disclosure of the wider portfolio's size.
+  const fs = scopeFrag(scopeCtx.scope);
+  const counts = db.prepare(`SELECT status, COUNT(*) n FROM contracts ${whereOf('org_id=?', fs.sql)} GROUP BY status`).all(scopeCtx.org, ...fs.args);
   const total = counts.reduce((s, r) => s + r.n, 0);
   const byStatus = counts.map(r => `${r.status || 'Unknown'}: ${r.n}`).join(', ') || 'none';
-  const folders = db.prepare('SELECT DISTINCT folder FROM contracts WHERE org_id=? AND folder<>\'\'').all(org).map(r => r.folder).filter(Boolean);
+  const folders = db.prepare(`SELECT DISTINCT folder FROM contracts ${whereOf('org_id=?', "folder<>''", fs.sql)}`).all(scopeCtx.org, ...fs.args).map(r => r.folder).filter(Boolean);
   const orgName = (getSetting('org') && getSetting('org').name) || 'this workspace';
   let view = '';
   if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
@@ -1892,11 +2155,15 @@ SCOPE & SAFETY:
 - Be concise and direct. Reference specific numbers and clauses from the fetched data.`;
 }
 
-function normalizeDeliver(input, org) {
+function normalizeDeliver(input, cx) {
   const inp = input || {};
   const answer = typeof inp.answer === 'string' && inp.answer.trim() ? inp.answer.trim() : 'I could not produce an answer for that.';
+  // The model can only cite what the tools handed it, and the tools are scoped
+  // — but a citation is a contract id echoed back to the browser, so it is
+  // re-checked rather than trusted.
   const citations = (Array.isArray(inp.citations) ? inp.citations : [])
-    .filter(c => c && c.id).map(c => ({ id: String(c.id), quote: typeof c.quote === 'string' ? c.quote.slice(0, 400) : '' }));
+    .filter(c => c && c.id && idInScope(cx.scope, c.id))
+    .map(c => ({ id: String(c.id), quote: typeof c.quote === 'string' ? c.quote.slice(0, 400) : '' }));
   let compare = null;
   if (inp.compare && Array.isArray(inp.compare.columns) && Array.isArray(inp.compare.rows) && inp.compare.columns.length) {
     compare = {
@@ -1914,14 +2181,14 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { messages, context } = req.body || {};
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
-  const org = copilotOrg(req);
+  const cx = copilotCtx(req);
   // Keep only clean user/assistant text turns; cap history and per-turn size.
   const convo = messages
     .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
     .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
-  const system = buildCopilotSystem(context, org);
+  const system = buildCopilotSystem(context, cx);
   const working = convo.slice();
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
@@ -1938,9 +2205,9 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
-      if (deliver) { final = normalizeDeliver(deliver.input, org); break; }
+      if (deliver) { final = normalizeDeliver(deliver.input, cx); break; }
       // Execute the data tools and feed results back for the next round.
-      const results = toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(runCopilotTool(org, t.name, t.input)) }));
+      const results = toolUses.map(t => ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(runCopilotTool(cx, t.name, t.input)) }));
       working.push({ role: 'user', content: results });
     }
     if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
@@ -1948,7 +2215,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
-    const cards = cardIds.map(id => copilotCard(org, id)).filter(Boolean);
+    const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
     const notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, cards, ...notice });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
@@ -1959,7 +2226,13 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
 // documented in DEPLOYMENT.md.
 app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   const org = getSetting('org');
-  const contracts = db.prepare('SELECT json FROM contracts ORDER BY seq').all().map(r => JSON.parse(r.json));
+  // Admin-only, and an admin is always unrestricted — so the scope filter is a
+  // no-op here today. It is applied anyway so that the day this route's
+  // authority changes, the export does not quietly become the way out.
+  const scope = folderScopeFor(req.user);
+  const f = scopeFrag(scope);
+  const contracts = db.prepare(`SELECT json FROM contracts ${whereOf(f.sql)} ORDER BY seq`).all(...f.args)
+    .map(r => visibleContract(JSON.parse(r.json), req.user));
   const users = db.prepare('SELECT id,name,email,role,created_at FROM users').all();  // no salt/hash
   const settings = getSetting('appSettings') || {};
   const files = [
@@ -1979,6 +2252,42 @@ app.get('/api/export/workspace.zip', auth, admin, (req, res) => {
   res.send(zip);
 });
 
+/* The register export, produced on the server so the file the customer walks
+   away with is bounded by the same rules as the screen. The browser still
+   builds a CSV from a selection of rows (those rows are already scoped and
+   masked by /api/contracts); this is the whole-register export, and it is the
+   one an auditor should be pointed at.
+
+   `folder` and `status` narrow it; neither can widen it. Without
+   can_view_values the Value column is emitted EMPTY rather than dropped, so a
+   spreadsheet built against the export keeps its column positions. */
+const CSV_CELL = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+app.get('/api/export/contracts.csv', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  const money = canViewValues(req.user);
+  const where = [], args = {};
+  if (req.query.folder) {
+    if (!inScope(scope, req.query.folder)) { where.push('1=0'); }
+    else { where.push('folder=@folder'); args.folder = String(req.query.folder); }
+  }
+  const fs = scopeFragNamed(scope);
+  if (fs.sql) { where.push(fs.sql); Object.assign(args, fs.args); }
+  if (req.query.status) { where.push('status=@status'); args.status = String(req.query.status); }
+  const rows = db.prepare(`SELECT json FROM contracts ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY seq DESC`).all(args)
+    .map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
+  const head = ['ID', 'Name', 'Counterparty', 'Folder', 'Value (KES)', 'Status', 'Last action', 'Expiry'];
+  const monetary = c => c.valueType !== 'none';
+  const lines = [head.map(CSV_CELL).join(',')];
+  for (const c of rows) {
+    lines.push([c.id, c.name || '', c.counterparty || '', c.folder || '',
+      (money && monetary(c)) ? (Number(c.value) || 0) : '',
+      c.status || '', c.lastAction || '', c.expiry || ''].map(CSV_CELL).join(','));
+  }
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="hati-register-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(lines.join('\n'));
+});
+
 // Server-stamped signing metadata (IP + authoritative time) for the evidence record.
 app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
@@ -1989,8 +2298,8 @@ app.post('/api/sign-meta', auth, (req, res) => {
 // this is a convenience copy (link + seal). Idempotency is enforced client-side
 // via c.distribution, but re-sends are allowed (Send again).
 app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
-  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
-  if (!row) return res.status(404).json({ error: 'Contract not found' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   let c; try { c = JSON.parse(row.json); } catch (_) { return res.status(500).json({ error: 'Contract record unreadable' }); }
   if (c.status !== 'Signed') return res.status(400).json({ error: 'Contract is not executed yet' });
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
@@ -2017,7 +2326,8 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
 app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
   const { email, name, order } = req.body || {};
   if (!/.+@.+\..+/.test(String(email || ''))) return res.status(400).json({ error: 'A valid signer email is required' });
-  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
   const cName = (() => { try { return JSON.parse(row.json).name; } catch (_) { return req.params.id; } })();
   const appUrl = `${req.protocol}://${req.get('host')}/`;
   await sendEmail(String(email), `Your signature is requested — "${cName}"`,
@@ -2053,13 +2363,30 @@ app.post('/api/users', auth, admin, (req, res) => {
   res.json({ ok: true, user: publicUser(u), emailSent: EMAIL_ON() });
 });
 
+/* Role and value-visibility are both edited here; either may be sent on its own
+   so the Team screen can toggle one without restating the other. */
 app.patch('/api/users/:id', auth, admin, (req, res) => {
-  const { role } = req.body || {};
-  if (!['admin','legal','viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
-  if (req.params.id === req.user.id) return res.status(400).json({ error: 'You cannot change your own role' });
-  const r = db.prepare('UPDATE users SET role=? WHERE id=?').run(role, req.params.id);
-  if (!r.changes) return res.status(404).json({ error: 'User not found' });
-  res.json({ ok: true });
+  const b = req.body || {};
+  const hasRole = b.role !== undefined, hasValues = b.canViewValues !== undefined;
+  if (!hasRole && !hasValues) return res.status(400).json({ error: 'Nothing to change' });
+  if (hasRole && !['admin','legal','viewer'].includes(b.role)) return res.status(400).json({ error: 'Invalid role' });
+  if (req.params.id === req.user.id) {
+    if (hasRole) return res.status(400).json({ error: 'You cannot change your own role' });
+    // An admin removing their own value access would be a permission they
+    // cannot restore (admins are unconditionally allowed to see values), so it
+    // is refused rather than silently ignored.
+    return res.status(400).json({ error: 'You cannot change your own access' });
+  }
+  const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+  if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
+  if (hasValues) {
+    const role = hasRole ? b.role : target.role;
+    if (role === 'admin' && !b.canViewValues)
+      return res.status(400).json({ error: 'Admins always see contract values. Change the role first if this member should not.' });
+    db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
+  }
+  res.json({ ok: true, user: publicUser(db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id)) });
 });
 
 app.delete('/api/users/:id', auth, admin, (req, res) => {
@@ -2156,6 +2483,8 @@ function shareOwnerEmails(s) {   // the sender if known, else workspace admins
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const { payload, recipient, channel, message, expiryDays } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
+  const shareId = (payload.contract && payload.contract.id) || null;
+  if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
   const ch = ['email', 'whatsapp', 'link'].includes(channel) ? channel : 'link';
   const rec = recipient || {};
   const email = String(rec.email || '').trim().toLowerCase();
@@ -2189,8 +2518,19 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
   // NOTE: must be registered before /api/shares/:token or it would match as a token
-  const rows = db.prepare('SELECT token, response FROM shares WHERE response IS NOT NULL AND applied=0').all();
-  res.json(rows.map(r => ({ token: r.token, response: JSON.parse(r.response) })));
+  const scope = folderScopeFor(req.user);
+  const money = canViewValues(req.user);
+  const fs = scopeFrag(scope, 'c.folder');
+  // Left join so a share whose contract row is gone still surfaces for an
+  // unrestricted caller, exactly as it did before.
+  const rows = db.prepare(`SELECT s.token, s.response FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
+    ${whereOf('s.response IS NOT NULL', 's.applied=0', fs.sql)}`).all(...fs.args);
+  res.json(rows.map(r => {
+    const response = JSON.parse(r.response);
+    // a counter-proposed amount is a monetary figure like any other
+    if (!money && response && response.proposedValue != null) response.proposedValue = null;
+    return { token: r.token, response };
+  }));
 });
 
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
@@ -2198,10 +2538,11 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 // (for the dashboard strip). Registered before /api/shares/:token.
 const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'expired', 'revoked'];
 app.get('/api/shares/overview', auth, (req, res) => {
+  const fs = scopeFrag(folderScopeFor(req.user), 'c.folder');
   const rows = db.prepare(`SELECT s.*, c.name AS c_name, c.counterparty AS c_counterparty
     FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
-    WHERE s.contract_id IS NOT NULL
-    ORDER BY COALESCE(s.responded_at, s.first_opened_at, s.sent_at, s.created_at) DESC LIMIT 400`).all();
+    ${whereOf('s.contract_id IS NOT NULL', fs.sql)}
+    ORDER BY COALESCE(s.responded_at, s.first_opened_at, s.sent_at, s.created_at) DESC LIMIT 400`).all(...fs.args);
   const counts = {}, byContract = {}, items = [];
   for (const s of rows) {
     const st = shareState(s);
@@ -2261,13 +2602,14 @@ function notifyFirstOpen(s, payload) {
 }
 
 app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shares panel
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
   const rows = db.prepare('SELECT * FROM shares WHERE contract_id=? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
   res.json({ shares: rows.map(shareInfo) });
 });
 
 app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
-  if (!s) return res.status(404).json({ error: 'Share not found' });
+  if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
   if (s.response) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
   if (!s.revoked_at) db.prepare('UPDATE shares SET revoked_at=? WHERE token=?').run(now(), s.token);
   res.json({ ok: true });
@@ -2275,7 +2617,7 @@ app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
 
 app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
-  if (!s) return res.status(404).json({ error: 'Share not found' });
+  if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
   if (s.response) return res.status(409).json({ error: 'This share already has a response' });
   if (s.revoked_at) return res.status(409).json({ error: 'This share was revoked — create a new share instead' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This share has expired — create a new share instead' });
@@ -2295,6 +2637,7 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
 
 // E5-T4: engagement timeline for a contract (owner side)
 app.get('/api/contracts/:id/engagement', auth, (req, res) => {
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
   const rows = db.prepare('SELECT kind,at,ip,ua FROM engagement WHERE contract_id=? ORDER BY at DESC LIMIT 100').all(req.params.id);
   res.json({ events: rows });
 });
@@ -2729,4 +3072,6 @@ app.get('/index.html', (req, res) => res.sendFile(INDEX));
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
 
-app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${PORT}`));
+// Log the port actually bound, not the one requested — with PORT=0 the OS
+// picks one, and "which port is it on?" should not need a second guess.
+const server = app.listen(PORT, () => console.log(`HaTi CLM server running → http://localhost:${server.address().port}`));

@@ -1,9 +1,9 @@
-node_modules/
-server/data/
-server/data-*/
-package-lock.json
-scratchpad/
+!.env.example
 # Secrets — never commit real keys. .env.example (placeholders only) is tracked.
 .env
 .env.*
-!.env.example
+node_modules/
+package-lock.json
+scratchpad/
+server/data-*/
+server/data/
