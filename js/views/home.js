@@ -21,10 +21,18 @@ const KPI_META={
 };
 const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','highrisk','avgcycle'];
 const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','highrisk','avgcycle'];
+/* Money-bearing metrics. A member without can_view_values receives no value
+   from the server at all, so these cards would read "KES 0" — a wrong number,
+   not a hidden one. They are removed from the catalog entirely rather than
+   shown greyed out: an option that cannot be turned on is worse than an option
+   that is not there. */
+const KPI_MONEY=['active_value'];
+const kpiMoneyOk=()=>typeof canViewValues!=='function'||canViewValues();
+const kpiCatalogOrder=()=>kpiMoneyOk()?KPI_ALL_ORDER:KPI_ALL_ORDER.filter(id=>!KPI_MONEY.includes(id));
 function kpiPrefsKey(){ const u=(typeof currentUser==='function')&&currentUser(); return 'hati.v1.kpis.'+((u&&u.id)||'anon'); }
-function getKpiSel(){ try{ const v=JSON.parse(localStorage.getItem(kpiPrefsKey())); return Array.isArray(v)?v.filter(id=>KPI_META[id]):[]; }catch(e){ return []; } }
+function getKpiSel(){ try{ const v=JSON.parse(localStorage.getItem(kpiPrefsKey())); return Array.isArray(v)?v.filter(id=>KPI_META[id]&&kpiCatalogOrder().includes(id)):[]; }catch(e){ return []; } }
 function setKpiSel(arr){ try{ localStorage.setItem(kpiPrefsKey(), JSON.stringify(arr)); }catch(e){} }
-function currentKpiSel(){ const s=getKpiSel(); return s.length?s:DEFAULT_KPI_SEL.slice(); }
+function currentKpiSel(){ const s=getKpiSel(); return s.length?s:DEFAULT_KPI_SEL.filter(id=>kpiCatalogOrder().includes(id)); }
 // Non-intrusive popover to toggle which KPI cards appear. Reorder is by dragging
 // the cards themselves; this panel handles show/hide + reset.
 function openKpiCustomizer(anchor){
@@ -41,7 +49,7 @@ function openKpiCustomizer(anchor){
     </label>`;
   pop.innerHTML=`
     <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">Show metrics</div>
-    ${KPI_ALL_ORDER.map(row).join('')}
+    ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
       <span style="font-size:10.5px;color:var(--color-neutral-500);">Drag cards to reorder</span>
       <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">Reset</button>
@@ -60,6 +68,11 @@ function openKpiCustomizer(anchor){
 }
 function renderDashboard(){
   const cs=state.contracts;
+  /* state.contracts, state.serverStats and state.shareOverview are already
+     scoped and masked by the server (F1/F2) — every slice below is therefore
+     scoped by construction. `money` is the last mile: it stops the dashboard
+     printing totals derived from values it was never sent. */
+  const money=kpiMoneyOk();
   const m=metrics();
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
   const valOf=arr=>arr.reduce((s,c)=>s+Number(c.value||0),0);
@@ -105,6 +118,11 @@ function renderDashboard(){
   const expWithin=n=>expiring.filter(x=>x.d<=n);
   const exp30=expWithin(30), exp60=expWithin(60), exp90=expiring;
   const expVal=arr=>valOf(arr.map(x=>x.c));
+  // The exposure figure on an expiring card is a money total. Without the
+  // right, the card still earns its place — it just says WHEN instead of HOW
+  // MUCH, which is the more actionable half anyway.
+  const expDelta=arr=>money?`${fmtKESshort(expVal(arr))} exposure`
+    :(arr.length?`soonest in ${arr[0].d}d`:'none due');
   // avg cycle draft→signed from audit where both stamps exist
   const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
     const a=(c.audit||[]); const cr=a.find(x=>/creat/i.test(x.action||'')), sg=a.find(x=>/sign|execut|seal/i.test(x.action||''));
@@ -119,9 +137,9 @@ function renderDashboard(){
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    grad:G.steel, ic:'building', go:{stage:'all'}},
     active_value:{label:KPI_META.active_value, val:fmtKESshort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
     awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:`${fmtKESshort(expVal(exp30))} exposure`,                       grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
-    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:`${fmtKESshort(expVal(exp60))} exposure`,                       grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
-    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:`${fmtKESshort(expVal(exp90))} exposure`,                       grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),                                               grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
+    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
+    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`,                              grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
@@ -146,7 +164,7 @@ function renderDashboard(){
     <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
       <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);">${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?`${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}`:`${s.n.toLocaleString('en-KE')} contract${s.n===1?'':'s'}`}</span>
     </button>`).join('');
 
   // ---- needs your action ----
@@ -161,17 +179,24 @@ function renderDashboard(){
 
   // ---- renewal pipeline (6 mo) ----
   const now=new Date(); const months=[];
-  for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString('en-KE',{month:'short'}),v:0}); }
-  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const t=Date.parse(e); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b) b.v+=Number(c.value||0); });
-  const pipeMax=Math.max(1,...months.map(x=>x.v));
+  for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString('en-KE',{month:'short'}),v:0,n:0}); }
+  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const t=Date.parse(e); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b){ b.v+=Number(c.value||0); b.n++; } });
+  // Without the value right the pipeline is drawn from CONTRACT COUNTS, not
+  // from a total of values the browser was never sent — the shape of the
+  // renewal year is still readable, it just is not denominated in shillings.
+  const pipeOf=x=>money?x.v:x.n;
+  const pipeMax=Math.max(1,...months.map(pipeOf));
   const pipeTotal=months.reduce((s,x)=>s+x.v,0);
-  const pipeCount=agreementsIn(cs).filter(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return false; const t=Date.parse(e); if(isNaN(t)) return false; const d=new Date(t); return months.some(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); }).length;
+  const pipeCount=months.reduce((s,x)=>s+x.n,0);
   const pipeBars=months.map(x=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
-      <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;"><div style="width:${(x.v/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);border-radius:999px;"></div></div>
-      <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${x.v?fmtKESshort(x.v).replace('KES ',''):'—'}</span>
+      <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;"><div style="width:${(pipeOf(x)/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);border-radius:999px;"></div></div>
+      <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${money?(x.v?fmtKESshort(x.v).replace('KES ',''):'—'):(x.n||'—')}</span>
     </div>`).join('');
+  const pipeSummary=money
+    ? `${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}`
+    : `${pipeCount} contract${pipeCount===1?'':'s'} expiring in the next 6 months`;
 
   // ---- approvals waiting ----
   // Approvals waiting: the 5 contracts that have waited longest to be signed
@@ -179,7 +204,7 @@ function renderDashboard(){
   const apprRows=waiting.slice(0,5).map((x,i)=>{ const c=x.c; const dotc=x.idle>=30?'#b0453c':'#b8862b';
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(29,31,32,.07);font-size:12px;">
       <span style="width:7px;height:7px;border-radius:50%;background:${dotc};flex:none;"></span>
-      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value>=(getApprovalCfg().threshold||0)?'CFO sign-off':'Legal review'} — ${c.counterparty||c.name}${isMonetary(c)&&c.value?` (${fmtKESshort(c.value)})`:''}</span>
+      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value>=(getApprovalCfg().threshold||0)?'CFO sign-off':'Legal review'} — ${c.counterparty||c.name}${(money&&isMonetary(c)&&c.value)?` (${fmtKESshort(c.value)})`:''}</span>
       <span style="font-size:10.5px;color:var(--color-neutral-600);flex:none;">${x.idle}d</span>
     </div>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">No approvals pending.</div>`;
 
@@ -331,7 +356,7 @@ function renderDashboard(){
           <section style="flex:none;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
             <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
             ${pipeBars}
-            <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}</div>
+            <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${pipeSummary}</div>
           </section>
           <section style="flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;overflow:hidden;">
             <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting</h4>
