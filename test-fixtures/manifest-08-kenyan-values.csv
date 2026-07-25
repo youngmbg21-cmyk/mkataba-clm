@@ -1,0 +1,5 @@
+filename,name,counterparty,type,stream,status,value,currency,effective date,expiry date,signed date
+"batch-01.pdf","Sugar supply","Kabras Sugar Ltd","Raw Material Supply","Procurement","Executed","KES 2.5m","KES","2024-01-15","2026-01-14","2024-01-20"
+"batch-02.pdf","Carton supply","Nampak Kenya","Packaging Supply","Procurement","Executed","2,500,000/=","KES","2024-02-01","2026-01-31","2024-02-03"
+"batch-03.pdf","Freight","Siginon Group","Freight","Warehousing","Executed","Kshs. 750,000/-","KES","2024-02-01","2026-01-31","2024-02-03"
+"batch-04.pdf","Lease","Britam","Commercial Lease","Corporate","Executed","1.2 million","KES","2024-02-01","2026-01-31","2024-02-03"

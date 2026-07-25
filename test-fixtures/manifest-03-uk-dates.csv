@@ -1,0 +1,4 @@
+filename,name,counterparty,type,stream,status,value,currency,effective date,expiry date,signed date
+"batch-01.pdf","Sugar supply","Kabras Sugar Ltd","Raw Material Supply","Procurement","Executed","2500000","KES","15/01/2024","14/01/2026","20/01/2024"
+"batch-02.pdf","Carton supply","Nampak Kenya","Packaging Supply","Procurement","Executed","1800000","KES","01/03/2024","28/02/2026","03/03/2024"
+"batch-03.pdf","Ambiguous dates","Statpack Ltd","Packaging Supply","Procurement","Executed","900000","KES","03/15/2024","12/31/2026","03/16/2024"
