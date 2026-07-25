@@ -1210,3 +1210,71 @@ from both — carrying the same words to within 3%. Individually asserted: the
 title is an `<h1>`, all three sections are headings, the two parties are `<li>`
 of one `<ol>`, the bold party names and the italic standard survive, and a
 paragraph split across four printed lines is rejoined into one sentence.
+
+### 21. An inserted clause vanished into the document with no trace of where it went
+
+**What was broken.** "Insert clause" appended the clause's wording to the end of
+the working text and said nothing else. No heading, no label, no marker — the
+new wording simply became the last paragraph, glued on after whatever happened
+to be there. The toast said "Preferred wording added as a redline"; the audit
+entry said the same. Neither said *where*.
+
+In a contract that is not a small thing. You cannot review, negotiate or seal
+wording you cannot find, and on a document of any length the reader had no way
+to tell which paragraph had just appeared — or, later, which paragraphs had come
+from the clause library at all.
+
+**The fix.** Every insertion now lands as a **named section** and leaves a trail:
+
+- **In the document:** the clause is preceded by its own heading — `<h3>Payment
+  within 30 days</h3>` in a formatted document, the name in capitals on its own
+  line in a plain-text one. It reads as a clause instead of an orphan paragraph.
+- **On the record:** `c.clauseInserts[]` keeps the name, where it went, who
+  inserted it and when.
+- **In the workspace:** the Playbook review card lists every inserted clause
+  with that detail and a **"Show me"** button that scrolls the document to it
+  and flashes it.
+- **Immediately:** inserting scrolls to the clause and flashes it straight away,
+  so the first thing you see after pressing Insert is the clause in its new
+  home. The toast names the clause and says where it went.
+- **In the audit trail:** "Inserted preferred wording (Payment within 30 days)
+  as a redline — appended to the end of the document, as a new section titled
+  'Payment within 30 days'" — specific rather than merely true.
+
+`jumpToInsertedClause()` matches the **last** heading carrying the clause name,
+because a clause can be inserted more than once and the most recent one is the
+one being asked about. When the document has since been edited and no match
+exists it falls back to the end of the document and says so, rather than
+silently doing nothing.
+
+The clause still goes to the end, and that is deliberate: it is the one position
+that cannot disrupt the existing clause numbering. What changed is that the
+document, the record and the interface all now say so.
+
+**Files touched.** `js/playbook.js`, `index.html` (the flash).
+
+**How it was verified.** A browser test drives the real flow on both a formatted
+and a plain-text contract: the clause arrives under its own heading with the
+heading before the body, the existing document is untouched, the insertion is
+recorded with the right name/where/who, the audit entry names the position and
+the section title, a version is captured, the card lists both insertions with
+jump buttons, and pressing "Show me" flashes the correct heading (asserted by
+matching the flashed element's text and its computed animation).
+
+### 22. "Insert clause" appeared twice
+
+**What was broken.** The Draft & Review pane carried an **Insert clause** button
+inside the Playbook review card *and* a separate full-width "Insert clause" card
+listing the whole library beneath it. Two controls, same action, one directly
+under the other.
+
+**The fix.** The standalone card is removed — `renderInsertClauseSection()`, its
+`#insert-clause-section` host and its call site. The button in the Playbook
+review card stays and opens the clause picker, which shows the same library with
+a preview of each clause's wording, which the removed card did not.
+
+**Files touched.** `js/playbook.js`, `js/views/contract.js`.
+
+**How it was verified.** The test asserts exactly one control matching "Insert
+clause" in the rendered workspace, and that `renderInsertClauseSection` no longer
+exists at all.

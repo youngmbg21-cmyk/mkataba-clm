@@ -439,6 +439,20 @@
   .hati-editor[data-empty="1"]::before{content:attr(data-placeholder);
     color:var(--color-neutral-500);pointer-events:none;display:block;}
 
+  /* A clause that has just been inserted, or that the reader asked to be shown.
+     Held long enough to actually find it on a long page, then released — a
+     permanent highlight would become part of how the contract looks. */
+  .clause-flash{
+    animation:clauseFlash 2.6s ease-out;
+    border-radius:4px;
+    scroll-margin:80px;
+  }
+  @keyframes clauseFlash{
+    0%,55%{ background:var(--color-accent-200); box-shadow:0 0 0 6px var(--color-accent-200); }
+    100%  { background:transparent;             box-shadow:0 0 0 6px transparent; }
+  }
+  @media print{ .clause-flash{animation:none!important;background:transparent!important;box-shadow:none!important;} }
+
   /* PDF export — print only the prepared document */
   #print-root{display:none;}
   @media print{

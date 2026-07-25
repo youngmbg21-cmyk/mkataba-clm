@@ -144,7 +144,10 @@ function renderPlaybookSection(c){
   const host=document.getElementById('playbook-section'); if(!host) return;
   const editable=canEdit()&&c.status!=='Signed';
   const r=c.playbook;
-  if(!editable && !r){ host.innerHTML=''; return; }   // nothing to show; empty:hidden collapses it
+  const ins=(c.clauseInserts||[]);
+  // the card must still render when a clause has been inserted but no review has
+  // been run — otherwise the record of what was added would have nowhere to live
+  if(!editable && !r && !ins.length){ host.innerHTML=''; return; }
   const sm=deviationSummary(c);
   const badge=st=>st==='aligned'?'bg-brand-50 text-brand-600 border-brand-200':st==='deviation'?'bg-gold-500/12 text-gold-600 border-gold-500/30':'bg-rose-50 text-rose-600 border-rose-200';
   host.innerHTML=`
@@ -166,11 +169,27 @@ function renderPlaybookSection(c){
           ${v.status!=='aligned'&&v.position?`<div class="mt-1 text-[10px] text-ink/60"><b>Preferred:</b> ${(v.position||'').replace(/</g,'&lt;')}</div>`:''}
           ${editable&&v.redline?`<button data-pb-apply="${i}" class="mt-1.5 text-[10px] font-600 text-brand-600 hover:text-brand-800">Apply suggested wording as a redline →</button>`:''}
         </div>`).join('')}</div>`:''}
-      ${editable?`<div class="flex flex-wrap gap-2">
+      ${ins.length?`<div class="mt-3 rounded-lg border border-brand-100 bg-brand-50/50 px-3 py-2">
+        <div class="text-[10px] font-mono uppercase tracking-wide text-ink/50 mb-1.5">Clauses inserted into this document</div>
+        ${ins.map((x,i)=>`<div class="flex items-center gap-2 text-[11px] py-0.5">
+          <span class="text-brand-500 shrink-0">${icon('plus','w-3 h-3')}</span>
+          <span class="min-w-0 flex-1">
+            <span class="block font-600 text-ink truncate">${String(x.name||'Clause').replace(/</g,'&lt;')}</span>
+            <span class="block text-[10px] text-ink/55">${clauseInsertNote(x.where)} · ${x.by?String(x.by).replace(/</g,'&lt;')+' · ':''}${x.at?fmtDT(x.at):''}</span>
+          </span>
+          <button data-pb-jump="${i}" class="shrink-0 rounded-lg border border-brand-200 bg-white px-2 py-1 text-[10px] font-600 text-brand-700 hover:bg-brand-50">Show me</button>
+        </div>`).join('')}
+      </div>`:''}
+      ${editable?`<div class="flex flex-wrap gap-2 mt-3">
         <button id="pb-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
         <button id="pb-insert" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Insert clause</button>
       </div>`:''}
     </div>`;
+  host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
+    const x=ins[Number(b.getAttribute('data-pb-jump'))]; if(!x) return;
+    if(!jumpToInsertedClause(x.name))
+      toast('Could not find that clause in the document — it may have been edited or removed','err');
+  }));
   document.getElementById('pb-run')?.addEventListener('click',async()=>{
     const btn=document.getElementById('pb-run'); btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reviewing…</span>';
     const res=await runPlaybookReview(c);
@@ -183,53 +202,81 @@ function renderPlaybookSection(c){
     applyClauseRedline(c, v.redline, v.category);
   }));
 }
-/* Insert a preferred clause as a redline addition (uses E2 redline text). */
+/* Insert a preferred clause as a redline addition (uses E2 redline text).
+
+   An inserted clause used to be appended to the end of the document with no
+   marker of any kind — no heading, no label, nothing in the workspace to say it
+   had happened or where it had landed. In a contract that is not a small thing:
+   you cannot review, negotiate or seal wording you cannot find. Every insertion
+   now:
+
+     · lands as a NAMED section, so it reads as a clause and not as an orphan
+       paragraph glued to whatever came last;
+     · says plainly where it went (the end of the document — the one place that
+       cannot disrupt the existing clause numbering);
+     · is recorded on the contract, listed in the review card, and jumpable to;
+     · scrolls the document to it and flashes it, so the very first thing you
+       see after inserting is the clause in its new home. */
+function clauseInsertNote(where){
+  return where==='end' ? 'appended to the end of the document' : String(where||'');
+}
 function applyClauseRedline(c, clauseText, label){
   if(!clauseText) return;
+  const name=String(label||'Clause').trim();
+  const where='end';
+  const u=(window.currentUser?currentUser():null);
   if(window.isRich && isRich(c.format) && c.redlineText){
-    // a formatted document keeps its formatting — the clause joins it as new
-    // paragraphs rather than flattening the whole contract to plain text
-    c.redlineText = sanitizeRich(c.redlineText + textToRich(clauseText));
+    // a formatted document keeps its formatting — the clause joins it as a new
+    // titled section rather than flattening the whole contract to plain text
+    const head=String(name).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+    c.redlineText = sanitizeRich(c.redlineText + `<h3>${head}</h3>` + textToRich(clauseText));
   } else {
     const base = (window.docPlainText?docPlainText(c):'') || '';
-    c.redlineText = (base? base+'\n\n' : '') + clauseText;
+    c.redlineText = (base? base+'\n\n' : '') + name.toUpperCase() + '\n\n' + clauseText;
   }
-  if(window.captureVersion) captureVersion(c, `Inserted preferred wording: ${label||'clause'}`);
-  logAudit(c,'Playbook',`Inserted preferred wording (${label||'clause'}) as a redline`);
+  // where it went, on the record — so the workspace can point at it later and
+  // the audit trail is specific rather than merely true
+  c.clauseInserts = (c.clauseInserts||[]).concat([{
+    name, where, at:nowISO(), by:(u&&u.name)||'System' }]);
+  if(window.captureVersion) captureVersion(c, `Inserted preferred wording: ${name}`);
+  logAudit(c,'Playbook',`Inserted preferred wording (${name}) as a redline — ${clauseInsertNote(where)}, as a new section titled “${name}”`);
   persist(c); renderWorkspace();
-  toast('Preferred wording added as a redline');
+  toast(`“${name}” added to the end of the document — showing you where`);
+  // let the workspace paint, then take the reader to it
+  setTimeout(()=>jumpToInsertedClause(name), 60);
 }
-/* Inline "Insert clause" card (Screening tab, part 2). Lists the standard
-   clause library; each row drops that clause into the document as a redline
-   via the existing applyClauseRedline flow. Read-only contracts hide it. */
-function renderInsertClauseSection(c){
-  const host=document.getElementById('insert-clause-section'); if(!host) return;
-  const editable=canEdit()&&c.status!=='Signed';
-  if(!editable){ host.innerHTML=''; return; }   // empty:hidden collapses it
-  const lib=clauseLibrary();
-  host.innerHTML=`
-    <div class="px-5 py-4">
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-brand-500">${icon('plus')}</span>
-        <h3 class="text-sm font-display font-600 text-ink">Insert clause</h3>
-        <span class="ml-auto text-[10px] text-ink/45">${lib.length} in library</span>
-      </div>
-      <p class="text-[11px] text-ink/60 mb-3">Drop a standard clause into the document as a redline you can review, then seal.</p>
-      <div class="space-y-1.5">
-        ${lib.map(cl=>`<div class="rounded-lg border border-line bg-white px-3 py-2 flex items-center gap-2">
-          <span class="min-w-0">
-            <span class="block text-[9.5px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
-            <span class="block text-[12px] font-600 text-ink truncate">${cl.name}</span>
-          </span>
-          <button data-ins-clause="${cl.id}" class="ml-auto shrink-0 rounded-lg bg-brand-600 text-white px-2.5 py-1 text-[11px] font-600 hover:bg-brand-700">Insert</button>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  host.querySelectorAll('[data-ins-clause]').forEach(b=>b.addEventListener('click',()=>{
-    const cl=clauseById(b.getAttribute('data-ins-clause'));
-    if(cl) applyClauseRedline(c, cl.preferred, cl.name);
-  }));
+
+/* Scroll the document to an inserted clause and flash it. Matches the LAST
+   heading (rich) or the last all-caps line (plain text) carrying the clause
+   name, because a clause can be inserted more than once and the most recent one
+   is the one you just asked about. */
+function jumpToInsertedClause(name){
+  const canvas=document.getElementById('doc-canvas'); if(!canvas) return false;
+  const want=String(name||'').trim().toLowerCase();
+  if(!want) return false;
+  let target=null;
+  // rich: the <h1>-<h4> we wrote
+  const heads=Array.from(canvas.querySelectorAll('h1,h2,h3,h4'))
+    .filter(h=>(h.textContent||'').trim().toLowerCase()===want);
+  if(heads.length) target=heads[heads.length-1];
+  if(!target){
+    // plain text: the block whose text contains the name in capitals
+    const blocks=Array.from(canvas.querySelectorAll('div,p'))
+      .filter(el=>!el.children.length && (el.textContent||'').includes(name.toUpperCase()));
+    if(blocks.length) target=blocks[blocks.length-1];
+  }
+  if(!target){
+    // last resort: the end of the document is where it went, so go there
+    const scroller=canvas.closest('.scroll-thin')||canvas.parentElement;
+    if(scroller) scroller.scrollTo({ top:scroller.scrollHeight, behavior:'smooth' });
+    return false;
+  }
+  try{ target.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ target.scrollIntoView(); }
+  target.classList.add('clause-flash');
+  setTimeout(()=>target.classList.remove('clause-flash'), 2600);
+  return true;
 }
+
 function openClausePicker(c){
   const lib=clauseLibrary();
   openModal(`
@@ -250,4 +297,4 @@ function openClausePicker(c){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); applyClauseRedline(c, cl.preferred, cl.name); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,renderInsertClauseSection,applyClauseRedline,openClausePicker});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote});
