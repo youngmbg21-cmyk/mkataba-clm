@@ -1474,7 +1474,14 @@ function signatureBlock(c){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
     const sigs=(c.signatures||[]);
     const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
-    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
+    /* The face of a signed document carries WHO signed, HOW, and WHEN. The
+       signer's IP address and browser are evidence about the act, not part of
+       the agreement, and they are on the document face where every reader —
+       and every exported PDF, screenshot and forwarded copy — carries them.
+       They are still captured, and they still appear in the audit trail and in
+       the downloadable evidence pack, which is where evidence belongs.
+       (Display-only: nothing about the sealed content moves. See F5.) */
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
@@ -2163,7 +2170,7 @@ async function signDocument(c){
     c.signatures.push({ party:'internal-planned', name:ns.name||u.name, role:ns.role||ROLE_LABEL[u.role], email:ns.email||u.email, at,
       method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
-    logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature`);
+    logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature${signerProvenance(meta.ip,navigator.userAgent)}`);
     if(!allSigned(c)){
       persist(c); renderSignButton(c); renderAuditSection(c);
       const nxt=nextSigner(c);
@@ -2232,7 +2239,7 @@ async function finalizeExecution(c, opts={}){
   c.hash=await sha256(sealString(c));
   c.status='Signed';
   if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System');
-  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
+  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
   persist(c);                            // critical state saved before any DOM work
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.

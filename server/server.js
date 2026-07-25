@@ -2693,7 +2693,11 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
     if (!otp || !otp.verified || !r.verify || otp.verify !== r.verify)
       return res.status(403).json({ error: 'Email verification required before signing' });
-    r.email = otp.email; r.method = 'email one-time code'; r.ip = clientIp(req);
+    // Provenance for the evidence pack and the audit trail — never for the
+    // document face (F5). The counterparty's device was already recorded
+    // against the share open; this pins it to the signature itself.
+    r.email = otp.email; r.method = 'email one-time code';
+    r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
   }
   db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), now(), req.params.token);
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt

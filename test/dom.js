@@ -103,4 +103,18 @@ function loadViews(files, overrides = {}) {
   return sandbox;
 }
 
-module.exports = { loadViews, fakeDocument, fakeElement };
+/* js/core.js builds its sample portfolio at load time by calling mk(), which
+   reads TEMPLATES[key].folder / .valueType. A proxy answers for any key, so the
+   module evaluates without dragging js/templates.js and its localStorage
+   folder-merging into the sandbox. */
+const STUB_TEMPLATES = new Proxy({}, {
+  get: (_, k) => ({ id: String(k), folder: 'proc', valueType: 'standard', ic: 'file', kind: 'Contract' }),
+  has: () => true,
+});
+const STUB_FOLDERS = {
+  proc: { id: 'proc', name: 'Procurement & Raw Materials', color: '#2e9f80', ic: 'leaf' },
+  sales: { id: 'sales', name: 'Sales & Route-to-Market', color: '#b8862b', ic: 'store' },
+  corp: { id: 'corp', name: 'Corporate & Compliance', color: '#2e8763', ic: 'briefcase' },
+};
+
+module.exports = { loadViews, fakeDocument, fakeElement, STUB_TEMPLATES, STUB_FOLDERS };

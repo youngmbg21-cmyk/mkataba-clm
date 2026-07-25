@@ -716,6 +716,29 @@ async function refreshAiUsage(){
 function renderSideFolders(){ /* rail has no folder list in the light-theme redesign */ }
 
 /* ---------- audit trail ---------- */
+/* Where a signer's IP and device go now that they are off the document face:
+   into the audit entry for the signature. Returns a suffix like
+   " · IP 41.90.x.x · Chrome", or '' when neither was captured. The full
+   user-agent string is kept on the signature record and travels in the
+   evidence pack; the audit line names the device family, which is what a
+   reader of the trail can actually use. */
+function deviceFromUa(ua){
+  const s=String(ua||'');
+  if(!s) return '';
+  if(/mobile|android|iphone|ipad/i.test(s)) return 'Mobile';
+  if(/edg\//i.test(s)) return 'Edge';
+  if(/chrome|crios/i.test(s)) return 'Chrome';
+  if(/firefox/i.test(s)) return 'Firefox';
+  if(/safari/i.test(s)) return 'Safari';
+  return 'Browser';
+}
+function signerProvenance(ip, ua){
+  const parts=[];
+  if(ip) parts.push('IP '+ip);
+  const dev=deviceFromUa(ua);
+  if(dev) parts.push(dev);
+  return parts.length?' · '+parts.join(' · '):'';
+}
 function logAudit(c, action, detail, actor){
   c.audit = c.audit || [];
   const user = actor || currentUser()?.name || 'System';
@@ -1377,13 +1400,13 @@ async function applyResponse(c, r, opts={}){
     const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
-      method:r.method||'share-link', ip:r.ip||null, docHash:r.docHash,
+      method:r.method||'share-link', ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     // If a signing route is running, mark this counterparty's step signed and advance.
     const ns=window.nextSigner?nextSigner(c):null;
     if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){
@@ -1429,4 +1452,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
