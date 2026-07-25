@@ -600,8 +600,13 @@ async function refreshAiUsage(){
   box.onclick=()=>setView('team');
   try{
     const u=await api('ai/usage');
-    const limit=Number(u.dailyLimit||0);
-    txt.textContent=`Claude calls today: ${Number(u.count||0).toLocaleString('en-KE')}${limit>0?' / '+limit.toLocaleString('en-KE'):''}`;
+    state.aiUsage=u;
+    const budget=Number(u.dailySpendLimit||0);
+    const spent=Number(u.spend||0);
+    const a=u.allowance;
+    txt.textContent = a&&a.open
+      ? `Onboarding allowance: $${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`
+      : `AI today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString('en-KE')} req`;
     box.style.display='flex';
   }catch(e){ box.style.display='none'; }
 }

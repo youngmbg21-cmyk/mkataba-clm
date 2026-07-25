@@ -49,3 +49,62 @@ generated `.docx` (real ZIP with `word/document.xml`), a renamed `.docx`
 (extension `.pdf`), a legacy OLE2 `.doc` header, and the five bundled
 `sample-contracts/*.pdf` files (all correctly *not* flagged). Confirmed no
 contract record, no `files` POST and no audit entry is produced on refusal.
+
+---
+
+### 2. AI spend was governed by request count, which never tracked the bill
+
+**What was broken.** Three related problems.
+(a) `aiDailyLimit` counted *activity*, not *cost* — a cheap metadata extraction
+and an expensive playbook review each ticked the counter by one, so the ceiling
+did not track the thing it exists to protect. (b) With a default of 500/day it
+blocked onboarding: importing a 500-contract back catalogue is at least one call
+per contract, so a new customer's most important task could not be finished in a
+day. (c) The counter lived in the settings blob and was reset by anything that
+lost it; a daily *money* budget cannot tolerate that.
+
+**Root cause.** `recordAiCall()` incremented a bare integer inside
+`anthropicMessages()` and ignored the `usage` block Anthropic already returns on
+every response. There was no price table, no per-feature attribution, and no
+concept of a separate onboarding budget.
+
+**The fix.**
+- **Meter money.** `recordAiSpend()` prices each call's `input_tokens`,
+  `output_tokens` and cache tokens against an admin-editable per-model rate table
+  (`aiRates`, seeded with pricing verified 2026-07-25; cache writes 1.25× and
+  cache reads 0.1× of the input rate) and writes it to a new **`ai_spend` SQLite
+  table** keyed by day and feature. It survives a restart; the request count is
+  now derived from the same ledger.
+- **New primary ceiling `aiDailySpendLimit`** (USD, admin-editable, env fallback
+  `AI_DAILY_SPEND_LIMIT`, default 10). `aiDailyLimit` is retained as a blunt
+  secondary guard with its default raised 500 → 5000, and the UI states plainly
+  that spend is the real control.
+- **Spend is shown as money**, broken down by feature — "Today: $2.14 of $10.00
+  · 142 requests" plus a per-feature table (extraction, OCR, clause review,
+  obligations, portfolio graph, search, template advisor, Copilot).
+- **Onboarding allowance.** A one-off budget in money and/or documents that bulk
+  migration and OCR draw on instead of the daily ceiling, opened from Team &
+  Settings, burning down visibly on the Migration screen. When it runs out the
+  server answers 429 with `allowanceExhausted` and migration continues on the
+  pattern matcher with a clear message rather than hard-failing mid-batch.
+- **Pre-flight estimate** on the Migration screen ("25 documents, about 180
+  pages, estimated $1.20"), with explicit confirmation above an admin-set
+  threshold. Labelled as an estimate throughout.
+- **OCR counts as one request per document**, not one per page; pages count
+  toward spend and `ocrMaxPages`.
+- The 15-minute per-user limiters (`aiRateLight` 40 / `aiRateDeep` 15) are
+  untouched. The `429` + `Retry-After` shape is preserved; a distinct, equally
+  friendly message covers the spend ceiling, because the remedy is different.
+
+**Files touched.** `server/server.js`, `js/views/settings.js`,
+`js/views/migration.js`, `js/metadata.js`, `js/api.js`, `js/core.js`,
+`README.md`.
+
+**How it was verified.** Ran the server against a scratch database: seeded a
+ledger day, confirmed `/api/ai/spend` reports `$3.64 · 151 requests` split
+across two features; lowered `dailySpendLimit` below it and confirmed
+`/api/ai/extract` returns 429 with the spend-ceiling message and
+`spendLimit: true`; exhausted an allowance and confirmed the
+`allowanceExhausted` 429; restarted the process and confirmed both spend and
+allowance survived. Rate-table edit, reset-to-defaults and rejection of a
+negative rate all confirmed over HTTP.

@@ -329,7 +329,7 @@ function capAiInput(req, res, next) {
   const b = req.body || {};
   let capped = false;
   const maxN = intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400);
-  const maxC = intSetting('aiMaxChars', 'AI_MAX_CHARS', 50000);
+  const maxC = intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000);
   for (const f of ['contracts', 'candidates']) {
     if (Array.isArray(b[f]) && b[f].length > maxN) { b[f] = b[f].slice(0, maxN); capped = true; }
   }
@@ -347,36 +347,236 @@ function capAiInput(req, res, next) {
   next();
 }
 
-// FIX 3 — per-workspace daily AI-call ceiling, persisted in settings and reset
-// on date change (UTC). Default 500/day; set to 0 to disable. The counter is
-// bumped in anthropicMessages() so only real Anthropic calls are counted.
-const aiDailyLimit = () => intSetting('aiDailyLimit', 'AI_DAILY_LIMIT', 500);
+// FIX 3 — per-workspace daily ceilings. There are now TWO, and the money one is
+// the real control:
+//   * aiDailySpendLimit — a MONEY ceiling, metered from real token usage priced
+//     against an admin-editable rate table. This is what protects the bill.
+//   * aiDailyLimit      — the old request counter, kept as a blunt secondary
+//     guard against a runaway client loop. Its default is raised because
+//     counting requests never tracked cost: a cheap metadata extraction and an
+//     expensive playbook review both ticked it by one.
+// The request counter still lives in settings; the SPEND ledger is a real
+// SQLite table (below) because losing a daily budget on a restart is not a
+// tolerable failure mode, whereas losing a 15-minute rate window is.
+const aiDailyLimit = () => intSetting('aiDailyLimit', 'AI_DAILY_LIMIT', 5000);
 // The AI "day" rolls over at local midnight in this timezone (default EAT), so
 // the counter and the daily ceiling reset when the customer's day does — not at
-// 03:00 local (UTC midnight). Override with AI_DAY_TZ (an IANA zone name).
+// 03:00 local (UTC midnight). Override with AI_DAY_TZ (an IANA zone name) — set
+// it to "UTC" if you would rather the ledger key on UTC dates.
 const AI_DAY_TZ = process.env.AI_DAY_TZ || 'Africa/Nairobi';
 const aiToday = () => { try { return new Date().toLocaleDateString('en-CA', { timeZone: AI_DAY_TZ }); } catch (_) { return new Date().toISOString().slice(0, 10); } };
-function aiUsageToday() {
-  const u = getSetting('aiUsageDay');
-  return (u && u.date === aiToday()) ? { date: u.date, count: u.count | 0 } : { date: aiToday(), count: 0 };
+
+/* ---------- the spend ledger (persisted) ----------
+   One row per (day, feature). Written after every real Anthropic call from the
+   token usage the response already carries, priced against the rate table. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS ai_spend (
+    day TEXT NOT NULL, feature TEXT NOT NULL,
+    requests INTEGER NOT NULL DEFAULT 0,
+    calls INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_write_tokens INTEGER NOT NULL DEFAULT 0,
+    cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+    cost REAL NOT NULL DEFAULT 0,
+    PRIMARY KEY (day, feature));
+  CREATE INDEX IF NOT EXISTS idx_ai_spend_day ON ai_spend(day);
+`);
+
+/* Per-model prices in USD per MILLION tokens. Verified 2026-07-25 against
+   Anthropic's published pricing; `verifiedOn` is surfaced in Team & Settings so
+   a stale table is visible rather than silently under-reporting spend. Admins
+   can edit any row (and add models) from Team & Settings. */
+const AI_RATES_VERIFIED_ON = '2026-07-25';
+const AI_RATE_DEFAULTS = {
+  'claude-opus-5':     { in: 5,  out: 25 },
+  'claude-opus-4-8':   { in: 5,  out: 25 },
+  'claude-opus-4-7':   { in: 5,  out: 25 },
+  'claude-opus-4-6':   { in: 5,  out: 25 },
+  'claude-opus-4-5':   { in: 5,  out: 25 },
+  'claude-sonnet-5':   { in: 3,  out: 15 },
+  'claude-sonnet-4-6': { in: 3,  out: 15 },
+  'claude-sonnet-4-5': { in: 3,  out: 15 },
+  'claude-haiku-4-5':  { in: 1,  out: 5  },
+  'claude-fable-5':    { in: 10, out: 50 },
+  // used when a model id is not in the table — deliberately the priciest tier so
+  // an unknown model over-reports rather than under-reports the bill
+  'default':           { in: 10, out: 50 },
+};
+// Cache-token multipliers applied to the model's input rate.
+const AI_CACHE_WRITE_MULT = 1.25, AI_CACHE_READ_MULT = 0.1;
+function aiRates() {
+  const saved = getSetting('aiRates');
+  const out = { ...AI_RATE_DEFAULTS };
+  if (saved && typeof saved === 'object') {
+    for (const [m, r] of Object.entries(saved)) {
+      if (r && Number.isFinite(Number(r.in)) && Number.isFinite(Number(r.out)) && Number(r.in) >= 0 && Number(r.out) >= 0)
+        out[m] = { in: Number(r.in), out: Number(r.out) };
+    }
+  }
+  return out;
 }
-function recordAiCall() {
-  const u = aiUsageToday();
-  setSetting('aiUsageDay', { date: u.date, count: u.count + 1 });
-  return u.count + 1;
+const aiRatesEdited = () => !!getSetting('aiRates');
+// Price one Anthropic response's usage block. Returns USD.
+function priceUsage(model, usage) {
+  const rates = aiRates();
+  const r = rates[model] || rates['default'] || AI_RATE_DEFAULTS['default'];
+  const u = usage || {};
+  const inT = Number(u.input_tokens || 0);
+  const outT = Number(u.output_tokens || 0);
+  const cw = Number(u.cache_creation_input_tokens || 0);
+  const cr = Number(u.cache_read_input_tokens || 0);
+  const cost = (inT * r.in + cw * r.in * AI_CACHE_WRITE_MULT + cr * r.in * AI_CACHE_READ_MULT + outT * r.out) / 1e6;
+  return { cost, inT, outT, cw, cr };
 }
-function aiDailyGuard(req, res, next) {
+
+/* Human-facing feature names for the breakdown in Team & Settings. */
+const AI_FEATURE_LABEL = {
+  extract: 'Metadata extraction', ocr: 'OCR (scanned paper)', playbook: 'Clause review',
+  obligations: 'Obligations', graph: 'Portfolio graph', search: 'Search',
+  template: 'Template advisor', chat: 'Copilot', blanks: 'Template blanks', other: 'Other',
+};
+
+function aiSpendRows(day) {
+  return db.prepare('SELECT * FROM ai_spend WHERE day=?').all(day || aiToday());
+}
+function aiSpendToday() {
+  const day = aiToday();
+  const rows = aiSpendRows(day);
+  const byFeature = {};
+  let cost = 0, requests = 0, calls = 0, inT = 0, outT = 0;
+  for (const r of rows) {
+    byFeature[r.feature] = { label: AI_FEATURE_LABEL[r.feature] || r.feature, cost: r.cost, requests: r.requests, calls: r.calls, inputTokens: r.input_tokens, outputTokens: r.output_tokens };
+    cost += r.cost; requests += r.requests; calls += r.calls; inT += r.input_tokens; outT += r.output_tokens;
+  }
+  return { date: day, cost, requests, calls, inputTokens: inT, outputTokens: outT, byFeature };
+}
+// The request counter is derived from the same ledger so both survive a restart.
+function aiUsageToday() { const s = aiSpendToday(); return { date: s.date, count: s.requests }; }
+
+const upsertSpend = db.prepare(`
+  INSERT INTO ai_spend (day,feature,requests,calls,input_tokens,output_tokens,cache_write_tokens,cache_read_tokens,cost)
+  VALUES (?,?,?,?,?,?,?,?,?)
+  ON CONFLICT(day,feature) DO UPDATE SET
+    requests=requests+excluded.requests, calls=calls+excluded.calls,
+    input_tokens=input_tokens+excluded.input_tokens, output_tokens=output_tokens+excluded.output_tokens,
+    cache_write_tokens=cache_write_tokens+excluded.cache_write_tokens,
+    cache_read_tokens=cache_read_tokens+excluded.cache_read_tokens,
+    cost=cost+excluded.cost`);
+
+/* Record one real Anthropic call. `countRequest` is false for OCR pages after
+   the first: pages count toward SPEND (the honest measure) and toward
+   ocrMaxPages, but a 20-page scan is one request, not twenty. */
+function recordAiSpend(feature, model, usage, { countRequest = true, allowance = false } = {}) {
+  const f = AI_FEATURE_LABEL[feature] ? feature : 'other';
+  const p = priceUsage(model, usage);
+  try {
+    upsertSpend.run(aiToday(), f, countRequest ? 1 : 0, 1, p.inT + p.cw + p.cr, p.outT, p.cw, p.cr, p.cost);
+  } catch (e) { console.warn('[ai] could not write spend ledger:', e.message); }
+  if (allowance) drawAllowance(p.cost, 0);
+  return p;
+}
+
+/* ---------- onboarding allowance ----------
+   A one-off budget (money and/or document count) an admin opens for a
+   migration. Bulk migration and OCR draw from it instead of the day-to-day
+   ceiling, so importing a 500-contract back catalogue — the single most
+   important thing a new customer does — is not blocked by the daily budget. */
+const emptyAllowance = () => ({ open: false, budget: 0, docs: 0, spent: 0, docsUsed: 0, openedAt: null, openedBy: '', closedAt: null });
+function getAllowance() { const a = getSetting('aiAllowance'); return a && typeof a === 'object' ? { ...emptyAllowance(), ...a } : emptyAllowance(); }
+function setAllowance(a) { setSetting('aiAllowance', a); return a; }
+const allowanceMoneyLeft = a => (a.budget > 0 ? Math.max(0, a.budget - a.spent) : Infinity);
+const allowanceDocsLeft = a => (a.docs > 0 ? Math.max(0, a.docs - a.docsUsed) : Infinity);
+function allowanceLive() {
+  const a = getAllowance();
+  if (!a.open) return null;
+  if (allowanceMoneyLeft(a) <= 0 || allowanceDocsLeft(a) <= 0) return null;
+  return a;
+}
+function drawAllowance(cost, docs) {
+  const a = getAllowance();
+  if (!a.open) return a;
+  a.spent = Math.round((a.spent + (cost || 0)) * 1e6) / 1e6;
+  a.docsUsed += (docs || 0);
+  return setAllowance(a);
+}
+function allowanceView() {
+  const a = getAllowance();
+  return { ...a,
+    moneyLeft: a.budget > 0 ? Math.max(0, a.budget - a.spent) : null,
+    docsLeft: a.docs > 0 ? Math.max(0, a.docs - a.docsUsed) : null,
+    exhausted: a.open && (allowanceMoneyLeft(a) <= 0 || allowanceDocsLeft(a) <= 0) };
+}
+
+/* ---------- the guard ----------
+   Runs before every AI endpoint. Order of checks: allowance (if the caller
+   asked to draw on it) → daily spend ceiling → daily request ceiling.
+   Every rejection keeps the existing 429 + Retry-After shape; the message
+   differs because the remedy differs (wait vs. an admin raising a budget). */
+const numSetting = (key, envVar, def) => {
+  const v = getSetting(key);
+  if (typeof v === 'number' && Number.isFinite(v) && v >= 0) return v;
+  const e = parseFloat(process.env[envVar] || '');
+  if (Number.isFinite(e) && e >= 0) return e;
+  return def;
+};
+const aiDailySpendLimit = () => numSetting('aiDailySpendLimit', 'AI_DAILY_SPEND_LIMIT', 10);
+const money = n => '$' + Number(n || 0).toFixed(2);
+
+function aiBudgetGuard(req, res, next) {
+  const feature = req.aiFeature || 'other';
+  // Only migration-facing work may draw on the onboarding allowance.
+  const wantsAllowance = !!(req.body && req.body.allowance) && (feature === 'extract' || feature === 'ocr');
+  if (wantsAllowance) {
+    const a = allowanceLive();
+    if (a) { req.aiAllowance = true; return next(); }
+    const raw = getAllowance();
+    if (raw.open) {
+      res.setHeader('Retry-After', 3600);
+      return res.status(429).json({
+        error: `The onboarding allowance is used up (${money(raw.spent)} of ${raw.budget > 0 ? money(raw.budget) : 'no money cap'}${raw.docs > 0 ? `, ${raw.docsUsed} of ${raw.docs} documents` : ''}). Migration will carry on with the built-in pattern matcher — an admin can top it up in Team & Settings.`,
+        allowanceExhausted: true, retryAfter: 3600 });
+    }
+    // no allowance open at all — fall through to the normal daily ceilings
+  }
+  const spendCeiling = aiDailySpendLimit();
+  if (spendCeiling > 0) {
+    const s = aiSpendToday();
+    if (s.cost >= spendCeiling) {
+      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further AI calls.`);
+      res.setHeader('Retry-After', 3600);
+      return res.status(429).json({
+        error: `Daily AI budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
+        spendLimit: true, dailySpend: s.cost, dailySpendLimit: spendCeiling, retryAfter: 3600 });
+    }
+  }
   const ceiling = aiDailyLimit();
   if (ceiling > 0) {
     const u = aiUsageToday();
     if (u.count >= ceiling) {
-      console.warn(`[ai] daily ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further AI calls.`);
+      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further AI calls.`);
       res.setHeader('Retry-After', 3600);
       return res.status(429).json({ error: `Daily AI limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
     }
   }
   next();
 }
+// Tag a route with the feature its spend belongs to. Must run before the guard.
+const aiFeature = name => (req, res, next) => { req.aiFeature = name; next(); };
+// Back-compat alias — every route now goes through the budget guard.
+const aiDailyGuard = aiBudgetGuard;
+
+/* Shared estimating constants. Exposed to the client so the pre-flight estimate
+   on the Migration screen and the server price the same way. These are
+   ESTIMATES, never charges. */
+const AI_ESTIMATE = {
+  charsPerToken: 4,
+  extractPromptTokens: 700,   // tool schema + instructions
+  extractOutputTokens: 400,
+  ocrPageInputTokens: 1700,   // a ~200 DPI page rendered to JPEG
+  ocrPagePromptTokens: 250,
+  ocrPageOutputTokens: 900,
+};
 const sha = s => crypto.createHash('sha256').update(String(s)).digest('hex');
 const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
 
@@ -626,7 +826,7 @@ app.get('/api/search', auth, (req, res) => {
 });
 
 // E6-T2: AI semantic search — answer a portfolio question with quoted evidence.
-app.post('/api/ai/search', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { question, candidates } = req.body || {};
@@ -643,7 +843,7 @@ app.post('/api/ai/search', auth, rlAiLight, aiDailyGuard, capAiInput, async (req
   const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
-    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] });
+    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search' });
     if (!out.ok) return res.status(502).json({ error: 'AI provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -735,11 +935,22 @@ const isModelRejection = (status, text) => {
    tier default, log a server-side warning, and report the fallback so the
    caller can tell the user. Network errors propagate to the caller's
    try/catch (never crash, never fall silent). */
-async function anthropicMessages(key, tier, payload) {
+/* `meter` says how this call is booked against the budget:
+     feature      — which line of the spend breakdown it belongs to
+     countRequest — false for OCR pages after the first (one request per
+                    document, but every page's tokens count toward spend)
+     allowance    — true when the call draws on the onboarding allowance
+   Spend is recorded from the token usage Anthropic returns on the response, so
+   a failed call costs nothing and books nothing. */
+async function anthropicMessages(key, tier, payload, meter = {}) {
   const t = tier === 'deep' ? 'deep' : 'fast';
   const chosen = aiModelForTier(t);
   const def = AI_TIER_DEFAULTS[t];
-  recordAiCall();   // count this as one AI request against the daily ceiling
+  const book = (model, data) => {
+    const spend = recordAiSpend(meter.feature || 'other', model, data && data.usage,
+      { countRequest: meter.countRequest !== false, allowance: !!meter.allowance });
+    return spend;
+  };
   const send = (model) => fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
@@ -752,11 +963,13 @@ async function anthropicMessages(key, tier, payload) {
       console.warn(`[ai] model "${chosen}" rejected by Anthropic (HTTP ${r.status}); retrying once with tier default "${def}".`);
       const r2 = await send(def);
       if (!r2.ok) return { ok: false, status: r2.status, error: await r2.text(), model: def };
-      return { ok: true, data: await r2.json(), model: def, fellBack: true, rejectedModel: chosen };
+      const d2 = await r2.json();
+      return { ok: true, data: d2, model: def, fellBack: true, rejectedModel: chosen, spend: book(def, d2) };
     }
     return { ok: false, status: r.status, error: text, model: chosen };
   }
-  return { ok: true, data: await r.json(), model: chosen };
+  const data = await r.json();
+  return { ok: true, data, model: chosen, spend: book(chosen, data) };
 }
 
 // A user-facing notice to fold into a response: combines the input-was-shortened
@@ -786,11 +999,23 @@ app.get('/api/ai/config', auth, (req, res) => {
     limits: {
       rateLight: intSetting('aiRateLight', 'AI_RATE_LIGHT', 40),
       rateDeep: intSetting('aiRateDeep', 'AI_RATE_DEEP', 15),
+      rateOcr: intSetting('aiRateOcr', 'AI_RATE_OCR', 400),
       windowMinutes: Math.round(AI_WINDOW_MS / 60000),
-      dailyLimit: aiDailyLimit(),          // 0 = disabled
-      maxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 50000),
+      dailySpendLimit: aiDailySpendLimit(),   // 0 = disabled — the PRIMARY control
+      dailyLimit: aiDailyLimit(),             // 0 = disabled — blunt secondary guard
+      estimateConfirmAt: numSetting('aiEstimateConfirmAt', 'AI_ESTIMATE_CONFIRM_AT', 1),
+      maxChars: intSetting('aiMaxChars', 'AI_MAX_CHARS', 60000),
       maxContracts: intSetting('aiMaxContracts', 'AI_MAX_CONTRACTS', 400),
+      ocrMaxPages: intSetting('ocrMaxPages', 'OCR_MAX_PAGES', 30),
+      thoroughExtract: !!getSetting('aiThoroughExtract'),
     },
+    rates: aiRates(),
+    ratesMeta: { verifiedOn: AI_RATES_VERIFIED_ON, edited: aiRatesEdited(), unit: 'USD per million tokens',
+      cacheWriteMultiplier: AI_CACHE_WRITE_MULT, cacheReadMultiplier: AI_CACHE_READ_MULT },
+    estimate: AI_ESTIMATE,
+    featureLabels: AI_FEATURE_LABEL,
+    spend: aiSpendToday(),
+    allowance: allowanceView(),
     usage: (() => { const u = aiUsageToday(); return { date: u.date, count: u.count, dailyLimit: aiDailyLimit() }; })(),
   });
 });
@@ -799,14 +1024,66 @@ app.get('/api/ai/config', auth, (req, res) => {
 // workspace). Only successful calls that actually reach Anthropic are counted —
 // built-in / keyword-fallback answers never increment it — so this is the true
 // number to size a per-customer daily limit against. Resets at local midnight.
+// Now carries today's SPEND too, which is the figure that actually matters.
 app.get('/api/ai/usage', auth, (req, res) => {
-  const u = aiUsageToday();
-  res.json({ date: u.date, count: u.count, dailyLimit: aiDailyLimit(), tz: AI_DAY_TZ });
+  const s = aiSpendToday();
+  res.json({ date: s.date, count: s.requests, dailyLimit: aiDailyLimit(), tz: AI_DAY_TZ,
+    spend: s.cost, dailySpendLimit: aiDailySpendLimit(), byFeature: s.byFeature,
+    allowance: allowanceView() });
+});
+
+/* Today's spend, broken down by feature — what an admin looks at to see what is
+   actually expensive. Survives a restart because it is a SQLite table. */
+app.get('/api/ai/spend', auth, (req, res) => {
+  const day = typeof req.query.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.query.day) ? req.query.day : aiToday();
+  const rows = aiSpendRows(day);
+  res.json({
+    date: day, tz: AI_DAY_TZ,
+    total: rows.reduce((a, r) => a + r.cost, 0),
+    requests: rows.reduce((a, r) => a + r.requests, 0),
+    dailySpendLimit: aiDailySpendLimit(), dailyLimit: aiDailyLimit(),
+    byFeature: rows.map(r => ({ feature: r.feature, label: AI_FEATURE_LABEL[r.feature] || r.feature,
+      cost: r.cost, requests: r.requests, calls: r.calls, inputTokens: r.input_tokens, outputTokens: r.output_tokens }))
+      .sort((a, b) => b.cost - a.cost),
+    allowance: allowanceView(),
+    rates: aiRates(), ratesMeta: { verifiedOn: AI_RATES_VERIFIED_ON, edited: aiRatesEdited() },
+  });
+});
+
+/* Onboarding allowance — open / top up / close. Admin only. */
+app.put('/api/ai/allowance', auth, admin, (req, res) => {
+  const { open, budget, docs, close, reset } = req.body || {};
+  let a = getAllowance();
+  if (close) { a.open = false; a.closedAt = now(); setAllowance(a); return res.json({ ok: true, allowance: allowanceView() }); }
+  const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n >= 0 ? n : d; };
+  if (open || reset || !a.open) {
+    // opening (or re-opening) starts a fresh burn-down
+    a = { ...emptyAllowance(), open: true, budget: num(budget, 0), docs: Math.floor(num(docs, 0)),
+      openedAt: now(), openedBy: (req.user && req.user.name) || '' };
+  } else {
+    // topping up an open allowance keeps what has already been spent
+    if (budget !== undefined) a.budget = num(budget, a.budget);
+    if (docs !== undefined) a.docs = Math.floor(num(docs, a.docs));
+  }
+  if (a.budget <= 0 && a.docs <= 0)
+    return res.status(400).json({ error: 'An onboarding allowance needs a money budget, a document count, or both.' });
+  setAllowance(a);
+  console.warn(`[ai] onboarding allowance ${open ? 'opened' : 'updated'}: ${money(a.budget)} / ${a.docs || '∞'} docs by ${a.openedBy}`);
+  res.json({ ok: true, allowance: allowanceView() });
+});
+
+/* Migration tells the server it consumed a document from the allowance — the
+   money side is drawn automatically by every metered call. */
+app.post('/api/ai/allowance/document', auth, (req, res) => {
+  const n = Math.max(0, Math.min(100, Math.floor(Number((req.body || {}).count) || 1)));
+  if (getAllowance().open) drawAllowance(0, n);
+  res.json({ ok: true, allowance: allowanceView() });
 });
 
 app.put('/api/ai/config', auth, admin, (req, res) => {
   const { key, model, modelFast, modelDeep, clear,
-    rateLight, rateDeep, dailyLimit, maxChars, maxContracts } = req.body || {};
+    rateLight, rateDeep, rateOcr, dailyLimit, maxChars, maxContracts,
+    dailySpendLimit, estimateConfirmAt, ocrMaxPages, thoroughExtract, rates } = req.body || {};
   if (clear) { setSetting('aiKey', ''); return res.json({ ok: true, configured: !!process.env.ANTHROPIC_API_KEY }); }
   if (typeof key === 'string' && key.trim()) setSetting('aiKey', key.trim());
   // Validate every supplied model string before storing; a blank clears that
@@ -834,13 +1111,41 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
   };
   setNum('aiRateLight', rateLight, 1);
   setNum('aiRateDeep', rateDeep, 1);
+  setNum('aiRateOcr', rateOcr, 1);
   setNum('aiDailyLimit', dailyLimit, 0);
   setNum('aiMaxChars', maxChars, 1000);
   setNum('aiMaxContracts', maxContracts, 1);
-  if (badNum.length) return res.status(400).json({ error: `Invalid value for ${badNum[0]} — must be a whole number within range.` });
-  res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') } });
+  setNum('ocrMaxPages', ocrMaxPages, 1);
+  // Money settings are decimals, not whole numbers.
+  const setMoney = (field, val) => {
+    if (val === undefined || val === null || val === '') return;
+    const n = Number(val);
+    if (!Number.isFinite(n) || n < 0) { badNum.push(field); return; }
+    setSetting(field, Math.round(n * 1e4) / 1e4);
+  };
+  setMoney('aiDailySpendLimit', dailySpendLimit);
+  setMoney('aiEstimateConfirmAt', estimateConfirmAt);
+  if (thoroughExtract !== undefined) setSetting('aiThoroughExtract', !!thoroughExtract);
+  // Rate table: {model: {in, out}} in USD per million tokens. Sending {} resets
+  // it to the built-in defaults so an admin can always get back to a known state.
+  if (rates !== undefined) {
+    if (rates === null || (typeof rates === 'object' && !Object.keys(rates).length)) setSetting('aiRates', null);
+    else if (typeof rates === 'object') {
+      const clean = {};
+      for (const [m, r] of Object.entries(rates)) {
+        if (!/^[a-z0-9][a-z0-9.\-]{0,63}$/i.test(m)) { badNum.push('rates.' + m); continue; }
+        const i = Number(r && r.in), o = Number(r && r.out);
+        if (!Number.isFinite(i) || !Number.isFinite(o) || i < 0 || o < 0) { badNum.push('rates.' + m); continue; }
+        clean[m] = { in: i, out: o };
+      }
+      if (!badNum.length) setSetting('aiRates', clean);
+    }
+  }
+  if (badNum.length) return res.status(400).json({ error: `Invalid value for ${badNum[0]} — must be a non-negative number within range.` });
+  res.json({ ok: true, configured: !!aiKey(), models: { fast: aiModelForTier('fast'), deep: aiModelForTier('deep') },
+    limits: { dailySpendLimit: aiDailySpendLimit(), dailyLimit: aiDailyLimit() }, rates: aiRates() });
 });
-app.post('/api/ai/graph', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, contracts, history, activeIds } = req.body || {};
@@ -868,7 +1173,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiDailyGuard, capAiInput, async (req,
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph' });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -888,7 +1193,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiDailyGuard, capAiInput, async (req,
    value and text richness. Stage 2: Claude (FAST tier — this is a ranking
    task over a small shortlist) ranks the top 3 as templates for the new
    contract described. */
-app.post('/api/ai/template', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { query, candidates } = req.body || {};
@@ -920,7 +1225,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiDailyGuard, capAiInput, async (r
   const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template' });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -939,7 +1244,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiDailyGuard, capAiInput, async (r
    terms), each with a confidence level. The human always confirms before it
    is saved (client review panel); no key -> the client uses its heuristic
    fallback and never calls this. */
-app.post('/api/ai/extract', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text } = req.body || {};
@@ -972,7 +1277,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiDailyGuard, capAiInput, async (re
   };
   const prompt = `Extract metadata from this contract. Today is ${today}. Use ONLY what the text supports; leave a field empty (or 0) rather than guessing, and mark uncertain fields low confidence. Return via the file_contract tool.\n\nDOCUMENT:\n${String(text).slice(0, 24000)}`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -985,7 +1290,7 @@ app.post('/api/ai/extract', auth, rlAiLight, aiDailyGuard, capAiInput, async (re
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The
    human confirms before any are saved; no key -> the client heuristic. */
-app.post('/api/ai/obligations', auth, rlAiDeep, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text } = req.body || {};
@@ -1008,7 +1313,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiDailyGuard, capAiInput, async 
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations' });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1022,7 +1327,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiDailyGuard, capAiInput, async 
    ranges). Returns per-clause verdicts (aligned/deviation/missing) with a
    verbatim quote, the playbook position, and a suggested redline in the
    preferred wording. No key -> client heuristic. */
-app.post('/api/ai/playbook', auth, rlAiDeep, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { text, playbook, kind } = req.body || {};
@@ -1047,7 +1352,7 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiDailyGuard, capAiInput, async (re
   };
   const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
     if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1244,7 +1549,7 @@ function normalizeDeliver(input, org) {
   return { answer, citations, compare };
 }
 
-app.post('/api/ai/chat', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, res) => {
+app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
   const { messages, context } = req.body || {};
@@ -1261,7 +1566,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiDailyGuard, capAiInput, async (req, 
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
     for (let step = 0; step < 5; step++) {
-      const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working });
+      const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
       if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; usedModel = resp.model; }
       const content = resp.data.content || [];

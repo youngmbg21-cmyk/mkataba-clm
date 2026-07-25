@@ -154,6 +154,77 @@ function migManifestTemplate(){
   downloadFile('hati-migration-manifest.csv', head+'\n'+ex, 'text/csv');
 }
 
+/* ---------- AI budget: allowance state + pre-flight estimate ----------
+   The Migration screen is where onboarding spend actually happens, so it shows
+   the onboarding allowance burning down and estimates a batch BEFORE it runs.
+   Everything here is an estimate and is labelled as one — never a charge. */
+async function migLoadAiState(){
+  const M=migState();
+  if(!API_MODE()){ M.allowance=null; return null; }
+  try{
+    const c=await api('ai/config');
+    state.aiCfg=c; M.allowance=c.allowance||null;
+    return c;
+  }catch(e){ return null; }
+}
+const MIG_EST_FALLBACK={ charsPerToken:4, extractPromptTokens:700, extractOutputTokens:400,
+  ocrPageInputTokens:1700, ocrPagePromptTokens:250, ocrPageOutputTokens:900 };
+// USD per million tokens for the model a tier resolves to
+function migAiRate(tier){
+  const c=state.aiCfg||{};
+  const model=(c.models&&c.models[tier])||'';
+  const rates=c.rates||{};
+  return rates[model]||rates['default']||{in:10,out:50};
+}
+// A page of a contract is roughly 1,800 characters of text; a PDF page is
+// roughly 40 KB on disk. Both are rules of thumb — the estimate says so.
+const MIG_CHARS_PER_PAGE=1800, MIG_BYTES_PER_PAGE=40000;
+function migGuessPages(file){
+  if(/^image\//.test(file.type||'')||/\.(png|jpe?g)$/i.test(file.name||'')) return 1;
+  return Math.max(1, Math.round((file.size||0)/MIG_BYTES_PER_PAGE));
+}
+function migEstimate(files){
+  const c=state.aiCfg||{}, lim=c.limits||{};
+  const E=Object.assign({}, MIG_EST_FALLBACK, c.estimate||{});
+  const maxChars=Number(lim.maxChars||60000);
+  const thorough=!!lim.thoroughExtract;
+  const ocrMax=Number(lim.ocrMaxPages||30);
+  const fast=migAiRate('fast'), deep=migAiRate('deep');
+  const r=thorough?deep:fast;
+  let docs=0, pages=0, extractCost=0, ocrPages=0;
+  for(const f of files){
+    const p=migGuessPages(f); docs++; pages+=p;
+    const docChars=p*MIG_CHARS_PER_PAGE;
+    const chunks=thorough?Math.max(1,Math.ceil(docChars/30000)):1;
+    const sent=thorough?Math.min(30000,docChars):Math.min(maxChars,docChars);
+    extractCost += chunks*((E.extractPromptTokens + sent/E.charsPerToken)*r.in + E.extractOutputTokens*r.out)/1e6;
+    ocrPages += Math.min(p, ocrMax);
+  }
+  const ocrCost=ocrPages*((E.ocrPageInputTokens+E.ocrPagePromptTokens)*fast.in + E.ocrPageOutputTokens*fast.out)/1e6;
+  return { docs, pages, extractCost, ocrCost, ocrPages, worstCase:extractCost+ocrCost, thorough };
+}
+const migMoney = n => '$'+Number(n||0).toFixed(2);
+/* Show the estimate and, above the admin-set threshold, require an explicit
+   yes. Returns true to proceed. */
+async function migConfirmEstimate(files){
+  if(!API_MODE()||!state.aiConfigured) return true;
+  const est=migEstimate(files);
+  const lim=(state.aiCfg||{}).limits||{};
+  const threshold=Number(lim.estimateConfirmAt!=null?lim.estimateConfirmAt:1);
+  const M=migState();
+  M.lastEstimate=est;
+  if(!(threshold>0) || est.worstCase<threshold) return true;
+  const a=M.allowance;
+  return await confirmDialog({
+    title:'Run this batch?',
+    message:`${est.docs} document${est.docs===1?'':'s'}, about ${est.pages} page${est.pages===1?'':'s'} — estimated ${migMoney(est.extractCost)} to read the details`
+      + `, up to ${migMoney(est.worstCase)} if every one turns out to be a scan needing OCR.`
+      + (est.thorough?' Thorough extraction is on, which multiplies the cost.':'')
+      + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily AI budget.')
+      + ' These are estimates from file sizes, not charges — the real figure lands in Team & Settings as the batch runs.',
+    confirmLabel:'Run the batch' });
+}
+
 /* ---------- bulk metadata extraction (429-safe) ----------
    Uses the same server endpoint as single uploads, but stops calling the AI
    for the rest of the batch after the first rate-limit/failure (the server
@@ -163,8 +234,18 @@ async function migExtract(text, seed){
   const M=migState();
   let meta=null;
   if(API_MODE() && state.aiConfigured && !M.aiDown){
-    try{ const r=await api('ai/extract','POST',{ text:String(text||'').slice(0,24000) }); meta=r.metadata; meta._source='ai'; }
-    catch(e){ M.aiDown=true; M.aiDownMsg=/limit/i.test(e.message)?'AI rate limit reached':'AI unavailable ('+e.message+')'; }
+    // `allowance: true` tells the server to draw on the onboarding allowance
+    // rather than the day-to-day budget. When it runs out the server answers
+    // 429 with allowanceExhausted — we fall back to the pattern matcher and
+    // say so plainly rather than hard-failing half way through a portfolio.
+    try{ meta=await aiExtractMetadata(text, { allowance:!!M.allowance&&M.allowance.open }); meta._source='ai'; }
+    catch(e){ M.aiDown=true;
+      M.aiDownMsg = e.allowanceExhausted
+        ? 'Onboarding allowance used up — the rest of this batch is pattern-matched'
+        : e.spendLimit ? 'Daily AI budget reached — the rest of this batch is pattern-matched'
+        : /limit/i.test(e.message) ? 'AI rate limit reached'
+        : 'AI unavailable ('+e.message+')';
+    }
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
   if(seed){ meta.confidence=meta.confidence||{};
@@ -190,6 +271,10 @@ async function migProcessFiles(fileList){
   let files=[...fileList];
   if(!files.length) return;
   if(files.length>MIG_MAX_FILES){ toast(`Capped at ${MIG_MAX_FILES} files per batch — the rest were skipped`,'err'); files=files.slice(0,MIG_MAX_FILES); }
+  // Pre-flight: refresh the budget picture, then estimate and (above the
+  // admin's threshold) ask before spending anything.
+  await migLoadAiState();
+  if(!await migConfirmEstimate(files)) return;
   const batch='B-'+Date.now().toString(36).toUpperCase();
   const seen=new Set(state.contracts.filter(c=>c.upload&&c.upload.fileHash).map(c=>c.upload.fileHash));
   M.queue=files.map(f=>({ name:f.name, size:f.size, status:'waiting', note:'', id:null }));
@@ -268,10 +353,16 @@ async function migProcessFiles(fileList){
       state.contracts.unshift(c);
       persist(c);
       q.id=c.id; saved++;
+      // burn one document off the onboarding allowance (money is drawn by the
+      // server on each metered call; the document count is ours to report)
+      if(M.allowance&&M.allowance.open&&API_MODE()){
+        try{ const r=await api('ai/allowance/document','POST',{ count:1 }); M.allowance=r.allowance; renderMigQueue(); }catch(e){}
+      }
       step('saved', readable?(c.migration.needsReview?'needs review':'complete'):'no readable text — enter details manually');
     }catch(e){ errors++; step('error', e.message||'failed'); }
   }
   M.running=false;
+  await migLoadAiState();
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
   window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
@@ -400,6 +491,32 @@ async function migImportSheet(file){
 }
 
 /* ============================================================ RENDER */
+/* Onboarding allowance strip — the batch's budget, burning down in front of
+   the person running it. Rendered in the intake card and refreshed after each
+   document so it moves while the batch runs. */
+function migAllowanceHtml(){
+  const M=migState();
+  if(!API_MODE()||!state.aiConfigured) return '';
+  const a=M.allowance;
+  if(!a||!a.open){
+    return `<div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">
+      This batch draws on the workspace's <b>daily AI budget</b>. For a large back catalogue, an admin can open a one-off <b>onboarding allowance</b> in Team &amp; Settings so the day-to-day ceiling doesn't stop the import.</div>`;
+  }
+  const moneyPct=a.budget>0?Math.min(100,Math.round((a.spent||0)/a.budget*100)):0;
+  const docsPct=a.docs>0?Math.min(100,Math.round((a.docsUsed||0)/a.docs*100)):0;
+  const pct=Math.max(moneyPct,docsPct);
+  const done=a.exhausted;
+  return `<div id="mig-allowance" style="font-size:11.5px;color:${done?'#8f322b':'var(--color-accent-800)'};background:${done?'#fdf4f2':'var(--color-accent-100)'};border:1px solid ${done?'#e6c9c1':'var(--color-divider)'};border-radius:4px;padding:8px 10px;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-weight:600">${done?'Onboarding allowance used up':'Onboarding allowance'}</span>
+      ${a.budget>0?`<span style="font-family:var(--font-mono)">${migMoney(a.spent)} / ${migMoney(a.budget)}</span>`:'<span>no money cap</span>'}
+      ${a.docs>0?`<span style="font-family:var(--font-mono)">${a.docsUsed} / ${a.docs} docs</span>`:''}
+    </div>
+    <div style="height:5px;background:rgba(29,31,32,.1);border-radius:3px;overflow:hidden;margin-top:6px">
+      <div style="width:${pct}%;height:100%;background:${done?'#8f322b':pct>=80?'#b8862b':'#2e8763'};transition:width .3s"></div></div>
+    ${done?`<div style="margin-top:6px;line-height:1.5">Migration carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Team &amp; Settings.</div>`:''}
+  </div>`;
+}
 function migKpis(){
   const cs=migContracts();
   return { total:cs.length,
@@ -449,6 +566,9 @@ function renderMigQueue(){
     </section>`;
   wireOpens(host);
   migWireCancel();
+  // keep the allowance strip in step with the batch as it burns down
+  const al=document.getElementById('mig-allowance');
+  if(al) al.outerHTML=migAllowanceHtml();
 }
 function migWireCancel(){
   document.getElementById('mig-cancel')?.addEventListener('click',()=>{ migState().running=false; toast('Stopping after the current file'); });
@@ -511,6 +631,7 @@ function renderMigration(){
           <button id="mig-manifest-tpl" style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);text-decoration:underline;padding:0">template</button>
           <input id="mig-manifest-file" type="file" accept=".csv" class="hidden" style="display:none">
         </div>
+        ${migAllowanceHtml()}
         ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">Manifest <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction. The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
         <div id="mig-drop" style="border:2px dashed var(--color-divider);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s">
           <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;background:var(--color-bg);color:var(--color-accent-700);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
@@ -615,4 +736,4 @@ function renderMigration(){
   setActiveNav('migration');
 }
 
-Object.assign(window,{MIG_CRITICAL,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});

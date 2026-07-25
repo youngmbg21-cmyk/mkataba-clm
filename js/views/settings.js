@@ -70,6 +70,50 @@ function openFolderAccessEditor(userId){
     closeModal(); toast(`Folder access updated for ${u.name||u.email}`); renderTeam();
   });
 }
+/* ---- onboarding allowance panel (Team & Settings) ----
+   Shows the burn-down in the same shape the Migration screen shows it, so an
+   admin and the person running the batch are reading the same numbers. */
+function renderAllowancePanel(a){
+  const host=document.getElementById('ai-allowance-state'); if(!host) return;
+  const money=n=>'$'+Number(n||0).toFixed(2);
+  if(!a || !a.open){
+    host.innerHTML=`<span style="color:var(--color-neutral-600)">No allowance open — migration and OCR draw on the daily budget.</span>`;
+    return;
+  }
+  const moneyPct=a.budget>0?Math.min(100,Math.round(a.spent/a.budget*100)):0;
+  const docsPct=a.docs>0?Math.min(100,Math.round(a.docsUsed/a.docs*100)):0;
+  const pct=Math.max(moneyPct,docsPct);
+  const bar=`<div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-top:5px">
+    <div style="width:${pct}%;height:100%;background:${a.exhausted?'#8f322b':pct>=80?'#b8862b':'#2e8763'};transition:width .3s"></div></div>`;
+  host.innerHTML=`<div>
+    <span style="font-weight:600;color:${a.exhausted?'#8f322b':'#1e6b4d'}">${a.exhausted?'Used up':'Open'}</span>
+    ${a.budget>0?` · <b>${money(a.spent)}</b> of <b>${money(a.budget)}</b>`:' · no money cap'}
+    ${a.docs>0?` · <b>${a.docsUsed}</b> of <b>${a.docs}</b> documents`:''}
+    ${a.openedBy?`<span style="color:var(--color-neutral-500)"> · opened by ${PB_ESC(a.openedBy)}</span>`:''}
+    ${bar}
+  </div>`;
+  // pre-fill the top-up boxes with the current caps
+  const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&!n.value) n.value=v; };
+  fill('ai-allow-budget',a.budget||''); fill('ai-allow-docs',a.docs||'');
+}
+
+/* ---- editable per-model rate table ---- */
+function renderRateTable(rates, meta){
+  const host=document.getElementById('ai-rates-table'); if(!host) return;
+  const models=Object.keys(rates||{}).sort((a,b)=>a==='default'?1:b==='default'?-1:a.localeCompare(b));
+  const inp='width:74px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 6px;font:inherit;font-family:var(--font-mono);font-size:11px;text-align:right;outline:none';
+  host.innerHTML=models.map(m=>`
+    <div data-rate-model="${PB_ATTR(m)}" style="display:flex;align-items:center;gap:8px;padding:3px 2px;border-bottom:1px solid rgba(29,31,32,.05)">
+      <span style="flex:1;min-width:0;font-size:11px;font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis${m==='default'?';color:var(--color-neutral-500);font-style:italic':''}">${PB_ESC(m)}</span>
+      <label style="font-size:9.5px;color:var(--color-neutral-500)">in <input data-rate="in" type="number" min="0" step="0.01" value="${Number(rates[m].in)}" style="${inp}"/></label>
+      <label style="font-size:9.5px;color:var(--color-neutral-500)">out <input data-rate="out" type="number" min="0" step="0.01" value="${Number(rates[m].out)}" style="${inp}"/></label>
+    </div>`).join('');
+  const metaEl=document.getElementById('ai-rates-meta');
+  if(metaEl) metaEl.textContent = meta && meta.verifiedOn
+    ? (meta.edited ? `edited by an admin · shipped prices verified ${meta.verifiedOn}` : `verified ${meta.verifiedOn}`)
+    : '';
+}
+
 function renderTeam(){
   const me=currentUser();
 
@@ -240,18 +284,57 @@ function renderTeam(){
           </div>
 
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
-            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Usage &amp; cost controls</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px">Each AI request calls Anthropic and costs money. These limits guard against runaway loops and surprise bills.</p>
-            <div id="ai-usage" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:4px">Today: —</div>
-            <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:10px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Spend &amp; cost controls</div>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">AI spend is governed by <b>money</b>, not request count: every Anthropic call's token usage is priced against the rate table below and accumulated in a persisted ledger. The request ceiling is kept only as a blunt backstop against a runaway loop.</p>
+            <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:4px">Today: —</div>
+            <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+            <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+              ${limitField('ai-daily-spend','Daily budget (USD) · workspace','the real control · 0 disables it',0)}
+              ${limitField('ai-estimate-confirm','Confirm estimates above (USD)','pre-flight confirmation threshold',0)}
               ${limitField('ai-rate-light','Light req / 15 min · per user','search, graph, template, extract',1)}
               ${limitField('ai-rate-deep','Deep req / 15 min · per user','playbook review, obligations',1)}
-              ${limitField('ai-daily','Daily ceiling · workspace','0 disables the daily backstop',0)}
+              ${limitField('ai-rate-ocr','OCR page req / 15 min · per user','one call per page of a scan',1)}
+              ${limitField('ai-daily','Daily request ceiling · workspace','secondary guard · 0 disables it',0)}
+              ${limitField('ai-ocr-pages','Max OCR pages / document','pages past this are skipped, not failed',1)}
               ${limitField('ai-maxchars','Max characters / request','longer input is shortened first',1000)}
               ${limitField('ai-maxcontracts','Max contracts / request','portfolio-wide AI calls',1)}
             </div>
-            <button id="ai-limits-save" style="margin-top:8px;${primaryBtnSm}">Save limits</button>
+            <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
+              <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
+              <span><b>Thorough extraction</b> — read the whole contract in overlapping chunks instead of one pass.
+              <span style="color:#7d5a14">This runs one deep-tier AI call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
+            <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">Save limits</button>
+          </div>
+
+          <!-- ---- onboarding allowance ---- -->
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
+            <div style="font-size:12px;font-weight:600;color:var(--color-text)">Onboarding allowance</div>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">A one-off budget for bringing in a customer's back catalogue. Bulk migration and OCR draw on this instead of the day-to-day budget, so a 500-contract import isn't blocked by the daily ceiling. When it runs out, migration falls back to the pattern matcher and says so — it never hard-fails mid-batch.</p>
+            <div id="ai-allowance-state" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:6px">—</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+              ${limitField('ai-allow-budget','Allowance budget (USD)','0 = no money cap',0)}
+              ${limitField('ai-allow-docs','Allowance documents','0 = no document cap',0)}
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button id="ai-allow-open" style="${primaryBtnSm}">Open allowance</button>
+              <button id="ai-allow-topup" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Top up</button>
+              <button id="ai-allow-close" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Close</button>
+            </div>
+          </div>
+
+          <!-- ---- model rate table ---- -->
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+              <div style="font-size:12px;font-weight:600;color:var(--color-text)">Model rate table</div>
+              <span id="ai-rates-meta" style="font-size:10px;color:var(--color-neutral-500)"></span>
+            </div>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 8px;line-height:1.5">USD per <b>million tokens</b>. Spend is metered against these, so a stale table silently under-reports the bill — check them against Anthropic's published pricing when you upgrade a model.</p>
+            <div id="ai-rates-table" style="max-height:220px;overflow-y:auto" class="scroll-thin"></div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button id="ai-rates-save" style="${primaryBtnSm}">Save rates</button>
+              <button id="ai-rates-reset" style="${secondaryBtn};font-size:11.5px;padding:5px 10px">Reset to built-in defaults</button>
+            </div>
           </div>
 
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
@@ -353,18 +436,39 @@ function renderTeam(){
         const fill=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n) n.value=v||''; };
         fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
         // usage + cost-control limits (admin-only fields; helpers null-check)
-        const lim=c.limits||{}, use=c.usage||{};
-        const cap=use.dailyLimit||0;
+        const lim=c.limits||{}, use=c.usage||{}, spend=c.spend||{};
+        state.aiCfg=c;   // migration's pre-flight estimate reads rates from here
+        const money=n=>'$'+Number(n||0).toFixed(2);
+        const budget=Number(lim.dailySpendLimit||0);
+        const spent=Number(spend.cost||0);
         const uEl=document.getElementById('ai-usage');
         if(uEl){
-          uEl.innerHTML=cap>0
-            ?`<b>${use.count||0}</b> of <b>${cap}</b> AI requests today (${use.date||''})`
-            :`<b>${use.count||0}</b> AI requests today (${use.date||''}) · daily ceiling disabled`; }
+          uEl.innerHTML=budget>0
+            ? `Today: <b>${money(spent)}</b> of <b>${money(budget)}</b> · ${Number(spend.requests||0).toLocaleString('en-KE')} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''})</span>`
+            : `Today: <b>${money(spent)}</b> · ${Number(spend.requests||0).toLocaleString('en-KE')} request${spend.requests===1?'':'s'} <span style="color:var(--color-neutral-500)">(${spend.date||''}) · no daily budget set</span>`; }
         const uBar=document.getElementById('ai-usage-bar');
-        if(uBar){ const pct=cap>0?Math.min(100,Math.round((use.count||0)/cap*100)):0; uBar.style.width=pct+'%'; }
+        if(uBar){ const pct=budget>0?Math.min(100,Math.round(spent/budget*100)):0;
+          uBar.style.width=pct+'%'; uBar.style.background=pct>=90?'#8f322b':pct>=70?'#b8862b':'var(--color-accent)'; }
+        // per-feature breakdown — so an admin can see what is actually expensive
+        const bdHost=document.getElementById('ai-spend-breakdown');
+        if(bdHost){
+          const rows=Object.entries(spend.byFeature||{}).map(([k,v])=>({k,...v})).sort((a,b)=>b.cost-a.cost);
+          bdHost.innerHTML=rows.length?`<div style="border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
+            ${rows.map(r=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-bottom:1px solid rgba(29,31,32,.05);font-size:11px">
+              <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${PB_ESC(r.label||r.k)}</span>
+              <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString('en-KE')} req</span>
+              <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
+            </div>`).join('')}</div>`
+            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">No AI spend recorded today.</div>`;
+        }
         const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
         fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
+        fillN('ai-rate-ocr',lim.rateOcr); fillN('ai-ocr-pages',lim.ocrMaxPages);
+        fillN('ai-daily-spend',lim.dailySpendLimit); fillN('ai-estimate-confirm',lim.estimateConfirmAt);
         fillN('ai-maxchars',lim.maxChars); fillN('ai-maxcontracts',lim.maxContracts);
+        const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
+        renderAllowancePanel(c.allowance||{});
+        renderRateTable(c.rates||{}, c.ratesMeta||{});
       }catch(e){ el.textContent='Could not read AI config.'; } };
     refreshAiCfg();
     // basic shape check mirroring the server (blank = clear override)
@@ -388,10 +492,55 @@ function renderTeam(){
       try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
-      const num=id=>{ const v=document.getElementById(id).value.trim(); return v===''?undefined:Number(v); };
-      const body={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts') };
-      for(const [k,v] of Object.entries(body)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ toast(`"${k}" must be a whole number`,'err'); return; }
+      const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
+      const whole={ rateLight:num('ai-rate-light'), rateDeep:num('ai-rate-deep'), rateOcr:num('ai-rate-ocr'),
+        dailyLimit:num('ai-daily'), maxChars:num('ai-maxchars'), maxContracts:num('ai-maxcontracts'), ocrMaxPages:num('ai-ocr-pages') };
+      for(const [k,v] of Object.entries(whole)) if(v!==undefined&&(!Number.isFinite(v)||v<0||Math.floor(v)!==v)){ toast(`"${k}" must be a whole number`,'err'); return; }
+      const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
+      for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ toast(`"${k}" must be a non-negative amount`,'err'); return; }
+      const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
       try{ await api('ai/config','PUT',body); toast('AI limits saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    // ---- onboarding allowance ----
+    const allowBody=()=>{
+      const n=id=>{ const v=document.getElementById(id)?.value.trim(); return v===''||v==null?0:Number(v); };
+      return { budget:n('ai-allow-budget'), docs:n('ai-allow-docs') };
+    };
+    document.getElementById('ai-allow-open')?.addEventListener('click',async()=>{
+      const b=allowBody();
+      if(!(b.budget>0)&&!(b.docs>0)){ toast('Set a budget, a document count, or both','err'); return; }
+      if(!await confirmDialog({title:'Open an onboarding allowance?',
+        message:`Bulk migration and OCR will draw on ${b.budget>0?'$'+b.budget.toFixed(2):'no money cap'}${b.docs>0?` and ${b.docs} documents`:''} instead of the daily budget, until it runs out.`,
+        confirmLabel:'Open allowance'})) return;
+      try{ await api('ai/allowance','PUT',{ open:true, ...b }); toast('Onboarding allowance opened'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-allow-topup')?.addEventListener('click',async()=>{
+      try{ await api('ai/allowance','PUT',allowBody()); toast('Allowance updated'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-allow-close')?.addEventListener('click',async()=>{
+      if(!await confirmDialog({title:'Close the onboarding allowance?', message:'Migration and OCR will go back to drawing on the daily budget.', confirmLabel:'Close allowance', danger:true})) return;
+      try{ await api('ai/allowance','PUT',{ close:true }); toast('Allowance closed'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    // ---- model rate table ----
+    document.getElementById('ai-rates-save')?.addEventListener('click',async()=>{
+      const rates={};
+      document.querySelectorAll('[data-rate-model]').forEach(row=>{
+        const m=row.getAttribute('data-rate-model');
+        const i=Number(row.querySelector('[data-rate="in"]').value);
+        const o=Number(row.querySelector('[data-rate="out"]').value);
+        if(Number.isFinite(i)&&Number.isFinite(o)&&i>=0&&o>=0) rates[m]={in:i,out:o};
+      });
+      if(!Object.keys(rates).length){ toast('Nothing to save','err'); return; }
+      try{ await api('ai/config','PUT',{ rates }); toast('Rate table saved'); refreshAiCfg(); }
+      catch(e){ toast(e.message,'err'); }
+    });
+    document.getElementById('ai-rates-reset')?.addEventListener('click',async()=>{
+      if(!await confirmDialog({title:'Reset the rate table?', message:'Every model goes back to the prices HaTi ships with. Past spend already recorded is not re-priced.', confirmLabel:'Reset rates', danger:true})) return;
+      try{ await api('ai/config','PUT',{ rates:{} }); toast('Rate table reset'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
   }
@@ -769,4 +918,4 @@ async function loadSessions(){
   }catch(e){ host.innerHTML='<p style="font-size:11px;color:var(--color-neutral-500)">Could not load sessions.</p>'; }
 }
 
-Object.assign(window,{renderTeam,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});
+Object.assign(window,{renderTeam,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,renderApprovalRules,openApprovalRuleEditor,condLabel,loadSessions});

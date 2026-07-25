@@ -12,7 +12,15 @@ async function api(path, method='GET', body){
   // surface it centrally so every caller shows it, even ones that otherwise
   // fall back silently to a heuristic.
   if(res.status===429&&data&&data.error&&typeof toast==='function') toast(data.error,'err');
-  if(!res.ok) throw new Error(data?.error||('Request failed ('+res.status+')'));
+  if(!res.ok){
+    // Carry the structured flags onto the Error so callers can tell "wait a
+    // few minutes" (rate limit) from "an admin has to raise a budget"
+    // (spendLimit / allowanceExhausted) and degrade accordingly.
+    const err=new Error(data?.error||('Request failed ('+res.status+')'));
+    err.status=res.status; err.data=data||null;
+    if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; }
+    throw err;
+  }
   // The server folds a `notice` into an AI response when the input was
   // shortened or the configured model was rejected — surface it to the user.
   if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');

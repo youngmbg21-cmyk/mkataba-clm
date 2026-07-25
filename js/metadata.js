@@ -53,12 +53,39 @@ function heuristicExtract(text){
   return m;
 }
 
+/* ---- what actually gets sent for extraction ----
+   Assembles the slice of a contract the model sees. (Task 4 replaces the head
+   slice here with front + back + term-critical windows; the shape of the return
+   value is already what the caller and the review screen expect.) */
+const AI_PAYLOAD_MAX = () => Number((state.aiCfg&&state.aiCfg.limits&&state.aiCfg.limits.maxChars)||24000);
+function buildExtractionPayload(text){
+  const t = String(text||'');
+  const cap = AI_PAYLOAD_MAX();
+  if(t.length<=cap) return { text:t, sections:1, omitted:0 };
+  return { text: t.slice(0,cap), sections:1, omitted: t.length-cap };
+}
+
+/* ---- the single server-AI extraction call ----
+   One place that decides what text is sent (buildExtractionPayload, not a blind
+   head-slice) and which budget it draws on. Throws on failure so the caller can
+   distinguish a spend ceiling from a transport error. */
+async function aiExtractMetadata(text, opts={}){
+  const payload = buildExtractionPayload(text);
+  const body = { text: payload.text, allowance: !!opts.allowance };
+  if(opts.thorough) body.thorough = true;
+  const r = await api('ai/extract','POST', body);
+  const meta = r.metadata || {};
+  if(r.sourceSpans) meta.sourceSpans = r.sourceSpans;
+  meta._payload = { chars: payload.text.length, sections: payload.sections, omitted: payload.omitted };
+  return meta;
+}
+
 /* ---- run extraction: server AI if configured, else heuristic ---- */
-async function extractMetadata(text, seed){
+async function extractMetadata(text, seed, opts={}){
   let meta = null;
   if(API_MODE() && state.aiConfigured){
-    try{ const r=await api('ai/extract','POST',{ text:String(text||'').slice(0,24000) }); meta=r.metadata; meta._source='ai'; }
-    catch(e){ /* fall through to heuristic */ }
+    try{ meta=await aiExtractMetadata(text, opts); meta._source='ai'; }
+    catch(e){ /* fall through to heuristic — the 429 toast has already fired */ }
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
   // seed with what the uploader already typed (higher trust than a low-conf guess)
@@ -138,4 +165,4 @@ async function runMetaBackfill(){
   next();
 }
 
-Object.assign(window,{META_FIELDS,RENEWAL_LABEL,heuristicExtract,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{META_FIELDS,RENEWAL_LABEL,heuristicExtract,buildExtractionPayload,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

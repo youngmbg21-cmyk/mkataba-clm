@@ -90,24 +90,65 @@ The demo data is organised into six value-stream folders, each with genuine cont
 | `HTTPS` / `TRUST_PROXY` | Set either to `true` when running behind TLS/a proxy. Enables secure cookies + HSTS **and** an http→https redirect (honouring `x-forwarded-proto`). Leave unset for local http development. |
 | `AI_RATE_LIGHT` | Per-user cap on *light* AI requests (search, graph, template, extract) per 15 min. Default `40`. Overridden by the `aiRateLight` setting. |
 | `AI_RATE_DEEP` | Per-user cap on *deep* AI requests (playbook, obligations) per 15 min. Default `15`. Overridden by the `aiRateDeep` setting. |
-| `AI_DAILY_LIMIT` | Whole-workspace daily AI-request ceiling. Default `500`; `0` disables. Overridden by the `aiDailyLimit` setting. |
-| `AI_MAX_CHARS` | Max characters of prompt/document content sent to Anthropic per request; longer input is truncated with a notice. Default `50000`. Overridden by `aiMaxChars`. |
+| `AI_RATE_OCR` | Per-user cap on OCR **page** requests per 15 min. Default `400`. Overridden by the `aiRateOcr` setting. |
+| `AI_DAILY_SPEND_LIMIT` | Whole-workspace daily **money** ceiling in USD — the primary AI cost control. Default `10`; `0` disables. Overridden by the `aiDailySpendLimit` setting. |
+| `AI_DAILY_LIMIT` | Whole-workspace daily AI-**request** ceiling, kept as a blunt secondary guard. Default `5000`; `0` disables. Overridden by the `aiDailyLimit` setting. |
+| `AI_ESTIMATE_CONFIRM_AT` | Pre-flight estimates above this USD amount need an explicit confirmation. Default `1`. Overridden by `aiEstimateConfirmAt`. |
+| `AI_MAX_CHARS` | Max characters of prompt/document content sent to Anthropic per request; longer input is truncated with a notice. Default `60000`. Overridden by `aiMaxChars`. |
 | `AI_MAX_CONTRACTS` | Max contracts included in a single portfolio-wide AI request. Default `400`. Overridden by `aiMaxContracts`. |
+| `OCR_MAX_PAGES` | Max pages OCR'd per document; pages past this are skipped and reported, not failed. Default `30`. Overridden by `ocrMaxPages`. |
 
 Copy `.env.example` to `.env` and fill in real values — `.env` (and `.env.*`) are gitignored; never commit a real key.
 
 ### AI cost controls (Team & Settings)
 
-Every AI request calls Anthropic and costs money, so the AI endpoints are rate-limited, input-capped, and backstopped by a daily ceiling. All are admin-editable under **Team & Settings → AI engine → Usage & cost controls** (each with the env-var fallback above), and today's usage is shown there (e.g. "142 of 500 AI requests today").
+**AI spend is governed by money, not request count.** Every Anthropic call returns
+its token usage; HaTi prices that usage against an admin-editable per-model rate
+table and accumulates it into a **persisted spend ledger** (a SQLite table keyed
+by day and feature). Team & Settings shows today's figure the way it actually
+matters — *"Today: $2.14 of $10.00 · 142 requests"* — broken down by feature
+(metadata extraction, OCR, clause review, obligations, portfolio graph, search,
+template advisor, Copilot) so an admin can see what is genuinely expensive.
 
 | Setting | Purpose | Default |
 |---|---|---|
-| `aiRateLight` / `aiRateDeep` | Per-**user** sliding-window limits (per 15 min). Two tiers: light endpoints are looser, the pricier deep endpoints tighter. Keyed by signed-in user, not IP. | `40` / `15` |
-| `aiDailyLimit` | Per-**workspace** daily request ceiling; `0` disables it. Resets on date change (UTC). | `500` |
-| `aiMaxChars` | Character cap on content sent per request (truncated with a marker + user notice). | `50000` |
+| `aiDailySpendLimit` | Per-**workspace** daily **money** ceiling in USD — the real control. `0` disables it. | `10.00` |
+| `aiRates` | Per-model prices in USD per **million** tokens, admin-editable, seeded with current Anthropic pricing (verified 2026-07-25). Cache tokens are priced at 1.25× (writes) and 0.1× (reads) of the input rate. | see table |
+| `aiRateLight` / `aiRateDeep` | Per-**user** sliding-window limits (per 15 min). Unchanged — they are doing their job. | `40` / `15` |
+| `aiRateOcr` | Per-**user** OCR page requests per 15 min. | `400` |
+| `aiDailyLimit` | Per-**workspace** daily request ceiling, now only a blunt secondary guard; `0` disables it. | `5000` |
+| `aiEstimateConfirmAt` | Pre-flight estimates above this USD amount require explicit confirmation. | `1.00` |
+| `ocrMaxPages` | Max pages OCR'd per document. | `30` |
+| `aiMaxChars` | Character cap on content sent per request (truncated with a marker + user notice). | `60000` |
 | `aiMaxContracts` | Cap on contracts per portfolio-wide request. | `400` |
 
-Rate-limit and daily-ceiling responses use the standard `429` + `Retry-After` shape; the frontend surfaces a friendly "AI limit reached" message. **These limiters and the daily counter are in-memory / single-instance** — running HaTi across multiple servers would need a shared store (e.g. Redis) instead.
+**Onboarding allowance.** Importing a customer's back catalogue is at least one
+AI call per contract, and a scanned contract is one call per page — the single
+most important thing a new customer does with the product should not be blocked
+by a day-to-day ceiling. An admin can open a one-off **onboarding allowance**
+(money and/or document count) in Team & Settings; bulk migration and OCR draw on
+it instead of the daily budget, and it burns down visibly on the Migration
+screen. When it runs out, migration falls back to the built-in pattern matcher
+and says so — it never hard-fails mid-batch and leaves half a portfolio imported.
+
+**Pre-flight estimates.** Before a migration batch, the Migration screen shows an
+estimate — *"25 documents, about 180 pages, estimated $1.20"* — and requires an
+explicit confirmation above `aiEstimateConfirmAt`. Estimates are labelled as
+estimates and are never presented as a charge.
+
+**Counting.** OCR counts as **one request per document** against the request
+counters, not one per page; pages count toward spend (the honest measure) and
+toward `ocrMaxPages`.
+
+Rate-limit and ceiling responses all use the standard `429` + `Retry-After`
+shape. The messages differ because the remedies differ: a rate limit says "try
+again in a few minutes", the spend ceiling says an admin has to raise a budget,
+and an exhausted allowance tells the user migration is continuing on the pattern
+matcher. **The per-user rate limiters remain in-memory and single-instance** —
+running HaTi across multiple servers would need a shared store (e.g. Redis).
+**The spend ledger is now persisted to SQLite**, so a restart no longer resets a
+daily budget to zero. The ledger and the ceilings roll over at local midnight in
+`AI_DAY_TZ` (default `Africa/Nairobi`; set it to `UTC` to key on UTC dates).
 
 ### AI model routing (Team & Settings)
 
