@@ -1278,3 +1278,67 @@ a preview of each clause's wording, which the removed card did not.
 **How it was verified.** The test asserts exactly one control matching "Insert
 clause" in the rendered workspace, and that `renderInsertClauseSection` no longer
 exists at all.
+
+### 23. "Show me" highlighted the whole contract instead of the clause
+
+**What was broken.** On a contract built from one of the standard templates,
+pressing **Show me** lit up the entire document rather than the clause. The
+right clause was scrolled to, but everything around it was highlighted too, so
+the control answered "where is it?" with "somewhere on this page".
+
+**Root cause.** The jump looked for *the smallest element containing the clause
+name* and highlighted that:
+
+```js
+const blocks=Array.from(canvas.querySelectorAll('div,p'))
+  .filter(el=>!el.children.length && (el.textContent||'').includes(name.toUpperCase()));
+```
+
+That works for a formatted document, where each clause is its own block. It does
+not work for a plain-text one — and a contract generated from a built-in
+template *is* plain text once it carries working text. `documentTextHtml()`
+renders the whole body as a single `white-space:pre-wrap` block, so the smallest
+element containing the clause is the entire contract. **Measured on the reported
+document: 78% of it.**
+
+The clause simply is not an element there, so no element selector can ever be
+right. It has to be found as a range of text.
+
+**The fix.** `jumpToInsertedClause()` now takes two paths:
+
+- **Formatted:** the `<h3>` we wrote, plus the blocks after it up to the next
+  heading of the same or higher rank — so the whole clause lights up, heading
+  and body, and the next clause does not.
+- **Plain text:** locate the clause's characters (from its name to the blank
+  line before the next heading-like line, or the end), map those offsets onto a
+  DOM `Range`, and wrap just that range in a temporary span for the duration of
+  the flash. The wrapper is removed afterwards and the container re-normalised,
+  so the document is left byte-identical — the highlight never becomes part of
+  the contract.
+
+Each jump clears any previous highlight first, so pressing **Show me** on a
+second clause does not leave the first one lit.
+
+The flash style gained `box-decoration-break: clone`, because a plain-text
+clause spans several wrapped lines as an inline span; without it the highlight
+draws as one box stretched around the block instead of following the text.
+
+**Files touched.** `js/playbook.js`, `index.html`.
+
+**How it was verified.** A test reproducing the reported setup exactly — a
+contract from a built-in template, plain-text body, three clauses inserted —
+which **reimplements the old selector alongside the new one and measures both**:
+
+```
+scope of the highlight for one clause, in a 1,809-character contract:
+  before: 1,407 chars (78% of the document)
+  after :   165 chars ( 9% of the document)
+```
+
+It also asserts the highlight contains the clause heading *and* its wording,
+stops before the next inserted clause, does not reach the original clauses,
+does not catch the document's own "4. Governing Law" when asked for the
+inserted "Kenyan governing law & forum", leaves exactly one highlight after a
+second jump, and restores the document's text length exactly once the flash
+ends. The formatted path is asserted to cover heading plus body and nothing
+else.

@@ -444,12 +444,18 @@
      permanent highlight would become part of how the contract looks. */
   .clause-flash{
     animation:clauseFlash 2.6s ease-out;
-    border-radius:4px;
-    scroll-margin:80px;
+    border-radius:3px;
+    scroll-margin:90px;
+    /* In a plain-text document the clause is not an element, so it is wrapped in
+       an inline span for the duration of the flash. That span usually spans
+       several wrapped lines: clone the decoration so every line box gets the
+       highlight, instead of one box stretched around the lot. */
+    -webkit-box-decoration-break:clone;
+            box-decoration-break:clone;
   }
   @keyframes clauseFlash{
-    0%,55%{ background:var(--color-accent-200); box-shadow:0 0 0 6px var(--color-accent-200); }
-    100%  { background:transparent;             box-shadow:0 0 0 6px transparent; }
+    0%,55%{ background:var(--color-accent-200); box-shadow:0 0 0 3px var(--color-accent-200); }
+    100%  { background:transparent;             box-shadow:0 0 0 3px transparent; }
   }
   @media print{ .clause-flash{animation:none!important;background:transparent!important;box-shadow:none!important;} }
 

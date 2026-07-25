@@ -246,35 +246,104 @@ function applyClauseRedline(c, clauseText, label){
   setTimeout(()=>jumpToInsertedClause(name), 60);
 }
 
-/* Scroll the document to an inserted clause and flash it. Matches the LAST
-   heading (rich) or the last all-caps line (plain text) carrying the clause
-   name, because a clause can be inserted more than once and the most recent one
-   is the one you just asked about. */
+/* Scroll the document to an inserted clause and flash it.
+
+   Matches the LAST occurrence of the clause name, because a clause can be
+   inserted more than once and the most recent one is the one being asked about.
+
+   The hard part is that "the clause" is not always an element. A formatted
+   document gives us the <h3> we wrote and the blocks after it. A PLAIN-TEXT
+   document does not: documentTextHtml renders the whole body as one
+   `white-space:pre-wrap` block, so the smallest element containing the clause is
+   the entire contract — which is why highlighting "the block" lit up the whole
+   page. There, the clause has to be found as a RANGE OF TEXT and wrapped for the
+   duration of the flash, then unwrapped again. */
+function _clauseFlashClear(root){
+  root.querySelectorAll('.clause-flash').forEach(el=>{
+    if(el.hasAttribute('data-clause-flash-wrap')){
+      const p=el.parentNode; if(!p) return;
+      while(el.firstChild) p.insertBefore(el.firstChild, el);
+      el.remove(); p.normalize();
+    } else el.classList.remove('clause-flash');
+  });
+}
+/* Where the clause sits in the document's text: from its name to the start of
+   the next heading-like line, or to the end. */
+function _clauseTextSpan(text, name){
+  const NAME=String(name||'').toUpperCase();
+  if(!NAME) return null;
+  const start=text.lastIndexOf(NAME);
+  if(start<0) return null;
+  // a blank line followed by an ALL-CAPS line is the next section starting
+  const re=/\n[ \t]*\n(?=[^a-z\n]{4,}[\n$])/g;
+  re.lastIndex=start+NAME.length;
+  const m=re.exec(text);
+  return { start, end: m ? m.index : text.length };
+}
+/* Map character offsets in a subtree's text to a DOM Range. */
+function _rangeFromOffsets(root, start, end){
+  const w=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let pos=0, sn=null, so=0, en=null, eo=0, n;
+  while((n=w.nextNode())){
+    const len=n.nodeValue.length;
+    if(sn===null && pos+len>start){ sn=n; so=start-pos; }
+    if(sn!==null && pos+len>=end){ en=n; eo=end-pos; break; }
+    pos+=len;
+  }
+  if(!sn||!en) return null;
+  try{ const r=document.createRange(); r.setStart(sn,Math.max(0,so)); r.setEnd(en,Math.max(0,eo)); return r; }
+  catch(e){ return null; }
+}
 function jumpToInsertedClause(name){
   const canvas=document.getElementById('doc-canvas'); if(!canvas) return false;
-  const want=String(name||'').trim().toLowerCase();
+  const want=String(name||'').trim();
   if(!want) return false;
-  let target=null;
-  // rich: the <h1>-<h4> we wrote
+  _clauseFlashClear(canvas);
+
+  // ---- formatted document: the heading we wrote, plus its body ----
   const heads=Array.from(canvas.querySelectorAll('h1,h2,h3,h4'))
-    .filter(h=>(h.textContent||'').trim().toLowerCase()===want);
-  if(heads.length) target=heads[heads.length-1];
-  if(!target){
-    // plain text: the block whose text contains the name in capitals
-    const blocks=Array.from(canvas.querySelectorAll('div,p'))
-      .filter(el=>!el.children.length && (el.textContent||'').includes(name.toUpperCase()));
-    if(blocks.length) target=blocks[blocks.length-1];
+    .filter(h=>(h.textContent||'').trim().toLowerCase()===want.toLowerCase());
+  if(heads.length){
+    const head=heads[heads.length-1];
+    const lvl=Number(head.tagName[1]);
+    const run=[head];
+    for(let el=head.nextElementSibling; el; el=el.nextElementSibling){
+      // stop at the next heading of the same or higher rank — that is the next clause
+      if(/^H[1-4]$/.test(el.tagName) && Number(el.tagName[1])<=lvl) break;
+      run.push(el);
+    }
+    run.forEach(el=>el.classList.add('clause-flash'));
+    try{ head.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ head.scrollIntoView(); }
+    setTimeout(()=>run.forEach(el=>el.classList.remove('clause-flash')), 2600);
+    return true;
   }
-  if(!target){
-    // last resort: the end of the document is where it went, so go there
-    const scroller=canvas.closest('.scroll-thin')||canvas.parentElement;
-    if(scroller) scroller.scrollTo({ top:scroller.scrollHeight, behavior:'smooth' });
-    return false;
+
+  // ---- plain text: wrap just the clause's own characters ----
+  const span=_clauseTextSpan(canvas.textContent||'', want);
+  if(span){
+    const range=_rangeFromOffsets(canvas, span.start, span.end);
+    if(range){
+      const mark=document.createElement('span');
+      mark.className='clause-flash';
+      mark.setAttribute('data-clause-flash-wrap','1');
+      let ok=true;
+      try{ range.surroundContents(mark); }
+      catch(e){
+        try{ mark.appendChild(range.extractContents()); range.insertNode(mark); }
+        catch(e2){ ok=false; }
+      }
+      if(ok){
+        try{ mark.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ mark.scrollIntoView(); }
+        setTimeout(()=>_clauseFlashClear(canvas), 2600);
+        return true;
+      }
+    }
   }
-  try{ target.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){ target.scrollIntoView(); }
-  target.classList.add('clause-flash');
-  setTimeout(()=>target.classList.remove('clause-flash'), 2600);
-  return true;
+
+  // ---- not found: it went to the end, so go there rather than do nothing ----
+  const scroller=canvas.closest('.scroll-thin')||canvas.parentElement;
+  if(scroller) scroller.scrollTo({ top:scroller.scrollHeight, behavior:'smooth' });
+  return false;
 }
 
 function openClausePicker(c){
@@ -297,4 +366,4 @@ function openClausePicker(c){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); applyClauseRedline(c, cl.preferred, cl.name); }));
 }
 
-Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote});
+Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
