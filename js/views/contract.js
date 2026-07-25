@@ -441,7 +441,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const flush=()=>{
     if(!buf.length) return;
     out.push(bufRuled
-      ? `<div style="font-family:var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
+      ? `<div class="doc-pre" style="font-family:var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
       : `<div style="white-space:pre-wrap">${esc(buf.join('\n'))}</div>`);
     buf=[];
   };

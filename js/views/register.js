@@ -433,7 +433,7 @@ function wireRegRows(){
     const id=b.getAttribute('data-id'), act=b.getAttribute('data-act'), c=getContract(id); if(!c) return;
     if(act==='open') openWorkspace(id);
     else if(act==='share') openShareModal(c);
-    else if(act==='scan') runScan(c);
+    else if(act==='scan') runScanFor(c);
     else if(act==='delete') deleteContract(id).then(ok=>{ if(ok) renderRegister(); });
     else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
   }));
