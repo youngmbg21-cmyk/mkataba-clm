@@ -979,3 +979,59 @@ non-array payload is rejected with **400**; that both templates come back from
 `/api/bootstrap`; and — the containment check — that the approval configuration
 an admin set beforehand is byte-identical afterwards, so the narrow endpoint did
 not become a wide one.
+
+### 18. Ten native browser dialogs, in the flows this run added
+
+**What was broken.** The template flows used `window.confirm()` and
+`window.prompt()` — ten of them. In a deployed browser those render as a
+**Chrome popup**: the origin banner ("hati-clm.onrender.com says"), the browser's
+own typeface, OK/Cancel, and a checkbox offering to suppress all further dialogs
+from the page. Reported from the live site, and correctly: it does not look like
+part of the product, and it undermines the thing a contract tool most needs to
+project.
+
+It is also worse than cosmetic. `confirm()` and `prompt()` **block the main
+thread**, they cannot be styled, their buttons are always "OK" and "Cancel"
+rather than saying what will happen, and once a user ticks "prevent this page
+from creating additional dialogs" every subsequent confirmation is silently
+auto-dismissed — turning a destructive-action guard into no guard at all.
+
+Six of the ten were added by this run; four (`openBlanksEditor`'s marker
+conversion, its discard guard, and the two "name this blank" prompts) predate
+it. The codebase already had a branded `confirmDialog()` — the delete guard uses
+it — so the inconsistency was visible from inside the same file.
+
+**The fix.** All ten replaced. `confirmDialog()` already existed; this adds
+`promptDialog()` alongside it in `js/core.js`, following the same contract:
+appended to `<body>` at a z-index above `#modal-root` so it stacks over an open
+modal rather than clobbering it, Escape cancels, Enter accepts, and it resolves
+`null` for cancel so an empty answer is still distinguishable from no answer.
+Its `keydown` listener is registered in the **capture phase**, because the modal
+underneath may also be listening for Escape.
+
+Replacing the dialogs also let each one say what it is actually asking. The
+detected-blanks prompt now names the blanks it found rather than only counting
+them, explains that converting means the answers are filed as contract data, and
+labels its buttons "Convert them" / "Not now". The discard guards name the
+version the template stays at. The unused-blanks warning offers "Save anyway" /
+"Go back and fix it" instead of OK/Cancel.
+
+**One real bug this surfaced.** "Make selection a blank" captured the user's
+selection with `Selection.getRangeAt(0)`, which returns the selection's **live**
+range — and the very next thing it does is open a dialog to name the blank,
+which takes focus and collapses the selection, taking the range's boundaries
+with it. The native `prompt()` had the same hazard; it was simply never
+exercised by a test. `_richSelection()` now returns `r.cloneRange()`.
+
+**Files touched.** `js/core.js` (new `promptDialog`), `js/views/library.js`
+(ten call sites, seven handlers made `async`, the range clone).
+
+**How it was verified.** A browser test that drives the flows for real — select
+text in the contenteditable, click "Make selection a blank", type the name,
+confirm — and **fails if any native dialog fires**, via a Playwright `dialog`
+listener that records every one. It asserts the prompt is pre-filled from the
+selection, that the blank is actually inserted (which is what proves the cloned
+range survived the focus change), that Escape cancels without changing the
+document or closing the modal underneath, that "Keep editing" leaves the editor
+open, and that the detected-blanks dialog names the blanks it found. Result:
+17 checks pass, **zero native dialogs**.

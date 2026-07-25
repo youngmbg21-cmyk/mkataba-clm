@@ -315,10 +315,16 @@ function openCreateTemplateModal(mode){
       const text=richToText(html);
       if(!text.trim()){ st('<span style="color:#8f322b">Paste the contract into the box first.</span>'); return; }
       if(text.length<40){ st('<span style="color:#8f322b">That is too short to be a template — paste the whole document.</span>'); return; }
-      if(report && !report.ok && !confirm(`The conversion looks incomplete: ${report.reason}\n\nSave it anyway?`)) return;
+      if(report && !report.ok && !await confirmDialog({
+        title:'The conversion looks incomplete',
+        message:`${report.reason} Saving now stores it as it appears in the box above.`,
+        confirmLabel:'Save anyway', cancelLabel:'Go back and re-paste' })) return;
       const found=detectBlanks(text);
       let extra={ format:RICH_FORMAT, chars:text.length };
-      if(found.length && confirm(`This template already marks ${found.length} blank${found.length===1?'':'s'} ([BRACKETS], {{curly}} or ____). Turn them into fill-in fields now? You can edit them afterwards.`)){
+      if(found.length && await confirmDialog({
+        title:`Turn ${found.length} marked blank${found.length===1?'':'s'} into fill-in fields?`,
+        message:`This template already marks ${found.length===1?'a blank':'blanks'} the usual ways — [BRACKETS], {{curly}} or a run of underscores: ${found.slice(0,4).map(d=>d.label).join(', ')}${found.length>4?`, and ${found.length-4} more`:''}. Converting them now means whoever uses this template is asked for each one, and the answers are filed as contract data. You can edit them afterwards either way.`,
+        confirmLabel:'Convert them', cancelLabel:'Not now' })){
         // the markers are literal text, so they substitute inside the markup
         const r=convertDetectedBlanks(html, found.filter(d=>html.includes(d.raw)));
         extra={ ...extra, fields:r.fields, body:r.body };
@@ -354,7 +360,10 @@ function openCreateTemplateModal(mode){
       if(!text||text.length<40){ st('<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
       const found=detectBlanks(text);
       let extra=null;
-      if(found.length && confirm(`This template already marks ${found.length} blank${found.length===1?'':'s'} ([BRACKETS], {{curly}} or ____). Turn them into fill-in fields now? You can edit them afterwards.`)){
+      if(found.length && await confirmDialog({
+        title:`Turn ${found.length} marked blank${found.length===1?'':'s'} into fill-in fields?`,
+        message:`This template already marks ${found.length===1?'a blank':'blanks'} the usual ways — [BRACKETS], {{curly}} or a run of underscores: ${found.slice(0,4).map(d=>d.label).join(', ')}${found.length>4?`, and ${found.length-4} more`:''}. Converting them now means whoever uses this template is asked for each one, and the answers are filed as contract data. You can edit them afterwards either way.`,
+        confirmLabel:'Convert them', cancelLabel:'Not now' })){
         const r=convertDetectedBlanks(text, found);
         extra={ fields:r.fields, body:r.body };
       }
@@ -403,7 +412,11 @@ function _richSelection(host){
   if(!s || !s.rangeCount || s.isCollapsed) return null;
   const r=s.getRangeAt(0);
   if(!host.contains(r.commonAncestorContainer)) return null;
-  return { range:r, text:r.toString() };
+  // CLONE it. getRangeAt returns the selection's own live range, and the very
+  // next thing the caller does is open a dialog to name the blank — which takes
+  // focus and collapses the selection, taking the range's boundaries with it.
+  // A cloned range keeps pointing at the nodes the user actually chose.
+  return { range:r.cloneRange(), text:r.toString() };
 }
 /* Replace a selected range with literal text and return the re-sanitised body.
    Returns null when the range crosses block structure — deleting across a table
@@ -517,12 +530,16 @@ function openBlanksEditor(tid){
   const status=m=>{ const el=document.getElementById('be-status'); if(el) el.innerHTML=m||''; };
 
   // ---- 1. manual (the reliable path — no key, no network)
-  document.getElementById('be-make').addEventListener('click',()=>{
+  document.getElementById('be-make').addEventListener('click',async()=>{
     const picked=rich?_richSelection(bodyEl):null;
     const sel=(rich ? (picked?picked.text:'') : bodyEl.value.slice(bodyEl.selectionStart,bodyEl.selectionEnd)).trim();
     if(!sel){ status('<span style="color:#8f322b">Select the text in the document that should become a blank first.</span>'); return; }
     if(sel.length>200){ status('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
-    const label=prompt('Name this blank (what a person filling it in will see):', sel.length<=40?sel:'');
+    const label=await promptDialog({
+      title:'Name this blank',
+      message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
+      label:'Blank name', placeholder:'e.g. Distributor name',
+      value: sel.length<=40?sel:'', confirmLabel:'Add blank' });
     if(label==null) return;
     const lbl=String(label).trim() || sel.slice(0,40);
     const key=tplKeyFrom(lbl, fields);
@@ -542,12 +559,15 @@ function openBlanksEditor(tid){
   });
 
   // ---- 3. auto-detect markers already in the paper
-  document.getElementById('be-detect').addEventListener('click',()=>{
+  document.getElementById('be-detect').addEventListener('click',async()=>{
     // detect against the READABLE text (no tags), then rewrite the markers in
     // the body — each marker is literal text, so it substitutes either way
     const found=detectBlanks(bodyText()).filter(d=>(!/\{\{/.test(d.raw)||!fields.some(f=>'{{'+f.key+'}}'===d.raw))&&body.includes(d.raw));
     if(!found.length){ status('No [BRACKETS], {{curly}} markers or underscore runs found in this template.'); return; }
-    if(!confirm(`Found ${found.length} existing blank marker${found.length===1?'':'s'}. Convert them into fields?`)) return;
+    if(!await confirmDialog({
+      title:`Convert ${found.length} marker${found.length===1?'':'s'} into blanks?`,
+      message:`Found ${found.slice(0,5).map(d=>d.label).join(', ')}${found.length>5?`, and ${found.length-5} more`:''}. Each becomes a fill-in field you can rename, retype and map to contract data. Nothing is saved until you press Save blanks.`,
+      confirmLabel:'Convert them' })) return;
     const r=convertDetectedBlanks(body, found);
     // keep any fields already defined, append the new ones with unique keys
     for(const nf of r.fields){ if(!fields.some(f=>f.key===nf.key)) fields.push(nf); }
@@ -578,8 +598,10 @@ function openBlanksEditor(tid){
     btn.disabled=false; btn.innerHTML=was;
   });
 
-  document.getElementById('be-cancel').addEventListener('click',()=>{
-    if(dirty && !confirm('Discard the changes to these blanks?')) return;
+  document.getElementById('be-cancel').addEventListener('click',async()=>{
+    if(dirty && !await confirmDialog({ title:'Discard these changes?',
+      message:'The blanks you added, renamed or removed since opening this editor will be lost. The template itself is unchanged.',
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })) return;
     closeModal();
   });
   document.getElementById('be-save').addEventListener('click',()=>{
@@ -822,12 +844,16 @@ function openTemplateEditor(tid){
   }
   drawFields();
 
-  document.getElementById('te-blank').addEventListener('click',()=>{
+  document.getElementById('te-blank').addEventListener('click',async()=>{
     const picked=_richSelection(host);
     const sel=(picked?picked.text:'').trim();
     if(!sel){ st('<span style="color:#8f322b">Select the value in the document that should become a blank first.</span>'); return; }
     if(sel.length>200){ st('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
-    const label=prompt('Name this blank (what a person filling it in will see):', sel.length<=40?sel:'');
+    const label=await promptDialog({
+      title:'Name this blank',
+      message:`“${sel.length<=60?sel:sel.slice(0,60)+'…'}” becomes a fill-in field. The name is what the person using this template sees when they are asked for it.`,
+      label:'Blank name', placeholder:'e.g. Distributor name',
+      value: sel.length<=40?sel:'', confirmLabel:'Add blank' });
     if(label==null) return;
     const lbl=String(label).trim()||sel.slice(0,40);
     const key=tplKeyFrom(lbl, fields);
@@ -849,17 +875,21 @@ function openTemplateEditor(tid){
     previewing=true; pv.style.display=''; host.style.display='none'; pvBtn.textContent='Back to editing'; st('');
   });
 
-  document.getElementById('te-versions').addEventListener('click',()=>{
-    if(dirty && !confirm('Leave the editor? Unsaved changes to this template will be lost.')) return;
+  document.getElementById('te-versions').addEventListener('click',async()=>{
+    if(dirty && !await confirmDialog({ title:'Leave the editor?',
+      message:'You have unsaved changes to this template. Opening the version history will discard them.',
+      confirmLabel:'Discard and view versions', cancelLabel:'Keep editing', danger:true })) return;
     closeModal(); openTemplateVersions(tid);
   });
-  document.getElementById('te-cancel').addEventListener('click',()=>{
-    if(dirty && !confirm('Discard the changes to this template?')) return;
+  document.getElementById('te-cancel').addEventListener('click',async()=>{
+    if(dirty && !await confirmDialog({ title:'Discard these changes?',
+      message:`The edits you have made since opening this editor will be lost. “${rec.name}” stays at v${templateVersionNo(rec)}.`,
+      confirmLabel:'Discard changes', cancelLabel:'Keep editing', danger:true })) return;
     closeModal();
   });
   document.getElementById('te-delete').addEventListener('click',()=>{ closeModal(); deleteTemplateGuarded(tid); });
 
-  document.getElementById('te-save').addEventListener('click',()=>{
+  document.getElementById('te-save').addEventListener('click',async()=>{
     const nm=document.getElementById('te-name').value.trim();
     if(!nm){ st('<span style="color:#8f322b">The template needs a name.</span>'); return; }
     if(previewing) pvBtn.click();
@@ -875,9 +905,11 @@ function openTemplateEditor(tid){
     const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
     if(orphanBlanks.length){ st(`<span style="color:#8f322b">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
     const orphanFields=fields.filter(f=>!used.includes(f.key));
-    if(orphanFields.length && !confirm(
-      `${orphanFields.length} blank${orphanFields.length===1?'':'s'} (${orphanFields.map(f=>f.label||f.key).join(', ')}) ${orphanFields.length===1?'is':'are'} no longer used anywhere in the document.\n\n`+
-      `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.\n\nSave anyway?`)) return;
+    if(orphanFields.length && !await confirmDialog({
+      title:`Save with ${orphanFields.length} unused blank${orphanFields.length===1?'':'s'}?`,
+      message:`${orphanFields.map(f=>f.label||f.key).join(', ')} ${orphanFields.length===1?'is':'are'} no longer used anywhere in the document. `+
+        `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.`,
+      confirmLabel:'Save anyway', cancelLabel:'Go back and fix it' })) return;
     const bad=fields.find(f=>!String(f.label||'').trim());
     if(bad){ st('<span style="color:#8f322b">Every blank needs a label.</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);

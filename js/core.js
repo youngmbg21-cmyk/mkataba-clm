@@ -762,6 +762,60 @@ function confirmDialog(opts={}){
   });
 }
 
+/* Styled prompt — a branded replacement for the native window.prompt().
+   Returns a Promise<string|null>; null means cancelled, so an empty string is
+   still distinguishable from "no answer". Same overlay contract as
+   confirmDialog: appended to <body> at a higher z-index than #modal-root, so it
+   stacks over an open modal instead of clobbering it. Usage:
+     const name = await promptDialog({title, label, value});
+     if(name==null) return; */
+function promptDialog(opts={}){
+  const title=opts.title||'';
+  const message=opts.message||'';
+  const label=opts.label||'';
+  const placeholder=opts.placeholder||'';
+  const confirmLabel=opts.confirmLabel||'OK';
+  const cancelLabel=opts.cancelLabel||'Cancel';
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return new Promise(resolve=>{
+    const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();
+    const ov=document.createElement('div');
+    ov.id='prompt-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:16px';
+    ov.innerHTML=`
+      <div style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent)"></div>
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:22px 24px">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:${message?'6px':'12px'}">
+          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-700)">${icon('pencil','w-4 h-4')}</span>
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
+        </div>
+        ${message?`<p style="font-size:12.5px;color:var(--color-neutral-700);line-height:1.55;margin:0 0 12px;padding-left:46px">${esc(message)}</p>`:''}
+        <div style="padding-left:46px">
+          ${label?`<label for="pd-input" style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">${esc(label)}</label>`:''}
+          <input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
+                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;font:inherit;font-size:13px;outline:none"/>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+            <button id="pd-cancel" class="ui-btn">${esc(cancelLabel)}</button>
+            <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const input=ov.querySelector('#pd-input');
+    const done=val=>{ ov.remove(); document.removeEventListener('keydown',onKey,true); resolve(val); };
+    function onKey(e){
+      if(e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); done(null); }
+      else if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); done(input.value); }
+    }
+    // capture phase: an open modal behind this one may also listen for Escape
+    document.addEventListener('keydown',onKey,true);
+    ov.querySelector('#pd-cancel').addEventListener('click',()=>done(null));
+    ov.querySelector('#pd-ok').addEventListener('click',()=>done(input.value));
+    ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(null); });
+    input.focus(); input.select();
+  });
+}
+
 /* ---------- document sealing ----------
    For a generated contract the seal covers the field values; for an uploaded
    ("inbound") document it covers the file's own hash, so the seal proves
@@ -1159,4 +1213,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
