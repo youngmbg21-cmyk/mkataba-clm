@@ -108,3 +108,70 @@ across two features; lowered `dailySpendLimit` below it and confirmed
 `allowanceExhausted` 429; restarted the process and confirmed both spend and
 allowance survived. Rate-table edit, reset-to-defaults and rejection of a
 negative rate all confirmed over HTTP.
+
+---
+
+### 3. Scanned paper was a dead end — the product handed the customer's problem back
+
+**What was broken.** `extractDocText()` returned text only for true digital PDFs
+and plain text. A scanned contract or a phone photo yielded nothing: the
+migration flagged it `blocked: 'no-text'`, the register row came back empty, and
+the customer typed the whole agreement by hand. The target customer is a Nairobi
+business with drawers of scanned paper, so this was the single largest hole in
+the ingestion story.
+
+**Root cause.** There was no rasterization and no recogniser — only the two
+existing PDF text-layer extractors. `blocked: 'no-text'` was also set *before*
+anything had tried to read the image, so the gate fired on documents that were
+perfectly readable, just not as a text layer.
+
+**The fix.** New `js/ocr.js` plus a new `POST /api/ai/ocr` endpoint (see
+`DESIGN-ocr.md` for the full design note).
+- **Detect**: a PDF under 200 characters of text layer is image-only; images go
+  straight to OCR.
+- **Rasterize**: pdf.js, loaded lazily as an ES module, renders each page to a
+  canvas at ~200 DPI, exported as JPEG q0.72.
+- **Recognise, two tiers**: Claude vision via the server proxy (`ocr-ai`) with a
+  strict transcribe-don't-summarise prompt that marks unreadable words
+  `[illegible]`; Tesseract.js in-browser (`ocr-local`) when there is no key or in
+  static mode, labelled as the slower, less accurate fallback. A hard failure
+  mid-document falls back to the local tier rather than abandoning the document.
+- **Limits**: `ocrMaxPages` (30) and `aiRateOcr`, both admin-editable with env
+  fallbacks. Over the page cap the first N pages are read, saved, and the skipped
+  pages are named — never a refusal.
+- **Progress**: a live page counter in the upload strip ("Reading page 4 of 12")
+  and in the migration queue row; the batch stays cancellable mid-document and
+  keeps the pages already read.
+- **Honesty**: `upload.textSource` / `ocrPages` / `ocrSkippedPages` recorded;
+  `capConfidenceForOcr()` caps every OCR-derived field at medium until a human
+  confirms it; audit trail, document viewer, review panel and clause review all
+  state the text was machine-read from a scan; `blocked: 'no-text'` can now only
+  fire after OCR has been attempted and failed.
+- The CSP gains two named CDN origins and `worker-src blob:`; all three library
+  URLs are overridable via `window.HATI_OCR_*` for egress-restricted deployments.
+
+**Files touched.** `js/ocr.js` (new), `server/server.js`, `js/views/contract.js`,
+`js/views/migration.js`, `js/views/library.js`, `js/metadata.js`, `js/app.js`,
+`sample-contracts/06_Scanned_Test_Document.pdf` (new fixture), `README.md`,
+`DESIGN-ocr.md`.
+
+**How it was verified.** Driven end to end in real Chromium against the committed
+fixture (`06_Scanned_Test_Document.pdf`, a rasterized copy of the KCB facility
+letter with a **0-character** text layer):
+- digital text layer 0 chars → `ocrNeeded` true → pdf.js rasterized → Tesseract
+  returned **1,581 characters** of accurate contract text → `textSource:
+  'ocr-local'`, `pages: 1`, progress events fired per page;
+- metadata extraction then ran over that text and the provenance line, viewer
+  banner and review-panel notice all rendered;
+- `capConfidenceForOcr()` verified explicitly: `high → medium`, `medium` and
+  `low` untouched, `_ocrCapped` set;
+- a synthetic 40-page scan with `maxPages: 3` read 3 pages, reported
+  `skippedPages: 37`, saved the text, and produced "Pages 4–40 were not read
+  (page limit)";
+- cancelling mid-document kept the 2 pages already read;
+- a digital PDF (`01_Naivas_Supplier_Agreement.pdf`, 1,964 chars) was **not**
+  routed to OCR — no regression on the existing path.
+
+The `ocr-ai` tier could not be exercised in the build environment (no Anthropic
+key available); its request/response contract, metering and 429 handling were
+verified server-side instead. See SUMMARY.md.

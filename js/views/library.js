@@ -127,8 +127,15 @@ function openUploadTemplateModal(){
       if(detectWordFile(dataUrl, file.type||'', file.name)){
         st.innerHTML=`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)}</span>`; return; }
       st.textContent='Extracting text…';
-      const text=await extractDocText(dataUrl, file.type||'');
-      if(!text||text.length<40){ st.innerHTML='<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, or check the file is not empty.</span>'; return; }
+      let text=await extractDocText(dataUrl, file.type||'');
+      // a scanned standard-form contract is still a usable template once read
+      if(ocrNeeded(file.type||'', text)){
+        st.textContent='This looks like a scan — reading it with OCR…';
+        const ocr=await ocrDocument(dataUrl, file.type||'', {
+          onProgress:(done,total,tier)=>{ st.textContent=`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`; } });
+        if(ocr.text) text=ocr.text;
+      }
+      if(!text||text.length<40){ st.innerHTML='<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, or re-scan it at a higher resolution.</span>'; return; }
       saveTemplateRecord(name, document.getElementById('ut-folder').value, text, 'upload:'+file.name);
       closeModal(); toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters extracted`);
       if(state.view==='templates') renderTemplatesPage();

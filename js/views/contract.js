@@ -604,10 +604,13 @@ function openUploadModal(){
    and reinforces that a human confirms at the end. active is 1-based; steps at
    an index < active read as done, == active as in-progress, > active as pending. */
 const UPLOAD_STEPS=['Reading document','Extracting details','Ready for your review'];
-function renderUploadSteps(active){
+/* `note` rides under the strip — used for the OCR page counter ("Reading page 4
+   of 12"), which is the difference between a slow step and a hung one. */
+function renderUploadSteps(active, note){
   const host=document.getElementById('up-steps'); if(!host) return;
   host.classList.remove('hidden');
-  host.innerHTML=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px">
+  host.innerHTML=`<div style="padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px">
+   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
     ${UPLOAD_STEPS.map((s,i)=>{ const n=i+1; const done=n<active, cur=n===active;
       const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:#2e8763;color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
         :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
@@ -615,6 +618,9 @@ function renderUploadSteps(active){
       const col=done?'#1e6b4d':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
       return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
         + (n<UPLOAD_STEPS.length?`<span style="color:var(--color-neutral-400);margin:0 1px">→</span>`:''); }).join('')}
+   </div>
+   ${note?`<div id="up-step-note" style="margin-top:7px;font-size:11px;color:var(--color-neutral-600);display:flex;align-items:center;gap:6px">
+     <span class="scan-pulse" style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);flex:none"></span>${String(note).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`:''}
   </div>`;
 }
 async function submitUpload(){
@@ -648,10 +654,25 @@ async function submitUpload(){
     return;
   }
   const fileHash=await sha256(dataUrl);
-  const extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+  let extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+  // A PDF with no text layer, or a photo of a contract, is read by OCR rather
+  // than filed as an empty shell. Provenance is recorded either way.
+  let ocr=null, textSource=extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none';
+  if(ocrNeeded(mime, extractedText)){
+    if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }
+    renderUploadSteps(1, 'This looks like a scan — reading it with OCR…');
+    ocr=await ocrDocument(dataUrl, mime, {
+      onProgress:(done,total,tier)=>renderUploadSteps(1,
+        `Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser — slower and less accurate)':''}…`),
+    });
+    if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
+    else if(ocr.error) toast('Could not read this scan: '+ocr.error,'err');
+  }
   const u=currentUser();
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
-    extractedText, textChars:extractedText.length, dataUrl };
+    extractedText, textChars:extractedText.length, dataUrl, textSource,
+    ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
+    ocrIllegible: ocr?ocr.illegible:0 };
   // API mode: store bytes on the server and keep only a reference in the synced record.
   if(API_MODE()){
     try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
@@ -665,6 +686,10 @@ async function submitUpload(){
     fields:{}, scan:null,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
+  // The audit trail must say the text was machine-read from a scan — a reader
+  // months from now has no other way to know the dates were never typed.
+  if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
+    detail:ocrProvenanceLine(upload) });
   c._loaded=true; c._light=false; c._v=0;
   const saveContract=(metadata)=>{
     if(metadata){ applyMetadata(c, metadata); }
@@ -678,10 +703,14 @@ async function submitUpload(){
   };
   // E1: extract metadata from the text, then let the human confirm before saving.
   if(extractedText && extractedText.length>200){
-    renderUploadSteps(2);   // Step 2 — Extracting details
+    renderUploadSteps(2, isOcrText(textSource)?'Reading details out of the machine-read text…':null);
     const meta=await extractMetadata(extractedText, {counterparty:cp, value, expiry});
+    // Anything read out of an OCR'd scan is capped at medium confidence — OCR
+    // misreads dates and amounts, and those are what the reminders fire on.
+    if(isOcrText(textSource)) capConfidenceForOcr(meta);
     renderUploadSteps(3);   // Step 3 — Ready for your review (the confirm screen)
-    openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null) });
+    openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null),
+      ocrNotice: isOcrText(textSource)?ocrProvenanceLine(upload):'' });
   } else {
     saveContract(null);
   }
@@ -771,7 +800,7 @@ function uploadDocBody(c){
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
-         <div class="text-xs text-brand-800/65 mt-1">Word documents can't preview in the browser — download the original to review it.</div>
+         <div class="text-xs text-brand-800/65 mt-1">This file type can't preview in the browser — download the original to review it.</div>
        </div>`);
   const sizeKB = u.size?Math.round(u.size/1024):0;
   return `
@@ -784,13 +813,16 @@ function uploadDocBody(c){
         ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${c.counterparty}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
         : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
+    ${ocrBannerHtml(u)}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
     </div>
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?'border-brand-100 bg-brand-50/50 text-brand-700':'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200?`${Number(u.textChars).toLocaleString()} characters read — AI review analyses the actual text`:'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?(isOcrText(u.textSource)?'border-gold-500/25 bg-gold-500/10 text-gold-700':'border-brand-100 bg-brand-50/50 text-brand-700'):'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200
+        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — AI review analyses the actual text`
+        : 'Text not machine-readable — AI review falls back to a manual checklist'}</span>
       ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>
     ${c.redlineText?`
@@ -883,16 +915,26 @@ function uploadScanRules(c){
     'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
     'Record the agreed KES value, or mark the contract non-monetary if none passes.');
 
-  const text=(c.upload&&c.upload.extractedText)||'';
+  const u=c.upload||{};
+  const text=u.extractedText||'';
   if(text.length>200){
+    // The review still quotes verbatim from whatever text we hold. When that
+    // text came out of a scan, say so first and loudly — every quote below is a
+    // quote of the transcription, not of the paper.
+    if(isOcrText(u.textSource)) add('u-ocr','med','risk','Quotes below come from a machine-read scan',
+      ocrProvenanceLine(u),
+      'OCR misreads dates, figures and names. A clause quoted here is a quote of the transcription, not of the original paper — and a wrong date drives a wrong renewal reminder.',
+      'Check every quoted date, amount and party name against the original document before relying on this review.');
     // real analysis over the extracted text
     findingsFromText(c, text).forEach(f=>F.push(f));
   } else {
-    // image-only PDF / Word / extraction failed → honest manual checklist
+    // no text even after OCR was attempted → honest manual checklist
     add('u-noext','low','missing','Document text could not be read automatically',
-      'This file did not yield extractable text (a scanned image, or a Word file). The points below are a manual checklist, not a read of the clauses.',
-      'Image-only PDFs and Word documents need OCR or conversion before automated clause review.',
-      'Upload a text-based PDF for clause-level AI review, or review the document manually.');
+      u.textSource==='none'&&u.ocrTotalPages
+        ? `OCR was attempted on this document (${u.ocrTotalPages} page${u.ocrTotalPages===1?'':'s'}) and produced no usable text. The points below are a manual checklist, not a read of the clauses.`
+        : 'This file did not yield extractable text. The points below are a manual checklist, not a read of the clauses.',
+      'Without readable text there is nothing for a clause-level review to analyse.',
+      'Re-scan the document at a higher resolution and upload it again, or review the document manually.');
     add('u-law','med','risk','Confirm governing law is Kenyan',
       'Confirm the governing-law and jurisdiction clause names Kenya.',
       'A foreign governing law or arbitration seat makes enforcement slow and expensive for a Kenyan business.',

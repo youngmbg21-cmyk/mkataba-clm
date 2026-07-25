@@ -17,6 +17,7 @@ import './views/reports.js';
 import './views/portal.js';
 import './views/home.js';
 import './views/register.js';
+import './ocr.js';
 import './views/contract.js';
 import './views/intelligence.js';
 import './ai.js';

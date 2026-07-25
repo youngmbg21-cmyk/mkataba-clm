@@ -281,7 +281,7 @@ async function migProcessFiles(fileList){
   M.running=true; M.batch=batch;
   renderMigQueue(); migWireCancel();
   const u=currentUser();
-  let saved=0, dupes=0, errors=0, words=0;
+  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0;
   for(let i=0;i<files.length;i++){
     if(!M.running){ M.queue.slice(i).forEach(q=>{ if(q.status==='waiting') q.status='cancelled'; }); break; }
     const file=files[i], q=M.queue[i];
@@ -298,7 +298,21 @@ async function migProcessFiles(fileList){
       if(seen.has(fileHash)){ step('duplicate','identical file already in the register'); dupes++; continue; }
       seen.add(fileHash);
       step('extracting');
-      const extractedText=await extractDocText(dataUrl, mime);
+      let extractedText=await extractDocText(dataUrl, mime);
+      // A scan gets OCR'd before anything decides it has "no readable text".
+      // The batch stays cancellable between pages, and whatever pages were read
+      // before a stop are kept.
+      let ocr=null, textSource=extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none';
+      if(ocrNeeded(mime, extractedText)){
+        step('ocr','reading the scan…');
+        ocr=await ocrDocument(dataUrl, mime, {
+          allowance: !!(M.allowance&&M.allowance.open),
+          shouldContinue: ()=>M.running,
+          onProgress:(done,total,tier)=>step('ocr',`page ${Math.min(done+1,total)} of ${total}${tier==='local'?' · offline recogniser':''}`),
+        });
+        if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
+        ocrDocs++;
+      }
       const manifest=migManifestRow(file.name);
       const seed={};
       if(manifest){ if(manifest.counterparty) seed.counterparty=manifest.counterparty;
@@ -309,10 +323,17 @@ async function migProcessFiles(fileList){
         if(manifest.currency) seed.currency=manifest.currency; }
       let meta=null;
       const readable=extractedText&&extractedText.length>200;
-      if(readable){ step(M.aiDown||!API_MODE()||!state.aiConfigured?'matching':'ai'); meta=await migExtract(extractedText, seed); }
+      if(readable){
+        step(M.aiDown||!API_MODE()||!state.aiConfigured?'matching':'ai');
+        meta=await migExtract(extractedText, seed);
+        // OCR'd text never yields a high-confidence field without a human
+        if(isOcrText(textSource)) capConfidenceForOcr(meta);
+      }
       else if(manifest){ meta={ ...seed, confidence:Object.fromEntries(Object.keys(seed).map(k=>[k,'high'])), _source:'manifest' }; }
       const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(),
-        uploadedBy:u?.name||'System', extractedText:extractedText||'', textChars:(extractedText||'').length, dataUrl };
+        uploadedBy:u?.name||'System', extractedText:extractedText||'', textChars:(extractedText||'').length, dataUrl,
+        textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
+        ocrTotalPages: ocr?ocr.totalPages:0, ocrIllegible: ocr?ocr.illegible:0 };
       if(API_MODE()){
         try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl }); upload.fileId=r.id; }
         catch(e){ /* fall back to inline bytes */ }
@@ -338,14 +359,20 @@ async function migProcessFiles(fileList){
           text:`Migrated in batch ${batch} from “${file.name}” and filed under ${FOLDERS[folder].name}.${executedOutside?' Recorded as executed outside HaTi — the seal is the uploaded file’s own SHA-256.':''}`,ts:fmtDT(nowISO())}],
         fields:{}, scan:null,
         audit:[{at:nowISO(),user:u?.name||'System',action:'Migrated',
-          detail:`Imported “${file.name}” (${Math.round(file.size/1024)} KB) in batch ${batch}${readable?`, ${extractedText.length.toLocaleString()} chars extracted`:', no machine-readable text'}${executedOutside?' — executed outside HaTi':''}`}],
+          detail:`Imported “${file.name}” (${Math.round(file.size/1024)} KB) in batch ${batch}${readable?`, ${extractedText.length.toLocaleString()} chars ${isOcrText(textSource)?'machine-read from a scan':'extracted'}`:', no machine-readable text'}${executedOutside?' — executed outside HaTi':''}`}],
         signatures:[], upload };
       // metadata is attached un-"confirmed" — cp/value/expiry were already baked
       // in above, and the audit trail must not claim a human reviewed it yet
       if(meta) c.metadata=meta;
+      // provenance in the audit trail — a reader months from now has no other
+      // way to know these dates were transcribed by a machine, not typed
+      if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
+        detail:ocrProvenanceLine(upload) });
       c.migration={ batch, importedAt:nowISO(), importedBy:u?.name||'System',
         needsReview: !meta || migNeedsReview(meta, c),
+        // `no-text` may only fire AFTER OCR has been attempted and failed
         blocked: readable?null:'no-text',
+        textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
         manifest: !!manifest, executedOutside,
         aiSource:(meta&&meta._source)||'none' };
       if(manifest) manifest.matchedId=c.id;
@@ -366,7 +393,7 @@ async function migProcessFiles(fileList){
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
   window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
-  toast(`Batch ${batch}: ${saved} imported${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
+  toast(`Batch ${batch}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
   renderMigration();
 }
 
@@ -388,9 +415,12 @@ async function openMigReview(c, opts={}){
     const text=(c.upload&&c.upload.extractedText)||'';
     meta=text.length>200?await migExtract(text,{counterparty:c.counterparty,value:c.value>0?c.value:null,expiryDate:c.expiry}):{ counterparty:c.counterparty||'', value:c.value||0, expiryDate:c.expiry||'', confidence:{} };
   }
+  const src=(c.upload&&c.upload.textSource)||(c.migration&&c.migration.textSource);
+  if(isOcrText(src)) capConfidenceForOcr(meta);
   openMetaReview(meta, m=>{ applyReviewedMeta(c,m); updateSidebarCounts();
     if(opts.onDone) opts.onDone(true); else renderMigration(); toast(`${c.id} confirmed`); },
-    { saveLabel:opts.saveLabel||'Confirm & save', onCancel:()=>{ if(opts.onDone) opts.onDone(false); } });
+    { saveLabel:opts.saveLabel||'Confirm & save', onCancel:()=>{ if(opts.onDone) opts.onDone(false); },
+      ocrNotice: isOcrText(src)?ocrProvenanceLine(c.upload||{}):'' });
 }
 /* Walk the whole review queue one confirm at a time (same pattern as the
    settings backfill — cancel skips to the next, so a stuck doc never blocks). */
@@ -423,6 +453,7 @@ async function migRerunAi(){
     if(text.length<200) continue;
     const meta=await migExtract(text, c.counterparty?{counterparty:c.counterparty}:null);
     if(meta._source!=='ai') break;
+    if(isOcrText((c.upload&&c.upload.textSource)||(c.migration&&c.migration.textSource))) capConfidenceForOcr(meta);
     c.metadata=meta;
     if(meta.counterparty&&!c.counterparty) c.counterparty=meta.counterparty;
     if(meta.value&&!(Number(c.value)>0)){ c.value=Number(meta.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
@@ -530,6 +561,7 @@ const MIG_QSTATE = {
   extracting:{t:'Extracting text…',c:'var(--color-accent-700)'},
   ai:        {t:'AI extracting…', c:'var(--color-accent-700)'},
   matching:  {t:'Pattern-matching…',c:'#7d5a14'},
+  ocr:       {t:'Reading scan…',  c:'var(--color-accent-700)'},
   saved:     {t:'Imported',       c:'#1e6b4d'},
   duplicate: {t:'Duplicate',      c:'#7d5a14'},
   word:      {t:'Word — not read',c:'#8f322b'},
@@ -554,7 +586,7 @@ function renderMigQueue(){
       ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'AI unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run AI extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map(q=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
-          const active=['reading','extracting','ai','matching'].includes(q.status);
+          const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
           return `<div style="display:flex;align-items:center;gap:9px;padding:5px 2px;border-bottom:1px solid rgba(29,31,32,.05);font-size:12px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
@@ -677,7 +709,8 @@ function renderMigration(){
                 <td style="font-size:11.5px;white-space:nowrap">${c.expiry||m.expiryDate||(m.renewalType==='evergreen'?'evergreen':'<span style="color:#8f322b">—</span>')}</td>
                 <td>${statusChip(c.status)}</td>
                 <td><span style="display:inline-flex;gap:3px;align-items:center">${migGateDots(c)}</span>
-                  ${c.migration.blocked?`<span style="display:block;font-size:9.5px;color:#8f322b">no readable text</span>`:need?`<span style="display:block;font-size:9.5px;color:#7d5a14">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}</td>
+                  ${c.migration.blocked?`<span style="display:block;font-size:9.5px;color:#8f322b">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:9.5px;color:#7d5a14">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
+                  ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:9.5px;color:#7d5a14" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:12px;white-space:nowrap" onclick="event.stopPropagation()">
                   ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">Review</button>`:''}
                   <button data-open="${c.id}" class="ui-btn" style="font-size:11px;padding:3.5px 10px">Open</button>

@@ -230,9 +230,15 @@ app.use((req, res, next) => {
 // uses inline styles + inline event handlers ('unsafe-inline'). We still lock
 // down framing, plugins and base-uri, and name the Anthropic API origin for
 // connect-src. Loosen an individual directive rather than dropping the header.
+// OCR needs two more CDN origins: pdf.js (cdnjs) rasterizes scanned PDF pages in
+// the browser, and Tesseract.js (jsDelivr) is the no-key fallback recogniser.
+// Both run in web workers built from blob: URLs, hence worker-src. These are two
+// named origins, not a wildcard — the narrowest change that makes client-side
+// rasterization possible without introducing a build step.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob:",
@@ -240,7 +246,7 @@ const CSP = [
   // built in the browser from bytes we already hold — never a remote origin,
   // and narrower than allowing data: frames.
   "frame-src 'self' blob:",
-  "connect-src 'self' https://api.anthropic.com",
+  "connect-src 'self' blob: data: https://api.anthropic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com",
   "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -1185,6 +1191,81 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       answer: typeof out.answer === 'string' ? out.answer : '',
       groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+});
+
+/* ---------- OCR: read scanned paper ----------
+   The client rasterizes each page (pdf.js, ~200 DPI, JPEG) and posts it here;
+   we transcribe it with vision through the same Anthropic proxy. The prompt is
+   deliberately strict: transcribe, never summarise, never invent a word that
+   cannot be read. The result is machine-read text and the whole pipeline
+   downstream treats it as such (capped confidence, provenance on the record,
+   warnings in the viewer and the clause review).
+
+   Metering: one *request* per document (the client sets `first` on page 1) but
+   every page's tokens count toward spend and toward ocrMaxPages. */
+const rlAiOcr = rateLimit('ai-ocr', () => intSetting('aiRateOcr', 'AI_RATE_OCR', 400), AI_WINDOW_MS,
+  { keyFn: aiUserKey, message: 'OCR limit reached — try again in a few minutes' });
+
+const OCR_PROMPT = `Transcribe this page of a contract EXACTLY as it appears.
+
+Rules — these are absolute:
+- Reproduce the text verbatim. Do NOT summarise, paraphrase, correct, translate or tidy anything.
+- Preserve clause and sub-clause numbering exactly as printed (e.g. "12.3.1"), and keep headings, paragraph breaks and list structure.
+- Preserve the reading order and the layout as far as plain text allows. Keep tables and fee schedules aligned with spaces so the columns still line up.
+- If a word, figure or date is unreadable, write [illegible] in its place. NEVER guess at it, and never fill in what you think it probably says. A wrong date here breaks the customer's renewal reminders.
+- Include headers, footers, page numbers, stamps and handwritten annotations if they are legible; mark a handwritten passage you cannot read as [illegible].
+- If the page is blank or contains no text at all, return an empty transcription.
+- Return ONLY the transcription through the transcribe_page tool — no commentary about the image.`;
+
+app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  const { pages, first } = req.body || {};
+  const list = Array.isArray(pages) ? pages : (req.body && req.body.page ? [req.body.page] : []);
+  if (!list.length) return res.status(400).json({ error: 'pages (array of data URLs) is required' });
+  const maxPages = intSetting('ocrMaxPages', 'OCR_MAX_PAGES', 30);
+  if (list.length > Math.min(8, maxPages))
+    return res.status(400).json({ error: `Send at most ${Math.min(8, maxPages)} page images per request.` });
+  // Decode each data URL into the shape the vision API wants.
+  const blocks = [];
+  for (const p of list) {
+    const m = /^data:(image\/(png|jpe?g|webp));base64,([A-Za-z0-9+/=\s]+)$/i.exec(String(p || ''));
+    if (!m) return res.status(400).json({ error: 'Each page must be a base64 PNG/JPEG data URL.' });
+    const data = m[3].replace(/\s+/g, '');
+    if (data.length > 8 * 1024 * 1024) return res.status(413).json({ error: 'A page image is too large — lower the render quality.' });
+    blocks.push({ type: 'image', source: { type: 'base64', media_type: m[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : m[1].toLowerCase(), data } });
+  }
+  const tool = {
+    name: 'transcribe_page',
+    description: 'Return the verbatim text of a scanned contract page.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        text: { type: 'string', description: 'The verbatim transcription. Empty string if the page has no text.' },
+        illegible: { type: 'number', description: 'How many words or figures you marked [illegible]. 0 if none.' },
+        confidence: { type: 'string', enum: ['high', 'medium', 'low'], description: 'How legible the page was overall.' },
+      },
+      required: ['text'],
+    },
+  };
+  try {
+    const resp = await anthropicMessages(key, 'fast', {
+      max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
+      messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
+    }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance });
+    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'AI returned no transcription' });
+    const out = block.input || {};
+    res.json({
+      text: typeof out.text === 'string' ? out.text : '',
+      illegible: Number(out.illegible || 0),
+      confidence: ['high', 'medium', 'low'].includes(out.confidence) ? out.confidence : 'medium',
+      pages: list.length, source: 'ocr-ai',
+      cost: resp.spend ? resp.spend.cost : 0,
+      ...aiNotice(req, resp),
+    });
+  } catch (e) { res.status(502).json({ error: 'OCR request failed: ' + e.message }); }
 });
 
 /* ---------- AI template advisor (two-stage) ----------
