@@ -783,3 +783,108 @@ rather than an unstyled fallback.
 
 The test also asserts hierarchy survived — h1 and h2 remain larger than body,
 and headings and `<strong>` remain at weight ≥ 600.
+
+### 12. A template could not be changed, only deleted and re-imported
+
+**What was broken.** A saved template was immutable apart from its blanks. When
+the standard paper moved on — a new payment policy, a revised liability cap —
+the only recourse was to delete the template and import it again, which lost the
+blanks, the field mappings and any record that the wording had ever changed. In
+practice that means people stop trusting the template and go back to emailing
+a Word file around.
+
+**The fix.** Templates are editable in place, on one screen: name, value stream,
+document and blanks together. The document is edited in the same rich editor
+Task 1 built, so pasting a revised contract straight out of Word over the top
+works and keeps its formatting.
+
+Every save is a **version**: `version`, `versionAt`, `versionBy`, `versionNote`
+on the record, with the previous state appended to `versions[]`. History is only
+ever appended to — **reverting to an earlier version copies it forward as a new
+version rather than erasing anything**, so the version you reverted away from is
+still there.
+
+Blanks and body are kept in sync, and the two failure directions are treated
+differently because they are not equally bad:
+- a **placeholder with no blank** would print as literal `{{braces}}` in every
+  contract made from the template, so saving is **blocked**;
+- a **blank with no placeholder** just asks a pointless question on the fill-in
+  screen, so saving warns and asks for confirmation, naming the blanks.
+
+Removing a blank puts its **label** back into the document rather than deleting
+the words, so the sentence still reads as a sentence.
+
+**Files touched.** `js/views/library.js`.
+
+**How it was verified.** Browser test: v1 → edit → v2 keeps v1's exact body in
+`versions[0]`; revert produces v3 while `versions` still holds both 1 and 2; the
+note, author and timestamp are recorded; the sync detection finds both an
+orphaned placeholder and an orphaned field.
+
+### 13. Nothing recorded which version of a template a contract came from
+
+**What was broken.** A contract carried `templateRef` — the template's id, and
+nothing else. Once templates became editable that is not enough to answer the
+only question that matters: *which wording is this?* A contract created in
+January and one created in June could come from the same `templateRef` and share
+no clauses.
+
+**The fix.** Contracts now carry `templateId`, `templateName` and
+`templateVersion`, stamped at creation by both the single-draft and bulk paths,
+and repeated in the audit entry. The workspace shows it above the document —
+**"Created from Distribution Agreement v1"** — and when the template has since
+been revised it says so and states plainly that this contract keeps the wording
+it was created with. When the template has been deleted entirely, it says that
+too. `templateRef` is kept alongside for anything already reading it.
+
+**Files touched.** `js/views/library.js`, `js/templatefields.js`,
+`js/views/contract.js`.
+
+**How it was verified.** Test creates a contract from v1, edits the template to
+v2, and asserts the existing contract's body is byte-identical, its
+`templateVersion` is still 1, the workspace banner names v1 and flags that the
+template is now v2 — while a contract created afterwards takes v2's wording and
+gets no "revised" flag.
+
+### 14. Deleting a template asked for confirmation without saying what it would cost
+
+**What was broken.** The delete confirmation said "Existing contracts created
+from it are not affected" — true, but it never said how many contracts that was,
+or that the template's whole version history went with it.
+
+**The fix.** `deleteTemplateGuarded()` counts the contracts created from the
+template and puts that number, and the number of versions being destroyed, in
+front of the decision. In server mode the client holds a working set that is
+capped for very large portfolios, so when the set is truncated the count is
+reported as a floor — "at least 2 contracts (200 of 5,000 loaded)" — rather than
+being presented as complete. The same honest count appears on the template card
+and in the editor header.
+
+**Files touched.** `js/views/library.js`.
+
+**How it was verified.** Test asserts the exact count when the working set is
+complete, and the "at least" phrasing once `state.truncated` is set.
+
+### 15. HaTi's own twelve templates could not be adapted at all
+
+**What was broken.** The built-in templates are **generators** — rendered from
+code in `docBody()`, not stored as text — so there was no body to edit. A
+customer who wanted HaTi's Raw Material Supply Agreement with two clauses
+changed had no route at all.
+
+**The fix.** "Duplicate & edit" on every built-in card. It renders the generator
+once, converts each fill-in `<input>` back into the `{{blank}}` it stands for,
+sanitises the result into a rich body, and carries the built-in's own field
+schema (including the `maps` values that feed the register) onto the new
+template. The result is an ordinary editable template that opens straight into
+the editor. The built-in itself is untouched, and the copy records
+`source:'builtin:RM'`.
+
+**Files touched.** `js/views/library.js`.
+
+**How it was verified.** Test duplicates `RM`, asserts the copy is rich, that
+every field it carries has a matching placeholder in the body, that the
+counterparty mapping survived, that no `<input>` leaked into the body, that the
+text projection still reads as the agreement — and that `TEMPLATES.RM` itself is
+unchanged. A contract built from the copy arrives fully populated with no
+placeholders left.

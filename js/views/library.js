@@ -52,8 +52,14 @@ function buildFromCustomTemplate(t, values){
     fields:{}, scan:null, expiry:null,
     redlineText:body, format:tFmt,
     versions:[],
-    audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Created from custom template “${t.name}”${fs.length?` · ${fs.length} field${fs.length===1?'':'s'} filled`:''}`}],
-    signatures:[], templateRef:t.id };
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Created from custom template “${t.name}” v${templateVersionNo(t)}${fs.length?` · ${fs.length} field${fs.length===1?'':'s'} filled`:''}`}],
+    signatures:[],
+    // PROVENANCE: which template, and which VERSION of it, this draft came from.
+    // The template can be edited afterwards — this contract will not change —
+    // so recording the version is the only way to answer "which wording is
+    // this?" once the template has moved on.
+    templateRef:t.id, templateId:t.id, templateName:t.name,
+    templateVersion:templateVersionNo(t) };
   if(fs.length) applyTemplateValues(c, fs, values);
   // v1 is captured through captureVersion so it carries the text projection and
   // the canonical form, exactly like every later version
@@ -580,6 +586,390 @@ function openBlanksEditor(tid){
   });
 }
 
+/* ============================================================ TEMPLATE EDITING
+   A template you cannot change is a template you stop trusting: the moment the
+   standard paper moves on, every draft generated from it is subtly wrong and
+   the only recourse is to delete it and re-import. So a template is editable in
+   place — name, value stream, body and blanks on one screen — and every save is
+   a VERSION, with who, when and a note.
+
+   The rule that makes editing safe to offer at all: **editing a template never
+   touches a contract already created from it.** A contract's body is copied at
+   creation, not referenced. That is stated on the editor, on the version list
+   and in the audit entry, because a user who is not certain of it will not use
+   the feature. */
+
+const templateVersionNo = t => Number((t&&t.version)||1);
+const templateVersions  = t => (t&&Array.isArray(t.versions)) ? t.versions : [];
+
+/* How many contracts came from this template — and whether that number is the
+   whole truth. In server mode the client holds a working set, which for a very
+   large portfolio is capped, so the count is reported as a floor rather than
+   quietly presented as complete. */
+function templateUsage(tid){
+  const rows=(state.contracts||[]).filter(c=>c.templateId===tid || c.templateRef===tid);
+  const complete=!state.truncated;
+  return { count:rows.length, complete, loaded:(state.contracts||[]).length,
+    total:(state.serverStats&&state.serverStats.total)||state.totalCount||(state.contracts||[]).length,
+    rows };
+}
+function templateUsageLabel(u){
+  if(!u.count) return u.complete ? 'not used yet' : 'not used by any contract loaded here';
+  const n=`${u.count} contract${u.count===1?'':'s'}`;
+  return u.complete ? `used by ${n}` : `used by at least ${n} (${u.loaded.toLocaleString()} of ${u.total.toLocaleString()} loaded)`;
+}
+
+/* Save a new version of a template. The PREVIOUS state is pushed onto the
+   version list — history is only ever appended to, never rewritten, so a revert
+   is itself a new version rather than an erasure. */
+function saveTemplateVersion(tid, patch, note){
+  const t=customTemplates().find(x=>x.id===tid);
+  if(!t) return null;
+  const u=currentUser();
+  const prior={ n:templateVersionNo(t), at:t.versionAt||t.at||nowISO(), by:t.versionBy||t.by||'—',
+    note:t.versionNote||'Original', name:t.name, folder:t.folder,
+    body:templateBody(t), format:templateFormat(t), fields:(t.fields||[]).map(f=>({...f})) };
+  const versions=templateVersions(t).concat([prior]);
+  const next={ ...t, ...patch,
+    versions, version:prior.n+1, versionAt:nowISO(), versionBy:u?.name||'—',
+    versionNote:String(note||'').trim()||'Edited' };
+  return updateTemplateRecord(tid, next);
+}
+
+/* ---------- the one screen ---------- */
+function openTemplateEditor(tid){
+  if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
+  const rec=customTemplates().find(x=>x.id===tid);
+  if(!rec){ toast('Template not found','err'); return; }
+
+  // work on a copy — nothing is written until Save
+  let name=rec.name, folder=rec.folder;
+  let body=templateBody(rec);
+  let format=templateFormat(rec);
+  let fields=(rec.fields||[]).map(f=>({...f}));
+  let editor=null, dirty=false, previewing=false;
+  const usage=templateUsage(tid);
+  const startedRich=isRich(format);
+  const bodyText=()=> isRich(format) ? richToText(body) : body;
+
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
+  openModal(`<div style="padding:20px 22px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+      <span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit template</h3>
+      <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--color-accent-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:3px;padding:1px 6px">v${templateVersionNo(rec)}</span>
+      <span style="flex:1"></span>
+      <button id="te-versions" class="ui-btn" style="font-size:11px;padding:3px 9px;white-space:nowrap">${icon('history','w-3.5 h-3.5')} Versions (${templateVersions(rec).length+1})</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 4px;line-height:1.5">
+      ${_tplEsc(templateUsageLabel(usage))} · saving creates <b>v${templateVersionNo(rec)+1}</b>.</p>
+    <div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;margin:0 0 12px;font-size:11px;line-height:1.5;color:var(--color-neutral-700)">
+      <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('shield','w-3.5 h-3.5')}</span>
+      <span><b>Contracts already created from this template are not affected.</b> A contract copies the wording when it is created; it does not follow the template afterwards. Changes here apply to the next draft you generate.</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+        <input id="te-name" value="${String(name).replace(/"/g,'&quot;')}" style="${FLD}"/></label>
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
+        <select id="te-folder" style="${FLD};background:var(--color-surface)">${folderOptionsHtml(folder,false)}</select></label>
+    </div>
+
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+      <span style="font-size:11px;font-weight:600">Document</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600)">${startedRich?'formatted — paste over it to replace, or edit in place':'plain text — paste formatted paper here to upgrade it'}</span>
+      <span style="flex:1"></span>
+      <button id="te-blank" class="ui-btn" style="font-size:11px;padding:3px 9px">Make selection a blank</button>
+      <button id="te-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">Preview</button>
+    </div>
+    <div id="te-body" class="scroll-thin doc-surface" style="height:230px;font-size:12.5px"
+         data-placeholder="Paste the contract here, or type it."></div>
+    <div id="te-previewpane" class="scroll-thin doc-surface" style="display:none;height:230px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
+    <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
+
+    <div style="display:flex;align-items:baseline;gap:8px;margin:12px 0 4px">
+      <span style="font-size:11px;font-weight:600">Blanks</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600)">these become the guided fields, and the contract data, when someone uses this template</span>
+    </div>
+    <div id="te-fields" class="scroll-thin" style="max-height:150px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px"></div>
+    <div id="te-warn" style="font-size:10.5px;margin:7px 0;min-height:15px;line-height:1.5"></div>
+
+    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">What changed? <span style="font-weight:400;color:var(--color-neutral-500)">(recorded against v${templateVersionNo(rec)+1})</span></span>
+      <input id="te-note" placeholder="e.g. New payment terms per the 2026 policy" style="${FLD}"/></label>
+
+    <div id="te-status" style="font-size:11px;min-height:16px;margin-bottom:8px"></div>
+    <div style="display:flex;justify-content:space-between;gap:8px">
+      <button id="te-delete" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Delete template</button>
+      <span style="display:flex;gap:8px">
+        <button id="te-cancel" class="ui-btn">Cancel</button>
+        <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
+      </span>
+    </div></div>`, {maxWidth:'880px'});
+
+  const st=m=>{ const el=document.getElementById('te-status'); if(el) el.innerHTML=m||''; };
+  bindFolderSelect(document.getElementById('te-folder'));
+
+  /* ---- the document, in a real rich editor (reuses the paste conversion) ---- */
+  const host=document.getElementById('te-body');
+  const markEmpty=()=>host.setAttribute('data-empty',(host.textContent||'').trim()?'0':'1');
+  editor=richEditor(host, {
+    html: isRich(format) ? markPlaceholders(body, {}) : textToRich(body),
+    onChange:()=>{ dirty=true; body=editor.get(); format=RICH_FORMAT; markEmpty(); drawFields(); },
+    onPaste:res=>{
+      // a paste replaces the document, so the format follows it
+      format=RICH_FORMAT; dirty=true; body=editor.get();
+      const r=pasteConversionReport(body, res.plain||'');
+      st(r.ok
+        ? `<span style="color:var(--color-neutral-700)">Pasted ${richToText(body).length.toLocaleString()} characters.${res.via==='text'?' The source offered no formatting, so this came in as plain text.':''} <b>Preview</b> before saving.</span>`
+        : `<span style="color:#8f322b"><b>That did not come across properly.</b> ${_tplEsc(r.reason)} Undo (Ctrl+Z) and paste again, or use the plain-text version.</span>`);
+      markEmpty(); drawFields();
+    },
+  });
+  // opening a plain-text template in the rich editor does NOT itself change the
+  // record — format only moves to 'rich' once the user actually edits or pastes
+  format=templateFormat(rec);
+  body=templateBody(rec);
+  markEmpty();
+
+  /* ---- blanks, kept in sync with the body ---- */
+  const usedIn=()=> bodyPlaceholders(isRich(format)?body:body);
+  function drawFields(){
+    const used=usedIn();
+    const orphanFields=fields.filter(f=>!used.includes(f.key));      // a field with no blank
+    const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));   // a blank with no field
+    const stl='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 7px;font:inherit;font-size:11.5px;outline:none';
+    const host2=document.getElementById('te-fields'); if(!host2) return;
+    host2.innerHTML=fields.length?fields.map((f,i)=>`
+      <div data-fld="${i}" style="display:grid;grid-template-columns:1.3fr .9fr 1.2fr auto auto;gap:6px;align-items:center;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.05)">
+        <input data-f="label" value="${String(f.label||'').replace(/"/g,'&quot;')}" placeholder="Label" style="${stl}"/>
+        <select data-f="type" style="${stl}">${TPL_FIELD_TYPES.map(x=>`<option value="${x.k}" ${f.type===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <select data-f="maps" style="${stl}">${TPL_MAPS.map(x=>`<option value="${x.k}" ${(f.maps||'')===x.k?'selected':''}>${x.label}</option>`).join('')}</select>
+        <label style="display:inline-flex;align-items:center;gap:4px;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap"><input data-f="required" type="checkbox" ${f.required?'checked':''} style="accent-color:var(--color-accent)"/>req</label>
+        <button data-del="${i}" title="Remove this blank" style="border:1px solid #e6c9c1;background:none;color:#8f322b;border-radius:4px;font:inherit;font-size:11px;padding:2px 7px;cursor:pointer">×</button>
+        ${f.type==='select'?`<input data-f="opts" value="${String((f.opts||[]).join(', ')).replace(/"/g,'&quot;')}" placeholder="Choices, comma separated" style="${stl};grid-column:1 / -1"/>`:''}
+        <div style="grid-column:1 / -1;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">{{${f.key}}}${orphanFields.includes(f)?' <span style="color:#8f322b">— not used anywhere in the document above</span>':''}</div>
+      </div>`).join('')
+      :`<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0">No blanks. Select a value in the document above and press <b>Make selection a blank</b>.</div>`;
+    host2.querySelectorAll('[data-fld]').forEach(row=>{
+      const i=Number(row.getAttribute('data-fld'));
+      row.querySelectorAll('[data-f]').forEach(el=>el.addEventListener('change',()=>{
+        const k=el.getAttribute('data-f');
+        if(k==='required') fields[i].required=el.checked;
+        else if(k==='opts') fields[i].opts=el.value.split(',').map(s=>s.trim()).filter(Boolean);
+        else fields[i][k]=el.value;
+        dirty=true; if(k==='type') drawFields();
+      }));
+      row.querySelector('[data-del]')?.addEventListener('click',()=>{
+        // removing a field puts its LABEL back into the document, so the
+        // sentence still reads as a sentence rather than losing a word
+        const f=fields[i];
+        body=body.split('{{'+f.key+'}}').join(f.label||'_____');
+        editor.set(isRich(format)?markPlaceholders(body,{}):textToRich(body));
+        body=isRich(format)?editor.get():body;
+        fields.splice(i,1); dirty=true; drawFields();
+      });
+    });
+    const warn=document.getElementById('te-warn');
+    if(warn){
+      const bits=[];
+      if(orphanBlanks.length) bits.push(`<span style="color:#8f322b"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document (${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')}) ${orphanBlanks.length===1?'has':'have'} no matching blank — add or remove ${orphanBlanks.length===1?'it':'them'} before saving.</span>`);
+      if(orphanFields.length) bits.push(`<span style="color:#7d5a14"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> (${orphanFields.map(f=>'{{'+f.key+'}}').join(', ')}) ${orphanFields.length===1?'is':'are'} no longer used in the document. ${orphanFields.length===1?'It':'They'} will still be asked for on the fill-in screen and the answer will go nowhere.</span>`);
+      warn.innerHTML = bits.length?bits.join('<br>')
+        : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'}, all present in the document.</span>`;
+    }
+  }
+  drawFields();
+
+  document.getElementById('te-blank').addEventListener('click',()=>{
+    const picked=_richSelection(host);
+    const sel=(picked?picked.text:'').trim();
+    if(!sel){ st('<span style="color:#8f322b">Select the value in the document that should become a blank first.</span>'); return; }
+    if(sel.length>200){ st('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
+    const label=prompt('Name this blank (what a person filling it in will see):', sel.length<=40?sel:'');
+    if(label==null) return;
+    const lbl=String(label).trim()||sel.slice(0,40);
+    const key=tplKeyFrom(lbl, fields);
+    const next=_richReplaceRange(host, picked, '{{'+key+'}}');
+    if(next==null){ st('<span style="color:#8f322b">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+    body=next; format=RICH_FORMAT;
+    const shape=guessFieldShape(lbl);
+    fields.push({ key, label:lbl, type:shape.type, maps:shape.maps, required:!!shape.maps, def:'', opts:[] });
+    editor.set(markPlaceholders(body,{}));
+    body=unmarkPlaceholders(editor.get());
+    dirty=true; drawFields(); st(`Added <b>{{${key}}}</b>.`);
+  });
+
+  const pv=document.getElementById('te-previewpane'), pvBtn=document.getElementById('te-preview');
+  pvBtn.addEventListener('click',()=>{
+    if(previewing){ previewing=false; pv.style.display='none'; host.style.display=''; pvBtn.textContent='Preview'; editor.focus(); return; }
+    const shown=isRich(format)?markPlaceholders(body, Object.fromEntries(fields.map(f=>[f.key,f.label||f.key]))):body;
+    pv.innerHTML=isRich(format)?renderDocHtml(shown,RICH_FORMAT):documentTextHtml(body);
+    previewing=true; pv.style.display=''; host.style.display='none'; pvBtn.textContent='Back to editing'; st('');
+  });
+
+  document.getElementById('te-versions').addEventListener('click',()=>{
+    if(dirty && !confirm('Leave the editor? Unsaved changes to this template will be lost.')) return;
+    closeModal(); openTemplateVersions(tid);
+  });
+  document.getElementById('te-cancel').addEventListener('click',()=>{
+    if(dirty && !confirm('Discard the changes to this template?')) return;
+    closeModal();
+  });
+  document.getElementById('te-delete').addEventListener('click',()=>{ closeModal(); deleteTemplateGuarded(tid); });
+
+  document.getElementById('te-save').addEventListener('click',()=>{
+    const nm=document.getElementById('te-name').value.trim();
+    if(!nm){ st('<span style="color:#8f322b">The template needs a name.</span>'); return; }
+    if(previewing) pvBtn.click();
+    if(isRich(format)) body=unmarkPlaceholders(editor.get());
+    const text=bodyText();
+    if(!text.trim()){ st('<span style="color:#8f322b">The document cannot be empty.</span>'); return; }
+
+    // the blank/body sync warnings are BLOCKING in one direction and advisory in
+    // the other: a placeholder with no field would render as literal braces in
+    // a real contract, which is a broken document; a field with no placeholder
+    // just asks a pointless question, which the user may well intend mid-edit.
+    const used=usedIn();
+    const orphanBlanks=used.filter(k=>!fields.some(f=>f.key===k));
+    if(orphanBlanks.length){ st(`<span style="color:#8f322b">The document uses ${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')} with no matching blank. Add the blank or remove the placeholder — otherwise it prints as literal braces in every contract made from this template.</span>`); return; }
+    const orphanFields=fields.filter(f=>!used.includes(f.key));
+    if(orphanFields.length && !confirm(
+      `${orphanFields.length} blank${orphanFields.length===1?'':'s'} (${orphanFields.map(f=>f.label||f.key).join(', ')}) ${orphanFields.length===1?'is':'are'} no longer used anywhere in the document.\n\n`+
+      `${orphanFields.length===1?'It':'They'} will still be asked for when someone uses this template, and the answer will not appear in the contract.\n\nSave anyway?`)) return;
+    const bad=fields.find(f=>!String(f.label||'').trim());
+    if(bad){ st('<span style="color:#8f322b">Every blank needs a label.</span>'); return; }
+    const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
+    if(badSel){ st(`<span style="color:#8f322b">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
+
+    const note=document.getElementById('te-note').value.trim();
+    const next=saveTemplateVersion(tid, {
+      name:nm, folder:document.getElementById('te-folder').value,
+      body, text:body, format:docFormat(format), fields, chars:text.length,
+    }, note);
+    closeModal();
+    toast(`“${nm}” saved as v${templateVersionNo(next)} — contracts already created from it are unchanged`);
+    if(state.view==='templates') renderTemplatesPage();
+    updateSidebarCounts();
+  });
+}
+
+/* ---------- version history, with revert ---------- */
+function openTemplateVersions(tid){
+  const rec=customTemplates().find(x=>x.id===tid);
+  if(!rec){ toast('Template not found','err'); return; }
+  const prior=templateVersions(rec);
+  const current={ n:templateVersionNo(rec), at:rec.versionAt||rec.at, by:rec.versionBy||rec.by,
+    note:rec.versionNote||'Original', name:rec.name, folder:rec.folder,
+    body:templateBody(rec), format:templateFormat(rec), fields:rec.fields||[] };
+  const all=prior.concat([current]).slice().reverse();
+  const canManage=tplCanManage();
+
+  openModal(`<div style="padding:20px 22px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+      <span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Versions of “${_tplEsc(rec.name)}”</h3>
+    </div>
+    <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Every save is kept. Reverting does not erase anything — it copies an earlier version forward as a <b>new</b> version, so the history stays intact. <b>No contract changes either way</b>: a contract copies its wording at creation.</p>
+    <div class="scroll-thin" style="max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      ${all.map(v=>`
+        <div style="display:flex;align-items:center;gap:9px;border:1px solid ${v.n===current.n?'var(--color-accent-300)':'var(--color-divider)'};background:${v.n===current.n?'var(--color-accent-100)':'var(--color-surface)'};border-radius:5px;padding:8px 11px">
+          <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;color:var(--color-accent-700);flex:none">v${v.n}</span>
+          <span style="min-width:0;flex:1">
+            <span style="display:block;font-size:12px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(v.note||'Saved')}${v.name!==rec.name?` <span style="color:var(--color-neutral-500)">· named “${_tplEsc(v.name)}”</span>`:''}</span>
+            <span style="display:block;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${v.by?_tplEsc(v.by)+' · ':''}${v.at?fmtDT(v.at):''} · ${(v.fields||[]).length} blank${(v.fields||[]).length===1?'':'s'} · ${(v.format==='rich'?'formatted':'plain text')}</span>
+          </span>
+          ${v.n===current.n?`<span class="badge" style="flex:none;background:var(--color-accent-200);color:var(--color-accent-800)">current</span>`
+            :`<button data-tv-view="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">View</button>
+              ${canManage?`<button data-tv-revert="${v.n}" class="ui-btn" style="flex:none;font-size:11px;padding:3px 9px">Revert to this</button>`:''}`}
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
+      ${canManage?`<button id="tv-edit" class="ui-btn">Back to editing</button>`:''}
+      <button id="tv-close" class="ui-btn ui-btn-primary">Close</button>
+    </div></div>`, {maxWidth:'760px'});
+
+  document.getElementById('tv-close').addEventListener('click',closeModal);
+  document.getElementById('tv-edit')?.addEventListener('click',()=>{ closeModal(); openTemplateEditor(tid); });
+  document.querySelectorAll('[data-tv-view]').forEach(b=>b.addEventListener('click',()=>{
+    const v=all.find(x=>String(x.n)===b.getAttribute('data-tv-view')); if(!v) return;
+    openTemplatePreview({ ...v, id:rec.id, name:`${v.name} — v${v.n}`, at:v.at, by:v.by, chars:(v.format==='rich'?richToText(v.body):v.body).length, _readonly:true });
+  }));
+  document.querySelectorAll('[data-tv-revert]').forEach(b=>b.addEventListener('click',async()=>{
+    const v=all.find(x=>String(x.n)===b.getAttribute('data-tv-revert')); if(!v) return;
+    const u=templateUsage(tid);
+    if(!await confirmDialog({ title:`Revert “${rec.name}” to v${v.n}?`,
+      message:`This copies v${v.n}'s wording, blanks, name and value stream forward as v${templateVersionNo(rec)+1}. Nothing is erased — v${templateVersionNo(rec)} stays in the history.\n\nThe ${u.count?templateUsageLabel(u).replace(/^used by /,''):'contracts'} already created from this template are not affected.`,
+      confirmLabel:`Revert to v${v.n}` })) return;
+    const text=(v.format==='rich'?richToText(v.body):v.body);
+    const next=saveTemplateVersion(tid, { name:v.name, folder:v.folder, body:v.body, text:v.body,
+      format:v.format, fields:(v.fields||[]).map(f=>({...f})), chars:text.length }, `Reverted to v${v.n}`);
+    closeModal();
+    toast(`Reverted to v${v.n} — saved as v${templateVersionNo(next)}`);
+    if(state.view==='templates') renderTemplatesPage();
+  }));
+}
+
+/* ---------- deletion, with the count in front of the decision ---------- */
+async function deleteTemplateGuarded(tid){
+  if(!tplCanManage()){ toast('Viewers cannot delete templates','err'); return; }
+  const t=customTemplates().find(x=>x.id===tid); if(!t) return;
+  const u=templateUsage(tid);
+  const vn=templateVersionNo(t);
+  const msg = u.count
+    ? `This template has been used to create ${u.complete?'':'at least '}${u.count} contract${u.count===1?'':'s'}.\n\n`+
+      `Those contracts keep their wording and are not affected — a contract copies its text at creation. But the template itself, and all ${vn} version${vn===1?'':'s'} of its history, are gone for good, and you will not be able to generate another draft from it.`
+    : `No contract has been created from this template${u.complete?'':' among those loaded here'}. All ${vn} version${vn===1?'':'s'} of its history are deleted with it.`;
+  if(!await confirmDialog({ title:`Delete template “${t.name}”?`, message:msg,
+    confirmLabel:'Delete template', danger:true })) return;
+  saveCustomTemplates(customTemplates().filter(x=>x.id!==tid));
+  toast(`Template “${t.name}” deleted`);
+  renderTemplatesPage(); updateSidebarCounts();
+}
+
+/* ---------- "Duplicate & edit" for a built-in ----------
+   The twelve built-ins are GENERATORS, not stored text — they are rendered
+   from code, so they cannot be edited in place without becoming something
+   else. Duplicating one renders it once, converts its fill-in inputs back into
+   {{blanks}}, and hands over an ordinary editable template that carries the
+   built-in's own field schema. The built-in itself is untouched. */
+function duplicateBuiltinTemplate(bid){
+  if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
+  const t=TEMPLATES[bid]; if(!t){ toast('Template not found','err'); return; }
+  const u=currentUser();
+  const fields=templateFields(t).map(f=>({...f}));
+  // a throwaway contract, rendered exactly as the generator would render it
+  const probe=migrateContract({ id:'TPL-PREVIEW', name:t.name, template:bid, counterparty:'',
+    value:0, valueType:t.valueType, folder:t.folder, status:'Draft', fields:{} });
+  const holder=document.createElement('div');
+  holder.innerHTML=docBody(probe);
+  holder.querySelectorAll('.seal-in,[data-anchor="sig"]').forEach(el=>el.remove());
+  // every fill-in input becomes the blank it stands for
+  holder.querySelectorAll('input,textarea').forEach(inp=>{
+    const key=inp.getAttribute('data-field')||inp.getAttribute('data-sync')||'';
+    const known=fields.find(f=>f.key===key);
+    const span=document.createElement('span');
+    span.textContent = known ? `{{${known.key}}}` : (key?`{{${key}}}`:'_____________');
+    if(key && !known) fields.push({ key, label:key.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase()),
+      type:'text', maps:'', required:false, def:'', opts:[] });
+    inp.replaceWith(span);
+  });
+  const body=sanitizeRich(holder.innerHTML);
+  const text=richToText(body);
+  if(!text || text.length<40){ toast('That template could not be converted into an editable copy','err'); return; }
+  // keep only the blanks the rendered document actually uses
+  const used=bodyPlaceholders(body);
+  const keep=fields.filter(f=>used.includes(f.key));
+  const rec=saveTemplateRecord(`${t.name} (copy)`, t.folder, body, 'builtin:'+bid,
+    { format:RICH_FORMAT, fields:keep, body, chars:text.length,
+      version:1, versionAt:nowISO(), versionBy:u?.name||'—',
+      versionNote:`Duplicated from the HaTi built-in “${t.name}”`, versions:[] });
+  toast(`Copied “${t.name}” into My templates — edit it freely, the built-in is unchanged`);
+  if(state.view==='templates') renderTemplatesPage();
+  updateSidebarCounts();
+  setTimeout(()=>openTemplateEditor(rec.id), 120);
+  return rec;
+}
+
 /* ============================================================ BULK CREATION
    Download a CSV with one column per blank, fill it in, upload it. Every row is
    validated BEFORE anything is created — half a batch of employment letters is
@@ -649,6 +1039,15 @@ function openBulkCreateModal(t){
 /* A template's body, rendered. Rich bodies go through the sanitiser again here
    (defence in depth) and have their {{blanks}} marked so they read as gaps in
    a document rather than as literal braces. */
+const _tplSourceLabel = t => {
+  const src=String(t.source||'');
+  if(src.startsWith('contract:')) return 'From contract '+src.slice(9);
+  if(src.startsWith('sample:'))   return 'HaTi sample';
+  if(src.startsWith('builtin:'))  return 'Copy of HaTi '+src.slice(8);
+  if(src.startsWith('upload:'))   return 'Uploaded';
+  if(src==='paste')               return 'Pasted';
+  return 'Uploaded';
+};
 function _tplPreviewHtml(tpl){
   const body=templateBody(tpl), fmt=templateFormat(tpl);
   if(window.isRich && isRich(fmt)){
@@ -698,11 +1097,17 @@ function renderTemplatesPage(){
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder]?.name||'—'} · ${(t.chars||t.text.length).toLocaleString()} chars</span>
         </span>
       </div>
-      <div style="font-size:10px;color:var(--color-neutral-500)">${t.source&&t.source.startsWith('contract:')?'From contract '+t.source.slice(9):t.source&&t.source.startsWith('sample:')?'HaTi sample':'Uploaded'} · ${t.at?fmtDT(t.at):''}</div>
+      <div style="font-size:10px;color:var(--color-neutral-500)">${_tplSourceLabel(t)} · ${t.at?fmtDT(t.at):''}</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--color-neutral-600)">
+        <span style="font-family:var(--font-mono);font-weight:600;color:var(--color-accent-700)">v${templateVersionNo(t)}</span>
+        <span>·</span><span>${_tplEsc(templateUsageLabel(templateUsage(t.id)))}</span>
+        ${isRich(templateFormat(t))?`<span>·</span><span title="Keeps headings, emphasis and clause numbering">formatted</span>`:''}
+      </div>
       <div style="display:flex;gap:6px;margin-top:2px;flex-wrap:wrap">
         ${canManage?`<button data-tpl-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use</button>`:''}
+        ${canManage?`<button data-tpl-edit="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Edit</button>`:''}
         <button data-tpl-prev="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Preview</button>
-        ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3 h-3')}</button>`:''}
+        ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:#e6c9c1;color:#8f322b" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
       </div>
       ${canManage?`<div style="display:flex;gap:6px">
         <button data-tpl-blanks="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;flex:1">${templateFields(t).length?`${templateFields(t).length} blank${templateFields(t).length===1?'':'s'}`:'Add blanks'}</button>
@@ -724,7 +1129,8 @@ function renderTemplatesPage(){
       ${canManage?`<div style="display:flex;gap:6px;margin-top:2px">
         <button data-tpl-builtin="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use template</button>
         <button data-tpl-bulk-b="${t.id}" class="ui-btn" style="font-size:11px;padding:4px 9px">Bulk</button>
-      </div>`:''}
+      </div>
+      <button data-tpl-dup="${t.id}" class="ui-btn" style="font-size:11px;padding:3.5px 9px;width:100%" title="HaTi's own templates are generated from code, so they cannot be edited in place. This makes an editable copy in My templates.">Duplicate &amp; edit</button>`:''}
     </div>`).join('');
 
   const already=new Set(my.filter(t=>t.source&&t.source.startsWith('sample:')).map(t=>t.source.slice(7)));
@@ -777,11 +1183,10 @@ function renderTemplatesPage(){
   document.getElementById('tpl-upload')?.addEventListener('click',()=>openCreateTemplateModal('paste'));
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
-  document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',async()=>{
-    const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-del')); if(!t) return;
-    if(!await confirmDialog({title:`Delete template “${t.name}”?`, message:'Existing contracts created from it are not affected.', confirmLabel:'Delete template', danger:true})) return;
-    saveCustomTemplates(customTemplates().filter(x=>x.id!==t.id)); toast('Template deleted'); renderTemplatesPage();
-  }));
+  document.querySelectorAll('[data-tpl-edit]').forEach(b=>b.addEventListener('click',()=>openTemplateEditor(b.getAttribute('data-tpl-edit'))));
+  document.querySelectorAll('[data-tpl-dup]').forEach(b=>b.addEventListener('click',()=>duplicateBuiltinTemplate(b.getAttribute('data-tpl-dup'))));
+  // deletion puts the usage count in front of the decision rather than after it
+  document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',()=>deleteTemplateGuarded(b.getAttribute('data-tpl-del'))));
   document.querySelectorAll('[data-tpl-builtin]').forEach(b=>b.addEventListener('click',()=>openWizard(b.getAttribute('data-tpl-builtin'))));
   document.querySelectorAll('[data-tpl-blanks]').forEach(b=>b.addEventListener('click',()=>openBlanksEditor(b.getAttribute('data-tpl-blanks'))));
   document.querySelectorAll('[data-tpl-bulk]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-bulk')); if(t) openBulkCreateModal(t); }));
@@ -848,4 +1253,6 @@ function renderPlaybookPage(){
   setActiveNav('playbook');
 }
 
-Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
+  templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
+  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,duplicateBuiltinTemplate,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

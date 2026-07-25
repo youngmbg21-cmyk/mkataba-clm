@@ -1117,6 +1117,30 @@ function docBody(c){
     ${clauses.join('')}
     ${signatureBlock(c)}`;
 }
+/* Which template, and which VERSION of it, this contract was generated from.
+   Worth surfacing because a template can be edited afterwards and this contract
+   will NOT change — so "Raw Mats v3" is the only thing that answers "which
+   wording is this?" once the template has moved on. Says so explicitly, and
+   flags when the template has since been revised. */
+function templateProvenanceHtml(c){
+  const tid=c.templateId||c.templateRef;
+  if(!tid || !window.customTemplates) return '';
+  const name=c.templateName||'';
+  const v=Number(c.templateVersion||0);
+  const live=customTemplates().find(t=>t.id===tid);
+  const liveV=live?templateVersionNo(live):0;
+  const label=`${(live?live.name:name)||'a template'}${v?` v${v}`:''}`;
+  const moved=live && v && liveV>v;
+  const esc=x=>String(x||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return `<div style="max-width:660px;margin:0 auto 10px;display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px">
+    <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
+    <span>Created from <b>${esc(label)}</b>.${moved
+      ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>This contract keeps the wording it was created with</b>; editing a template never changes a contract already made from it.`
+      : ` Editing the template later does not change this contract — its wording was copied at creation.`}${
+      !live ? ' <span style="color:var(--color-neutral-500)">The template itself has since been deleted.</span>' : ''}</span>
+  </div>`;
+}
+
 /* Migrated paper: signed before it reached HaTi, so there is no signature to
    show and no electronic-signature law to cite. Naming the person who ran the
    import would put a party on the contract who never agreed to it — say plainly
@@ -1448,6 +1472,7 @@ function renderWorkspace(){
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
+          ${templateProvenanceHtml(c)}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
             
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
@@ -1989,4 +2014,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

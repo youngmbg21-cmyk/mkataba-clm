@@ -287,8 +287,11 @@ function createBulkFromTemplate(t, rows, opts={}){
         text:`Created from template “${tplName}” in bulk run ${batch}. The values from the spreadsheet are already filed as contract data — check them, then share for review.`,ts:fmtDT(nowISO())}],
       fields:{}, scan:null,
       audit:[{at:nowISO(),user:u?.name||'System',action:'Created',
-        detail:`Bulk creation from template “${tplName}” · batch ${batch} · run by ${u?.name||'System'}`}],
-      signatures:[], templateBatch:batch, templateRef:t.id||null };
+        detail:`Bulk creation from template “${tplName}”${t.builtin?'':` v${window.templateVersionNo?templateVersionNo(t):1}`} · batch ${batch} · run by ${u?.name||'System'}`}],
+      signatures:[], templateBatch:batch,
+      // provenance — which template, at which version (see buildFromCustomTemplate)
+      templateRef:t.id||null, templateId:t.builtin?null:(t.id||null), templateName:tplName,
+      templateVersion:(window.templateVersionNo?templateVersionNo(t):1) };
     applyTemplateValues(c, fs, r.values);
     const tFmt=templateFormat(t);
     const bodyText=fillTemplateBody(templateBody(t), r.values, tFmt);
