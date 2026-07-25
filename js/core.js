@@ -1178,11 +1178,36 @@ async function openShareModal(c){
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
+  /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
+     In server mode it sits in the shares table and is served to anyone holding
+     the link; in static mode the whole thing travels inside the URL. Either
+     way it is read by a party outside the organisation, so it carries ONLY
+     what js/views/portal.js renders or needs to send a response back. Anything
+     added here is published — audit it against the portal before adding it.
+
+       id, name, counterparty  — the header and the response envelope
+       template, fields        — so a built-in template can be re-rendered
+       redlineText, format     — the working text, and the marker without which
+                                 a rich document renders as literal markup
+       source, upload          — an uploaded document's own file
+       value, valueType        — the counter-proposal field ("propose a
+                                 different value") and the certificate row
+       org, sharedBy, at       — who sent it and when, shown in the header
+       docHash                 — echoed in the response so the owner can tell
+                                 the document changed after the link was made
+
+     `folder` was in here and is not: which internal value stream a contract is
+     filed under is the organisation's own filing structure, and the portal has
+     never rendered it — it derives one from the template, falling back to
+     'corp'. The upload is trimmed to the file itself; the near-duplicate
+     signals (textFingerprint, simhash) and OCR bookkeeping are
+     portfolio-analysis data with no meaning to a counterparty. */
+  const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
+    fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
   const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
-    contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
-      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder,
-      // the format travels with the body, or the portal would render a rich
-      // document's markup as literal text to the counterparty
+    contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      upload:isUpload(c)?shareUpload(c.upload):undefined,
+      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
       redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
   const server=API_MODE();
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
@@ -1195,6 +1220,10 @@ async function openShareModal(c){
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       ${readinessPanelHtml(c)}
+      ${server?'':`<div style="margin:0 0 12px;border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8f322b;margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
+        <p style="margin:0;font-size:11.5px;line-height:1.6;color:#8f322b;">Without a HaTi server the whole document travels <strong>inside the link itself</strong>. That link <strong>never expires and cannot be revoked</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
+      </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
