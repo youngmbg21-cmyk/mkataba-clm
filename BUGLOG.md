@@ -692,3 +692,94 @@ sub-list emits its own marker alone, exactly as the document renders it.
 **How it was verified.** The Word fixture's lettered sub-list projects as
 "a. Save as set out in clause 4.4." while the decimal Google Docs fixture still
 projects as "2.1.".
+
+### 10. Contract text was set in the interface font, so paper and product looked identical
+
+**What was broken.** Everything in HaTi — the nav, the register, the buttons,
+the panels *and the contract itself* — was set in IBM Plex Sans. A contract is
+not a screen of application chrome; it is the artefact the whole product exists
+to handle, and it read as just another panel.
+
+**The fix.** Two new tokens, `--font-doc` (Google Sans Flex) and
+`--font-doc-mono` (Google Sans Code), applied through a single `.doc-surface`
+class that wraps every surface rendering contract text: the workspace document
+pane, the counterparty share portal, the template preview, the paste editor and
+the PDF export. The application interface is untouched and stays on IBM Plex.
+
+Both embed URLs were taken from the Google Fonts API rather than from memory,
+and the axes were probed rather than assumed:
+
+- **Google Sans Flex** is variable on `wght` 300–700 and — the useful discovery
+  — carries a real **`slnt` axis, range −10..0**. The family ships **no italic
+  face at all**. Setting `font-style:italic` on it would have produced a
+  browser-synthesised shear, which on a contract's defined terms looks like a
+  rendering fault. Emphasis instead uses
+  `font-variation-settings:'slnt' -10` behind an `@supports` guard, with
+  `font-style` left as the fallback. (`slnt@-15..0` is rejected by the API with
+  a 400; −10 is the real limit.)
+- **Google Sans Code** is variable on `wght` 300–800 with true italics, and its
+  `google/fonts` metadata records `license: "OFL"`. It carries the columnar
+  blocks — fee schedules drawn with rules, side-by-side signature blocks —
+  where character alignment is the content.
+
+**Files touched.** `index.html`, `js/views/contract.js`, `js/views/portal.js`,
+`js/views/library.js`.
+
+**How it was verified.** A browser test asserts the document pane resolves to
+Google Sans Flex, `<pre>` to Google Sans Code, the `<body>` still to IBM Plex,
+and that `<em>` computes `font-style:normal` with a `slnt` variation setting.
+Because this container's browser has no outbound network, `document.fonts.check()`
+returns true even when nothing loaded — so the test additionally **measures
+rendered text width** against the fallback faces (Flex 746px vs IBM Plex 694px
+vs generic sans 752px; Code 960px vs generic monospace 963px), which only
+differs if the real font files are rendering. The real Google Fonts CSS and all
+32 woff2 subsets are served locally to the test for that reason.
+
+### 11. Document body text was under WCAG AAA, and got worse on any tinted page
+
+**What was broken.** Contract body copy was `text-brand-800/85` — the blue-grey
+`#2c455d` at 85% opacity. Measured on the `#fbfbfc` document page that is
+**6.27:1**, under WCAG AAA's 7:1 for body copy. The labels beside it were worse:
+`/65` measured **3.68:1** and `/60` measured **3.25:1**, both under AA's 4.5:1
+for normal text. Because these are opacity modifiers rather than colours, the
+same class also reads differently on every background it lands on, and the
+document page is not white.
+
+**Root cause.** Opacity was being used to express hierarchy. It expresses
+hierarchy only against one specific background, and silently stops meeting any
+contrast target on the others.
+
+**The fix.** A `--color-doc-text` token (`#15181a`) and a `--color-doc-muted`
+token (`#4a4f54`) — solid colours, no opacity modifiers anywhere on a document
+surface. `.doc-surface` overrides the `text-brand-800/*` utilities **only inside
+a document**; the identical classes elsewhere in the application are deliberately
+left alone, because this is a fix to how a contract reads, not a repaint of the
+product. Hierarchy is carried by size and weight instead, which is what it was
+carrying anyway.
+
+`print-color-adjust: exact` (and the `-webkit-` form) is set on the document
+surface and forced on everything inside `#print-root`, because browsers and
+print drivers lighten body text and drop fills by default — which would have
+silently undone all of this on the one artefact that actually gets filed,
+emailed and signed.
+
+**Files touched.** `index.html`.
+
+**How it was verified.** Measured, not judged by eye. A browser test computes
+WCAG relative luminance from `getComputedStyle`, compositing any alpha over the
+effective background it walks up to find. Because this environment's network
+policy blocks `cdn.tailwindcss.com`, the test injects the exact declaration
+Tailwind v3 emits for these utilities, derived from `brand-800` read out of
+`index.html` itself, so the "before" figure measures the shipped configuration
+rather than an unstyled fallback.
+
+| Surface | Before | After |
+|---|---|---|
+| Document body | 6.27:1 | **17.25:1** |
+| Headings (h1/h2) | 6.27:1 | **17.25:1** |
+| List items, table cells, `<pre>` | 6.27:1 | **17.25:1** |
+| Table header (on `#f5f5f8`) | — | **16.39:1** |
+| Rubrics / labels (`/60`, `/65`) | 3.25:1 / 3.68:1 | **8.00:1** |
+
+The test also asserts hierarchy survived — h1 and h2 remain larger than body,
+and headings and `<strong>` remain at weight ≥ 600.

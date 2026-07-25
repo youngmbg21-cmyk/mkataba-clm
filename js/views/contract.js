@@ -485,7 +485,7 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const flush=()=>{
     if(!buf.length) return;
     out.push(bufRuled
-      ? `<div class="doc-pre" style="font-family:var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
+      ? `<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
       : `<div style="white-space:pre-wrap">${esc(buf.join('\n'))}</div>`);
     buf=[];
   };
@@ -1450,7 +1450,7 @@ function renderWorkspace(){
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
             
-            <article id="doc-canvas" style="background:transparent">${docBody(c)}</article>
+            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
           </div>
         </div>
       </section>

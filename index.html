@@ -7,7 +7,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Interface faces. The application chrome stays on IBM Plex. -->
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Document faces, for contract text only (see --font-doc / --font-doc-mono).
+     Both come from Google Fonts. Google Sans Flex is a variable face: weight
+     300-700 plus a real slant axis (slnt, -10..0), so emphasis in a contract
+     is a true oblique rather than a browser-synthesised fake — this family has
+     no separate italic. Google Sans Code carries the columnar blocks. -->
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,400..700;1,400..700&family=Google+Sans+Flex:slnt,wght@-10..0,300..700&display=swap" rel="stylesheet">
 <script>
   // HaTi — Industry design system (steel-blue on a light technical ground).
   // Barlow / Barlow Condensed typography, white surfaces on a very light-grey
@@ -73,6 +80,34 @@
     --font-heading:"IBM Plex Sans",system-ui,sans-serif;
     --font-body:"IBM Plex Sans",system-ui,sans-serif;
     --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+
+    /* The DOCUMENT faces. These apply to contract text only — the pane you
+       read a contract in, the counterparty portal, the template preview and
+       the PDF export. The application interface (nav, register, cards,
+       buttons, panels) stays on IBM Plex, so the difference between "the
+       product" and "the paper" is legible at a glance.
+       Google Sans Flex is a variable face: wght 300-700, plus a real slant
+       axis (slnt -10..0), so emphasis is a true oblique rather than a
+       browser-synthesised fake. Google Sans Code carries the columnar blocks —
+       fee schedules drawn with rules, side-by-side signature blocks — where
+       character alignment is the content. */
+    --font-doc:"Google Sans Flex","Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-doc-mono:"Google Sans Code",ui-monospace,"IBM Plex Mono",monospace;
+
+    /* Document text colour. A solid token, deliberately NOT an opacity
+       modifier. `text-brand-800/85` composited the blue-grey #2c455d onto the
+       #fbfbfc document page and landed at 6.29:1 — under WCAG AAA's 7:1 for
+       body copy, and the /65 and /60 labels beside it were 3.67:1 and 3.24:1,
+       under AA's 4.5:1. Opacity also means the same class reads differently on
+       every background it lands on, which is why the fix is a colour and not a
+       smaller number. Measured ratios are in SUMMARY.md.
+         --color-doc-text  #15181a on #fbfbfc = 17.25:1  (17.84:1 on white)
+         --color-doc-muted #4a4f54 on #fbfbfc =  8.00:1
+       Both are measured with the WCAG relative-luminance formula, not judged
+       by eye. See also print-color-adjust, further down. */
+    --color-doc-text:#15181a;
+    --color-doc-muted:#4a4f54;         /* secondary document copy only */
+    --color-doc-rule:#c9ccd1;
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
     --radius-sm:5px; --radius-md:10px; --radius-lg:10px;
@@ -293,17 +328,74 @@
   .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
   @keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
 
+  /* ============================================================
+     THE DOCUMENT SURFACE
+     Everything that renders CONTRACT TEXT — the workspace document pane, the
+     counterparty share portal, the template preview and the PDF export — sits
+     inside .doc-surface. The application interface does not. One class is what
+     keeps "the product" and "the paper" visually distinct, and it is the one
+     place the document faces and the document ink are applied. */
+  .doc-surface{
+    font-family:var(--font-doc);
+    color:var(--color-doc-text);
+    font-size:13.5px;
+    line-height:1.75;
+    /* a contract is read, not skimmed: open the letterfit very slightly and
+       stop the browser from tightening it on the larger sizes */
+    letter-spacing:0;
+    font-variant-numeric:tabular-nums;    /* money and clause numbers line up */
+    -webkit-font-smoothing:antialiased;
+    print-color-adjust:exact;
+    -webkit-print-color-adjust:exact;
+  }
+  /* Google Sans Flex ships no italic — it ships a SLANT AXIS. Using it gives a
+     drawn oblique instead of the browser shearing the upright, which on a
+     contract's defined terms is the difference between emphasis and a smear.
+     The font-style declaration stays as the fallback for anyone who does not
+     get the variable font. */
+  @supports (font-variation-settings:'slnt' -10){
+    .doc-surface em, .doc-surface i, .doc-surface cite{
+      font-style:normal;
+      font-variation-settings:'slnt' -10;
+    }
+  }
+  .doc-surface strong,.doc-surface b{font-weight:600;color:var(--color-doc-text);}
+  .doc-surface h1,.doc-surface h2,.doc-surface h3,.doc-surface h4,
+  .doc-surface h5,.doc-surface h6{font-family:var(--font-doc);color:var(--color-doc-text);}
+  /* the columnar blocks — fee schedules drawn with rules, side-by-side
+     signature blocks — where character alignment IS the content */
+  .doc-surface pre,.doc-surface code,.doc-surface .doc-pre,
+  .doc-surface .font-mono,.doc-surface [style*="--font-mono"]{
+    font-family:var(--font-doc-mono);
+  }
+  /* Secondary document copy (the "· working text ·" rubric, the file note under
+     a printed transcription). Still 8:1 — a document has no throwaway text. */
+  .doc-surface .doc-muted{color:var(--color-doc-muted);}
+
+  /* Retire the washed-out opacity modifiers ON DOCUMENT SURFACES ONLY. The
+     same classes elsewhere in the interface are untouched: this is a fix to
+     how a contract reads, not a repaint of the application. Specificity here
+     beats Tailwind's single-class utilities without !important. */
+  .doc-surface .text-brand-800\/85,.doc-surface .text-brand-800\/80,
+  .doc-surface .text-brand-800\/75,.doc-surface .text-brand-800\/70,
+  .doc-surface .text-brand-900,.doc-surface .text-brand-800{color:var(--color-doc-text);}
+  .doc-surface .text-brand-800\/65,.doc-surface .text-brand-800\/60,
+  .doc-surface .text-brand-800\/35,.doc-surface .text-brand-700{color:var(--color-doc-muted);}
+
   /* ---- rich document content (see DESIGN-rich-documents.md) ----
      A rich body carries NO inline styles — the sanitiser strips every one of
      them — so its whole appearance comes from here. That is deliberate: it is
      what makes a pasted contract look like HaTi paper rather than like the
      machine it was written on. */
-  .hati-doc{font-size:13.5px;line-height:1.85;}
+  .hati-doc{font-size:13.5px;line-height:1.85;font-family:var(--font-doc);color:var(--color-doc-text);
+    print-color-adjust:exact;-webkit-print-color-adjust:exact;}
   .hati-doc>*:first-child{margin-top:0;}
   .hati-doc>*:last-child{margin-bottom:0;}
   .hati-doc p{margin:0 0 0.85em;}
+  /* the document face, at the document's own weight — a contract's headings
+     are set in the same family as its body, not in the interface face */
   .hati-doc h1,.hati-doc h2,.hati-doc h3,.hati-doc h4{
-    font-family:var(--font-heading);font-weight:600;line-height:1.3;margin:1.5em 0 0.5em;}
+    font-family:var(--font-doc);font-weight:600;line-height:1.3;margin:1.5em 0 0.5em;}
   .hati-doc h1{font-size:1.42em;text-align:center;letter-spacing:-.01em;}
   .hati-doc h2{font-size:1.16em;}
   .hati-doc h3{font-size:1.04em;}
@@ -331,7 +423,7 @@
   .hati-doc th{font-weight:600;background:var(--color-neutral-100);}
   /* preformatted blocks carry the columnar layouts — fee schedules drawn with
      rules, side-by-side signature blocks — so their alignment must survive */
-  .hati-doc pre{font-family:var(--font-mono);font-size:.86em;line-height:1.5;
+  .hati-doc pre{font-family:var(--font-doc-mono);font-size:.86em;line-height:1.5;
     white-space:pre;overflow-x:auto;margin:1em 0;}
   /* an unfilled blank, marked for display only */
   .hati-doc .hati-field{background:var(--color-accent-100);
@@ -353,6 +445,13 @@
     body>*{display:none!important;}
     #print-root{display:block!important;}
     body{background:#fff;}
+    /* Print the ink that was measured, not whatever the print pipeline decides
+       is economical. Without this, browsers and drivers lighten body text and
+       drop background fills — which would silently undo the contrast work on
+       exactly the artefact that gets filed, emailed and signed. */
+    #print-root,#print-root *{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;}
+    .doc-surface{color:var(--color-doc-text)!important;font-family:var(--font-doc)!important;}
+    .doc-surface .doc-muted{color:var(--color-doc-muted)!important;}
     /* a ruled/columnar block scrolls sideways on screen; on paper there is
        nowhere to scroll, so let it wrap rather than clip the right-hand columns */
     .doc-pre{white-space:pre-wrap!important;overflow:visible!important;}

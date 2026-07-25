@@ -198,9 +198,9 @@ function openCreateTemplateModal(mode){
           <button id="ct-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">Preview</button>
           <button id="ct-clear" class="ui-btn" style="font-size:11px;padding:3px 9px">Clear</button>
         </div>
-        <div id="ct-editor" class="scroll-thin" style="height:270px;font-size:12.5px"
+        <div id="ct-editor" class="scroll-thin doc-surface" style="height:270px;font-size:12.5px"
              data-placeholder="Open your contract in Word or Google Docs, select all (Ctrl+A), copy (Ctrl+C), then paste here (Ctrl+V)."></div>
-        <div id="ct-previewpane" class="scroll-thin" style="display:none;height:270px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
+        <div id="ct-previewpane" class="scroll-thin doc-surface" style="display:none;height:270px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
         <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
         <div id="ct-report" style="font-size:11px;margin-top:7px;min-height:16px;line-height:1.5"></div>
       </div>
@@ -487,7 +487,7 @@ function openBlanksEditor(tid){
     <div id="be-warn" style="font-size:10.5px;margin-bottom:8px;min-height:14px"></div>
     <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:400;color:var(--color-neutral-500)">· formatted template: shown as the document it is, so marking a blank keeps the formatting intact</span>`:''}</span>
       ${rich
-        ? `<div id="be-body" class="scroll-thin" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 13px"></div>`
+        ? `<div id="be-body" class="scroll-thin doc-surface" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 13px"></div>`
         : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 11px;font:inherit;font-size:12px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:11px;color:var(--color-neutral-600);min-height:15px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -667,7 +667,7 @@ function openTemplatePreview(tpl){
       </div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
       ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:10.5px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:3px;padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--color-accent-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
-      <div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
+      <div class="scroll-thin doc-surface" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
         ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">Use template</button>`:''}
