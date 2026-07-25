@@ -13,7 +13,10 @@
      feedback date promised at submission.
    ============================================================ */
 const pesc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-window.ADVICE_PORTAL={ remote:false, org:'', activeCount:0 };
+/* `eta` is the server's promised feedback date per service and urgency. The
+   portal no longer holds a queue count at all in server mode — the queue depth
+   is an operational fact about the firm, and the visitor needs the date. */
+window.ADVICE_PORTAL={ remote:false, org:'', activeCount:0, eta:null };
 
 async function adviceEntry(param){
   PORTAL_MODE=true;
@@ -22,11 +25,14 @@ async function adviceEntry(param){
   let remote=null;
   try{ const r=await fetch('api/advice/rates'); if(r.ok) remote=await r.json(); }catch(e){}
   if(remote){
-    ADVICE_PORTAL={ remote:true, org:remote.orgName||'HaTi', activeCount:remote.queue?.active||0 };
+    ADVICE_PORTAL={ remote:true, org:remote.orgName||'HaTi', activeCount:0, eta:remote.eta||null };
     ADVICE_RATE_OVERRIDES=remote.rates||{};
   } else {
     hydrate(); hydrateAdvice();                       // same-browser demo (static mode)
-    ADVICE_PORTAL={ remote:false, org:(getOrg()&&getOrg().name)||'HaTi', activeCount:adviceActiveCount() };
+    // Static mode is a same-browser demo with no server: the count is this
+    // visitor's own localStorage, so it is used to date the promise and is
+    // still never printed.
+    ADVICE_PORTAL={ remote:false, org:(getOrg()&&getOrg().name)||'HaTi', activeCount:adviceActiveCount(), eta:null };
   }
   if(!param || param==='new'){ renderAdviceIntake(); return; }
   // tracking: t:<token> is a server token; a bare token is static-mode
@@ -113,11 +119,13 @@ function renderAdviceIntake(){
   const queueText=()=>{
     const sid=document.querySelector('input[name="adv-svc"]:checked')?.value;
     const el=document.getElementById('adv-queue-text'); if(!el) return;
-    const n=ADVICE_PORTAL.activeCount;
     if(!sid){ el.textContent='Select a service to see your estimated feedback date.'; return; }
     const urgency=document.getElementById('ap-priority').checked?'priority':'standard';
-    const eta=adviceEta(sid, urgency, n, nowISO());
-    el.innerHTML=`${n===0?'The pipeline is clear':`<strong>${n}</strong> request${n===1?' is':'s are'} currently in the pipeline`} — submit today and expect feedback by <strong>${fmtDay(eta)}</strong>.`;
+    // Server mode: the date is the server's, already carrying current load.
+    // Static mode: computed here from this browser's own demo data.
+    const eta=(ADVICE_PORTAL.eta&&ADVICE_PORTAL.eta[sid]&&ADVICE_PORTAL.eta[sid][urgency])
+      || adviceEta(sid, urgency, ADVICE_PORTAL.activeCount, nowISO());
+    el.innerHTML=`Submit today and expect feedback by <strong>${fmtDay(eta)}</strong>. Current workload is already included in that date.`;
   };
   document.querySelectorAll('[data-svc]').forEach(card=>card.addEventListener('click',()=>{
     document.querySelectorAll('[data-svc]').forEach(c=>c.classList.remove('sel'));

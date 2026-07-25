@@ -2999,13 +2999,36 @@ const advicePublicView = r => ({
   quote: r.quote, history: (r.history || []).map(h => ({ at: h.at, to: h.to })),
 });
 
-// Public: the published rate card, live queue load, and the workspace name.
-// Doubles as the portal's server-mode probe.
+/* Public: the published rate card, the promised feedback date, and the
+   workspace name. Doubles as the portal's server-mode probe.
+
+   It used to publish `queue: { active: N }` — the live number of open advice
+   requests — to anyone who could load the page, and the intake screen printed
+   it ("4 requests are currently in the pipeline"). That is an operational
+   fact about the firm: how busy it is, how fast it is clearing work, whether
+   it just lost a client. A prospective customer needs the DATE, not the
+   backlog behind it.
+
+   So the queue depth stays server-side and is folded into the promise: the
+   estimated feedback date per service and urgency, computed here exactly as
+   POST /api/advice/requests computes it, so what the intake page shows and
+   what the customer is quoted cannot drift apart. The internal Advice Desk
+   board (GET /api/advice/requests, auth-gated) keeps full visibility. */
 app.get('/api/advice/rates', (req, res) => {
+  const from = now();
+  const load = Math.min(5, Math.floor(adviceActiveCount() / 3));
+  const eta = {};
+  for (const sid of Object.keys(ADVICE_DEFAULT_RATES)) {
+    const base = adviceRateFor(sid);
+    eta[sid] = {
+      standard: adviceAddBusinessDays(from, base.days + load),
+      priority: adviceAddBusinessDays(from, Math.max(1, Math.ceil(base.days / 2)) + load),
+    };
+  }
   res.json({
     orgName: (getSetting('org') || {}).name || null,
     rates: (getSetting('appSettings') || {}).adviceRates || null,
-    queue: { active: adviceActiveCount() },
+    eta,
   });
 });
 
