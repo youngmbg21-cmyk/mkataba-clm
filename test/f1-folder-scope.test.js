@@ -130,6 +130,23 @@ describe('F1 — a restricted user never receives folder-B data', () => {
     assert.equal(still.folder, FOLDER_A);
   });
 
+  test('an uploaded file attached to a folder-B contract is not readable', async () => {
+    // attach a real file to a folder-B contract, as an upload would
+    const file = await W.admin.json('/api/files', { method: 'POST', body: {
+      name: 'naivas-listing.pdf', mime: 'application/pdf',
+      dataUrl: 'data:application/pdf;base64,JVBERi0xLjQK' } });
+    const cur = await W.admin.json('/api/contracts/MK-B2');
+    await W.admin.json('/api/contracts/MK-B2', { method: 'PUT', body: {
+      contract: { ...cur, source: 'upload', upload: { fileId: file.id, fileName: 'naivas-listing.pdf' } },
+      baseVersion: cur._v } });
+
+    const r = await W.restricted.raw('/api/files/' + file.id);
+    assert.equal(r.status, 404, 'a folder-B contract\'s file must not be readable');
+    // the owner side still works
+    assert.equal((await W.admin.json('/api/files/' + file.id)).name, 'naivas-listing.pdf');
+    assert.equal((await W.unrestricted.json('/api/files/' + file.id)).name, 'naivas-listing.pdf');
+  });
+
   test('a restricted user cannot share a folder-B contract', async () => {
     const r = await W.restricted.raw('/api/shares', { method: 'POST', body: {
       payload: { kind: 'hati-share', contract: { id: 'MK-B1', name: 'Modern Trade Listing' } },

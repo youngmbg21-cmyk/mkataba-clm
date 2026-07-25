@@ -16,6 +16,30 @@ This is an honest description of where the MVP stands today, for pilot customers
 - Roles: Admin / Legal / Viewer, enforced on the server for every mutating route (viewers are read-only server-side, not just in the UI).
 - Spend-threshold **approval policy** gates high-value signing.
 
+### Folder-level access
+
+- Each member can be restricted to specific **value streams** (folders), or granted all of them. Admins are always unrestricted. Edited per member in Team & Settings.
+- **The restriction is enforced on the server**, not in the browser. The caller's scope is resolved from settings on every request and applied as a SQL filter before any data is serialised: the contract list and single-record fetch, saves and deletes, search (both the full-text and fallback paths), the portfolio stats and analytics aggregates, the activity feed, the share dispatch overview and pending responses, per-contract share and engagement panels, the CSV and ZIP exports, and the bytes of an uploaded document.
+- **Every AI path is scoped.** The prompt-assembling endpoints (portfolio graph, semantic search, template advisor) filter the contract list the browser posts against the caller's scope before building the prompt, so a contract they may not see is never sent to the model. The Copilot tool loop carries the scope into every tool it runs, including the workspace summary in its system prompt.
+- A request for a contract outside the caller's scope returns **404, not 403** — a 403 would confirm that the id exists.
+- A member cannot file a contract **into** a stream they cannot see.
+- The client-side folder filtering that predates this is retained as a convenience on top of the server's decision, never as the mechanism.
+
+### Value visibility
+
+- A per-member right, **`can_view_values`**, controls whether that member sees monetary amounts. Admins always have it and it cannot be removed from them. Every account has it **by default**; an admin turns it off per member in Team & Settings.
+- **Enforced on the server.** For a member without it, monetary fields are stripped before the response is sent — the contract value and value type, money-mapped template blanks, extracted metadata amounts, and a counterparty's counter-proposed figure. Monetary aggregates are omitted from the stats and analytics endpoints (the renewal pipeline still ships contract counts). The CSV export emits the Value column empty. No value figure is placed in any AI prompt, and full-text search snippets are withheld because the search index contains template field values.
+- Saving a record that was served with its values stripped **cannot erase the stored amount**: the server restores every monetary field from the record before the write.
+- The interface removes what it will not receive — the money KPI cards, the "sort by value" option, money totals — as a cosmetic layer on top, never as the mechanism.
+- **Limitation, stated plainly:** this right governs *structured* value fields, aggregates, exports and AI prompts. It does **not** redact an amount written into the contract's own wording, its frozen executed text, or an uploaded document's extracted text. A member who can open a contract can read a price in its clauses. **Folder access is the boundary that holds** for information someone must not learn at all; value visibility reduces exposure across lists, dashboards, exports and AI answers.
+
+### What each surface shows
+
+- The Home dashboard is built entirely from the scoped, masked data above, so it shows the reader's portfolio rather than the workspace's. "Approvals waiting" lists only contracts the reader can act on as an eligible approver, or raised themselves.
+- Executed contracts display the signer's **name, signature form/method and timestamp**. The signer's **IP address and device are not on the document face** — they are captured as before and appear in the audit trail, the evidence pack and the printable signing certificate, which is where evidence belongs.
+- The **public** advice intake publishes rates, typical effort, fee range and an estimated feedback date. It does **not** publish live queue depth; the workload is folded into the date server-side. The internal Advice Desk board keeps full visibility.
+- The counterparty share payload carries only what the counterparty portal renders — notably **not** the contract's internal filing location, and not the portfolio's near-duplicate or OCR bookkeeping.
+
 ## Data handling
 
 - Server mode stores each contract as its **own row** in a local **SQLite** database, with its **own version**. A save touches one contract (never the whole portfolio), and each contract has independent **optimistic locking** so a teammate's change to a different contract can't be clobbered.
@@ -54,6 +78,9 @@ This is an honest description of where the MVP stands today, for pilot customers
 - Rate limiters and the AI daily counter are in-memory and single-instance (see "Web & API hardening" above) — they don't yet coordinate across multiple server processes.
 - Email delivery requires a provider key (`RESEND_API_KEY`); without it, messages and one-time codes queue to an admin-visible outbox.
 - The client loads a working set of up to 5,000 contract summaries; beyond that, older contracts are reachable by search but not all held in memory at once (the server list/search/stats endpoints have no such limit).
+- **Value visibility does not redact contract wording** — see "Value visibility" above. Use folder access for information a member must not learn at all.
+- The **"Approvals waiting" narrowing on Home is applied in the browser.** The contract list it is built from is server-scoped, so it cannot show a contract the reader has no access to; but the further narrowing to "waiting on you or raised by you" is a client-side filter, because the approval rule engine evaluates conditions that depend on client-held scan and playbook state. Rationale in `BUGLOG.md`.
+- **Static (no-server) mode has no access controls at all** — it is one browser and one person, with everything in localStorage. Sharing in static mode puts the whole document inside the link, which never expires and cannot be revoked; the share dialog says so. It is for demonstrations, not for a real counterparty.
 - No third-party security audit has been performed.
 
 ## Configuration
@@ -68,6 +95,7 @@ This is an honest description of where the MVP stands today, for pilot customers
 | `AI_RATE_LIGHT` / `AI_RATE_DEEP` | Per-user AI request caps per 15 min (light / deep tiers). Defaults `40` / `15`. |
 | `AI_DAILY_LIMIT` | Workspace daily AI-request ceiling. Default `500`; `0` disables. |
 | `AI_MAX_CHARS` / `AI_MAX_CONTRACTS` | Per-request input caps (content characters / contracts). Defaults `50000` / `400`. |
+| `ANTHROPIC_BASE_URL` | Provider origin for AI calls (default `https://api.anthropic.com`). Set it to route through an internal proxy; the test suite points it at a local stand-in so no test ever calls the real API. |
 
 AI cost-control settings (`aiRateLight`, `aiRateDeep`, `aiDailyLimit`, `aiMaxChars`, `aiMaxContracts`) and the model-routing settings are also editable from **Team & Settings** and take precedence over these env vars.
 

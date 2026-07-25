@@ -2415,9 +2415,31 @@ app.post('/api/files', auth, editor, (req, res) => {
     .run(id, name || '', mime || '', dataUrl, now());
   res.json({ ok: true, id });
 });
+/* A file's bytes ARE the contract, for an uploaded document — so this route is
+   scoped like the contract that references it. A file id is unguessable
+   (`f_` + 20 hex characters) and the only place one appears is on a contract
+   record the caller could already read, so this is defence in depth rather
+   than a hole being closed; it is here so that no read route in the API is the
+   exception to the rule. A file nothing references (an orphan, or one uploaded
+   moments ago and not yet attached) stays readable — the sweep at
+   /api/files/orphans is where those are dealt with. */
+function fileInScope(scope, fileId) {
+  if (scopeIsAll(scope)) return true;
+  let referenced = false, allowed = false;
+  for (const r of db.prepare('SELECT json, folder FROM contracts').all()) {
+    let c; try { c = JSON.parse(r.json); } catch (_) { continue; }
+    const ids = [];
+    if (c.upload && c.upload.fileId) ids.push(c.upload.fileId);
+    for (const d of (Array.isArray(c.documents) ? c.documents : [])) if (d && d.fileId) ids.push(d.fileId);
+    if (!ids.includes(fileId)) continue;
+    referenced = true;
+    if (inScope(scope, r.folder)) { allowed = true; break; }
+  }
+  return !referenced || allowed;
+}
 app.get('/api/files/:id', auth, (req, res) => {
   const f = db.prepare('SELECT name,mime,data FROM files WHERE id=?').get(req.params.id);
-  if (!f) return res.status(404).json({ error: 'File not found' });
+  if (!f || !fileInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'File not found' });
   res.json({ name: f.name, mime: f.mime, dataUrl: f.data });
 });
 /* A file id that no contract references is either an orphan from before the

@@ -5,6 +5,7 @@ One section per build run, newest at the bottom — the same convention
 
 - [Run 1 — Ingestion, AI Budget & Templates upgrade](#run-1--ingestion-ai-budget--templates-upgrade)
 - [Run 2 — Rich Templates, Document Typography & Legibility](#run-2--rich-templates-document-typography--legibility)
+- [Run 3 — Visibility & Permissions Hardening (2026-07-25)](#run-3--visibility--permissions-hardening-2026-07-25)
 
 ---
 
@@ -655,3 +656,340 @@ diff, the AI, search and the seal all read.
    a textarea, so an accepted redline converts a rich contract to plain text —
    handled honestly today (the format is reset and the audit entry says why) but
    it is a real loss on a route that will get more traffic now.
+
+---
+
+# Run 3 — Visibility & Permissions Hardening (2026-07-25)
+
+Seven fixes, F1–F7, seven commits, in the order the brief set. **All seven were
+completed**, including their acceptance tests. One requirement inside F4 was
+implemented client-side rather than server-side for a reason set out below and
+in `BUGLOG.md`; nothing else deviates.
+
+The premise of the run was a single sentence: **the server is the only thing
+that decides what a user can see, and the interface inherits that decision.**
+Everything below follows from it.
+
+## What shipped
+
+| # | Fix | Commit |
+|---|---|---|
+| F1 | Enforce folder access on the server, not in the browser | `7f291e3` |
+| F2 | `can_view_values` — a per-member right the server enforces | `366ed20` |
+| F3 | The dashboard inherits the scope | `ca18a58` |
+| F4 | Approvals waiting is the reader's own queue | `e0dc188` |
+| F5 | Signer IP and device move off the document face | `6f33afd` |
+| F6 | The public advice page stops publishing how busy the firm is | `fc493cd` |
+| F7 | Trim the share payload; label static sharing | `53153e3` |
+
+## Test baseline
+
+**There was no automated test suite in this repository when the run started.**
+`package.json` had no `test` script and no test files existed; the only prior
+verification artefact was `TESTREPORT.md`, a manual exploratory QA pass. So the
+recorded baseline is: **0 tests, nothing to regress against.**
+
+This run creates the suite. `npm test` runs `node --test test/*.test.js`:
+
+| File | Tests | What it covers |
+|---|---|---|
+| `test/regression.test.js` | 12 | The baseline itself — auth, viewer read-only, executed-record immutability, append-only audit trail, counterparty share round-trip, optimistic locking |
+| `test/f1-folder-scope.test.js` | 21 | F1 acceptance |
+| `test/f2-value-permission.test.js` | 19 | F2 acceptance |
+| `test/f3-dashboard.test.js` | 9 | F3 acceptance |
+| `test/f4-approvals.test.js` | 6 | F4 acceptance |
+| `test/f5-signature-provenance.test.js` | 6 | F5 acceptance |
+| `test/f6-advice-queue.test.js` | 7 | F6 acceptance |
+| `test/f7-share-payload.test.js` | 9 | F7 acceptance |
+| **Total** | **89** | all passing |
+
+`test/helpers.js` boots a **real** server on a free port against a throwaway
+SQLite file. `test/dom.js` is a small browser stand-in — enough to run a view
+module that builds a string and read back the markup it produced.
+
+**Nothing calls a real API.** Anthropic is served by a local stand-in
+(`ANTHROPIC_BASE_URL`, a new env var that also lets an air-gapped deployment
+point at a proxy) which records every request body — that recording is what the
+"no folder-B contract reached the prompt" assertions run against. Email is never
+sent: `RESEND_API_KEY` is unset in the harness, so `sendEmail()` queues to the
+outbox table exactly as it does on a server with no mail provider.
+
+**Every security assertion is on a raw response body or a raw AI payload**, not
+on rendered UI. That is the whole point of the run: a browser hiding data the
+server still sent is the failure mode being eliminated, so a test that checks
+the UI would pass on the broken code.
+
+## Schema changes
+
+Additive only, via the existing `addColumnIfMissing()` pattern. Safe to run
+against an existing database; no column was dropped, renamed or rewritten.
+
+| Table | Column | Type | Why |
+|---|---|---|---|
+| `users` | `can_view_values` | `INTEGER NOT NULL DEFAULT 1` | F2. Default 1 so every existing account keeps seeing exactly what it saw yesterday. |
+
+That is the only schema change in the run. F1 needed none — folder access
+already existed in `settings.appSettings.folderAccess`, in the shape the client
+has always written; the server simply started reading it.
+
+## The F2 storage decision, and why
+
+`can_view_values` is a **column on `users`**, not a map in `appSettings`
+alongside `folderAccess`. Three reasons, in order of weight:
+
+1. **It is a right, not a preference.** `appSettings` is the workspace's
+   configuration blob — templates, approval rules, advice rates, the directory.
+   An access-control fact that the server consults on every single response
+   belongs on the identity it constrains.
+2. **It costs nothing to resolve.** The `auth` middleware already loads the full
+   `users` row into `req.user`. Reading a column off it is free; reading
+   `folderAccess` requires a settings lookup and a JSON parse per request.
+3. **`appSettings` is published to every browser.** `GET /api/bootstrap` returns
+   the whole blob. That is the wrong place for a permissions table to live even
+   when its contents are not themselves secret, and it invites a future change
+   that lets a non-admin write to it.
+
+**Why `folderAccess` was not moved to match.** It already exists in customer
+databases in its current shape, `PUT /api/settings` already writes it, and the
+client already reads it. Migrating it would be a breaking change to live data
+for a consistency benefit only a developer would feel. The two live in different
+places and the code says why in both.
+
+## Behaviour changes an admin will notice
+
+1. **Folder access is now real.** A member restricted to two streams sees only
+   those streams everywhere — the register, search, the dashboard, the
+   activity feed, exports, and anything they ask the AI. Before this run they
+   saw the whole portfolio through any path except the register.
+   **If a customer was relying on the register filter as a filing convenience
+   while expecting members to still find things by search, that will change.**
+2. **A restricted member gets "Contract not found" for a contract outside their
+   streams**, not "access denied" — deliberately, so ids cannot be probed.
+3. **A restricted member cannot file a contract into a stream they cannot see.**
+   The save is refused with a clear message.
+4. **New: per-member value visibility.** Team & Settings has a Hide / Show
+   control beside each member's folder access. **It is on for everyone by
+   default** — this deploy changes nothing until an admin turns it off.
+5. **Admins cannot be denied value access**, and cannot change their own. The
+   API refuses both with an explanatory message.
+6. **A member without value access sees a different dashboard**: no "Active
+   value" card (it is not in the Customize list either), expiring cards say
+   *when* rather than *how much*, the renewal pipeline is drawn in contract
+   counts, and the "Value (high → low)" sort option is not offered.
+7. **Search snippets are withheld** from members without value access — hit
+   names and counterparties still show. The FTS index contains template field
+   values, so a snippet can quote an amount verbatim.
+8. **"Approvals waiting" is now "Approvals waiting on you"** and lists only what
+   the reader can act on or raised themselves. An admin who was using it as a
+   workspace-wide backlog will find it much shorter; the Queue board is the
+   place for the full picture.
+9. **Executed contracts no longer print the signer's IP** on the document face.
+   It is in the audit trail and the evidence pack. Anyone who was reading IPs
+   off the contract will find them one panel down.
+10. **The public advice page no longer says how many requests are in the
+    pipeline.** It still gives the estimated feedback date, and that date still
+    moves with the real load.
+11. **In static (no-server) mode the share dialog now carries a red warning**
+    that link-borne sharing is demo-only. Server-mode sharing is unchanged.
+12. **An uploaded document's bytes are scoped too.** `GET /api/files/:id`
+    resolves the caller's scope against the contracts that reference the file.
+    A file nothing references stays readable — that is what the orphan sweep in
+    Team & Settings is for.
+13. **New endpoint:** `GET /api/export/contracts.csv` — the scoped, masked
+    whole-register export. The browser's selection exports still work.
+
+## Static mode
+
+Static mode (localStorage, no server) keeps working throughout. Where a fix is
+inherently server-only, static mode keeps current behaviour:
+
+- **F1 and F2 are server-only.** There is no server to enforce anything and no
+  multi-user workspace to enforce it between — a static workspace is one person
+  and one browser. `userFolderAccess()` and `canViewValues()` both answer
+  "unrestricted" for a local user record, so nothing changes.
+- **F3, F4, F5, F7** are client-side and apply in both modes.
+- **F6** applies in both: the static intake page computes the date from the same
+  browser's own demo queue and prints no count either.
+
+## Manual verification steps
+
+Click-through steps, no developer tools needed unless a step says so. Start each
+one signed in as the workspace admin, with the server running (`npm start`).
+
+### F1 — folder access is enforced
+
+1. Go to **Team & Settings**. Add a member: name *Test Legal*, email
+   `testlegal@yourcompany.co.ke`, role **Legal**, any password of 8+ characters.
+2. In that member's row, under the access column, click **Edit**.
+3. Untick **All streams & folders**, tick **only** *Procurement & Raw Materials*,
+   click **Save access**.
+4. Sign out. Sign in as `testlegal@…`. You will be asked to set your own
+   password — do that.
+5. Open the **Register**. Confirm every row is a Procurement contract, and the
+   stream filter pills offer no other stream.
+6. Type the name of a contract from a *different* stream into the search box.
+   Confirm **no result**.
+7. Go to **Home**. Confirm the KPI counts, the stage bar, "Decisions due" and
+   "Needs your action" only ever name Procurement contracts.
+8. **The one that matters:** in the browser's address bar, replace everything
+   after the host with `/api/contracts?limit=200` and press Enter. You are
+   looking at exactly what the server sent. Confirm the JSON contains **no**
+   contract from another stream. Do the same for `/api/stats` and
+   `/api/export/contracts.csv` (the CSV downloads — open it in a spreadsheet).
+9. Now put a specific contract id from another stream in the address bar:
+   `/api/contracts/MK-XXX`. Confirm you get **`{"error":"Contract not found"}`**,
+   not an access-denied message and not the contract.
+10. Sign back in as the admin and confirm you still see everything.
+
+### F2 — value visibility
+
+1. As the admin, go to **Team & Settings**. In *Test Legal*'s row, under the
+   access column, find **Sees contract values** and click **Hide**. Confirm the
+   dialog explains what they lose, then confirm.
+2. Sign in as *Test Legal*.
+3. **Register:** the Value column shows `—` on every row. The footer no longer
+   shows an aggregate. Open the **Sort** dropdown — confirm *Value (high → low)*
+   is **not** in the list.
+4. Open any contract. Confirm no amount appears in the key-terms panel.
+   *(Expected limitation: if the contract's own wording quotes a figure, that
+   figure is still in the document text — see "Known limitations" below.)*
+5. **Home:** confirm there is no *Active value* card. Click **Customize** and
+   confirm *Active value* is not offered there either. Confirm the expiring
+   cards say "soonest in N d" rather than a KES exposure, and the Renewal
+   pipeline is labelled in contracts, not shillings.
+6. **The one that matters:** address bar → `/api/contracts?limit=200`. Confirm
+   no `"value"` field and no amount anywhere in the JSON. Then `/api/stats` —
+   confirm there is no `totalValue`. Then `/api/export/contracts.csv` — open it
+   and confirm the *Value (KES)* column is present and every cell in it is empty.
+7. Still as *Test Legal*, edit something harmless on a contract (a note, the
+   counterparty spelling) and save. Sign back in as the admin, open the same
+   contract, and **confirm the value is still there and unchanged.**
+8. As the admin, click **Show** in that member's row to restore access, and
+   confirm the amounts come back for them.
+
+### F3 — the dashboard
+
+1. Signed in as the restricted *Test Legal* from F1, open **Home**.
+2. Confirm the KPI counts match the Register's contract count for their streams.
+3. Expand **Decisions due**. Confirm every contract named is one of theirs.
+4. Confirm "Waiting longest" and "Needs your action" name only their contracts.
+5. With value access also removed (F2 step 1), confirm no `KES` figure appears
+   anywhere on the Home screen.
+
+### F4 — approvals
+
+1. As the admin, go to **Team & Settings → approval rules** and confirm a rule
+   exists (the default is *Value ≥ KES 5M → an Admin*).
+2. As a **Legal** member who is not an approver under any rule, open **Home**.
+   Confirm the panel is titled **"Approvals waiting on you"** and lists only
+   contracts that member raised, or says *"Nothing is waiting on you."*
+3. Sign in as an **Admin**. Confirm the same panel now lists the high-value
+   contracts waiting on an admin's sign-off, each row showing the step, the
+   reason and how long it has waited.
+4. Click a row. Confirm it opens that contract.
+5. With value access removed for a member, confirm their rows carry no amount
+   and the step reads "Approval" rather than a rule name containing a figure.
+
+### F5 — signer IP off the document face
+
+1. Open any **executed (Signed)** contract.
+2. Look at the *Executed & Sealed* block. Confirm each signer card shows the
+   name, the email, the signature form (e.g. "drawn signature") and the
+   timestamp — and **no `IP` anywhere**.
+3. Scroll to the **Audit trail** panel. Confirm the *Signed* entry ends with
+   the IP and the device (e.g. `· IP 41.90.64.12 · Chrome`).
+4. Click **Download evidence pack**. Open the downloaded `.json`. Confirm each
+   entry under `signatures` still has `"ip"` and `"userAgent"` filled in.
+5. Click **Export PDF**. Confirm the printed audit trail carries the same
+   provenance line and the signature block does not.
+6. Click **Verify seal** on a contract that was signed *before* this update.
+   Confirm it still reports **Seal valid**.
+
+### F6 — the public advice page
+
+1. Sign out entirely (or open a private window).
+2. Go to `<your-host>/#advice=new`.
+3. Pick a service. Confirm the blue notice reads *"Submit today and expect
+   feedback by <date>. Current workload is already included in that date."* and
+   **does not** state a number of requests in the pipeline.
+4. **The one that matters:** address bar → `/api/advice/rates`. Confirm the JSON
+   contains `orgName`, `rates` and `eta`, and contains **no** `queue` object and
+   no request count.
+5. Sign back in and open the **Advice Desk**. Confirm the internal board still
+   shows every request and the full pipeline counts.
+
+### F7 — the share payload
+
+1. Open a contract, click **Share**, send a link to yourself (channel: *Copy
+   link*). Copy the link.
+2. Open it in a private window. Confirm the counterparty page renders: the
+   document, the header naming who shared it, and the response form.
+3. Confirm **"Propose a different value"** is offered on a monetary contract,
+   enter a figure, add a comment, and submit as *Request changes*.
+4. Back in HaTi as the sender, confirm the round appears under **Negotiation**
+   with the proposed value.
+5. Repeat 1–2 with a contract that has **formatted** (rich) working text and
+   confirm it renders as formatted text, not as raw markup.
+6. **The one that matters:** with the link open in the private window, address
+   bar → `/api/shares/<token>` (the token is the part of the link after
+   `#share=t:`). Confirm the JSON contains **no `folder`** field on the contract.
+7. **Static mode:** open `index.html` directly from disk (no server), create a
+   contract, click **Share**. Confirm the red *"Demo sharing — for
+   demonstrations only"* block appears above the channel tabs and says the link
+   never expires and cannot be revoked.
+
+## Known limitations, stated plainly
+
+- **`can_view_values` does not redact the contract's own wording.** It governs
+  structured value fields, monetary aggregates, exports and AI prompt assembly.
+  A member who can open a contract can still read a price written into clause 4,
+  into the frozen executed text, or into an uploaded PDF's extracted text.
+  **Folder access (F1) is the boundary that actually holds**; value visibility
+  reduces casual exposure across every list, dashboard, export and AI answer.
+  This is written into SECURITY.md rather than glossed over.
+- **The approvals filter (F4) is client-side.** The data underneath is
+  server-scoped; the narrowing is not. Reasoning in `BUGLOG.md`.
+- **A customer's own advice quote still carries its turnaround in days**, which
+  encodes the queue-load band. Same information as the ETA date the brief asked
+  to keep, and delivered only behind that customer's own tracking token.
+- **`GET /api/contracts` has no sort parameter**, so there was no server-side
+  value sort to make fall back. The client-side fallback was implemented and the
+  option removed from both sort menus.
+
+## Constraints held
+
+- **No build step.** No frontend dependency added; every change is vanilla ES
+  modules in `js/` following the existing `Object.assign(window, {…})` pattern.
+  The only `package.json` change is a `test` script pointing at Node's own
+  built-in test runner. No test framework was installed.
+- **Sealing untouched.** `sealString()`, `execHashInput()`, `freezeContractHtml()`
+  and everything under `execution.hashMode` were not modified. F5 is a display
+  change to a field that was never part of the hashed content. Contracts sealed
+  before this session verify against exactly the hash they were given, and the
+  regression suite pins executed-record immutability.
+- **Additive schema only.** One new column, `NOT NULL DEFAULT 1`, via
+  `addColumnIfMissing()`. Nothing dropped, nothing rewritten. Safe against an
+  existing database.
+- **Server-first throughout.** Filtering and masking happen in
+  `server/server.js` before the response is serialised; every client change is
+  cosmetic on top. The one exception (F4) is named above and in `BUGLOG.md`.
+- **Viewers stay exactly as read-only as they were.** No existing check was
+  loosened; the regression suite pins it.
+- **The mobile / WhatsApp counterparty portal was not touched.** Not built, not
+  extended, not refactored toward.
+
+## Next run, in the order I would do it
+
+1. **Give `folderAccess` the same server-side write path `can_view_values` has.**
+   It is still edited by writing the whole `appSettings` blob through
+   `PUT /api/settings`, which means the folder-access editor and the template
+   editor race each other on save. A dedicated admin-only route would fix both.
+2. **A server-side approvals endpoint**, which is the honest fix for F4's
+   deviation — but only alongside moving the rule engine to one place rather
+   than copying it, so the two answers cannot diverge.
+3. **Per-folder value visibility.** `can_view_values` is workspace-wide per
+   member; the natural next ask is "they can see values in Procurement but not
+   in Sales", which the folder-scope machinery is already shaped for.
+4. **An admin-visible access audit** — one screen answering "who can see what",
+   built from `folderScopeFor()` and `canViewValues()` so it reports the rules
+   the server actually enforces rather than a second implementation of them.

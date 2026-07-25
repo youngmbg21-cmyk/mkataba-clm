@@ -1390,3 +1390,337 @@ menu route in and asserts the resulting draft carries the counterparty, the
 value, the metadata and a "Guided creation" audit entry — and, for contrast,
 that the old path leaves all three empty, which is the defect that was being
 reported.
+
+---
+
+## Run: Visibility & Permissions Hardening
+
+Seven fixes, F1–F7, in the order the brief set. All seven were completed. Every
+entry below names the file, the symptom, and the decision — including the
+things deliberately not done and why.
+
+### F1-1. Folder access was a browser convenience, not a permission
+
+**What was broken.** `state.settings.folderAccess` — the per-member map of which
+value streams they may see — was read in exactly one place: `regFiltered()` in
+`js/views/register.js`, to filter the register's rows and the folder dropdown.
+The server never read it at all. Every API route returned the whole portfolio.
+
+A member restricted to Procurement could therefore see every contract in the
+workspace by opening the network tab, calling `/api/contracts` directly, running
+a search, reading `/api/stats`, or exporting. The restriction was a UI
+convention that the product presented to admins as an access control.
+
+**Root cause.** `folderAccess` was introduced as a client-side filing
+convenience and was never promoted to an enforcement point. `server/server.js`
+had no concept of it.
+
+**The fix.** `folderScopeFor(user)` resolves the caller's scope from settings on
+every request; `scopeFrag()` / `scopeFragNamed()` build the `folder IN (…)`
+fragment; `inScope()` / `idInScope()` / `idsInScope()` answer the per-record
+question. Applied to the contract list and single GET, PUT and DELETE, search
+(both the FTS branch and the LIKE fallback), `/api/stats`, `/api/analytics`,
+`/api/activity`, `/api/shares/overview`, `/api/shares/pending`, the per-contract
+shares and engagement panels, `POST /api/shares`, share revoke/resend,
+`/distribute`, `/notify-signer`, and the workspace ZIP export.
+
+The client-side dropdown filtering stays exactly as it was — it is now a
+convenience on top of an enforced rule rather than the rule itself.
+
+**Deliberate decision: 404, not 403.** A request for a contract outside the
+caller's scope returns 404 with "Contract not found". A 403 would confirm that
+the id exists, which is precisely what someone probing ids wants to learn.
+
+**Deliberate decision: a contract cannot be filed into an invisible stream.**
+`PUT /api/contracts/:id` refuses (403) a save that sets `folder` to a stream the
+caller cannot see. Without that check, a restricted member could make a record
+disappear from their own view — and from any audit they could run — in one
+request.
+
+### F1-2. The AI endpoints let the browser choose what the model read
+
+**What was broken.** `/api/ai/graph`, `/api/ai/search` and `/api/ai/template`
+build their prompt from a `contracts` / `candidates` array **posted by the
+browser**. The graph endpoint accepted up to `aiMaxContracts` (default 400)
+portfolio-wide contracts and packed them into the prompt regardless of who was
+asking. A restricted member's own client would not send folder-B contracts —
+but nothing stopped a crafted request, and nothing stopped the server from
+answering questions about contracts the caller could not open.
+
+**The fix.** `scopeAiPortfolio` middleware, running after `capAiInput` on all
+three routes: every entry's id is checked against the caller's folder scope and
+dropped if it fails, `activeIds` is narrowed the same way, and every monetary
+field is stripped for a caller without `can_view_values`. An entry with **no
+id** is dropped too — it cannot be shown to be in scope, so it is not trusted.
+
+**Deliberate decision: the drop count is not reported per-contract.**
+`req.aiDropped` counts what was removed but nothing about the dropped rows
+travels back. "4 contracts were withheld" is a smaller leak than naming them,
+but it is still a leak.
+
+### F1-3. Copilot's tool loop queried the whole workspace
+
+**What was broken.** `/api/ai/chat` runs a server-side tool loop —
+`search_contracts`, `get_contract`, `list_portfolio`, `compare_contracts` — each
+scoped to `org_id` only. Its system prompt also opened with a live workspace
+summary ("WORKSPACE: 30 contracts (Signed: 12, …). Value-stream folders: …"),
+which disclosed the size and shape of the whole portfolio before the user had
+asked anything.
+
+**The fix.** A `copilotCtx(req)` object carries `{org, scope, money}` into every
+tool. `copilotGetJson` returns null for an out-of-scope id, so `get_contract`
+reports "not found" exactly as it would for a contract that does not exist;
+`copilotSearch` re-checks the folder on the join back to `contracts`;
+`copilotList` filters in SQL; `buildCopilotSystem` counts and lists folders over
+the caller's scope. `normalizeDeliver` re-checks every cited id before it is
+echoed to the browser.
+
+### F1-4. There was no server-side register export to point an auditor at
+
+**What was broken (as designed).** All CSV export was browser-side, built from
+`state.contracts`. That set is now scoped and masked at source, so the browser's
+exports are correct — but there was no server response to assert against, and
+"the file the customer walks away with" had no server-side boundary.
+
+**The fix.** Added `GET /api/export/contracts.csv`: folder-scoped, value-masked,
+narrowable by `folder` and `status` (neither of which can widen it). The
+browser's selection-based exports are unchanged; they operate on rows the server
+already bounded.
+
+### F2-1. Contract values were visible to every role, everywhere
+
+**What was broken.** There was no such thing as a member who could work with a
+contract without seeing its price. `value` shipped on every list row and every
+full record; `/api/stats` returned `totalValue`; `/api/analytics` returned
+per-status, per-folder and per-counterparty totals plus a 12-month renewal
+pipeline in shillings; the CSV carried it; every AI prompt carried it.
+
+**The fix.** `can_view_values`, an additive column on `users` defaulting to `1`.
+`maskContractValues()` strips `value`, `valueType`, money-mapped template blanks
+(`c.fields`), extracted `metadata.value` / `metadata.currency`, and a
+counterparty's `rounds[].proposedValue`. Aggregates are dropped from
+`/api/stats` and `/api/analytics`; the pipeline still ships `pipelineCount` so
+the shape of the renewal year survives. CSV emits the Value column **empty
+rather than absent**, so a spreadsheet built against the export keeps its column
+positions.
+
+**Storage decision** (also in SUMMARY.md): a column on `users`, not a map in
+`appSettings`. It is a right rather than a preference; `req.user` is already
+loaded by the `auth` middleware so resolving it costs no extra query; and
+`appSettings` is echoed wholesale to every browser in `/api/bootstrap`, which is
+the wrong place for an access-control table to live even when its contents are
+not secret. `folderAccess` stays where it is because moving it would be a
+breaking change to data that already exists in customer databases.
+
+### F2-2. A masked record saved back would have destroyed the stored value
+
+**What was nearly broken.** This one was introduced by F2 and caught before it
+shipped. A member without the right receives a contract with no `value`. The
+client saves the whole record back on any edit. Without a guard, their first
+edit to a counterparty name would have written `value: undefined` over a real
+figure — silent, permanent data loss on exactly the records they are least
+qualified to notice.
+
+**The fix.** `PUT /api/contracts/:id` restores every monetary field from the
+stored record before the write, for any caller without the right. This is the
+same reasoning as the existing append-only audit-trail guard directly below it
+in the same handler, and the comment says so.
+
+### F2-3. Search snippets quoted the money field verbatim
+
+**What was broken.** `contractSearchBody()` concatenates `Object.values(c.fields)`
+into the FTS `body` column, so a `snippet()` around a match could contain the
+contract's value as printed text. Masking the record did nothing about it.
+
+**Decision.** Two options: take money out of the search index, or withhold
+snippets. Taking it out of the index would stop an admin finding a contract by
+its amount, which is a real capability and a real loss. Snippets are withheld
+instead, for callers without the right only, and the response carries
+`snippets:false` so the client can say so rather than render a row that looks
+broken. Hit names and counterparties still come through, which is what
+navigating a result list actually needs.
+
+### F3-1. Financial KPI cards would have rendered as "KES 0"
+
+**What was broken.** With F2 stripping values, `renderDashboard()`'s
+`active_value` card, the KES exposure deltas on the expiring cards, the stage
+cards' totals and the renewal-pipeline bars would all have computed from absent
+values and rendered confident zeroes. A wrong number is worse than a hidden one.
+
+**The fix.** The money cards are removed from the KPI catalog entirely — the
+ribbon **and** the Customize popover — for members without the right. The
+expiring cards keep their place and say "soonest in 41d" instead of an exposure
+figure. Stage cards count contracts. The pipeline is drawn from contract counts.
+
+**Deliberate decision: absent, not greyed out.** The brief called for this and
+it is right: an option in a settings list that cannot be switched on is a worse
+experience than an option that is not offered.
+
+### F4-1. "Approvals waiting" was the whole workspace's queue, with amounts
+
+**What was broken.** The Home panel listed the five contracts that had sat in
+review longest across the entire workspace, each labelled "CFO sign-off" or
+"Legal review" (derived from the value threshold) with the amount in brackets.
+Most rows were nothing to do with the person reading them.
+
+**The fix.** The panel now lists only contracts with an incomplete approval
+chain where the reader is an eligible approver on a pending step, or which they
+raised themselves (matched from the audit trail's Created entry). Amounts render
+only with `can_view_values`, and the approval **step name** is replaced by a
+generic label for those members — rule names are generated from their condition
+("Value ≥ KES 5M") and would otherwise hand over the spend threshold.
+
+**Deliberate deviation: this filtering is client-side.** The brief asked for it
+server-side in server mode. There is no server-side assembly point for this
+queue: the approval rule engine lives in `js/approvals.js` and evaluates
+conditions (`deviation`, `foreignLaw`) that depend on client-held scan and
+playbook state, and `kind` conditions that depend on the client's `TEMPLATES`
+table. Porting it would duplicate the engine across two languages of the same
+codebase and invite the two copies to diverge — at which point the server's
+answer and the sign-panel's answer disagree about who may approve, which is a
+worse defect than the one being fixed. The underlying contract list is already
+folder-scoped by the server (F1), so this is a narrowing of data the reader is
+entitled to see, not a confidentiality boundary resting on the browser.
+
+### F5-1. The signer's IP address was printed on the face of the document
+
+**What was broken.** `signatureBlock()` in `js/views/contract.js` rendered
+`IP 41.90.x.x` in the sub-line under each signer's name on every executed
+contract. That is on the document face: every reader, every exported PDF, every
+screenshot and every forwarded copy carried a signer's network address.
+
+**The fix.** The visible block keeps name, signature form/method and timestamp.
+IP and user-agent appear only in the audit trail (a new provenance suffix on the
+signature entry, naming the address and the device family) and in the evidence
+pack, which already emitted both. The PDF export prints the audit trail, so the
+signing certificate keeps the record.
+
+**Sealing untouched.** `sealString()`, `execHashInput()` and everything under
+`execution.hashMode` were not modified. This is a display change to a field that
+was never part of the hashed content, so every contract sealed before this
+session verifies against exactly the hash it was given.
+
+### F5-2. The counterparty's device was never recorded against their signature
+
+**What was broken (found while doing F5).** `POST /api/shares/:token/respond`
+stamped `r.ip` onto a counterparty's signature but not their user-agent — that
+was only captured on the `engagement` row for the share open. So the evidence
+pack could name the device for an internal signer and not for the counterparty,
+which is the signature that matters most.
+
+**The fix.** The respond handler now stamps `r.ua` as well, and
+`applyResponse()` stores it on the signature. Capture increased; disclosure on
+the document face decreased.
+
+### F6-1. The public advice page published how busy the firm was
+
+**What was broken.** `GET /api/advice/rates` is unauthenticated — it is the
+public intake page's rate card and the portal's server-mode probe — and it
+returned `queue: { active: N }`, the live count of open advice requests. The
+intake page printed it: "4 requests are currently in the pipeline". That is an
+operational fact about the firm (how much work it has, how fast it is clearing
+it, whether it just lost a client) handed to anyone who could load the URL,
+including competitors.
+
+**The fix.** The count is gone from the **response body**, not just the page.
+The queue depth stays server-side and is folded into what the visitor actually
+needs: `eta[service][urgency]`, an absolute date computed in the same place and
+the same way `POST /api/advice/requests` computes the quoted date, so the page
+and the promise cannot drift. The internal Advice Desk board is untouched.
+
+**Residual, accepted, documented.** A submitted request's own quote still
+carries `days` (base turnaround **plus** the queue-load adjustment), so a
+customer who submits a request can infer the load band (0–5 days ⇒ 0–15+ active
+requests). That is the same information as the ETA date the brief explicitly
+asked to keep, and it is the turnaround actually promised to that customer for
+their own request, delivered only behind their tracking token. Removing it would
+remove a commitment the customer is entitled to.
+
+### F7-1. The share payload published the contract's internal filing location
+
+**What was broken.** `payloadObj` in `js/core.js` carried `contract.folder` —
+which internal value stream the contract is filed under — to the counterparty.
+`js/views/portal.js` has never rendered it; it derives one from the template and
+falls back to `'corp'`.
+
+**The fix.** `folder` removed. Every remaining field is documented at the
+payload with the reason it is there, so a future addition has to be argued for.
+The uploaded document is trimmed to `{fileName, size, mime, fileHash, dataUrl,
+extractedText}` — the near-duplicate signals (`textFingerprint`, `simhash`), the
+OCR page bookkeeping and the internal `fileId` are portfolio-analysis data with
+no meaning to a counterparty.
+
+**Kept deliberately:** `value` and `valueType` (the portal's "propose a
+different value" field and the signing certificate row both need them),
+`format` (without it a rich document renders as literal markup), `fields` and
+`template` (a built-in template is re-rendered from them), `docHash` (echoed in
+the response so the owner can tell the document changed after the link was
+made).
+
+### F7-2. Static-mode sharing looked like real sharing
+
+**What was broken.** In static mode the entire document travels inside the URL
+fragment. That link never expires, cannot be revoked, and generates no record
+of who opened it — and the share dialog said none of this. It offered the same
+Email / WhatsApp / Copy-link tabs as server mode.
+
+**The fix.** A warning block above the channel tabs, shown only when there is no
+server, stating plainly that the whole document is in the link, that the link
+never expires and cannot be revoked, that anyone forwarded it can read the
+contract with no record that they did, and that this is for demonstrations only.
+
+---
+
+## Deliberately not done, and why
+
+### The mobile / WhatsApp counterparty portal
+
+Out of scope by the brief's firm product boundary. Not built, not extended, not
+refactored toward. The existing WhatsApp share channel (a `wa.me` deep link that
+prefills the sender's own WhatsApp with the portal URL) was left exactly as it
+was.
+
+### Redacting monetary amounts from contract body text
+
+`can_view_values` governs **structured** value fields, monetary aggregates,
+exports and AI prompt assembly. It does not — and cannot honestly claim to —
+remove amounts written inside the contract's own wording, its frozen executed
+text, or an uploaded PDF's extracted text. A member without the right who can
+open a contract can read the price in clause 4.
+
+This is stated as a limitation in SECURITY.md rather than papered over. Anyone
+who must not learn a contract's value should not have folder access to it: F1 is
+the boundary that actually holds, and F2 is a reduction of casual exposure
+across lists, dashboards, exports and AI answers.
+
+### Porting the approval rule engine to the server
+
+See F4-1 above. Deliberate, reasoned, and the only place where the brief's
+server-first instruction was not followed to the letter.
+
+### Server-side sorting by value
+
+The brief asked for server-side value sorting to fall back to the default sort
+for a member without the right. `GET /api/contracts` has never accepted a sort
+parameter — ordering is `seq DESC` and all sorting happens in the browser. There
+was nothing to make fall back. The client-side fallback **was** implemented
+(`regFiltered()` and `folderFiltered()` both coerce a stored `sort:'value'`
+preference to `'updated'`), and the option is removed from both sort menus. No
+new server capability was invented to satisfy a requirement about a capability
+that does not exist.
+
+### Folder scoping of the reminder job
+
+`runReminders()` was reviewed and left alone. Renewal and obligation reminders
+are emailed to workspace **admins**, who are unconditionally unrestricted, so
+there is no scope to apply. Counterparty share nudges go to the counterparty.
+The route that triggers a run (`POST /api/reminders/run`) is admin-only. Noted
+rather than changed, because adding a scope filter that can never do anything
+would be misleading code.
+
+### The workspace ZIP export
+
+`GET /api/export/workspace.zip` is admin-only, and admins are always
+unrestricted, so the scope filter added to it is a no-op today. It was added
+anyway, with a comment saying why: if that route's authority is ever widened,
+the export must not quietly become the way out.
