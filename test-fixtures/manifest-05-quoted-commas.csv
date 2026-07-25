@@ -1,0 +1,3 @@
+filename,name,counterparty,type,stream,status,value,currency,effective date,expiry date,signed date
+"batch-01.pdf","Supply of sugar, syrup, and glucose","Kabras Sugar Ltd, Malava","Raw Material Supply","Procurement","Executed","2,500,000","KES","2024-01-15","2026-01-14","2024-01-20"
+"batch-02.pdf","The ""Premium"" carton line","Nampak Kenya, Ltd","Packaging Supply","Procurement","Executed","1800000","KES","2024-02-01","2026-01-31","2024-02-03"

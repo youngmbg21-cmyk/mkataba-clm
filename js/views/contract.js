@@ -1,0 +1,2303 @@
+// HaTi — extracted module (E0). Globals are window-attached on
+// purpose: the app is written against a single global scope (inline
+// onclick handlers, cross-module calls); modules give file isolation
+// for editing, not scope isolation.
+/* ============================================================
+   INBOUND / UPLOADED CONTRACTS  ("their paper")
+   A received document is stored as a file and wrapped in the same
+   review → scan → sign → audit workflow as generated contracts.
+   ============================================================ */
+const upField=(id,label,ph,type='text')=>`<label class="block"><span class="text-xs font-medium text-brand-800/70">${label}</span><input id="${id}" type="${type}" placeholder="${ph}" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2 text-sm outline-none focus:border-brand-400"/></label>`;
+
+/* ---------- document text extraction (client-side, no external service) ----------
+   A small PDF reader built on the browser's DecompressionStream: it walks the
+   page tree, replays each page's content stream through the text operators, and
+   lays the positioned runs back out as lines and paragraphs. That layout step is
+   the point — a PDF stores glyphs at coordinates, not sentences, so simply
+   concatenating the strings in a content stream yields the familiar
+   "S e r v i c e   F e e s" soup with every line break lost. Works for standard
+   text PDFs and .txt; image-only PDFs / Word fall back to the manual checklist. */
+async function inflateBytes(bytes){
+  for(const fmt of ['deflate','deflate-raw']){
+    try{ const ds=new DecompressionStream(fmt);
+      const stream=new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }catch(e){}
+  }
+  return null;
+}
+const pdfLatin=bytes=>{ let s=''; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return s; };
+// WinAnsiEncoding's high range — where the smart quotes, dashes and bullets that
+// fill a Word-authored contract live (bytes 128–159 are not Latin-1)
+const PDF_WINANSI={128:'€',130:'‚',131:'ƒ',132:'„',133:'…',134:'†',135:'‡',136:'ˆ',137:'‰',
+  138:'Š',139:'‹',140:'Œ',142:'Ž',145:'‘',146:'’',147:'“',148:'”',149:'•',150:'–',151:'—',
+  152:'˜',153:'™',154:'š',155:'›',156:'œ',158:'ž',159:'Ÿ',160:' ',173:'‐'};
+
+/* ---- indirect objects ---- */
+function pdfIndexObjects(bin){
+  const objs=new Map(); const re=/(\d+)\s+(\d+)\s+obj\b/g; let m;
+  while((m=re.exec(bin))){
+    const num=Number(m[1]), start=m.index+m[0].length;
+    const end=bin.indexOf('endobj', start);
+    const body=bin.slice(start, end<0?Math.min(bin.length,start+400000):end);
+    const sm=/\bstream\r?\n/.exec(body);
+    let dict=body, raw=null;
+    if(sm){
+      dict=body.slice(0, sm.index);
+      const sStart=start+sm.index+sm[0].length;
+      const lm=/\/Length\s+(\d+)(?!\s+\d+\s+R)/.exec(dict);
+      let sEnd=lm?sStart+Number(lm[1]):-1;
+      if(sEnd<0 || bin.slice(sEnd, sEnd+20).indexOf('endstream')<0){
+        const alt=bin.indexOf('endstream', sStart); sEnd=alt<0?sStart:alt;
+      }
+      raw=bin.slice(sStart, sEnd);
+    }
+    if(!objs.has(num)) objs.set(num,{dict,raw});
+  }
+  return objs;
+}
+async function pdfStreamBytes(o){
+  if(!o||o.raw==null) return null;
+  const arr=Uint8Array.from(o.raw, ch=>ch.charCodeAt(0)&0xff);
+  if(/\/Flate/.test(o.dict)){ const inf=await inflateBytes(arr); return inf||arr; }
+  return arr;
+}
+/* PDF 1.5+ keeps most non-stream objects (page dicts, fonts) inside /ObjStm containers */
+async function pdfExpandObjStreams(objs){
+  for(const [,o] of [...objs]){
+    if(!o.raw||!/\/Type\s*\/ObjStm/.test(o.dict)) continue;
+    const bytes=await pdfStreamBytes(o); if(!bytes) continue;
+    const txt=pdfLatin(bytes);
+    const n=Number((/\/N\s+(\d+)/.exec(o.dict)||[])[1]||0);
+    const first=Number((/\/First\s+(\d+)/.exec(o.dict)||[])[1]||0);
+    if(!n||!first) continue;
+    const head=txt.slice(0,first).trim().split(/\s+/).map(Number);
+    for(let i=0;i<n;i++){
+      const num=head[i*2], off=head[i*2+1];
+      if(!Number.isFinite(num)||!Number.isFinite(off)) continue;
+      const nextOff=(i+1<n&&Number.isFinite(head[i*2+3]))?first+head[i*2+3]:txt.length;
+      if(!objs.has(num)) objs.set(num,{dict:txt.slice(first+off,nextOff),raw:null});
+    }
+  }
+  return objs;
+}
+const pdfRef=s=>{ const m=/^\s*(\d+)\s+\d+\s+R/.exec(s||''); return m?Number(m[1]):null; };
+const pdfDictVal=(dict,key)=>{ const i=dict.indexOf(key); return i<0?'':dict.slice(i+key.length, i+key.length+240); };
+
+/* pages in reading order: catalog → /Pages → /Kids, else document order */
+function pdfPageObjects(objs){
+  let rootNum=null;
+  for(const [,o] of objs){ if(/\/Type\s*\/Catalog/.test(o.dict)){ rootNum=pdfRef(pdfDictVal(o.dict,'/Pages')); break; } }
+  const pages=[], seen=new Set();
+  (function walk(num){
+    if(num==null||seen.has(num)||pages.length>2000) return; seen.add(num);
+    const o=objs.get(num); if(!o) return;
+    if(/\/Type\s*\/Page[^s]/.test(o.dict)){ pages.push(num); return; }
+    const ki=o.dict.indexOf('/Kids'); if(ki<0) return;
+    const arr=/\[([\s\S]*?)\]/.exec(o.dict.slice(ki)); if(!arr) return;
+    const kre=/(\d+)\s+\d+\s+R/g; let k;
+    while((k=kre.exec(arr[1]))) walk(Number(k[1]));
+  })(rootNum);
+  if(!pages.length){
+    for(const [num,o] of objs) if(/\/Type\s*\/Page[^s]/.test(o.dict)) pages.push(num);
+    pages.sort((a,b)=>a-b);
+  }
+  return pages;
+}
+
+/* ---- /ToUnicode CMaps: the only way to read Identity-H (subset) fonts ---- */
+function pdfParseCMap(txt){
+  const map=new Map();
+  const uni=h=>{ let s=''; for(let i=0;i+3<h.length+(h.length%4?1:0);i+=4){ const c=parseInt(h.slice(i,i+4),16); if(Number.isFinite(c)) s+=String.fromCharCode(c); } return s; };
+  let m;
+  const bc=/beginbfchar([\s\S]*?)endbfchar/g;
+  while((m=bc.exec(txt))){ const pre=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]*)>/g; let p;
+    while((p=pre.exec(m[1]))) map.set(parseInt(p[1],16), uni(p[2])); }
+  const br=/beginbfrange([\s\S]*?)endbfrange/g;
+  while((m=br.exec(txt))){
+    const pre=/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*(?:<([0-9A-Fa-f]*)>|\[([\s\S]*?)\])/g; let p;
+    while((p=pre.exec(m[1]))){
+      const lo=parseInt(p[1],16), hi=parseInt(p[2],16);
+      if(p[3]!=null){ const base=parseInt(p[3].slice(-4)||'0',16);
+        for(let c=lo;c<=hi&&c-lo<65536;c++) map.set(c,String.fromCharCode(base+(c-lo)));
+      } else if(p[4]!=null){
+        [...p[4].matchAll(/<([0-9A-Fa-f]*)>/g)].forEach((it,k)=>map.set(lo+k, uni(it[1])));
+      }
+    }
+  }
+  return map;
+}
+/* An array value that may sit inline or behind an indirect reference.
+   Brackets are matched by DEPTH, not by the first `]` — a CID font's /W array
+   nests width groups inside it (`/W [0 [778] 20 21 500 …]`), so stopping at the
+   first close truncates it to noise, and the leftovers then parse as ranges of
+   zero-width glyphs. That is not a cosmetic bug: every advance downstream comes
+   out wrong, the running x-position drifts, and the layout pass turns the drift
+   into spaces in the middle of words. */
+/* Index of a dictionary key, as a whole NAME token. `/W` must not match inside
+   `/Widths` or `/WinAnsiEncoding`, which a plain indexOf happily does. */
+function pdfKeyIndex(dict, key){
+  let from=0;
+  for(;;){
+    const i=dict.indexOf(key, from); if(i<0) return -1;
+    const nx=dict[i+key.length];
+    if(nx===undefined || /[\s()<>[\]{}/%]/.test(nx)) return i;
+    from=i+1;
+  }
+}
+function pdfArray(objs, dict, key){
+  const i=pdfKeyIndex(dict, key); if(i<0) return null;
+  const tail=dict.slice(i+key.length);
+  const ref=pdfRef(tail);
+  const src = ref!=null ? (objs.get(ref)?.dict||'') : tail;
+  const start=src.indexOf('['); if(start<0) return null;
+  let depth=0;
+  for(let j=start;j<src.length;j++){
+    const c=src[j];
+    if(c==='[') depth++;
+    else if(c===']'){ depth--; if(!depth) return src.slice(start+1, j); }
+  }
+  return null;                                    // unbalanced — treat as absent
+}
+const pdfNum=(dict,key)=>{
+  const i=pdfKeyIndex(dict||'', key); if(i<0) return null;
+  const m=/^\s*(-?[\d.]+)/.exec((dict||'').slice(i+key.length));
+  return m?parseFloat(m[1]):null;
+};
+
+/* ---- glyph advance widths ----
+   THE thing that makes extracted text readable. A PDF ships the exact advance
+   of every glyph — /Widths for a simple font, /W and /DW for a CID font, both
+   in 1/1000 em. Guessing them instead (which this used to do, from a hardcoded
+   per-character table) makes the running x-position drift, and once it drifts
+   by ~a third of the point size the layout pass reads the drift as a word gap
+   and splits a word: "MASTER RAW" comes out as "MA S TE R R A W".
+   Widths are indexed by CHARACTER CODE, not by the decoded character, so the
+   decoder hands the codes along with the text. */
+async function pdfFontWidths(objs, o){
+  const W=new Map();
+  let dflt=null;
+  if(/\/Subtype\s*\/Type0/.test(o.dict)){
+    // CID font: the widths live on the descendant, /W is [ c [w…] | cFirst cLast w ]*
+    const dfRef=pdfRef((pdfArray(objs,o.dict,'/DescendantFonts')||'').trim()) ??
+                pdfRef(pdfDictVal(o.dict,'/DescendantFonts'));
+    const df=dfRef!=null?objs.get(dfRef):null;
+    if(df){
+      dflt=pdfNum(df.dict,'/DW');
+      const w=pdfArray(objs, df.dict, '/W');
+      if(w){
+        // tokenise into numbers and bracketed groups, in order
+        const re=/\[([^\]]*)\]|(-?[\d.]+)/g; let m; const seq=[];
+        while((m=re.exec(w))) seq.push(m[1]!=null ? {list:m[1].trim().split(/\s+/).map(Number)} : {n:parseFloat(m[2])});
+        for(let i=0;i<seq.length;i++){
+          if(seq[i].n==null) continue;
+          if(seq[i+1] && seq[i+1].list){                       // c [w1 w2 …]
+            const c=seq[i].n; seq[i+1].list.forEach((v,k)=>{ if(Number.isFinite(v)) W.set(c+k, v); });
+            i++;
+          } else if(seq[i+1] && seq[i+2] && seq[i+1].n!=null && seq[i+2].n!=null){   // cFirst cLast w
+            const a=seq[i].n, b=seq[i+1].n, v=seq[i+2].n;
+            if(b>=a && b-a<65536) for(let c=a;c<=b;c++) W.set(c, v);
+            i+=2;
+          }
+        }
+      }
+    }
+    if(dflt==null) dflt=1000;                                  // /DW default, per the spec
+  } else {
+    const first=pdfNum(o.dict,'/FirstChar');
+    const arr=pdfArray(objs, o.dict, '/Widths');
+    if(arr!=null && first!=null){
+      arr.trim().split(/\s+/).map(Number).forEach((v,k)=>{ if(Number.isFinite(v)) W.set(first+k, v); });
+    }
+    const fd=pdfRef(pdfDictVal(o.dict,'/FontDescriptor'));
+    if(fd!=null) dflt=pdfNum(objs.get(fd)?.dict||'','/MissingWidth');
+  }
+  return { widths:W, missing:dflt };
+}
+/* Is this font bold, italic, or both? Read in order of how much a producer can
+   be trusted to have got it right:
+     1. the BaseFont name — "…-Bold", "…-BoldItalic", "…,Italic"; subset prefixes
+        like "AAAAAA+" are stripped first;
+     2. the FontDescriptor /Flags — bit 7 (64) Italic, bit 19 (262144) ForceBold;
+     3. /ItalicAngle and /StemV, which are metrics rather than declarations.
+   A false positive here would bold half a contract, so the numeric fallbacks
+   are deliberately conservative. */
+async function pdfFontStyle(objs, o, twoByte){
+  let dict=o.dict;
+  if(twoByte){
+    const dfRef=pdfRef((pdfArray(objs,o.dict,'/DescendantFonts')||'').trim());
+    const df=dfRef!=null?objs.get(dfRef):null;
+    if(df) dict=df.dict;
+  }
+  const bf=/\/BaseFont\s*\/([^\s/<>[\]()]+)/.exec(o.dict);
+  const name=bf ? bf[1].replace(/^[A-Z]{6}\+/,'') : '';
+  let bold=/bold|black|heavy|semib|demib|[-,_]bd\b/i.test(name);
+  let italic=/italic|oblique|[-,_]it\b/i.test(name);
+
+  const fdRef=pdfRef(pdfDictVal(dict,'/FontDescriptor'));
+  const fd=fdRef!=null?objs.get(fdRef):null;
+  if(fd){
+    const flags=pdfNum(fd.dict,'/Flags');
+    if(Number.isFinite(flags)){
+      if(flags & 64) italic=true;                 // bit 7  — Italic
+      if(flags & 262144) bold=true;               // bit 19 — ForceBold
+    }
+    const ang=pdfNum(fd.dict,'/ItalicAngle');
+    if(Number.isFinite(ang) && Math.abs(ang)>=4) italic=true;
+    // StemV is the vertical stem width; a text weight sits near 70-90, a bold
+    // near 120-190. Only trust it when the name said nothing either way.
+    if(!bold){ const sv=pdfNum(fd.dict,'/StemV'); if(Number.isFinite(sv) && sv>=120) bold=true; }
+  }
+  return { bold, italic };
+}
+async function pdfPageFonts(objs, resDict){
+  const fonts={};
+  const fi=resDict.indexOf('/Font'); if(fi<0) return fonts;
+  const tail=resDict.slice(fi+5);
+  const direct=pdfRef(tail);
+  const inner=direct!=null ? (objs.get(direct)?.dict||null) : (/<<([\s\S]*?)>>/.exec(tail)||[])[1];
+  if(!inner) return fonts;
+  const fre=/\/([^\s/<>[\]()]+)\s+(\d+)\s+\d+\s+R/g; let f;
+  while((f=fre.exec(inner))){
+    const o=objs.get(Number(f[2])); if(!o) continue;
+    let map=null;
+    const tu=pdfRef(pdfDictVal(o.dict,'/ToUnicode'));
+    if(tu!=null){ const b=await pdfStreamBytes(objs.get(tu)); if(b) map=pdfParseCMap(pdfLatin(b)); }
+    const twoByte=/\/Subtype\s*\/Type0/.test(o.dict);
+    let widths=new Map(), missing=null;
+    try{ ({widths,missing}=await pdfFontWidths(objs,o)); }catch(e){}
+    // Weight and slant. A PDF states both, in three places of decreasing
+    // reliability — the BaseFont name, the descriptor's /Flags, and /ItalicAngle
+    // / /StemV. Recovering them is what lets an uploaded document keep its bold
+    // defined terms and its italic parentheticals instead of arriving flat.
+    let style={bold:false, italic:false};
+    try{ style=await pdfFontStyle(objs, o, twoByte); }catch(e){}
+    // The font's OWN space advance is the only honest yardstick for "is this
+    // gap a word break?" — a fixed number cannot be right across point sizes,
+    // typefaces and tracking. Falls back to 0.25em when the font is silent.
+    // No /Widths and no embedded font programme means one of the standard 14,
+    // whose metrics are fixed and public — use them rather than guessing.
+    let b14=null;
+    if(!twoByte && !widths.size){
+      const bf=(/\/BaseFont\s*\/([^\s/>\]]+)/.exec(o.dict)||[])[1];
+      b14=base14Widths(bf);
+      if(b14) widths=b14.widths;
+    }
+    const sp = twoByte ? null : widths.get(32);
+    fonts[f[1]]={ twoByte, map, widths, missing, bold:style.bold, italic:style.italic,
+      spaceEm: (Number.isFinite(sp)&&sp>0) ? sp/1000 : (b14?b14.spaceEm:0.278) };
+  }
+  return fonts;
+}
+/* Advance width of a run, in text-space em × size. Uses the real per-glyph
+   widths where the font declared them and only falls back to the estimate for
+   codes it did not. */
+function pdfRunWidth(text, codes, font, size){
+  if(!font || !font.widths || !font.widths.size) return pdfEstWidth(text, size);
+  let em=0;
+  for(let i=0;i<codes.length;i++){
+    const w=font.widths.get(codes[i]);
+    if(Number.isFinite(w)) em += w/1000;
+    else if(Number.isFinite(font.missing)) em += font.missing/1000;
+    else em += pdfEstWidth(text[i]||'x', 1);      // per-character fallback
+  }
+  return em*size;
+}
+
+/* ---- content-stream tokenizer ---- */
+function pdfTokens(s){
+  const out=[]; let i=0; const n=s.length;
+  const isDelim=c=>'()<>[]{}/%'.indexOf(c)>=0;
+  const isWS=c=>c===' '||c==='\n'||c==='\r'||c==='\t'||c==='\f'||c==='\0';
+  while(i<n){
+    const c=s[i];
+    if(isWS(c)){ i++; continue; }
+    if(c==='%'){ while(i<n&&s[i]!=='\n'&&s[i]!=='\r') i++; continue; }
+    if(c==='('){
+      let depth=1, j=i+1, str='';
+      while(j<n&&depth){
+        const ch=s[j];
+        if(ch==='\\'){
+          const nx=s[j+1];
+          if(nx>='0'&&nx<='7'){ let oct='', k=j+1;
+            while(k<n&&oct.length<3&&s[k]>='0'&&s[k]<='7'){ oct+=s[k]; k++; }
+            str+=String.fromCharCode(parseInt(oct,8)); j=k; continue; }
+          if(nx==='\n'){ j+=2; continue; }
+          if(nx==='\r'){ j+=2; if(s[j]==='\n') j++; continue; }
+          const esc={n:'\n',r:'\r',t:'\t',b:'\b',f:'\f'};
+          str+=(esc[nx]!==undefined?esc[nx]:nx); j+=2; continue;
+        }
+        if(ch==='('){ depth++; str+=ch; j++; continue; }
+        if(ch===')'){ depth--; if(depth) str+=ch; j++; continue; }
+        str+=ch; j++;
+      }
+      out.push({t:'str', v:str}); i=j; continue;
+    }
+    if(c==='<'&&s[i+1]==='<'){ out.push({t:'op',v:'<<'}); i+=2; continue; }
+    if(c==='>'&&s[i+1]==='>'){ out.push({t:'op',v:'>>'}); i+=2; continue; }
+    if(c==='<'){ const j=s.indexOf('>',i);
+      out.push({t:'hex', v:s.slice(i+1,j<0?n:j).replace(/[^0-9A-Fa-f]/g,'')}); i=(j<0?n:j+1); continue; }
+    if(c==='['||c===']'){ out.push({t:'op',v:c}); i++; continue; }
+    if(c==='/'){ let j=i+1; while(j<n&&!isWS(s[j])&&!isDelim(s[j])) j++;
+      out.push({t:'name', v:s.slice(i+1,j)}); i=j; continue; }
+    if(/[-+.\d]/.test(c)){ let j=i; while(j<n&&/[-+.\d]/.test(s[j])) j++;
+      const num=parseFloat(s.slice(i,j)); out.push({t:'num', v:Number.isFinite(num)?num:0}); i=j; continue; }
+    let j=i; while(j<n&&!isWS(s[j])&&!isDelim(s[j])) j++; if(j===i) j++;
+    out.push({t:'op', v:s.slice(i,j)}); i=j;
+  }
+  return out;
+}
+const pdfMul=(a,b)=>[a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3],
+                     a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
+
+/* ---------- the standard 14 fonts ----------
+   A PDF that uses Helvetica, Times, Courier, Symbol or ZapfDingbats is not
+   required to carry a /Widths array, and the base-14 fonts routinely don't —
+   which is exactly the shape produced by legal drafting software, bank letter
+   generators and government forms. The PDF specification says a consumer MUST
+   fall back to the standard metrics for those fonts. We were falling back to a
+   six-bucket guess instead, and the guess is wrong in both directions: digits
+   at 0.63 em against a real 0.556 over-ran the following space and welded
+   "2024" to "BETWEEN"; capitals at 0.63 against a real ~0.686 mean invented a
+   gap wide enough to read as a column break. Words came out glued together and
+   headings came out with phantom spaces, and the damage was not typographic —
+   the expiry date, the payment terms and the governing law stopped being
+   extracted at all, so the contract was never scheduled for a renewal reminder.
+
+   Advances are in 1/1000 em for WinAnsi codes 32..126, straight from the Adobe
+   Core-14 AFM files. */
+const B14_START = 32;
+const B14_SETS = {
+  HELV:[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584],
+  HELV_B:[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584],
+  TIMES:[250,333,408,500,500,833,778,180,333,333,500,564,250,333,250,278,500,500,500,500,500,500,500,500,500,500,278,278,564,564,564,444,921,722,667,667,722,611,556,722,722,333,389,722,611,889,722,722,556,722,667,556,611,722,722,944,722,722,611,333,278,333,469,500,333,444,500,444,500,444,333,500,500,278,278,500,278,778,500,500,500,500,333,389,278,500,500,722,500,500,444,480,200,480,541],
+  TIMES_B:[250,333,555,500,500,1000,833,278,333,333,500,570,250,333,250,278,500,500,500,500,500,500,500,500,500,500,333,333,570,570,570,500,930,722,667,722,722,667,611,778,778,389,500,778,667,944,722,778,611,778,722,556,667,722,722,1000,722,722,667,333,278,333,581,500,333,500,556,444,556,444,333,500,556,278,333,556,278,833,556,500,556,556,444,389,333,556,500,722,500,500,444,394,220,394,520],
+  COUR:[600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600],
+};
+/* /BaseFont carries a subset tag and a style suffix — "ABCDEF+Helvetica-BoldOblique",
+   "Arial,Bold", "TimesNewRomanPS-BoldMT". Normalise to a family and a weight. */
+function base14Widths(baseFont){
+  const n=String(baseFont||'').replace(/^[A-Z]{6}\+/,'').toLowerCase();
+  if(!n) return null;
+  const bold=/bold|black|heavy|semibold|[-,]bd\b/.test(n);
+  let set=null;
+  if(/courier|mono/.test(n)) set='COUR';
+  else if(/times|serif|roman|georgia|garamond|book/.test(n)) set=bold?'TIMES_B':'TIMES';
+  else if(/helvetica|arial|swiss|sans|verdana|tahoma|calibri/.test(n)) set=bold?'HELV_B':'HELV';
+  if(!set) return null;
+  const vals=B14_SETS[set];
+  const W=new Map();
+  for(let i=0;i<vals.length;i++) W.set(B14_START+i, vals[i]);
+  return { widths:W, spaceEm:(vals[0]||278)/1000 };
+}
+
+/* Approximate advance width of a run. Real widths live in the embedded font
+   programme, which we deliberately don't parse — this only has to be good
+   enough to tell "the next run continues this word" from "the next run is a
+   new column". */
+function pdfEstWidth(str, size){
+  let em=0;
+  for(let i=0;i<str.length;i++){
+    const ch=str[i];
+    // Buckets tuned to the Helvetica means they stand in for. The previous
+    // digit bucket (0.63 against a real 0.556) and the lumping of lowercase
+    // w/m in with M/W (0.85 against 0.722/0.833) were the two that welded
+    // words together; capitals at 0.63 against a real 0.686 invented gaps.
+    if(ch===' ') em+=0.278;
+    else if(/[.,;:!|'`\-()[\]]/.test(ch)) em+=0.30;
+    else if(/[ijlt]/.test(ch)) em+=0.24;
+    else if(/[frI]/.test(ch)) em+=0.31;
+    else if(/[0-9]/.test(ch)) em+=0.556;
+    else if(/[mw]/.test(ch)) em+=0.78;
+    else if(/[MW@]/.test(ch)) em+=0.90;
+    else if(/[A-Z]/.test(ch)) em+=0.69;
+    else em+=0.53;
+  }
+  return em*size;
+}
+
+/* Replay one page's content stream → positioned text runs. */
+function pdfTextRuns(content, fonts){
+  const runs=[], args=[], arrStack=[];
+  let ctm=[1,0,0,1,0,0], stack=[];
+  let tm=[1,0,0,1,0,0], tlm=[1,0,0,1,0,0];
+  let leading=0, font=null, fsize=1, charSp=0, hscale=1, render=0;
+
+  const cidChar=code=>{
+    const ch=font&&font.map?font.map.get(code):undefined;
+    if(ch===undefined||ch==='') return '•';
+    const cp=ch.charCodeAt(0);
+    return (cp>=0xE000&&cp<=0xF8FF)?'•':ch;      // private-use symbol glyph = list bullet
+  };
+  /* Decode a string token to text AND to the character codes behind it. The
+     codes are what the font's width table is indexed by, so both travel
+     together; a code whose glyph maps to nothing still advances the pen, which
+     is why the two arrays are allowed to differ in length. */
+  const decode=tok=>{
+    const codes=[]; let s='';
+    if(tok.t==='str'){
+      if(font&&font.twoByte){
+        for(let i=0;i+1<tok.v.length;i+=2){ const c=(tok.v.charCodeAt(i)<<8)|tok.v.charCodeAt(i+1);
+          codes.push(c); s+=font.map?cidChar(c):''; }
+        return {text:s, codes};
+      }
+      for(let i=0;i<tok.v.length;i++){ const cc=tok.v.charCodeAt(i); codes.push(cc);
+        s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:(cc>=128&&cc<=159?'':tok.v[i]); }
+      return {text:s, codes};
+    }
+    const h=tok.v;
+    if(font&&font.twoByte){
+      for(let i=0;i+3<h.length;i+=4){ const c=parseInt(h.slice(i,i+4),16); codes.push(c); s+=cidChar(c); }
+      return {text:s, codes};
+    }
+    for(let i=0;i+1<h.length;i+=2){ const cc=parseInt(h.slice(i,i+2),16); codes.push(cc);
+      s+=(cc>=128&&cc<=173&&PDF_WINANSI[cc]!==undefined)?PDF_WINANSI[cc]:String.fromCharCode(cc); }
+    return {text:s, codes};
+  };
+  /* `kernEm` is the net displacement the TJ array's own numbers contribute, in
+     em. It has to be folded into the advance or the running x-position drifts
+     across a kerned line and the layout pass reads the drift as word gaps. */
+  const emit=(text, codes, kernEm=0)=>{
+    if(!text) return;
+    const m=pdfMul(tm, ctm);
+    // The EFFECTIVE point size is the font size scaled by the matrices — Tf
+    // alone is meaningless (a producer may set `Tf 1` and bake the size into
+    // Tm), and the matrix alone is equally meaningless (Chromium sets `Tf 20`
+    // and leaves Tm unscaled). Both have to be multiplied, or every size-based
+    // judgement downstream — line tolerance, paragraph gaps, and which lines
+    // are headings — is made on a number that is not the size of anything.
+    const scale=Math.hypot(m[2],m[3])||1;
+    const size=(fsize||1)*scale;
+    const sx=Math.hypot(m[0],m[1])||1;
+    const glyphs=pdfRunWidth(text, codes||[], font, fsize);
+    const w=(glyphs + (codes?codes.length:text.length)*charSp + kernEm*fsize)*hscale;
+    if(render!==3&&render!==7) runs.push({x:m[4], y:m[5], size, w:w*sx, text,
+      spaceW:(font?font.spaceEm:0.25)*fsize*hscale*sx,
+      bold:!!(font&&font.bold), italic:!!(font&&font.italic)});
+    tm=pdfMul([1,0,0,1,w,0], tm);   // keep runs without an explicit move from stacking
+  };
+
+  for(const tk of pdfTokens(content)){
+    if(tk.t!=='op'){ args.push(tk); continue; }
+    const op=tk.v;
+    if(op==='['){ arrStack.push(args.length); args.push(tk); continue; }
+    if(op===']') continue;
+    const nums=args.filter(a=>a.t==='num').map(a=>a.v);
+    const lastStr=()=>args.filter(a=>a.t==='str'||a.t==='hex').pop();
+    switch(op){
+      case 'q': stack.push(ctm.slice()); break;
+      case 'Q': ctm=stack.pop()||[1,0,0,1,0,0]; break;
+      case 'cm': if(nums.length>=6) ctm=pdfMul(nums.slice(-6), ctm); break;
+      case 'BT': tm=[1,0,0,1,0,0]; tlm=tm.slice(); break;
+      case 'Tf': { const nm=args.filter(a=>a.t==='name').pop();
+                   font=nm?(fonts[nm.v]||null):null; fsize=nums.length?nums[nums.length-1]:1; break; }
+      case 'Tc': charSp=nums[nums.length-1]||0; break;
+      case 'Tz': hscale=(nums[nums.length-1]||100)/100; break;
+      case 'TL': leading=nums[nums.length-1]||0; break;
+      case 'Tr': render=nums[nums.length-1]||0; break;
+      case 'Tm': if(nums.length>=6){ tlm=nums.slice(-6); tm=tlm.slice(); } break;
+      case 'Td': if(nums.length>=2){ tlm=pdfMul([1,0,0,1,nums[nums.length-2],nums[nums.length-1]], tlm); tm=tlm.slice(); } break;
+      case 'TD': if(nums.length>=2){ leading=-nums[nums.length-1];
+                   tlm=pdfMul([1,0,0,1,nums[nums.length-2],nums[nums.length-1]], tlm); tm=tlm.slice(); } break;
+      case 'T*': tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice(); break;
+      case 'Tj': { const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
+      case "'": { tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
+                  const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
+      case '"': { if(nums.length>=2) charSp=nums[1];
+                  tlm=pdfMul([1,0,0,1,0,-leading], tlm); tm=tlm.slice();
+                  const s=lastStr(); if(s){ const d=decode(s); emit(d.text,d.codes); } break; }
+      case 'TJ': { const from=arrStack.pop(); let out='', outCodes=[], kernEm=0;
+                   // A TJ number displaces the pen by -n/1000 em. Whether that
+                   // displacement is a WORD BREAK or just tracking cannot be
+                   // decided by a fixed threshold — it depends on the font and
+                   // the point size. The only honest yardstick is the font's
+                   // own space advance: a gap worth most of a real space is a
+                   // space, anything smaller is kerning. (This used to be a
+                   // hardcoded -250, which split words in any document tracked
+                   // out more than a quarter em.)
+                   const spEm=(font&&font.spaceEm)||0.25;
+                   for(let i=(from==null?0:from+1); i<args.length; i++){
+                     const a=args[i];
+                     if(a.t==='num'){
+                       const gap=-a.v/1000;                 // em
+                       kernEm+=gap;
+                       if(gap>=spEm*0.72 && out && !/\s$/.test(out)){ out+=' '; outCodes.push(32); }
+                     }
+                     else if(a.t==='str'||a.t==='hex'){ const d=decode(a); out+=d.text; outCodes.push(...d.codes); }
+                   }
+                   emit(out, outCodes, kernEm); break; }
+      default: break;
+    }
+    args.length=0; arrStack.length=0;
+  }
+  return runs;
+}
+
+/* Positioned runs → LINES. One entry per baseline, carrying both the plain text
+   and an inline-marked-up version, plus the geometry a structure pass needs:
+   the dominant point size, the left and right edges, and whether the line is
+   set bold. Shared by the plain-text projection and the rich reconstruction, so
+   the two can never disagree about where a line begins and ends. */
+function pdfRunsToLines(runs){
+  if(!runs.length) return [];
+  const lines=[];
+  for(const r of runs.slice().sort((a,b)=>(b.y-a.y)||(a.x-b.x))){
+    const tol=Math.max(1.6, r.size*0.32);
+    const line=lines.find(l=>Math.abs(l.y-r.y)<=tol);
+    if(line){ line.y=(line.y*line.runs.length+r.y)/(line.runs.length+1); line.runs.push(r); }
+    else lines.push({y:r.y, runs:[r]});
+  }
+  lines.sort((a,b)=>b.y-a.y);
+  const esc=t=>String(t).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return lines.map(l=>{
+    l.runs.sort((a,b)=>a.x-b.x);
+    let text='', html='', endX=null, left=Infinity, right=-Infinity;
+    let boldChars=0, chars=0;
+    let openB=false, openI=false;
+    const closeMarks=()=>{ if(openI){ html+='</em>'; openI=false; } if(openB){ html+='</strong>'; openB=false; } };
+    for(const r of l.runs){
+      if(!r.text) continue;
+      let sep='';
+      if(endX!=null){
+        // A rule or dot-leader run: never glue a single space onto it (it is
+        // drawn, not typeset, so a hairline gap means nothing) — but a gap wide
+        // enough to be a COLUMN still separates two rules, which is exactly what
+        // a side-by-side signature block is made of.
+        const ruled=/([-=_.·])\1{2,}\s*$/.test(text);
+        // A gap is a word break when it is most of a real space in this font.
+        // Keyed off the font's own space advance rather than a flat fraction of
+        // the point size — that fraction was small enough that ordinary
+        // inter-glyph rounding read as a space and split words apart.
+        const sp=r.spaceW||r.size*0.25;
+        const gap=r.x-endX;
+        const column=gap>sp*2.5;
+        if(gap>sp*0.62 && (column||!ruled) && !/\s$/.test(text) && !/^[\s,.;:!?)\]}»’”%-]/.test(r.text)){
+          // A gap several spaces wide is COLUMN structure, not a word break —
+          // side-by-side signature blocks and fee schedules live in it. Emit it
+          // proportionally so the columns survive into the text, where
+          // documentTextHtml's ruled-block detection can keep them aligned.
+          sep=' '.repeat(column ? Math.min(24, Math.round(gap/sp)) : 1);
+        }
+      }
+      text+=sep;
+      // inline marks, opened and closed only where the style actually changes
+      if(sep){ if(openI&&!r.italic){ html+='</em>'; openI=false; }
+               if(openB&&!r.bold){ html+='</strong>'; openB=false; } html+=esc(sep); }
+      if(r.bold&&!openB){ closeMarks(); html+='<strong>'; openB=true; }
+      else if(!r.bold&&openB){ if(openI){ html+='</em>'; openI=false; } html+='</strong>'; openB=false; }
+      if(r.italic&&!openI){ html+='<em>'; openI=true; }
+      else if(!r.italic&&openI){ html+='</em>'; openI=false; }
+      html+=esc(r.text);
+      text+=r.text;
+      chars+=r.text.length; if(r.bold) boldChars+=r.text.length;
+      left=Math.min(left, r.x);
+      endX=r.x+(r.w||pdfEstWidth(r.text, r.size));
+      right=Math.max(right, endX);
+    }
+    closeMarks();
+    const sizes={}; l.runs.forEach(r=>{ sizes[r.size]=(sizes[r.size]||0)+(r.text||'').length; });
+    const size=Number(Object.keys(sizes).sort((a,b)=>sizes[b]-sizes[a])[0])||l.runs[0].size;
+    return { y:l.y, size, maxSize:Math.max(...l.runs.map(r=>r.size)), left, right,
+      bold: chars>0 && boldChars/chars>=0.6,
+      text:text.replace(/\s+$/,''), html:html.replace(/\s+$/,'') };
+  }).filter(l=>l.text);
+}
+
+/* Lines → text, with a blank line where the page leaves a paragraph's worth of
+   vertical space. */
+function pdfRunsToText(runs){
+  const rendered=pdfRunsToLines(runs);
+  if(!rendered.length) return '';
+  const gaps=[]; for(let i=1;i<rendered.length;i++) gaps.push(rendered[i-1].y-rendered[i].y);
+  const sorted=gaps.slice().sort((a,b)=>a-b);
+  const median=sorted.length?sorted[Math.floor(sorted.length/2)]:0;
+  let out=rendered[0].text;
+  for(let i=1;i<rendered.length;i++){
+    const own=Math.max(rendered[i-1].maxSize, rendered[i].maxSize)*1.55;
+    const limit=median>0?Math.max(median*1.4, own):own;
+    out+=((rendered[i-1].y-rendered[i].y)>limit?'\n\n':'\n')+rendered[i].text;
+  }
+  return out;
+}
+
+/* Last resort for PDFs whose page tree we can't follow: the old flat scan of
+   every text-showing string. Loses layout, but beats returning nothing. */
+function pdfStringsFrom(content){
+  const res=[]; const re=/\(((?:\\.|[^()\\])*)\)/g; let m;
+  while((m=re.exec(content))){
+    res.push(m[1].replace(/\\(\d{1,3})/g,(_,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\([()\\nrt])/g,(x,c)=>({n:'\n',r:'',t:' '}[c]??c)));
+  }
+  return res.join('');
+}
+async function pdfFlatText(bin){
+  const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
+  while((m=re.exec(bin))){
+    const arr=Uint8Array.from(m[1],ch=>ch.charCodeAt(0)&0xff);
+    const inf=await inflateBytes(arr);
+    const text=inf?pdfLatin(inf):m[1];
+    if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
+  }
+  return out.join(' ').replace(/\s+/g,' ').trim();
+}
+
+async function extractPdfText(buf){
+  const bin=pdfLatin(new Uint8Array(buf));
+  let pages=[];
+  try{
+    const objs=pdfIndexObjects(bin);
+    await pdfExpandObjStreams(objs);
+    for(const pn of pdfPageObjects(objs)){
+      const po=objs.get(pn); if(!po) continue;
+      let resDict='', node=po, hops=0;                    // /Resources can be inherited from /Pages
+      while(node&&hops++<8){
+        const ri=node.dict.indexOf('/Resources');
+        if(ri>=0){ const tail=node.dict.slice(ri+10), ref=pdfRef(tail);
+          resDict=ref!=null?(objs.get(ref)?.dict||''):tail; break; }
+        const par=pdfRef(pdfDictVal(node.dict,'/Parent')); node=par!=null?objs.get(par):null;
+      }
+      const fonts=await pdfPageFonts(objs, resDict);
+      const ci=po.dict.indexOf('/Contents'); if(ci<0) continue;
+      const tail=po.dict.slice(ci+9);
+      const one=pdfRef(tail);
+      let refs=[];
+      if(one!=null) refs=[one];
+      else { const arr=/\[([\s\S]*?)\]/.exec(tail);
+        if(arr){ const re=/(\d+)\s+\d+\s+R/g; let m; while((m=re.exec(arr[1]))) refs.push(Number(m[1])); } }
+      let content='';
+      for(const r of refs){ const b=await pdfStreamBytes(objs.get(r)); if(b) content+=pdfLatin(b)+'\n'; }
+      if(!content.trim()) continue;
+      const txt=pdfRunsToText(pdfTextRuns(content, fonts)).trim();
+      if(txt) pages.push(txt);
+    }
+  }catch(e){ pages=[]; }
+  if(pages.length) return pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  return await pdfFlatText(bin);
+}
+/* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
+   CSP (connect-src 'self'), so the bytes are unpacked without a request. */
+function dataUrlBytes(dataUrl){
+  const s=String(dataUrl||''); const i=s.indexOf(',');
+  if(i<0) return new Uint8Array(0);
+  const head=s.slice(0,i), body=s.slice(i+1);
+  if(/;base64/i.test(head)){ const bin=atob(body); const arr=new Uint8Array(bin.length);
+    for(let j=0;j<bin.length;j++) arr[j]=bin.charCodeAt(j); return arr; }
+  return new TextEncoder().encode(decodeURIComponent(body));
+}
+/* A browsable URL for an uploaded document. The bytes are held as a data: URL,
+   but the server-mode CSP won't frame those (default-src 'self'), so the
+   preview showed Chrome's "This content is blocked" panel. A blob: URL carries
+   the same bytes, is same-document, and is what frame-src allows. */
+const _docBlobUrls=new Map();   // "<contract id>:<file hash>" → object URL
+function docFileUrl(c){
+  const u=(c&&c.upload)||{};
+  if(!u.dataUrl) return '';
+  const key=c.id+':'+(u.fileHash||u.fileName||'');
+  const hit=_docBlobUrls.get(key); if(hit) return hit;
+  let url;
+  try{ url=URL.createObjectURL(new Blob([dataUrlBytes(u.dataUrl)],{type:u.mime||'application/octet-stream'})); }
+  catch(e){ return u.dataUrl; }
+  // a session only ever reads a handful of documents; drop the oldest but never
+  // the one being rendered right now
+  if(_docBlobUrls.size>16){
+    for(const [k,v] of _docBlobUrls){
+      if(k===key) continue;
+      URL.revokeObjectURL(v); _docBlobUrls.delete(k);
+      if(_docBlobUrls.size<=8) break;
+    }
+  }
+  _docBlobUrls.set(key,url);
+  return url;
+}
+/* ---------- Word-file detection (refuse, don't half-import) ----------
+   The picker no longer offers .doc/.docx, but drag-and-drop bypasses the
+   accept attribute and browsers report Word MIME types inconsistently — a
+   renamed file would otherwise sail through and land in the register as an
+   empty shell. So sniff the actual bytes:
+     .docx  — a ZIP archive: PK\x03\x04, with a "word/…" entry inside
+     .doc   — an OLE2 compound file: D0 CF 11 E0 A1 B1 1A E1
+   Returns 'docx' | 'doc' | null. */
+const WORD_REFUSAL = 'HaTi can’t read Word files yet. Save or print the document as a PDF and upload that instead — the PDF is also what you’d want on record as the signed version.';
+const WORD_REFUSAL_SHORT = 'Word file — save it as a PDF and upload that';
+const OLE_SIG=[0xD0,0xCF,0x11,0xE0,0xA1,0xB1,0x1A,0xE1];
+// latin1-decode a slice without the per-byte string concat used for whole PDFs
+function bytesToLatin(bytes, from, to){
+  const end=Math.min(bytes.length, to==null?bytes.length:to);
+  let out='';
+  for(let i=Math.max(0,from||0); i<end; i+=8192)
+    out+=String.fromCharCode.apply(null, bytes.subarray(i, Math.min(end, i+8192)));
+  return out;
+}
+function detectWordBytes(bytes, fileName, mime){
+  if(!bytes || bytes.length<8) return null;
+  const ext=(String(fileName||'').match(/\.([a-z0-9]+)$/i)||[])[1]?.toLowerCase()||'';
+  if(OLE_SIG.every((b,i)=>bytes[i]===b)){
+    // OLE2 covers legacy .doc/.xls/.ppt; only .doc claims to be a contract here
+    if(ext==='doc' || /msword/i.test(mime||'')) return 'doc';
+    if(!ext || ext==='docx') return 'doc';
+    return null;
+  }
+  if(bytes[0]===0x50&&bytes[1]===0x4B&&bytes[2]===0x03&&bytes[3]===0x04){
+    // OOXML part names appear verbatim in the local headers + central directory
+    const head=bytesToLatin(bytes, 0, 8192);
+    const tail=bytesToLatin(bytes, Math.max(0, bytes.length-65536));
+    const zip=head+tail;
+    if(/word\/(document|_rels|settings)\.xml/i.test(zip)||/wordprocessingml/i.test(zip)) return 'docx';
+    if(ext==='docx'||ext==='doc'||/wordprocessingml/i.test(mime||'')) return 'docx';
+  }
+  return null;
+}
+/* Convenience wrapper for the three upload entry points — decodes the data URL
+   once and reports the Word kind (or null). */
+function detectWordFile(dataUrl, mime, fileName){
+  try{ return detectWordBytes(dataUrlBytes(dataUrl), fileName, mime); }catch(e){ return null; }
+}
+
+async function extractDocText(dataUrl, mime){
+  try{
+    const bytes=dataUrlBytes(dataUrl);
+    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,EXTRACT_MAX_CHARS); }
+    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,EXTRACT_MAX_CHARS); }
+  }catch(e){}
+  return '';
+}
+/* Render extracted document text on screen the way the paper reads: prose keeps
+   the document face and wraps, while ruled/columnar blocks (fee schedules drawn
+   with | and +---+, side-by-side signature blocks) go into a monospace block so
+   their columns still line up. Escapes its input — never pass HTML. */
+function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
+  const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const lines=String(text||'').split('\n');
+  const isRuled=l=>/^\s*[|+]/.test(l)||/[|+]\s*$/.test(l)||/\S\s{4,}\S/.test(l);
+  const out=[]; let buf=[], bufRuled=false;
+  const flush=()=>{
+    if(!buf.length) return;
+    out.push(bufRuled
+      ? `<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
+      : `<div style="white-space:pre-wrap">${esc(buf.join('\n'))}</div>`);
+    buf=[];
+  };
+  for(const l of lines){
+    const ruled=isRuled(l);
+    if(buf.length && ruled!==bufRuled) flush();
+    bufRuled=ruled; buf.push(l);
+  }
+  flush();
+  return `<div style="font-size:${size};line-height:${lh}">${out.join('')}</div>`;
+}
+
+/* The contract's working-text body, in whichever format it carries. Rich
+   content goes through renderDocHtml (which sanitises AGAIN, at render); plain
+   text keeps the reflow repair and the original escaped path, byte for byte. */
+function docBodyHtml(c, opts={}){
+  const body=c.redlineText;
+  if(window.isRich && isRich(c.format)) return renderDocHtml(body, RICH_FORMAT, opts);
+  return documentTextHtml(window.reflowWorkingText?reflowWorkingText(body):body, opts);
+}
+
+// Heuristic clause analysis over the REAL extracted text — quotes verbatim.
+function sentenceAround(text, idx){
+  let s=text.lastIndexOf('.',idx); s=s<0?Math.max(0,idx-140):s+1;
+  let e=text.indexOf('.',idx); e=e<0?Math.min(text.length,idx+220):e+1;
+  return text.slice(s,e).replace(/\s+/g,' ').trim().slice(0,260);
+}
+function findingsFromText(c, text){
+  // extraction keeps the page's line breaks; these clause checks read the
+  // document as prose, so flatten the wrapping first (quotes stay verbatim)
+  text=String(text||'').replace(/\s+/g,' ');
+  const F=[]; const low=text.toLowerCase();
+  const add=(id,sev,kind,title,quote,why,fix,conf)=>F.push({id,sev,kind,title,anchor:'doc',confidence:conf,
+    what:quote?`The document reads: “${quote}”`:'(clause not located in the extracted text)', why, fix});
+  const firstIdx=(...ks)=>{ for(const k of ks){ const i=low.indexOf(k); if(i>=0) return i; } return -1; };
+  // 1) governing law — scan ALL candidate mentions and pick the one that names a
+  //    jurisdiction (a ref-line like "governing law as stated below" is ignored).
+  const foreign=['switzerland','geneva','england','wales','united kingdom','london','delaware','new york','singapore','dubai','u.a.e','uae','netherlands','paris','france','uganda','tanzania','rwanda','south africa'];
+  const govKeys=['governing law','governed by the laws','laws of the republic','exclusive jurisdiction','jurisdiction of','arbitration seated','arbitration in','governed by'];
+  const cands=[]; for(const k of govKeys){ let i=low.indexOf(k); while(i>=0){ cands.push(i); i=low.indexOf(k,i+1); } }
+  let foreignSen=null,foreignHit=null,kenyaSen=null;
+  for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){ const sen=sentenceAround(text,idx), sl=sen.toLowerCase();
+    const fh=foreign.find(f=>sl.includes(f)), hk=sl.includes('kenya');
+    if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
+    if(hk&&!kenyaSen) kenyaSen=sen;
+  }
+  if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
+    `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a Kenyan business and may bypass Kenyan protections.`,
+    'Negotiate Kenyan governing law and forum, or budget for foreign enforcement before signing.','high');
+  else if(kenyaSen) add('t-law','low','ambiguity','Governing law: Kenya (found in text)',kenyaSen,
+    'Kenyan governing law keeps enforcement local and predictable.','No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+  else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
+    'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
+  // 2) payment terms
+  const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
+  if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
+    add('t-pay', d>45?'med':'low', d>45?'risk':'ambiguity', `Payment terms: ${d} days`, sentenceAround(text,i),
+      d>45?`${d}-day terms tie up working capital and raise exposure if the payer delays.`:'Payment terms look within a healthy range.',
+      d>45?'Negotiate toward 30–45 days, or price the extended terms into the deal.':'Confirm this matches what was agreed.','high'); }
+  // 3) auto-renewal
+  const ar=low.search(/auto(?:matically)?[\s-]*renew|renews?\s+automatically/);
+  if(ar>=0) add('t-renew','med','risk','Automatic renewal clause',sentenceAround(text,ar),
+    'Auto-renewing contracts with long notice windows are a common way to get locked in.',
+    'Confirm the renewal is intended and the exit notice period is workable.','high');
+  // 4) termination notice
+  const tn=low.match(/(\d{1,3})\s*days'?\s*(?:written\s*)?notice/);
+  if(tn){ const i=low.indexOf(tn[0]); add('t-term','low','ambiguity',`Termination notice: ${tn[1]} days`,sentenceAround(text,i),
+    'The exit notice period sets how quickly you can walk away.','Confirm the notice period is acceptable for your exposure.','high'); }
+  // 5) liability / indemnity
+  const li=firstIdx('limitation of liability','total liability','liability is limited','liability shall','indemnif');
+  if(li>=0) add('t-liab','med','risk','Liability / indemnity — review carefully',sentenceAround(text,li),
+    'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+    'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.','medium');
+  // 6) stamp duty for leases
+  if((low.includes('lease')||low.includes('landlord')||low.includes('tenant')) && !low.includes('stamp duty'))
+    add('t-stamp','med','risk','Lease with no stamp-duty provision','',
+      'An unstamped lease is inadmissible in evidence in Kenya until duty and penalties are paid (Stamp Duty Act, Cap 480).',
+      'Ensure stamp duty is assessed and paid via iTax within 30 days of execution.','medium');
+  // 7) data protection for corporate/IT paper
+  if(c.folder==='corp' && !/(data protection|data processing|personal data|odpc)/.test(low))
+    add('t-dp','low','missing','No data-protection terms detected','',
+      'Under the Data Protection Act 2019 you remain responsible for how vendors process personal data.',
+      'Confirm a data-processing / DPA clause with ODPC-aligned obligations is included.','low');
+  return F;
+}
+
+function openUploadModal(){
+  if(!canEdit()){ toast('Viewers cannot add contracts','err'); return; }
+  const folderOpts=folderOptionsHtml(null, false);
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
+        <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
+      <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
+      <label class="block mb-3">
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, image or text · max 4 MB · Word files must be saved as PDF first)</span></span>
+        <input id="up-file" type="file" accept=".pdf,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
+      </label>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
+        ${upField('up-cp','Received from (counterparty)','e.g. Acme Ltd')}
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mb-3">
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
+          <select id="up-folder" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">${folderOpts}</select></label>
+        <label class="block"><span class="text-xs font-medium text-brand-800/70">Value type</span>
+          <select id="up-vtype" class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+            <option value="estimated">Estimated value</option><option value="fixed">Fixed value</option><option value="none">Non-monetary</option></select></label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-2 mb-4">
+        ${upField('up-value','Contract value (KES)','e.g. 2500000','number')}
+        ${upField('up-expiry','Expiry date (optional)','','date')}
+      </div>
+      <div id="up-steps" class="hidden" style="margin-bottom:4px"></div>
+      <div id="up-actions" class="flex items-center gap-2 justify-end">
+        <button id="up-cancel" class="rounded-lg border border-brand-200 px-4 py-2 text-sm text-brand-700 hover:bg-brand-50 transition">Cancel</button>
+        <button id="up-go" class="flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-medium hover:bg-brand-800 transition">${icon('upload','w-3.5 h-3.5')} Add contract</button>
+      </div>
+    </div>`);
+  document.getElementById('up-cancel').addEventListener('click',closeModal);
+  document.getElementById('up-go').addEventListener('click',submitUpload);
+  bindFolderSelect(document.getElementById('up-folder'));
+}
+/* Named progress line for an upload — turns the anxious wait into visible steps
+   and reinforces that a human confirms at the end. active is 1-based; steps at
+   an index < active read as done, == active as in-progress, > active as pending. */
+const UPLOAD_STEPS=['Reading document','Extracting details','Ready for your review'];
+/* `note` rides under the strip — used for the OCR page counter ("Reading page 4
+   of 12"), which is the difference between a slow step and a hung one. */
+function renderUploadSteps(active, note){
+  const host=document.getElementById('up-steps'); if(!host) return;
+  host.classList.remove('hidden');
+  host.innerHTML=`<div style="padding:10px 12px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:8px">
+   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    ${UPLOAD_STEPS.map((s,i)=>{ const n=i+1; const done=n<active, cur=n===active;
+      const dot=done?`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:#2e8763;color:#fff">${icon('check2','w-2.5 h-2.5')}</span>`
+        :cur?`<span class="scan-pulse" style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`
+        :`<span style="width:16px;height:16px;flex:none;display:grid;place-items:center;border-radius:50%;background:var(--color-neutral-200);color:var(--color-neutral-600);font-size:9px;font-weight:700;font-family:var(--font-mono)">${n}</span>`;
+      const col=done?'#1e6b4d':cur?'var(--color-accent-800)':'var(--color-neutral-500)';
+      return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:${cur?600:500};color:${col}">${dot}${s}</span>`
+        + (n<UPLOAD_STEPS.length?`<span style="color:var(--color-neutral-400);margin:0 1px">→</span>`:''); }).join('')}
+   </div>
+   ${note?`<div id="up-step-note" style="margin-top:7px;font-size:11px;color:var(--color-neutral-600);display:flex;align-items:center;gap:6px">
+     <span class="scan-pulse" style="width:6px;height:6px;border-radius:50%;background:var(--color-accent);flex:none"></span>${String(note).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`:''}
+  </div>`;
+}
+async function submitUpload(){
+  const fileInput=document.getElementById('up-file');
+  const file=fileInput.files&&fileInput.files[0];
+  if(!file){ toast('Choose a file to upload','err'); return; }
+  if(file.size>UPLOAD_MAX){ toast('File is larger than 4 MB — please compress or split it','err'); return; }
+  const cp=fval('up-cp');
+  const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
+  const folder=document.getElementById('up-folder').value;
+  const vtype=document.getElementById('up-vtype').value;
+  const value=vtype==='none'?0:Number(fval('up-value')||0);
+  const expiry=fval('up-expiry')||null;
+  const btn=document.getElementById('up-go'); const cancelBtn=document.getElementById('up-cancel');
+  btn.disabled=true; if(cancelBtn) cancelBtn.disabled=true;
+  btn.innerHTML='<span class="animate-pulse">Working…</span>';
+  renderUploadSteps(1);   // Step 1 — Reading document
+  const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
+  if(!dataUrl){ toast('Could not read that file','err'); btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false; return; }
+  const mime=file.type||'application/octet-stream';
+  // Refuse Word files BEFORE anything is created — a silent empty shell in the
+  // register is worse than a clear refusal.
+  const word=detectWordFile(dataUrl, mime, file.name);
+  if(word){
+    toast(WORD_REFUSAL,'err');
+    const steps=document.getElementById('up-steps');
+    if(steps){ steps.classList.remove('hidden');
+      steps.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;color:#8f322b;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${WORD_REFUSAL}</div>`; }
+    btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false;
+    btn.innerHTML=`${icon('upload','w-3.5 h-3.5')} Add contract`;
+    return;
+  }
+  const fileHash=await sha256(dataUrl);
+  let extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+  // A PDF with no text layer, or a photo of a contract, is read by OCR rather
+  // than filed as an empty shell. Provenance is recorded either way.
+  let ocr=null, textSource=extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none';
+  if(ocrNeeded(mime, extractedText)){
+    if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }
+    renderUploadSteps(1, 'This looks like a scan — reading it with OCR…');
+    ocr=await ocrDocument(dataUrl, mime, {
+      onProgress:(done,total,tier)=>renderUploadSteps(1,
+        `Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser — slower and less accurate)':''}…`),
+    });
+    if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
+    else if(ocr.error) toast('Could not read this scan: '+ocr.error,'err');
+  }
+  const u=currentUser();
+  const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
+    extractedText, textChars:extractedText.length, dataUrl, textSource,
+    ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
+    ocrIllegible: ocr?ocr.illegible:0 };
+  // API mode: store bytes on the server and keep only a reference in the synced record.
+  if(API_MODE()){
+    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
+      upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
+  }
+  const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
+    template:null, source:'upload', folder, valueType:vtype,
+    lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
+    compliance:{},
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for AI review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    fields:{}, scan:null,
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
+    signatures:[], upload };
+  // The audit trail must say the text was machine-read from a scan — a reader
+  // months from now has no other way to know the dates were never typed.
+  if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
+    detail:ocrProvenanceLine(upload) });
+  c._loaded=true; c._light=false; c._v=0;
+  const saveContract=(metadata)=>{
+    if(metadata){ applyMetadata(c, metadata); }
+    state.contracts.unshift(c);
+    state.activeId=c.id;
+    persist(c);
+    closeModal();
+    toast('Contract uploaded and filed in '+FOLDERS[folder].name);
+    setView('workspace');
+    renderSideFolders();
+  };
+  // E1: extract metadata from the text, then let the human confirm before saving.
+  if(extractedText && extractedText.length>200){
+    renderUploadSteps(2, isOcrText(textSource)?'Reading details out of the machine-read text…':null);
+    const meta=await extractMetadata(extractedText, {counterparty:cp, value, expiry});
+    // Anything read out of an OCR'd scan is capped at medium confidence — OCR
+    // misreads dates and amounts, and those are what the reminders fire on.
+    if(isOcrText(textSource)) capConfidenceForOcr(meta);
+    renderUploadSteps(3);   // Step 3 — Ready for your review (the confirm screen)
+    openMetaReview(meta, saveContract, { onCancel:()=>saveContract(null),
+      ocrNotice: isOcrText(textSource)?ocrProvenanceLine(upload):'' });
+  } else {
+    saveContract(null);
+  }
+}
+/* Fold confirmed metadata back into the contract's own fields + a metadata block. */
+function applyMetadata(c, m){
+  c.metadata = m;
+  if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
+  if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
+  if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
+  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'AI-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
+}
+
+/* Working-text document body: shown once a contract carries edited wording
+   (an owner edit or an accepted counterparty redline). This exact text is
+   what versions/compare diff and what the seal will bind. */
+function redlineDocBody(c){
+  return `
+    <div class="mb-6 pb-5 border-b border-brand-100">
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">${cKind(c)} · working text · ${c.id}</div>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
+    </div>
+    <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
+      ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
+    </div>
+    <div class="text-brand-800/85" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
+    ${signatureBlock(c)}`;
+}
+
+/* Plain-text document editor (Admin + Legal). Saves are versioned so
+   Compare shows exactly what changed; the audit trail records the edit. */
+function openEditDocModal(c){
+  if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+  const cur=wasRich ? docPlainText(c)
+    : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
+  if(!cur){ toast('This document has no editable text yet','err'); return; }
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const firstEdit=!c.redlineText&&!isUpload(c);
+  openModal(`
+    <div style="padding:20px 22px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
+      ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
+        <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
+        <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
+      <textarea id="ed-text" rows="20" class="scroll-thin" spellcheck="false" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:12px 14px;font:inherit;font-size:12.5px;line-height:1.75;resize:vertical;outline:none;min-height:300px">${esc(cur)}</textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
+        <span style="display:flex;gap:8px">
+          <button id="ed-cancel" class="ui-btn">Cancel</button>
+          <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
+        </span>
+      </div>
+    </div>`, {maxWidth:'860px'});
+  const ta=document.getElementById('ed-text');
+  ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=ta.value.length.toLocaleString()+' characters'; });
+  document.getElementById('ed-cancel').addEventListener('click',closeModal);
+  document.getElementById('ed-save').addEventListener('click',()=>{
+    const txt=ta.value;
+    if(txt.trim()===cur.trim()){ toast('No changes made'); closeModal(); return; }
+    if(!txt.trim()){ toast('The document text cannot be empty','err'); return; }
+    const u=currentUser();
+    if(!(c.versions||[]).length) captureVersion(c,'Original text','System');
+    c.redlineText=txt;
+    if(wasRich) c.format=TEXT_FORMAT;   // the plain-text editor produces plain text; say so on the record
+    const v=captureVersion(c,`Edited by ${u?.name||'user'}`,u?.name);
+    logAudit(c,'Edited',`Document wording edited in the workspace${wasRich?' using the plain-text editor — formatting was not retained':''}${v?` — captured as v${v.n}`:''}`);
+    c.lastAction=todayStr(); persist(c);
+    closeModal(); renderWorkspace();
+    toast('Changes saved — open Compare to review them');
+  });
+}
+
+function uploadDocBody(c){
+  const u=c.upload||{}, mime=u.mime||'';
+  const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
+  // a generous reading surface: fills the viewport height, with an Expand
+  // control that opens the document near-fullscreen for comfortable review
+  const canPreview = isPdf||isText||isImg;
+  const fileUrl = docFileUrl(c);
+  const previewHead = canPreview ? `
+    <div class="flex items-center justify-between gap-2 mb-2">
+      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Document preview</div>
+      <button type="button" data-expand-doc class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-2.5 py-1.5 text-[11px] font-600 text-brand-700 hover:border-brand-400 hover:text-brand-900 transition">${icon('expand','w-3.5 h-3.5')} Expand</button>
+    </div>` : '';
+  const preview = previewHead + ((isPdf||isText)
+    ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
+    : isImg
+    ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
+         <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
+         <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
+         <div class="text-xs text-brand-800/65 mt-1">This file type can't preview in the browser — download the original to review it.</div>
+       </div>`);
+  const sizeKB = u.size?Math.round(u.size/1024):0;
+  return `
+    <div class="mb-6 pb-5 border-b border-brand-100">
+      <div class="text-[10px] font-mono uppercase tracking-[0.2em] text-brand-800/60 mb-2">External Document · received · ${c.id}</div>
+      <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${esc(c.name)}</h3>
+    </div>
+    <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
+      ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
+        ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
+        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
+    </div>
+    ${ocrBannerHtml(u)}
+    <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
+      <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
+    </div>
+    <div class="mb-4 flex flex-wrap items-center gap-2">
+      <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?(isOcrText(u.textSource)?'border-gold-500/25 bg-gold-500/10 text-gold-700':'border-brand-100 bg-brand-50/50 text-brand-700'):'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200
+        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — AI review analyses the actual text`
+        : 'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+      ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+    </div>
+    ${c.redlineText?`
+    <div class="mb-4" data-anchor="redline">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
+      </div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-neutral-800)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
+      <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
+    </div>`:''}
+    ${preview}
+    ${signatureBlock(c)}`;
+}
+
+/* Read the stored original again and replace the extracted text. Documents
+   uploaded before an extraction improvement keep whatever text was read at the
+   time; the file itself is still on record, so re-reading repairs them in place
+   without a re-upload. Safe on executed contracts too — an upload's seal binds
+   the file's own hash, not this text (see sealString). */
+async function rereadUploadText(c, btn){
+  if(!canEdit()){ toast('Viewers cannot change contracts','err'); return; }
+  const u=c.upload||{};
+  const restore=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    if(!u.dataUrl && u.fileId && API_MODE()){
+      const f=await api('files/'+u.fileId); u.dataUrl=f.dataUrl;
+    }
+    if(!u.dataUrl) throw new Error('the original file is not available on this record');
+    const text=await extractDocText(u.dataUrl, u.mime||'');
+    if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+    const before=Number(u.textChars||0);
+    u.extractedText=text; u.textChars=text.length;
+    c.lastAction=todayStr();
+    logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+    persist(c);
+    toast(`Document re-read — ${text.length.toLocaleString()} characters`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not re-read this document — '+e.message,'err');
+    if(btn){ btn.disabled=false; btn.innerHTML=restore; }
+  }
+}
+
+// near-fullscreen reader for a received document — the reading surface the
+// inline preview can't give inside the split workspace
+function openDocReader(url, name, mime){
+  if(!url) return;
+  const prev=document.getElementById('doc-reader'); if(prev) prev.remove();
+  // the url may be a blob: handle, which carries no type — trust the stored mime
+  const isImg=mime?/^image\//.test(mime):/^data:image\//.test(url);
+  const body=isImg
+    ? `<div class="flex-1 min-h-0 overflow-auto bg-docbg grid place-items-start p-4"><img src="${url}" class="max-w-full mx-auto" alt="${(name||'Document').replace(/"/g,'')}"/></div>`
+    : `<iframe src="${url}" class="flex-1 min-h-0 w-full bg-white" title="${(name||'Document').replace(/"/g,'')}"></iframe>`;
+  const ov=document.createElement('div');
+  ov.id='doc-reader';
+  ov.className='fixed inset-0 z-[80] bg-ink/60 backdrop-blur-sm flex flex-col p-3 sm:p-6';
+  ov.style.animation='viewIn .2s var(--ease)';
+  ov.innerHTML=`
+    <div class="mx-auto w-full max-w-[1100px] flex-1 min-h-0 flex flex-col bg-white rounded-2xl elev-4 overflow-hidden">
+      <div class="shrink-0 flex items-center justify-between gap-3 px-5 py-3 border-b border-hair">
+        <div class="min-w-0 flex items-center gap-2.5">
+          <span class="h-8 w-8 grid place-items-center rounded-lg bg-brand-50 text-brand-600 shrink-0">${icon('file','w-4 h-4')}</span>
+          <div class="min-w-0"><div class="text-sm font-700 text-brand-900 truncate">${name||'Document'}</div><div class="text-[11px] text-brand-800/60">Received document · full-screen reader</div></div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <a href="${url}" download="${(name||'contract').replace(/"/g,'')}" class="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-600 text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download</a>
+          <button type="button" data-close-reader class="inline-flex items-center gap-1.5 rounded-lg bg-brand-900 text-white px-3 py-2 text-xs font-600 hover:bg-brand-800 transition">${icon('close','w-3.5 h-3.5')} Close</button>
+        </div>
+      </div>
+      ${body}
+    </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('[data-close-reader]').addEventListener('click',close);
+  ov.addEventListener('click',e=>{ if(e.target===ov) close(); });
+  document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+}
+
+function uploadScanRules(c){
+  const F=[]; const add=(id,sev,kind,title,what,why,fix)=>F.push({id,sev,kind,title,anchor:'doc',what,why,fix});
+  // metadata checks (always)
+  if(!c.counterparty) add('u-cp','high','missing','Counterparty not recorded',
+    'No counterparty name is recorded against this uploaded document.',
+    'A signed contract with no recorded party is hard to enforce and clutters the register.',
+    'Add the counterparty’s full registered name (as on the BRS certificate) in the deal details.');
+  if(isMonetary(c) && !(Number(c.value)>0)) add('u-val','med','missing','Contract value not recorded',
+    'The value field is empty for a document marked as monetary.',
+    'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
+    'Record the agreed KES value, or mark the contract non-monetary if none passes.');
+
+  const u=c.upload||{};
+  const text=u.extractedText||'';
+  if(text.length>200){
+    // The review still quotes verbatim from whatever text we hold. When that
+    // text came out of a scan, say so first and loudly — every quote below is a
+    // quote of the transcription, not of the paper.
+    if(isOcrText(u.textSource)) add('u-ocr','med','risk','Quotes below come from a machine-read scan',
+      ocrProvenanceLine(u),
+      'OCR misreads dates, figures and names. A clause quoted here is a quote of the transcription, not of the original paper — and a wrong date drives a wrong renewal reminder.',
+      'Check every quoted date, amount and party name against the original document before relying on this review.');
+    // real analysis over the extracted text
+    findingsFromText(c, text).forEach(f=>F.push(f));
+  } else {
+    // no text even after OCR was attempted → honest manual checklist
+    add('u-noext','low','missing','Document text could not be read automatically',
+      u.textSource==='none'&&u.ocrTotalPages
+        ? `OCR was attempted on this document (${u.ocrTotalPages} page${u.ocrTotalPages===1?'':'s'}) and produced no usable text. The points below are a manual checklist, not a read of the clauses.`
+        : 'This file did not yield extractable text. The points below are a manual checklist, not a read of the clauses.',
+      'Without readable text there is nothing for a clause-level review to analyse.',
+      'Re-scan the document at a higher resolution and upload it again, or review the document manually.');
+    add('u-law','med','risk','Confirm governing law is Kenyan',
+      'Confirm the governing-law and jurisdiction clause names Kenya.',
+      'A foreign governing law or arbitration seat makes enforcement slow and expensive for a Kenyan business.',
+      'Find the governing-law clause and confirm Kenya and a Kenyan forum; negotiate if not.');
+    add('u-liab','med','risk','Check liability cap & indemnities',
+      'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
+      'An unbalanced liability/indemnity split can expose you well beyond the deal value.',
+      'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.');
+    add('u-term','low','ambiguity','Confirm term, renewal & exit',
+      'Check the term length, any automatic renewal, and your notice period to exit.',
+      'Auto-renewing contracts with long notice periods are a common way to get locked in.',
+      'Confirm renewal is acceptable and the exit notice period is workable.');
+  }
+  // always — honest disclaimer
+  add('u-legal','low','missing','Have qualified counsel review before signing',
+    'This AI review flags common issues but is not legal advice and cannot catch everything.',
+    'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
+    'Obtain independent legal review before signing where the value or risk is material.');
+  return F;
+}
+
+/* ============================================================
+   DOC BODY + WORKSPACE
+   ============================================================ */
+function docBody(c){
+  if(isUpload(c)) return uploadDocBody(c);
+  if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
+  if(c.redlineText) return redlineDocBody(c);
+  const t=TEMPLATES[c.template];
+  const locked=c.status==='Signed'||PORTAL_MODE||!canEdit();
+  const dis=locked?'disabled':'';
+  const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
+  const fText=(id,val,ph='')=>`<input ${dis} type="text" value="${val||''}" placeholder="${ph}" data-field="${id}" class="field"/>`;
+  const fNum=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" class="field field-num"/>`;
+  const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
+  const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" class="field field-num"/>`;
+  // Presentational clause flags — reuse the app's EXISTING scan findings
+  // (openFindings), map each to its clause anchor, keep the worst severity.
+  const flags={};
+  try{ (window.openFindings?openFindings(c):[]).forEach(x=>{ const a=x.anchor;
+    if(/^c\d+$/.test(a||'')){ const r=(window.SEV_RANK&&SEV_RANK[x.sev])||{high:3,med:2,low:1}[x.sev]||0;
+      if(!flags[a]||r>flags[a].r) flags[a]={r,sev:x.sev}; } }); }catch(e){}
+  const FLAGPAL={ high:{tag:'High',bg:'#f1dcd8',fg:'#8f322b',box:'rgba(176,69,60,.05)',line:'rgba(176,69,60,.3)'},
+    med:{tag:'Deviation',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'},
+    low:{tag:'Check',bg:'#f1e6cd',fg:'#7d5a14',box:'rgba(184,134,43,.06)',line:'rgba(184,134,43,.4)'} };
+  const clause=(n,title,body)=>{
+    const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
+    const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:4px;padding:6px 10px;margin-bottom:14px"`:'';
+    const tag=p?`<span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:3px;flex:none">${p.tag}</span>`:'';
+    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85] text-brand-800/85" style="margin:0">${body}</p></div>`;
+  };
+  const f=c.fields;
+  const D=id=>fDate(id,f[id]);                    // date field
+  const T=(id,ph)=>fText(id,f[id],ph);            // text field
+  const N=(id,def,ph)=>fNum(id,(f[id]??def),ph);  // number field (with default)
+
+  // Each builder returns { title, recital, clauses[] }. Clause 'c2' holds the
+  // contract value for most types (NDA has no value; scanRules mirrors this).
+  const BUILD = {
+    RM:()=>({ title:'RAW MATERIAL SUPPLY AGREEMENT',
+      recital:`This Raw Material Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('material','e.g. refined sugar')} into the Buyer's production facilities in Kenya.`,
+      clauses:[
+        clause(1,'Supply & Specification',`The Supplier shall supply an estimated ${N('volume',5000)} metric tonnes per annum meeting the agreed specification and the applicable KEBS/EAS standard, delivered DDP to the Buyer's plant.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is KES ${VAL}, based on agreed per-tonne pricing reviewed quarterly against published commodity indices. Prices are exclusive of VAT.`),
+        clause(3,'Quality & Rejection',`Consignments failing specification or Public Health / KEBS requirements may be rejected within ${N('inspectDays',3)} days of delivery, with replacement at the Supplier's cost.`),
+        clause(4,'Governing Law',`This Agreement is governed by the laws of Kenya, with disputes referred to arbitration in Nairobi under the Nairobi Centre for International Arbitration.`),
+      ]}),
+    PK:()=>({ title:'PACKAGING SUPPLY AGREEMENT',
+      recital:`This Packaging Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Buyer") and ${CP} (the "Supplier") for the supply of ${T('packType','e.g. PET bottles & preforms')} and related packaging materials.`,
+      clauses:[
+        clause(1,'Scope of Supply',`The Supplier shall manufacture and supply packaging to the Buyer's approved artwork and specification, against a rolling forecast, to the Buyer's plants in Kenya.`),
+        clause(2,'Price & Contract Value',`The estimated annual contract value is KES ${VAL}, on agreed per-unit pricing. Any dedicated tooling is owned by the Buyer and listed in Annexure A.`),
+        clause(3,'Forecast, Lead Time & Stock',`The Buyer issues a ${N('forecastWeeks',8)}-week rolling forecast; the Supplier holds ${N('safetyDays',14)} days of safety stock and honours agreed lead times.`),
+        clause(4,'Intellectual Property & Governing Law',`All trademarks and artwork remain the Buyer's property. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    CM:()=>({ title:'CONTRACT MANUFACTURING & CO-PACKING AGREEMENT',
+      recital:`This Contract Manufacturing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Brand Owner") and ${CP} (the "Co-Packer") for the manufacture of ${T('product','e.g. powdered beverages')} to the Brand Owner's specification.`,
+      clauses:[
+        clause(1,'Manufacturing Scope',`The Co-Packer shall manufacture, fill and pack the products to the Brand Owner's recipe and specification at its licensed facility. All formulations and recipes remain the exclusive property of the Brand Owner.`),
+        clause(2,'Tolling Fee & Contract Value',`The estimated annual contract value is KES ${VAL}, billed as a per-unit conversion (tolling) fee and reconciled monthly against actual output.`),
+        clause(3,'Quality, Food Safety & Licences',`The Co-Packer shall maintain FSSC 22000 / KEBS certification and valid Public Health and KRA licences, and permit the Brand Owner to audit on ${N('auditNotice',7)} days' notice.`),
+        clause(4,'Liability & Governing Law',`The Co-Packer is liable for defects arising from its process, including recall costs. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    EQ:()=>({ title:'EQUIPMENT LEASE & MAINTENANCE AGREEMENT',
+      recital:`This Equipment Lease is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Lessee") and ${CP} (the "Lessor") for the lease of ${T('equipment','e.g. a PET filling line')} installed at the Lessee's plant.`,
+      clauses:[
+        clause(1,'Equipment & Title',`The Lessor shall install and commission the equipment at the Lessee's premises. Title to the equipment remains with the Lessor at all times during the term.`),
+        clause(2,'Lease Charges',`The Lessee shall pay a monthly lease charge of KES ${VAL}, in advance, exclusive of VAT.`),
+        clause(3,'Maintenance & Uptime',`The Lessor guarantees ${N('uptime',95)}% availability with an on-site response within ${N('respHrs',24)} hours, and holds critical spares locally.`),
+        clause(4,'Term, Insurance & Governing Law',`The term is ${N('termYears',3)} years. The Lessee shall insure the equipment to full replacement value with the Lessor noted as loss payee. Kenyan law governs.`),
+      ]}),
+    WH:()=>({ title:'WAREHOUSING & COLD-CHAIN SERVICES AGREEMENT',
+      recital:`This Warehousing Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Provider") for third-party storage and handling at ${T('site','e.g. Industrial Area, Nairobi')}.`,
+      clauses:[
+        clause(1,'Storage & Handling',`The Provider shall store up to ${N('pallets',1200)} pallet positions, including ${T('tempRange','e.g. 2–8°C chilled')} temperature-controlled space, with inventory managed on the Client's WMS.`),
+        clause(2,'Service Charge',`The monthly service charge is KES ${VAL}, based on pallet positions and throughput, exclusive of VAT.`),
+        clause(3,'Stock Accuracy & Temperature SLA',`The Provider shall maintain not less than ${N('accuracy',99)}% stock accuracy and continuous temperature logging, reporting any excursion within ${N('excursionHrs',2)} hours.`),
+        clause(4,'Liability & Governing Law',`The Provider is liable for loss or damage to goods in its custody up to their stock value. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    FF:()=>({ title:'FREIGHT & DISTRIBUTION AGREEMENT',
+      recital:`This Freight & Distribution Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Carrier") for the distribution of finished goods across ${T('region','e.g. Nairobi to Coast')}.`,
+      clauses:[
+        clause(1,'Scope of Services',`The Carrier shall collect from the Principal's warehouse and deliver to the ${T('channel','e.g. distributors and modern trade')} within the agreed territory.`),
+        clause(2,'Rates & Contract Value',`The estimated annual contract value is KES ${VAL}, billed against agreed per-drop and per-kilometre rates and reconciled monthly.`),
+        clause(3,'Service Levels',`The Carrier commits to an on-time-in-full (OTIF) target of ${N('otif',98)}% with delivery within ${N('leadHrs',48)} hours of dispatch, per the KPI schedule in Annexure A.`),
+        clause(4,'Liability & Governing Law',`Liability for loss in transit is capped per consignment value. This Agreement is governed by Kenyan law with arbitration seated in Nairobi.`),
+      ]}),
+    DA:()=>({ title:'DISTRIBUTOR AGREEMENT',
+      recital:`This Distributor Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Principal") and ${CP} (the "Distributor"), appointing the Distributor for the ${T('territory','e.g. Nyanza')} territory.`,
+      clauses:[
+        clause(1,'Appointment & Territory',`The Principal appoints the Distributor on a non-exclusive basis to distribute its products within the territory. The Distributor shall not actively sell outside the territory without written consent.`),
+        clause(2,'Targets & Contract Value',`The estimated annual purchase value is KES ${VAL}, against agreed volume targets and a ${N('margin',12)}% distributor margin.`),
+        clause(3,'Credit & Payment Terms',`A credit limit of ${N('creditDays',30)} days applies, secured by a bank guarantee. Title to goods passes on delivery.`),
+        clause(4,'Term, Termination & Governing Law',`The term is ${N('termYears',2)} years, terminable on ${N('noticeDays',90)} days' written notice. Kenyan law governs.`),
+      ]}),
+    RL:()=>({ title:'RETAIL LISTING & SUPPLY AGREEMENT',
+      recital:`This Retail Listing & Supply Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Supplier") and ${CP} (the "Retailer") for the listing and supply of the Supplier's products into the Retailer's stores.`,
+      clauses:[
+        clause(1,'Listing & Range',`The Retailer shall list the agreed SKUs across ${N('stores',40)} stores, with planogram and shelf space per the trading terms in Annexure A.`),
+        clause(2,'Trading Terms & Value',`The estimated annual supply value is KES ${VAL}, with a ${N('rebate',5)}% volume rebate and the agreed listing fees.`),
+        clause(3,'Payment & Returns',`Payment falls due within ${N('payDays',60)} days of invoice. Short-dated or damaged stock is handled per the returns schedule.`),
+        clause(4,'Compliance & Governing Law',`Products shall comply with KEBS labelling and Legal Metrology requirements. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    MK:()=>({ title:'MARKETING & TRADE PROMOTION SERVICES AGREEMENT',
+      recital:`This Marketing Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Agency") for ${T('services','e.g. creative, media and activation')} services.`,
+      clauses:[
+        clause(1,'Scope of Services',`The Agency shall provide the services in accordance with approved campaign briefs and the Client's annual marketing calendar.`),
+        clause(2,'Fees & Contract Value',`The annual retainer / working budget is KES ${VAL}, billed ${T('billing','e.g. monthly')}, exclusive of VAT and third-party pass-through costs.`),
+        clause(3,'Approvals & Media',`All spend and creative require the Client's prior written approval. Any media rebates or volume bonuses are passed back to the Client in full.`),
+        clause(4,'IP, Confidentiality & Governing Law',`All work product and campaign intellectual property vest in the Client upon payment. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+    ND:()=>({ title:'MUTUAL NON-DISCLOSURE AGREEMENT',
+      recital:`This Mutual Non-Disclosure Agreement is entered into on ${D('effDate')} between <strong>${FIRST_PARTY}</strong>, a company incorporated in the Republic of Kenya, and ${CP}, collectively the "Parties".`,
+      clauses:[
+        clause(1,'Purpose',`The Parties wish to explore a potential business relationship and, in connection therewith, may disclose confidential and proprietary information. No monetary consideration passes under this Agreement; the mutual exchange of Confidential Information constitutes sufficient consideration.`),
+        clause(2,'Confidential Information',`"Confidential Information" means all non-public information disclosed by one Party to the other, including recipes, specifications, commercial terms, pricing and customer data.`),
+        clause(3,'Term',`This Agreement shall remain in force for ${N('termYears',3)} years from the effective date, unless terminated earlier by written notice to the registered office in Nairobi.`),
+        clause(4,'Governing Law',`This Agreement is governed by the laws of the Republic of Kenya, and the Parties submit to the exclusive jurisdiction of the Courts at Nairobi.`),
+      ]}),
+    LE:()=>({ title:'COMMERCIAL PROPERTY LEASE AGREEMENT',
+      recital:`This Lease is made on ${D('effDate')} between ${CP} (the "Landlord") and <strong>${FIRST_PARTY}</strong> (the "Tenant") in respect of commercial premises situated at ${T('premises','e.g. Westlands, Nairobi')}.`,
+      clauses:[
+        clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
+        clause(2,'Rent',`The Tenant shall pay monthly rent of KES ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT at the prevailing KRA rate.`),
+        clause(3,'Term & Deposit',`The lease term is ${N('termYears',6)} years, secured by a deposit of ${N('deposit',0,'deposit KES')} held against dilapidations and refundable per clause 7.`),
+        clause(4,'Governing Law',`This Lease is governed by the laws of Kenya, including the Land Act (2012), with disputes referred to the Environment and Land Court at Nairobi.`),
+      ]}),
+    PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',
+      recital:`This Professional Services Agreement is made on ${D('effDate')} between <strong>${FIRST_PARTY}</strong> (the "Client") and ${CP} (the "Adviser") for ${T('services','e.g. statutory audit / legal advisory')} services.`,
+      clauses:[
+        clause(1,'Scope of Engagement',`The Adviser shall provide the professional services described in the engagement letter / Annexure A with reasonable skill and care.`),
+        clause(2,'Fees & Contract Value',`The fees for the engagement are KES ${VAL}, billed ${T('billing','e.g. on milestones')}, exclusive of VAT and disbursements.`),
+        clause(3,'Standard & Independence',`The services shall be performed to professional standards and, where regulated, in line with ICPAK / LSK requirements and applicable independence rules.`),
+        clause(4,'Liability, Confidentiality & Governing Law',`The Adviser's liability is capped at the fees paid, save for negligence or wilful default. This Agreement is governed by the laws of Kenya.`),
+      ]}),
+  };
+  const built=(BUILD[c.template]||BUILD.ND)();
+  const title=built.title, recital=built.recital, clauses=built.clauses;
+  return `
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
+    </div>
+    <p class="text-[13px] leading-[1.7] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
+    ${clauses.join('')}
+    ${signatureBlock(c)}`;
+}
+/* Which template, and which VERSION of it, this contract was generated from.
+   Worth surfacing because a template can be edited afterwards and this contract
+   will NOT change — so "Raw Mats v3" is the only thing that answers "which
+   wording is this?" once the template has moved on. Says so explicitly, and
+   flags when the template has since been revised. */
+function templateProvenanceHtml(c){
+  const tid=c.templateId||c.templateRef;
+  if(!tid || !window.customTemplates) return '';
+  const name=c.templateName||'';
+  const v=Number(c.templateVersion||0);
+  const live=customTemplates().find(t=>t.id===tid);
+  const liveV=live?templateVersionNo(live):0;
+  const label=`${(live?live.name:name)||'a template'}${v?` v${v}`:''}`;
+  const moved=live && v && liveV>v;
+  const esc=x=>String(x||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return `<div style="max-width:660px;margin:0 auto 10px;display:flex;align-items:flex-start;gap:7px;font-size:11px;line-height:1.5;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px">
+    <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('copy','w-3.5 h-3.5')}</span>
+    <span>Created from <b>${esc(label)}</b>.${moved
+      ? ` That template has since been revised — it is now <b>v${liveV}</b>. <b>This contract keeps the wording it was created with</b>; editing a template never changes a contract already made from it.`
+      : ` Editing the template later does not change this contract — its wording was copied at creation.`}${
+      !live ? ' <span style="color:var(--color-neutral-500)">The template itself has since been deleted.</span>' : ''}</span>
+  </div>`;
+}
+
+/* Migrated paper: signed before it reached HaTi, so there is no signature to
+   show and no electronic-signature law to cite. Naming the person who ran the
+   import would put a party on the contract who never agreed to it — say plainly
+   what happened instead, and show the evidence that does exist: the stored
+   file's own fingerprint. */
+function externalExecutionBlock(c){
+  const m=c.migration||{}, u=c.upload||{};
+  const filedBy=m.importedBy||((c.audit||[]).find(a=>a.action==='Migrated')||{}).user||'—';
+  const filedAt=m.importedAt?fmtDT(m.importedAt):(((c.audit||[]).find(a=>a.action==='Migrated')||{}).at?fmtDT((c.audit||[]).find(a=>a.action==='Migrated').at):'—');
+  const cell=(k,v,sub)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+    <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${k}</div>
+    <div class="font-medium text-brand-700">${v}</div>${sub?`<div class="text-[10px] text-brand-800/65 leading-snug">${sub}</div>`:''}</div>`;
+  return `
+    <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
+      <div class="flex items-start gap-4">
+        <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(40,50,70,.16))">
+          <circle cx="48" cy="48" r="46" fill="#fff"/>
+          <circle cx="48" cy="48" r="46" fill="none" stroke="#5980a6" stroke-width="2"/>
+          <circle cx="48" cy="48" r="38" fill="rgba(89,128,166,.10)" stroke="#8fa8c2" stroke-width="1.5"/>
+          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
+          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#5980a6">MIGRATED</text>
+        </svg>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
+          <div class="mt-1 text-xs text-brand-800/60">Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.</div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
+            ${cell('Filed into HaTi by', filedBy, filedAt)}
+            ${cell('Executed on (as recorded)', c.signedAt||'—', 'from the migrated record, not verified by HaTi')}
+          </div>
+          <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ORIGINAL FILE FINGERPRINT (SHA-256)</div>
+            <div class="text-brand-100 break-all">${u.fileHash||'—'}</div>
+            <div class="text-brand-300 mt-1.5">${u.fileName||'original document'}</div>
+          </div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">For a migrated contract this fingerprint is the evidence of record — it proves the stored file has not changed since it was filed. It is not a signature and identifies no signer.</div>
+        </div>
+      </div>
+    </div>`;
+}
+function signatureBlock(c){
+  const locked=c.status==='Signed';
+  if(locked && isExternallyExecuted(c)) return externalExecutionBlock(c);
+  if(locked){
+    const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
+    const sigs=(c.signatures||[]);
+    const partyLabel=s=> s.party==='counterparty'?'Counterparty' : s.party==='first'?'First party' : (s.role||'Signer');
+    const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):'',s.ip?'IP '+s.ip:''].filter(Boolean).join(' · ')}</div>`;
+    const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
+      ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
+      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${s.title?', '+s.title:s.role?', '+s.role:''}</div>${sub(s)}</div>`;
+    const sigList = sigs.length ? sigs.map(card).join('')
+      : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${c.signatory?('Signed by '+c.signatory):'Not recorded'}</div></div>`;
+    return `
+    <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
+      <div class="flex items-start gap-4">
+        <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(60,40,10,.18))">
+          <circle cx="48" cy="48" r="46" fill="#fff"/>
+          <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
+          <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
+          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
+        </svg>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
+          <div class="mt-1 text-xs text-brand-800/60">Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).</div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
+          <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} DOCUMENT SEAL (SHA-256)</div>
+            <div class="text-brand-100 break-all">${hashDisplay}</div>
+            <div class="text-brand-300 mt-1.5">${c.signedAt||'Timestamp recorded'}</div>
+          </div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">Signer identity is verified by account session (first party) and email one-time code (counterparty). Government IPRS identity and CAK-accredited PKI are on the roadmap and not yet active.</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  return `
+    <div class="mt-8 rounded-xl border border-dashed border-brand-200 bg-brand-50/30 p-5 text-center" data-anchor="sig">
+      <div class="text-brand-300 mb-2 flex justify-center">${icon('finger','w-6 h-6')}</div>
+      <div class="text-sm font-medium text-brand-800/70">Signature block — pending execution</div>
+      <div class="text-xs text-brand-800/65 mt-0.5">Confirm intent to sign from the panel on the right.</div>
+    </div>`;
+}
+function frozenDocBody(c){
+  // A frozen body that was rich at signing is sanitised again here, at render,
+  // because this same markup is served to the counterparty portal with no
+  // login. Sanitising is idempotent, so the sealed fragment survives it intact
+  // — and a fragment that reached storage some other way still cannot execute.
+  // A pre-rich frozen body is left exactly as it is: it was produced from
+  // escaped text by freezeContractHtml, and its classes are not on the rich
+  // allowlist, so passing it through the sanitiser would change how a SEALED
+  // contract looks. That is not allowed.
+  const html = (window.isRich && isRich(c.execution.format))
+    ? `<div class="hati-doc" data-anchor="redline">${sanitizeRich(c.execution.html)}</div>`
+    : c.execution.html;
+  return `${html}${signatureBlock(c)}`;
+}
+
+/* One clear next action per lifecycle stage — drives the sticky bar at the top
+   of the open contract so the single most useful verb is never buried in the
+   rich workspace. Returns {label, ic, guide, kind} or null. */
+function wsNextAction(c){
+  if(c.status==='Signed') return { label:'Evidence pack', ic:'download', guide:'Executed &amp; sealed.', kind:'evidence' };
+  if(c.status==='Declined') return null;
+  if(!canEdit()) return null;
+  const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
+  const appr=(window.approvalState?approvalState(c):{ok:true});
+  if(c.status==='Draft'){
+    if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
+    return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
+  }
+  // Under Review
+  if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
+  if(!c.compliance.consent) return { label:'Sign', ic:'finger', guide:'Approved — confirm intent and sign below.', kind:'sign-scroll' };
+  return { label:'Sign', ic:'finger', guide:'Approved and ready — apply the sealed signature.', kind:'sign' };
+}
+
+/* The status strip under the document header. Split out so filling in the key
+   terms can refresh the guidance and the primary button in place, without
+   re-rendering the workspace under the cursor. */
+function actionBarHtml(c){
+  const locked=c.status==='Signed';
+  if(locked) return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:#e8f4ee;color:#1e6b4d"><span style="width:6px;height:6px;border-radius:50%;background:#2e8763"></span>Executed &amp; sealed</span><span style="font-size:12px;color:var(--color-neutral-700)">Executed &amp; sealed. This document is locked and fields are read-only.</span><span style="flex:1"></span><button id="ws-evidence" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 13px">${icon('download','w-3.5 h-3.5')} Evidence pack</button>`;
+  if(!canEdit()) return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">You have viewer access — the document is read-only for your role.</span>`;
+  const na=wsNextAction(c);
+  return `${statusChip(c.status)}<span style="font-size:12px;color:var(--color-neutral-700)">${na?na.guide:'All key terms are set.'}</span>`
+    + `<span style="flex:1"></span>`
+    + (na?`<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:6px 14px">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`:'');
+}
+function renderActionBar(c){
+  const host=document.getElementById('ws-actionbar'); if(!host) return;
+  host.innerHTML=actionBarHtml(c);
+  wireActionBar(c);
+}
+function wireActionBar(c){
+  document.getElementById('ws-evidence')?.addEventListener('click',()=>downloadEvidence(c));
+  document.getElementById('ws-next-action')?.addEventListener('click',e=>{
+    const kind=e.currentTarget.getAttribute('data-na');
+    if(kind==='evidence'){ downloadEvidence(c); return; }
+    if(kind==='share'){ openShareModal(c); return; }
+    if(kind==='terms'){ focusKeyTerms(c); return; }
+    if(kind==='review'){
+      if(c.status==='Draft'){ c.status='Under Review'; c.lastAction=todayStr(); logAudit(c,'Status changed','Draft → Under Review (sent for review)'); persist(c); updateStatusUI(c); renderWorkspace(); toast('Moved to review'); }
+      return;
+    }
+    if(kind==='sign-scroll'){
+      const sw=document.getElementById('sign-wrap'); if(sw) sw.scrollIntoView({behavior:'smooth',block:'center'});
+      const box=document.querySelector('[data-comp="consent"]'); if(box){ const card=box.closest('label'); if(card){ card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); } }
+      toast('Tick intent-to-sign, then Sign');
+      return;
+    }
+    if(kind==='sign'){ signDocument(c); return; }
+  });
+}
+/* "Complete key terms" — put the cursor where the terms can actually be typed:
+   the quick-fill fields of a generated body, else the Key terms panel (which
+   lives on the Signing tab, so switch to it first). */
+function focusKeyTerms(c){
+  const inDoc=document.querySelector('#doc-canvas [data-sync]');
+  if(inDoc){ inDoc.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>inDoc.focus(),300); return; }
+  const panel=document.querySelector('[data-kt="counterparty"]');
+  if(!panel){ toast('This document has no editable key terms','err'); return; }
+  _docTopTab='signing'; applyDocTabs();
+  const right=document.getElementById('doc-right'); if(right) right.scrollTo({top:0,behavior:'smooth'});
+  setTimeout(()=>{ panel.focus(); panel.select&&panel.select(); },250);
+}
+
+/* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
+   Screening (default while a contract is in progress) stacks Playbook review →
+   Insert clause → AI Contract Scan, with a "Next: Signing" button. Signing
+   (default once executed) shows read-only Key terms on top and a card with
+   four inner tabs: Activity · Terms · Audit · Signing. Tab choices persist
+   across re-renders of the same contract, and reset when a different contract
+   opens. */
+let _docTopTab='screening';                 // 'screening' (= Draft & Review) | 'signing'
+let _docInnerTab='signing';                 // Signing tab inner: 'signing' | 'obligations' | 'audit'
+let _docTabsFor=null;                        // contract id the choices belong to
+const DOC_INNER_TABS=['signing','obligations','audit'];
+function docTabDefaults(c){
+  if(_docTabsFor!==c.id){                    // first open of this contract → sensible defaults
+    _docTopTab = (c.status==='Signed') ? 'signing' : 'screening';
+    _docInnerTab = 'signing';
+    _docTabsFor = c.id;
+  }
+}
+function topTabBtn(k,label,ic){
+  return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+}
+function innerTabBtn(k,label,ic){
+  return `<button data-inner-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;border:0;border-radius:6px;background:none;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-600);padding:7px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-3.5 h-3.5')}<span>${label}</span></button>`;
+}
+function applyDocTabs(){
+  const root=document.getElementById('doc-right'); if(!root) return;
+  if(_docTopTab!=='screening'&&_docTopTab!=='signing') _docTopTab='screening';
+  if(!DOC_INNER_TABS.includes(_docInnerTab)) _docInnerTab='signing';
+  root.querySelectorAll('[data-top-pane]').forEach(p=>{ p.style.display=(p.getAttribute('data-top-pane')===_docTopTab)?'flex':'none'; });
+  root.querySelectorAll('#doc-toptabs [data-top-tab]').forEach(b=>{ const on=b.getAttribute('data-top-tab')===_docTopTab;
+    b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
+  root.querySelectorAll('[data-inner-pane]').forEach(p=>{ p.style.display=(p.getAttribute('data-inner-pane')===_docInnerTab)?'flex':'none'; });
+  root.querySelectorAll('#doc-innertabs [data-inner-tab]').forEach(b=>{ const on=b.getAttribute('data-inner-tab')===_docInnerTab;
+    b.style.background=on?'var(--color-accent-100)':'none'; b.style.color=on?'var(--color-accent-800)':'var(--color-neutral-600)'; });
+}
+function wireDocTabs(){
+  document.querySelectorAll('#doc-toptabs [data-top-tab]').forEach(b=>b.addEventListener('click',()=>{ _docTopTab=b.getAttribute('data-top-tab'); applyDocTabs(); }));
+  document.querySelectorAll('#doc-innertabs [data-inner-tab]').forEach(b=>b.addEventListener('click',()=>{ _docInnerTab=b.getAttribute('data-inner-tab'); applyDocTabs(); }));
+  document.getElementById('screening-next')?.addEventListener('click',()=>{ _docTopTab='signing'; applyDocTabs(); const r=document.getElementById('doc-right'); if(r) r.scrollTo({top:0,behavior:'smooth'}); });
+  applyDocTabs();
+}
+/* Draggable divider between the contract (left) and workspace (right). The
+   contract can only grow — from its default width up to +25% — never narrower;
+   the right panel gives up the space. The chosen fraction is remembered. */
+const DOC_F0 = 1.2 / 2.2;                 // default left share (matches the 1.2fr:1fr grid)
+const DOC_FMAX = DOC_F0 * 1.25;           // +25% wider contract, max
+const DOC_GAP = 12;
+function _docLeftFrac(){
+  try{ const v=Number(lsGet('hati.v1.docLeftFrac')); return (v>=DOC_F0-0.001&&v<=DOC_FMAX+0.001)?v:DOC_F0; }catch(_){ return DOC_F0; }
+}
+function layoutDocResizer(){
+  const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
+  if(!grid||!rez) return;
+  const avail=Math.max(1, grid.clientWidth - DOC_GAP);
+  const leftPx=Math.round(_docLeftFrac()*avail);
+  grid.style.gridTemplateColumns=leftPx+'px minmax(0,1fr)';
+  rez.style.left=leftPx+'px';            // handle sits in the gap immediately right of the contract
+}
+function wireDocResizer(){
+  const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
+  if(!grid||!rez) return;
+  const grip=rez.firstElementChild;
+  const clamp=f=>Math.max(DOC_F0, Math.min(DOC_FMAX, f));
+  layoutDocResizer();
+  let startX=0, startFrac=DOC_F0;
+  const onMove=e=>{ const x=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX);
+    const avail=Math.max(1, grid.clientWidth - DOC_GAP);
+    const frac=clamp(startFrac + (x-startX)/avail);
+    try{ lsSet('hati.v1.docLeftFrac',frac); }catch(_){}
+    layoutDocResizer(); };
+  const onUp=()=>{ delete rez.dataset.drag; grip.style.background='var(--color-divider)';
+    document.body.style.cursor=''; document.body.style.userSelect='';
+    window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); };
+  rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
+    startX=e.clientX; startFrac=_docLeftFrac();
+    grip.style.background='var(--color-accent)'; document.body.style.cursor='col-resize'; document.body.style.userSelect='none';
+    window.addEventListener('pointermove',onMove); window.addEventListener('pointerup',onUp); });
+  rez.addEventListener('dblclick',()=>{ try{ lsSet('hati.v1.docLeftFrac',DOC_F0); }catch(_){} layoutDocResizer(); });
+  if(!window._docResizeBound){ window._docResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='workspace') layoutDocResizer(); }); }
+}
+function renderWorkspace(){
+  const c=getContract(state.activeId);
+  const content=document.getElementById('content');
+  if(!c){
+    content.innerHTML=`
+    <div class="view-enter grid place-items-center min-h-screen px-8">
+      <div class="text-center max-w-sm">
+        <div class="mx-auto h-14 w-14 grid place-items-center rounded-2xl bg-white border border-brand-100 text-brand-300 mb-4">${icon('file','w-7 h-7')}</div>
+        <h2 class="font-display font-600 text-lg text-brand-900">No contract open</h2>
+        <p class="text-sm text-brand-800/70 mt-1">Open a folder from the dashboard, or generate a contract from a template.</p>
+        <button onclick="setView('dashboard')" class="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-900 text-white px-4 py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('grid')} Go to dashboard</button>
+      </div>
+    </div>`;
+    setActiveNav('workspace'); return;
+  }
+  // load the full contract body (comments, audit, execution text, extracted text) on first open
+  if(API_MODE() && !c._loaded){
+    content.innerHTML=`<div class="view-enter grid place-items-center min-h-screen"><div class="text-center text-brand-800/70"><div class="mx-auto mb-3 h-8 w-8 rounded-full border-2 border-brand-200 border-t-brand-500 animate-spin"></div><div class="text-sm">Loading contract…</div></div></div>`;
+    setActiveNav('workspace');
+    ensureFull(c).then(()=>{ if(state.activeId===c.id) renderWorkspace(); })
+      .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">Could not load this contract: ${e.message}</div>`; });
+    return;
+  }
+  const locked=c.status==='Signed';
+  // Industry design-system tokens — inline styles per the design handoff.
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:6px';
+  const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
+  const KROW='display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid rgba(29,31,32,.06);font-size:11.5px';
+  const KKEY='color:var(--color-neutral-600);flex:none';
+  const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:500;text-align:right;min-width:0">${v}</span></div>`;
+  const KIN='min-width:0;max-width:62%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:3px 7px;font:inherit;font-size:11.5px;text-align:right;outline:none';
+  const tmplLabel=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template):(isUpload(c)?'Uploaded document':'—');
+  // Key terms stay editable until the seal binds them (sealString folds
+  // counterparty/value/valueType in), and only for roles that can edit.
+  const ktEditable=!locked&&canEdit()&&!PORTAL_MODE;
+  const ktReadable=((isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'').length>200;
+  // Back returns to wherever the workspace was opened from (register/folder/queue…),
+  // defaulting to the register. state.wsReturn is captured in setView.
+  const _wr=state.wsReturn||{};
+  const backLabel=(_wr.view==='folder'&&_wr.folderId&&FOLDERS[_wr.folderId])
+    ? 'Back to '+FOLDERS[_wr.folderId].name
+    : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
+  content.innerHTML=`
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+
+    <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
+    <section style="${CARD};flex:none;overflow:hidden">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;padding:12px 16px">
+        <button id="ws-back" title="${backLabel}" class="ui-btn" style="width:32px;height:32px;padding:0;flex:none">${icon('arrowLeft','w-4 h-4')}</button>
+        <div style="min-width:0;flex:1">
+          <div style="display:flex;align-items:center;gap:8px">
+            <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
+            <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
+          </div>
+          <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+          ${(canEdit()&&!locked)?`<button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
+          ${canEdit()?`<button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
+          <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
+          <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
+          <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
+          <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
+          <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
+        </div>
+      </div>
+      <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
+    </section>
+
+    <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
+    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px">
+
+      <!-- LEFT: document -->
+      <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
+        <!-- document body (scrolls within the left pane) -->
+        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
+          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
+            :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
+            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
+            :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
+            :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
+          ${templateProvenanceHtml(c)}
+          <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
+            
+            <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RIGHT: two tabs — Screening | Signing ============ -->
+      <section id="doc-right" class="scroll-thin" style="display:flex;flex-direction:column;gap:12px;min-height:0;overflow-y:auto;padding-right:2px">
+
+        <!-- Top-level tabs -->
+        <div id="doc-toptabs" style="position:sticky;top:0;z-index:4;flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm)">
+          ${topTabBtn('screening','Draft &amp; Review','scan')}
+          ${topTabBtn('signing','Signing','finger')}
+        </div>
+
+        <!-- ===== DRAFT & REVIEW: review → fix → negotiate (everything pre-signature) ===== -->
+        <div data-top-pane="screening" style="display:flex;flex-direction:column;gap:12px">
+          <!-- review & fix -->
+          <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="scan-section" style="${CARD};overflow:hidden"></div>
+
+          <!-- collaborate & negotiate -->
+          <section style="${CARD};padding:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Activity &amp; comments</h6>
+              <span class="flex items-center gap-1" style="font-size:10px;color:#1e6b4d;font-weight:600"><span class="live-dot" style="height:6px;width:6px;border-radius:9999px;background:#2e8763;display:inline-block"></span>live</span>
+            </div>
+            <div id="feed" class="space-y-3 scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:4px"></div>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
+              <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
+              <div style="display:flex;gap:6px">
+                <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+                <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
+              </div>
+            </div>
+          </section>
+          <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+
+          <div style="display:flex;justify-content:flex-end;padding-top:2px">
+            <button id="screening-next" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:7px 16px;display:inline-flex;align-items:center;gap:6px">Next: Signing ${icon('chevR','w-3.5 h-3.5')}</button>
+          </div>
+        </div>
+
+        <!-- ===== SIGNING: Key terms (top) + inner tabs (Signing / Obligations / Audit) ===== -->
+        <div data-top-pane="signing" style="display:none;flex-direction:column;gap:12px">
+
+          <!-- Key terms. Editable until the contract is sealed: counterparty,
+               value and valueType are folded into the seal, and for uploaded or
+               template-based documents this panel is the ONLY place they can be
+               set (a generated body carries its own quick-fill fields). -->
+          <div style="${CARD};padding:12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <h6 style="${H6};flex:1">Key terms</h6>
+              ${ktEditable&&ktReadable?`<button id="kt-fill" class="ui-btn" style="font-size:10.5px;padding:3px 8px" title="Read the counterparty, dates and value out of the document">${icon('sparkle','w-3 h-3')} Fill from document</button>`:''}
+            </div>
+            ${ktEditable?`
+            <label style="${KROW}"><span style="${KKEY}">Counterparty</span>
+              <input data-kt="counterparty" type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Who is this with?" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Value</span>
+              <input data-kt="value" type="number" min="0" value="${c.value||''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${KIN};text-align:right;font-family:var(--font-mono)${isMonetary(c)?'':';opacity:.45'}"/></label>
+            <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
+              <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
+                <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+            <label style="${KROW}"><span style="${KKEY}">Effective</span>
+              <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
+            <label style="${KROW}"><span style="${KKEY}">Expiry</span>
+              <input data-kt="expiry" type="date" value="${c.expiry||''}" style="${KIN}"/></label>
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`
+            :`
+            <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
+            ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
+            ${kv('Expiry',c.expiry||'—')}
+            <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`}
+          </div>
+
+          <!-- Bottom card: inner tabs -->
+          <div style="${CARD};overflow:hidden;display:flex;flex-direction:column">
+            <div id="doc-innertabs" style="display:flex;gap:2px;padding:6px 6px 0;border-bottom:1px solid var(--color-divider)">
+              ${innerTabBtn('signing','Signing','finger')}
+              ${innerTabBtn('obligations','Obligations','check2')}
+              ${innerTabBtn('audit','Audit','history')}
+            </div>
+            <div style="padding:11px">
+
+              <!-- SIGNING -->
+              <div data-inner-pane="signing" style="display:flex;flex-direction:column;gap:10px">
+                ${(!locked&&canEdit())?`
+                <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
+                  <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
+                  <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">Binding under the Business Laws (Amendment) Act 2020.</span></span>
+                </label>`:''}
+                <div id="sign-wrap"></div>
+              </div>
+
+              <!-- OBLIGATIONS (post-execution commitments to track) -->
+              <div data-inner-pane="obligations" style="display:none;flex-direction:column;gap:12px">
+                <div id="obligations-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+              </div>
+
+              <!-- AUDIT (the record) -->
+              <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
+                <div id="family-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+                <div id="audit-section" style="${CARD};overflow:hidden"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
+      <div id="doc-resizer" title="Drag right to widen the contract (up to +25%) · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:12px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-divider)'">
+        <span style="width:3px;height:44px;border-radius:999px;background:var(--color-divider);transition:background .15s"></span>
+      </div>
+    </div>
+  </div>`;
+
+  scanUI = { running:false, filter:'all', expanded:new Set() };
+  docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
+  wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
+  wireDocResizer();   // draggable divider — contract can grow up to +25%, never below default
+  // rehydrate a server-stored uploaded file's bytes for preview/download
+  if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
+    api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
+      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
+    }).catch(()=>{});
+  }
+  wireKeyTerms(c);
+  wireActionBar(c);
+  document.getElementById('ws-back').addEventListener('click',()=>{
+    const r=state.wsReturn||{};
+    if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
+    else setView(r.view&&r.view!=='workspace'?r.view:'register');
+  });
+  document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+  window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
+
+  document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
+  document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
+  document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
+  document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
+  document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
+  document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
+  document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
+  setActiveNav('workspace');
+}
+
+/* -------- doc field sync --------
+   Counterparty and value can be typed in two places: the quick-fill inputs
+   inside a generated document body, and the Key terms panel (the only place for
+   uploaded or template-based documents). Both write the same fields, so every
+   on-screen copy is refreshed after each edit. */
+function syncKeyTermsUI(c, source){
+  const put=(sel,val)=>document.querySelectorAll(sel).forEach(el=>{ if(el!==source&&el.value!==String(val)) el.value=val; });
+  put('#doc-canvas [data-sync="counterparty"], [data-kt="counterparty"]', c.counterparty||'');
+  put('#doc-canvas [data-sync="value"], [data-kt="value"]', c.value||'');
+  const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
+  const mv=document.getElementById('meta-value');
+  if(mv){
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
+  }
+}
+/* Draft leaves drafting the moment the terms needed to review it are present.
+   Everything that reads those terms is refreshed with it: the guidance strip,
+   the signing checklist ("Complete: counterparty name, contract value…") and
+   the renewal date the obligations panel derives from the expiry. */
+function keyTermsProgress(c){
+  if(c.status==='Draft'&&c.counterparty&&(!isMonetary(c)||Number(c.value)>0)){
+    c.status='Under Review'; updateStatusUI(c);
+    logAudit(c,'Status changed','Draft → Under Review (key terms completed)');
+  }
+  renderActionBar(c);
+  renderSignButton(c);
+  window.renderObligationsSection&&renderObligationsSection(c);
+}
+function wireDocumentSync(c){
+  const canvas=document.getElementById('doc-canvas');
+  canvas.querySelectorAll('[data-sync]').forEach(inp=>{
+    inp.addEventListener('input',()=>{
+      const key=inp.getAttribute('data-sync');
+      if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='counterparty') c.counterparty=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
+      c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated ${key==='value'?'contract value':'counterparty'}`);
+      persist(c); renderAuditSection(c);
+    });
+  });
+  canvas.querySelectorAll('[data-field]').forEach(inp=>inp.addEventListener('input',()=>{
+    c.fields[inp.getAttribute('data-field')]=inp.value;
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Updated field "${inp.getAttribute('data-field')}"`);
+    persist(c); renderAuditSection(c);
+  }));
+}
+
+/* -------- Key terms panel -------- */
+function wireKeyTerms(c){
+  const LABEL={counterparty:'counterparty', value:'contract value', nonmonetary:'value type',
+               effDate:'effective date', expiry:'expiry date'};
+  document.querySelectorAll('[data-kt]').forEach(inp=>{
+    const key=inp.getAttribute('data-kt');
+    const evt=(inp.type==='checkbox'||inp.type==='date')?'change':'input';
+    inp.addEventListener(evt,()=>{
+      if(key==='counterparty') c.counterparty=inp.value.trim();
+      else if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      else if(key==='nonmonetary'){
+        c.valueType=inp.checked?'none':(c.valueType==='none'?'estimated':c.valueType||'estimated');
+        const v=document.querySelector('[data-kt="value"]');
+        if(v){ v.disabled=inp.checked; v.style.opacity=inp.checked?'.45':''; }
+      }
+      else if(key==='effDate'){ c.fields=c.fields||{}; c.fields.effDate=inp.value; }
+      else if(key==='expiry') c.expiry=inp.value;
+      syncKeyTermsUI(c, inp);
+      keyTermsProgress(c);
+      c.lastAction=todayStr();
+      logAudit(c,'Edited',`Updated ${LABEL[key]||key}`);
+      persist(c); renderAuditSection(c);
+    });
+  });
+  document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
+}
+/* Read what the document itself says and drop it into the EMPTY fields — never
+   over something already entered. Uses the AI reader when a key is configured
+   (it finds party names, which the pattern matcher can't) and the pattern
+   matcher otherwise. */
+async function fillKeyTermsFromDocument(c){
+  const btn=document.getElementById('kt-fill');
+  const text=(isUpload(c)?(c.upload&&c.upload.extractedText):(window.docPlainText?docPlainText(c):''))||'';
+  if(text.length<200){ toast('No readable document text to read from','err'); return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
+  try{
+    const meta=await extractMetadata(text, null);
+    const filled=[];
+    if(!c.counterparty && meta.counterparty){ c.counterparty=String(meta.counterparty).trim(); filled.push('counterparty'); }
+    // the pattern matcher just takes the first money amount it sees — in a
+    // contract that is as likely to be a unit rate as the deal value, so only
+    // trust a figure the AI reader picked out
+    if(meta._source==='ai' && isMonetary(c) && !(Number(c.value)>0) && Number(meta.value)>0){
+      c.value=Number(meta.value); if(c.valueType!=='estimated') c.valueType='estimated'; filled.push('value');
+    }
+    if(!(c.fields&&c.fields.effDate) && meta.effectiveDate){ c.fields=c.fields||{}; c.fields.effDate=meta.effectiveDate; filled.push('effective date'); }
+    if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
+    if(!filled.length){
+      toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
+                               :'Nothing found. Party names and the deal value need an AI key — type them in instead','err');
+      return;
+    }
+    c.lastAction=todayStr();
+    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'AI':'pattern match'})`);
+    persist(c);
+    toast(`Filled ${filled.join(', ')} — check it before signing`);
+    renderWorkspace();
+  }catch(e){
+    toast('Could not read the document — '+(e.message||'try again'),'err');
+  }finally{
+    if(btn&&document.body.contains(btn)){ btn.disabled=false; btn.innerHTML=`${icon('sparkle','w-3 h-3')} Fill from document`; }
+  }
+}
+function updateStatusUI(c){
+  const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
+  if(ms) ms.innerHTML=statusChip(c.status);
+  if(ws) ws.innerHTML=statusChip(c.status);
+}
+
+/* -------- comments -------- */
+function renderFeed(c){
+  const feed=document.getElementById('feed');
+  feed.innerHTML=c.comments.map(m=>{
+    const internal=m.side==='internal';
+    const avatarBg=internal?'bg-brand-100 text-brand-700':'bg-gold-500/15 text-gold-600';
+    const initials=m.author.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    return `
+    <div class="flex gap-2.5">
+      <div class="h-7 w-7 shrink-0 grid place-items-center rounded-full text-[10px] font-semibold ${avatarBg}">${initials}</div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs font-medium text-brand-900">${m.author}</span>
+          <span class="text-[10px] px-1.5 py-0.5 rounded ${internal?'bg-brand-50 text-brand-600':'bg-gold-500/10 text-gold-600'}">${m.role}</span>
+          <span class="text-[10px] text-brand-800/60 ml-auto">${m.ts}</span>
+        </div>
+        <p class="text-xs text-brand-800/75 mt-0.5 leading-relaxed">${m.text}</p>
+      </div>
+    </div>`;
+  }).join('');
+  feed.scrollTop=feed.scrollHeight;
+}
+function wireComments(c){
+  const input=document.getElementById('comment-input');
+  const send=document.getElementById('comment-send');
+  const post=()=>{
+    const text=input.value.trim(); if(!text) return;
+    const u=currentUser();
+    c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, ts:fmtDT(nowISO()) });
+    logAudit(c,'Comment','Internal comment added');
+    persist(c);
+    input.value=''; renderFeed(c); renderAuditSection(c);
+  };
+  send.addEventListener('click',post);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+}
+
+/* -------- compliance + signing -------- */
+function wireCompliance(c){
+  document.querySelectorAll('[data-comp]').forEach(cb=>cb.addEventListener('change',()=>{
+    const key=cb.getAttribute('data-comp');
+    c.compliance[key]=cb.checked;
+    if(key==='consent') logAudit(c,'Consent',`Intent-to-sign ${cb.checked?'confirmed':'withdrawn'} by ${currentUser()?.name||'user'}`);
+    persist(c); renderSignButton(c); renderAuditSection(c);
+  }));
+}
+function renderSignButton(c){
+  const wrap=document.getElementById('sign-wrap'); if(!wrap) return;
+  if(c.status==='Signed'){
+    wrap.innerHTML=`
+      <div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>
+      <div class="mt-2 grid grid-cols-2 gap-2">
+        <button id="verify-seal" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
+        <button id="evidence-dl" class="flex items-center justify-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 py-2 text-xs font-medium hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
+      </div>
+      ${distributionPanelHtml(c)}`;
+    document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
+    document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
+    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c); });
+    return;
+  }
+  if(!canEdit()){
+    wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">Viewer access — signing is disabled for your role.</div>`;
+    return;
+  }
+  const appr=approvalState(c);
+  const ns=nextSigner(c), planned=signerPlan(c).length>0;
+  // With a signer plan, the in-app button only acts when it's an internal
+  // signer's turn; counterparty turns are collected via the share link.
+  const signerReady = !planned || (ns && ns.party==='internal');
+  const ready=c.counterparty&&(!isMonetary(c)||Number(c.value)>0)&&c.compliance.consent&&appr.ok&&signerReady;
+  const missing=[];
+  if(!c.counterparty)missing.push('counterparty name');
+  if(isMonetary(c)&&!(Number(c.value)>0))missing.push('contract value');
+  if(!c.compliance.consent)missing.push('intent-to-sign consent');
+  if(!appr.ok)missing.push('approvals');
+  const signLabel = planned&&ns ? `Sign as ${ns.name}` : 'Sign Document';
+  wrap.innerHTML=`
+    ${approvalPanelHtml(c)}
+    <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
+      ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
+    </button>
+    ${!planned&&canEdit()&&c.status!=='Signed'?`<button id="sp-setup" class="mt-2 w-full text-[11px] text-brand-600 hover:text-brand-800 font-600">Set a multi-signer order…</button>`:''}
+    ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
+           :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
+    ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
+      return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
+  if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
+  document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  wireApprovalPanel(c);
+}
+async function signDocument(c){
+  if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
+  if(!c.compliance.consent){ toast('Tick the intent-to-sign box first','err'); return; }
+  if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
+  // E2-T5: don't seal over unresolved proposed edits. Admin/Legal may override.
+  const openRedlines=unresolvedRedlines(c);
+  if(openRedlines){
+    const u=currentUser();
+    const canOverride = u && (u.role==='admin' || u.role==='legal');
+    const msg=`${openRedlines} proposed edit${openRedlines===1?'':'s'} from the counterparty ${openRedlines===1?'is':'are'} still open. Signing now seals the current text and leaves ${openRedlines===1?'it':'them'} unresolved.`;
+    if(!canOverride){ toast(msg+' Resolve the redline(s) first, or ask an Admin/Legal approver.','err'); return; }
+    if(!await confirmDialog({title:'Sign with open redlines?', message:msg+' This will be recorded as an Admin/Legal override.', confirmLabel:'Sign anyway', danger:true})) return;
+    logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
+  }
+  const u=currentUser(), at0=nowISO();
+  // capture server-stamped IP + time where available (honest attribution)
+  let meta={ ip:null, at:at0 };
+  if(API_MODE()){ try{ meta=await api('sign-meta','POST',{}); }catch(e){} }
+  const at=meta.at||at0;
+  const ordLabel=n=>{ const t=['th','st','nd','rd'], v=n%100; return n+(t[(v-20)%10]||t[v]||t[0]); };
+  // E5-T3 multi-signer route: signers execute in order; each captures their own
+  // mark; the seal is applied only when the last signature lands.
+  const plan=signerPlan(c), ns=nextSigner(c);
+  if(plan.length && ns){
+    if(ns.party!=='internal'){ toast(`Next signer is ${ns.name} (counterparty) — share the link to collect their signature`,'err'); return; }
+    if(ns.memberId && u && u.id!==ns.memberId){ toast(`This step is reserved for ${ns.name}. Sign in as ${ns.name} to sign here.`,'err'); return; }
+    const sig=await captureSignature(ns.name);   // free choice: draw / type / upload
+    if(!sig) return;                              // signer cancelled the pad
+    ns.signed=true; ns.at=at; ns.by=u.name; ns.signature={ form:sig.form, image:sig.image, imageHash:sig.imageHash };
+    c.signatures=c.signatures||[];
+    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, role:ns.role||ROLE_LABEL[u.role], email:ns.email||u.email, at,
+      method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
+      form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
+    logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature`);
+    if(!allSigned(c)){
+      persist(c); renderSignButton(c); renderAuditSection(c);
+      const nxt=nextSigner(c);
+      if(nxt && nxt.party==='counterparty' && internalAllSigned(c)){
+        toast('Internal signing complete — now share it with the counterparty');
+        setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
+      } else {
+        toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`);
+        notifyNextSigner(c, nxt);
+      }
+      return;
+    }
+    await finalizeExecution(c, { by:u, meta });   // last signer is internal
+    return;
+  }
+  // Single-signer path (no route): capture the first party's mark, then seal.
+  const sig=await captureSignature(u.name);
+  if(!sig) return;
+  await finalizeExecution(c, { by:u, meta, firstPartySig:sig });
+}
+
+/* Open the free-choice signature pad; falls back to a metadata-only signature
+   if the pad module is unavailable. */
+async function captureSignature(name){
+  if(typeof openSignaturePad!=='function') return { form:'session', image:null, imageHash:null };
+  return await openSignaturePad({ name });
+}
+
+/* Freeze + seal + (single-signer) record the first mark + distribute. Called
+   once, from either completion point (last internal signer here, or a
+   counterparty's signature in applyResponse). Idempotent. */
+async function finalizeExecution(c, opts={}){
+  if(c.status==='Signed' || (c.hash && c.hash!==null)) return;   // already executed
+  const u=opts.by||currentUser();
+  const at=(opts.meta&&opts.meta.at)||nowISO();
+  const ip=(opts.meta&&opts.meta.ip)||null;
+  const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`; }
+  const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip };
+  if(!isUpload(c)){
+    exec.html=freezeContractHtml(c);
+    // Record WHAT was sealed and HOW it was hashed, on the execution record
+    // itself. Everything sealed before rich content existed carries neither
+    // field, reads as 'text', and re-verifies through the identical path.
+    // freezeContractHtml only emits rich markup for a rich WORKING text; a
+    // built-in template's rendered layout is not rich content, so both fields
+    // are driven off the one condition and can never disagree.
+    const richBody=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+    exec.format=richBody?'rich':'text';
+    exec.hashMode=richBody?'rich':'text';
+    exec.textHash=await sha256(window.execHashInput?execHashInput(exec):normText(exec.html));
+  }
+  c.execution=exec;
+  c.signedAt=fmtDT(at)+' EAT';
+  c.lastAction=todayStr();
+  c.signatory=u?`${u.name} (${ROLE_LABEL[u.role]})`:(c.signatory||'Authorized signatory');
+  c.signatures=c.signatures||[];
+  // Single-signer path records the first-party mark here; a route already
+  // recorded each signer's mark as they signed.
+  if(!signerPlan(c).length && opts.firstPartySig && u){
+    const s=opts.firstPartySig;
+    c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
+      method:'session-authenticated', ip, ua:navigator.userAgent,
+      form:s.form, image:s.image, imageHash:s.imageHash, typedName:s.typedName, font:s.font });
+  }
+  c.sealVersion=2;                       // fold the marks into the seal (see sealString)
+  c.hash=await sha256(sealString(c));
+  c.status='Signed';
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System');
+  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…`);
+  persist(c);                            // critical state saved before any DOM work
+  // Re-render if the contract is open; guarded so a headless finalize (the
+  // counterparty signs last while the contract isn't on screen) can't fail.
+  try{
+    const canvas=document.getElementById('doc-canvas'); if(canvas) canvas.innerHTML=docBody(c);
+    if(typeof updateStatusUI==='function') updateStatusUI(c);
+    renderSignButton(c); renderAuditSection(c);
+  }catch(e){ /* not on screen — fine */ }
+  if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
+  distributeExecuted(c);                 // email a sealed copy to every party
+}
+
+/* Auto-distribute the executed copy to every party (§ auto-distribution). */
+async function distributeExecuted(c){
+  if(c.distribution && c.distribution.at) return;                 // send once
+  const recipients=(typeof distributionRecipients==='function')?distributionRecipients(c):[];
+  if(!recipients.length){ return; }
+  if(API_MODE()){
+    try{
+      const appUrl=location.origin+location.pathname;
+      const res=await api('contracts/'+c.id+'/distribute','POST',{ recipients, appUrl });
+      c.distribution={ at:res.at||nowISO(), triggeredBy:'auto', recipients:res.recipients||recipients.map(r=>({...r,status:'queued'})) };
+    }catch(e){
+      c.distribution={ at:nowISO(), triggeredBy:'auto', error:e.message, recipients:recipients.map(r=>({...r,status:'failed'})) };
+    }
+  } else {
+    c.distribution={ at:nowISO(), triggeredBy:'manual', recipients:recipients.map(r=>({...r,status:'mailto'})) };
+  }
+  logAudit(c,'Distributed',`Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`);
+  persist(c); renderSignButton(c);
+}
+
+/* Best-effort "it's your turn" nudge to the next internal signer. */
+async function notifyNextSigner(c, nxt){
+  if(!API_MODE() || !nxt || nxt.party!=='internal' || !/.+@.+\..+/.test(nxt.email||'')) return;
+  try{ await api('contracts/'+c.id+'/notify-signer','POST',{ email:nxt.email, name:nxt.name, order:nxt.order }); }catch(e){}
+}
+
+/* Distribution panel shown in the sign area once a contract is executed. */
+function distributionPanelHtml(c){
+  const d=c.distribution;
+  const dot=st=>['delivered','queued','sent'].includes(st)?'#2e8763':['failed','bounced'].includes(st)?'#b0453c':'#8a8f95';
+  const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
+  if(!d){
+    if(!canEdit()) return '';
+    return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
+      <div class="text-[11px] font-600 text-ink mb-1">Distribute copies</div>
+      <div class="text-[10.5px] text-ink/60 mb-2">Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.</div>
+      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg bg-brand-900 text-white py-2 text-[11.5px] font-600 hover:bg-brand-800">${icon('share','w-3.5 h-3.5')} Send signed copies to all parties</button>
+    </div>`;
+  }
+  const rows=(d.recipients||[]).map(r=>`<div class="flex items-center gap-2 py-1 text-[11px]">
+    <span class="min-w-0 flex-1"><span class="text-ink/80 font-500">${(r.name||r.email||'').replace(/</g,'&lt;')}</span>${r.role?` <span class="text-ink/45">· ${String(r.role).replace(/</g,'&lt;')}</span>`:''}<br><span class="font-mono text-[9.5px] text-ink/45">${(r.email||'').replace(/</g,'&lt;')}</span></span>
+    <span class="text-[9.5px] font-mono flex items-center gap-1 shrink-0" style="color:${dot(r.status)}"><span style="width:6px;height:6px;border-radius:999px;background:${dot(r.status)}"></span>${stTxt(r.status)}</span>
+  </div>`).join('');
+  return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
+    <div class="flex items-center gap-2 mb-1"><span class="text-[11px] font-600 text-ink">Copies sent</span>
+      <span class="text-[9px] font-mono text-ink/45 ml-auto">${d.at?fmtDT(d.at):''}</span></div>
+    ${rows||'<div class="text-[10.5px] text-ink/50">No recipients found.</div>'}
+    ${d.error?`<div class="text-[10px] text-rose-600 mt-1">${String(d.error).replace(/</g,'&lt;')}</div>`:''}
+    ${canEdit()?`<button id="dist-send" class="mt-2 w-full flex items-center justify-center gap-1.5 rounded-lg border border-line text-brand-700 py-1.5 text-[11px] font-600 hover:bg-brand-50">${icon('share','w-3 h-3')} Send again</button>`:''}
+    ${!API_MODE()?`<div class="text-[9.5px] text-ink/45 mt-1.5">Static mode: run the HaTi server to send email automatically.</div>`:''}
+  </div>`;
+}
+
+
+
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

@@ -1,0 +1,4 @@
+filename,name,counterparty,type,stream,status,value,currency,effective date,expiry date,signed date
+"batch-01.pdf","Raw Material Supply — Kabras Sugar Limited","Kabras Sugar Limited","Raw Material Supply","Procurement","Executed","2500000","KES","2024-03-01","2026-02-28","2024-03-01"
+"never-sent-01.pdf","Lost in the shared drive","Ghost Traders Ltd","Distributor Agreement","Sales","Executed","4000000","KES","2023-06-01","2025-05-31","2023-06-04"
+"never-sent-02.pdf","Also missing","Phantom Logistics","Freight","Warehousing","Executed","750000","KES","2023-06-01","2025-05-31","2023-06-04"

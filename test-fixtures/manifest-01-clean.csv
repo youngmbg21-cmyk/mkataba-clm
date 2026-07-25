@@ -1,0 +1,11 @@
+filename,name,counterparty,type,stream,status,value,currency,effective date,expiry date,signed date
+"batch-01.pdf","Raw Material Supply — Kabras Sugar Limited","Kabras Sugar Limited","Raw Material Supply","Procurement","Executed","2500000","KES","2024-03-01","2026-02-28","2024-03-01"
+"batch-02.pdf","Packaging Supply — Nampak Kenya Limited","Nampak Kenya Limited","Packaging Supply","Procurement","Executed","1800000","KES","2024-02-01","2026-01-31","2024-02-01"
+"batch-03.pdf","Warehousing — Siginon Group Limited","Siginon Group Limited","Warehousing","Warehousing","Executed","4200000","KES","2024-01-15","2027-01-14","2024-01-15"
+"batch-04.pdf","Retail Listing — Naivas Limited","Naivas Limited","Retail Listing","Sales","Executed","12000000","KES","2024-04-01","2027-03-31","2024-04-01"
+"batch-05.pdf","Marketing Services — Scanad Kenya Limited","Scanad Kenya Limited","Marketing Services","Marketing","Executed","3600000","KES","2024-06-01","2026-05-31","2024-06-01"
+"batch-06.pdf","Commercial Lease — Britam Properties Limited","Britam Properties Limited","Commercial Lease","Corporate","Executed","9000000","KES","2023-07-01","2028-06-30","2023-07-01"
+"batch-07.pdf","Contract Manufacturing — Kevian Kenya Limited","Kevian Kenya Limited","Contract Manufacturing","Manufacturing","Executed","7400000","KES","2024-09-01","2027-08-31","2024-09-01"
+"batch-08.pdf","Freight — Lori Systems Limited","Lori Systems Limited","Freight","Warehousing","Executed","2100000","KES","2024-05-01","2026-04-30","2024-05-01"
+"batch-09.pdf","Raw Material Supply — Givaudan Suisse SA","Givaudan Suisse SA","Raw Material Supply","Procurement","Executed","5800000","KES","2024-08-01","2027-07-31","2024-08-01"
+"batch-10.pdf","Professional Services — Bowmans Coulson Harney LLP","Bowmans Coulson Harney LLP","Professional Services","Corporate","Executed","1450000","KES","2024-10-01","2026-09-30","2024-10-01"

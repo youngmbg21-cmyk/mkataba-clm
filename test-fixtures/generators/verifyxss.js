@@ -1,0 +1,14 @@
+const {as,shot,txt,nav}=require('./lib.js');
+(async()=>{const {b,pg}=await as('amina@mwangifoods.co.ke');
+ await pg.waitForTimeout(1500);
+ const chk=async l=>{await pg.waitForTimeout(1300);
+   const x=await pg.evaluate(()=>window.__XSS||0), n=await pg.evaluate(()=>document.querySelectorAll('img[onerror]').length);
+   console.log(('  '+l).padEnd(14),'__XSS =',x,' img[onerror] nodes:',n);};
+ await nav(pg,'register'); await chk('REGISTER');
+ await nav(pg,'dashboard'); await chk('HOME');
+ await nav(pg,'pipeline'); await chk('QUEUE');
+ const id=await pg.evaluate(()=>{const c=window.state.contracts.find(x=>/onerror/.test(x.name||''));return c&&c.id;});
+ await pg.evaluate(i=>window.openWorkspace(i),id); await chk('WORKSPACE');
+ console.log('  name shown as literal text?',await pg.evaluate(()=>document.body.innerText.includes('<img src=x onerror=')));
+ await shot(pg,'verify-xss');
+ await b.close();})();
