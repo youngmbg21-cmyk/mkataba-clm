@@ -239,7 +239,10 @@ async function migProcessFiles(fileList){
         template:null, source:'upload', folder, valueType:value>0?'estimated':'none',
         lastAction:todayStr(), expiry, hash:executedOutside?'MIGRATED':null,
         signedAt:executedOutside?((manifest&&(manifest.signed||manifest.effective))||(meta&&meta.effectiveDate)||null):null,
-        signatory:u?.name||'Authorized signatory', compliance:{},
+        // Paper executed elsewhere has no signatory HaTi can name — the person
+        // running the import is a filing clerk, not a party to the contract.
+        // Who imported it is recorded on c.migration and in the audit trail.
+        signatory:executedOutside?null:(u?.name||'Authorized signatory'), compliance:{},
         comments:[{author:'System',role:'Automation',side:'internal',
           text:`Migrated in batch ${batch} from “${file.name}” and filed under ${FOLDERS[folder].name}.${executedOutside?' Recorded as executed outside HaTi — the seal is the uploaded file’s own SHA-256.':''}`,ts:fmtDT(nowISO())}],
         fields:{}, scan:null,
@@ -249,7 +252,7 @@ async function migProcessFiles(fileList){
       // metadata is attached un-"confirmed" — cp/value/expiry were already baked
       // in above, and the audit trail must not claim a human reviewed it yet
       if(meta) c.metadata=meta;
-      c.migration={ batch, importedAt:nowISO(),
+      c.migration={ batch, importedAt:nowISO(), importedBy:u?.name||'System',
         needsReview: !meta || migNeedsReview(meta, c),
         blocked: readable?null:'no-text',
         manifest: !!manifest, executedOutside,
