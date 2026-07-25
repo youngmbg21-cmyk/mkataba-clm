@@ -21,7 +21,13 @@ function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
-  const validDoc = p && p.kind==='hati-share' && p.contract && (p.contract.source==='upload' || TEMPLATES[p.contract.template]);
+  // Is there actually a document to render? Three ways there can be:
+  // an uploaded file, a built-in template the portal can regenerate, or the
+  // contract's OWN body (redlineText) — which is how every contract created
+  // from a custom template carries its wording. That third case was missing,
+  // so those contracts were reported to the counterparty as an invalid link.
+  const validDoc = p && p.kind==='hati-share' && p.contract &&
+    (p.contract.source==='upload' || !!p.contract.redlineText || !!TEMPLATES[p.contract.template]);
   if(!validDoc){
     const gone=opts.gone;   // 'expired' | 'revoked' — the link was real but is no longer active
     root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">

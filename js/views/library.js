@@ -769,14 +769,46 @@ function openTemplateEditor(tid){
         fields.splice(i,1); dirty=true; drawFields();
       });
     });
+    // The warnings OFFER THE REMEDY rather than just reporting the problem —
+    // the person is mid-edit, and telling them something is wrong without a way
+    // to fix it just makes them cancel.
     const warn=document.getElementById('te-warn');
     if(warn){
+      const act=(a,k,label)=>`<button type="button" data-fix="${a}" data-k="${k}" style="border:0;background:none;padding:0;font:inherit;font-size:inherit;font-weight:600;color:inherit;text-decoration:underline;cursor:pointer">${label}</button>`;
       const bits=[];
-      if(orphanBlanks.length) bits.push(`<span style="color:#8f322b"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document (${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')}) ${orphanBlanks.length===1?'has':'have'} no matching blank — add or remove ${orphanBlanks.length===1?'it':'them'} before saving.</span>`);
-      if(orphanFields.length) bits.push(`<span style="color:#7d5a14"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> (${orphanFields.map(f=>'{{'+f.key+'}}').join(', ')}) ${orphanFields.length===1?'is':'are'} no longer used in the document. ${orphanFields.length===1?'It':'They'} will still be asked for on the fill-in screen and the answer will go nowhere.</span>`);
-      warn.innerHTML = bits.length?bits.join('<br>')
+      if(orphanBlanks.length) bits.push(`<span style="display:block;color:#8f322b"><b>${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'}</b> in the document with no matching blank: ${orphanBlanks.map(k=>`{{${k}}} — ${act('mk',k,'create the blank')} or ${act('rm',k,'remove it from the document')}`).join('; ')}. Saving is blocked until this is resolved: an unmatched placeholder prints as literal braces in every contract.</span>`);
+      if(orphanFields.length) bits.push(`<span style="display:block;color:#7d5a14;margin-top:3px"><b>${orphanFields.length} blank${orphanFields.length===1?'':'s'}</b> no longer used in the document: ${orphanFields.map(f=>`${_tplEsc(f.label||f.key)} — ${act('del',f.key,'remove the blank')} or ${act('ins',f.key,'put {{'+f.key+'}} back at the end')}`).join('; ')}. Left as-is ${orphanFields.length===1?'it':'they'} will still be asked for, and the answer will go nowhere.</span>`);
+      warn.innerHTML = bits.length?bits.join('')
         : `<span style="color:var(--color-neutral-600)">${fields.length} blank${fields.length===1?'':'s'}, all present in the document.</span>`;
+      warn.querySelectorAll('[data-fix]').forEach(b=>b.addEventListener('click',()=>{
+        const k=b.getAttribute('data-k');
+        switch(b.getAttribute('data-fix')){
+          case 'mk': {                                   // placeholder → give it a blank
+            const shape=guessFieldShape(k);
+            fields.push({ key:k, label:k.replace(/_/g,' ').replace(/^./,x=>x.toUpperCase()),
+              type:shape.type, maps:shape.maps, required:!!shape.maps, def:'', opts:[] });
+            break; }
+          case 'rm': {                                   // placeholder → take it out of the document
+            setBody(body.split('{{'+k+'}}').join(''));
+            break; }
+          case 'del': {                                  // unused blank → drop it
+            const i=fields.findIndex(f=>f.key===k); if(i>=0) fields.splice(i,1);
+            break; }
+          case 'ins': {                                  // unused blank → put it back in the document
+            const f=fields.find(x=>x.key===k);
+            setBody(isRich(format) ? body+`<p>${_tplEsc(f?f.label:k)}: {{${k}}}</p>`
+                                   : body+`\n\n${f?f.label:k}: {{${k}}}`);
+            break; }
+        }
+        dirty=true; drawFields();
+      }));
     }
+  }
+  /* Write a new body into the editor and keep every copy of it in step. */
+  function setBody(next){
+    body=next;
+    editor.set(isRich(format) ? markPlaceholders(body,{}) : textToRich(body));
+    if(isRich(format)) body=unmarkPlaceholders(editor.get());
   }
   drawFields();
 

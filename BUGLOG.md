@@ -888,3 +888,48 @@ counterparty mapping survived, that no `<input>` leaked into the body, that the
 text projection still reads as the agreement — and that `TEMPLATES.RM` itself is
 unchanged. A contract built from the copy arrives fully populated with no
 placeholders left.
+
+### 16. A contract created from a custom template could not be shared at all
+
+**What was broken.** The counterparty share portal decided whether a payload
+held a real document with:
+
+```js
+const validDoc = p && p.kind==='hati-share' && p.contract &&
+  (p.contract.source==='upload' || TEMPLATES[p.contract.template]);
+```
+
+A contract generated from a *custom* template has `source:'template'` and
+`template:null`, so both arms are false. The counterparty was shown
+**"Invalid share link — this link is malformed or truncated. Ask the sender to
+generate a fresh one."** The link was neither malformed nor truncated; the
+document was there and rendered perfectly once past the check.
+
+This predates this run, but it sits directly across the route the whole brief
+builds: paste your standard paper in, generate a draft from it, and then be
+unable to send it to the other side. It was found by writing an end-to-end
+portal test for the rich pipeline rather than by testing the sanitiser in
+isolation.
+
+**Root cause.** The check asked "can I identify where this document came from?"
+when the question it needed to answer was "is there a document to render?"
+A contract carrying its own body in `redlineText` — which is how every
+custom-template and every edited contract carries its wording — needs no
+template lookup at all: `docBody()` routes it straight to `redlineDocBody()`.
+
+**The fix.** The condition now admits the third case explicitly:
+
+```js
+const validDoc = p && p.kind==='hati-share' && p.contract &&
+  (p.contract.source==='upload' || !!p.contract.redlineText || !!TEMPLATES[p.contract.template]);
+```
+
+**Files touched.** `js/views/portal.js`.
+
+**How it was verified.** A portal test renders a share payload for a
+custom-template contract whose stored body carries formatting *and* a hostile
+payload (`onclick`, `<script>`, `<img onerror>`), with `window.__pwned` bound as
+a page-level alarm. The portal now renders the document, keeps its heading and
+its numbered clauses, applies the document face — and the document region
+contains zero `script/iframe/img/style/form/a/input/button` nodes and no event
+handlers. The alarm never fired.
