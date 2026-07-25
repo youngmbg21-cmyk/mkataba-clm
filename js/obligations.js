@@ -33,7 +33,7 @@ function renewalDecisionsDue(withinDays=30){
 
 /* ---- heuristic obligation finder (no key): payment/notice/reporting cues ---- */
 function heuristicObligations(text, c){
-  const t=String(text||''); const out=[];
+  const t=String(text||'').replace(/\s+/g,' '); const out=[];   // read across the document's line wrapping
   const add=(desc,quote)=>{ if(out.length<8) out.push({desc, quote:quote?quote.slice(0,160):'', due:'', recurring:'none'}); };
   const sent = t.split(/(?<=[.;])\s+/);
   sent.forEach(s=>{

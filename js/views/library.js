@@ -159,7 +159,7 @@ function openTemplatePreview(tpl){
         <span style="font-size:11px;color:var(--color-neutral-600)">${FOLDERS[tpl.folder]?.name||''}</span>
       </div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}</p>
-      <div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;font-size:12.5px;line-height:1.8;max-height:55vh;overflow-y:auto;white-space:pre-wrap">${_tplEsc(tpl.text)}</div>
+      <div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${window.documentTextHtml?documentTextHtml(tpl.text):`<div style="font-size:12.5px;line-height:1.65;white-space:pre-wrap">${_tplEsc(tpl.text)}</div>`}</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">Use template</button>`:''}
         <button id="tp-close" class="ui-btn">Close</button>

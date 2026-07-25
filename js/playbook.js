@@ -88,7 +88,7 @@ function clauseById(id){ return clauseLibrary().find(c=>c.id===id); }
 
 /* ---- heuristic playbook review (no key): deterministic clause checks ---- */
 function playbookReviewHeuristic(c, text){
-  const t=String(text||''); const T=t.toLowerCase();
+  const t=String(text||'').replace(/\s+/g,' '); const T=t.toLowerCase();   // read across the document's line wrapping
   const pb=resolvePlaybook(playbookKeyFor(c));
   const verdicts=[];
   const V=(category,status,quote,position,redline,escalate)=>verdicts.push({category,status,quote:quote||'',position:position||'',redline:redline||'',escalate:!!escalate});
