@@ -421,11 +421,55 @@ function docFileUrl(c){
   _docBlobUrls.set(key,url);
   return url;
 }
+/* ---------- Word-file detection (refuse, don't half-import) ----------
+   The picker no longer offers .doc/.docx, but drag-and-drop bypasses the
+   accept attribute and browsers report Word MIME types inconsistently — a
+   renamed file would otherwise sail through and land in the register as an
+   empty shell. So sniff the actual bytes:
+     .docx  — a ZIP archive: PK\x03\x04, with a "word/…" entry inside
+     .doc   — an OLE2 compound file: D0 CF 11 E0 A1 B1 1A E1
+   Returns 'docx' | 'doc' | null. */
+const WORD_REFUSAL = 'HaTi can’t read Word files yet. Save or print the document as a PDF and upload that instead — the PDF is also what you’d want on record as the signed version.';
+const WORD_REFUSAL_SHORT = 'Word file — save it as a PDF and upload that';
+const OLE_SIG=[0xD0,0xCF,0x11,0xE0,0xA1,0xB1,0x1A,0xE1];
+// latin1-decode a slice without the per-byte string concat used for whole PDFs
+function bytesToLatin(bytes, from, to){
+  const end=Math.min(bytes.length, to==null?bytes.length:to);
+  let out='';
+  for(let i=Math.max(0,from||0); i<end; i+=8192)
+    out+=String.fromCharCode.apply(null, bytes.subarray(i, Math.min(end, i+8192)));
+  return out;
+}
+function detectWordBytes(bytes, fileName, mime){
+  if(!bytes || bytes.length<8) return null;
+  const ext=(String(fileName||'').match(/\.([a-z0-9]+)$/i)||[])[1]?.toLowerCase()||'';
+  if(OLE_SIG.every((b,i)=>bytes[i]===b)){
+    // OLE2 covers legacy .doc/.xls/.ppt; only .doc claims to be a contract here
+    if(ext==='doc' || /msword/i.test(mime||'')) return 'doc';
+    if(!ext || ext==='docx') return 'doc';
+    return null;
+  }
+  if(bytes[0]===0x50&&bytes[1]===0x4B&&bytes[2]===0x03&&bytes[3]===0x04){
+    // OOXML part names appear verbatim in the local headers + central directory
+    const head=bytesToLatin(bytes, 0, 8192);
+    const tail=bytesToLatin(bytes, Math.max(0, bytes.length-65536));
+    const zip=head+tail;
+    if(/word\/(document|_rels|settings)\.xml/i.test(zip)||/wordprocessingml/i.test(zip)) return 'docx';
+    if(ext==='docx'||ext==='doc'||/wordprocessingml/i.test(mime||'')) return 'docx';
+  }
+  return null;
+}
+/* Convenience wrapper for the three upload entry points — decodes the data URL
+   once and reports the Word kind (or null). */
+function detectWordFile(dataUrl, mime, fileName){
+  try{ return detectWordBytes(dataUrlBytes(dataUrl), fileName, mime); }catch(e){ return null; }
+}
+
 async function extractDocText(dataUrl, mime){
   try{
     const bytes=dataUrlBytes(dataUrl);
-    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,40000); }
-    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,40000); }
+    if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,EXTRACT_MAX_CHARS); }
+    if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,EXTRACT_MAX_CHARS); }
   }catch(e){}
   return '';
 }
@@ -528,8 +572,8 @@ function openUploadModal(){
         <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
       <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
       <label class="block mb-3">
-        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word, image or text · max 4 MB)</span></span>
-        <input id="up-file" type="file" accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, image or text · max 4 MB · Word files must be saved as PDF first)</span></span>
+        <input id="up-file" type="file" accept=".pdf,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
       </label>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
@@ -590,8 +634,20 @@ async function submitUpload(){
   renderUploadSteps(1);   // Step 1 — Reading document
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
   if(!dataUrl){ toast('Could not read that file','err'); btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false; return; }
-  const fileHash=await sha256(dataUrl);
   const mime=file.type||'application/octet-stream';
+  // Refuse Word files BEFORE anything is created — a silent empty shell in the
+  // register is worse than a clear refusal.
+  const word=detectWordFile(dataUrl, mime, file.name);
+  if(word){
+    toast(WORD_REFUSAL,'err');
+    const steps=document.getElementById('up-steps');
+    if(steps){ steps.classList.remove('hidden');
+      steps.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;color:#8f322b;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${WORD_REFUSAL}</div>`; }
+    btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false;
+    btn.innerHTML=`${icon('upload','w-3.5 h-3.5')} Add contract`;
+    return;
+  }
+  const fileHash=await sha256(dataUrl);
   const extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   const u=currentUser();
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
@@ -1852,4 +1908,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

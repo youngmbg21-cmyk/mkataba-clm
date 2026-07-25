@@ -92,6 +92,11 @@ const cParty = c => (c && c.counterparty && c.counterparty.trim()) ? c.counterpa
 const cPrimary = c => cParty(c) || c.name;
 const cSecondary = c => cParty(c) ? c.name : 'No counterparty yet';
 const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
+/* How much extracted text a contract keeps. The old 40k cap cut a long
+   agreement off around page 10 — exactly where the renewal, termination and
+   notice clauses live — so the whole document is kept and buildExtractionPayload()
+   decides what actually goes to the AI. */
+const EXTRACT_MAX_CHARS = 200000;
 
 /* ============================================================ HELPERS */
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
@@ -207,7 +212,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a

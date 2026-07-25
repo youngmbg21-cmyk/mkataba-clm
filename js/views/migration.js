@@ -14,7 +14,10 @@
    ai/extract, openMetaReview, files API) — no new server surface.
    ============================================================ */
 const MIG_MAX_FILES = 25;                        // realistic cap per batch (memory + AI window)
-const MIG_ACCEPT = '.pdf,.doc,.docx,.txt,.png,.jpg,.jpeg';
+// Word is deliberately absent: HaTi cannot read .doc/.docx, so the picker must
+// not invite them in. Drag-and-drop bypasses `accept`, so migProcessFiles()
+// also sniffs the bytes (detectWordFile) as the backstop.
+const MIG_ACCEPT = '.pdf,.txt,.png,.jpg,.jpeg';
 const MIG_CRITICAL = ['counterparty','contractType','effectiveDate','expiryDate','value'];
 
 /* Session-scoped batch state (queue rows + manifest live in memory; every
@@ -193,7 +196,7 @@ async function migProcessFiles(fileList){
   M.running=true; M.batch=batch;
   renderMigQueue(); migWireCancel();
   const u=currentUser();
-  let saved=0, dupes=0, errors=0;
+  let saved=0, dupes=0, errors=0, words=0;
   for(let i=0;i<files.length;i++){
     if(!M.running){ M.queue.slice(i).forEach(q=>{ if(q.status==='waiting') q.status='cancelled'; }); break; }
     const file=files[i], q=M.queue[i];
@@ -202,10 +205,13 @@ async function migProcessFiles(fileList){
       if(file.size>UPLOAD_MAX){ step('error','over 4 MB — compress or split'); errors++; continue; }
       step('reading');
       const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); });
+      const mime=file.type||'application/octet-stream';
+      // Word files are refused before any record exists — no half-contract, no
+      // audit entry claiming an import happened.
+      if(detectWordFile(dataUrl, mime, file.name)){ step('word', WORD_REFUSAL_SHORT); words++; continue; }
       const fileHash=await sha256(dataUrl);
       if(seen.has(fileHash)){ step('duplicate','identical file already in the register'); dupes++; continue; }
       seen.add(fileHash);
-      const mime=file.type||'application/octet-stream';
       step('extracting');
       const extractedText=await extractDocText(dataUrl, mime);
       const manifest=migManifestRow(file.name);
@@ -269,7 +275,7 @@ async function migProcessFiles(fileList){
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
   window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
-  toast(`Batch ${batch}: ${saved} imported${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${errors?`, ${errors} failed`:''}`);
+  toast(`Batch ${batch}: ${saved} imported${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
   renderMigration();
 }
 
@@ -409,6 +415,7 @@ const MIG_QSTATE = {
   matching:  {t:'Pattern-matching…',c:'#7d5a14'},
   saved:     {t:'Imported',       c:'#1e6b4d'},
   duplicate: {t:'Duplicate',      c:'#7d5a14'},
+  word:      {t:'Word — not read',c:'#8f322b'},
   cancelled: {t:'Cancelled',      c:'var(--color-neutral-500)'},
   error:     {t:'Failed',         c:'#8f322b'},
 };
@@ -416,7 +423,7 @@ function renderMigQueue(){
   const host=document.getElementById('mig-queue'); if(!host) return;
   const M=migState();
   if(!M.queue.length){ host.innerHTML=''; return; }
-  const done=M.queue.filter(q=>['saved','duplicate','error','cancelled'].includes(q.status)).length;
+  const done=M.queue.filter(q=>['saved','duplicate','error','cancelled','word'].includes(q.status)).length;
   const pct=Math.round(done/M.queue.length*100);
   host.innerHTML=`
     <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:14px 16px">
@@ -493,7 +500,7 @@ function renderMigration(){
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Bulk import</h3>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word, image or text · max 4&nbsp;MB each). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the AI engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, image or text · max 4&nbsp;MB each · Word files are refused — save them as PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the AI engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
           <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">Import as
             <select id="mig-status" style="${selStyle}">${statusOpts}</select></label>

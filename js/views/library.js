@@ -98,13 +98,13 @@ function openUploadTemplateModal(){
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('upload','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Upload a template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Upload your company's standard contract (PDF or text). HaTi extracts the text so new drafts can start from your own paper.</p>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Upload your company's standard contract (PDF or text — Word files must be saved as PDF first). HaTi extracts the text so new drafts can start from your own paper.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
         <input id="ut-name" placeholder="e.g. Standard Distribution Agreement" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
         <select id="ut-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px">${opts}</select></label>
       <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
-        <input id="ut-file" type="file" accept=".pdf,.txt,.md,.doc,.docx,text/plain,application/pdf" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:12px"/></label>
+        <input id="ut-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:12px"/></label>
       <div id="ut-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin-bottom:10px"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px">
         <button id="ut-cancel" class="ui-btn">Cancel</button>
@@ -123,9 +123,12 @@ function openUploadTemplateModal(){
     st.textContent='Reading file…';
     try{
       const dataUrl=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
+      // Word is refused on the bytes, not the extension — nothing is saved.
+      if(detectWordFile(dataUrl, file.type||'', file.name)){
+        st.innerHTML=`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)}</span>`; return; }
       st.textContent='Extracting text…';
       const text=await extractDocText(dataUrl, file.type||'');
-      if(!text||text.length<40){ st.innerHTML='<span style="color:#8f322b">Could not extract readable text from this file — image-only PDFs and Word files need conversion first.</span>'; return; }
+      if(!text||text.length<40){ st.innerHTML='<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, or check the file is not empty.</span>'; return; }
       saveTemplateRecord(name, document.getElementById('ut-folder').value, text, 'upload:'+file.name);
       closeModal(); toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters extracted`);
       if(state.view==='templates') renderTemplatesPage();
