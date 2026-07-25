@@ -199,14 +199,41 @@ function renderDashboard(){
     : `${pipeCount} contract${pipeCount===1?'':'s'} expiring in the next 6 months`;
 
   // ---- approvals waiting ----
-  // Approvals waiting: the 5 contracts that have waited longest to be signed
-  // (waiting is Under Review, sorted by idle desc). Capped at 5 so all fit.
-  const apprRows=waiting.slice(0,5).map((x,i)=>{ const c=x.c; const dotc=x.idle>=30?'#b0453c':'#b8862b';
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(29,31,32,.07);font-size:12px;">
+  /* This used to be "the five contracts that have sat in review longest",
+     workspace-wide, with the amount printed next to each. That is a queue
+     nobody owns: most rows were nothing to do with the person reading them,
+     and every row broadcast a commercial figure.
+
+     It is now the reader's OWN queue — the contracts whose approval chain is
+     incomplete and where either (a) they are an eligible approver on a pending
+     step under the approval rules, or (b) it is a contract they raised. The
+     underlying list is already folder-scoped by the server; this narrows it to
+     what the reader can actually act on. */
+  const me=currentUser();
+  const raisedByMe=c=>!!me&&(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&a.user===me.name);
+  const canApproveSomeStep=st=>!!me&&(st.chain||[]).some(s=>s.status!=='approved'&&s.status!=='rejected'
+    &&(typeof userCanApprove==='function'?userCanApprove(s.approver,me):false));
+  const myApprovals=cs.filter(c=>c.status!=='Signed'&&c.status!=='Declined').map(c=>{
+    let st; try{ st=((window.approvalState)||approvalState)(c); }catch(e){ return null; }
+    if(!st||!st.required||st.ok) return null;
+    const mine=canApproveSomeStep(st), own=raisedByMe(c);
+    if(!mine&&!own) return null;
+    return { c, st, mine, own, idle:idleOf(c) };
+  }).filter(Boolean).sort((a,b)=>b.idle-a.idle);
+  const apprRows=myApprovals.slice(0,5).map(x=>{ const c=x.c; const dotc=x.idle>=30?'#b0453c':'#b8862b';
+    // A rule's name is auto-generated from its condition ("Value ≥ KES 5M"),
+    // so printing it would hand the spend threshold to someone who may not see
+    // amounts. They get the generic label.
+    const step=(money&&x.st.next&&x.st.next.name)||'Approval';
+    const why=x.mine?'waiting on you':'yours · waiting on '+(x.st.approverLabel||'an approver');
+    return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 0;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;font-size:12px;text-align:left;color:inherit;">
       <span style="width:7px;height:7px;border-radius:50%;background:${dotc};flex:none;"></span>
-      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.value>=(getApprovalCfg().threshold||0)?'CFO sign-off':'Legal review'} — ${c.counterparty||c.name}${(money&&isMonetary(c)&&c.value)?` (${fmtKESshort(c.value)})`:''}</span>
+      <span style="flex:1;min-width:0;">
+        <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(step)} — ${esc(c.counterparty||c.name)}${(money&&isMonetary(c)&&c.value)?` (${fmtKESshort(c.value)})`:''}</span>
+        <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${why}</span>
+      </span>
       <span style="font-size:10.5px;color:var(--color-neutral-600);flex:none;">${x.idle}d</span>
-    </div>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">No approvals pending.</div>`;
+    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">Nothing is waiting on you.</div>`;
 
   // ---- compact attention row (used inside the Decisions-due panel) ----
   const attnRow=(c,tag,tagColor)=>`
@@ -359,7 +386,7 @@ function renderDashboard(){
             <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${pipeSummary}</div>
           </section>
           <section style="flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;overflow:hidden;">
-            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting</h4>
+            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting on you${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-600)">· ${myApprovals.length} total</span>`:''}</h4>
             <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${apprRows}</div>
           </section>
         </div>
