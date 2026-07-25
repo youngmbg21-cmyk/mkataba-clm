@@ -201,6 +201,28 @@ async function portalVerifyAndSign(p, info){
 }
 
 /* ---------- PDF export (print pipeline) ---------- */
+/* The contract text itself, for an uploaded/migrated document. The export used
+   to print only the certificate and the audit trail, on the reasoning that the
+   original file is a separate attachment — but a PDF of a contract that doesn't
+   contain the contract is not much use. Print the extracted text, labelled for
+   what it is: a transcription. The stored file stays the authoritative copy. */
+function uploadedTextForPrint(c){
+  const u=c.upload||{};
+  const text=String((c.redlineText||u.extractedText||'')).trim();
+  if(!text) return `
+    <p style="font-size:11px;color:#8f322b;line-height:1.6;">No machine-readable text could be extracted from this file, so the wording cannot be printed here. Refer to the original document (<strong>${u.fileName||'attached file'}</strong>).</p>`;
+  const body=(window.documentTextHtml)
+    ? documentTextHtml(text,{size:'11px', lh:'1.55'})
+    : `<div style="white-space:pre-wrap;font-size:11px;line-height:1.55">${text.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
+  return `
+    <div style="margin-top:22px;">
+      <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:10px;">
+        Contract text${c.redlineText?' (working text)':''}
+      </div>
+      ${body}
+      <p style="font-size:9px;color:#888;margin-top:10px;line-height:1.5;">Text extracted from <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document, identified by the fingerprint above.</p>
+    </div>`;
+}
 function exportPDF(c){
   let bodyHtml;
   if(isUpload(c)){
@@ -219,7 +241,8 @@ function exportPDF(c){
       </div>
       <p style="font-size:11px;color:#444;line-height:1.6;">${isExternallyExecuted(c)
         ? `This is a HaTi <strong>filing record</strong> for a contract executed outside HaTi and migrated in. No electronic signature was taken in HaTi — the signatures are on the original document (<strong>${u.fileName||'the attached file'}</strong>), which is retained here and travels with this record. The fingerprint below identifies that exact file; it is not a signature.`
-        : `This is a HaTi signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in HaTi and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.`}</p>`;
+        : `This is a HaTi signing certificate for an externally-supplied contract. The original document (<strong>${u.fileName||'the attached file'}</strong>) is retained in HaTi and travels with this certificate. The seal below binds this certificate to that exact file by its SHA-256 fingerprint.`}</p>
+      ${uploadedTextForPrint(c)}`;
   } else {
     const holder=document.createElement('div');
     holder.innerHTML=docBody(c);
@@ -269,4 +292,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,exportPDF,metrics,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

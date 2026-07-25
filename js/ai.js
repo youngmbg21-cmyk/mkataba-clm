@@ -206,6 +206,23 @@ function runScan(c){
   const prev = c.scan ? c.scan.dismissed : [];
   c.scan = { at:new Date().toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'}), findings:scanRules(c), dismissed:prev };
 }
+/* Scan from outside the workspace (the register's row menu). runScan alone only
+   mutates the record — on its own it looks like nothing happened, and on a list
+   row it would scan a light copy whose document text has been stripped. Load
+   the full record first, then save the result and say what was found. */
+async function runScanFor(c){
+  if(!canEdit()){ toast('Viewers cannot run a scan','err'); return; }
+  toast('Scanning…');
+  try{ await ensureFull(c); }catch(e){ toast('Could not load that contract — '+e.message,'err'); return; }
+  runScan(c);
+  const n=openFindings(c).length;
+  logAudit(c,'Scanned',`AI contract scan run — ${n} open finding${n===1?'':'s'}`);
+  c.lastAction=todayStr(); persist(c);
+  toast(n?`Scan complete — ${n} finding${n===1?'':'s'} · open the contract to read them`:'Scan complete — no issues found');
+  if(state.view==='register'&&window.renderRegister) renderRegister();
+  else if(state.view==='folder'&&window.renderFolder) renderFolder();
+  if(window.updateSidebarCounts) updateSidebarCounts();
+}
 
 window.scanUI = { running:false, filter:'all', expanded:new Set() };
 
@@ -889,4 +906,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,updateAIBadge,worstSevOf});

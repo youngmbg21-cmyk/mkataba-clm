@@ -299,6 +299,9 @@
     body>*{display:none!important;}
     #print-root{display:block!important;}
     body{background:#fff;}
+    /* a ruled/columnar block scrolls sideways on screen; on paper there is
+       nowhere to scroll, so let it wrap rather than clip the right-hand columns */
+    .doc-pre{white-space:pre-wrap!important;overflow:visible!important;}
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 </style>
