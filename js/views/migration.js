@@ -263,8 +263,113 @@ function migNeedsReview(meta, c){
   });
 }
 
+/* ---------- build + save one migrated contract ----------
+   Extracted from the batch loop so a file parked for a duplicate decision can
+   be finished later through exactly the same path. `link` optionally files the
+   new contract as a child of an existing agreement (the "import and link as an
+   amendment" action). */
+async function migBuildAndSave(ctx){
+  const M=migState();
+  const { file, mime, dataUrl, manifest, meta, upload, ocr, textSource, readable, extractedText, batch, u, link } = ctx;
+  if(API_MODE()){
+    try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl }); upload.fileId=r.id; }
+    catch(e){ /* fall back to inline bytes */ }
+  }
+  // resolve filing decisions: manifest > extraction > batch defaults
+  const folder=(manifest&&manifest.folder)||folderFromType(meta&&meta.contractType)
+    ||(M.defaults.folder!=='auto'?M.defaults.folder:null)||'corp';
+  const status=(manifest&&manifest.status)||M.defaults.status;
+  const executedOutside=status==='Signed';
+  const name=(manifest&&manifest.name)||file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+  const cp=(manifest&&manifest.counterparty)||(meta&&meta.counterparty)||'';
+  const value=(manifest&&manifest.value>0)?manifest.value:Number(meta&&meta.value)||0;
+  const expiry=(manifest&&manifest.expiry)||(meta&&meta.expiryDate)||null;
+  const c={ id:nextId(), name, counterparty:cp, value, status,
+    template:null, source:'upload', folder, valueType:value>0?'estimated':'none',
+    lastAction:todayStr(), expiry, hash:executedOutside?'MIGRATED':null,
+    signedAt:executedOutside?((manifest&&(manifest.signed||manifest.effective))||(meta&&meta.effectiveDate)||null):null,
+    // Paper executed elsewhere has no signatory HaTi can name — the person
+    // running the import is a filing clerk, not a party to the contract.
+    // Who imported it is recorded on c.migration and in the audit trail.
+    signatory:executedOutside?null:(u?.name||'Authorized signatory'), compliance:{},
+    comments:[{author:'System',role:'Automation',side:'internal',
+      text:`Migrated in batch ${batch} from “${file.name}” and filed under ${FOLDERS[folder].name}.${executedOutside?' Recorded as executed outside HaTi — the seal is the uploaded file’s own SHA-256.':''}`,ts:fmtDT(nowISO())}],
+    fields:{}, scan:null,
+    audit:[{at:nowISO(),user:u?.name||'System',action:'Migrated',
+      detail:`Imported “${file.name}” (${Math.round(file.size/1024)} KB) in batch ${batch}${readable?`, ${extractedText.length.toLocaleString()} chars ${isOcrText(textSource)?'machine-read from a scan':'extracted'}`:', no machine-readable text'}${executedOutside?' — executed outside HaTi':''}`}],
+    signatures:[], upload };
+  // metadata is attached un-"confirmed" — cp/value/expiry were already baked
+  // in above, and the audit trail must not claim a human reviewed it yet
+  if(meta) c.metadata=meta;
+  // provenance in the audit trail — a reader months from now has no other
+  // way to know these dates were transcribed by a machine, not typed
+  if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
+    detail:ocrProvenanceLine(upload) });
+  c.migration={ batch, importedAt:nowISO(), importedBy:u?.name||'System',
+    needsReview: !meta || migNeedsReview(meta, c),
+    // `no-text` may only fire AFTER OCR has been attempted and failed
+    blocked: readable?null:'no-text',
+    textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
+    manifest: !!manifest, executedOutside,
+    aiSource:(meta&&meta._source)||'none' };
+  if(manifest) manifest.matchedId=c.id;
+  c._loaded=true; c._light=false; c._v=0;
+  // A human chose to file this as an amendment of an existing agreement.
+  if(link&&link.parentId) applyParentLink(c, link.parentId, link.relation||'amendment',
+    link.note||`Linked at import — flagged as a possible duplicate of ${link.parentId}`, u);
+  state.contracts.unshift(c);
+  persist(c);
+  return c;
+}
+function migIndexContract(c, upload){
+  const M=migState();
+  if(!M.dupIndex) M.dupIndex=[];
+  M.dupIndex.push({ id:c.id, name:c.name, counterparty:c.counterparty, value:c.value,
+    fileHash:(upload||c.upload||{}).fileHash||null,
+    textFingerprint:(upload||c.upload||{}).textFingerprint||null,
+    simhash:(upload||c.upload||{}).simhash||null,
+    effectiveDate:effDateOf(c), expiry:c.expiry||null });
+}
+/* Burn one document off the onboarding allowance (money is drawn by the server
+   on each metered call; the document count is ours to report). */
+async function migDrawAllowanceDoc(){
+  const M=migState();
+  if(!(M.allowance&&M.allowance.open&&API_MODE())) return;
+  try{ const r=await api('ai/allowance/document','POST',{ count:1 }); M.allowance=r.allowance; renderMigQueue(); }catch(e){}
+}
+
+/* ---------- the duplicate decision ----------
+   A flagged file is parked, not skipped. The user picks per row:
+     skip     — leave it out, the match is recorded on the row
+     import   — file it as its own contract anyway
+     link     — file it AND link it as an amendment of the contract it matched */
+async function migResolveDuplicate(i, action, parentId, relation){
+  const M=migState();
+  const p=(M.pending||{})[i], q=M.queue[i];
+  if(!p||!q) return;
+  const step=(st,note)=>{ q.status=st; if(note!=null) q.note=note; renderMigQueue(); };
+  if(action==='skip'){
+    delete M.pending[i];
+    step('skipped', 'left out — matched '+(q.dupes||[]).map(d=>d.id).join(', '));
+    renderMigration(); return;
+  }
+  step('extracting','importing…');
+  try{
+    const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(p.file); });
+    const c=await migBuildAndSave({ ...p, mime:p.file.type||'application/octet-stream', dataUrl, u:currentUser(),
+      link: action==='link'&&parentId ? { parentId, relation:relation||'amendment' } : null });
+    migIndexContract(c, p.upload);
+    delete M.pending[i];
+    q.id=c.id;
+    step('saved', action==='link' ? `imported and linked to ${parentId}` : 'imported anyway');
+    await migDrawAllowanceDoc();
+    if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
+    updateSidebarCounts(); renderMigration();
+  }catch(e){ step('error', e.message||'failed'); }
+}
+
 /* ---------- the batch pipeline (sequential; UI updates live) ---------- */
-async function migProcessFiles(fileList){
+async function migProcessFiles(fileList, opts={}){
   if(!canEdit()){ toast('Viewers cannot import contracts','err'); return; }
   const M=migState();
   if(M.running){ toast('A batch is already running — let it finish first','err'); return; }
@@ -276,12 +381,18 @@ async function migProcessFiles(fileList){
   await migLoadAiState();
   if(!await migConfirmEstimate(files)) return;
   const batch='B-'+Date.now().toString(36).toUpperCase();
-  const seen=new Set(state.contracts.filter(c=>c.upload&&c.upload.fileHash).map(c=>c.upload.fileHash));
+  // Exact bytes still auto-skip (they cannot be anything but the same file),
+  // but the row now names the contract it matched so the user can see what
+  // happened rather than watching a file silently vanish.
+  const byHash=new Map();
+  state.contracts.forEach(c=>{ const h=c.upload&&c.upload.fileHash; if(h&&!byHash.has(h)) byHash.set(h,c.id); });
+  // The fuzzy index is built from the light register rows — no document bodies.
+  M.dupIndex=buildDupIndex(state.contracts);
   M.queue=files.map(f=>({ name:f.name, size:f.size, status:'waiting', note:'', id:null }));
   M.running=true; M.batch=batch;
   renderMigQueue(); migWireCancel();
   const u=currentUser();
-  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0;
+  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0, flagged=0;
   for(let i=0;i<files.length;i++){
     if(!M.running){ M.queue.slice(i).forEach(q=>{ if(q.status==='waiting') q.status='cancelled'; }); break; }
     const file=files[i], q=M.queue[i];
@@ -295,8 +406,10 @@ async function migProcessFiles(fileList){
       // audit entry claiming an import happened.
       if(detectWordFile(dataUrl, mime, file.name)){ step('word', WORD_REFUSAL_SHORT); words++; continue; }
       const fileHash=await sha256(dataUrl);
-      if(seen.has(fileHash)){ step('duplicate','identical file already in the register'); dupes++; continue; }
-      seen.add(fileHash);
+      if(byHash.has(fileHash)){
+        q.dupes=[{ id:byHash.get(fileHash), kind:'exact', distance:0 }];
+        step('duplicate','identical to '+byHash.get(fileHash)+' — skipped'); dupes++; continue; }
+      byHash.set(fileHash, null);   // reserve, id filled in once saved
       step('extracting');
       let extractedText=await extractDocText(dataUrl, mime);
       // A scan gets OCR'd before anything decides it has "no readable text".
@@ -334,57 +447,26 @@ async function migProcessFiles(fileList){
         uploadedBy:u?.name||'System', extractedText:extractedText||'', textChars:(extractedText||'').length, dataUrl,
         textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
         ocrTotalPages: ocr?ocr.totalPages:0, ocrIllegible: ocr?ocr.illegible:0 };
-      if(API_MODE()){
-        try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl }); upload.fileId=r.id; }
-        catch(e){ /* fall back to inline bytes */ }
+      // Near-duplicate signals, computed once and stored on the contract.
+      if(readable) await attachDupSignals(upload, extractedText);
+      // Then the three fuzzy checks. A flag does NOT silently skip the file —
+      // it parks the row for a human decision and the batch carries on.
+      const hits=findDuplicates({ fileHash, textFingerprint:upload.textFingerprint, simhash:upload.simhash,
+        counterparty:(manifest&&manifest.counterparty)||(meta&&meta.counterparty)||'',
+        effectiveDate:(manifest&&manifest.effective)||(meta&&meta.effectiveDate)||null,
+        value:(manifest&&manifest.value>0)?manifest.value:Number(meta&&meta.value)||0 }, M.dupIndex);
+      if(hits.length && !opts.force){
+        q.dupes=hits; q.dupeTotal=hits.totalMatches||hits.length;
+        q.pending={ i, batch };                    // everything needed to resume
+        M.pending=M.pending||{}; M.pending[i]={ file, seed, manifest, meta, upload, ocr, textSource, readable, extractedText, batch };
+        step('dupe', `${q.dupeTotal} possible match${q.dupeTotal===1?'':'es'} — your call`);
+        flagged++; continue;
       }
-      // resolve filing decisions: manifest > extraction > batch defaults
-      const folder=(manifest&&manifest.folder)||folderFromType(meta&&meta.contractType)
-        ||(M.defaults.folder!=='auto'?M.defaults.folder:null)||'corp';
-      const status=(manifest&&manifest.status)||M.defaults.status;
-      const executedOutside=status==='Signed';
-      const name=(manifest&&manifest.name)||file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
-      const cp=(manifest&&manifest.counterparty)||(meta&&meta.counterparty)||'';
-      const value=(manifest&&manifest.value>0)?manifest.value:Number(meta&&meta.value)||0;
-      const expiry=(manifest&&manifest.expiry)||(meta&&meta.expiryDate)||null;
-      const c={ id:nextId(), name, counterparty:cp, value, status,
-        template:null, source:'upload', folder, valueType:value>0?'estimated':'none',
-        lastAction:todayStr(), expiry, hash:executedOutside?'MIGRATED':null,
-        signedAt:executedOutside?((manifest&&(manifest.signed||manifest.effective))||(meta&&meta.effectiveDate)||null):null,
-        // Paper executed elsewhere has no signatory HaTi can name — the person
-        // running the import is a filing clerk, not a party to the contract.
-        // Who imported it is recorded on c.migration and in the audit trail.
-        signatory:executedOutside?null:(u?.name||'Authorized signatory'), compliance:{},
-        comments:[{author:'System',role:'Automation',side:'internal',
-          text:`Migrated in batch ${batch} from “${file.name}” and filed under ${FOLDERS[folder].name}.${executedOutside?' Recorded as executed outside HaTi — the seal is the uploaded file’s own SHA-256.':''}`,ts:fmtDT(nowISO())}],
-        fields:{}, scan:null,
-        audit:[{at:nowISO(),user:u?.name||'System',action:'Migrated',
-          detail:`Imported “${file.name}” (${Math.round(file.size/1024)} KB) in batch ${batch}${readable?`, ${extractedText.length.toLocaleString()} chars ${isOcrText(textSource)?'machine-read from a scan':'extracted'}`:', no machine-readable text'}${executedOutside?' — executed outside HaTi':''}`}],
-        signatures:[], upload };
-      // metadata is attached un-"confirmed" — cp/value/expiry were already baked
-      // in above, and the audit trail must not claim a human reviewed it yet
-      if(meta) c.metadata=meta;
-      // provenance in the audit trail — a reader months from now has no other
-      // way to know these dates were transcribed by a machine, not typed
-      if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
-        detail:ocrProvenanceLine(upload) });
-      c.migration={ batch, importedAt:nowISO(), importedBy:u?.name||'System',
-        needsReview: !meta || migNeedsReview(meta, c),
-        // `no-text` may only fire AFTER OCR has been attempted and failed
-        blocked: readable?null:'no-text',
-        textSource, ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0,
-        manifest: !!manifest, executedOutside,
-        aiSource:(meta&&meta._source)||'none' };
-      if(manifest) manifest.matchedId=c.id;
-      c._loaded=true; c._light=false; c._v=0;
-      state.contracts.unshift(c);
-      persist(c);
+      const c=await migBuildAndSave({ file, mime, dataUrl, manifest, meta, upload, ocr,
+        textSource, readable, extractedText, batch, u, link: opts.link });
       q.id=c.id; saved++;
-      // burn one document off the onboarding allowance (money is drawn by the
-      // server on each metered call; the document count is ours to report)
-      if(M.allowance&&M.allowance.open&&API_MODE()){
-        try{ const r=await api('ai/allowance/document','POST',{ count:1 }); M.allowance=r.allowance; renderMigQueue(); }catch(e){}
-      }
+      migIndexContract(c, upload); byHash.set(upload.fileHash, c.id);
+      await migDrawAllowanceDoc();
       step('saved', readable?(c.migration.needsReview?'needs review':'complete'):'no readable text — enter details manually');
     }catch(e){ errors++; step('error', e.message||'failed'); }
   }
@@ -393,7 +475,7 @@ async function migProcessFiles(fileList){
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
   window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
-  toast(`Batch ${batch}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${dupes?`, ${dupes} duplicate${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
+  toast(`Batch ${batch}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
   renderMigration();
 }
 
@@ -564,6 +646,8 @@ const MIG_QSTATE = {
   ocr:       {t:'Reading scan…',  c:'var(--color-accent-700)'},
   saved:     {t:'Imported',       c:'#1e6b4d'},
   duplicate: {t:'Duplicate',      c:'#7d5a14'},
+  dupe:      {t:'Duplicate?',     c:'#7d5a14'},
+  skipped:   {t:'Skipped',        c:'var(--color-neutral-500)'},
   word:      {t:'Word — not read',c:'#8f322b'},
   cancelled: {t:'Cancelled',      c:'var(--color-neutral-500)'},
   error:     {t:'Failed',         c:'#8f322b'},
@@ -572,7 +656,7 @@ function renderMigQueue(){
   const host=document.getElementById('mig-queue'); if(!host) return;
   const M=migState();
   if(!M.queue.length){ host.innerHTML=''; return; }
-  const done=M.queue.filter(q=>['saved','duplicate','error','cancelled','word'].includes(q.status)).length;
+  const done=M.queue.filter(q=>['saved','duplicate','error','cancelled','word','skipped'].includes(q.status)).length;
   const pct=Math.round(done/M.queue.length*100);
   host.innerHTML=`
     <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:14px 16px">
@@ -585,22 +669,64 @@ function renderMigQueue(){
       <div style="height:6px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
       ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'AI unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run AI extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
-        ${M.queue.map(q=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
+        ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
           const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
-          return `<div style="display:flex;align-items:center;gap:9px;padding:5px 2px;border-bottom:1px solid rgba(29,31,32,.05);font-size:12px">
+          return `<div style="padding:5px 2px;border-bottom:1px solid rgba(29,31,32,.05);font-size:12px">
+           <div style="display:flex;align-items:center;gap:9px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
             ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;color:var(--color-accent-700);padding:0">${q.id}</button>`:''}
             <span style="flex:none;font-size:11px;font-weight:600;color:${s.c}">${s.t}</span>
             ${q.note?`<span style="flex:none;font-size:10.5px;color:var(--color-neutral-600);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${migEsc(q.note)}">${migEsc(q.note)}</span>`:''}
+           </div>
+           ${migDupeRowHtml(q, i)}
           </div>`; }).join('')}
       </div>
     </section>`;
   wireOpens(host);
   migWireCancel();
+  migWireDupes(host);
   // keep the allowance strip in step with the batch as it burns down
   const al=document.getElementById('mig-allowance');
   if(al) al.outerHTML=migAllowanceHtml();
+}
+/* The three-way duplicate decision, inline on the queue row. A skipped exact
+   match also lists the contract it matched, so nothing ever silently vanishes. */
+function migDupeRowHtml(q, i){
+  if(!q.dupes||!q.dupes.length) return '';
+  const M=migState();
+  const pending = q.status==='dupe' && (M.pending||{})[i];
+  const hit=d=>{ const c=getContract(d.id);
+    return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--color-neutral-700);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:3px;padding:2px 7px">
+      <b style="font-family:var(--font-mono)">${d.id}</b>
+      <span style="max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c?c.name:'')}</span>
+      <span style="color:var(--color-neutral-500)">${DUP_LABEL[d.kind]}${d.distance!=null&&d.kind!=='exact'&&d.kind!=='text'?` · distance ${d.distance}`:''}</span></span>`; };
+  const btn='font:inherit;font-size:10.5px;font-weight:600;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 9px;cursor:pointer';
+  const parentOpts=q.dupes.map(d=>`<option value="${d.id}">${d.id}</option>`).join('');
+  return `<div style="margin:5px 0 3px 16px;display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;flex-wrap:wrap;gap:5px">${q.dupes.map(hit).join('')}${q.dupeTotal>q.dupes.length?`<span style="font-size:10.5px;color:var(--color-neutral-500);align-self:center">+${q.dupeTotal-q.dupes.length} more</span>`:''}</div>
+    ${pending?`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+      <button data-dup-skip="${i}" style="${btn}">Skip</button>
+      <button data-dup-import="${i}" style="${btn}">Import anyway</button>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <button data-dup-link="${i}" style="${btn};border-color:var(--color-accent);color:var(--color-accent-800)">Import &amp; link as</button>
+        <select data-dup-rel="${i}" style="font:inherit;font-size:10.5px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 5px">
+          ${CONTRACT_RELATIONS.map(r=>`<option value="${r.k}">${r.label}</option>`).join('')}</select>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">of</span>
+        <select data-dup-parent="${i}" style="font:inherit;font-size:10.5px;font-family:var(--font-mono);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:3px 5px">${parentOpts}</select>
+      </span>
+    </div>`:''}
+  </div>`;
+}
+function migWireDupes(host){
+  (host||document).querySelectorAll('[data-dup-skip]').forEach(b=>b.addEventListener('click',()=>migResolveDuplicate(Number(b.getAttribute('data-dup-skip')),'skip')));
+  (host||document).querySelectorAll('[data-dup-import]').forEach(b=>b.addEventListener('click',()=>migResolveDuplicate(Number(b.getAttribute('data-dup-import')),'import')));
+  (host||document).querySelectorAll('[data-dup-link]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.getAttribute('data-dup-link'));
+    const parent=(host||document).querySelector(`[data-dup-parent="${i}"]`)?.value;
+    const rel=(host||document).querySelector(`[data-dup-rel="${i}"]`)?.value;
+    migResolveDuplicate(i,'link',parent,rel);
+  }));
 }
 function migWireCancel(){
   document.getElementById('mig-cancel')?.addEventListener('click',()=>{ migState().running=false; toast('Stopping after the current file'); });
@@ -769,4 +895,4 @@ function renderMigration(){
   setActiveNav('migration');
 }
 
-Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});

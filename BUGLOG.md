@@ -228,3 +228,63 @@ intended. Thorough chunking verified at 6 chunks with an exact 3,000-character
 overlap and full coverage of the tail; the merge rules verified to pick the
 higher-confidence counterparty and, on a confidence tie, the **later** chunk's
 expiry date, carrying its source span through.
+
+---
+
+### 5. Deduplication only caught identical bytes, and silently skipped what it caught
+
+**What was broken.** `migProcessFiles` deduplicated on `sha256(dataUrl)` — exact
+bytes and nothing else. The same agreement scanned twice, or a PDF alongside a
+Word-exported copy of the same text, imported as two separate contracts, so the
+register overstated the portfolio. And when a duplicate *was* caught it was
+skipped in silence: the user saw a file disappear with no indication of what it
+matched.
+
+**Root cause.** A single `Set` of file hashes, with no text-level or metadata
+identity, and no decision path — the pipeline could only import or skip.
+
+**The fix.** New `js/dedupe.js` with four signals, cheapest first:
+- `fileHash` — exact bytes, still the fast first check;
+- `upload.textFingerprint` — SHA-256 of the text after aggressive normalisation
+  (lowercase, strip non-alphanumerics, collapse whitespace);
+- `upload.simhash` — a 64-bit SimHash over word 5-grams, kept as a hi/lo pair
+  rather than a BigInt so a full-register scan stays cheap. Hamming ≤ 3 is a
+  near-certain duplicate, 4–12 closely related;
+- metadata — same normalised counterparty **and** same effective date **and**
+  value within 2%, for the re-typed copy whose text no longer matches.
+
+The behaviour changed too: a flagged file gets a `duplicate?` queue row with
+**Skip / Import anyway / Import and link as an amendment of C-XXX**, and the
+batch carries on past it rather than blocking. Exact matches still auto-skip but
+now name the contract they matched. `text_fingerprint`, `simhash` and `parent_id`
+are real SQLite columns, so the comparison index is built from light register
+rows without loading a single document body. Also added `js/family.js` with the
+`parentId` / `relation` / `relationNote` model and its depth-one and cycle rules,
+which the link action writes through.
+
+**Files touched.** `js/dedupe.js` (new), `js/family.js` (new),
+`js/views/migration.js`, `server/server.js`, `js/app.js`, `README.md`.
+
+**How it was verified.** In real Chromium against text extracted from the bundled
+sample contracts:
+- the same agreement reflowed into a different format → **identical
+  textFingerprint**, reported as `text` (distance 0);
+- a simulated re-scan (whitespace collapsed, ~0.4% OCR-style character
+  corruption, page furniture appended) → SimHash distance **5**, reported as
+  `related`;
+- the same agreement plus an amending clause → distance **3**, reported as
+  `near`;
+- a genuinely different contract (a lease vs a supplier agreement) → distance
+  **28**, comfortably outside the 12 threshold;
+- the metadata-only signal ("Naivas Limited" vs "Naivas Ltd", same effective
+  date, value 1.6% apart, unrelated text) → matched.
+
+**A real bug the test caught:** `metadataMatch()` read the effective date via
+`effDateOf()`, which looks in `c.metadata` — but index rows carry a resolved
+`effectiveDate` field, so the metadata signal never fired at all. Fixed to accept
+either shape. Also capped `findDuplicates()` to the top 6 hits (reporting the
+true total) after the test showed a portfolio of near-identical template
+contracts can legitimately produce a very long related-match tail.
+
+**Performance:** at 1,201 register rows, index build ~360 ms and a full scan
+**~3 ms** per candidate — well inside the existing performance bar.

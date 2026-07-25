@@ -123,14 +123,20 @@ function syncFts(c) {
 }
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
-  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at)
-    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at)
+  const u = c.upload || {};
+  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id)
+    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id)
     ON CONFLICT(id) DO UPDATE SET json=excluded.json, name=excluded.name, counterparty=excluded.counterparty,
       folder=excluded.folder, status=excluded.status, value=excluded.value, expiry=excluded.expiry,
-      is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at`).run({
+      is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at,
+      text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id`).run({
     id: c.id, json: j, name: c.name || '', counterparty: c.counterparty || '', folder: c.folder || '',
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || null, is_upload: c.source === 'upload' ? 1 : 0,
     seq: c._seq != null ? c._seq : nextSeq(), version, updated_at: now(),
+    // Near-duplicate signals are columns, not JSON, so the comparison index can
+    // be built without loading a single document body.
+    text_fingerprint: u.textFingerprint || null, simhash: u.simhash || null,
+    parent_id: c.parentId || null,
   });
   syncFts(c);
 }
@@ -181,6 +187,13 @@ addColumnIfMissing('sessions', 'ua', 'TEXT');
 // the column is here so future per-tenant scoping is an additive change.
 const WORKSPACE_ID = 'ws_default';
 addColumnIfMissing('contracts', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
+// Near-duplicate signals + the amendment link, as columns so a 1,200-contract
+// register can be compared and grouped without loading document bodies.
+addColumnIfMissing('contracts', 'text_fingerprint', 'TEXT');
+addColumnIfMissing('contracts', 'simhash', 'TEXT');
+addColumnIfMissing('contracts', 'parent_id', 'TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_fingerprint ON contracts(text_fingerprint)');
+db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_parent ON contracts(parent_id)');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
 // share is bound to a recipient and channel, expires, can be revoked, and

@@ -188,6 +188,34 @@ estimate reflects it. With thorough mode **off** it is exactly **one AI call per
 contract**, so a 25-file migration batch still fits inside the 15-minute
 light-tier limit of 40 calls.
 
+### Catching near-duplicates at import
+
+Deduplication used to be `sha256(dataUrl)` — exact bytes only. Real migrations
+are full of near-duplicates (the same agreement scanned twice, a PDF alongside a
+Word-exported copy, a re-executed version), and every one of them imported as a
+separate contract, so the register overstated the portfolio. Four signals now
+run, cheapest first:
+
+| Signal | Catches | Stored as |
+|---|---|---|
+| `fileHash` | identical bytes | already on the upload |
+| `upload.textFingerprint` | the same document in a different file format — SHA-256 of the text after aggressive normalisation (lowercase, strip non-alphanumerics, collapse whitespace) | `text_fingerprint` column |
+| `upload.simhash` | fuzzy similarity — a 64-bit SimHash over word 5-grams. Hamming ≤ 3 is a near-certain duplicate; 4–12 is closely related, usually an amendment or a re-executed version | `simhash` column |
+| metadata | a re-typed or differently-scanned copy whose text no longer matches: same normalised counterparty **and** same effective date **and** value within 2% | derived |
+
+**The behaviour changed, not just the detection.** A flagged file is no longer
+silently skipped — it gets a `duplicate?` row in the migration queue with three
+actions: **Skip**, **Import anyway**, or **Import and link as an amendment of
+C-XXX** (which hands off to contract families, below). The batch does not block:
+flagged rows are parked and the rest of the drop carries on. Exact byte-for-byte
+matches still auto-skip, but the row **names the contract they matched** so
+nothing vanishes without explanation.
+
+In server mode `text_fingerprint` and `simhash` are columns, so the comparison
+index is built from the light register rows the client already holds — no
+document body is ever loaded to compare. Measured at 1,201 rows: index build
+~360 ms, full scan **~3 ms** per candidate.
+
 ### AI model routing (Team & Settings)
 
 Each AI task runs on one of two capability tiers, resolved per request. Admins can override either tier — or force one model everywhere — from **Team & Settings → AI engine → Model routing** (stored server-side; never returned to the browser). `GET /api/ai/config` reports the resolved model for each tier.
