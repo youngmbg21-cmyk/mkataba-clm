@@ -89,8 +89,12 @@ const cKind = c => isUpload(c) ? 'External Document' : (TEMPLATES[c.template]?.k
 // supporting line. Drafts with no party yet fall back to the contract name as
 // the headline rather than leading with an empty placeholder.
 const cParty = c => (c && c.counterparty && c.counterparty.trim()) ? c.counterparty.trim() : '';
-const cPrimary = c => cParty(c) || c.name;
-const cSecondary = c => cParty(c) ? c.name : 'No counterparty yet';
+// These two are interpolated straight into markup by the register, the Queue
+// board, the calendar and the cards, so they escape at the source — a contract
+// name is user-controlled (a colleague types it, and on a migrated contract it
+// comes from the uploaded file's name), and one unescaped call site is enough.
+const cPrimary = c => esc(cParty(c) || (c && c.name) || '');
+const cSecondary = c => cParty(c) ? esc(c.name) : 'No counterparty yet';
 const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
 /* How much extracted text a contract keeps. The old 40k cap cut a long
    agreement off around page 10 — exactly where the renewal, termination and
@@ -511,10 +515,15 @@ function renderAuth(mode){
     });
   }
 }
+/* The email is the sign-in name AND the password-reset route, so a typo here
+   is not a cosmetic problem — there is no second admin yet to fix it with. */
+const validEmail = e => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(e||'').trim());
 async function doSetup(){
-  const name=fval('su-org'), uname=fval('su-name'), email=fval('su-email').toLowerCase();
+  const name=fval('su-org').trim(), uname=fval('su-name').trim(), email=fval('su-email').trim().toLowerCase();
   const pass=document.getElementById('su-pass').value;
-  if(!name||!uname||!email){ toast('Fill in organization, name and email','err'); return; }
+  if(!name){ toast('Enter your organization name','err'); return; }
+  if(!uname){ toast('Enter your full name','err'); return; }
+  if(!validEmail(email)){ toast('Enter a valid work email — it is your sign-in and your password-reset route','err'); return; }
   if(pass.length<8){ toast('Password must be at least 8 characters','err'); return; }
   if(REMOTE){
     try{
@@ -560,7 +569,46 @@ function logout(){
   localStorage.removeItem(LS.session); location.reload();
 }
 
+/* An account created by an admin starts on a password the admin chose. Until
+   the member replaces it, everything they do is attributable to two people —
+   which for a signing product means attributable to neither. The server refuses
+   their mutating requests; this is the screen that lets them fix it. */
+function renderMustChangePassword(){
+  const authRoot=document.getElementById('auth-root');
+  const shell=document.getElementById('app-shell');
+  shell.classList.add('hidden'); shell.style.display='none';
+  const F='width:100%;min-height:38px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:8px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;margin-bottom:10px;';
+  authRoot.innerHTML=`
+    <div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:30px;max-width:25rem;width:100%;">
+        <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0 0 6px;">Choose your own password</h1>
+        <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 16px;line-height:1.55;">Your account was created with a temporary password someone else chose. Set your own before you continue — anything you sign has to be attributable to you alone.</p>
+        <input id="cp-current" type="password" placeholder="Temporary password" style="${F}"/>
+        <input id="cp-new" type="password" placeholder="New password (min 8 characters)" style="${F}"/>
+        <input id="cp-again" type="password" placeholder="Repeat the new password" style="${F}"/>
+        <button id="cp-go" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:14px;">Set my password</button>
+        <p id="cp-err" class="hidden" style="text-align:center;font-size:12px;color:#b0453c;margin-top:12px;"></p>
+      </div></div>`;
+  document.getElementById('cp-go').addEventListener('click',async()=>{
+    const cur=document.getElementById('cp-current').value;
+    const nw=document.getElementById('cp-new').value;
+    const again=document.getElementById('cp-again').value;
+    const err=document.getElementById('cp-err');
+    const fail=m=>{ err.textContent=m; err.classList.remove('hidden'); };
+    if(nw.length<8) return fail('The new password must be at least 8 characters.');
+    if(nw!==again) return fail('The two new passwords do not match.');
+    try{
+      await api('password/change','POST',{ current:cur, password:nw });
+      if(REMOTE&&REMOTE.me&&REMOTE.me.prefs) delete REMOTE.me.prefs.mustChangePassword;
+      toast('Password updated — karibu');
+      startApp();
+    }catch(e){ fail(e.message); }
+  });
+}
 function startApp(){
+  if(REMOTE && REMOTE.me && REMOTE.me.prefs && REMOTE.me.prefs.mustChangePassword){
+    renderMustChangePassword(); return;
+  }
   FIRST_PARTY = getOrg().name;
   document.getElementById('auth-root').innerHTML='';
   const shell=document.getElementById('app-shell');
@@ -1103,7 +1151,7 @@ async function openShareModal(c){
     <div style="padding:22px 24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
-      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${c.counterparty||'the counterparty'} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       ${readinessPanelHtml(c)}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
@@ -1362,4 +1410,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

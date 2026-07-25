@@ -452,7 +452,7 @@ function aiContractCard(c){
     <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
     <span class="min-w-0 flex-1">
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${c.counterparty||'—'} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
+      <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
     </span>
     ${statusChip(c.status)}
   </button>`;

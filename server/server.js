@@ -49,6 +49,14 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS shares (
     token TEXT PRIMARY KEY, payload TEXT NOT NULL,
     response TEXT, applied INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+  -- A migration batch is a customer's back catalogue going in. It used to live
+  -- only in browser memory, so closing the tab lost every unfinished and every
+  -- parked file with nothing anywhere to say it happened — and the customer has
+  -- no per-file record of what they dropped, so the gap was undiscoverable.
+  CREATE TABLE IF NOT EXISTS batches (
+    id TEXT PRIMARY KEY, started_at TEXT NOT NULL, started_by TEXT,
+    finished_at TEXT, status TEXT NOT NULL DEFAULT 'running', rows_json TEXT NOT NULL DEFAULT '[]');
+  CREATE INDEX IF NOT EXISTS idx_batches_status ON batches(status);
   CREATE TABLE IF NOT EXISTS engagement (
     id INTEGER PRIMARY KEY AUTOINCREMENT, contract_id TEXT NOT NULL, token TEXT,
     kind TEXT NOT NULL, at TEXT NOT NULL, ip TEXT, ua TEXT);
@@ -668,6 +676,13 @@ function setCookie(res, token) {
 function clearCookie(res) {
   res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax${HTTPS_ON() ? '; Secure' : ''}`);
 }
+/* One place for "is this a usable identity?". The email is the sign-in name and
+   the password-reset route, so a workspace created with a malformed one is
+   unrecoverable — there is no second admin yet and no way to correct it. */
+const clean = v => String(v == null ? '' : v).trim();
+const cleanEmail = v => clean(v).toLowerCase();
+const validEmail = v => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(v || ''));
+
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;   // 30 days
 const auth = (req, res, next) => {
   const s = readSession(req);
@@ -680,13 +695,21 @@ const auth = (req, res, next) => {
   db.prepare('UPDATE sessions SET last_seen=? WHERE token=?').run(now(), s.token);
   req.user = s.user; req.token = s.token; next();
 };
+/* An account still on the temporary password its admin typed cannot act. The
+   admin knows that credential, so anything done under it — above all a
+   signature — is not attributable to the member it names. */
+const passwordCurrent = (req, res, next) => {
+  if (userPrefs(req.user).mustChangePassword)
+    return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
+  next();
+};
 const editor = (req, res, next) => {
   if (req.user.role === 'viewer') return res.status(403).json({ error: 'Viewers have read-only access' });
-  next();
+  return passwordCurrent(req, res, next);
 };
 const admin = (req, res, next) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
-  next();
+  return passwordCurrent(req, res, next);
 };
 
 /* ---------- status & auth ---------- */
@@ -702,11 +725,15 @@ app.get('/api/status', (req, res) => {
 
 app.post('/api/setup', rlAuth, (req, res) => {
   if (getSetting('org')) return res.status(409).json({ error: 'Workspace already exists' });
-  const { org, name, email, password, data } = req.body || {};
-  if (!org || !name || !email) return res.status(400).json({ error: 'Organization, name and email are required' });
+  const b = req.body || {};
+  const org = clean(b.org), name = clean(b.name), email = cleanEmail(b.email);
+  const { password, data } = b;
+  if (!org) return res.status(400).json({ error: 'Organization name is required' });
+  if (!name) return res.status(400).json({ error: 'Your full name is required' });
+  if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid work email address — it is your sign-in and your password-reset route' });
   if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const salt = rid(16);
-  const u = { id: 'u_' + rid(8), name, email: String(email).toLowerCase(), role: 'admin', salt, hash: hashPw(password, salt), created_at: now() };
+  const u = { id: 'u_' + rid(8), name, email, role: 'admin', salt, hash: hashPw(password, salt), created_at: now() };
   setSetting('org', { name: org, createdAt: now() });
   db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at) VALUES (?,?,?,?,?,?,?)')
     .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at);
@@ -725,7 +752,7 @@ app.post('/api/setup', rlAuth, (req, res) => {
 
 app.post('/api/login', rlAuth, (req, res) => {
   const { email, password } = req.body || {};
-  const u = db.prepare('SELECT * FROM users WHERE email=?').get(String(email || '').toLowerCase());
+  const u = db.prepare('SELECT * FROM users WHERE email=?').get(cleanEmail(email));
   if (!u || !safeEq(hashPw(password || '', u.salt), u.hash))
     return res.status(401).json({ error: 'Email or password is incorrect' });
   // E8-T3: rotate — old sessions for this user on this device are not reused;
@@ -1955,16 +1982,23 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
 
 /* ---------- team management ---------- */
 app.post('/api/users', auth, admin, (req, res) => {
-  const { name, email, role, password } = req.body || {};
-  if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
+  const b = req.body || {};
+  const name = clean(b.name), email = cleanEmail(b.email), role = b.role, password = b.password;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid email address for the new member' });
   if (!['admin','legal','viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
   if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
-  if (db.prepare('SELECT id FROM users WHERE email=?').get(String(email).toLowerCase()))
+  if (db.prepare('SELECT id FROM users WHERE email=?').get(email))
     return res.status(409).json({ error: 'A member with that email already exists' });
   const salt = rid(16);
-  const u = { id: 'u_' + rid(8), name, email: String(email).toLowerCase(), role, salt, hash: hashPw(password, salt), created_at: now() };
-  db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at);
+  // The admin chooses this password, so it is not the member's yet: they are
+  // required to replace it on first sign-in before the account can do anything.
+  // Without that, a signature attributed to a colleague is not attributable —
+  // the admin knows the credential that produced it.
+  const u = { id: 'u_' + rid(8), name, email, role, salt, hash: hashPw(password, salt), created_at: now(),
+    prefs: JSON.stringify({ mustChangePassword: true }) };
+  db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at, u.prefs);
   const org = getSetting('org');
   sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
     `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
@@ -2318,6 +2352,23 @@ app.post('/api/password/reset-request', rlAuth, (req, res) => {
   }
   res.json({ ok: true, emailSent: EMAIL_ON(), devToken }); // never leak whether the email exists
 });
+/* Change your own password. Also the route that clears the
+   must-change-password flag an admin-created account starts life with. */
+app.post('/api/password/change', auth, (req, res) => {
+  const { current, password } = req.body || {};
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(req.user.id);
+  if (!u || !safeEq(hashPw(current || '', u.salt), u.hash))
+    return res.status(400).json({ error: 'Your current password is incorrect' });
+  if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  if (String(password) === String(current)) return res.status(400).json({ error: 'Choose a password you have not used here before' });
+  const salt = rid(16);
+  const prefs = userPrefs(u); delete prefs.mustChangePassword;
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(prefs), u.id);
+  // every other session for this user is invalidated; this one keeps working
+  db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(u.id, req.token);
+  res.json({ ok: true });
+});
+
 app.post('/api/password/reset', (req, res) => {
   const { token, password } = req.body || {};
   const [id, raw] = String(token || '').split('.');
@@ -2326,9 +2377,42 @@ app.post('/api/password/reset', (req, res) => {
     return res.status(400).json({ error: 'This reset link is invalid or expired' });
   if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const salt = rid(16);
-  db.prepare('UPDATE users SET salt=?, hash=? WHERE id=?').run(salt, hashPw(password, salt), row.user_id);
+  const ru = db.prepare('SELECT * FROM users WHERE id=?').get(row.user_id);
+  const rprefs = ru ? userPrefs(ru) : {}; delete rprefs.mustChangePassword;
+  db.prepare('UPDATE users SET salt=?, hash=?, prefs=? WHERE id=?').run(salt, hashPw(password, salt), JSON.stringify(rprefs), row.user_id);
   db.prepare('UPDATE resets SET used=1 WHERE id=?').run(id);
   db.prepare('DELETE FROM sessions WHERE user_id=?').run(row.user_id); // force re-login everywhere
+  res.json({ ok: true });
+});
+
+/* ---------- migration batches ----------
+   Just enough to answer "which files did not make it?" after a tab closes. */
+app.post('/api/batches', auth, editor, (req, res) => {
+  const { id, rows } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'Batch id required' });
+  db.prepare('INSERT INTO batches (id,started_at,started_by,status,rows_json) VALUES (?,?,?,?,?) ' +
+    'ON CONFLICT(id) DO UPDATE SET rows_json=excluded.rows_json')
+    .run(String(id), now(), req.user.name || req.user.id, 'running', JSON.stringify(rows || []));
+  res.json({ ok: true });
+});
+app.patch('/api/batches/:id', auth, editor, (req, res) => {
+  const { rows, status } = req.body || {};
+  const row = db.prepare('SELECT id FROM batches WHERE id=?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Batch not found' });
+  db.prepare('UPDATE batches SET rows_json=COALESCE(?,rows_json), status=COALESCE(?,status), finished_at=? WHERE id=?')
+    .run(rows ? JSON.stringify(rows) : null, status || null,
+      (status && status !== 'running') ? now() : null, req.params.id);
+  res.json({ ok: true });
+});
+// Batches that never reported a finish — the tab was closed or the page reloaded.
+app.get('/api/batches/unfinished', auth, (req, res) => {
+  const rows = db.prepare("SELECT * FROM batches WHERE status='running' ORDER BY started_at DESC LIMIT 5").all()
+    .map(b => { let r = []; try { r = JSON.parse(b.rows_json) || []; } catch (_) {}
+      return { id: b.id, startedAt: b.started_at, startedBy: b.started_by, rows: r }; });
+  res.json({ batches: rows });
+});
+app.delete('/api/batches/:id', auth, editor, (req, res) => {
+  db.prepare('DELETE FROM batches WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 

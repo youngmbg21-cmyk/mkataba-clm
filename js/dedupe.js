@@ -10,7 +10,8 @@
 // Four signals, cheapest first:
 //   1. fileHash        exact bytes            — certain, auto-skippable
 //   2. textFingerprint same text, any format  — certain
-//   3. simhash         fuzzy text similarity  — ≤3 near-certain, 4–12 related
+//   3. simhash         fuzzy text similarity  — ≤3 near-certain, 4–6 related
+//                       (and 4–6 only counts with non-boilerplate corroboration)
 //   4. metadata        same party + date + ~value, even when the text differs
 //
 // Signals 1–3 are computed once at import and stored on the contract, so
@@ -80,9 +81,21 @@ function hamming64(a,b){
   for(let i=0;i<16;i++) d+=_POP[(parseInt(a[i],16)^parseInt(b[i],16))&15];
   return d;
 }
-/* Two documents with Hamming distance ≤3 are near-certain duplicates; 4–12
-   means closely related — usually an amendment or a re-executed version. */
-const SIMHASH_DUPLICATE = 3, SIMHASH_RELATED = 12;
+/* Two documents with Hamming distance ≤3 are near-certain duplicates.
+   The "related" band was ≤12, which is far too wide: a 64-bit SimHash over
+   5-grams puts ANY two documents drawn from the same house template inside 12
+   bits of each other, because the boilerplate — definitions, confidentiality,
+   liability, termination, governing law, signature blocks — is most of the
+   token mass. A corporate portfolio is, definitionally, a pile of documents
+   from a handful of house templates, so the band meant to catch "an amendment
+   of this agreement" was catching "another contract from the same law firm":
+   measured, five of ten unrelated agreements were flagged at distance 11-12,
+   and each offered "link as an amendment of…" as its default action.
+
+   Distance alone cannot carry the judgement at these widths, so the band is
+   tightened AND anything inside it now has to be corroborated by something
+   that is not boilerplate — the counterparty, the value or the term. */
+const SIMHASH_DUPLICATE = 3, SIMHASH_RELATED = 6;
 
 /* ---------- metadata signal ----------
    Catches a re-typed or differently-scanned copy whose text no longer matches:
@@ -124,7 +137,7 @@ function buildDupIndex(contracts){
      kind 'exact'      identical bytes
      kind 'text'       identical text after normalisation
      kind 'near'       SimHash distance ≤ 3
-     kind 'related'    SimHash distance 4–12 (often an amendment)
+     kind 'related'    SimHash distance 4–6 AND a corroborating signal
      kind 'metadata'   same party + effective date + value within 2%       */
 /* A portfolio built on one standard template (200 distributor agreements on the
    same paper) can legitimately produce a long tail of "related" text matches, so
@@ -139,7 +152,7 @@ function findDuplicates(cand, index, opts={}){
     if(cand.textFingerprint && r.textFingerprint && cand.textFingerprint===r.textFingerprint){ out.push({ ...r, kind:'text', distance:0 }); continue; }
     const d=hamming64(cand.simhash, r.simhash);
     if(d<=SIMHASH_DUPLICATE){ out.push({ ...r, kind:'near', distance:d }); continue; }
-    if(d<=SIMHASH_RELATED){ out.push({ ...r, kind:'related', distance:d }); continue; }
+    if(d<=SIMHASH_RELATED && relatedCorroborated(cand, r)){ out.push({ ...r, kind:'related', distance:d }); continue; }
     if(metadataMatch(cand, r)) out.push({ ...r, kind:'metadata', distance:null });
   }
   const rank={ exact:0, text:1, near:2, related:3, metadata:4 };
@@ -155,6 +168,29 @@ const DUP_LABEL={
   related:'closely related text — often an amendment or a re-executed version',
   metadata:'same counterparty, effective date and value',
 };
+/* A fuzzy text match in the 4–SIMHASH_RELATED band is only reported when
+   something outside the boilerplate agrees. Any ONE of these is enough, and
+   none of them is satisfied by two unrelated contracts sharing a template:
+     - the same counterparty (normalised)
+     - a value within 2%
+     - the same effective date
+     - the same title stem (the name minus the counterparty suffix)
+   A pair at distance 5 with a different counterparty AND a different value AND
+   a different date is not a duplicate under any reading. */
+const titleStem = s => String(s||'').toLowerCase().split(/[—–-]/)[0]
+  .replace(/\b(agreement|contract|deed|terms|letter|of|the|and|for)\b/g,' ')
+  .replace(/[^a-z0-9]+/g,'').trim();
+function relatedCorroborated(a, b){
+  const pa=normParty(a.counterparty), pb=normParty(b.counterparty);
+  if(pa && pb && pa===pb) return true;
+  if(valueWithin(a.value, b.value, 0.02)) return true;
+  const da=effDateOf(a), dbb=effDateOf(b);
+  if(da && dbb && da===dbb) return true;
+  const ta=titleStem(a.name), tb=titleStem(b.name);
+  if(ta && tb && ta.length>5 && ta===tb) return true;
+  return false;
+}
+
 /* Compute and attach the three stored signals. Called once, at import. */
 async function attachDupSignals(upload, text){
   upload.textFingerprint = await textFingerprint(text);
@@ -164,4 +200,4 @@ async function attachDupSignals(upload, text){
 
 Object.assign(window,{DUP_MAX_HITS,dedupeNormalize,textFingerprint,simhash64,hamming64,
   SIMHASH_DUPLICATE,SIMHASH_RELATED,normParty,metadataMatch,valueWithin,
-  buildDupIndex,findDuplicates,DUP_LABEL,attachDupSignals,effDateOf});
+  buildDupIndex,findDuplicates,relatedCorroborated,titleStem,DUP_LABEL,attachDupSignals,effDateOf});

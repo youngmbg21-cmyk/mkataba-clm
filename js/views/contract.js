@@ -275,9 +275,17 @@ async function pdfPageFonts(objs, resDict){
     // The font's OWN space advance is the only honest yardstick for "is this
     // gap a word break?" — a fixed number cannot be right across point sizes,
     // typefaces and tracking. Falls back to 0.25em when the font is silent.
+    // No /Widths and no embedded font programme means one of the standard 14,
+    // whose metrics are fixed and public — use them rather than guessing.
+    let b14=null;
+    if(!twoByte && !widths.size){
+      const bf=(/\/BaseFont\s*\/([^\s/>\]]+)/.exec(o.dict)||[])[1];
+      b14=base14Widths(bf);
+      if(b14) widths=b14.widths;
+    }
     const sp = twoByte ? null : widths.get(32);
     fonts[f[1]]={ twoByte, map, widths, missing, bold:style.bold, italic:style.italic,
-      spaceEm: (Number.isFinite(sp)&&sp>0) ? sp/1000 : 0.25 };
+      spaceEm: (Number.isFinite(sp)&&sp>0) ? sp/1000 : (b14?b14.spaceEm:0.278) };
   }
   return fonts;
 }
@@ -342,6 +350,47 @@ function pdfTokens(s){
 const pdfMul=(a,b)=>[a[0]*b[0]+a[1]*b[2], a[0]*b[1]+a[1]*b[3], a[2]*b[0]+a[3]*b[2], a[2]*b[1]+a[3]*b[3],
                      a[4]*b[0]+a[5]*b[2]+b[4], a[4]*b[1]+a[5]*b[3]+b[5]];
 
+/* ---------- the standard 14 fonts ----------
+   A PDF that uses Helvetica, Times, Courier, Symbol or ZapfDingbats is not
+   required to carry a /Widths array, and the base-14 fonts routinely don't —
+   which is exactly the shape produced by legal drafting software, bank letter
+   generators and government forms. The PDF specification says a consumer MUST
+   fall back to the standard metrics for those fonts. We were falling back to a
+   six-bucket guess instead, and the guess is wrong in both directions: digits
+   at 0.63 em against a real 0.556 over-ran the following space and welded
+   "2024" to "BETWEEN"; capitals at 0.63 against a real ~0.686 mean invented a
+   gap wide enough to read as a column break. Words came out glued together and
+   headings came out with phantom spaces, and the damage was not typographic —
+   the expiry date, the payment terms and the governing law stopped being
+   extracted at all, so the contract was never scheduled for a renewal reminder.
+
+   Advances are in 1/1000 em for WinAnsi codes 32..126, straight from the Adobe
+   Core-14 AFM files. */
+const B14_START = 32;
+const B14_SETS = {
+  HELV:[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584],
+  HELV_B:[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584],
+  TIMES:[250,333,408,500,500,833,778,180,333,333,500,564,250,333,250,278,500,500,500,500,500,500,500,500,500,500,278,278,564,564,564,444,921,722,667,667,722,611,556,722,722,333,389,722,611,889,722,722,556,722,667,556,611,722,722,944,722,722,611,333,278,333,469,500,333,444,500,444,500,444,333,500,500,278,278,500,278,778,500,500,500,500,333,389,278,500,500,722,500,500,444,480,200,480,541],
+  TIMES_B:[250,333,555,500,500,1000,833,278,333,333,500,570,250,333,250,278,500,500,500,500,500,500,500,500,500,500,333,333,570,570,570,500,930,722,667,722,722,667,611,778,778,389,500,778,667,944,722,778,611,778,722,556,667,722,722,1000,722,722,667,333,278,333,581,500,333,500,556,444,556,444,333,500,556,278,333,556,278,833,556,500,556,556,444,389,333,556,500,722,500,500,444,394,220,394,520],
+  COUR:[600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600,600],
+};
+/* /BaseFont carries a subset tag and a style suffix — "ABCDEF+Helvetica-BoldOblique",
+   "Arial,Bold", "TimesNewRomanPS-BoldMT". Normalise to a family and a weight. */
+function base14Widths(baseFont){
+  const n=String(baseFont||'').replace(/^[A-Z]{6}\+/,'').toLowerCase();
+  if(!n) return null;
+  const bold=/bold|black|heavy|semibold|[-,]bd\b/.test(n);
+  let set=null;
+  if(/courier|mono/.test(n)) set='COUR';
+  else if(/times|serif|roman|georgia|garamond|book/.test(n)) set=bold?'TIMES_B':'TIMES';
+  else if(/helvetica|arial|swiss|sans|verdana|tahoma|calibri/.test(n)) set=bold?'HELV_B':'HELV';
+  if(!set) return null;
+  const vals=B14_SETS[set];
+  const W=new Map();
+  for(let i=0;i<vals.length;i++) W.set(B14_START+i, vals[i]);
+  return { widths:W, spaceEm:(vals[0]||278)/1000 };
+}
+
 /* Approximate advance width of a run. Real widths live in the embedded font
    programme, which we deliberately don't parse — this only has to be good
    enough to tell "the next run continues this word" from "the next run is a
@@ -350,12 +399,19 @@ function pdfEstWidth(str, size){
   let em=0;
   for(let i=0;i<str.length;i++){
     const ch=str[i];
-    if(ch===' ') em+=0.28;
+    // Buckets tuned to the Helvetica means they stand in for. The previous
+    // digit bucket (0.63 against a real 0.556) and the lumping of lowercase
+    // w/m in with M/W (0.85 against 0.722/0.833) were the two that welded
+    // words together; capitals at 0.63 against a real 0.686 invented gaps.
+    if(ch===' ') em+=0.278;
     else if(/[.,;:!|'`\-()[\]]/.test(ch)) em+=0.30;
-    else if(/[ijltfrI]/.test(ch)) em+=0.33;
-    else if(/[mwMW@]/.test(ch)) em+=0.85;
-    else if(/[A-Z0-9]/.test(ch)) em+=0.63;
-    else em+=0.50;
+    else if(/[ijlt]/.test(ch)) em+=0.24;
+    else if(/[frI]/.test(ch)) em+=0.31;
+    else if(/[0-9]/.test(ch)) em+=0.556;
+    else if(/[mw]/.test(ch)) em+=0.78;
+    else if(/[MW@]/.test(ch)) em+=0.90;
+    else if(/[A-Z]/.test(ch)) em+=0.69;
+    else em+=0.53;
   }
   return em*size;
 }
@@ -2244,4 +2300,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

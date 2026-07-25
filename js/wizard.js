@@ -91,6 +91,17 @@ function createFromWizard(tid, vars){
   // validate before creating anything — the same rules bulk creation uses
   const values={}; const errs=[];
   for(const f of vars){ const raw=val(f.key); const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+  // A contract whose term runs backwards is a typo, not an agreement: it lands
+  // in the register already expired, distorts "expiring < 90 days" and the
+  // Calendar, and schedules its renewal reminder in the past.
+  const dEff=values.effDate||values.effectiveDate||values.start;
+  const dExp=values.expiry||values.expiryDate||values.end;
+  if(dEff && dExp && String(dExp) < String(dEff))
+    errs.push(`The expiry date (${dExp}) is before the effective date (${dEff}) — check the term.`);
+  // A counterparty name is a party to an agreement, not a paragraph. It also
+  // becomes the contract name, which every list truncates.
+  if((values.counterparty||'').length>120)
+    errs.push('The counterparty name is longer than 120 characters — use the registered name.');
   if(errs.length){ toast(errs[0],'err'); return; }
   const cp=values.counterparty||'';
   const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',

@@ -211,7 +211,7 @@ function renderTeam(){
               <option value="viewer">Viewer — read only</option>
               <option value="admin">Admin — full control</option>
             </select>
-            <input id="tm-pass" type="password" placeholder="Temporary password (min 8)" style="${inputStyle}"/>
+            <input id="tm-pass" type="password" placeholder="Temporary password (min 8) — they must change it" style="${inputStyle}"/>
           </div>
           <button id="tm-add" style="margin-top:10px;${primaryBtn}">Add member</button>
         </div>
@@ -567,9 +567,10 @@ function renderTeam(){
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
   document.getElementById('tm-add')?.addEventListener('click',async()=>{
-    const name=fval('tm-name'), email=fval('tm-email').toLowerCase(), role=document.getElementById('tm-role').value;
+    const name=fval('tm-name').trim(), email=fval('tm-email').trim().toLowerCase(), role=document.getElementById('tm-role').value;
     const title=fval('tm-title'), pass=document.getElementById('tm-pass').value;
-    if(!name||!email){ toast('Name and email are required','err'); return; }
+    if(!name){ toast('Enter the member’s name','err'); return; }
+    if(!validEmail(email)){ toast('Enter a valid email address for the new member','err'); return; }
     if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
     if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
     if(API_MODE()){

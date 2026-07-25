@@ -88,15 +88,101 @@ function migHeaderMap(headerRow){
     for(const [k,alts] of Object.entries(MIG_HEADERS)){ if(map[k]==null && alts.includes(n)) map[k]=i; } });
   return map;
 }
-function migParseDate(v){
-  const t=String(v||'').trim(); if(!t) return null;
-  let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-  m=t.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-  const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
-  m=t.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/); if(m){ const mo=MON[m[2].slice(0,3).toLowerCase()]; if(mo) return `${m[3]}-${String(mo).padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
-  return null;
+/* ---------- dates ----------
+   A slashed date is ambiguous and guessing per-cell is the one answer that
+   cannot be right: `01/03/2024` is 1 March in Nairobi and 3 January in a
+   US-locale export of the same spreadsheet. So the file is sniffed as a whole
+   first (migDateOrder) and every row is then read the same way, and anything
+   that is not a real calendar date is reported rather than stored. A month of
+   15 used to sail through as "2024-15-03", which parses to NaN everywhere
+   downstream — so the contract silently vanished from the renewal reminders,
+   the Calendar and "expiring soon" while looking perfectly imported. */
+const MON={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function migValidDate(y,mo,d){
+  if(!(mo>=1&&mo<=12)||!(d>=1&&d<=31)) return null;
+  const dt=new Date(Date.UTC(y,mo-1,d));
+  if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d) return null;   // 31 February
+  return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
-const migParseValue = v => { const n=Number(String(v||'').replace(/[^0-9.\-]/g,'')); return Number.isFinite(n)?n:0; };
+/* Decide day-first vs month-first for a whole file. A first component above 12
+   anywhere proves day-first; a second component above 12 anywhere proves
+   month-first. Both, or neither, is genuinely ambiguous and says so. */
+function migDateOrder(rows, cols){
+  let dayFirst=0, monthFirst=0;
+  for(const r of rows) for(const i of cols){
+    const m=String(r[i]||'').trim().match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);
+    if(!m) continue;
+    const a=+m[1], b=+m[2];
+    if(a>12&&b<=12) dayFirst++;
+    else if(b>12&&a<=12) monthFirst++;
+  }
+  if(dayFirst&&!monthFirst) return { order:'dmy', proven:true };
+  if(monthFirst&&!dayFirst) return { order:'mdy', proven:true };
+  if(dayFirst&&monthFirst)  return { order:'dmy', proven:false, conflict:true };
+  return { order:'dmy', proven:false };                    // Kenyan default, flagged
+}
+/* Returns { value, problem }. `problem` is a sentence for the reconciliation
+   panel — never a silent null, because a silently dropped expiry is invisible. */
+function migParseDate(v, order='dmy'){
+  const t=String(v||'').trim();
+  if(!t) return { value:null };
+  let m=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m){ const iso=migValidDate(+m[1],+m[2],+m[3]);
+    return iso?{ value:iso }:{ value:null, problem:`"${t}" is not a real date` }; }
+  m=t.match(/^(\d{1,2})[\/.](\d{1,2})[\/.](\d{4})/);
+  if(m){
+    const a=+m[1], b=+m[2], y=+m[3];
+    const first=order==='mdy'?migValidDate(y,a,b):migValidDate(y,b,a);
+    if(first) return { value:first };
+    // the chosen order does not yield a date but the other one does — say so
+    const other=order==='mdy'?migValidDate(y,b,a):migValidDate(y,a,b);
+    if(other) return { value:other, problem:`"${t}" only makes sense as ${order==='mdy'?'day/month':'month/day'} — read as ${other}` };
+    return { value:null, problem:`"${t}" is not a real date` };
+  }
+  m=t.match(/^(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})/);
+  if(m){ const mo=MON[m[2].slice(0,3).toLowerCase()];
+    if(mo){ const iso=migValidDate(+m[3],mo,+m[1]);
+      return iso?{ value:iso }:{ value:null, problem:`"${t}" is not a real date` }; } }
+  m=t.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})/);            // "March 1, 2024"
+  if(m){ const mo=MON[m[1].slice(0,3).toLowerCase()];
+    if(mo){ const iso=migValidDate(+m[3],mo,+m[2]);
+      return iso?{ value:iso }:{ value:null, problem:`"${t}" is not a real date` }; } }
+  return { value:null, problem:`"${t}" is not a date HaTi can read` };
+}
+
+/* ---------- money ----------
+   Kenyan businesses write contract values as "KES 2.5m", "2,500,000/=",
+   "Kshs. 750,000/-" and "1.2 million". The old filter kept only digits, dots
+   and hyphens, so "2.5m" became 2.5 (out by a million) and "Kshs. 750,000/-"
+   became the string ".750000-" → NaN → 0. Both were stored in silence. */
+/* The multiplier sits immediately after the digits ("2.5m", "1.2 million"), so
+   it cannot be found with a leading \b — there is no word boundary between a
+   digit and a letter, which is why "2.5m" used to come through as 2.5. Match it
+   as a suffix on the cleaned token instead. */
+const VALUE_MULT = { b:1e9, bn:1e9, billion:1e9, billions:1e9, bilioni:1e9,
+                     m:1e6, mn:1e6, million:1e6, millions:1e6, milioni:1e6,
+                     k:1e3, thousand:1e3, thousands:1e3, elfu:1e3 };
+function migParseValue(v){
+  const raw=String(v==null?'':v).trim();
+  if(!raw) return { value:0 };
+  // drop the currency words and the Kenyan "/=" and "/-" terminators, then the
+  // separators — what should be left is digits and at most a multiplier word
+  const t=raw.replace(/\b(kes|ksh|kshs|sh|shs|shilling|shillings)\b\.?/ig,' ')
+             .replace(/\/\s*[=-]\s*$/,' ')
+             .replace(/[,'\s ]/g,'')
+             .replace(/\.$/,'')
+             .trim()
+             .toLowerCase();
+  const m=/^(-?\d+(?:\.\d+)?)([a-z]*)$/.exec(t);
+  if(!m) return { value:0, problem:`"${raw}" is not a number HaTi can read` };
+  const suffix=m[2];
+  if(suffix && !(suffix in VALUE_MULT))
+    return { value:0, problem:`"${raw}" — HaTi does not recognise "${suffix}" as a multiplier` };
+  const n=Number(m[1])*(suffix?VALUE_MULT[suffix]:1);
+  if(!Number.isFinite(n)) return { value:0, problem:`"${raw}" is not a number HaTi can read` };
+  if(n<0) return { value:0, problem:`"${raw}" is negative` };
+  return { value:n };
+}
 function migParseStatus(v){
   const t=String(v||'').toLowerCase();
   if(/sign|execut|active|live/.test(t)) return 'Signed';
@@ -128,23 +214,47 @@ function folderFromType(typeStr){
 /* ---------- manifest (the customer's own checklist) ---------- */
 async function migLoadManifest(file){
   const M=migState();
+  const reject=reason=>{
+    // Keeping the previously loaded manifest is right — losing it because a
+    // second file was malformed would be worse. Saying nothing is not: the
+    // banner would keep describing a different file than the one just chosen.
+    M.manifestError={ name:file.name, reason };
+    toast(reason,'err');
+    renderMigration();
+  };
   const text=await file.text();
   const rows=parseCsv(text);
-  if(rows.length<2){ toast('That CSV has no data rows','err'); return; }
+  if(rows.length<2) return reject('That CSV has no data rows');
   const map=migHeaderMap(rows[0]);
-  if(map.file==null && map.name==null){ toast('Manifest needs at least a "filename" or "name" column','err'); return; }
-  M.manifest=rows.slice(1).map(r=>{
+  if(map.file==null && map.name==null) return reject('Manifest needs at least a "filename" or "name" column');
+
+  const body=rows.slice(1);
+  const dateCols=['effective','expiry','signed'].map(k=>map[k]).filter(i=>i!=null);
+  const order=migDateOrder(body, dateCols);
+  const problems=[];
+  M.manifest=body.map((r,i)=>{
     const g=k=>map[k]!=null?String(r[map[k]]||'').trim():'';
+    const label=g('file')||g('name')||`row ${i+2}`;
+    const note=(field,p)=>{ if(p) problems.push({ row:i+2, label, field, message:p }); };
+    const eff=migParseDate(g('effective'),order.order);   note('effective date',eff.problem);
+    const exp=migParseDate(g('expiry'),order.order);      note('expiry date',exp.problem);
+    const sgn=migParseDate(g('signed'),order.order);      note('signed date',sgn.problem);
+    const val=migParseValue(g('value'));                  note('value',val.problem);
     return { file:g('file'), name:g('name'), counterparty:g('counterparty'),
       folder:migParseFolder(g('folder'))||folderFromType(g('type')), type:g('type'),
-      status:migParseStatus(g('status')), value:migParseValue(g('value')), currency:g('currency'),
-      effective:migParseDate(g('effective')), expiry:migParseDate(g('expiry')), signed:migParseDate(g('signed')),
+      status:migParseStatus(g('status')), value:val.value, currency:g('currency'),
+      effective:eff.value, expiry:exp.value, signed:sgn.value,
       matchedId:null };
   });
   M.manifestName=file.name;
+  M.manifestError=null;
+  M.manifestProblems=problems;
+  M.manifestDateOrder=order;
   // re-reconcile against contracts already imported (e.g. manifest loaded second)
   migContracts().forEach(c=>{ const row=migManifestRow(c.upload&&c.upload.fileName); if(row&&!row.matchedId) row.matchedId=c.id; });
-  toast(`Manifest loaded — ${M.manifest.length} rows`);
+  toast(problems.length
+    ? `Manifest loaded — ${M.manifest.length} rows, ${problems.length} value${problems.length===1?'':'s'} need${problems.length===1?'s':''} attention`
+    : `Manifest loaded — ${M.manifest.length} rows`, problems.length?'err':undefined);
   renderMigration();
 }
 function migManifestRow(fileName){
@@ -403,15 +513,30 @@ async function migProcessFiles(fileList, opts={}){
   // The fuzzy index is built from the light register rows — no document bodies.
   M.dupIndex=buildDupIndex(state.contracts);
   M.queue=files.map(f=>({ name:f.name, size:f.size, status:'waiting', note:'', id:null }));
-  M.running=true; M.batch=batch;
+  M.running=true; M.batch=batch; M.cancelled=false; M.ocrError='';
+  // Mirror the queue to the server as it goes, so closing the tab leaves a
+  // record of which files were dropped and which never landed.
+  const syncBatch=async(status)=>{
+    if(!API_MODE()) return;
+    const rows=M.queue.map(q=>({ name:q.name, size:q.size, status:q.status, note:q.note||'', id:q.id||null }));
+    try{
+      if(status==='start') await api('batches','POST',{ id:batch, rows });
+      else await api('batches/'+batch,'PATCH',{ rows, status });
+    }catch(e){ /* the batch must not fail because bookkeeping did */ }
+  };
+  await syncBatch('start');
   renderMigQueue(); migWireCancel();
   const u=currentUser();
-  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0, flagged=0;
+  let saved=0, dupes=0, errors=0, words=0, ocrDocs=0, flagged=0, ocrErrors=0, ocrLastError='';
+  const byHashRow=new Map();
   for(let i=0;i<files.length;i++){
     if(!M.running){ M.queue.slice(i).forEach(q=>{ if(q.status==='waiting') q.status='cancelled'; }); break; }
     const file=files[i], q=M.queue[i];
-    const step=(st,note)=>{ q.status=st; if(note!=null) q.note=note; renderMigQueue(); };
+    const step=(st,note)=>{ q.status=st; if(note!=null) q.note=note; renderMigQueue();
+      if(['saved','duplicate','error','word','dupe','cancelled'].includes(st)) syncBatch();   // settled rows only
+    };
     try{
+      if(!file.size){ step('error','empty file — 0 bytes, nothing to import'); errors++; continue; }
       if(file.size>UPLOAD_MAX){ step('error','over 4 MB — compress or split'); errors++; continue; }
       step('reading');
       const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); });
@@ -421,9 +546,18 @@ async function migProcessFiles(fileList, opts={}){
       if(detectWordFile(dataUrl, mime, file.name)){ step('word', WORD_REFUSAL_SHORT); words++; continue; }
       const fileHash=await sha256(dataUrl);
       if(byHash.has(fileHash)){
-        q.dupes=[{ id:byHash.get(fileHash), kind:'exact', distance:0 }];
-        step('duplicate','identical to '+byHash.get(fileHash)+' — skipped'); dupes++; continue; }
+        const hit=byHash.get(fileHash);
+        // `null` means an earlier row in THIS batch reserved the hash but has
+        // not saved yet (it may be parked for a duplicate decision). Saying
+        // "identical to null" is meaningless, and silently dropping this copy
+        // means skipping the parked row loses both — so remember the row.
+        if(hit){ q.dupes=[{ id:hit, kind:'exact', distance:0 }];
+          step('duplicate','identical to '+hit+' — skipped'); }
+        else { q.deferredTo=byHashRow.get(fileHash);
+          step('duplicate','identical to '+(q.deferredTo!=null?files[q.deferredTo].name:'an earlier file')+' in this batch — skipped'); }
+        dupes++; continue; }
       byHash.set(fileHash, null);   // reserve, id filled in once saved
+      byHashRow.set(fileHash, i);
       step('extracting');
       let extractedText=await extractDocText(dataUrl, mime);
       // A scan gets OCR'd before anything decides it has "no readable text".
@@ -438,7 +572,12 @@ async function migProcessFiles(fileList, opts={}){
           onProgress:(done,total,tier)=>step('ocr',`page ${Math.min(done+1,total)} of ${total}${tier==='local'?' · offline recogniser':''}`),
         });
         if(ocr.text){ extractedText=ocr.text.slice(0,EXTRACT_MAX_CHARS); textSource=ocr.textSource; }
-        ocrDocs++;
+        // Count a document as OCR'd only if a page actually came back, and keep
+        // the reason it did not — "the renderer could not be loaded" and "this
+        // scan is illegible" have completely different remedies, and throwing
+        // the distinction away leaves the customer with no way to fix either.
+        if(ocr.pages>0) ocrDocs++;
+        if(ocr.error){ ocrErrors++; ocrLastError=ocr.error; }
       }
       const manifest=migManifestRow(file.name);
       const seed={};
@@ -492,7 +631,10 @@ async function migProcessFiles(fileList, opts={}){
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
   window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
-  toast(`Batch ${batch}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}`);
+  M.cancelled=M.queue.some(q=>q.status==='cancelled');
+  await syncBatch(M.cancelled?'stopped':'finished');
+  M.ocrError=ocrErrors?ocrLastError:'';
+  toast(`Batch ${batch}${M.cancelled?' stopped':''}: ${saved} imported${ocrDocs?`, ${ocrDocs} read by OCR`:''}${ocrErrors?`, ${ocrErrors} scan${ocrErrors===1?'':'s'} could not be read (${ocrLastError})`:''}${flagged?`, ${flagged} possible duplicate${flagged===1?'':'s'} waiting for your call`:''}${dupes?`, ${dupes} identical file${dupes===1?'':'s'} skipped`:''}${words?`, ${words} Word file${words===1?'':'s'} refused (save as PDF)`:''}${errors?`, ${errors} failed`:''}${M.cancelled?`, ${M.queue.filter(q=>q.status==='cancelled').length} cancelled`:''}`);
   renderMigration();
 }
 
@@ -675,17 +817,22 @@ function renderMigQueue(){
   const host=document.getElementById('mig-queue'); if(!host) return;
   const M=migState();
   if(!M.queue.length){ host.innerHTML=''; return; }
-  const done=M.queue.filter(q=>['saved','duplicate','error','cancelled','word','skipped'].includes(q.status)).length;
-  const pct=Math.round(done/M.queue.length*100);
+  // A cancelled row was abandoned, not processed. Counting it as done filled the
+  // bar to 100% and captioned it "finished" after abandoning most of a batch.
+  const settled=M.queue.filter(q=>['saved','duplicate','error','word','skipped'].includes(q.status)).length;
+  const cancelled=M.queue.filter(q=>q.status==='cancelled').length;
+  const done=settled;
+  const pct=Math.round(settled/M.queue.length*100);
   host.innerHTML=`
     <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:600">${M.running?'Importing batch '+(M.batch||''):'Batch '+(M.batch||'')+' finished'}</span>
-        <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done}/${M.queue.length}</span>
+        <span style="font-size:13px;font-weight:600">${M.running?'Importing batch '+(M.batch||''):'Batch '+(M.batch||'')+(cancelled?' stopped':' finished')}</span>
+        <span style="font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono)">${done}/${M.queue.length}${cancelled?` · ${cancelled} cancelled`:''}</span>
         <span style="flex:1"></span>
         ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Stop after current file</button>`:''}
       </div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
+      ${M.ocrError?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run AI extraction”.</div>`:''}
       ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'AI unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run AI extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
@@ -753,6 +900,39 @@ function migWireCancel(){
 function migGateDots(c){
   return migGates(c).map(g=>`<span title="${g.label}${g.ok?'':' — missing'}" style="width:8px;height:8px;border-radius:50%;display:inline-block;background:${g.ok?'#2e8763':'#d9d5cd'};border:1px solid ${g.ok?'#2e8763':'#b8b2a6'}"></span>`).join('');
 }
+/* An import that was interrupted is the one thing the customer cannot discover
+   for themselves: they have no per-file record of what they dropped, so a
+   seven-file shortfall in a 400-contract migration is invisible. Name the
+   files. Even without resume, that turns silent data loss into a re-drop. */
+async function migLoadUnfinished(){
+  const M=migState();
+  if(!API_MODE()) return;
+  try{
+    const r=await api('batches/unfinished');
+    M.unfinished=(r.batches||[]).filter(b=>b.id!==M.batch)
+      .map(b=>({ ...b, missed:(b.rows||[]).filter(x=>!['saved','duplicate','word'].includes(x.status)) }))
+      .filter(b=>b.missed.length);
+    if(M.unfinished.length) renderMigration();
+  }catch(e){ /* the screen is still usable without this */ }
+}
+async function migDismissBatch(id){
+  try{ await api('batches/'+id,'DELETE'); }catch(e){}
+  const M=migState();
+  M.unfinished=(M.unfinished||[]).filter(b=>b.id!==id);
+  renderMigration();
+}
+function migUnfinishedHtml(){
+  const M=migState();
+  if(!M.unfinished||!M.unfinished.length) return '';
+  return M.unfinished.map(b=>`
+    <div style="font-size:11.5px;color:#8f322b;background:#f9ecea;border:1px solid #e3c4bf;border-radius:4px;padding:9px 11px;margin-bottom:10px">
+      <div style="font-weight:600;margin-bottom:4px">Batch ${migEsc(b.id)} did not finish — ${b.missed.length} file${b.missed.length===1?'':'s'} ${b.missed.length===1?'was':'were'} not imported.</div>
+      <div style="margin-bottom:5px">Started ${migEsc(String(b.startedAt||'').slice(0,16).replace('T',' '))}${b.startedBy?' by '+migEsc(b.startedBy):''}. Drop these files again to finish the job:</div>
+      <ul style="margin:0 0 6px;padding-left:16px;line-height:1.6">${b.missed.slice(0,15).map(x=>`<li>${migEsc(x.name)}${x.note?` — ${migEsc(x.note)}`:''}</li>`).join('')}</ul>
+      ${b.missed.length>15?`<div style="margin-bottom:6px">…and ${b.missed.length-15} more.</div>`:''}
+      <button data-dismiss-batch="${migEsc(b.id)}" class="ui-btn" style="font-size:11px;padding:3px 9px">Dismiss</button>
+    </div>`).join('');
+}
 function renderMigration(){
   const M=migState();
   const cs=migContracts();
@@ -810,7 +990,14 @@ function renderMigration(){
           <input id="mig-manifest-file" type="file" accept=".csv" class="hidden" style="display:none">
         </div>
         ${migAllowanceHtml()}
-        ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">Manifest <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction. The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
+        ${migUnfinishedHtml()}
+        ${M.manifestError?`<div style="font-size:11.5px;color:#8f322b;background:#f9ecea;border:1px solid #e3c4bf;border-radius:4px;padding:7px 10px;margin-bottom:8px"><strong>${migEsc(M.manifestError.name)}</strong> was not loaded — ${migEsc(M.manifestError.reason)}.${M.manifest?` Still using <strong>${migEsc(M.manifestName)}</strong>.`:''}</div>`:''}
+        ${M.manifest?`<div style="font-size:11.5px;color:var(--color-accent-800);background:var(--color-accent-100);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">Manifest <strong>${migEsc(M.manifestName)}</strong> loaded — ${M.manifest.length} rows. Files are matched by filename; manifest details (counterparty, dates, value, stream, status) take precedence over extraction.${M.manifestDateOrder&&!M.manifestDateOrder.proven?` Slashed dates are being read as <strong>${M.manifestDateOrder.order==='mdy'?'month/day/year':'day/month/year'}</strong>${M.manifestDateOrder.conflict?' — this file contains both orders, so check them':' (nothing in the file settles it either way)'}.`:''} The manifest lives in this session only — re-load it after a refresh to re-run reconciliation.</div>`:''}
+        ${(M.manifestProblems&&M.manifestProblems.length)?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:8px 10px;margin-bottom:12px">
+          <div style="font-weight:600;margin-bottom:4px">${M.manifestProblems.length} value${M.manifestProblems.length===1?'':'s'} in the manifest could not be read — those cells were left empty rather than guessed:</div>
+          <ul style="margin:0;padding-left:16px;line-height:1.6">${M.manifestProblems.slice(0,12).map(p=>`<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
+          ${M.manifestProblems.length>12?`<div style="margin-top:4px">…and ${M.manifestProblems.length-12} more.</div>`:''}
+        </div>`:''}
         <div id="mig-drop" style="border:2px dashed var(--color-divider);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s">
           <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;background:var(--color-bg);color:var(--color-accent-700);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:13px;font-weight:600">Drop contract files here — or click to choose</div>
@@ -888,6 +1075,7 @@ function renderMigration(){
   </div>`;
 
   // wiring
+  if(M.unfinished==null && API_MODE()){ M.unfinished=[]; migLoadUnfinished(); }
   const drop=document.getElementById('mig-drop');
   if(drop){
     const fi=document.getElementById('mig-files');
@@ -895,9 +1083,14 @@ function renderMigration(){
     fi.addEventListener('change',()=>{ if(fi.files.length) migProcessFiles(fi.files); });
     ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('dragover'); }));
     ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove('dragover'); }));
-    drop.addEventListener('drop',e=>{ const fs=[...(e.dataTransfer?.files||[])].filter(f=>f.size); if(fs.length) migProcessFiles(fs); });
+    // Both entry points hand the whole selection to migProcessFiles, which owns
+    // the empty-file rule — the drop path used to filter silently while the
+    // picker imported the same file as an executed contract.
+    drop.addEventListener('drop',e=>{ const fs=[...(e.dataTransfer?.files||[])]; if(fs.length) migProcessFiles(fs); });
     document.getElementById('mig-status')?.addEventListener('change',e=>{ M.defaults.status=e.target.value; });
     bindFolderSelect(document.getElementById('mig-folder'), v=>{ M.defaults.folder=v; });
+    document.querySelectorAll('[data-dismiss-batch]').forEach(b=>
+      b.addEventListener('click',()=>migDismissBatch(b.getAttribute('data-dismiss-batch'))));
     const mf=document.getElementById('mig-manifest-file');
     document.getElementById('mig-manifest-btn')?.addEventListener('click',()=>mf.click());
     mf?.addEventListener('change',()=>{ if(mf.files[0]) migLoadManifest(mf.files[0]); });
@@ -917,4 +1110,4 @@ function renderMigration(){
   setActiveNav('migration');
 }
 
-Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
+Object.assign(window,{MIG_CRITICAL,migAllowanceHtml,migBuildAndSave,migIndexContract,migDrawAllowanceDoc,migResolveDuplicate,migDupeRowHtml,migWireDupes,migEstimate,migConfirmEstimate,migLoadAiState,migGuessPages,applyReviewedMeta,folderFromType,migContracts,migExportSheet,migGates,migImportSheet,migLoadManifest,migLoadUnfinished,migDismissBatch,migUnfinishedHtml,migDateOrder,migParseDate,migParseValue,migNeedsReview,migProcessFiles,migReviewAll,migRerunAi,migState,openMigReview,parseCsv,renderMigration});
