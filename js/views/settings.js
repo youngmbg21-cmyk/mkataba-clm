@@ -140,6 +140,10 @@ function renderTeam(){
     if(v==null||v==='*'||(Array.isArray(v)&&!v.length)) return 'All streams';
     return `${v.length} of ${totalStreams} streams`;
   };
+  // Value visibility is a server-side right (users.can_view_values); admins
+  // always have it, and a member created before the permission existed defaults
+  // to having it, so this deploy changes nothing until an admin turns it off.
+  const valuesOn=x=>x.role==='admin'||x.canViewValues!==false;
   const rows=users.map(x=>{
     const ini=x.name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const isMe=x.id===me.id;
@@ -159,6 +163,10 @@ function renderTeam(){
       <td style="padding:8px 10px;white-space:nowrap">
         <span style="font-size:11.5px;color:${restricted?'#7d5a14':'var(--color-neutral-700)'}">${accessSummary(x)}</span>
         ${(isAdmin()&&x.role!=='admin')?`<button data-access-for="${x.id}" title="Edit folder access" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">Edit</button>`:''}
+        <span style="display:block;font-size:10.5px;color:${valuesOn(x)?'var(--color-neutral-600)':'#7d5a14'};margin-top:2px">
+          ${valuesOn(x)?'Sees contract values':'Values hidden'}
+          ${(isAdmin()&&x.role!=='admin'&&!isMe&&API_MODE())?`<button data-values-for="${x.id}" data-values-to="${valuesOn(x)?'0':'1'}" title="${valuesOn(x)?'Hide contract values from this member':'Let this member see contract values'}" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${valuesOn(x)?'Hide':'Show'}</button>`:''}
+        </span>
       </td>
       <td style="padding:8px 10px;font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${x.status==='invited'?'Invited':'Active'}</td>
       <td style="padding:8px 14px 8px 10px;text-align:right;white-space:nowrap">
@@ -590,6 +598,18 @@ function renderTeam(){
     renderTeam();
   });
   document.querySelectorAll('[data-access-for]').forEach(b=>b.addEventListener('click',()=>openFolderAccessEditor(b.getAttribute('data-access-for'))));
+  document.querySelectorAll('[data-values-for]').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.getAttribute('data-values-for'), to=b.getAttribute('data-values-to')==='1';
+    const u=(getUsers()||[]).find(x=>x.id===id); if(!u) return;
+    if(!to && !await confirmDialog({ title:`Hide contract values from ${u.name}?`,
+      message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the AI. They keep their folder access and everything else. You can turn this back on at any time.',
+      confirmLabel:'Hide values' })) return;
+    try{ const r=await api('users/'+id,'PATCH',{ canViewValues:to });
+      if(r&&r.user) Object.assign(u,r.user); else u.canViewValues=to;
+      toast(to?`${u.name} can now see contract values`:`Contract values are now hidden from ${u.name}`);
+      renderTeam();
+    }catch(e){ toast('Could not change value access: '+e.message,'err'); }
+  }));
   document.getElementById('dir-import')?.addEventListener('change',e=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();

@@ -419,7 +419,26 @@ function userFolderAccess(u){
   return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder});
+/* Whether this member may see monetary amounts. The SERVER decides — it strips
+   value fields, monetary aggregates and CSV value cells before responding, and
+   never puts a figure in an AI prompt for someone without the right. This
+   function exists so the interface can stop OFFERING what it will not receive
+   (a "sort by value" option that cannot sort, a KPI card that would read KES 0),
+   not to do the hiding. In static mode there is no server and no such
+   permission, so it answers true and behaviour is unchanged. */
+function canViewValues(u){
+  u=u||currentUser();
+  if(!u) return false;
+  if(u.role==='admin') return true;
+  return u.canViewValues!==false;
+}
+/* The Value cell for a browser-built CSV (a selection of register rows). A
+   masked record has no `value` at all, and `c.value||0` would write a
+   confident "0" into the sheet — a wrong number, not a hidden one. The
+   authoritative, whole-register export is GET /api/export/contracts.csv, which
+   the server masks the same way. */
+const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,canViewValues,csvValueCell});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);

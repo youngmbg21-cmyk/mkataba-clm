@@ -6,6 +6,14 @@
    VIEW: FOLDER (filtered register + local search)
    ============================================================ */
 const FOLDER_PAGE=50;
+/* A member without can_view_values never receives a value from the server, so
+   offering them "Value (high → low)" would be an option that silently sorts
+   every row as zero. Drop it from the menu rather than leave it there broken —
+   and fall the current sort back to the default if they were already on it. */
+function visibleSorts(list){
+  if(typeof canViewValues!=='function' || canViewValues()) return list;
+  return list.filter(s=>s.k!=='value');
+}
 const FOLDER_SORTS=[
   {k:'updated',label:'Recently updated'},
   {k:'value',label:'Value (high → low)'},
@@ -19,7 +27,9 @@ function folderFiltered(){
   const q=(state.folderQuery||'').trim().toLowerCase();
   let cs=folderContracts(f.id);
   if(q) cs=cs.filter(c=>(c.name+' '+(c.counterparty||'')+' '+c.id).toLowerCase().includes(q));
-  const sort=state.folderSort||'updated';
+  let sort=state.folderSort||'updated';
+  // a stored "sort by value" preference is meaningless without the right
+  if(sort==='value' && typeof canViewValues==='function' && !canViewValues()) sort='updated';
   const upd=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:t; };
   if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
   else if(sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
@@ -33,7 +43,7 @@ function renderFolder(){
   state.folderShown=FOLDER_PAGE; state.folderSel={};   // fresh selection on entry
   const cs=folderFiltered();
   const val=cs.filter(c=>c.status!=='Declined').reduce((s,c)=>s+Number(c.value||0),0);
-  const sortOpts=FOLDER_SORTS.map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
+  const sortOpts=visibleSorts(FOLDER_SORTS).map(s=>`<option value="${s.k}" ${(state.folderSort||'updated')===s.k?'selected':''}>${s.label}</option>`).join('');
 
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
   document.getElementById('content').innerHTML=`
@@ -50,7 +60,7 @@ function renderFolder(){
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
-          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts · ${fmtKESshort(val)} active value</div>
+          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtKESshort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
@@ -178,7 +188,7 @@ function folderExportSelectedCsv(){
   if(!rows.length){ toast('Nothing selected','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Value stream','Value (KES)','Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',isMonetary(c)?(c.value||0):'',statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download=`hati-${FOLDERS[state.folderId]?.id||'folder'}-selection.csv`; a.click(); URL.revokeObjectURL(url);
@@ -273,7 +283,7 @@ function regFooterText(cs){
   const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
   const R=regState();
   const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n} · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>${flatBtn}`;
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -308,8 +318,9 @@ function regFiltered(){
   // streams an admin granted them (admins are always unrestricted).
   const acc=(typeof userFolderAccess==='function')?userFolderAccess():'*';
   if(acc!=='*') cs=cs.filter(c=>acc.includes(c.folder));
-  const cmp=REG_CMP[R.sort]||REG_CMP.updated;
-  const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[R.sort]||-1);
+  const sortKey=(R.sort==='value' && typeof canViewValues==='function' && !canViewValues()) ? 'updated' : R.sort;
+  const cmp=REG_CMP[sortKey]||REG_CMP.updated;
+  const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[sortKey]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
   // FAMILY GROUPING (default). Amendments sit under their parent instead of
   // floating as separate rows — a master agreement plus six addenda reads as
@@ -492,7 +503,7 @@ function regExportSelectedCsv(){
   if(!rows.length){ toast('Nothing selected','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const head=['ID','Name','Counterparty','Type','Folder','Value (KES)','Status','Last action','Expiry'];
-  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',isMonetary(c)?(c.value||0):'',statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
+  const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='hati-register-selection.csv'; a.click(); URL.revokeObjectURL(url);
@@ -506,7 +517,7 @@ function renderRegister(){
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
   const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
   const typePills=regTypes().map(t=>`<button class="reg-pill" data-reg-type="${t.k}" data-active="${R.type===t.k?'1':'0'}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
-  const sortOpts=REG_SORTS.map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
+  const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
   const sortCaret=key=>R.sort===key

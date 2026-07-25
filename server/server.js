@@ -1127,11 +1127,20 @@ app.get('/api/search', auth, (req, res) => {
   // see them. Over-fetch so a restricted user still fills a page of results.
   const scope = folderScopeFor(req.user);
   const fs = scopeFrag(scope, 'c.folder');
+  /* The FTS body is built by contractSearchBody(), which concatenates every
+     template field value — so a snippet around a match can contain the money
+     blank verbatim. Rather than take the money out of the index (which would
+     stop an admin finding a contract by its amount, a real loss), a caller
+     without can_view_values gets hits with no snippet at all. Names and
+     counterparties still come through, which is what navigating a result list
+     actually needs. `snippets:false` tells the client to say so rather than
+     render a row that looks broken. */
+  const snippets = canViewValues(req.user);
   if (!ftsOk) { // graceful fallback: LIKE over the indexed columns
     const like = '%' + likeEscape(q.toLowerCase()) + '%';
     const w = whereOf("(lower(c.name) LIKE ? ESCAPE '\\' OR lower(c.counterparty) LIKE ? ESCAPE '\\')", fs.sql);
     const rows = db.prepare(`SELECT c.id, c.name, c.counterparty FROM contracts c ${w} LIMIT ?`).all(like, like, ...fs.args, limit);
-    return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false });
+    return res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: '' })), fts: false, snippets });
   }
   // sanitise into a prefix MATCH query (avoid FTS5 syntax errors on punctuation)
   const match = q.replace(/["']/g, ' ').split(/\s+/).filter(Boolean).map(t => t.replace(/[^\w]/g, '') + '*').filter(t => t.length > 1).join(' OR ');
@@ -1140,7 +1149,7 @@ app.get('/api/search', auth, (req, res) => {
     const w = whereOf('contracts_fts MATCH ?', fs.sql);
     const rows = db.prepare(`SELECT f.id, f.name, f.counterparty, snippet(contracts_fts,3,'[',']','…',12) AS snippet, bm25(contracts_fts) AS rank
       FROM contracts_fts f JOIN contracts c ON c.id = f.id ${w} ORDER BY rank LIMIT ?`).all(match, ...fs.args, limit);
-    res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: r.snippet })), fts: true });
+    res.json({ hits: rows.map(r => ({ id: r.id, name: r.name, counterparty: r.counterparty, snippet: snippets ? r.snippet : '' })), fts: true, snippets });
   } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
 });
 
