@@ -78,6 +78,10 @@ const folderContracts = fid => state.contracts.filter(c=>c.folder===fid);
 
 // Contract type/icon helpers — uploaded ("inbound") contracts have no template.
 const isUpload = c => c && c.source==='upload';
+/* Migrated paper: signed elsewhere before it was filed here, so HaTi never took
+   a signature for it. Its seal is the string 'MIGRATED' and the evidence of
+   record is the uploaded file's own SHA-256 (see verifySeal / sealString). */
+const isExternallyExecuted = c => !!c && (c.hash==='MIGRATED' || !!(c.migration&&c.migration.executedOutside));
 const cIcon = c => isUpload(c) ? 'upload' : (TEMPLATES[c.template]?.ic || 'file');
 const cKind = c => isUpload(c) ? 'External Document' : (TEMPLATES[c.template]?.kind || 'Contract');
 // Card / row identity: the counterparty (the named party) is the headline so a
@@ -530,6 +534,31 @@ function startApp(){
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
   if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
+  repairMigratedSignatories();
+}
+
+/* One-time repair. Migration used to stamp the name of whoever ran the import
+   into `signatory`, and the signature panel then read that as "Signed by …" —
+   putting a person who never signed onto an executed contract. Nothing was
+   forged (no signature record was ever created, and the evidence pack lists
+   none), but the claim has to come off the record, not just off the screen.
+   The condition is self-clearing, so this runs once per affected contract. */
+async function repairMigratedSignatories(){
+  if(!canEdit()) return;                                  // viewers cannot write
+  const todo=state.contracts.filter(c=>isExternallyExecuted(c) && c.signatory);
+  if(!todo.length) return;
+  for(const c of todo){
+    try{
+      await ensureFull(c);                                // never save from a light record
+      if(!c.signatory) continue;
+      const was=c.signatory;
+      c.signatory=null;
+      logAudit(c,'Corrected',`Removed "${was}" as recorded signatory — this contract was executed outside HaTi and no signature was taken here`);
+      persist(c);
+    }catch(e){ /* leave it for the next load; the panel already reads honestly */ }
+  }
+  try{ await flushSaves(); }catch(e){}
+  if(state.view==='workspace' && window.renderWorkspace) renderWorkspace();
 }
 function renderSideUser(){
   const u=currentUser(); if(!u) return;
@@ -792,8 +821,17 @@ function downloadFile(name, content, type='application/json'){
 function downloadEvidence(c){
   downloadFile(`${c.id}-evidence-pack.json`, JSON.stringify({
     generatedAt:nowISO(), platform:'HaTi CLM', org:FIRST_PARTY,
-    legalBasis:'Electronic signature under the Business Laws (Amendment) Act 2020 (Kenya).',
+    // a migrated contract was signed elsewhere — citing the e-signature Act
+    // here would claim HaTi took a signature it never took
+    legalBasis: isExternallyExecuted(c)
+      ? 'Executed outside HaTi and migrated in as a record. No electronic signature was taken in HaTi; the signatures are on the original document.'
+      : 'Electronic signature under the Business Laws (Amendment) Act 2020 (Kenya).',
     disclosure:'Government IPRS identity verification and CAK-accredited PKI signatures are not yet integrated.',
+    migration: isExternallyExecuted(c)
+      ? { filedBy:(c.migration&&c.migration.importedBy)||null, filedAt:(c.migration&&c.migration.importedAt)||null,
+          batch:(c.migration&&c.migration.batch)||null,
+          note:'Executed on (as recorded) is taken from the migrated record and is not verified by HaTi.' }
+      : null,
     contract:{ id:c.id, name:c.name, type:cKind(c), counterparty:c.counterparty,
       value:c.value, valueType:c.valueType, status:c.status },
     seal:{ sha256:c.hash, signedAt:c.signedAt,
@@ -1079,4 +1117,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,logAudit,logout,migrateContract,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

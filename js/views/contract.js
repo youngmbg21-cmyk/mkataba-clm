@@ -724,7 +724,9 @@ function uploadDocBody(c){
       <h3 class="font-display font-700 text-lg tracking-tight text-brand-900">${c.name}</h3>
     </div>
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
-      ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.</span>
+      ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
+        ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${c.counterparty}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
+        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
@@ -1002,8 +1004,48 @@ function docBody(c){
     ${clauses.join('')}
     ${signatureBlock(c)}`;
 }
+/* Migrated paper: signed before it reached HaTi, so there is no signature to
+   show and no electronic-signature law to cite. Naming the person who ran the
+   import would put a party on the contract who never agreed to it — say plainly
+   what happened instead, and show the evidence that does exist: the stored
+   file's own fingerprint. */
+function externalExecutionBlock(c){
+  const m=c.migration||{}, u=c.upload||{};
+  const filedBy=m.importedBy||((c.audit||[]).find(a=>a.action==='Migrated')||{}).user||'—';
+  const filedAt=m.importedAt?fmtDT(m.importedAt):(((c.audit||[]).find(a=>a.action==='Migrated')||{}).at?fmtDT((c.audit||[]).find(a=>a.action==='Migrated').at):'—');
+  const cell=(k,v,sub)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
+    <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${k}</div>
+    <div class="font-medium text-brand-700">${v}</div>${sub?`<div class="text-[10px] text-brand-800/65 leading-snug">${sub}</div>`:''}</div>`;
+  return `
+    <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
+      <div class="flex items-start gap-4">
+        <svg class="seal-pop shrink-0" width="62" height="62" viewBox="0 0 96 96" style="filter:drop-shadow(0 6px 14px rgba(40,50,70,.16))">
+          <circle cx="48" cy="48" r="46" fill="#fff"/>
+          <circle cx="48" cy="48" r="46" fill="none" stroke="#5980a6" stroke-width="2"/>
+          <circle cx="48" cy="48" r="38" fill="rgba(89,128,166,.10)" stroke="#8fa8c2" stroke-width="1.5"/>
+          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
+          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#5980a6">MIGRATED</text>
+        </svg>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
+          <div class="mt-1 text-xs text-brand-800/60">Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.</div>
+          <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">
+            ${cell('Filed into HaTi by', filedBy, filedAt)}
+            ${cell('Executed on (as recorded)', c.signedAt||'—', 'from the migrated record, not verified by HaTi')}
+          </div>
+          <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
+            <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ORIGINAL FILE FINGERPRINT (SHA-256)</div>
+            <div class="text-brand-100 break-all">${u.fileHash||'—'}</div>
+            <div class="text-brand-300 mt-1.5">${u.fileName||'original document'}</div>
+          </div>
+          <div class="mt-2 text-[10px] text-brand-800/60 leading-snug">For a migrated contract this fingerprint is the evidence of record — it proves the stored file has not changed since it was filed. It is not a signature and identifies no signer.</div>
+        </div>
+      </div>
+    </div>`;
+}
 function signatureBlock(c){
   const locked=c.status==='Signed';
+  if(locked && isExternallyExecuted(c)) return externalExecutionBlock(c);
   if(locked){
     const hashDisplay=c.hash&&c.hash!=='PRE-SEEDED'?c.hash:('sample-'+generatePseudo(c.id).slice(0,32));
     const sigs=(c.signatures||[]);
@@ -1810,4 +1852,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
