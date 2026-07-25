@@ -10,7 +10,17 @@
 
 /* ============================================================ CUSTOM TEMPLATES */
 function customTemplates(){ return (state.settings&&state.settings.customTemplates)||[]; }
-function saveCustomTemplates(list){ state.settings=state.settings||{}; state.settings.customTemplates=list; saveSettings(); }
+function saveCustomTemplates(list){
+  state.settings=state.settings||{}; state.settings.customTemplates=list;
+  // Templates are managed by Admin AND Legal, but PUT /api/settings is
+  // admin-only — a Legal user saving one used to get "Settings save failed"
+  // and lose the change. Template writes go through their own endpoint.
+  if(typeof API_MODE==='function' && API_MODE()){
+    return api('settings/templates','PUT',{customTemplates:list})
+      .catch(e=>toast('Template save failed: '+e.message,'err'));
+  }
+  return saveSettings();
+}
 const tplCanManage=()=>canEdit();   // Admin + Legal (viewers read-only)
 const _tplEsc=s=>String(s||'').replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
 

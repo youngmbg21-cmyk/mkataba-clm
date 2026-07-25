@@ -933,3 +933,49 @@ a page-level alarm. The portal now renders the document, keeps its heading and
 its numbered clauses, applies the document face — and the document region
 contains zero `script/iframe/img/style/form/a/input/button` nodes and no event
 handlers. The alarm never fired.
+
+### 17. Legal could edit a template in the UI and the save silently failed on the server
+
+**What was broken.** Custom templates live in the settings blob, and
+`saveCustomTemplates()` persisted them through `saveSettings()` — which in
+server mode is `PUT /api/settings`, guarded by the `admin` middleware:
+
+```js
+const admin = (req, res, next) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+  next();
+};
+```
+
+But template management is `tplCanManage()`, which is `canEdit()` — **Admin and
+Legal**. So a Legal user could open the template editor, make the change, press
+Save, watch the modal close and the toast say the template was saved, and get a
+second toast saying "Settings save failed: Admin access required" — with the
+change gone. In static mode it worked, which is exactly the kind of split that
+survives a long time unnoticed.
+
+This predates this run (it applied to "Add blanks" and "Upload a template" too),
+but Task 4 turns Legal into the primary user of the feature, so it had to be
+fixed here.
+
+**Root cause.** Two different authorities for the same action: the client's
+`canEdit()` and the server's admin-only settings endpoint. The template data
+happened to live behind the wrong door.
+
+**The fix.** A dedicated `PUT /api/settings/templates`, guarded by a
+`templateManager` middleware that admits admin **and** legal, and which writes
+**only** the `customTemplates` key — merging it into the existing settings
+rather than replacing them, so the endpoint cannot be used to reach the approval
+threshold, the AI configuration or anything else in the blob. The client's
+`saveCustomTemplates()` uses it in API mode and falls back to `saveSettings()`
+in static mode.
+
+**Files touched.** `server/server.js`, `js/views/library.js`.
+
+**How it was verified.** Against a real server instance, not a mock: set up a
+workspace, create a Legal user, and check that Legal gets **200** on
+`PUT /api/settings/templates` and **403** on `PUT /api/settings`; that a
+non-array payload is rejected with **400**; that both templates come back from
+`/api/bootstrap`; and — the containment check — that the approval configuration
+an admin set beforehand is byte-identical afterwards, so the narrow endpoint did
+not become a wide one.

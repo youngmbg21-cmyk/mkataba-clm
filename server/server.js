@@ -914,6 +914,24 @@ app.put('/api/settings', auth, admin, (req, res) => {
   setSetting('appSettings', req.body || {});
   res.json({ ok: true });
 });
+// Templates are managed by Admin AND Legal (tplCanManage() === canEdit() on the
+// client), but the settings blob they live in is admin-only — so a Legal user
+// editing a template got a 403 and a "Settings save failed" toast, with the
+// change lost. Template writes get their own endpoint at the right authority,
+// and it writes ONLY the customTemplates key so it cannot be used to reach the
+// rest of the settings blob.
+const templateManager = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'legal')
+    return res.status(403).json({ error: 'Admin or Legal access required' });
+  next();
+};
+app.put('/api/settings/templates', auth, templateManager, (req, res) => {
+  const list = req.body && req.body.customTemplates;
+  if (!Array.isArray(list)) return res.status(400).json({ error: 'customTemplates must be an array' });
+  const s = getSetting('appSettings') || {};
+  setSetting('appSettings', { ...s, customTemplates: list });
+  res.json({ ok: true });
+});
 
 /* ---------- AI engine (Portfolio Intelligence graph) ----------
    An admin pastes an Anthropic API key (stored server-side, never returned
