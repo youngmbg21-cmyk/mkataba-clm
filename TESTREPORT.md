@@ -31,7 +31,7 @@ are recorded here so the next run does not mistake them for product behaviour:
 
 ## S1 findings (read first)
 
-Eight. Six of them concern the parts of the product a customer would buy it for —
+Seven. Five of them concern the parts of the product a customer would buy it for —
 the seal, the audit trail, and the link the counterparty opens.
 
 | | one line |
@@ -40,7 +40,6 @@ the seal, the audit trail, and the link the counterparty opens.
 | **F-015** | A signed contract can be deleted outright by any Legal user through `DELETE /api/contracts/:id`; the interface's "only drafts can be deleted" guard exists only in the browser. |
 | **F-017** | Deleting a contract leaves its share links live — the portal keeps serving the document, and still offers **Approve & sign**, after the contract is a 404. |
 | **F-018** | The counterparty's signing one-time code is printed on the counterparty's own screen whenever email is not configured, which is the default. Anyone holding a share link can sign as anyone. |
-| **F-019** | The share portal renders the contract as an editable form. A counterparty changed the price from KES 2,500,000 to KES 250,000 on screen, signed, and the seal bound their signature to the original figure. |
 | **F-020** | Stored XSS: a contract name executes JavaScript on the Register, the workspace and the Queue — so a Legal user, or a maliciously named file in a migration batch, runs script in an Admin's session. |
 | **F-021** | Applying a counterparty's response destroys the contract's audit trail, its comments and its extracted document text — because the response is applied to a stripped list row and saved back over the full record. |
 | **F-022** | Nothing gates sharing. A Draft with no value, no dates and unfilled placeholders is sent to the counterparty with no warning, even though the same screen already knows the contract is incomplete. |
@@ -66,8 +65,8 @@ is the difference between the signing module meaning something and not.
 
 | | count | findings |
 |---|---|---|
-| S1 | 8 | F-014, F-015, F-017, F-018, F-019, F-020, F-021, F-022 |
-| S2 | 9 | F-001, F-002, F-003, F-005, F-006, F-008, F-010, F-012, F-016 |
+| S1 | 7 | F-014, F-015, F-017, F-018, F-020, F-021, F-022 |
+| S2 | 10 | F-001, F-002, F-003, F-005, F-006, F-008, F-010, F-012, F-016, F-019 |
 | S3 | 5 | F-004, F-007, F-009, F-023, F-024 |
 | S4 | 2 | F-011, F-013 |
 
@@ -173,6 +172,77 @@ injection). Not reached:
   present differently with a real model reading the damaged text.
 
 ---
+
+---
+
+## Fix status — all 24 addressed
+
+Fixed in commits `eb05b44` (server protections, portal, escaping) and `de629b7`
+(migration parsing, dedupe, PDF metrics, accounts, batch durability), on top of
+this report's baseline `e591611`.
+
+Every row below was re-verified by re-running the reproduction from the finding
+itself. The verification scripts live in `test-fixtures/generators/` alongside the
+fixtures they use.
+
+| | finding | what changed | re-verified |
+|---|---|---|---|
+| F-001 | setup accepts a bad email | shared `clean`/`cleanEmail`/`validEmail` on the server; `/api/setup` and `/api/users` both reject; login trims; the browser checks first | `{"error":"Organization name is required"}`, `{"error":"Enter a valid work email address…"}`; a valid setup stores `'Mwangi Foods Ltd'` trimmed |
+| F-002 | impossible dates stored | dates validated against the calendar; day/month order sniffed for the **file**, not the cell; unreadable cells named on screen | `03/15/2024` → `2024-03-15` with *"only makes sense as month/day"*; no `2024-15-03` anywhere |
+| F-003 | Kenyan money mis-parsed | multiplier matched as a **suffix** (the old `\b m \b` can never match in `2.5m`), currency words and `/=` `/-` stripped, failures reported | `KES 2.5m`→2 500 000 · `Kshs. 750,000/-`→750 000 · `1.2 million`→1 200 000 · `12 widgets`→ reported, not 0 |
+| F-004 | rejected manifest stayed silent | `manifestError` persisted in the banner, naming both files | *"manifest-07-missing-required.csv was not loaded — … Still using manifest-06…"* |
+| F-005 | unrelated contracts flagged as duplicates | `SIMHASH_RELATED` 12→6, and the 4–6 band now needs corroboration outside the boilerplate (party, value ±2%, effective date or title stem) | the ten distinct agreements in `batch-01..10.pdf` import **10 saved, 0 parked** (was 5 and 5) |
+| F-006 | zero-byte file became a contract | empty files refused in `migProcessFiles`; the picker and the drop zone now share one rule | `error: empty file — 0 bytes, nothing to import` |
+| F-007 | false "read by OCR" | `ocrDocs` counts only documents with pages read; `ocr.error` surfaced in the summary and on the queue panel | *"1 scan could not be read (Could not load the PDF renderer …)"* — the actionable message instead of "no readable text" |
+| F-008 | base-14 PDFs lose word spaces | the real Adobe Core-14 AFM metrics ship for Helvetica/Arial, Times, Courier; the six-bucket fallback's digit and `w`/`m` buckets corrected | the no-`/Widths` fixture now extracts **identically** to the one that declares them; `expiryDate`, `paymentTerms` and `governingLaw` all recovered |
+| F-009 | "identical to null — skipped" | in-batch reservations carry their row, so the message names the earlier **file** | `identical to MK-112 — skipped` |
+| F-010 | interrupted batch lost silently | new `batches` table; the queue mirrors to the server per settled row; the Migration screen names the files that never landed | closed the tab after 2 of 10 → *"Batch B-… did not finish — 8 files were not imported"*, each named |
+| F-011 | cancelled batch read as finished | `cancelled` no longer counts as done; the header says "stopped" and reports the count | header reads `stopped`, bar reflects processed-not-cancelled |
+| F-012 | `LIKE` wildcards unescaped | `likeEscape()` + `ESCAPE '\'` on all three clauses and the FTS fallback | `q=%`→1 (the one contract containing a literal `%`), `q=50%`→1, `q=Supply_Agreement`→1, `q=a%b`→0, `q=Naivas`→1 |
+| F-013 | missing role guard | `editor` added | Viewer now gets `403 Viewers have read-only access` |
+| F-014 | a signed contract could be rewritten | executed records reject any change to body, frozen copy, signatures, value, parties, template, upload; **the audit trail is append-only server-side and never taken from the client verbatim** | Legal's rewrite → `409 … body, execution, value cannot be changed after signature`; a client that sends `audit: []` no longer erases it |
+| F-015 | a signed contract could be deleted | the server refuses to delete an executed record | `409 … is executed and cannot be deleted` |
+| F-016 | deletion orphaned the file | the delete transaction removes the referenced `files` rows; admin-only orphan sweep added for what earlier deletes left behind | file `404` after delete; `GET/DELETE /api/files/orphans` |
+| F-017 | share links outlived the contract | deletion revokes every live share in the same transaction; the portal and the respond endpoint refuse a link whose contract is gone | `{"sharesRevoked":1,"filesDeleted":1}`; portal `410`, respond `410` |
+| F-018 | signing code shown to the counterparty | the OTP is never returned to the caller; it stays in the admin-only outbox, and the portal says to ask the sender | the code no longer appears on the portal; still readable by an admin in the outbox and signing still completes |
+| F-019 | terms vanish on copy/print | new `readOnlyDocHtml()` substitutes each field for the text it holds (or an em-dash), and the portal renders through it | portal document has **0** input elements; copying it yields *"…and Hurry Supplies Ltd (the "Supplier") for the supply of refined white sugar…"* |
+| F-020 | stored XSS | shared `esc()` in `components.js`; escaping moved into `cPrimary`/`cSecondary` so the register, Queue, calendar and cards are covered at source, plus the header, Home, portal, AI panel and settings sinks | payload executions across Register / Home / Queue / Workspace: **5 → 0**, and the name renders as literal text |
+| F-021 | responses destroyed the audit trail | `applyResponse` loads the full record first; `saveContract` back-fills exactly what the list endpoint strips rather than writing holes; an executed contract refuses a share response | after a counterparty signs: `["Created","Shared","Countersigned"]` — the first two used to be deleted |
+| F-022 | nothing gated sharing | `contractReadiness()` + `contractPlaceholders()`; the share modal names every problem and requires an explicit acknowledgement | *"Not ready to send — 1 thing to fix"*, send blocked (shares=0) until ticked, then allowed |
+| F-023 | backwards dates accepted | the wizard rejects `expiry < effective` and caps the counterparty at 120 characters | *"The expiry date (2024-01-01) is before the effective date (2026-12-31)"* |
+| F-024 | "invite" was not an invitation | admin-created accounts carry `mustChangePassword`; the server refuses their mutating requests until it is cleared; `POST /api/password/change` and a forced screen on sign-in | Legal on the temp password: `403 Set your own password before making changes`; after changing: `{"ok":true}` and edits allowed |
+
+### Regression checks run after the fixes
+
+- Full signing journey end to end: draft → share → counterparty signs by one-time
+  code → owner countersigns → **`Seal valid — sealed text, parties and value are
+  intact`**, with the frozen copy carrying the real terms (`KES 2500000`,
+  `Kabras Sugar Limited`) and the complete audit trail
+  (`Created, Shared, Countersigned, Status changed, Edited, Consent, Signed, Distributed`).
+- Ordinary draft edits still save and still append to the audit.
+- Optimistic locking still returns `409` on a stale `baseVersion` and preserves
+  the first write.
+- Filter counts still match rows exactly across four filter combinations.
+- Static mode boots and renders every view with **zero page errors**.
+- Server mode renders the register with zero page errors.
+
+### What the fixes deliberately did not do
+
+- **Server-side sealing** (phase 3 of F-014) is not built. The seal is still
+  computed in the browser. What changed is that the server now refuses to store a
+  changed executed record at all, which closes the practical hole; moving the
+  hash computation server-side remains the durable answer and is a three-to-five
+  day change.
+- **Soft delete with a tombstone** (phase 2 of F-015) is not built. Deletion of a
+  non-executed contract is still a hard delete — it now just takes its file and
+  its share links with it.
+- **A real invitation flow** (F-024) is not built. The interim
+  `mustChangePassword` gate removes the non-repudiation problem; a token-based
+  invite where the member sets their own password from an emailed link is still
+  the right end state.
+- **Batch resume** (F-010) is not built. An interrupted batch is now *reported*
+  with the files named, which removes the silent loss; re-dropping is still
+  manual.
 
 ## Recommended fix order
 
@@ -1376,56 +1446,63 @@ the signing path, so re-run B4/B5 afterwards.
 **Confidence** High — reproduced end to end; a signature was completed by a
 browser that never had access to the recipient's mailbox.
 
-### F-019 · BROKEN · S1 · The counterparty portal renders the contract as an editable form, so a counterparty can change the price on screen and then sign — and the seal binds their signature to the original figure
+### F-019 · BROKEN · S2 · The counterparty portal renders the contract through the editing renderer, so every commercial term disappears when the document is copied, printed or read as text
+
+> **Correction (re-verified before fixing).** This finding was first written up
+> as S1 on the basis that a counterparty could change the price on screen and
+> then sign. That is wrong, and the correction matters: `docBody()` already sets
+> `disabled` on every field when `PORTAL_MODE` is true, and a check of the live
+> portal confirms all six inputs come through disabled. The original
+> reproduction changed the values with `element.value = …` from the console,
+> which bypasses `disabled` and is not something a counterparty does by typing.
+> What follows is the defect that survives verification. It is real, it is
+> reproducible, and it is S2 rather than S1.
 
 **What happened**
 Contracts created from HaTi's built-in templates keep their commercial terms as
-live `<input class="field">` elements inside the document body — that is how the
-workspace lets an owner complete key terms in place. **The counterparty share
-portal renders the same body without stripping those inputs.** The person
-reviewing the contract is not looking at a document; they are looking at a form
-they can type into.
+`<input class="field">` elements inside the document body — that is how the
+workspace lets an owner complete key terms in place. The portal renders that same
+body. The inputs are correctly disabled, so the counterparty cannot type into
+them. But an `<input>` holds its text in a `value` attribute, **not in the
+document** — so the instant the contract leaves the live browser view, every term
+vanishes.
 
-Proven end to end on `MK-157`:
+Measured on the portal for `MK-157` (a contract whose terms were all filled in —
+supplier, date, material, tonnage, price KES 2,500,000, 45-day payment):
 
-1. Owner creates a Raw Material Supply Agreement, price **KES 2,500,000**, and
-   shares it with `grace@fullyfilled.co.ke`.
-2. Grace opens the link (no login) and the document's fields carry
-   `["2026-08-01", "Fully Filled Ltd", "refined white sugar", "5000", "2500000", "3"]`.
-3. Grace edits the price box on screen to **250000** — a tenfold reduction. The
-   document in front of her now reads *"The estimated annual contract value is
-   KES 250000"*.
-4. Grace clicks **Approve & sign**, adopts a typed signature, passes the
-   one-time-code check, and signs.
-5. The owner countersigns. The frozen, sealed copy reads:
+```
+what the counterparty sees on screen : the terms, in grey boxes
+what Ctrl+A / Ctrl+C yields          :
+  "This Raw Material Supply Agreement is made on  between Mwangi Foods Ltd
+   (the "Buyer") and  (the "Supplier") for the supply of  into the Buyer's
+   production facilities in Kenya. ... The estimated annual contract value
+   is KES , based on agreed per-tonne pricing..."
+```
 
-   > *2. Price & Contract Value — The estimated annual contract value is
-   > **KES 2500000**, based on agreed per-tonne pricing…*
+Every commercial term is gone: the effective date, the supplier's name, the
+goods, the tonnage, the price and the payment days. The same is true of printing
+the page, saving it as PDF, and any text projection of it.
 
-Grace's signature is sealed to a document stating a price ten times the one she
-was looking at when she signed it. Her signature record even carries a
-`docHash` — computed from the share payload, not from what was rendered to her —
-so the evidence pack will show a hash that "proves" she signed something she
-never saw.
+This is what a counterparty actually does with a contract they are asked to
+sign: copy it to their lawyer, print it, file it. What they forward is a document
+with blanks where the deal is. It reads as though the terms were never agreed,
+and it is not the document either party thinks is on the table.
 
-The reverse case is just as bad: whatever the counterparty types is silently
-discarded. Nothing warns her, nothing records that she changed anything, and the
-owner never learns that the counterparty was shown an editable price.
-
-`applyResponse()` does contain a hash check —
-`if(r.docHash && r.docHash !== currentHash) toast('Note: the document changed
-after this share link was created')` — but it is a transient toast on the
-*owner's* screen, it does not fire for this case, and it blocks nothing.
+There is a narrower second effect worth recording. A counterparty who opens
+developer tools *can* overwrite the disabled fields and then sign; the seal binds
+their signature to the original values, which is the correct outcome for the
+owner but means the two parties hold different pictures of what was signed.
+`applyResponse()` has a hash check for exactly this
+(`if(r.docHash !== currentHash) toast('Note: the document changed…')`), but it is
+a transient toast on the owner's screen and it blocks nothing.
 
 **Reproduce**
-1. Templates → any built-in → **Use template** → fill in counterparty and value →
-   Create draft
+1. Templates → any built-in → **Use template** → fill in every field → Create draft
 2. **Share** → email → Send
-3. Open the link in a clean browser; in the console:
-   `document.querySelectorAll('article.doc-surface input.field')` — the terms are
-   all editable. Change the value box.
-4. Sign through the portal. Owner countersigns.
-5. `GET /api/contracts/<id>` → `execution.html` carries the *original* figure.
+3. Open the link in a clean browser
+4. Select the document and copy it, or print the page. Every filled-in term is
+   missing. In the console:
+   `document.querySelector('article.doc-surface').innerText` shows the gaps.
 
 **Expected**
 The portal must render a read-only projection. `freezeContractHtml()` already

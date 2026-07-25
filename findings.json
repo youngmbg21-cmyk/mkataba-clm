@@ -10,8 +10,18 @@
     "fixtures": "test-fixtures/",
     "totals": {
       "findings": 24,
-      "byClassification": { "BROKEN": 2, "MISSING": 2, "WRONG": 10, "RISKY": 10 },
-      "bySeverity": { "S1": 8, "S2": 9, "S3": 5, "S4": 2 }
+      "byClassification": {
+        "BROKEN": 2,
+        "MISSING": 2,
+        "WRONG": 10,
+        "RISKY": 10
+      },
+      "bySeverity": {
+        "S1": 7,
+        "S2": 10,
+        "S3": 5,
+        "S4": 2
+      }
     },
     "notReached": [
       "A4 in full (KPI/folder/manifest effects of deletion, multi-delete, re-import of a deleted file)",
@@ -39,207 +49,676 @@
     ]
   },
   "fixGroups": [
-    { "id": 1, "title": "OTP disclosure", "findings": ["F-018"], "files": ["server/server.js", "js/views/portal.js"], "effort": "2h", "unattended": true, "note": "Do first. Cheapest S1 in the report." },
-    { "id": 2, "title": "Contract save and delete handlers", "findings": ["F-014", "F-015", "F-016", "F-017", "F-013", "F-012"], "files": ["server/server.js"], "effort": "1-2d for phase one", "unattended": false, "note": "F-012 and F-013 are safe one-liners. F-014/F-015 change what saves are allowed — human watching; re-run versioning and sealing regressions including the hashMode compatibility path." },
-    { "id": 3, "title": "Share path and portal", "findings": ["F-019", "F-022", "F-021"], "files": ["js/core.js", "js/views/portal.js", "js/views/contract.js"], "effort": "1-2d", "unattended": false, "note": "Entirely inside sealing and the unauthenticated portal. F-021's one-line ensureFull fix is nearly free and stops live data destruction — do it immediately." },
-    { "id": 4, "title": "HTML escaping sweep", "findings": ["F-020"], "files": ["js/components.js", "js/views/register.js", "js/views/contract.js", "js/views/home.js", "js/views/portal.js"], "effort": "1d", "unattended": true, "note": "Mechanical, but land after group 3 to avoid conflicting edits in portal.js." },
-    { "id": 5, "title": "Migration parsing and dedupe", "findings": ["F-002", "F-003", "F-004", "F-005", "F-006", "F-007", "F-009", "F-011"], "files": ["js/views/migration.js", "js/dedupe.js"], "effort": "2-3d", "unattended": true, "note": "F-005 changes the parent-child link suggestions — re-run A7 after it, and re-measure against test-fixtures/batch-01..10.pdf." },
-    { "id": 6, "title": "PDF text extraction", "findings": ["F-008"], "files": ["js/views/contract.js"], "effort": "1d", "unattended": true, "note": "Testable headlessly against test-fixtures/gdocs-skia-*.pdf. Any re-extraction pass over existing records must never rewrite a signed contract's frozen body." },
-    { "id": 7, "title": "Validation and accounts", "findings": ["F-001", "F-023", "F-024"], "files": ["server/server.js", "js/core.js", "js/wizard.js", "js/views/settings.js"], "effort": "1h + 2h + 2-3d", "unattended": true, "note": "F-024's full invitation flow should be scheduled, not squeezed in; the must_change_password interim is half a day." },
-    { "id": 8, "title": "Batch durability", "findings": ["F-010"], "files": ["js/views/migration.js", "server/server.js"], "effort": "0.5d banner / 2-3d resume", "unattended": true, "note": "Additive; do the banner-only version first." }
+    {
+      "id": 1,
+      "title": "OTP disclosure",
+      "findings": [
+        "F-018"
+      ],
+      "files": [
+        "server/server.js",
+        "js/views/portal.js"
+      ],
+      "effort": "2h",
+      "unattended": true,
+      "note": "Do first. Cheapest S1 in the report."
+    },
+    {
+      "id": 2,
+      "title": "Contract save and delete handlers",
+      "findings": [
+        "F-014",
+        "F-015",
+        "F-016",
+        "F-017",
+        "F-013",
+        "F-012"
+      ],
+      "files": [
+        "server/server.js"
+      ],
+      "effort": "1-2d for phase one",
+      "unattended": false,
+      "note": "F-012 and F-013 are safe one-liners. F-014/F-015 change what saves are allowed — human watching; re-run versioning and sealing regressions including the hashMode compatibility path."
+    },
+    {
+      "id": 3,
+      "title": "Share path and portal",
+      "findings": [
+        "F-019",
+        "F-022",
+        "F-021"
+      ],
+      "files": [
+        "js/core.js",
+        "js/views/portal.js",
+        "js/views/contract.js"
+      ],
+      "effort": "1-2d",
+      "unattended": false,
+      "note": "Entirely inside sealing and the unauthenticated portal. F-021's one-line ensureFull fix is nearly free and stops live data destruction — do it immediately."
+    },
+    {
+      "id": 4,
+      "title": "HTML escaping sweep",
+      "findings": [
+        "F-020"
+      ],
+      "files": [
+        "js/components.js",
+        "js/views/register.js",
+        "js/views/contract.js",
+        "js/views/home.js",
+        "js/views/portal.js"
+      ],
+      "effort": "1d",
+      "unattended": true,
+      "note": "Mechanical, but land after group 3 to avoid conflicting edits in portal.js."
+    },
+    {
+      "id": 5,
+      "title": "Migration parsing and dedupe",
+      "findings": [
+        "F-002",
+        "F-003",
+        "F-004",
+        "F-005",
+        "F-006",
+        "F-007",
+        "F-009",
+        "F-011"
+      ],
+      "files": [
+        "js/views/migration.js",
+        "js/dedupe.js"
+      ],
+      "effort": "2-3d",
+      "unattended": true,
+      "note": "F-005 changes the parent-child link suggestions — re-run A7 after it, and re-measure against test-fixtures/batch-01..10.pdf."
+    },
+    {
+      "id": 6,
+      "title": "PDF text extraction",
+      "findings": [
+        "F-008"
+      ],
+      "files": [
+        "js/views/contract.js"
+      ],
+      "effort": "1d",
+      "unattended": true,
+      "note": "Testable headlessly against test-fixtures/gdocs-skia-*.pdf. Any re-extraction pass over existing records must never rewrite a signed contract's frozen body."
+    },
+    {
+      "id": 7,
+      "title": "Validation and accounts",
+      "findings": [
+        "F-001",
+        "F-023",
+        "F-024"
+      ],
+      "files": [
+        "server/server.js",
+        "js/core.js",
+        "js/wizard.js",
+        "js/views/settings.js"
+      ],
+      "effort": "1h + 2h + 2-3d",
+      "unattended": true,
+      "note": "F-024's full invitation flow should be scheduled, not squeezed in; the must_change_password interim is half a day."
+    },
+    {
+      "id": 8,
+      "title": "Batch durability",
+      "findings": [
+        "F-010"
+      ],
+      "files": [
+        "js/views/migration.js",
+        "server/server.js"
+      ],
+      "effort": "0.5d banner / 2-3d resume",
+      "unattended": true,
+      "note": "Additive; do the banner-only version first."
+    }
   ],
   "findings": [
     {
-      "id": "F-001", "classification": "RISKY", "severity": "S2",
+      "id": "F-001",
+      "classification": "RISKY",
+      "severity": "S2",
       "title": "Workspace setup accepts a malformed email and whitespace-only organisation/admin names, on the server as well as in the browser",
-      "files": ["server/server.js:697-716", "server/server.js:719", "js/core.js:429-430", "js/core.js:486-495"],
-      "effort": "1h", "blastRadius": "low", "unattended": true, "confidence": "high",
-      "area": "auth", "fixGroup": 7,
-      "symptoms": ["email format never validated at setup or invite", "org/name/email never trimmed", "the submit control is a button, so type=email never fires", "a workspace created with a bad admin address has no recovery path"]
+      "files": [
+        "server/server.js:697-716",
+        "server/server.js:719",
+        "js/core.js:429-430",
+        "js/core.js:486-495"
+      ],
+      "effort": "1h",
+      "blastRadius": "low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "auth",
+      "fixGroup": 7,
+      "symptoms": [
+        "email format never validated at setup or invite",
+        "org/name/email never trimmed",
+        "the submit control is a button, so type=email never fires",
+        "a workspace created with a bad admin address has no recovery path"
+      ]
     },
     {
-      "id": "F-002", "classification": "WRONG", "severity": "S2",
+      "id": "F-002",
+      "classification": "WRONG",
+      "severity": "S2",
       "title": "Manifest dates assume dd/mm/yyyy with no validation, so a US-format date becomes an impossible date and is stored silently",
-      "files": ["js/views/migration.js:91-99", "js/views/migration.js:131-149", "js/views/migration.js:285-296"],
-      "effort": "0.5d", "blastRadius": "medium", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["03/15/2024 becomes 2024-15-03", "12/31/2026 becomes 2026-31-12", "01/03/2024 guessed as 1 March with no prompt", "an unparseable expiry makes the contract invisible to reminders, Calendar and expiring-soon"]
+      "files": [
+        "js/views/migration.js:91-99",
+        "js/views/migration.js:131-149",
+        "js/views/migration.js:285-296"
+      ],
+      "effort": "0.5d",
+      "blastRadius": "medium",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "03/15/2024 becomes 2024-15-03",
+        "12/31/2026 becomes 2026-31-12",
+        "01/03/2024 guessed as 1 March with no prompt",
+        "an unparseable expiry makes the contract invisible to reminders, Calendar and expiring-soon"
+      ]
     },
     {
-      "id": "F-003", "classification": "WRONG", "severity": "S2",
+      "id": "F-003",
+      "classification": "WRONG",
+      "severity": "S2",
       "title": "Manifest values in Kenyan notation parse to nonsense — KES 2.5m becomes 2.5, Kshs. 750,000/- becomes 0",
-      "files": ["js/views/migration.js:100", "js/views/migration.js:291", "js/views/migration.js:446"],
-      "effort": "2-3h", "blastRadius": "low", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["multiplier suffixes ignored", "a trailing /- yields NaN then 0", "portfolio value KPIs and folder totals wrong by orders of magnitude", "value-threshold approval rules can never match"]
+      "files": [
+        "js/views/migration.js:100",
+        "js/views/migration.js:291",
+        "js/views/migration.js:446"
+      ],
+      "effort": "2-3h",
+      "blastRadius": "low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "multiplier suffixes ignored",
+        "a trailing /- yields NaN then 0",
+        "portfolio value KPIs and folder totals wrong by orders of magnitude",
+        "value-threshold approval rules can never match"
+      ]
     },
     {
-      "id": "F-004", "classification": "WRONG", "severity": "S3",
+      "id": "F-004",
+      "classification": "WRONG",
+      "severity": "S3",
       "title": "A rejected manifest leaves the previous one loaded and the banner still names the old file",
-      "files": ["js/views/migration.js:131-137", "js/views/migration.js:813"],
-      "effort": "1h", "blastRadius": "none", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["error is a transient toast", "the next batch reconciles against the wrong manifest with no signal"]
+      "files": [
+        "js/views/migration.js:131-137",
+        "js/views/migration.js:813"
+      ],
+      "effort": "1h",
+      "blastRadius": "none",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "error is a transient toast",
+        "the next batch reconciles against the wrong manifest with no signal"
+      ]
     },
     {
-      "id": "F-005", "classification": "WRONG", "severity": "S2",
+      "id": "F-005",
+      "classification": "WRONG",
+      "severity": "S2",
       "title": "The near-duplicate threshold flags unrelated contracts as closely related, so half a clean batch stalls waiting for a human decision",
-      "files": ["js/dedupe.js:84", "js/dedupe.js findDuplicates", "js/views/migration.js:466-477"],
-      "effort": "0.5d threshold / 1d document-frequency filter", "blastRadius": "medium", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["5 of 10 unrelated contracts parked at Hamming distance 11-12", "24 of 25 in another batch", "the default offered action links an unrelated contract as an amendment", "parked rows are session-only and vanish on navigation"]
+      "files": [
+        "js/dedupe.js:84",
+        "js/dedupe.js findDuplicates",
+        "js/views/migration.js:466-477"
+      ],
+      "effort": "0.5d threshold / 1d document-frequency filter",
+      "blastRadius": "medium",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "5 of 10 unrelated contracts parked at Hamming distance 11-12",
+        "24 of 25 in another batch",
+        "the default offered action links an unrelated contract as an amendment",
+        "parked rows are session-only and vanish on navigation"
+      ]
     },
     {
-      "id": "F-006", "classification": "RISKY", "severity": "S2",
+      "id": "F-006",
+      "classification": "RISKY",
+      "severity": "S2",
       "title": "A zero-byte file and a corrupt PDF are both imported as executed contracts of record",
-      "files": ["js/views/migration.js:414", "js/views/migration.js:895", "js/views/migration.js:898", "js/views/migration.js:287"],
-      "effort": "1h", "blastRadius": "low", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["status Signed on a 0-byte file", "counted in the register, folder counts and signed stat", "the picker and the drop zone apply different rules"]
+      "files": [
+        "js/views/migration.js:414",
+        "js/views/migration.js:895",
+        "js/views/migration.js:898",
+        "js/views/migration.js:287"
+      ],
+      "effort": "1h",
+      "blastRadius": "low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "status Signed on a 0-byte file",
+        "counted in the register, folder counts and signed stat",
+        "the picker and the drop zone apply different rules"
+      ]
     },
     {
-      "id": "F-007", "classification": "WRONG", "severity": "S3",
+      "id": "F-007",
+      "classification": "WRONG",
+      "severity": "S3",
       "title": "The batch summary claims documents were read by OCR when OCR never ran, and the actual OCR error is discarded",
-      "files": ["js/views/migration.js:429-440", "js/views/migration.js:496", "js/ocr.js:181", "js/ocr.js:199", "js/ocr.js:207"],
-      "effort": "2h", "blastRadius": "low", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["ocrDocs incremented unconditionally", "ocr.error never read", "a fixable configuration problem is reported as an unreadable document"]
+      "files": [
+        "js/views/migration.js:429-440",
+        "js/views/migration.js:496",
+        "js/ocr.js:181",
+        "js/ocr.js:199",
+        "js/ocr.js:207"
+      ],
+      "effort": "2h",
+      "blastRadius": "low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "ocrDocs incremented unconditionally",
+        "ocr.error never read",
+        "a fixable configuration problem is reported as an unreadable document"
+      ]
     },
     {
-      "id": "F-008", "classification": "BROKEN", "severity": "S2",
+      "id": "F-008",
+      "classification": "BROKEN",
+      "severity": "S2",
       "title": "PDFs using the standard base-14 fonts lose word spaces because the fallback character-width table is wrong; the expiry date and payment terms are silently not extracted",
-      "files": ["js/views/contract.js:349-361", "js/views/contract.js:287-297", "js/views/contract.js:255-282", "js/views/contract.js:519"],
-      "effort": "1d", "blastRadius": "medium", "unattended": true, "confidence": "high",
-      "area": "extraction", "fixGroup": 6,
-      "symptoms": ["2024BETWEEN, wishesto, itis, willingto", "PACKAGING   SUPPLY phantom gaps", "expiryDate, paymentTerms and governingLaw all lost", "identical fixture with /Widths extracts perfectly, isolating the cause"]
+      "files": [
+        "js/views/contract.js:349-361",
+        "js/views/contract.js:287-297",
+        "js/views/contract.js:255-282",
+        "js/views/contract.js:519"
+      ],
+      "effort": "1d",
+      "blastRadius": "medium",
+      "unattended": true,
+      "confidence": "high",
+      "area": "extraction",
+      "fixGroup": 6,
+      "symptoms": [
+        "2024BETWEEN, wishesto, itis, willingto",
+        "PACKAGING   SUPPLY phantom gaps",
+        "expiryDate, paymentTerms and governingLaw all lost",
+        "identical fixture with /Widths extracts perfectly, isolating the cause"
+      ]
     },
     {
-      "id": "F-009", "classification": "WRONG", "severity": "S3",
+      "id": "F-009",
+      "classification": "WRONG",
+      "severity": "S3",
       "title": "The same file twice in one batch reports 'identical to null — skipped' and the second copy is discarded while the first is still awaiting a decision",
-      "files": ["js/views/migration.js:426", "js/views/migration.js:422-425", "js/views/migration.js:466-477"],
-      "effort": "2-3h", "blastRadius": "low", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["the reservation placeholder reaches the user as the literal string null", "skipping the parked row loses both copies with no record"]
+      "files": [
+        "js/views/migration.js:426",
+        "js/views/migration.js:422-425",
+        "js/views/migration.js:466-477"
+      ],
+      "effort": "2-3h",
+      "blastRadius": "low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "the reservation placeholder reaches the user as the literal string null",
+        "skipping the parked row loses both copies with no record"
+      ]
     },
     {
-      "id": "F-010", "classification": "RISKY", "severity": "S2",
+      "id": "F-010",
+      "classification": "RISKY",
+      "severity": "S2",
       "title": "Closing the tab or refreshing during a batch loses every unfinished and every parked file, with nothing anywhere to say it happened",
-      "files": ["js/views/migration.js:26-29", "js/views/migration.js:404-407", "js/views/migration.js:474-476"],
-      "effort": "0.5d banner / 2-3d resume", "blastRadius": "medium", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 8,
-      "symptoms": ["7 of 10 files lost on tab close, 12 of 12 on refresh", "no banner, no named files, no record", "the loaded manifest is lost too, so reconciliation cannot catch the shortfall"]
+      "files": [
+        "js/views/migration.js:26-29",
+        "js/views/migration.js:404-407",
+        "js/views/migration.js:474-476"
+      ],
+      "effort": "0.5d banner / 2-3d resume",
+      "blastRadius": "medium",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 8,
+      "symptoms": [
+        "7 of 10 files lost on tab close, 12 of 12 on refresh",
+        "no banner, no named files, no record",
+        "the loaded manifest is lost too, so reconciliation cannot catch the shortfall"
+      ]
     },
     {
-      "id": "F-011", "classification": "WRONG", "severity": "S4",
+      "id": "F-011",
+      "classification": "WRONG",
+      "severity": "S4",
       "title": "A cancelled batch reports itself as finished at 100%",
-      "files": ["js/views/migration.js:678-684"],
-      "effort": "1h", "blastRadius": "none", "unattended": true, "confidence": "high",
-      "area": "migration", "fixGroup": 5,
-      "symptoms": ["cancelled rows counted as done", "header reads 'finished' and the bar fills after abandoning 70% of the batch"]
+      "files": [
+        "js/views/migration.js:678-684"
+      ],
+      "effort": "1h",
+      "blastRadius": "none",
+      "unattended": true,
+      "confidence": "high",
+      "area": "migration",
+      "fixGroup": 5,
+      "symptoms": [
+        "cancelled rows counted as done",
+        "header reads 'finished' and the bar fills after abandoning 70% of the batch"
+      ]
     },
     {
-      "id": "F-012", "classification": "WRONG", "severity": "S2",
+      "id": "F-012",
+      "classification": "WRONG",
+      "severity": "S2",
       "title": "Register search does not escape SQL LIKE wildcards, so searching for % returns the entire portfolio",
-      "files": ["server/server.js:807", "server/server.js:846-848"],
-      "effort": "1h", "blastRadius": "very low", "unattended": true, "confidence": "high",
-      "area": "search", "fixGroup": 2,
-      "symptoms": ["q=% and q=_ each return all 46 rows", "q=50% returns 'Rebate 5000 units flat'", "q=Supply_Agreement returns 'SupplyXAgreement'", "no error and no signal that the result set is wrong"]
+      "files": [
+        "server/server.js:807",
+        "server/server.js:846-848"
+      ],
+      "effort": "1h",
+      "blastRadius": "very low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "search",
+      "fixGroup": 2,
+      "symptoms": [
+        "q=% and q=_ each return all 46 rows",
+        "q=50% returns 'Rebate 5000 units flat'",
+        "q=Supply_Agreement returns 'SupplyXAgreement'",
+        "no error and no signal that the result set is wrong"
+      ]
     },
     {
-      "id": "F-013", "classification": "WRONG", "severity": "S4",
+      "id": "F-013",
+      "classification": "WRONG",
+      "severity": "S4",
       "title": "POST /api/ai/allowance/document is the one mutating route with no role guard",
-      "files": ["server/server.js:1125"],
-      "effort": "2min", "blastRadius": "none", "unattended": true, "confidence": "high",
-      "area": "permissions", "fixGroup": 2,
-      "symptoms": ["a Viewer gets 200 and decrements the onboarding allowance counter"]
+      "files": [
+        "server/server.js:1125"
+      ],
+      "effort": "2min",
+      "blastRadius": "none",
+      "unattended": true,
+      "confidence": "high",
+      "area": "permissions",
+      "fixGroup": 2,
+      "symptoms": [
+        "a Viewer gets 200 and decrements the onboarding allowance counter"
+      ]
     },
     {
-      "id": "F-014", "classification": "RISKY", "severity": "S1",
+      "id": "F-014",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "A signed, sealed contract can be rewritten wholesale through the API — text, frozen copy, value and audit trail — because the server never checks execution state",
-      "files": ["server/server.js:893-907", "js/core.js:889-908", "js/core.js:286"],
-      "effort": "0.5d freeze / 1-2d server audit / 3-5d server sealing", "blastRadius": "highest in report", "unattended": false, "confidence": "high",
-      "area": "sealing", "fixGroup": 2,
-      "symptoms": ["a Legal user rewrote body, execution.html, value and audit on a signed contract, 200 OK", "the entire seal computation is client-side so a self-consistent forgery verifies green", "audit accepted from the client verbatim"]
+      "files": [
+        "server/server.js:893-907",
+        "js/core.js:889-908",
+        "js/core.js:286"
+      ],
+      "effort": "0.5d freeze / 1-2d server audit / 3-5d server sealing",
+      "blastRadius": "highest in report",
+      "unattended": false,
+      "confidence": "high",
+      "area": "sealing",
+      "fixGroup": 2,
+      "symptoms": [
+        "a Legal user rewrote body, execution.html, value and audit on a signed contract, 200 OK",
+        "the entire seal computation is client-side so a self-consistent forgery verifies green",
+        "audit accepted from the client verbatim"
+      ]
     },
     {
-      "id": "F-015", "classification": "RISKY", "severity": "S1",
+      "id": "F-015",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "A signed contract can be deleted outright by any Legal user through the API; the interface guard is not enforced on the server",
-      "files": ["server/server.js:908-911", "js/core.js:262-280"],
-      "effort": "1h guard / 1d soft delete", "blastRadius": "medium", "unattended": false, "confidence": "high",
-      "area": "sealing", "fixGroup": 2,
-      "symptoms": ["DELETE returns 200 on an executed contract, GET then 404", "no tombstone, no audit, no admin notice", "orphans the file row and the share rows"]
+      "files": [
+        "server/server.js:908-911",
+        "js/core.js:262-280"
+      ],
+      "effort": "1h guard / 1d soft delete",
+      "blastRadius": "medium",
+      "unattended": false,
+      "confidence": "high",
+      "area": "sealing",
+      "fixGroup": 2,
+      "symptoms": [
+        "DELETE returns 200 on an executed contract, GET then 404",
+        "no tombstone, no audit, no admin notice",
+        "orphans the file row and the share rows"
+      ]
     },
     {
-      "id": "F-016", "classification": "RISKY", "severity": "S2",
+      "id": "F-016",
+      "classification": "RISKY",
+      "severity": "S2",
       "title": "Deleting a contract orphans its uploaded file; the bytes stay in the database with nothing pointing at them",
-      "files": ["server/server.js:908-911", "server/server.js:1925-1930"],
-      "effort": "0.5d", "blastRadius": "low", "unattended": false, "confidence": "high",
-      "area": "data-protection", "fixGroup": 2,
-      "symptoms": ["files rows never deleted", "GET /api/files/:id serves any id to any signed-in user including a Viewer", "the delete dialog claims the removal is permanent and total"]
+      "files": [
+        "server/server.js:908-911",
+        "server/server.js:1925-1930"
+      ],
+      "effort": "0.5d",
+      "blastRadius": "low",
+      "unattended": false,
+      "confidence": "high",
+      "area": "data-protection",
+      "fixGroup": 2,
+      "symptoms": [
+        "files rows never deleted",
+        "GET /api/files/:id serves any id to any signed-in user including a Viewer",
+        "the delete dialog claims the removal is permanent and total"
+      ]
     },
     {
-      "id": "F-017", "classification": "RISKY", "severity": "S1",
+      "id": "F-017",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "Deleting a contract leaves its share links live, and the portal keeps serving the contract to anyone holding one",
-      "files": ["server/server.js:908-911", "server/server.js:2032", "js/core.js:269-271"],
-      "effort": "2-3h", "blastRadius": "portal", "unattended": false, "confidence": "high",
-      "area": "sharing", "fixGroup": 2,
-      "symptoms": ["contract is 404 from the API while the share link still renders the document", "still offers Approve & sign, Request changes and Decline", "the owner has no way to see this"]
+      "files": [
+        "server/server.js:908-911",
+        "server/server.js:2032",
+        "js/core.js:269-271"
+      ],
+      "effort": "2-3h",
+      "blastRadius": "portal",
+      "unattended": false,
+      "confidence": "high",
+      "area": "sharing",
+      "fixGroup": 2,
+      "symptoms": [
+        "contract is 404 from the API while the share link still renders the document",
+        "still offers Approve & sign, Request changes and Decline",
+        "the owner has no way to see this"
+      ]
     },
     {
-      "id": "F-018", "classification": "RISKY", "severity": "S1",
+      "id": "F-018",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "The counterparty's signing one-time code is printed on the counterparty's own screen whenever email is not configured",
-      "files": ["js/views/portal.js", "server/server.js:2109-2131", "server/server.js:615-640"],
-      "effort": "2h", "blastRadius": "contained but on the signing path", "unattended": true, "confidence": "high",
-      "area": "signing", "fixGroup": 1,
-      "symptoms": ["anyone with the link can sign as anyone", "documented behaviour says codes queue to the admin outbox only", "this is the default state of every deployment without a Resend key"]
+      "files": [
+        "js/views/portal.js",
+        "server/server.js:2109-2131",
+        "server/server.js:615-640"
+      ],
+      "effort": "2h",
+      "blastRadius": "contained but on the signing path",
+      "unattended": true,
+      "confidence": "high",
+      "area": "signing",
+      "fixGroup": 1,
+      "symptoms": [
+        "anyone with the link can sign as anyone",
+        "documented behaviour says codes queue to the admin outbox only",
+        "this is the default state of every deployment without a Resend key"
+      ]
     },
     {
-      "id": "F-019", "classification": "BROKEN", "severity": "S1",
-      "title": "The counterparty portal renders the contract as an editable form; a counterparty can change the price on screen and then sign, and the seal binds their signature to the original figure",
-      "files": ["js/views/portal.js:248", "js/core.js:835-857", "js/core.js:1155-1157"],
-      "effort": "0.5d", "blastRadius": "portal and sealing", "unattended": false, "confidence": "high",
-      "area": "signing", "fixGroup": 3,
-      "symptoms": ["counterparty changed KES 2,500,000 to KES 250,000 on screen and signed", "frozen copy reads KES 2500000", "their signature carries a docHash for a document they never saw", "anything they type is silently discarded"]
+      "id": "F-019",
+      "classification": "BROKEN",
+      "severity": "S2",
+      "title": "The counterparty portal renders the contract through the editing renderer, so every commercial term disappears when the document is copied, printed or read as text",
+      "files": [
+        "js/views/portal.js:248",
+        "js/core.js:835-857",
+        "js/core.js:1155-1157"
+      ],
+      "effort": "0.5d",
+      "blastRadius": "portal and sealing",
+      "unattended": false,
+      "confidence": "high",
+      "area": "signing",
+      "fixGroup": 3,
+      "symptoms": [
+        "CORRECTION: first reported as S1 on the basis that a counterparty could edit the price and sign; docBody() already disables the fields in PORTAL_MODE and the original reproduction bypassed disabled from the console",
+        "copying or printing the portal document loses the date, supplier, goods, tonnage, price and payment days",
+        "an <input> holds its text in a value attribute, not in the document, so no text projection sees it",
+        "a counterparty using developer tools can still overwrite the disabled fields before signing; the seal correctly binds the original values"
+      ]
     },
     {
-      "id": "F-020", "classification": "RISKY", "severity": "S1",
+      "id": "F-020",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "Stored cross-site scripting: a contract name executes JavaScript on the Register, the contract workspace and the Queue board",
-      "files": ["js/views/register.js:146", "js/views/contract.js:974", "js/views/contract.js:1055", "js/views/contract.js:1675", "js/components.js:78", "js/views/home.js:156", "js/views/home.js:190", "js/views/home.js:200", "js/views/portal.js:248"],
-      "effort": "1d", "blastRadius": "rendering only", "unattended": true, "confidence": "high",
-      "area": "security", "fixGroup": 4,
-      "symptoms": ["five payload executions across three screens in an admin session", "a Legal user can escalate to Admin via the viewer's session", "a maliciously named file in a migration batch is enough — no account required"]
+      "files": [
+        "js/views/register.js:146",
+        "js/views/contract.js:974",
+        "js/views/contract.js:1055",
+        "js/views/contract.js:1675",
+        "js/components.js:78",
+        "js/views/home.js:156",
+        "js/views/home.js:190",
+        "js/views/home.js:200",
+        "js/views/portal.js:248"
+      ],
+      "effort": "1d",
+      "blastRadius": "rendering only",
+      "unattended": true,
+      "confidence": "high",
+      "area": "security",
+      "fixGroup": 4,
+      "symptoms": [
+        "five payload executions across three screens in an admin session",
+        "a Legal user can escalate to Admin via the viewer's session",
+        "a maliciously named file in a migration batch is enough — no account required"
+      ]
     },
     {
-      "id": "F-021", "classification": "RISKY", "severity": "S1",
+      "id": "F-021",
+      "classification": "RISKY",
+      "severity": "S1",
       "title": "Applying a counterparty's response destroys the contract's audit trail, its comments and its extracted document text",
-      "files": ["js/core.js:1203-1214", "js/core.js:1152-1198", "js/core.js:286-290", "server/server.js:91-98"],
-      "effort": "1h phase one / 0.5d guard", "blastRadius": "every save via the guard", "unattended": false, "confidence": "high",
-      "area": "data-loss", "fixGroup": 3,
-      "symptoms": ["audit went from Created+Shared to Countersigned only", "upload.extractedText 2700 chars to 0", "execution.html is on the same strip list", "an externally-executed contract was flipped to Declined by a share response"]
+      "files": [
+        "js/core.js:1203-1214",
+        "js/core.js:1152-1198",
+        "js/core.js:286-290",
+        "server/server.js:91-98"
+      ],
+      "effort": "1h phase one / 0.5d guard",
+      "blastRadius": "every save via the guard",
+      "unattended": false,
+      "confidence": "high",
+      "area": "data-loss",
+      "fixGroup": 3,
+      "symptoms": [
+        "audit went from Created+Shared to Countersigned only",
+        "upload.extractedText 2700 chars to 0",
+        "execution.html is on the same strip list",
+        "an externally-executed contract was flipped to Declined by a share response"
+      ]
     },
     {
-      "id": "F-022", "classification": "MISSING", "severity": "S1",
+      "id": "F-022",
+      "classification": "MISSING",
+      "severity": "S1",
       "title": "Nothing gates sharing — a Draft with no value, no dates and an unfilled document is sent to the counterparty with no warning",
-      "files": ["js/core.js:959", "js/views/contract.js wsNextAction", "js/views/contract.js signing gate"],
-      "effort": "0.5d", "blastRadius": "low", "unattended": false, "confidence": "high",
-      "area": "sharing", "fixGroup": 3,
-      "symptoms": ["silent success on all six send-too-early states", "12 unfilled placeholder occurrences shared without comment", "a built-in template renders unfilled terms as nothing at all, not as brackets", "status stays Draft after sharing", "the signing gate already computes the answer"]
+      "files": [
+        "js/core.js:959",
+        "js/views/contract.js wsNextAction",
+        "js/views/contract.js signing gate"
+      ],
+      "effort": "0.5d",
+      "blastRadius": "low",
+      "unattended": false,
+      "confidence": "high",
+      "area": "sharing",
+      "fixGroup": 3,
+      "symptoms": [
+        "silent success on all six send-too-early states",
+        "12 unfilled placeholder occurrences shared without comment",
+        "a built-in template renders unfilled terms as nothing at all, not as brackets",
+        "status stays Draft after sharing",
+        "the signing gate already computes the answer"
+      ]
     },
     {
-      "id": "F-023", "classification": "WRONG", "severity": "S3",
+      "id": "F-023",
+      "classification": "WRONG",
+      "severity": "S3",
       "title": "The wizard accepts an expiry earlier than the effective date, and dates centuries out, without comment",
-      "files": ["js/wizard.js", "server/server.js:893"],
-      "effort": "2h", "blastRadius": "very low", "unattended": true, "confidence": "high",
-      "area": "validation", "fixGroup": 7,
-      "symptoms": ["effective 2026-12-31 with expiry 2024-01-01 accepted", "1900-01-01 to 2999-12-31 accepted", "value 999999999999999 accepted and breaks the KPI formatter", "a 300-character counterparty flows untruncated into c.name"]
+      "files": [
+        "js/wizard.js",
+        "server/server.js:893"
+      ],
+      "effort": "2h",
+      "blastRadius": "very low",
+      "unattended": true,
+      "confidence": "high",
+      "area": "validation",
+      "fixGroup": 7,
+      "symptoms": [
+        "effective 2026-12-31 with expiry 2024-01-01 accepted",
+        "1900-01-01 to 2999-12-31 accepted",
+        "value 999999999999999 accepted and breaks the KPI formatter",
+        "a 300-character counterparty flows untruncated into c.name"
+      ]
     },
     {
-      "id": "F-024", "classification": "MISSING", "severity": "S3",
+      "id": "F-024",
+      "classification": "MISSING",
+      "severity": "S3",
       "title": "Invite member is not an invitation: the admin sets the member's password, the member is active immediately, and nothing forces a change",
-      "files": ["server/server.js:1881-1897", "js/views/settings.js"],
-      "effort": "0.5d interim / 2-3d full", "blastRadius": "medium", "unattended": true, "confidence": "high",
-      "area": "accounts", "fixGroup": 7,
-      "symptoms": ["no pending state and nothing to accept", "the emailed message references a password it does not contain", "an internal signature attributed to a user whose password the admin chose is not non-repudiable", "POST /api/users does not validate the email either"]
+      "files": [
+        "server/server.js:1881-1897",
+        "js/views/settings.js"
+      ],
+      "effort": "0.5d interim / 2-3d full",
+      "blastRadius": "medium",
+      "unattended": true,
+      "confidence": "high",
+      "area": "accounts",
+      "fixGroup": 7,
+      "symptoms": [
+        "no pending state and nothing to accept",
+        "the emailed message references a password it does not contain",
+        "an internal signature attributed to a user whose password the admin chose is not non-repudiable",
+        "POST /api/users does not validate the email either"
+      ]
     }
   ]
 }
