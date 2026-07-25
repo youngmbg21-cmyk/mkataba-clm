@@ -104,11 +104,22 @@ catch (e) { ftsOk = false; }
 // Build a searchable text blob from whatever the stored JSON already holds
 // (no client change needed): names, parties, field values, uploaded text,
 // accepted redline, extracted metadata, obligations.
+const richBodyToSearchText = html => String(html || '')
+  .replace(/<\/(p|h[1-4]|li|tr|div|blockquote|pre)>/gi, ' \n')
+  .replace(/<br\s*\/?>/gi, ' \n')
+  .replace(/<[^>]*>/g, '')
+  .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+  .replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
 function contractSearchBody(c) {
   const parts = [c.name, c.counterparty, c.id, c.searchText];
   if (c.fields) parts.push(Object.values(c.fields).join(' '));
   if (c.upload && c.upload.extractedText) parts.push(c.upload.extractedText);
-  if (c.redlineText) parts.push(c.redlineText);
+  // A rich body is sanitised HTML; index the words, not the markup, or a
+  // search for "strong" would match every bolded contract in the workspace.
+  // (Deliberately a plain strip, not the client's richToText — the server has
+  // no DOM, and a search index is a convenience, not evidence.)
+  if (c.redlineText) parts.push(c.format === 'rich' ? richBodyToSearchText(c.redlineText) : c.redlineText);
   if (c.metadata) parts.push(Object.values(c.metadata).filter(v => typeof v === 'string').join(' '));
   if (Array.isArray(c.obligations)) parts.push(c.obligations.map(o => o.desc).join(' '));
   return parts.filter(Boolean).join('  ').slice(0, 40000);

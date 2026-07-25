@@ -781,6 +781,11 @@ const canonicalDoc = c => isUpload(c)
 function freezeContractHtml(c){
   // E2: if an accepted redline replaced the drafted text, seal that exact text.
   if(c.redlineText){
+    // Rich working text freezes as the SANITISED fragment — never the raw
+    // stored string. What gets sealed is exactly what the renderer will show.
+    if(window.isRich && isRich(c.format)){
+      return `<div class="hati-doc" data-anchor="redline">${sanitizeRich(c.redlineText)}</div>`;
+    }
     const d=document.createElement('div');
     d.innerHTML=`<div class="text-[13.5px] leading-[1.9] text-brand-800/85 whitespace-pre-wrap" data-anchor="redline">${String(c.redlineText).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
     return d.innerHTML;
@@ -797,6 +802,23 @@ function freezeContractHtml(c){
   return tmp.innerHTML;
 }
 const normText = html => { const d=document.createElement('div'); d.innerHTML=html||''; return (d.textContent||'').replace(/\s+/g,' ').trim(); };
+
+/* The exact string a frozen document is hashed over. VERSION-GATED, because
+   every contract sealed before rich content existed was hashed with normText()
+   and must keep verifying against the hash it was given:
+
+     hashMode absent / 'text' → normText(html)      — unchanged, forever
+     hashMode 'rich'          → canonicalRich(html) — formatting is part of the
+                                                      document, so the seal binds it
+
+   An old record has no hashMode, takes the first branch, and produces a
+   byte-identical input to what it produced before this run. Nothing about a
+   pre-existing seal moves. (See DESIGN-rich-documents.md.) */
+function execHashInput(exec){
+  const html=(exec&&exec.html)||'';
+  if(exec && exec.hashMode==='rich' && window.canonicalRich) return canonicalRich(html);
+  return normText(html);
+}
 function sealString(c){
   const content = isUpload(c) ? 'file:'+(c.upload?.fileHash||'') : 'text:'+(c.execution?.textHash||'');
   const base={ id:c.id, firstParty:FIRST_PARTY, counterparty:c.counterparty,
@@ -816,7 +838,7 @@ async function verifySeal(c){
   if(c.hash==='MIGRATED'){ toast(`Migrated contract — executed outside HaTi. The uploaded file's own SHA-256 (${(c.upload?.fileHash||'').slice(0,16)}…) is the evidence of record`); return; }
   if(!isUpload(c)){
     if(!c.execution?.html){ toast('No frozen snapshot on this record','err'); return; }
-    const th=await sha256(normText(c.execution.html));
+    const th=await sha256(execHashInput(c.execution));
     if(th!==c.execution.textHash){ toast('Seal MISMATCH — the sealed text was altered','err'); return; }
   }
   // v2: each stored signature mark must still hash to the value bound at signing.
@@ -892,7 +914,10 @@ async function openShareModal(c){
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
   const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null, upload:isUpload(c)?c.upload:undefined,
-      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder, redlineText:c.redlineText||undefined } };
+      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields, folder:c.folder,
+      // the format travels with the body, or the portal would render a rich
+      // document's markup as literal text to the counterparty
+      redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
   const server=API_MODE();
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
@@ -1134,4 +1159,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,closeModal,confirmDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,flushSaves,fmtDT,freezeContractHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

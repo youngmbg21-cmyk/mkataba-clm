@@ -123,7 +123,11 @@ async function portalRespond(p, action){
   if(action==='redline'){
     proposedText=(document.getElementById('pt-redline-text')?.value||'').trim();
     if(!proposedText){ toast('Edit the text before submitting','err'); return; }
-    baseText=p.contract.redlineText || normText(freezeContractHtml(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'})));
+    // the base must be the same TEXT the counterparty edited, not the markup
+    // behind it, or the returned redline diffs against tags
+    baseText=p.contract.redlineText
+      ? ((window.isRich&&isRich(p.contract.format)) ? richToText(p.contract.redlineText) : p.contract.redlineText)
+      : normText(freezeContractHtml(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'})));
     sendAction='changes';
   }
   const proposedValue = (action==='changes') ? fval('pt-proposed') : '';
@@ -208,12 +212,17 @@ async function portalVerifyAndSign(p, info){
    what it is: a transcription. The stored file stays the authoritative copy. */
 function uploadedTextForPrint(c){
   const u=c.upload||{};
-  const text=String((c.redlineText||u.extractedText||'')).trim();
+  // a rich working text prints as the document it is, sanitised at render
+  const rich=!!(window.isRich && isRich(c.format) && c.redlineText);
+  const raw=String((c.redlineText||u.extractedText||'')).trim();
+  const text=rich?richToText(raw):raw;
   if(!text) return `
     <p style="font-size:11px;color:#8f322b;line-height:1.6;">No machine-readable text could be extracted from this file, so the wording cannot be printed here. Refer to the original document (<strong>${u.fileName||'attached file'}</strong>).</p>`;
-  const body=(window.documentTextHtml)
-    ? documentTextHtml(text,{size:'11px', lh:'1.55'})
-    : `<div style="white-space:pre-wrap;font-size:11px;line-height:1.55">${text.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
+  const body=rich
+    ? renderDocHtml(raw, RICH_FORMAT)
+    : (window.documentTextHtml)
+    ? documentTextHtml(raw,{size:'11px', lh:'1.55'})
+    : `<div style="white-space:pre-wrap;font-size:11px;line-height:1.55">${raw.replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</div>`;
   return `
     <div style="margin-top:22px;">
       <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:10px;">

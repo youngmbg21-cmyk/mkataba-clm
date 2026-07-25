@@ -414,3 +414,201 @@ agreement carrying `[SQUARE BRACKET]` markers:
   all sharing one batch id, all with counterparty and expiry set, each with an
   audit entry naming the template and the batch;
 - a 201-row sheet is refused with "201 rows — the cap is 200 per run."
+
+---
+
+## Run: Rich Templates, Document Typography & Legibility
+
+### 1. A document body could only ever be plain text, so every contract lost its structure at the door
+
+**What was broken.** `redlineText`, the template `body` and every version record
+were plain strings, and the only renderer for them, `documentTextHtml()`, escaped
+the whole thing into a `white-space:pre-wrap` div. That is correct for what it
+was given, but it meant a customer's actual contract — headings, bold defined
+terms, numbered clauses, a fee table — arrived as an undifferentiated wall of
+text. The clause numbers survived only when the source happened to have them as
+literal characters; anything a word processor drew (`<ol>` markers, Word's list
+numbering) was gone. A legal document is its clause numbers.
+
+**Root cause.** There was no format dimension at all. The pipeline had exactly
+one representation and every consumer — render, seal, diff, AI, print, portal —
+assumed it.
+
+**The fix.** A new module, `js/richdoc.js`, and a `format` field alongside every
+document body (`'text'` for everything that already exists, `'rich'` for new
+content). Design note: `DESIGN-rich-documents.md`, written before the code.
+
+- **A strict tag allowlist** (`p br h1-h4 strong em u s ul ol li table thead
+  tbody tr th td blockquote pre span`) with only `start`/`type` on `ol` and the
+  single class `hati-field` on `span`. Everything else is dropped, unwrapped or
+  mapped. No `style`, no `id`, no `href`, no `src`, no `on*`, no comments.
+- **`sanitizeRich()` parses inert** — `document.implementation.createHTMLDocument()`
+  — so a hostile fragment runs no scripts, fires no handlers and fetches no
+  images while it is being cleaned, rather than during.
+- **`renderDocHtml()` is the single render entry point** and sanitises *again*,
+  at the point of render. Storage is never trusted. This is what protects the
+  counterparty share portal, which serves people outside the workspace with no
+  login.
+- **`richToText()`** projects rich content back to text and **reconstructs
+  ordered-list numbering** from the list type, `start` and nesting depth
+  (`1.`, `1.1`, `1.1.2`). That projection is what the diff compares, the AI
+  reads, search matches and the portal's redline box is pre-filled with. Word's
+  own `<span style='mso-list:Ignore'>4.4</span>` literal numbers are kept, not
+  stripped as noise.
+- **`canonicalRich()`** is a deterministic serialisation — attributes sorted,
+  whitespace normalised at block boundaries, `<pre>` left alone — so a document
+  hashes the same after any harmless round trip.
+
+**Files touched.** `js/richdoc.js` (new), `js/app.js`, `index.html`
+(`.hati-doc` stylesheet), `js/core.js`, `js/views/contract.js`,
+`js/versioning.js`, `js/templatefields.js`, `js/views/library.js`,
+`js/views/portal.js`, `js/playbook.js`, `server/server.js`.
+
+**How it was verified.** Browser test against the real app (Chromium): a
+fragment containing `<script>`, `onclick`/`onerror`/`onmouseover` handlers,
+`javascript:` links, `<img>`, `<iframe>`, `<svg><script>`, `<style>`, `<form>`,
+inline `style`, `id`, an unlisted `class`, `colspan`, Word `o:`/`w:` elements
+and an HTML comment survives as words only. Confirmed by inserting the rendered
+output into the live DOM and asserting zero `script/iframe/img/style/form`
+nodes, with a page-level alarm bound to `window.__pwned` that never fired.
+
+### 2. Sealing rich content would have broken every seal already in the system
+
+**What was broken.** (Caught in design, before it shipped.) `verifySeal()`
+computed `sha256(normText(c.execution.html))` — the *text* of the frozen
+document. For a rich document that hash is blind to formatting: bolding a
+liability cap, or renumbering the clauses, would leave the seal verifying. But
+simply changing the computation to a formatting-aware one would have
+invalidated every contract sealed before this run.
+
+**Root cause.** The hash computation was implicit in the code rather than
+recorded on the record it applied to.
+
+**The fix.** The mode is now **version-gated on the execution record**, exactly
+as `sealVersion` already gates the seal string:
+
+| `execution.hashMode` | Hash input |
+|---|---|
+| absent, or `'text'` | `normText(execution.html)` — byte-identical to before this run |
+| `'rich'` | `canonicalRich(execution.html)` |
+
+`execHashInput()` in `js/core.js` is the one place that decides. `sealString()`
+is untouched, so v1 and v2 seal strings keep their exact original
+serialisation. `frozenDocBody()` likewise leaves a pre-rich frozen body
+completely alone — its classes are not on the rich allowlist, so sanitising it
+would change how an already-sealed contract looks.
+
+**Files touched.** `js/core.js`, `js/views/contract.js`.
+
+**How it was verified.** The test seals a contract using the *verbatim
+pre-change lines* (`sha256(normText(freezeContractHtml(c)))`, no `format`, no
+`hashMode`), then verifies it through the new code path: hash input unchanged,
+text hash matches, seal matches, and `frozenDocBody()` returns the stored HTML
+untouched. Separately, a rich contract is sealed, re-rendered, re-serialised and
+still verifies — and a one-word tamper inside the frozen HTML is detected.
+
+### 3. `canonicalRich()` hashed source indentation, so a round trip could break a seal
+
+**What was broken.** The first implementation collapsed whitespace with a global
+regex over the finished string. `<p>The <strong>X</strong></p>` and the same
+document with the source indented across lines produced *different* canonical
+strings, because a space between `>` and a letter was preserved while one
+between `>` and `<` was not. A rich contract re-saved by an editor that
+pretty-prints its output would have failed to verify against its own seal.
+
+**Root cause.** The design note specified "trim the leading/trailing space of
+every block"; the code never implemented it and papered over the gap with string
+regexes.
+
+**The fix.** `_canonWhitespace()` walks the parsed tree and collapses each text
+run, then trims a space only where it sits at a **block boundary** — the start
+or end of a block, or the gap between two blocks. A space between two *inline*
+elements is content and is kept. `<pre>` is skipped entirely, because whitespace
+there is the document. The serialiser then emits exactly what the tree holds,
+with no post-hoc string mangling.
+
+**Files touched.** `js/richdoc.js`.
+
+**How it was verified.** Test asserts the same document indented two different
+ways canonicalises identically; that `canonicalRich` round-trips through itself;
+that attribute order does not affect it; and — the point of the whole exercise —
+that two documents with identical *wording* but different *formatting* produce
+different canonical strings while producing identical text projections.
+
+### 4. A formatting-only edit reported "no changes"
+
+**What was broken.** `captureVersion()` de-duplicated on the plain text alone,
+and `openCompareModal()` declared two versions "identical" on the same test. Once
+documents could carry formatting, bolding a clause or renumbering a schedule
+would silently capture no version at all, and comparing across such an edit said
+nothing had changed. For a contract system that is a false statement about the
+record.
+
+**Root cause.** Text equality was standing in for document equality.
+
+**The fix.** Version records now carry `canon` (the canonical form) and `body`
+(the raw content) alongside `text`. De-duplication requires both the text *and*
+the canonical form to match. The compare modal, when the wording is identical but
+the canonical form is not, reports **"Formatting changed"** and says which
+aspects can differ, instead of "no changes".
+
+**Files touched.** `js/versioning.js`.
+
+**How it was verified.** Test bolds one word in an otherwise unchanged document:
+a new version *is* captured, its `text` equals the previous version's and its
+`canon` does not. A genuinely unchanged save still captures nothing.
+
+### 5. Rich content reached three places that would have mangled or leaked it
+
+**What was broken.** Three consumers took a document body as a raw string:
+
+- **Placeholder substitution.** `fillTemplateBody()` did a string replace over
+  the body. On rich content, a filled-in value containing `<` would have become
+  markup — a corruption bug and an injection route in one.
+- **The counterparty share payload.** `openShareModal()` sent `redlineText`
+  without `format`, so the portal would have rendered a rich contract's markup
+  to the counterparty as literal text.
+- **The server's search index.** `contractSearchBody()` indexed the body
+  verbatim, so a search for "strong" would have matched every bolded contract in
+  the workspace.
+
+**The fix.** `fillTemplateBody()` takes a `format` and routes rich content
+through `fillRichBody()`, which substitutes on **text nodes only** via the DOM.
+The share payload carries `format`. The server strips tags before indexing
+(a plain strip, deliberately — the server has no DOM, and a search index is a
+convenience, not evidence). The portal's redline base text and its PDF export of
+working text both go through the projection / the sanitising renderer.
+
+**Files touched.** `js/templatefields.js`, `js/core.js`, `js/views/portal.js`,
+`server/server.js`.
+
+**How it was verified.** Test fills a rich template with the value
+`Coast <script>alert(1)</script> Ltd`: the surrounding `<strong>` survives, the
+script tag comes back escaped as text, and an unfilled blank still renders as a
+ruled gap.
+
+### 6. Two editors would have silently destroyed a formatted document
+
+**What was broken.** The workspace's plain-text document editor and the
+Templates "Add blanks" editor both load the body into a `<textarea>`. Given rich
+content, the first would have replaced a formatted contract with plain text on
+save with no warning, and the second would have shown the customer their own
+contract as raw HTML and destroyed it on the first keystroke.
+
+**The fix.** The document editor now **says so before you save**: a notice
+explains that this is the plain-text editor, that the formatting will be lost,
+and that the clause numbers below are written out as text so the wording
+survives. The conversion is recorded in the audit trail rather than happening
+invisibly. "Add blanks" no longer uses a textarea for rich templates at all — it
+renders the template as the document it is and makes a blank from the **live
+selection**, replacing only that range, so the surrounding formatting is
+untouched. A selection that spans a table row or two clauses is refused with a
+reason rather than silently rewriting the document's shape. The same rule
+applies to an accepted counterparty redline, which arrives as plain text: the
+document's `format` is reset and the audit entry says why.
+
+**Files touched.** `js/views/contract.js`, `js/views/library.js`,
+`js/versioning.js`, `js/richdoc.js` (`unmarkPlaceholders`).
+
+**How it was verified.** Manual walk-through in the browser plus a test that
+marking and then unmarking placeholders round-trips to the identical body.

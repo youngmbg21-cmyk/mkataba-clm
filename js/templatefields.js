@@ -52,12 +52,20 @@ function templateFields(t){
   return [];
 }
 const templateBody = t => (t && (t.body!=null ? t.body : t.text)) || '';
+/* A template's format — 'text' unless the record says otherwise. Never
+   inferred from the content: an existing template is plain text and stays so
+   until someone edits or re-pastes it. */
+const templateFormat = t => (window.docFormat ? docFormat(t&&t.format) : 'text');
 
 /* ---------- rendering ---------- */
 const TPL_BLANK = '_____________';
 /* Substitute {{key}} placeholders. An unfilled optional blank renders as a
    ruled line so the printed contract still reads as a contract with a gap. */
-function fillTemplateBody(body, values){
+function fillTemplateBody(body, values, format){
+  // Rich content substitutes through the DOM, on TEXT NODES ONLY. A plain
+  // string replace over markup would let a value containing "<" become a tag,
+  // which is both a corruption bug and an injection route.
+  if(window.isRich && isRich(format)) return fillRichBody(body, values, TPL_BLANK);
   return String(body||'').replace(/\{\{\s*([a-zA-Z][a-zA-Z0-9_]*)\s*\}\}/g, (m,k)=>{
     const v=values&&values[k];
     return (v==null||v==='') ? TPL_BLANK : String(v);
@@ -282,10 +290,14 @@ function createBulkFromTemplate(t, rows, opts={}){
         detail:`Bulk creation from template “${tplName}” · batch ${batch} · run by ${u?.name||'System'}`}],
       signatures:[], templateBatch:batch, templateRef:t.id||null };
     applyTemplateValues(c, fs, r.values);
-    const bodyText=fillTemplateBody(templateBody(t), r.values);
+    const tFmt=templateFormat(t);
+    const bodyText=fillTemplateBody(templateBody(t), r.values, tFmt);
     if(bodyText && !t.builtin){
       c.redlineText=bodyText;
-      c.versions=[{ n:1, at:nowISO(), by:u?.name||'System', label:`Template “${tplName}”`, text:bodyText }];
+      c.format=tFmt;
+      c.versions=[]; // captureVersion computes the text projection and canonical form for us
+      if(window.captureVersion) captureVersion(c,`Template “${tplName}”`,u?.name||'System');
+      if(!c.versions.length) c.versions=[{ n:1, at:nowISO(), by:u?.name||'System', label:`Template “${tplName}”`, text:bodyText, canon:bodyText, format:tFmt, body:bodyText }];
     }
     c._loaded=true; c._light=false; c._v=0;
     state.contracts.unshift(c);
@@ -297,6 +309,6 @@ function createBulkFromTemplate(t, rows, opts={}){
 }
 
 Object.assign(window,{TPL_FIELD_TYPES,TPL_MAPS,TPL_BLANK,TPL_BULK_MAX,tplMapLabel,tplKeyOk,tplKeyFrom,
-  templateFields,templateBody,fillTemplateBody,bodyPlaceholders,detectBlanks,guessFieldShape,
+  templateFields,templateBody,templateFormat,fillTemplateBody,bodyPlaceholders,detectBlanks,guessFieldShape,
   convertDetectedBlanks,validateField,normaliseDateInput,isRealDate,coerceField,applyTemplateValues,
   bulkTemplateCsv,parseBulkCsv,createBulkFromTemplate});

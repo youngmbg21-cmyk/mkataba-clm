@@ -40,7 +40,8 @@ function createFromCustomTemplate(tid){
 function buildFromCustomTemplate(t, values){
   const u=currentUser();
   const fs=templateFields(t);
-  const body=fillTemplateBody(templateBody(t), values);
+  const tFmt=templateFormat(t);
+  const body=fillTemplateBody(templateBody(t), values, tFmt);
   const cp=(()=>{ const f=fs.find(x=>x.maps==='counterparty'); return f?String(values[f.key]||''):''; })();
   const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'', value:0, status:'Draft',
     template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
@@ -49,11 +50,14 @@ function buildFromCustomTemplate(t, values){
     comments:[{author:'System',role:'Automation',side:'internal',
       text:`New draft created from your template “${t.name}”.${fs.length?' The details you filled in are already filed as contract data — the register, filters and reports pick them up without re-keying.':' Edit the document text, set the counterparty and value, then share for review.'}`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null, expiry:null,
-    redlineText:body,
-    versions:[{n:1, at:nowISO(), by:u?.name||'System', label:`Template “${t.name}”`, text:body}],
+    redlineText:body, format:tFmt,
+    versions:[],
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Created from custom template “${t.name}”${fs.length?` · ${fs.length} field${fs.length===1?'':'s'} filled`:''}`}],
     signatures:[], templateRef:t.id };
   if(fs.length) applyTemplateValues(c, fs, values);
+  // v1 is captured through captureVersion so it carries the text projection and
+  // the canonical form, exactly like every later version
+  if(window.captureVersion) captureVersion(c, `Template “${t.name}”`, u?.name||'System');
   c._loaded=true; c._light=false; c._v=0;
   state.contracts.unshift(c);
   state.activeId=c.id; state.selId=c.id;
@@ -114,13 +118,17 @@ function saveContractAsTemplate(c){
   if(!tplCanManage()){ toast('Viewers cannot save templates','err'); return; }
   const text=docPlainText(c);
   if(!text||text.length<40){ toast('This document has no reusable text yet','err'); return; }
+  // a formatted contract is saved as a formatted template — reusing your own
+  // paper should not strip the headings and clause numbering off it
+  const rich=!!(window.isRich && isRich(c.format) && c.redlineText);
+  const saveBody=rich?sanitizeRich(c.redlineText):text;
   const defName=c.name.replace(/\s*\(Draft\)\s*$/,'').replace(/\s*—.*$/,'').trim()||c.name;
   const opts=folderOptionsHtml(c.folder, false);
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Save as template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters) as a reusable template. It will appear under <b>My templates</b> and in the New-contract menu.</p>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Saves this document's current text (${text.length.toLocaleString()} characters${rich?', with its formatting':''}) as a reusable template. It will appear under <b>My templates</b> and in the New-contract menu.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
         <input id="tpl-name" value="${defName.replace(/"/g,'&quot;')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
@@ -135,7 +143,8 @@ function saveContractAsTemplate(c){
   document.getElementById('tpl-save').addEventListener('click',()=>{
     const name=document.getElementById('tpl-name').value.trim();
     if(!name){ toast('Give the template a name','err'); return; }
-    saveTemplateRecord(name, document.getElementById('tpl-folder').value, text, 'contract:'+c.id);
+    saveTemplateRecord(name, document.getElementById('tpl-folder').value, saveBody, 'contract:'+c.id,
+      rich?{ format:RICH_FORMAT, chars:text.length }:null);
     logAudit(c,'Template','Saved as reusable template “'+name+'”'); persist(c);
     closeModal(); toast(`Template “${name}” saved`);
     if(state.view==='templates') renderTemplatesPage();
@@ -229,6 +238,37 @@ async function importHatiSample(i, btn){
    reliability: manual selection (always works, no key, no network), AI-assisted
    ("Suggest blanks" — the human reviews and edits before anything is saved),
    and auto-detect of [SQUARE BRACKETS] / {{curly}} / underscore runs on import. */
+/* The user's current selection, if it lies inside `host`. Returns the Range and
+   its text, or null. */
+function _richSelection(host){
+  const s=window.getSelection && window.getSelection();
+  if(!s || !s.rangeCount || s.isCollapsed) return null;
+  const r=s.getRangeAt(0);
+  if(!host.contains(r.commonAncestorContainer)) return null;
+  return { range:r, text:r.toString() };
+}
+/* Replace a selected range with literal text and return the re-sanitised body.
+   Returns null when the range crosses block structure — deleting across a table
+   row or two clauses would silently rewrite the document's shape, which is
+   never what "make this a blank" means. */
+function _richReplaceRange(host, picked, text){
+  if(!picked) return null;
+  const r=picked.range;
+  // the range must live inside ONE block — a selection that swallows a whole
+  // clause or a table row would rewrite the document's shape, not fill a gap
+  const frag=r.cloneContents();
+  if(frag.querySelector && frag.querySelector('p,h1,h2,h3,h4,li,tr,td,th,table,ul,ol,pre,blockquote')) return null;
+  try{
+    r.deleteContents();
+    r.insertNode(document.createTextNode(text));
+  }catch(e){ return null; }
+  // host holds a rendered .hati-doc wrapper; take its inside, drop the
+  // display-only placeholder marking, and sanitise before it becomes storage
+  const inner=host.firstElementChild && host.firstElementChild.classList.contains('hati-doc')
+    ? host.firstElementChild.innerHTML : host.innerHTML;
+  return unmarkPlaceholders(inner);
+}
+
 function openBlanksEditor(tid){
   if(!tplCanManage()){ toast('Viewers cannot edit templates','err'); return; }
   const rec=customTemplates().find(x=>x.id===tid);
@@ -237,6 +277,15 @@ function openBlanksEditor(tid){
   let body=templateBody(rec);
   let fields=(rec.fields||[]).map(f=>({ ...f }));
   let dirty=false;
+  // A rich template is NOT edited as raw HTML in a textarea — that would show
+  // the customer their own contract as markup and destroy it on the first
+  // keystroke. It is shown as the document it is, and a blank is made from the
+  // live selection inside it. Free-text editing of a rich body belongs to the
+  // template editor, not here.
+  const rich=!!(window.isRich && isRich(templateFormat(rec)));
+  /* The text a marker-detector or the AI should read — the projection for rich
+     bodies, so it sees clause numbers and no tags. */
+  const bodyText=()=> rich ? richToText(body) : body;
 
   const draw=()=>{
     const used=bodyPlaceholders(body);
@@ -273,7 +322,10 @@ function openBlanksEditor(tid){
       });
     }
     const pv=document.getElementById('be-body');
-    if(pv && document.activeElement!==pv) pv.value=body;
+    if(pv){
+      if(rich) pv.innerHTML=renderDocHtml(markPlaceholders(body, Object.fromEntries(fields.map(f=>[f.key,'{{'+f.key+'}}']))), RICH_FORMAT);
+      else if(document.activeElement!==pv) pv.value=body;
+    }
     const warn=document.getElementById('be-warn');
     if(warn) warn.innerHTML = orphanBlanks.length
       ? `<span style="color:#8f322b">${orphanBlanks.length} placeholder${orphanBlanks.length===1?'':'s'} in the body (${orphanBlanks.map(k=>'{{'+k+'}}').join(', ')}) ${orphanBlanks.length===1?'has':'have'} no field — add or remove them before saving.</span>`
@@ -291,8 +343,10 @@ function openBlanksEditor(tid){
     </div>
     <div id="be-fields" class="scroll-thin" style="max-height:190px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px;margin-bottom:8px"></div>
     <div id="be-warn" style="font-size:10.5px;margin-bottom:8px;min-height:14px"></div>
-    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”</span>
-      <textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 11px;font:inherit;font-size:12px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea></label>
+    <label style="display:block;margin-bottom:12px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template body — select text, then “Make selection a blank”${rich?` <span style="font-weight:400;color:var(--color-neutral-500)">· formatted template: shown as the document it is, so marking a blank keeps the formatting intact</span>`:''}</span>
+      ${rich
+        ? `<div id="be-body" class="scroll-thin" style="width:100%;height:210px;overflow-y:auto;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 13px"></div>`
+        : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:9px 11px;font:inherit;font-size:12px;line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:11px;color:var(--color-neutral-600);min-height:15px;margin-bottom:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px">
       <button id="be-cancel" class="ui-btn">Cancel</button>
@@ -301,13 +355,13 @@ function openBlanksEditor(tid){
   draw();
 
   const bodyEl=document.getElementById('be-body');
-  bodyEl.addEventListener('input',()=>{ body=bodyEl.value; dirty=true; draw(); });
+  if(!rich) bodyEl.addEventListener('input',()=>{ body=bodyEl.value; dirty=true; draw(); });
   const status=m=>{ const el=document.getElementById('be-status'); if(el) el.innerHTML=m||''; };
 
   // ---- 1. manual (the reliable path — no key, no network)
   document.getElementById('be-make').addEventListener('click',()=>{
-    const s=bodyEl.selectionStart, e=bodyEl.selectionEnd;
-    const sel=bodyEl.value.slice(s,e).trim();
+    const picked=rich?_richSelection(bodyEl):null;
+    const sel=(rich ? (picked?picked.text:'') : bodyEl.value.slice(bodyEl.selectionStart,bodyEl.selectionEnd)).trim();
     if(!sel){ status('<span style="color:#8f322b">Select the text in the document that should become a blank first.</span>'); return; }
     if(sel.length>200){ status('<span style="color:#8f322b">That selection is too long for a blank — pick the value, not the whole clause.</span>'); return; }
     const label=prompt('Name this blank (what a person filling it in will see):', sel.length<=40?sel:'');
@@ -315,14 +369,25 @@ function openBlanksEditor(tid){
     const lbl=String(label).trim() || sel.slice(0,40);
     const key=tplKeyFrom(lbl, fields);
     const shape=guessFieldShape(lbl);
+    if(rich){
+      // Replace the selected RANGE with the placeholder text, in the live
+      // document, then re-serialise through the sanitiser. The surrounding
+      // formatting is untouched because only the range's contents move.
+      const next=_richReplaceRange(bodyEl, picked, '{{'+key+'}}');
+      if(next==null){ status('<span style="color:#8f322b">That selection spans the document structure (a table row, or two clauses at once). Select the value on its own.</span>'); return; }
+      body=next;
+    } else {
+      body=bodyEl.value.slice(0,bodyEl.selectionStart)+'{{'+key+'}}'+bodyEl.value.slice(bodyEl.selectionEnd);
+    }
     fields.push({ key, label:lbl, type:shape.type, maps:shape.maps, required:!!shape.maps, def:'', opts:[] });
-    body=bodyEl.value.slice(0,s)+'{{'+key+'}}'+bodyEl.value.slice(e);
     dirty=true; draw(); status(`Added <b>{{${key}}}</b>.`);
   });
 
   // ---- 3. auto-detect markers already in the paper
   document.getElementById('be-detect').addEventListener('click',()=>{
-    const found=detectBlanks(body).filter(d=>!/\{\{/.test(d.raw)||!fields.some(f=>'{{'+f.key+'}}'===d.raw));
+    // detect against the READABLE text (no tags), then rewrite the markers in
+    // the body — each marker is literal text, so it substitutes either way
+    const found=detectBlanks(bodyText()).filter(d=>(!/\{\{/.test(d.raw)||!fields.some(f=>'{{'+f.key+'}}'===d.raw))&&body.includes(d.raw));
     if(!found.length){ status('No [BRACKETS], {{curly}} markers or underscore runs found in this template.'); return; }
     if(!confirm(`Found ${found.length} existing blank marker${found.length===1?'':'s'}. Convert them into fields?`)) return;
     const r=convertDetectedBlanks(body, found);
@@ -337,7 +402,8 @@ function openBlanksEditor(tid){
     const btn=e.currentTarget; btn.disabled=true; const was=btn.innerHTML;
     btn.innerHTML='Thinking…'; status('Asking the AI engine for suggestions — nothing is saved until you review them.');
     try{
-      const r=await api('ai/blanks','POST',{ text: body.slice(0, 60000) });
+      // the model reads the document, never the markup
+      const r=await api('ai/blanks','POST',{ text: bodyText().slice(0, 60000) });
       let added=0, missed=0;
       for(const f of (r.fields||[])){
         if(!f.find || !body.includes(f.find)){ missed++; continue; }
@@ -366,7 +432,7 @@ function openBlanksEditor(tid){
     if(bad){ status('<span style="color:#8f322b">Every blank needs a label.</span>'); return; }
     const badSel=fields.find(f=>f.type==='select'&&!(f.opts||[]).length);
     if(badSel){ status(`<span style="color:#8f322b">“${_tplEsc(badSel.label)}” is a choice list with no choices.</span>`); return; }
-    updateTemplateRecord(tid, { fields, body, chars:body.length });
+    updateTemplateRecord(tid, { fields, body, chars:bodyText().length });
     closeModal(); toast(`${fields.length} blank${fields.length===1?'':'s'} saved on “${rec.name}”`);
     if(state.view==='templates') renderTemplatesPage();
   });
@@ -438,6 +504,18 @@ function openBulkCreateModal(t){
   });
 }
 
+/* A template's body, rendered. Rich bodies go through the sanitiser again here
+   (defence in depth) and have their {{blanks}} marked so they read as gaps in
+   a document rather than as literal braces. */
+function _tplPreviewHtml(tpl){
+  const body=templateBody(tpl), fmt=templateFormat(tpl);
+  if(window.isRich && isRich(fmt)){
+    const labels={}; templateFields(tpl).forEach(f=>{ labels[f.key]=f.label||f.key; });
+    return renderDocHtml(markPlaceholders(body, labels), RICH_FORMAT);
+  }
+  return window.documentTextHtml ? documentTextHtml(body)
+    : `<div style="font-size:12.5px;line-height:1.65;white-space:pre-wrap">${_tplEsc(body)}</div>`;
+}
 function openTemplatePreview(tpl){
   openModal(`
     <div style="padding:20px 22px">
@@ -447,7 +525,7 @@ function openTemplatePreview(tpl){
       </div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 10px">${tpl.chars?tpl.chars.toLocaleString()+' characters · ':''}added ${tpl.at?fmtDT(tpl.at):''} by ${_tplEsc(tpl.by||'—')}${templateFields(tpl).length?` · <b>${templateFields(tpl).length} blank${templateFields(tpl).length===1?'':'s'}</b>`:' · no blanks yet'}</p>
       ${templateFields(tpl).length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${templateFields(tpl).map(f=>`<span style="font-size:10.5px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:3px;padding:2px 7px;color:var(--color-neutral-700)"><b style="font-family:var(--font-mono)">${_tplEsc(f.key)}</b> ${_tplEsc(f.label)}${f.maps?` <span style="color:var(--color-accent-700)">→ ${_tplEsc(tplMapLabel(f.maps))}</span>`:''}</span>`).join('')}</div>`:''}
-      <div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${window.documentTextHtml?documentTextHtml(templateBody(tpl)):`<div style="font-size:12.5px;line-height:1.65;white-space:pre-wrap">${_tplEsc(templateBody(tpl))}</div>`}</div>
+      <div class="scroll-thin" style="border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:14px 16px;max-height:55vh;overflow-y:auto">${_tplPreviewHtml(tpl)}</div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
         ${canEdit()?`<button id="tp-blanks" class="ui-btn">${templateFields(tpl).length?'Edit blanks':'Add blanks'}</button>`:''}
         ${canEdit()?`<button id="tp-use" class="ui-btn ui-btn-primary">Use template</button>`:''}
@@ -628,4 +706,4 @@ function renderPlaybookPage(){
   setActiveNav('playbook');
 }
 
-Object.assign(window,{HATI_SAMPLES,openBlanksEditor,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

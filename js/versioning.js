@@ -29,11 +29,23 @@ function htmlToStructuredText(html){
     .replace(/\n{3,}/g,'\n\n').trim();
 }
 
-/* Plain text of a contract's current body — the unit versions/diffs work on. */
+/* Plain text of a contract's current body — the unit versions/diffs work on,
+   and the unit every AI feature reads. For a RICH body this is the text
+   projection, which reconstructs ordered-list numbering, so clause numbers
+   reach the diff, the model and search rather than vanishing with the markup. */
 function docPlainText(c){
-  if(c.redlineText) return c.redlineText;                 // edited/adopted working text is the live text
+  if(c.redlineText){                                      // edited/adopted working text is the live text
+    return (window.isRich&&isRich(c.format)) ? richToText(c.redlineText) : c.redlineText;
+  }
   if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
   try{ return htmlToStructuredText(freezeContractHtml(c)); }catch(e){ return ''; }
+}
+/* The canonical form of a contract's current body — identical wording in a
+   different shape gives a different string, which is how a formatting-only
+   edit is detected instead of being silently swallowed as "no changes". */
+function docCanonical(c){
+  if(c.redlineText && window.canonicalDocString) return canonicalDocString(c.redlineText, c.format);
+  return docPlainText(c).replace(/\s+/g,' ').trim();
 }
 
 /* Re-flow working text that was flattened by an older/lossy conversion (headings
@@ -55,10 +67,19 @@ function reflowWorkingText(t){
 /* ---- version records (E2-T1) ---- */
 function captureVersion(c, label, by){
   const text=docPlainText(c); if(!text) return null;
+  const canon=docCanonical(c);
   c.versions=c.versions||[];
   const last=c.versions[c.versions.length-1];
-  if(last && last.text===text){ return last; }            // no material change — don't spam versions
-  const v={ n:c.versions.length+1, at:nowISO(), by:by||currentUser()?.name||'System', label:label||'Saved', text };
+  // No material change — don't spam versions. "Material" now includes the
+  // SHAPE: a version whose wording is identical but whose headings, emphasis
+  // or clause numbering changed is a real change and gets its own record.
+  if(last && last.text===text && (last.canon||last.text)===canon){ return last; }
+  const v={ n:c.versions.length+1, at:nowISO(), by:by||currentUser()?.name||'System',
+    label:label||'Saved', text, canon,
+    // the raw body and its format, so a rich version can be shown or restored
+    // as the document it was rather than as its text shadow
+    format:(window.docFormat?docFormat(c.format):'text'),
+    body:(c.redlineText!=null?c.redlineText:null) };
   c.versions.push(v);
   return v;
 }
@@ -148,9 +169,12 @@ function openDiffModal(aText, bText, labelA, labelB){
 function openCompareModal(c){
   const vs=c.versions||[];
   const live=docPlainText(c);
-  const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text}));
-  const lastText=vs.length?vs[vs.length-1].text:null;
-  if(!vs.length || live!==lastText) items.push({label:'Current (live document)', short:'Current', text:live});
+  const liveCanon=docCanonical(c);
+  const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text, canon:v.canon||v.text}));
+  const lastV=vs.length?vs[vs.length-1]:null;
+  // the live document is a comparable whenever it differs in WORDING or in SHAPE
+  if(!lastV || live!==lastV.text || liveCanon!==(lastV.canon||lastV.text))
+    items.push({label:'Current (live document)', short:'Current', text:live, canon:liveCanon});
   const canSnap=canEdit()&&c.status!=='Signed';
 
   if(items.length<2){
@@ -189,7 +213,16 @@ function openCompareModal(c){
   const run=()=>{
     const a=items[Number(document.getElementById('cmp-a').value)], b=items[Number(document.getElementById('cmp-b').value)];
     if(!a||!b) return;
-    if(a.text===b.text){ document.getElementById('cmp-legend').innerHTML=''; document.getElementById('cmp-out').innerHTML=`<div style="font-size:12px;color:var(--color-neutral-500)">These two versions are identical — no changes between <b>${a.short}</b> and <b>${b.short}</b>.</div>`; return; }
+    if(a.text===b.text){
+      document.getElementById('cmp-legend').innerHTML='';
+      // Same words, different shape. A word diff has nothing to show, but the
+      // document DID change — headings, emphasis, clause numbering or table
+      // structure moved. Reporting "no changes" here would be a lie.
+      const fmtOnly=(a.canon||a.text)!==(b.canon||b.text);
+      document.getElementById('cmp-out').innerHTML=fmtOnly
+        ? `<div style="font-size:12px;line-height:1.6;color:var(--color-neutral-700);border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:10px 12px"><b>Formatting changed.</b> The wording of <b>${a.short}</b> and <b>${b.short}</b> is word-for-word identical, but the document's structure is not — headings, emphasis, clause numbering, indentation or table layout differ. Word-level comparison has nothing to highlight; open the two versions to see the difference.</div>`
+        : `<div style="font-size:12px;color:var(--color-neutral-500)">These two versions are identical — no changes between <b>${a.short}</b> and <b>${b.short}</b>.</div>`;
+      return; }
     const st=diffStats(a.text,b.text);
     document.getElementById('cmp-legend').innerHTML=`${_statLine(st)} · ${_diffLegend}`;
     document.getElementById('cmp-out').innerHTML=_diffBox(a.text,b.text);
@@ -225,11 +258,16 @@ function acceptProposedRound(c, n){
   const u=currentUser();
   // ensure the pre-redline text is captured, then adopt the proposed text
   if(!c.versions||!c.versions.length) captureVersion(c,'Before redline','System');
+  // The counterparty edits in a plain-text box, so what comes back is plain
+  // text. Adopting it makes the document plain text — say so on the record
+  // rather than leaving a 'rich' marker on a body that no longer is one.
+  const wasRich=!!(window.isRich&&isRich(c.format));
   c.redlineText=r.proposedText;
+  if(wasRich) c.format=TEXT_FORMAT;
   captureVersion(c, `Round ${n} accepted (redline from ${r.by||'counterparty'})`, u.name);
   r.status='closed'; r.resolution={ decision:'accepted', by:u.name, at:nowISO() };
   if(r.proposedValue!=null){ c.value=Number(r.proposedValue); c.approval=null; }
-  logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}`);
+  logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
   persist(c); renderWorkspace();
   toast(`Round ${n} accepted — adopted as new version`);
 }
@@ -237,4 +275,4 @@ function acceptProposedRound(c, n){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{docPlainText,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

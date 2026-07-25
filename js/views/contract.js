@@ -498,6 +498,15 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   return `<div style="font-size:${size};line-height:${lh}">${out.join('')}</div>`;
 }
 
+/* The contract's working-text body, in whichever format it carries. Rich
+   content goes through renderDocHtml (which sanitises AGAIN, at render); plain
+   text keeps the reflow repair and the original escaped path, byte for byte. */
+function docBodyHtml(c, opts={}){
+  const body=c.redlineText;
+  if(window.isRich && isRich(c.format)) return renderDocHtml(body, RICH_FORMAT, opts);
+  return documentTextHtml(window.reflowWorkingText?reflowWorkingText(body):body, opts);
+}
+
 // Heuristic clause analysis over the REAL extracted text — quotes verbatim.
 function sentenceAround(text, idx){
   let s=text.lastIndexOf('.',idx); s=s<0?Math.max(0,idx-140):s+1;
@@ -736,7 +745,7 @@ function redlineDocBody(c){
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
     </div>
-    <div class="text-brand-800/85" data-anchor="redline">${documentTextHtml(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText,{size:'13.5px', lh:'1.85'})}</div>
+    <div class="text-brand-800/85" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
 }
 
@@ -745,7 +754,9 @@ function redlineDocBody(c){
 function openEditDocModal(c){
   if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
-  const cur=(window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
+  const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+  const cur=wasRich ? docPlainText(c)
+    : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
   if(!cur){ toast('This document has no editable text yet','err'); return; }
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const firstEdit=!c.redlineText&&!isUpload(c);
@@ -754,6 +765,9 @@ function openEditDocModal(c){
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
         <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
       <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
+      ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
+        <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
+        <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
       <textarea id="ed-text" rows="20" class="scroll-thin" spellcheck="false" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:12px 14px;font:inherit;font-size:12.5px;line-height:1.75;resize:vertical;outline:none;min-height:300px">${esc(cur)}</textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
         <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
@@ -773,8 +787,9 @@ function openEditDocModal(c){
     const u=currentUser();
     if(!(c.versions||[]).length) captureVersion(c,'Original text','System');
     c.redlineText=txt;
+    if(wasRich) c.format=TEXT_FORMAT;   // the plain-text editor produces plain text; say so on the record
     const v=captureVersion(c,`Edited by ${u?.name||'user'}`,u?.name);
-    logAudit(c,'Edited',`Document wording edited in the workspace${v?` — captured as v${v.n}`:''}`);
+    logAudit(c,'Edited',`Document wording edited in the workspace${wasRich?' using the plain-text editor — formatting was not retained':''}${v?` — captured as v${v.n}`:''}`);
     c.lastAction=todayStr(); persist(c);
     closeModal(); renderWorkspace();
     toast('Changes saved — open Compare to review them');
@@ -831,7 +846,7 @@ function uploadDocBody(c){
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
         <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
       </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-neutral-800)">${documentTextHtml(window.reflowWorkingText?reflowWorkingText(c.redlineText):c.redlineText,{size:'13px',lh:'1.7'})}</div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-neutral-800)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
     </div>`:''}
     ${preview}
@@ -1188,7 +1203,18 @@ function signatureBlock(c){
     </div>`;
 }
 function frozenDocBody(c){
-  return `${c.execution.html}${signatureBlock(c)}`;
+  // A frozen body that was rich at signing is sanitised again here, at render,
+  // because this same markup is served to the counterparty portal with no
+  // login. Sanitising is idempotent, so the sealed fragment survives it intact
+  // — and a fragment that reached storage some other way still cannot execute.
+  // A pre-rich frozen body is left exactly as it is: it was produced from
+  // escaped text by freezeContractHtml, and its classes are not on the rich
+  // allowlist, so passing it through the sanitiser would change how a SEALED
+  // contract looks. That is not allowed.
+  const html = (window.isRich && isRich(c.execution.format))
+    ? `<div class="hati-doc" data-anchor="redline">${sanitizeRich(c.execution.html)}</div>`
+    : c.execution.html;
+  return `${html}${signatureBlock(c)}`;
 }
 
 /* One clear next action per lifecycle stage — drives the sticky bar at the top
@@ -1865,7 +1891,19 @@ async function finalizeExecution(c, opts={}){
   const ip=(opts.meta&&opts.meta.ip)||null;
   const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">Sealing…</span>`; }
   const exec={ at, method:'session-authenticated', consent:true, ua:(typeof navigator!=='undefined'?navigator.userAgent:''), ip };
-  if(!isUpload(c)){ exec.html=freezeContractHtml(c); exec.textHash=await sha256(normText(exec.html)); }
+  if(!isUpload(c)){
+    exec.html=freezeContractHtml(c);
+    // Record WHAT was sealed and HOW it was hashed, on the execution record
+    // itself. Everything sealed before rich content existed carries neither
+    // field, reads as 'text', and re-verifies through the identical path.
+    // freezeContractHtml only emits rich markup for a rich WORKING text; a
+    // built-in template's rendered layout is not rich content, so both fields
+    // are driven off the one condition and can never disagree.
+    const richBody=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+    exec.format=richBody?'rich':'text';
+    exec.hashMode=richBody?'rich':'text';
+    exec.textHash=await sha256(window.execHashInput?execHashInput(exec):normText(exec.html));
+  }
   c.execution=exec;
   c.signedAt=fmtDT(at)+' EAT';
   c.lastAction=todayStr();
@@ -1951,4 +1989,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfStringsFrom,pdfTextRuns,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

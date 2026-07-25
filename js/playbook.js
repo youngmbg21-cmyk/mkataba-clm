@@ -186,8 +186,14 @@ function renderPlaybookSection(c){
 /* Insert a preferred clause as a redline addition (uses E2 redline text). */
 function applyClauseRedline(c, clauseText, label){
   if(!clauseText) return;
-  const base = (window.docPlainText?docPlainText(c):'') || '';
-  c.redlineText = (base? base+'\n\n' : '') + clauseText;
+  if(window.isRich && isRich(c.format) && c.redlineText){
+    // a formatted document keeps its formatting — the clause joins it as new
+    // paragraphs rather than flattening the whole contract to plain text
+    c.redlineText = sanitizeRich(c.redlineText + textToRich(clauseText));
+  } else {
+    const base = (window.docPlainText?docPlainText(c):'') || '';
+    c.redlineText = (base? base+'\n\n' : '') + clauseText;
+  }
   if(window.captureVersion) captureVersion(c, `Inserted preferred wording: ${label||'clause'}`);
   logAudit(c,'Playbook',`Inserted preferred wording (${label||'clause'}) as a redline`);
   persist(c); renderWorkspace();
