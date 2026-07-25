@@ -151,69 +151,211 @@ function saveContractAsTemplate(c){
   });
 }
 
-/* Upload a document (PDF / text / Word-extracted) as a reusable template. */
-function openUploadTemplateModal(){
+/* ============================================================ CREATE TEMPLATE
+   Paste is the primary route, and deliberately so: almost nobody's standard
+   contract exists as a PDF they can conveniently upload. It exists in Word,
+   open on their screen, and the fastest honest route into HaTi is Ctrl+A,
+   Ctrl+C, Ctrl+V. Uploading a file is the secondary route, for paper that
+   really does arrive as a PDF.
+
+   The paste box is a contenteditable, not a textarea — a textarea can only
+   ever hold plain text, which is the exact loss this is meant to prevent. */
+function openCreateTemplateModal(mode){
   if(!tplCanManage()){ toast('Viewers cannot add templates','err'); return; }
   const opts=folderOptionsHtml(null, false);
+  let tab=(mode==='upload')?'upload':'paste';
+  let pasted=null;          // { html, format, via, plain }
+  let report=null;          // pasteConversionReport(...)
+  let editor=null;
+
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
+  const tabBtn=(k,label,sub)=>`<button data-ct-tab="${k}" style="flex:1;text-align:left;padding:9px 12px;font:inherit;cursor:pointer;border:1px solid ${tab===k?'var(--color-accent)':'var(--color-divider)'};background:${tab===k?'var(--color-accent-100)':'var(--color-surface)'};border-radius:5px">
+      <span style="display:block;font-size:12.5px;font-weight:600;color:${tab===k?'var(--color-accent-800)':'var(--color-neutral-800)'}">${label}</span>
+      <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);margin-top:1px">${sub}</span></button>`;
+
   openModal(`
     <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('upload','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Upload a template</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Upload your company's standard contract (PDF or text — Word files must be saved as PDF first). HaTi extracts the text so new drafts can start from your own paper.</p>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
-        <input id="ut-name" placeholder="e.g. Standard Distribution Agreement" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
-        <select id="ut-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 8px;font:inherit;font-size:13px">${opts}</select></label>
-      <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
-        <input id="ut-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:7px 10px;font:inherit;font-size:12px"/></label>
-      <div id="ut-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin-bottom:10px"></div>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button id="ut-cancel" class="ui-btn">Cancel</button>
-        <button id="ut-save" class="ui-btn ui-btn-primary">Extract &amp; save</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="color:var(--color-accent)">${icon('copy','w-4 h-4')}</span>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Create template</h3></div>
+      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;line-height:1.5">Bring your company's standard paper into HaTi so new drafts start from your own wording.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px" id="ct-tabs">
+        ${tabBtn('paste','Paste the document','From Word or Google Docs — keeps the formatting')}
+        ${tabBtn('upload','Upload a file','A PDF or text file you already have')}
       </div>
-    </div>`);
-  document.getElementById('ut-cancel').addEventListener('click',closeModal);
-  bindFolderSelect(document.getElementById('ut-folder'));
-  document.getElementById('ut-save').addEventListener('click',async()=>{
-    const name=document.getElementById('ut-name').value.trim();
-    const file=document.getElementById('ut-file').files[0];
-    const st=document.getElementById('ut-status');
+
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:12px">
+        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+          <input id="ct-name" placeholder="e.g. Standard Distribution Agreement" style="${FLD}"/></label>
+        <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Value stream</span>
+          <select id="ct-folder" style="${FLD};background:var(--color-surface)">${opts}</select></label>
+      </div>
+
+      <div id="ct-pane-paste">
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:600">Paste the contract here</span>
+          <span style="flex:1"></span>
+          <button id="ct-preview" class="ui-btn" style="font-size:11px;padding:3px 9px">Preview</button>
+          <button id="ct-clear" class="ui-btn" style="font-size:11px;padding:3px 9px">Clear</button>
+        </div>
+        <div id="ct-editor" class="scroll-thin" style="height:270px;font-size:12.5px"
+             data-placeholder="Open your contract in Word or Google Docs, select all (Ctrl+A), copy (Ctrl+C), then paste here (Ctrl+V)."></div>
+        <div id="ct-previewpane" class="scroll-thin" style="display:none;height:270px;overflow-y:auto;border:1px solid var(--color-accent-300);background:var(--color-bg);border-radius:5px;padding:14px 18px"></div>
+        <p style="font-size:10.5px;color:var(--color-neutral-600);margin:6px 0 0;line-height:1.5">${RICH_EDITOR_NOTE}</p>
+        <div id="ct-report" style="font-size:11px;margin-top:7px;min-height:16px;line-height:1.5"></div>
+      </div>
+
+      <div id="ct-pane-upload" style="display:none">
+        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi extracts the text — an uploaded file becomes a <b>plain-text</b> template, because a PDF carries no reliable structure to recover. Paste it instead if you want the formatting.</p>
+        <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
+          <input id="ct-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
+      </div>
+
+      <div id="ct-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button id="ct-cancel" class="ui-btn">Cancel</button>
+        <button id="ct-save" class="ui-btn ui-btn-primary">Save template</button>
+      </div>
+    </div>`, {maxWidth:'820px'});
+
+  const st=m=>{ const el=document.getElementById('ct-status'); if(el) el.innerHTML=m||''; };
+  const rep=m=>{ const el=document.getElementById('ct-report'); if(el) el.innerHTML=m||''; };
+  bindFolderSelect(document.getElementById('ct-folder'));
+  document.getElementById('ct-cancel').addEventListener('click',closeModal);
+
+  const paint=()=>{
+    document.querySelectorAll('[data-ct-tab]').forEach(b=>{
+      const on=b.getAttribute('data-ct-tab')===tab;
+      b.style.borderColor=on?'var(--color-accent)':'var(--color-divider)';
+      b.style.background=on?'var(--color-accent-100)':'var(--color-surface)';
+      b.querySelector('span').style.color=on?'var(--color-accent-800)':'var(--color-neutral-800)';
+    });
+    document.getElementById('ct-pane-paste').style.display = tab==='paste'?'':'none';
+    document.getElementById('ct-pane-upload').style.display= tab==='upload'?'':'none';
+    st('');
+  };
+  document.getElementById('ct-tabs').addEventListener('click',e=>{
+    const b=e.target.closest('[data-ct-tab]'); if(!b) return;
+    tab=b.getAttribute('data-ct-tab'); paint();
+  });
+
+  /* ---- the paste surface ---- */
+  const host=document.getElementById('ct-editor');
+  const markEmpty=()=>host.setAttribute('data-empty', (host.textContent||'').trim()?'0':'1');
+  editor=richEditor(host, {
+    onChange:markEmpty,
+    onPaste:res=>{
+      pasted=res;
+      report=pasteConversionReport(editor.get(), res.plain||'');
+      const t=richToText(editor.get());
+      const lists=(editor.get().match(/<(ol|ul)\b/g)||[]).length;
+      const heads=(editor.get().match(/<h[1-4]\b/g)||[]).length;
+      const tables=(editor.get().match(/<table\b/g)||[]).length;
+      const kept=[ heads?`${heads} heading${heads===1?'':'s'}`:'',
+                   lists?`${lists} list${lists===1?'':'s'}`:'',
+                   tables?`${tables} table${tables===1?'':'s'}`:'' ].filter(Boolean).join(' · ');
+      if(report.ok){
+        rep(`<span style="color:var(--color-neutral-700)">Converted <b>${t.length.toLocaleString()}</b> characters${kept?` — ${kept} kept`:''}${res.via==='text'?' · pasted as plain text (the source offered no formatting)':''}. <b>Preview</b> it before saving.</span>`);
+      } else {
+        rep(`<span style="display:block;border:1px solid #e6c9c1;background:rgba(176,69,60,.06);border-radius:4px;padding:8px 10px;color:#8f322b">
+          <b>That did not come across properly.</b> ${_tplEsc(report.reason)}
+          Paste it again, or <button type="button" id="ct-fallback" style="border:0;background:none;padding:0;font:inherit;font-weight:600;color:#8f322b;text-decoration:underline;cursor:pointer">use the plain-text version instead</button> — you will lose the formatting but keep every word.</span>`);
+        document.getElementById('ct-fallback')?.addEventListener('click',()=>{
+          editor.set(textToRich(res.plain||''));
+          pasted={ ...res, via:'text' };
+          report={ ok:true, reason:'' };
+          rep('<span style="color:var(--color-neutral-700)">Using the plain-text version — every word is there, the formatting is not.</span>');
+        });
+      }
+      markEmpty();
+    },
+  });
+  markEmpty();
+  setTimeout(()=>editor.focus(),60);
+
+  document.getElementById('ct-clear').addEventListener('click',()=>{ editor.set(''); pasted=null; report=null; rep(''); markEmpty(); editor.focus(); });
+  /* Preview is a toggle over the same pane, not a second modal — reopening a
+     modal would throw the editor and everything pasted into it away. It uses
+     renderDocHtml, the same renderer the workspace and the counterparty portal
+     use, so what is previewed is what everyone downstream will see. */
+  let previewing=false;
+  const pv=document.getElementById('ct-previewpane'), pvBtn=document.getElementById('ct-preview');
+  pvBtn.addEventListener('click',()=>{
+    if(previewing){ previewing=false; pv.style.display='none'; host.style.display=''; pvBtn.textContent='Preview'; editor.focus(); return; }
+    const html=editor.get();
+    if(!richToText(html).trim()){ st('<span style="color:#8f322b">Nothing to preview yet.</span>'); return; }
+    pv.innerHTML=renderDocHtml(html, RICH_FORMAT);
+    previewing=true; pv.style.display=''; host.style.display='none'; pvBtn.textContent='Back to editing'; st('');
+  });
+
+  /* ---- save ---- */
+  document.getElementById('ct-save').addEventListener('click',async()=>{
+    const name=document.getElementById('ct-name').value.trim();
+    const folder=document.getElementById('ct-folder').value;
     if(!name){ toast('Give the template a name','err'); return; }
-    if(!file){ toast('Choose a file','err'); return; }
+
+    if(tab==='paste'){
+      const html=editor.get();
+      const text=richToText(html);
+      if(!text.trim()){ st('<span style="color:#8f322b">Paste the contract into the box first.</span>'); return; }
+      if(text.length<40){ st('<span style="color:#8f322b">That is too short to be a template — paste the whole document.</span>'); return; }
+      if(report && !report.ok && !confirm(`The conversion looks incomplete: ${report.reason}\n\nSave it anyway?`)) return;
+      const found=detectBlanks(text);
+      let extra={ format:RICH_FORMAT, chars:text.length };
+      if(found.length && confirm(`This template already marks ${found.length} blank${found.length===1?'':'s'} ([BRACKETS], {{curly}} or ____). Turn them into fill-in fields now? You can edit them afterwards.`)){
+        // the markers are literal text, so they substitute inside the markup
+        const r=convertDetectedBlanks(html, found.filter(d=>html.includes(d.raw)));
+        extra={ ...extra, fields:r.fields, body:r.body };
+      }
+      const rec=saveTemplateRecord(name, folder, html, 'paste', extra);
+      closeModal();
+      toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters, formatting kept${extra.fields?`, ${extra.fields.length} blank${extra.fields.length===1?'':'s'} detected`:''}`);
+      if(state.view==='templates') renderTemplatesPage();
+      updateSidebarCounts();
+      if(extra.fields) setTimeout(()=>openBlanksEditor(rec.id), 120);
+      return;
+    }
+
+    /* ---- the secondary route: a file ---- */
+    const file=document.getElementById('ct-file').files[0];
+    if(!file){ st('<span style="color:#8f322b">Choose a file.</span>'); return; }
     if(file.size>UPLOAD_MAX){ toast('File is over the 4 MB limit','err'); return; }
-    st.textContent='Reading file…';
+    st('Reading file…');
     try{
       const dataUrl=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
       // Word is refused on the bytes, not the extension — nothing is saved.
       if(detectWordFile(dataUrl, file.type||'', file.name)){
-        st.innerHTML=`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)}</span>`; return; }
-      st.textContent='Extracting text…';
+        st(`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
+      st('Extracting text…');
       let text=await extractDocText(dataUrl, file.type||'');
       // a scanned standard-form contract is still a usable template once read
       if(ocrNeeded(file.type||'', text)){
-        st.textContent='This looks like a scan — reading it with OCR…';
+        st('This looks like a scan — reading it with OCR…');
         const ocr=await ocrDocument(dataUrl, file.type||'', {
-          onProgress:(done,total,tier)=>{ st.textContent=`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`; } });
+          onProgress:(done,total,tier)=>{ st(`Reading page ${Math.min(done+1,total)} of ${total}${tier==='local'?' (offline recogniser)':''}…`); } });
         if(ocr.text) text=ocr.text;
       }
-      if(!text||text.length<40){ st.innerHTML='<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, or re-scan it at a higher resolution.</span>'; return; }
-      // auto-detect blanks the paper already carries — [BRACKETS], {{curly}} or
-      // a labelled run of underscores. Pure regex, so it works in static mode.
+      if(!text||text.length<40){ st('<span style="color:#8f322b">Could not extract readable text from this file — try a text-based PDF, re-scan it at a higher resolution, or paste the document instead.</span>'); return; }
       const found=detectBlanks(text);
       let extra=null;
       if(found.length && confirm(`This template already marks ${found.length} blank${found.length===1?'':'s'} ([BRACKETS], {{curly}} or ____). Turn them into fill-in fields now? You can edit them afterwards.`)){
         const r=convertDetectedBlanks(text, found);
         extra={ fields:r.fields, body:r.body };
       }
-      const rec=saveTemplateRecord(name, document.getElementById('ut-folder').value, text, 'upload:'+file.name, extra);
+      const rec=saveTemplateRecord(name, folder, text, 'upload:'+file.name, extra);
       closeModal();
       toast(`Template “${name}” saved — ${text.length.toLocaleString()} characters${extra?`, ${extra.fields.length} blank${extra.fields.length===1?'':'s'} detected`:''}`);
       if(state.view==='templates') renderTemplatesPage();
-      // straight into the editor so the blanks are reviewed while it is fresh
+      updateSidebarCounts();
       if(extra) setTimeout(()=>openBlanksEditor(rec.id), 120);
-    }catch(e){ st.innerHTML='<span style="color:#8f322b">Extraction failed: '+_tplEsc(e.message)+'</span>'; }
+    }catch(e){ st('<span style="color:#8f322b">Extraction failed: '+_tplEsc(e.message)+'</span>'); }
   });
+
+  paint();
 }
+/* Kept as the old name so nothing that calls it breaks; it now opens the
+   Create-template modal on its file tab. */
+const openUploadTemplateModal = () => openCreateTemplateModal('upload');
 
 /* Import one of the bundled HaTi sample PDFs as a custom template. */
 async function importHatiSample(i, btn){
@@ -608,11 +750,11 @@ function renderTemplatesPage(){
         <h4 style="${H4}">My templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${my.length} saved</span>
         <span style="flex:1"></span>
-        ${canManage?`<button id="tpl-upload" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('upload','w-3.5 h-3.5')} Upload a template</button>`:''}
+        ${canManage?`<button id="tpl-upload" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Create template</button>`:''}
       </div>
       ${my.length
         ?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${myCards}</div>`
-        :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">No custom templates yet. <b>Upload</b> your company's standard paper here, <b>import</b> a HaTi sample below, or open any contract and use <b>Save as template</b> in its workspace toolbar. Saved templates appear in the + New contract menu.</p>`}
+        :`<p style="font-size:12px;color:var(--color-neutral-600);margin:0;line-height:1.6">No custom templates yet. <b>Create</b> one by pasting your company's standard paper straight out of Word, <b>import</b> a HaTi sample below, or open any contract and use <b>Save as template</b> in its workspace toolbar. Saved templates appear in the + New contract menu.</p>`}
     </section>
 
     <section style="${CARD};padding:16px">
@@ -632,7 +774,7 @@ function renderTemplatesPage(){
     </section>
   </div>`;
 
-  document.getElementById('tpl-upload')?.addEventListener('click',openUploadTemplateModal);
+  document.getElementById('tpl-upload')?.addEventListener('click',()=>openCreateTemplateModal('paste'));
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
   document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',async()=>{
@@ -706,4 +848,4 @@ function renderPlaybookPage(){
   setActiveNav('playbook');
 }
 
-Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+Object.assign(window,{HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

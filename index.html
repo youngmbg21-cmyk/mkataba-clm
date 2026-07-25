@@ -337,6 +337,16 @@
   .hati-doc .hati-field{background:var(--color-accent-100);
     border-bottom:1px solid var(--color-accent-400);padding:0 3px;border-radius:2px;}
 
+  /* the paste/edit surface — a contenteditable, because a textarea can only
+     ever hold plain text, which is the thing we are trying to stop losing */
+  .hati-editor{outline:none;overflow-y:auto;
+    border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:5px;padding:14px 16px;}
+  .hati-editor:focus{border-color:var(--color-accent);box-shadow:var(--focus);}
+  .hati-editor:empty::before,
+  .hati-editor[data-empty="1"]::before{content:attr(data-placeholder);
+    color:var(--color-neutral-500);pointer-events:none;display:block;}
+
   /* PDF export — print only the prepared document */
   #print-root{display:none;}
   @media print{

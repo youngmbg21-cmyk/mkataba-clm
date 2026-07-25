@@ -4,6 +4,7 @@ import './components.js';
 import './templates.js';
 import './core.js';
 import './richdoc.js';
+import './richpaste.js';
 import './api.js';
 import './advice.js';
 import './metadata.js';

@@ -612,3 +612,83 @@ document's `format` is reset and the audit entry says why.
 
 **How it was verified.** Manual walk-through in the browser plus a test that
 marking and then unmarking placeholders round-trips to the identical body.
+
+### 7. The sanitiser let anything nested inside an unwrapped wrapper through untouched
+
+**What was broken.** `_sanitizeNode()` iterated a **snapshot** of the child list
+(`Array.from(node.childNodes)`) taken before the walk. Unwrapping a
+non-allowlisted element — `<div>`, `<font>`, `<section>`, `<a>` — hoists its
+children into that same list, *after* the snapshot was taken, so those children
+were never visited. `<font><script>…</script></font>` therefore passed straight
+through the sanitiser with the script intact.
+
+**How it was found.** Pasting real Microsoft Word clipboard HTML. Word wraps
+everything in `<div class=WordSection1>`, so the entire document came back with
+its `class`, `style`, `<b>` and `<i>` untouched — visibly wrong output that,
+traced back, turned out to be a hole rather than a cosmetic bug.
+
+**The fix.** The walk now uses a **live cursor** instead of a snapshot, and
+`_unwrap()` returns the node the walk must resume at — the first hoisted child.
+Everything that was inside an unwrapped element is now checked exactly as if it
+had been there all along.
+
+**Files touched.** `js/richdoc.js`.
+
+**How it was verified.** A regression test that nests hostile content one level
+deeper than the original test did: a `<script>` inside `<font>`, an `onclick`
+plus inline `style` inside `<div><section><span>`, a `javascript:` link with an
+`onerror` image inside `<article>`, and an `<iframe>` inside
+`<center><marquee>`. All markup is stripped, all four pieces of text survive,
+and inserting the result into the live DOM yields zero
+`script/iframe/img/style/form/a` nodes.
+
+### 8. Word's clause numbering would have been dropped on paste
+
+**What was broken.** Word does not emit `<ol>`. It emits a run of ordinary
+paragraphs carrying `mso-list:l0 level1 lfo1` in their `style`, each opening
+with `<span style='mso-list:Ignore'>1.</span>` — and *that span's text is the
+literal clause number*. Every naive Word-paste cleaner strips those spans as
+noise. Doing so here would have turned a numbered contract into an unnumbered
+one: "1. Appointment" becomes "Appointment", with nothing to reconstruct it
+from. A legal document is its clause numbers.
+
+**The fix.** `_pasteWordLists()` in the new `js/richpaste.js` groups consecutive
+`mso-list` paragraphs, reads the level from `level(\d+)` and the marker from the
+`mso-list:Ignore` span, and rebuilds real nested `<ol>`/`<ul>` — carrying `type`
+(`1`/`a`/`A`/`i`/`I`) and `start` across, so a schedule that begins at clause 8
+still begins at 8. The literal marker span is removed only *after* the list that
+regenerates it exists.
+
+Where the marker cannot be modelled as a list at all — Word's multi-level
+"4.4.2" style, or anything unrecognised — the run is **left as paragraphs with
+the literal number kept as text**. A numbered paragraph is a correct document; a
+silently renumbered clause is not.
+
+**Files touched.** `js/richpaste.js` (new), `js/richdoc.js` (list projection).
+
+**How it was verified.** A test fixture of genuine Word clipboard HTML — Office
+namespaces, `MsoTitle`/`MsoHeading1`/`MsoListParagraphCxSp*` classes, `<o:p>`
+tags, `mso-list` metadata, a `MsoTableGrid` fee table and a two-column signature
+block. The conversion produces `1.`, `2.`, `a.`, `b.`, `3.` with no duplicated
+markers, keeps the table and both signature rules, flattens
+`text-transform:uppercase` and `font-variant:small-caps` into real capitals, and
+leaves no `style`, `class`, typeface, point size or colour behind. The
+"4.4.2"-style fixture keeps its literal numbers and is *not* renumbered.
+
+### 9. A dotted clause path was applied to lettered sub-lists
+
+**What was broken.** `richToText()` joined every ordered-list marker into a
+dotted path, so a sub-list the author had set as `(a)`, `(b)` came out as
+"2.a.", "2.b.". The document on screen says "a."; the projection said something
+else. Since the projection is what the diff compares, what the AI reads and what
+search matches, that is a number nobody can find in the paper.
+
+**The fix.** The dotted path is built only for **decimal** sub-lists, which is
+where legal numbering actually uses it (2 → 2.1 → 2.1.3). An `a`/`A`/`i`/`I`
+sub-list emits its own marker alone, exactly as the document renders it.
+
+**Files touched.** `js/richdoc.js`.
+
+**How it was verified.** The Word fixture's lettered sub-list projects as
+"a. Save as set out in clause 4.4." while the decimal Google Docs fixture still
+projects as "2.1.".

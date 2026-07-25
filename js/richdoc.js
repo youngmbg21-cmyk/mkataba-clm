@@ -79,19 +79,24 @@ function sanitizeRich(html){
   return root.innerHTML;
 }
 function _sanitizeNode(node){
-  // iterate over a snapshot: the walk mutates the child list
-  for(const child of Array.from(node.childNodes)){
-    if(child.nodeType===8){ child.remove(); continue; }           // comments
-    if(child.nodeType===3) continue;                               // text
-    if(child.nodeType!==1){ child.remove(); continue; }            // CDATA, PI…
+  // A LIVE cursor, not a snapshot. Unwrapping hoists an element's children into
+  // this very child list, and those children have not been checked yet — a
+  // snapshot walk would skip straight past them and let, say, the <script>
+  // inside a <font> reach storage untouched.
+  let child=node.firstChild;
+  const drop=c=>{ const n=c.nextSibling; c.remove(); return n; };
+  while(child){
+    if(child.nodeType===8){ child=drop(child); continue; }          // comments
+    if(child.nodeType===3){ child=child.nextSibling; continue; }    // text
+    if(child.nodeType!==1){ child=drop(child); continue; }          // CDATA, PI…
 
     const raw=child.tagName||'';
     // Word/Office namespaced elements (o:p, w:sdt, v:shape, m:oMath) — the tag
     // name arrives with the colon intact in HTML parsing
-    if(raw.includes(':')){ _unwrap(child); continue; }
+    if(raw.includes(':')){ child=_unwrap(child); continue; }
     const tag=raw.toUpperCase();
 
-    if(RICH_DROP.has(tag)){ child.remove(); continue; }
+    if(RICH_DROP.has(tag)){ child=drop(child); continue; }
 
     let el=child;
     const mapped=RICH_MAP[tag];
@@ -100,14 +105,15 @@ function _sanitizeNode(node){
     else if(RICH_BLOCKISH.has(tag)){
       // a <p> cannot contain blocks, so a wrapper that holds any is unwrapped;
       // one that holds only inline content becomes the paragraph it was
-      if(child.querySelector && child.querySelector(_BLOCK_SEL)){ _unwrap(child); continue; }
-      if(!(child.textContent||'').trim()){ child.remove(); continue; }
+      if(child.querySelector && child.querySelector(_BLOCK_SEL)){ child=_unwrap(child); continue; }
+      if(!(child.textContent||'').trim()){ child=drop(child); continue; }
       el=_rename(child,'P');
     }
-    else { _unwrap(child); continue; }
+    else { child=_unwrap(child); continue; }
 
     _stripAttrs(el);
     _sanitizeNode(el);
+    child=el.nextSibling;
   }
 }
 /* Replace an element with one of another tag, keeping its children. */
@@ -118,13 +124,15 @@ function _rename(el, tagName){
   el.replaceWith(next);
   return next;
 }
-/* Remove an element but keep its children in place. */
+/* Remove an element but keep its children in place. Returns the node the walk
+   must resume at — the first hoisted child, which still needs checking. */
 function _unwrap(el){
-  const parent=el.parentNode; if(!parent){ el.remove(); return; }
-  // A block wrapper being unwrapped would glue its text to the neighbours, so
-  // leave a <br> behind when it held block-ish content and had siblings.
+  const parent=el.parentNode; if(!parent){ const n=el.nextSibling; el.remove(); return n; }
+  const first=el.firstChild;
   while(el.firstChild) parent.insertBefore(el.firstChild, el);
+  const next=el.nextSibling;
   el.remove();
+  return first || next;
 }
 function _stripAttrs(el){
   const allowed=RICH_ATTRS[el.tagName]||null;
@@ -163,6 +171,16 @@ function _normaliseStructure(root){
   });
   root.querySelectorAll('td,th').forEach(cell=>{
     if(!cell.parentElement || cell.parentElement.tagName!=='TR') _rename(cell,'P');
+  });
+  // A <span> is only ever allowed to carry HaTi's own field marker. One that
+  // does not is a leftover from whatever produced the fragment — it survived
+  // the walk only because SPAN is on the tag list — and unwrapping it here
+  // keeps its text while leaving nothing behind to style or to hang meaning on.
+  root.querySelectorAll('span').forEach(sp=>{
+    if(sp.getAttribute('class')===RICH_FIELD_CLASS) return;
+    const parent=sp.parentNode; if(!parent) return;
+    while(sp.firstChild) parent.insertBefore(sp.firstChild, sp);
+    sp.remove();
   });
   // empty blocks that carry no text and no <br> add nothing but noise
   root.querySelectorAll('p,h1,h2,h3,h4,blockquote,li,span,strong,em,u,s').forEach(el=>{
@@ -238,13 +256,18 @@ function richToText(html){
       if(tag==='BR'){ flush(); continue; }
       if(tag==='OL'||tag==='UL'){
         flush();
+        // A DECIMAL sub-list continues its parent's numbering — 2 → 2.1 → 2.1.3
+        // — because that is how a legal document numbers its clauses. A sub-list
+        // the author set as (a)/(i) does NOT: the document shows "a.", so the
+        // projection must say "a." too, or the diff and the model would be
+        // reading numbers nobody can find in the paper.
+        const dotted = tag==='OL' && !['a','A','i','I'].includes(ch.getAttribute('type')||'');
         let i=0;
         for(const li of Array.from(ch.children)){
           if(li.tagName!=='LI') continue;
           const mark = tag==='OL' ? marker(ch, i) : '•';
-          const next = tag==='OL' ? path.concat([mark]) : path;
-          // dotted path by nesting depth: 1, 1.1, 1.1.2
-          buf += (tag==='OL' ? next.join('.')+'. ' : '• ');
+          const next = (tag==='OL' && dotted) ? path.concat([mark]) : [];
+          buf += (tag==='OL' ? (dotted ? next.join('.')+'. ' : mark+'. ') : '• ');
           walk(li, next);
           flush();
           i++;
