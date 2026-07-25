@@ -288,3 +288,65 @@ contracts can legitimately produce a very long related-match tail.
 
 **Performance:** at 1,201 register rows, index build ~360 ms and a full scan
 **~3 ms** per candidate — well inside the existing performance bar.
+
+---
+
+### 6. Amendments were standalone contracts, so the count and the reminders were both wrong
+
+**What was broken.** Every imported file became its own contract. A master
+agreement plus six addenda counted as seven agreements, and the expiry came from
+whichever document happened to be filed rather than from the amendment that
+actually changed the term. A renewal reminder therefore fired on a stale date —
+or fired seven times for one agreement.
+
+**Root cause.** There was no relationship between contracts at all: no
+`parentId`, no notion of a family, and every expiry consumer read `c.expiry` (or
+`c.metadata.expiryDate`) directly, in eight different places.
+
+**The fix.** New `js/family.js`.
+- **Data model**: `parentId` / `relation` / `relationNote`, depth capped at one,
+  cycles and self-links rejected with an explanatory message. `parent_id` is a
+  SQLite column with an index.
+- **Suggest, never auto-link**: `looksLikeAmendment()` + `suggestParents()`
+  propose a parent at import (filename/recital regex AND a counterparty match,
+  ranked by SimHash similarity and cited agreement names/dates). The proposal
+  (`Link suggested`) and the human's decision (`Link decision`) are separate
+  audit entries.
+- **Manual linking** both ways from the contract workspace, plus Unlink.
+- **`effectiveExpiry()`** and a full rollout: renewal reminders (client and
+  server), the notice-period decision deadline (which now also takes the
+  amendment's notice period), `contractRisk`, the Home attention snapshot and
+  expiry pipeline, Register filters/sort/expiry cell, Calendar, Reports and the
+  Intelligence graph.
+- **Family-aware counting**: `familyCounts()` / `agreementsIn()`, "N agreements
+  · M documents" on the Home command bar, the Register footer and the Migration
+  KPI strip; the Register groups children under their parent with a flat toggle.
+- **Sixth migration gate** `link`, shown only for documents the suggester
+  flagged.
+
+**Files touched.** `js/family.js` (new), `server/server.js`, `js/core.js`,
+`js/obligations.js`, `js/app.js`, `js/components.js`, `js/views/register.js`,
+`js/views/home.js`, `js/views/calendar.js`, `js/views/reports.js`,
+`js/views/intelligence.js`, `js/views/contract.js`, `js/views/migration.js`,
+`README.md`.
+
+**How it was verified.** In Chromium, with a master (own expiry 2026-06-30) plus
+two amendments (2027-06-30 and 2028-12-31) and one unrelated lease:
+- counts → **2 agreements · 4 documents**;
+- `effectiveExpiry(master)` → **2028-12-31**, sourced from **MK-102**, while the
+  master's own date stays 2026-06-30 and a child still speaks for itself;
+- the renewal **decision deadline** → 2028-11-01, i.e. the effective expiry minus
+  the *amendment's* 90-day notice period, not the master's 60;
+- depth-one, self-link and master-with-children link attempts all rejected with
+  their specific messages; a valid link accepted;
+- Register grouping puts both amendments under the master and the flat toggle
+  restores four independent rows;
+- the suggester flagged an "Amendment No. 3" naming the master in its recitals,
+  proposed MK-100 with its reasoning, **left `parentId` null**, and logged
+  "Not linked — awaiting a human decision".
+
+**Server-side reminders verified end to end** against a live server: a master
+expiring in exactly 90 days with a linked amendment moving the term to +400 days
+queued **zero** renewal emails; unlinking the amendment and re-running queued
+"Renewal in 90 days: Master Supply". That is precisely the defect this task
+exists to fix.

@@ -24,7 +24,7 @@ function folderFiltered(){
   if(sort==='updated') cs.sort((a,b)=>upd(b)-upd(a));
   else if(sort==='value') cs.sort((a,b)=>Number(b.value||0)-Number(a.value||0));
   else if(sort==='name') cs.sort((a,b)=>a.name.localeCompare(b.name));
-  else if(sort==='expiry') cs.sort((a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; });
+  else if(sort==='expiry') cs.sort((a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; });
   return cs;
 }
 function renderFolder(){
@@ -111,13 +111,18 @@ function renderFolder(){
 // Expiry cell: the date, plus a coloured "in Nd" / "Nd ago" hint when it's
 // close or past (only for live contracts).
 function folderExpiryCell(c){
-  if(!c.expiry) return '<span style="color:var(--color-neutral-400)">—</span>';
-  const dt=new Date(c.expiry+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  // the family-aware term: a master agreement shows the date its latest
+  // amendment set, with a note naming the amendment it came from
+  const eff=effectiveExpiry(c);
+  if(!eff) return '<span style="color:var(--color-neutral-400)">—</span>';
+  const from=window.expirySource?expirySource(c):null;
+  const dt=new Date(eff+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   let col='var(--color-neutral-700)', hint='', weight=400;
-  if(c.status!=='Declined'){ const d=daysUntil(c.expiry);
-    if(d<0){ col='#8f322b'; weight=600; hint=`${-d}d ago`; }
-    else if(d<30){ col='#8f322b'; weight=600; hint=`in ${d}d`; }
-    else if(d<=90){ col='#7d5a14'; hint=`in ${d}d`; }
+  if(from) hint=`from ${from.id}`;
+  if(c.status!=='Declined'){ const d=daysUntil(eff);
+    if(d<0){ col='#8f322b'; weight=600; hint=`${-d}d ago${from?' · from '+from.id:''}`; }
+    else if(d<30){ col='#8f322b'; weight=600; hint=`in ${d}d${from?' · from '+from.id:''}`; }
+    else if(d<=90){ col='#7d5a14'; hint=`in ${d}d${from?' · from '+from.id:''}`; }
   }
   return `<span style="color:${col};font-weight:${weight}">${dt}</span>${hint?`<span style="display:block;font-size:10px;color:${col};opacity:.85">${hint}</span>`:''}`;
 }
@@ -237,7 +242,7 @@ const REG_CMP={
   value:(a,b)=>Number(a.value||0)-Number(b.value||0),
   risk:(a,b)=>contractRisk(a)-contractRisk(b),
   name:(a,b)=>(a.name||'').localeCompare(b.name||''),
-  expiry:(a,b)=>{ const da=a.expiry?daysUntil(a.expiry):1e9, db=b.expiry?daysUntil(b.expiry):1e9; return da-db; },
+  expiry:(a,b)=>{ const ea=effectiveExpiry(a), eb=effectiveExpiry(b); const da=ea?daysUntil(ea):1e9, db=eb?daysUntil(eb):1e9; return da-db; },
   stage:(a,b)=>((REG_STAGE_ORDER[a.status]??9)-(REG_STAGE_ORDER[b.status]??9)),
 };
 // direction applied on a column's FIRST header click (1 = ascending, -1 = descending)
@@ -263,7 +268,12 @@ function regFooterText(cs){
   const start=cs.length?(p-1)*REG_PAGE+1:0, end=Math.min(cs.length,p*REG_PAGE);
   const countAll=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:state.contracts.length;
   const totalNote=cs.length!==Number(countAll)?` <span style="color:var(--color-neutral-500)">(of ${Number(countAll).toLocaleString('en-KE')} total)</span>`:'';
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote} · page ${p} of ${n} · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`;
+  // agreements vs documents — a master plus its amendments is ONE agreement
+  const fam=familyCounts(cs);
+  const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
+  const R=regState();
+  const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n} · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -284,9 +294,12 @@ function regFiltered(){
   if(R.type!=='all') cs=cs.filter(c=>c.folder===R.type);
   if(R.renewal&&R.renewal!=='all') cs=cs.filter(c=>(c.metadata&&c.metadata.renewalType)===R.renewal);
   // E3-T5 saved views (presets over metadata/obligations)
-  if(R.view==='expiring90') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=90);
-  else if(R.view==='expiring60') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=60);
-  else if(R.view==='expiring30') cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=30);
+  // family-aware: expiry views work on AGREEMENTS and on the term the latest
+  // amendment actually set, not on whatever was typed on the master
+  const expWithin=n=>c=>{ if(c.parentId||c.status==='Declined') return false; const e=effectiveExpiry(c); return !!e&&daysUntil(e)>=0&&daysUntil(e)<=n; };
+  if(R.view==='expiring90') cs=cs.filter(expWithin(90));
+  else if(R.view==='expiring60') cs=cs.filter(expWithin(60));
+  else if(R.view==='expiring30') cs=cs.filter(expWithin(30));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
@@ -298,7 +311,31 @@ function regFiltered(){
   const cmp=REG_CMP[R.sort]||REG_CMP.updated;
   const dir=(R.dir===1||R.dir===-1)?R.dir:(REG_SORT_DEFDIR[R.sort]||-1);
   cs.sort((a,b)=>{ const r=dir*cmp(a,b); return r!==0?r:((Date.parse(b.lastAction)||0)-(Date.parse(a.lastAction)||0)); });
-  return cs;
+  // FAMILY GROUPING (default). Amendments sit under their parent instead of
+  // floating as separate rows — a master agreement plus six addenda reads as
+  // one agreement with six documents, which is what it is. `flat` shows every
+  // document as its own row, which is what an auditor wants.
+  return R.flat ? cs : regGroupFamilies(cs);
+}
+/* Order the filtered set so each child follows its parent, and tag the rows the
+   renderer needs to indent / collapse. Children whose parent is not in the
+   filtered set stay where they are (they are still real results). */
+function regGroupFamilies(cs){
+  const R=regState();
+  const inSet=new Set(cs.map(c=>c.id));
+  const kidsBy=new Map();
+  for(const c of cs){ if(c.parentId&&inSet.has(c.parentId)){
+    if(!kidsBy.has(c.parentId)) kidsBy.set(c.parentId,[]); kidsBy.get(c.parentId).push(c); } }
+  const out=[];
+  for(const c of cs){
+    if(c.parentId&&inSet.has(c.parentId)) continue;      // emitted under its parent
+    c._famKids=(kidsBy.get(c.id)||[]).length;
+    c._famChild=false;
+    out.push(c);
+    const expanded = c._famKids && !(R.collapsed && R.collapsed[c.id]);
+    if(expanded) for(const k of kidsBy.get(c.id)){ k._famChild=true; k._famKids=0; out.push(k); }
+  }
+  return out;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 /* Measure the stream-filter row and fold any pills that don't fit into a
@@ -371,8 +408,9 @@ function regRowsHtml(cs){
   const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
     const risk=contractRisk(c), rp=riskPal(risk);
-    const din=c.expiry?daysUntil(c.expiry):null;
-    const renDate=c.expiry?new Date(c.expiry+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+    const eff=effectiveExpiry(c);
+    const din=eff?daysUntil(eff):null;
+    const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
     const renIn=din==null?'':(din<0?Math.abs(din)+'d over':'in '+din+'d');
     // urgency colour: red under 30 days (and overdue), gold under 90, else neutral
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
@@ -385,9 +423,9 @@ function regRowsHtml(cs){
     <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td style="padding-left:12px;border-left:4px solid ${folderColor(c)}" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
       <td style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
-      <td style="max-width:230px">
-        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cPrimary(c)}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cSecondary(c)}</span>
+      <td style="max-width:230px${c._famChild?';padding-left:22px':''}">
+        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px" title="${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}">↳ </span>`:''}${cPrimary(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:999px;font:inherit;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}`:cSecondary(c)}</span>
       </td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${folderColor(c)};flex:none"></span>${streamLabel(c)}</span></td>
       <td><span style="width:22px;height:22px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700" title="${ownerT}">${ini}</span></td>
@@ -413,7 +451,8 @@ function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary
 function renderRegisterBody(){
   const cs=regFiltered();
   const tb=document.getElementById('reg-tbody'); if(tb){ tb.innerHTML=regRowsHtml(cs); wireRegRows(); }
-  const sh=document.getElementById('reg-showing'); if(sh) sh.innerHTML=regFooterText(cs);
+  const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
+    document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   renderRegSelBar();
 }
@@ -426,6 +465,12 @@ function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]'
 function wireRegRows(){
   // whole-row click opens the contract's workspace
   document.querySelectorAll('#reg-tbody [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
+  // expand / collapse an agreement's linked documents
+  document.querySelectorAll('#reg-tbody [data-fam-toggle]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation(); const R=regState(); const id=b.getAttribute('data-fam-toggle');
+    R.collapsed=R.collapsed||{}; if(R.collapsed[id]) delete R.collapsed[id]; else R.collapsed[id]=true;
+    renderRegisterBody();
+  }));
   document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
   // ⋯ popover: toggle one open at a time
   document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open) pop.style.display='flex'; }));

@@ -76,7 +76,10 @@ function renderDashboard(){
   const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
   const stageTotal=stages.reduce((s,x)=>s+x.n,0)||1;
 
-  const expiring=cs.filter(c=>c.expiry&&c.status!=='Declined').map(c=>({c,d:dU(c.expiry)})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+  // family-aware: a master agreement's real end date is whatever the latest
+  // amendment says, and an amendment is not itself an expiring agreement
+  const expiring=agreementsIn(cs).map(c=>({c,e:effectiveExpiry(c)})).filter(x=>x.e&&x.c.status!=='Declined')
+    .map(x=>({c:x.c,d:dU(x.e),e:x.e})).filter(x=>x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
   // renewal decisions due (expiry − notice period), within 90 days, live contracts only
   const rdd=window.renewalDecisionDate||(()=>null);
   const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
@@ -159,10 +162,10 @@ function renderDashboard(){
   // ---- renewal pipeline (6 mo) ----
   const now=new Date(); const months=[];
   for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString('en-KE',{month:'short'}),v:0}); }
-  cs.forEach(c=>{ if(!c.expiry||c.status==='Declined') return; const t=Date.parse(c.expiry); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b) b.v+=Number(c.value||0); });
+  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const t=Date.parse(e); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b) b.v+=Number(c.value||0); });
   const pipeMax=Math.max(1,...months.map(x=>x.v));
   const pipeTotal=months.reduce((s,x)=>s+x.v,0);
-  const pipeCount=cs.filter(c=>{ if(!c.expiry||c.status==='Declined') return false; const t=Date.parse(c.expiry); if(isNaN(t)) return false; const d=new Date(t); return months.some(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); }).length;
+  const pipeCount=agreementsIn(cs).filter(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return false; const t=Date.parse(e); if(isNaN(t)) return false; const d=new Date(t); return months.some(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); }).length;
   const pipeBars=months.map(x=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>

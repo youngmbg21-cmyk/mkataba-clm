@@ -5,7 +5,9 @@ const OBLIG_RECUR = [['none','One-off'],['monthly','Monthly'],['quarterly','Quar
 /* The date by which a renewal decision must be made: expiry minus the notice
    period (from E1 metadata). Null when we don't know both. */
 function renewalDecisionDate(c){
-  const expiry = (c.metadata&&c.metadata.expiryDate) || c.expiry;
+  // family-aware: if a later amendment moved the term, the decision deadline
+  // moves with it (window.effectiveExpiry — family.js loads after this module)
+  const expiry = (window.effectiveExpiry?effectiveExpiry(c):null) || (c.metadata&&c.metadata.expiryDate) || c.expiry;
   const notice = c.metadata&&Number(c.metadata.noticePeriodDays)||0;
   if(!expiry) return null;
   if(!notice) return expiry;                 // no notice period known — decide by expiry

@@ -216,6 +216,42 @@ index is built from the light register rows the client already holds — no
 document body is ever loaded to compare. Measured at 1,201 rows: index build
 ~360 ms, full scan **~3 ms** per candidate.
 
+### Contract families (amendments and their parent agreement)
+
+A real portfolio is one master agreement plus six addenda. Treated as seven
+standalone contracts, HaTi counted seven agreements and pulled the expiry from
+whichever document happened to be filed — so both the portfolio count and the
+renewal reminders were wrong.
+
+- **Data model**: `c.parentId`, `c.relation` (`amendment` · `addendum` ·
+  `variation` · `renewal` · `sow` · `annex` · `side-letter`) and
+  `c.relationNote`. **Maximum depth is one** — children cannot have children,
+  and cycles are rejected with an explanatory message. Deliberately not a tree.
+- **Suggest, never auto-link.** At import HaTi proposes a parent when the
+  filename or opening text matches
+  `/amendment|addendum|variation|annex|schedule \d|side letter|renewal of|supplemental/i`
+  **and** the normalised counterparty matches an existing contract, ranked by
+  SimHash similarity and by any agreement name or date the recitals cite. A
+  human confirms. The suggestion and the human's decision are two separate audit
+  entries, so the trail never claims a person confirmed a machine's guess.
+- **Manual linking** from any contract workspace ("Link to a parent agreement")
+  and the reverse from a parent ("Add an amendment"), plus Unlink.
+- **Family-aware term resolution** — `effectiveExpiry(contract)`. A parent's
+  expiry is the one set by the most recent term-changing amendment; a child
+  speaks only for itself. **Every** consumer goes through it: the renewal
+  reminders (90/60/30 **and** the notice-period decision deadline, which also
+  picks up the amendment's own notice period), `contractRisk`, the Home
+  attention snapshot and expiry pipeline, the Register (filters, sort, expiry
+  cell — which names the amendment the date came from), the Calendar, Reports
+  and the Portfolio Intelligence graph. The server's reminder job mirrors the
+  same rule, so an amendment never fires its own renewal reminder.
+- **Family-aware counting.** KPIs count agreements, not files, and show both:
+  *"312 agreements · 418 documents"*. The Register groups amendments under their
+  parent by default (expandable per row) with a **flat list** toggle.
+- **Migration gate.** A sixth gate, *"Linked or confirmed standalone"*, appears
+  **only** on documents the suggester flagged — no decision is forced on
+  contracts that never looked like amendments.
+
 ### AI model routing (Team & Settings)
 
 Each AI task runs on one of two capability tiers, resolved per request. Admins can override either tier — or force one model everywhere — from **Team & Settings → AI engine → Model routing** (stored server-side; never returned to the browser). `GET /api/ai/config` reports the resolved model for each tier.

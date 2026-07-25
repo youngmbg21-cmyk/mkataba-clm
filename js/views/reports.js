@@ -36,12 +36,12 @@ function computeReports(){
   const topParty=Object.entries(byParty).sort((a,b)=>b[1]-a[1]).slice(0,8);
   // renewal pipeline value next 12 months (by month)
   const pipeline={};
-  active.forEach(c=>{ const exp=(c.metadata&&c.metadata.expiryDate)||c.expiry; if(!exp) return; const d=daysUntil(exp); if(d>=0&&d<=365){ const k=exp.slice(0,7); pipeline[k]=(pipeline[k]||0)+Number(c.value||0); } });
+  agreementsIn(active).forEach(c=>{ const exp=effectiveExpiry(c); if(!exp) return; const d=daysUntil(exp); if(d>=0&&d<=365){ const k=exp.slice(0,7); pipeline[k]=(pipeline[k]||0)+Number(c.value||0); } });
   // extra portfolio aggregates so report cards aren't forced to track value
   const totalValue=active.reduce((s,c)=>s+Number(c.value||0),0);
   const pipeTotal=Object.values(pipeline).reduce((a,b)=>a+b,0);
   const pipeMonthsN=Object.keys(pipeline).length;
-  const expiring90=cs.filter(c=>{ const exp=(c.metadata&&c.metadata.expiryDate)||c.expiry; return exp&&c.status!=='Declined'&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
+  const expiring90=agreementsIn(cs).filter(c=>{ const exp=effectiveExpiry(c); return exp&&c.status!=='Declined'&&daysUntil(exp)>=0&&daysUntil(exp)<=90; }).length;
   const risks=cs.map(c=>contractRisk(c)).filter(n=>typeof n==='number'&&!isNaN(n));
   const avgRisk=risks.length?risks.reduce((a,b)=>a+b,0)/risks.length:null;
   const highRisk=cs.filter(c=>contractRisk(c)>=70).length;

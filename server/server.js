@@ -2158,7 +2158,27 @@ function runReminders() {
   const nudged = runShareNudges();
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
-  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,json FROM contracts WHERE status!='Declined'").all();
+  const rows = db.prepare("SELECT id,name,counterparty,expiry,status,parent_id,json FROM contracts WHERE status!='Declined'").all();
+  // Family-aware term resolution, mirrored from js/family.js. A master
+  // agreement's real end date is whatever the most recent term-changing
+  // amendment says; an amendment is not itself a renewable agreement, so it
+  // never fires its own reminder. Getting this wrong is the whole defect.
+  const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
+  const parsed = new Map();
+  for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const ownExp = (r) => { const f = parsed.get(r.id) || {}; return (f.metadata && f.metadata.expiryDate) || r.expiry || null; };
+  const amendDate = (r) => { const f = parsed.get(r.id) || {};
+    return (f.metadata && f.metadata.effectiveDate) || (f.fields && f.fields.effDate) ||
+      (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
+  const kidsOf = new Map();
+  for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
+  const effExpiry = (r) => {
+    if (r.parent_id) return ownExp(r);
+    const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation) && ownExp(k));
+    if (!kids.length) return ownExp(r);
+    kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
+    return ownExp(kids[kids.length - 1]);
+  };
   const admins = db.prepare("SELECT email FROM users WHERE role='admin'").all().map(u => u.email);
   if (!admins.length) return { checked: 0, queued: nudged };
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -2172,9 +2192,11 @@ function runReminders() {
   let queued = nudged, checked = 0;
   for (const c of rows) {
     checked++;
-    let full = {}; try { full = JSON.parse(c.json) || {}; } catch (_) {}
+    const full = parsed.get(c.id) || {};
     const meta = full.metadata || {};
-    const expiry = meta.expiryDate || c.expiry;
+    // an amendment does not fire its own renewal reminder — its parent does,
+    // using the term the amendment set
+    const expiry = c.parent_id ? null : effExpiry(c);
     // 1) expiry milestones (90/60/30)
     if (expiry) {
       const days = daysTo(expiry);
@@ -2183,8 +2205,11 @@ function runReminders() {
         `Renewal in ${ms} days: ${c.name}`,
         `"${c.name}" (${c.id}) with ${c.counterparty || 'a counterparty'} expires on ${expiry} — ${ms} days away. Review it in HaTi to renew or let it lapse.`,
         `renewal ${ms}d: ${c.name}`)) queued++;
-      // 2) renewal DECISION deadline (expiry minus notice period) at 14/7/1 days
-      const notice = Number(meta.noticePeriodDays) || 0;
+      // 2) renewal DECISION deadline (expiry minus notice period) at 14/7/1 days.
+      // If an amendment set the term, its notice period governs too.
+      const termSetter = (kidsOf.get(c.id) || []).find(k => ownExp(k) === expiry);
+      const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : meta;
+      const notice = Number(termMeta.noticePeriodDays) || Number(meta.noticePeriodDays) || 0;
       if (notice > 0) {
         const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - notice);
         const ddIso = dd.toISOString().slice(0, 10); const ddDays = daysTo(ddIso);

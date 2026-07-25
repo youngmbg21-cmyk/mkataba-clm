@@ -158,14 +158,21 @@ const riskPal  = r => RISK_PAL[riskBand(r)];
 // (display only — never persisted, never alters data flow or logic).
 function contractRisk(c){
   if(!c) return 0;
+  // family-aware: a master agreement whose term was extended by an amendment is
+  // not the near-expiry risk its own stale date suggests, and one whose
+  // amendment SHORTENED the term is more urgent than the master says.
+  const eff=(window.effectiveExpiry?effectiveExpiry(c):null);
+  const expiryPressure=(()=>{ if(!eff||c.status==='Declined') return 0;
+    const d=(window.daysUntil?daysUntil(eff):null); if(d==null) return 0;
+    return d<0?24:d<=30?18:d<=90?9:0; })();
   const open=(window.openFindings?openFindings(c):[]);
-  if(open.length){ const w={high:34,med:16,low:7}; return Math.min(98, 22 + open.reduce((a,f)=>a+(w[f.sev]||8),0)); }
+  if(open.length){ const w={high:34,med:16,low:7}; return Math.min(98, 22 + expiryPressure + open.reduce((a,f)=>a+(w[f.sev]||8),0)); }
   let h=0; const seed=(c.id||'')+'|'+(c.counterparty||'')+'|'+(c.status||'');
   for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0;
   let base = 8 + (h % 70);
   if(c.status==='Declined') base = 62 + (h%36);
   else if(c.status==='Signed') base = Math.min(base, 46);
-  return base;
+  return Math.min(98, base + expiryPressure);
 }
 // small risk chip: "R nn" in the band colour
 const riskChip = (r,withR=true) => { const p=riskPal(r); return `<span class="badge tnum" style="background:${p.bg};color:${p.fg}">${withR?'R ':''}${r}</span>`; };

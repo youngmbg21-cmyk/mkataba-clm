@@ -53,7 +53,14 @@ function commandMeta(view){
   const m=(window.metrics?metrics():{totalValue:0});
   const totalV=fmtKESshort(m.totalValue||0);
   switch(view){
-    case 'dashboard': return ['Portfolio', `${count.toLocaleString('en-KE')} contracts under management · ${totalV} active value`];
+    case 'dashboard': {
+      // agreements, not files: a master agreement plus six addenda is ONE
+      const fam=(window.familyCounts?familyCounts(cs):{agreements:count,documents:count,amendments:0});
+      const head=fam.amendments
+        ? `${fam.agreements.toLocaleString('en-KE')} agreements · ${fam.documents.toLocaleString('en-KE')} documents`
+        : `${count.toLocaleString('en-KE')} contracts under management`;
+      return ['Portfolio', `${head} · ${totalV} active value`];
+    }
     case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
     case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];

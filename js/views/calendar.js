@@ -15,7 +15,7 @@ function calendarEvents(){
   const out=[];
   state.contracts.forEach(c=>{
     if(c.status!=='Declined'){
-      const exp=(c.metadata&&c.metadata.expiryDate)||c.expiry;
+      const exp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
       if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
       const dd=renewalDecisionDate(c);
       if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });

@@ -743,7 +743,8 @@ function igRankCard(r,i){
 }
 function igExplainCard(id){
   const c=getContract(id); if(!c) return '';
-  const d=c.expiry?daysUntil(c.expiry):null;
+  const eff=(window.effectiveExpiry?effectiveExpiry(c):null)||c.expiry;
+  const d=eff?daysUntil(eff):null;
   const row=(k,v)=>`<div class="flex justify-between gap-3 text-[11.5px] py-0.5"><span class="text-ink/45">${k}</span><span class="text-right text-brand-900 font-medium truncate">${v}</span></div>`;
   return `
   <div class="rounded-xl border border-brand-100 bg-white p-3" data-ig-hoverid="${c.id}">

@@ -43,7 +43,13 @@ function migGates(c){
     { k:'folder', label:'Filed in a stream',    ok: !!FOLDERS[c.folder] },
     { k:'term',   label:'Expiry or evergreen',  ok: !!(c.expiry || m.expiryDate || m.renewalType==='evergreen') },
     { k:'review', label:'Details confirmed',    ok: !(c.migration&&c.migration.needsReview) },
-  ];
+  ].concat(
+    // Sixth gate — only for documents the suggester actually flagged as looking
+    // like an amendment. Forcing a link decision on every contract would be
+    // noise; forcing it on the ones that read like addenda is the point.
+    (c.linkSuggestions&&c.linkSuggestions.length)
+      ? [{ k:'link', label:'Linked or confirmed standalone', ok: !!(c.parentId||c.linkConfirmed) }]
+      : []);
 }
 const migComplete = c => migGates(c).every(g=>g.ok);
 
@@ -317,6 +323,14 @@ async function migBuildAndSave(ctx){
   // A human chose to file this as an amendment of an existing agreement.
   if(link&&link.parentId) applyParentLink(c, link.parentId, link.relation||'amendment',
     link.note||`Linked at import — flagged as a possible duplicate of ${link.parentId}`, u);
+  else if(ctx.suggest){
+    // suggest, never auto-link: the proposal and the human's decision are two
+    // separate audit entries, so the trail never claims a person confirmed
+    // something the machine guessed
+    const props=suggestParents({ counterparty:c.counterparty, text:extractedText,
+      simhash:upload.simhash, excludeId:c.id });
+    if(props.length){ logLinkSuggestion(c, props); c.relationGuess=guessRelation(file.name, extractedText); }
+  }
   state.contracts.unshift(c);
   persist(c);
   return c;
@@ -463,7 +477,10 @@ async function migProcessFiles(fileList, opts={}){
         flagged++; continue;
       }
       const c=await migBuildAndSave({ file, mime, dataUrl, manifest, meta, upload, ocr,
-        textSource, readable, extractedText, batch, u, link: opts.link });
+        textSource, readable, extractedText, batch, u, link: opts.link,
+        // propose a parent when this reads like an amendment AND the
+        // counterparty matches — a human confirms on the review screen
+        suggest: looksLikeAmendment(file.name, extractedText) });
       q.id=c.id; saved++;
       migIndexContract(c, upload); byHash.set(upload.fileHash, c.id);
       await migDrawAllowanceDoc();
@@ -633,6 +650,8 @@ function migAllowanceHtml(){
 function migKpis(){
   const cs=migContracts();
   return { total:cs.length,
+    agreements:cs.filter(c=>!c.parentId).length,
+    linkPending:cs.filter(c=>c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed).length,
     complete:cs.filter(migComplete).length,
     review:cs.filter(c=>c.migration.needsReview).length,
     blocked:cs.filter(c=>c.migration.blocked).length };
@@ -764,10 +783,11 @@ function renderMigration(){
 
       <!-- KPI strip -->
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${kpi(k.total,'Contracts migrated')}
+        ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:13px;color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?'Contracts migrated':'Agreements · documents')}
         ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'#1e6b4d':undefined)}
         ${kpi(k.review,'Need review', k.review?'#7d5a14':'#1e6b4d')}
         ${kpi(k.blocked,'No readable text', k.blocked?'#8f322b':'#1e6b4d')}
+        ${k.linkPending?kpi(k.linkPending,'Link decision waiting','#7d5a14'):''}
         ${recon?kpi(`${recon.matched}/${M.manifest.length}`,'Manifest matched', recon.matched===M.manifest.length?'#1e6b4d':'#7d5a14'):''}
       </div>
 
@@ -827,7 +847,7 @@ function renderMigration(){
                 return `<tr data-row="${c.id}" style="cursor:pointer">
                 <td style="padding-left:12px;font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
                 <td style="max-width:250px">
-                  <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.name)}</span>
+                  <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10.5px">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId} · </span>`:''}${migEsc(c.name)}</span>
                   <span style="display:block;font-size:10.5px;color:${c.counterparty?'var(--color-neutral-600)':'#8f322b'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>
                 </td>
                 <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap">${streamLabel(c)}</td>
@@ -838,6 +858,7 @@ function renderMigration(){
                   ${c.migration.blocked?`<span style="display:block;font-size:9.5px;color:#8f322b">no readable text${c.migration.ocrTotalPages?' (OCR tried)':''}</span>`:need?`<span style="display:block;font-size:9.5px;color:#7d5a14">${c.migration.aiSource==='ai'?'low-confidence fields':'pattern-matched only'}</span>`:''}
                   ${isOcrText(c.migration.textSource)?`<span style="display:block;font-size:9.5px;color:#7d5a14" title="${migEsc(ocrProvenanceLine(c.upload||c.migration))}">machine-read from a scan${c.migration.ocrSkippedPages?` · ${c.migration.ocrSkippedPages} page${c.migration.ocrSkippedPages===1?'':'s'} skipped`:''}</span>`:''}</td>
                 <td style="text-align:right;padding-right:12px;white-space:nowrap" onclick="event.stopPropagation()">
+                  ${(c.linkSuggestions&&c.linkSuggestions.length&&!c.parentId&&!c.linkConfirmed&&canEdit())?`<button data-mig-link="${c.id}" class="ui-btn" style="font-size:11px;padding:3.5px 10px;border-color:var(--color-accent);color:var(--color-accent-800)">Link?</button>`:''}
                   ${need&&canEdit()?`<button data-mig-review="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">Review</button>`:''}
                   <button data-open="${c.id}" class="ui-btn" style="font-size:11px;padding:3.5px 10px">Open</button>
                 </td>
@@ -889,6 +910,7 @@ function renderMigration(){
   document.getElementById('mig-sheet-in')?.addEventListener('click',()=>sf.click());
   sf?.addEventListener('change',()=>{ if(sf.files[0]) migImportSheet(sf.files[0]); });
   document.querySelectorAll('[data-mig-review]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-review')); if(c) openMigReview(c); }));
+  document.querySelectorAll('[data-mig-link]').forEach(b=>b.addEventListener('click',()=>{ const c=getContract(b.getAttribute('data-mig-link')); if(c) openLinkModal(c, ()=>renderMigration()); }));
   document.querySelectorAll('.mig-table [data-row]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-row'))));
   wireOpens(document.getElementById('content'));
   renderMigQueue();

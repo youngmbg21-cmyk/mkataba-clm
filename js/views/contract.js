@@ -1533,6 +1533,7 @@ function renderWorkspace(){
 
               <!-- AUDIT (the record) -->
               <div data-inner-pane="audit" style="display:none;flex-direction:column;gap:12px">
+                <div id="family-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
                 <div id="audit-section" style="${CARD};overflow:hidden"></div>
               </div>
 
@@ -1550,7 +1551,7 @@ function renderWorkspace(){
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderInsertClauseSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderInsertClauseSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   wireDocResizer();   // draggable divider — contract can grow up to +25%, never below default
   // rehydrate a server-stored uploaded file's bytes for preview/download
