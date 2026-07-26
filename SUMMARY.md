@@ -9,6 +9,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 3a — Signing capacity follow-up (2026-07-26)](#run-3a--signing-capacity-follow-up-2026-07-26)
 - [Run 4 — Word (.docx) Round-Trip (2026-07-26)](#run-4--word-docx-round-trip-2026-07-26)
 - [Run 5 — UX-review remediation: the negotiation loop (2026-07-26)](#run-5--ux-review-remediation-the-negotiation-loop-2026-07-26)
+- [Run 6 — The counterparty's side (2026-07-26)](#run-6--the-counterpartys-side-2026-07-26)
 
 ---
 
@@ -1379,3 +1380,127 @@ still ships no libraries to the browser.
 name containing "&" would have been displayed to them as "&amp;" in the portal,
 and the history entry for an accepted round named only who decided it, never
 whose wording it was.
+
+---
+
+# Run 6 — The counterparty's side (2026-07-26)
+
+A fresh review of the platform after Run 5 found two bugs that had shipped, plus
+one thing that blocked demos. All three are now fixed. **Everything passes: 379
+checks, twice in a row, on clean copies.**
+
+The uncomfortable pattern worth naming up front: **both bugs were on Erik's side
+of the screen, and both got past 342 passing tests** — because every one of those
+tests was checking Wanjiru's side. Erik is half of every contract and had no
+checks at all. That is now fixed too, and it is the most valuable thing in this run.
+
+---
+
+## 1. "Send updated version" wasn't sending anything — FIXED (`8710db8`)
+
+**What was wrong.** Wanjiru finished a round, pressed **Send updated version**,
+and saw *"Updated version sent to Erik Lindqvist."* The contract's history said
+the same. **No email ever went out.** Erik had no reason to look at the link
+again. Both of them then waited for the other, and the record explained the
+delay incorrectly.
+
+**What it does now.** It actually emails him. And — the part that took the real
+work — when it *can't* send, it says so instead of pretending:
+
+- no email service set up → *"published to Erik's link — NOT emailed: this
+  workspace has no mail provider"*
+- the email service refused it → the reason is recorded
+- a WhatsApp share → WhatsApp opens so she can send it herself
+- a copy-link share → she's handed the link to send
+
+The history now only says "emailed" when something genuinely left the building.
+
+**Why the extra work mattered.** Just adding the email would have fixed one of
+four cases and left three silent failures behind it, which is how the original
+bug happened in the first place.
+
+## 2. Erik's Word download was one giant paragraph — FIXED (`b9f15c2`)
+
+**What was wrong.** Erik pressed **Download as Word** on his review page and got
+the entire contract as one unbroken block of text — no headings, no clause
+numbers, nothing. The same button on Wanjiru's side produced a properly laid out
+document with sixteen separate sections.
+
+**Why.** The page was handing the file-builder plain text while telling it *"this
+is formatted."* The builder went looking for formatting, found none, and treated
+the whole contract as a single paragraph.
+
+**What it does now.** Both sides download the same properly structured document.
+There is a test that compares the two files and fails if they ever differ again.
+There's also a safety net in the file-builder itself, so if any other part of the
+app makes the same mistake in future, it produces a sensible document anyway.
+
+## 3. Signing was impossible without an email service — FIXED (`6eaf573`)
+
+**What was wrong.** To sign, Erik needed a 6-digit code emailed to him. If the
+server had no email service connected — which is the normal state for a demo —
+that code could never arrive, so **nobody could sign at all.** After six rounds
+of work.
+
+**What it does now, per your decision.** He can sign without the code. Two things
+I kept, neither of which slows a demo down:
+
+- **The code is only skippable when it genuinely can't be sent.** If email is
+  working, the code is still required. Otherwise anyone with the link could skip
+  the identity check just by choosing to, and nobody would see it happen.
+- **The signature is labelled as unverified** — in the history, on the
+  certificate and in the evidence pack. The signature is still binding. What the
+  record no longer does is imply HaTi checked something it didn't.
+
+He still has to give a real email address, so a link can never be signed
+anonymously.
+
+## 4. The counterparty's side now has tests — FIXED (`b9f15c2`)
+
+This is the fix that prevents the next two bugs.
+
+There is now a test setup that opens Erik's actual review page, presses its
+buttons, and checks what he really receives: the Word file he downloads, the
+edits he submits, the conversation he can read, and both ways of signing. Fifteen
+checks, including one that would have caught the download bug on the day it was
+written.
+
+---
+
+## Status
+
+| # | Item | Status | Commit |
+|---|---|---|---|
+| 1 | "Send updated version" actually sends | **DONE** | `8710db8` |
+| 2 | Counterparty's Word download | **DONE** | `b9f15c2` |
+| 6 | Signing without an email service | **DONE** | `6eaf573` |
+| 7 | Tests for the counterparty's side | **DONE** | `b9f15c2` |
+| 3 | One Word button instead of two | **NOT STARTED** | — |
+| 5 | Attach a paper-signed copy | **NOT STARTED** | — |
+| 8 | Show whether he has seen the current version | **NOT STARTED** | — |
+| 4 | Clause-by-clause editing for Erik | **NOT STARTED** (phased approach agreed) | — |
+
+## Verification
+
+Two runs of everything, each on a fresh copy of the final commit in its own folder:
+
+| Run | Result |
+|---|---|
+| Clean run 1 | **379 checks, 379 passed, 0 failed** (16.9 s) |
+| Clean run 2 | **379 checks, 379 passed, 0 failed** (18.1 s) |
+
+## Two tests had to be corrected, not deleted
+
+Both changes altered a rule that an older test was holding in place. In each case
+the guarantee still exists in a new shape, so the test was rewritten to assert
+the new shape rather than removed:
+
+- A test said *"signing always needs an emailed code."* It now checks that a
+  server which **can** send one still demands it, and that a server which can't
+  still refuses an anonymous signature.
+- A test from Run 5 checked the history said *"Updated version sent."* Its setup
+  never simulated a delivered email — so it was, in effect, asserting the bug. It
+  now simulates delivery and checks for *"emailed"*.
+
+Deleting either because it went red would have quietly removed the protection it
+existed to provide.

@@ -2374,3 +2374,11 @@ Two harness lessons, both the same lesson:
   before the work has happened, which looks exactly like a dead button.
 
 Result: `f25-counterparty-page.test.js` 15/15; suite **379/379 green**.
+
+**2026-07-26 — Run 6 verification.** Two clean runs on fresh clones of `b9f15c2`:
+run 1 — 379 tests, 379 pass, 0 fail (16.9 s); run 2 — 379 tests, 379 pass, 0
+fail (18.1 s).
+
+Shipped this run: item 1 (reshare notifies), item 2 (portal Word export), item 6
+(signing without a code, labelled), item 7 (counterparty test harness).
+Not started: items 3, 5, 8, and item 4 (phased approach agreed with the owner).
