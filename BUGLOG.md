@@ -1724,3 +1724,106 @@ would be misleading code.
 unrestricted, so the scope filter added to it is a no-op today. It was added
 anyway, with a comment saying why: if that route's authority is ever widened,
 the export must not quietly become the way out.
+
+---
+
+## Run: Signing capacity (follow-up)
+
+Reported after the visibility run: *"if I sign a contract and I am the
+administrator but also the COO, the title in the signature is Admin."*
+
+### 1. A permission level was printed as a signing capacity
+
+**What was broken.** The line under a signer's name on an executed contract read
+"Amina Otieno, **Admin**". `Admin` is the workspace **permission level** —
+Admin / Legal / Viewer, what the account may do in the software. What belongs
+there is the **capacity** the person signed in — COO, Finance Director — because
+that is what tells a counterparty the signer had authority to bind the company.
+The two are different claims, and one is not a weaker form of the other.
+
+**Root cause — four gaps in a row, and the reporter hit all four.**
+
+1. **The workspace founder was never asked for a title.** `POST /api/setup`
+   took org, name, email and password. The "Add team member" form in Team &
+   Settings *did* have a "Title (e.g. CFO)" box — so every member except the
+   one who created the workspace could have a title, and the founder is the
+   person most likely to be signing.
+2. **A title, when given, was filed away from the account.** The add-member
+   handler in `js/views/settings.js` posted only `{name, email, role, password}`
+   and wrote the title into `state.settings.directory` — a contacts list.
+   `users` had no `title` column at all. `orgDirectory()` in `js/core.js`
+   contains `if(!byEmail[k].title && u.title)` — a read of a user field that
+   has never existed, so that branch has never fired.
+3. **The plain Sign button never consulted the directory.** Only the multi-signer
+   route did (`openSignerPlanEditor`, `js/approvals.js`), and even there the
+   fallback was `(p && p.title) || ROLE_LABEL[u.role]` — so a member with no
+   directory entry got the permission level written into a field the UI labels
+   "Title (e.g. CFO)". `finalizeExecution()` on the single-signer path wrote
+   `role: ROLE_LABEL[u.role]` and no title whatsoever.
+4. **The display filled the gap with the wrong thing.**
+   `${s.title ? ', '+s.title : s.role ? ', '+s.role : ''}` — with no title it
+   printed the permission level, turning missing information into a false
+   statement.
+
+**Note on the asymmetry.** The counterparty's signature carried their real title
+correctly all along, because the share portal asks them to type it. So an
+executed contract stated the outside party's capacity properly and the
+workspace's own signer's incorrectly.
+
+**The fix.**
+- Additive `title` column on `users` (nullable — no title recorded is an honest
+  empty, never a substitute). Exposed on `publicUser`.
+- `POST /api/setup` and `POST /api/users` both accept and store it; the setup
+  screen now asks the founder for their job title.
+- `PATCH /api/users/:id` accepts `title`, and is the **one** field a non-admin
+  may set on their own account: a permission is something an admin grants you,
+  but your own job title is a fact about you, and refusing to let the founder
+  record their own capacity is how this happened. Role and value access remain
+  admin-only and still cannot be self-granted.
+- Team & Settings shows each member's title under their email — or the warning
+  *"No job title — signs with no capacity shown"* — with an Add/Edit control.
+  Saving also updates the people directory, so signer-field auto-fill keeps
+  working.
+- `signerTitle(u)` in `js/core.js`: account title → people directory → empty.
+  Never the permission level. Used by both signing paths.
+- `signatureCapacity(s)`: title, else the signing route's free-text field, but
+  **suppressing a value that is exactly `Admin`, `Legal` or `Viewer`**. That
+  makes the fix read correctly on contracts signed *before* it — display-only,
+  altering nothing, which matters because a signature on an executed contract is
+  immutable by design.
+- `c.signatory` (the "Signed by …" fallback) is now the name plus the capacity
+  if one exists, and just the name if not.
+
+**Sealing untouched.** `sealString()` v2 folds in each signature's name,
+timestamp, form and image hash — not its role or title. A test asserts the seal
+string is byte-identical with and without a title, so nothing already sealed
+moves.
+
+**Known edge case.** A member whose job title is literally the word "Admin",
+"Legal" or "Viewer" will have it suppressed. Accepted: those three strings are
+the product's own permission labels, a real title would be "Administrator" or
+"Legal Counsel", and the cost of the alternative — leaving historic signatures
+claiming a permission level as authority — is higher.
+
+### 2. The evidence pack did not record signing capacity at all
+
+**What was broken.** Found while fixing the above. `downloadEvidence()` in
+`js/core.js` emitted `party`, `name`, `email`, `method`, `form`, the signature
+image and its hash, the IP, the user-agent and the timestamp — and **no role or
+title of any kind**. The document whose entire purpose is to prove a signature
+did not say in what capacity anyone signed.
+
+**The fix.** A `capacity` field on each signature in the pack, from
+`signatureCapacity()`. `null` when none was recorded; never back-filled from a
+permission level.
+
+### 3. Deliberately not done — correcting contracts already signed
+
+Signatures on an executed contract are immutable server-side
+(`EXECUTED_IMMUTABLE` includes `signatures`), and that rule is not being
+relaxed: a signature that can be edited after the fact is worth nothing.
+
+Contracts signed before this fix keep whatever was written on them. The display
+change means they no longer *show* "Admin" as a capacity — they show the name
+alone, which is true — but the stored record is untouched. Correcting the record
+itself is an amendment, which is the existing, correct route.

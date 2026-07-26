@@ -109,7 +109,7 @@ function distributionRecipients(c){
   const add=(name,email,role,party)=>{ const e=String(email||'').trim().toLowerCase();
     if(!/.+@.+\..+/.test(e)||seen.has(e)) return; seen.add(e); out.push({name:name||e,email:e,role:role||'',party:party||''}); };
   signerPlan(c).forEach(s=>add(s.name,s.email,s.role,s.party));
-  (c.signatures||[]).forEach(s=>add(s.name,s.email,s.role||s.title,s.party));
+  (c.signatures||[]).forEach(s=>add(s.name,s.email,(typeof signatureCapacity==='function'?signatureCapacity(s):(s.title||s.role)),s.party));
   const cc=(state.settings&&state.settings.recordsMailbox)||'';
   if(cc) add('Records archive',cc,'','cc');
   return out;
@@ -164,7 +164,10 @@ function openSignerPlanEditor(c){
       syncPlanFromDom();                       // capture any typed values first
       const i=Number(sel.getAttribute('data-sp-member')), u=userById(sel.value);
       if(u){ plan[i].memberId=u.id; plan[i].name=u.name; plan[i].email=u.email;
-        if(!plan[i].role){ const p=(typeof directoryLookup==='function')&&(directoryLookup(u.email)||directoryLookup(u.name)); plan[i].role=(p&&p.title)||ROLE_LABEL[u.role]||''; } }
+        // This field is labelled "Title (e.g. CFO)" — it is the capacity the
+        // person signs in. It used to fall back to their Admin/Legal/Viewer
+        // permission level, which is how "Admin" ended up on signature blocks.
+        if(!plan[i].role) plan[i].role=(typeof signerTitle==='function'?signerTitle(u):'')||''; }
       else { plan[i].memberId=''; }
       rerow(); }));
     // Auto-populate: typing or selecting a directory name fills the empty Title

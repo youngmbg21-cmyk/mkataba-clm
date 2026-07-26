@@ -1485,7 +1485,7 @@ function signatureBlock(c){
     const card=s=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
       <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${s.image?`<img src="${s.image}" alt="signature of ${(s.name||'').replace(/"/g,'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
-      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${s.title?', '+s.title:s.role?', '+s.role:''}</div>${sub(s)}</div>`;
+      <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`;
     const sigList = sigs.length ? sigs.map(card).join('')
       : `<div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/60 text-xs">${c.signatory?('Signed by '+c.signatory):'Not recorded'}</div></div>`;
     return `
@@ -2167,7 +2167,10 @@ async function signDocument(c){
     if(!sig) return;                              // signer cancelled the pad
     ns.signed=true; ns.at=at; ns.by=u.name; ns.signature={ form:sig.form, image:sig.image, imageHash:sig.imageHash };
     c.signatures=c.signatures||[];
-    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, role:ns.role||ROLE_LABEL[u.role], email:ns.email||u.email, at,
+    // ns.role is the signing route's free-text "Title (e.g. CFO)" field — a
+    // capacity, not a permission level. Fall back to the member's own recorded
+    // title, and to nothing at all rather than to Admin/Legal/Viewer.
+    c.signatures.push({ party:'internal-planned', name:ns.name||u.name, title:ns.role||signerTitle(u), email:ns.email||u.email, at,
       method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature${signerProvenance(meta.ip,navigator.userAgent)}`);
@@ -2225,13 +2228,16 @@ async function finalizeExecution(c, opts={}){
   c.execution=exec;
   c.signedAt=fmtDT(at)+' EAT';
   c.lastAction=todayStr();
-  c.signatory=u?`${u.name} (${ROLE_LABEL[u.role]})`:(c.signatory||'Authorized signatory');
+  // The capacity someone signed in, not the permissions they hold. With no
+  // title recorded this is just their name — which is true — rather than a
+  // claim about authority that the workspace never captured.
+  c.signatory=u?(signerTitle(u)?`${u.name} (${signerTitle(u)})`:u.name):(c.signatory||'Authorized signatory');
   c.signatures=c.signatures||[];
   // Single-signer path records the first-party mark here; a route already
   // recorded each signer's mark as they signed.
   if(!signerPlan(c).length && opts.firstPartySig && u){
     const s=opts.firstPartySig;
-    c.signatures.push({ party:'first', name:u.name, email:u.email, role:ROLE_LABEL[u.role], at,
+    c.signatures.push({ party:'first', name:u.name, email:u.email, title:signerTitle(u), at,
       method:'session-authenticated', ip, ua:navigator.userAgent,
       form:s.form, image:s.image, imageHash:s.imageHash, typedName:s.typedName, font:s.font });
   }

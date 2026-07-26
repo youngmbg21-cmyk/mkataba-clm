@@ -5,7 +5,8 @@ This is an honest description of where the MVP stands today, for pilot customers
 ## Signing & evidence
 
 - On signature the **fully-rendered contract text is frozen** and hashed (SHA-256); signed contracts always render from that frozen copy, so displayed text equals sealed text. For uploaded documents the seal covers the file's own bytes.
-- Each signature records the signer, method, timestamp, user-agent and (server-side) IP. The **counterparty verifies by email one-time code** before their signature is accepted.
+- Each signature records the signer, the **capacity they signed in** (their job title), the method, the timestamp, the user-agent and (server-side) IP. The **counterparty verifies by email one-time code** before their signature is accepted.
+- A member's **job title** is a separate thing from their Admin/Legal/Viewer **role**: the role is a permission level, the title is the authority the signature asserts. A signature block shows the title and, where none is recorded, shows nothing — a permission level is never displayed as a signing capacity.
 - A downloadable **evidence pack** and a printable signing certificate accompany every executed contract.
 - Legal basis: electronic signatures under the **Business Laws (Amendment) Act 2020 (Kenya)**.
 - **Not yet integrated:** government IPRS identity verification and CAK-accredited PKI signatures. These are disclosed in-product and on the seal; nothing claims to be IPRS/PKI-verified when it is not.

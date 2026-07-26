@@ -90,8 +90,8 @@ const setSetting = (k, v) => db.prepare('INSERT INTO settings (key,json) VALUES 
 const getStore = k => { const r = db.prepare('SELECT json FROM store WHERE key=?').get(k); return r ? JSON.parse(r.json) : null; };
 const setStore = (k, v) => db.prepare('INSERT INTO store (key,json) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET json=excluded.json').run(k, JSON.stringify(v));
 const userPrefs = u => { try { return JSON.parse(u.prefs || '{}') || {}; } catch (_) { return {}; } };
-const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.created_at,
-  prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
+const publicUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, title: u.title || '',
+  createdAt: u.created_at, prefs: userPrefs(u), folderAccess: folderScopeFor(u), canViewValues: canViewValues(u) });
 
 /* ---------- per-contract storage (scales to large portfolios) ----------
    Each contract is its own row with its own version. Lists return a light
@@ -245,6 +245,14 @@ addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
    deploy keeps seeing exactly what it saw yesterday, until an admin turns it
    off for someone. */
 addColumnIfMissing('users', 'can_view_values', 'INTEGER NOT NULL DEFAULT 1');
+/* A member's JOB TITLE — "COO", "Finance Director" — which is a different
+   thing from their `role` ("admin"/"legal"/"viewer"). `role` is a permission
+   level: what they may do in the software. `title` is the capacity they sign
+   in, and it is the capacity that belongs on a signature block, because that
+   is what tells a counterparty the signer had authority to bind the company.
+   Nullable: an account without one simply has no capacity recorded, which is
+   honest. It must never fall back to the permission level. */
+addColumnIfMissing('users', 'title', 'TEXT');
 // backfill contract_id for shares created before the column existed
 try {
   for (const r of db.prepare('SELECT token, payload FROM shares WHERE contract_id IS NULL').all()) {
@@ -937,17 +945,19 @@ if (MAPPER_TOKEN) {
 app.post('/api/setup', rlAuth, (req, res) => {
   if (getSetting('org')) return res.status(409).json({ error: 'Workspace already exists' });
   const b = req.body || {};
-  const org = clean(b.org), name = clean(b.name), email = cleanEmail(b.email);
+  const org = clean(b.org), name = clean(b.name), email = cleanEmail(b.email), title = clean(b.title).slice(0, 120);
   const { password, data } = b;
   if (!org) return res.status(400).json({ error: 'Organization name is required' });
   if (!name) return res.status(400).json({ error: 'Your full name is required' });
   if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid work email address — it is your sign-in and your password-reset route' });
   if (!password || String(password).length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const salt = rid(16);
-  const u = { id: 'u_' + rid(8), name, email, role: 'admin', salt, hash: hashPw(password, salt), created_at: now() };
+  // The founder is the person most likely to sign something, and was the one
+  // account that could never be given a job title — the setup form did not ask.
+  const u = { id: 'u_' + rid(8), name, email, role: 'admin', title, salt, hash: hashPw(password, salt), created_at: now() };
   setSetting('org', { name: org, createdAt: now() });
-  db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at) VALUES (?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at);
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at);
   if (data && Array.isArray(data.contracts)) {   // seed per-contract
     let seq = 0;
     txn(() => {
@@ -2350,6 +2360,7 @@ app.post('/api/contracts/:id/notify-signer', auth, editor, async (req, res) => {
 app.post('/api/users', auth, admin, (req, res) => {
   const b = req.body || {};
   const name = clean(b.name), email = cleanEmail(b.email), role = b.role, password = b.password;
+  const title = clean(b.title).slice(0, 120);
   if (!name) return res.status(400).json({ error: 'Name is required' });
   if (!validEmail(email)) return res.status(400).json({ error: 'Enter a valid email address for the new member' });
   if (!['admin','legal','viewer'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
@@ -2361,10 +2372,10 @@ app.post('/api/users', auth, admin, (req, res) => {
   // required to replace it on first sign-in before the account can do anything.
   // Without that, a signature attributed to a colleague is not attributable —
   // the admin knows the credential that produced it.
-  const u = { id: 'u_' + rid(8), name, email, role, salt, hash: hashPw(password, salt), created_at: now(),
+  const u = { id: 'u_' + rid(8), name, email, role, title, salt, hash: hashPw(password, salt), created_at: now(),
     prefs: JSON.stringify({ mustChangePassword: true }) };
-  db.prepare('INSERT INTO users (id,name,email,role,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?)')
-    .run(u.id, u.name, u.email, u.role, u.salt, u.hash, u.created_at, u.prefs);
+  db.prepare('INSERT INTO users (id,name,email,role,title,salt,hash,created_at,prefs) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(u.id, u.name, u.email, u.role, u.title, u.salt, u.hash, u.created_at, u.prefs);
   const org = getSetting('org');
   sendEmail(u.email, `You've been added to ${org?.name || 'a HaTi workspace'}`,
     `${req.user.name} added you to ${org?.name || 'the workspace'} on HaTi as ${role}.\nSign in at ${req.protocol}://${req.get('host')} with your email and the temporary password you were given, then change it.`,
@@ -2374,20 +2385,34 @@ app.post('/api/users', auth, admin, (req, res) => {
 
 /* Role and value-visibility are both edited here; either may be sent on its own
    so the Team screen can toggle one without restating the other. */
-app.patch('/api/users/:id', auth, admin, (req, res) => {
+/* Role, value-visibility and job title are all edited here; each may be sent on
+   its own so the Team screen can change one without restating the others.
+
+   Title is the exception to the "not yourself" rule below: a permission is
+   something an admin grants you, but your own job title is a fact about you,
+   and refusing to let the workspace founder record their own capacity is how
+   this ended up saying "Admin" on their signature in the first place. */
+app.patch('/api/users/:id', auth, (req, res) => {
   const b = req.body || {};
-  const hasRole = b.role !== undefined, hasValues = b.canViewValues !== undefined;
-  if (!hasRole && !hasValues) return res.status(400).json({ error: 'Nothing to change' });
+  const hasRole = b.role !== undefined, hasValues = b.canViewValues !== undefined, hasTitle = b.title !== undefined;
+  if (!hasRole && !hasValues && !hasTitle) return res.status(400).json({ error: 'Nothing to change' });
+  const self = req.params.id === req.user.id;
+  // Only a title may be set by a non-admin, and only on their own account.
+  if (req.user.role !== 'admin' && !(self && hasTitle && !hasRole && !hasValues))
+    return res.status(403).json({ error: 'Admin access required' });
+  if (userPrefs(req.user).mustChangePassword)
+    return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
   if (hasRole && !['admin','legal','viewer'].includes(b.role)) return res.status(400).json({ error: 'Invalid role' });
-  if (req.params.id === req.user.id) {
+  if (self) {
     if (hasRole) return res.status(400).json({ error: 'You cannot change your own role' });
     // An admin removing their own value access would be a permission they
     // cannot restore (admins are unconditionally allowed to see values), so it
     // is refused rather than silently ignored.
-    return res.status(400).json({ error: 'You cannot change your own access' });
+    if (hasValues) return res.status(400).json({ error: 'You cannot change your own access' });
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
   if (hasValues) {
     const role = hasRole ? b.role : target.role;

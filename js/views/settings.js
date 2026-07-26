@@ -156,6 +156,10 @@ function renderTeam(){
           <span style="min-width:0">
             <span style="display:block;font-weight:500;color:var(--color-text)">${esc(x.name)}${isMe?' <span style="font-weight:400;color:var(--color-neutral-500);font-size:11px">(you)</span>':''}</span>
             <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.email)}</span>
+            <span style="display:block;font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${x.title?'var(--color-neutral-700)':'#7d5a14'}">
+              ${x.title?esc(x.title):'No job title — signs with no capacity shown'}
+              ${(isAdmin()||isMe)?`<button data-title-for="${x.id}" title="This is the capacity they sign contracts in — not their permission level" style="margin-left:6px;font-size:10.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;cursor:pointer">${x.title?'Edit':'Add'}</button>`:''}
+            </span>
           </span>
         </span>
       </td>
@@ -582,12 +586,12 @@ function renderTeam(){
     if(pass.length<8){ toast('Temporary password must be at least 8 characters','err'); return; }
     if(getUsers().some(x=>x.email===email)){ toast('A member with that email already exists','err'); return; }
     if(API_MODE()){
-      try{ const r=await api('users','POST',{ name, email, role, password:pass });
+      try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
         REMOTE.users=[...REMOTE.users, r.user];
       }catch(e){ toast(e.message,'err'); return; }
     } else {
       const salt=newSalt();
-      saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
+      saveUsers([...getUsers(),{ id:'u'+(Date.now().toString(36)), name, email, role, title, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() }]);
     }
     // Mirror the member into the directory (with their title) so signer fields auto-fill.
     state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
@@ -597,6 +601,26 @@ function renderTeam(){
     toast(`${name} added as ${ROLE_LABEL[role]}${API_MODE()?' — an invite email was queued':' — share their temporary password securely'}`);
     renderTeam();
   });
+  document.querySelectorAll('[data-title-for]').forEach(b=>b.addEventListener('click',async()=>{
+    const id=b.getAttribute('data-title-for');
+    const u=(getUsers()||[]).find(x=>x.id===id); if(!u) return;
+    const t=await promptDialog({ title:`Job title — ${u.name}`,
+      message:'The capacity this person signs contracts in, e.g. "Chief Operating Officer". This is not their permission level: a signature block that says "Admin" tells a counterparty nothing about authority to sign. Leave it empty to show no capacity at all.',
+      label:'Job title', value:u.title||'', placeholder:'e.g. Chief Operating Officer', confirmLabel:'Save title' });
+    if(t==null) return;
+    const title=String(t).trim();
+    if(API_MODE()){
+      try{ const r=await api('users/'+id,'PATCH',{ title }); if(r&&r.user) Object.assign(u,r.user); else u.title=title; }
+      catch(e){ toast('Could not save the title: '+e.message,'err'); return; }
+    } else { u.title=title; saveUsers(getUsers()); }
+    // keep the people directory in step, so signer fields still auto-fill
+    state.settings=state.settings||{}; const dir=(state.settings.directory||[]).slice();
+    const ex=dir.find(p=>(p.email||'').toLowerCase()===(u.email||'').toLowerCase());
+    if(ex) ex.title=title; else if(u.email) dir.push({ name:u.name||'', email:u.email, title });
+    state.settings.directory=dir; saveSettings();
+    toast(title?`${u.name} signs as ${title}`:`Job title cleared for ${u.name}`);
+    renderTeam();
+  }));
   document.querySelectorAll('[data-access-for]').forEach(b=>b.addEventListener('click',()=>openFolderAccessEditor(b.getAttribute('data-access-for'))));
   document.querySelectorAll('[data-values-for]').forEach(b=>b.addEventListener('click',async()=>{
     const id=b.getAttribute('data-values-for'), to=b.getAttribute('data-values-to')==='1';

@@ -419,6 +419,45 @@ function userFolderAccess(u){
   return (v==null||v==='*'||(Array.isArray(v)&&v.length===0))?'*':v;
 }
 function canAccessFolder(fid,u){ const a=userFolderAccess(u); return a==='*'||(Array.isArray(a)&&a.includes(fid)); }
+
+/* ---------- signing capacity ----------
+   A signature block states the capacity in which someone bound the company —
+   "Amina Otieno, Chief Operating Officer". That is their JOB TITLE, and it is
+   a different thing from their `role`, which is an Admin/Legal/Viewer
+   PERMISSION LEVEL inside the software.
+
+   The two were being confused: the sign path never recorded a title, and the
+   signature block filled the gap with the permission level, so a COO who
+   happened to be a workspace admin signed as "Admin". A permission level says
+   nothing about authority to sign, so a missing title must render as nothing
+   at all rather than as the wrong claim.
+
+   Order of preference: the title on the member's own account, then the people
+   directory (which may know them from an imported contact list), then empty. */
+function signerTitle(u){
+  u=u||currentUser(); if(!u) return '';
+  if(u.title && String(u.title).trim()) return String(u.title).trim();
+  if(typeof directoryLookup==='function'){
+    const p=directoryLookup(u.email)||directoryLookup(u.name);
+    if(p && p.title && String(p.title).trim()) return String(p.title).trim();
+  }
+  return '';
+}
+/* What to print under a signer's name. `title` is the capacity as recorded.
+   `role` is the free-text "Title (e.g. CFO)" field on a signing route — but
+   signatures taken before this was fixed had the PERMISSION LEVEL written into
+   it, so a value that is exactly one of those labels is suppressed rather than
+   displayed as a capacity. Display-only: it reads existing records more
+   honestly without altering one, which matters because a signature on an
+   executed contract is immutable by design. */
+const ROLE_LABEL_SET = new Set(['Admin','Legal','Viewer']);
+function signatureCapacity(s){
+  if(!s) return '';
+  const t=String(s.title||'').trim();
+  if(t) return t;
+  const r=String(s.role||'').trim();
+  return (!r || ROLE_LABEL_SET.has(r)) ? '' : r;
+}
 /* Whether this member may see monetary amounts. The SERVER decides — it strips
    value fields, monetary aggregates and CSV value cells before responding, and
    never puts a figure in an AI prompt for someone without the right. This
@@ -438,7 +477,7 @@ function canViewValues(u){
    authoritative, whole-register export is GET /api/export/contracts.csv, which
    the server masks the same way. */
 const csvValueCell = c => (!isMonetary(c) || !canViewValues()) ? '' : (c.value||0);
-Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,canViewValues,csvValueCell});
+Object.assign(window,{orgDirectory,directoryLookup,userFolderAccess,canAccessFolder,canViewValues,csvValueCell,signerTitle,signatureCapacity});
 
 const newSalt = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 const hashPassword = (pw,salt) => sha256(`${salt}::${pw}`);
@@ -474,6 +513,7 @@ function renderAuth(mode){
       <p style="${SUB}">Set up your organization and the first admin account.</p>
       ${input('su-org','Organization name','text','e.g. Highland Corporate Ltd')}
       ${input('su-name','Your full name','text','e.g. Amina Otieno')}
+      ${input('su-title','Your job title','text','e.g. Chief Operating Officer')}
       ${input('su-email','Work email','email','you@company.co.ke')}
       ${input('su-pass','Password','password','Min 8 characters')}
       <label style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--color-neutral-700);margin:2px 0 18px;"><input id="su-sample" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--color-accent);"/> Load sample Kenyan FMCG portfolio (30 demo contracts)</label>
@@ -539,6 +579,7 @@ function renderAuth(mode){
 const validEmail = e => /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/.test(String(e||'').trim());
 async function doSetup(){
   const name=fval('su-org').trim(), uname=fval('su-name').trim(), email=fval('su-email').trim().toLowerCase();
+  const utitle=fval('su-title').trim();
   const pass=document.getElementById('su-pass').value;
   if(!name){ toast('Enter your organization name','err'); return; }
   if(!uname){ toast('Enter your full name','err'); return; }
@@ -547,7 +588,7 @@ async function doSetup(){
   if(REMOTE){
     try{
       const sample=document.getElementById('su-sample').checked;
-      await api('setup','POST',{ org:name, name:uname, email, password:pass,
+      await api('setup','POST',{ org:name, name:uname, title:utitle, email, password:pass,
         data:{ uid, contracts:sample?state.contracts.map(migrateContract):[], view:'dashboard', activeId:null, folderId:null } });
       await loadBootstrap();
       startApp();
@@ -556,7 +597,7 @@ async function doSetup(){
     return;
   }
   const salt=newSalt();
-  const admin={ id:'u1', name:uname, email, role:'admin', salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
+  const admin={ id:'u1', name:uname, email, role:'admin', title:utitle, salt, hash:await hashPassword(pass,salt), createdAt:nowISO() };
   lsSet(LS.org,{ name, createdAt:nowISO() });
   saveUsers([admin]);
   lsSet(LS.session,{ userId:admin.id, at:nowISO() });
@@ -1075,7 +1116,12 @@ function downloadEvidence(c){
       sealedFileSha256:isUpload(c)?(c.upload?.fileHash||null):null,
       sealedText:isUpload(c)?null:normText(c.execution?.html||''),
       uploadedFile:isUpload(c)?{ name:c.upload?.fileName, size:c.upload?.size }:null },
+    // `capacity` is the whole point of a signature block and was missing from
+    // the pack entirely: the document that exists to prove a signature did not
+    // say in what capacity anyone signed. Empty means none was recorded — it is
+    // never back-filled from a permission level.
     signatures:(c.signatures||[]).map(s=>({ party:s.party, name:s.name, email:s.email||null,
+      capacity:signatureCapacity(s)||null,
       method:s.method||null, form:s.form||null, signatureImageSha256:s.imageHash||null, signatureImage:s.image||null,
       ip:s.ip||null, userAgent:s.ua||null, at:s.at })),
     distribution:c.distribution||null,

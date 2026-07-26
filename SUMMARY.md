@@ -6,6 +6,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 1 — Ingestion, AI Budget & Templates upgrade](#run-1--ingestion-ai-budget--templates-upgrade)
 - [Run 2 — Rich Templates, Document Typography & Legibility](#run-2--rich-templates-document-typography--legibility)
 - [Run 3 — Visibility & Permissions Hardening (2026-07-25)](#run-3--visibility--permissions-hardening-2026-07-25)
+- [Run 3a — Signing capacity follow-up (2026-07-26)](#run-3a--signing-capacity-follow-up-2026-07-26)
 
 ---
 
@@ -993,3 +994,105 @@ one signed in as the workspace admin, with the server running (`npm start`).
 4. **An admin-visible access audit** — one screen answering "who can see what",
    built from `folderScopeFor()` and `canViewValues()` so it reports the rules
    the server actually enforces rather than a second implementation of them.
+
+---
+
+# Run 3a — Signing capacity follow-up (2026-07-26)
+
+One reported defect, one commit. Raised straight after Run 3: signing a contract
+as the workspace admin printed **"Admin"** as the signer's title, even when the
+person's actual job title was COO.
+
+## The distinction the product was missing
+
+| | What it is | Example | Where it belongs |
+|---|---|---|---|
+| **Role** | A permission level — what the account may do in the software | Admin / Legal / Viewer | Team & Settings, access control |
+| **Title** | The capacity a person signs in — their authority to bind the company | Chief Operating Officer | The signature block, the evidence pack |
+
+The signature block was built to show the title and to fall back to the role.
+Nothing ever recorded a title for a team member, so it always fell back. A
+permission level is not a weaker version of a capacity; it is a different claim,
+and on a contract it is the wrong one.
+
+## Schema change
+
+Additive, via `addColumnIfMissing()`. Safe against an existing database.
+
+| Table | Column | Type | Why |
+|---|---|---|---|
+| `users` | `title` | `TEXT` (nullable) | The capacity a member signs in. Nullable on purpose: no title recorded reads as empty, never as a substitute. |
+
+## What changed
+
+- **The setup screen now asks the founder for their job title.** They were the
+  one account that could never have one — the "Add team member" form had a title
+  box, the workspace-creation form did not.
+- **A title now lands on the account**, not only in the contacts directory. Both
+  are kept in step so signer-field auto-fill still works.
+- **Team & Settings shows each member's title**, or the warning *"No job title —
+  signs with no capacity shown"*, with an Add/Edit control.
+- **A member can set their own job title.** It is the only field a non-admin may
+  change on their own account: a permission is granted to you, a job title is a
+  fact about you. Role and value access are still admin-only and still cannot be
+  self-granted.
+- **Both signing paths record the capacity** — single-signer and the multi-signer
+  route — reading account title, then the people directory, then nothing.
+- **Nothing falls back to a permission level any more**, including the signing
+  route's own auto-fill, which used to write "Admin" into a field the interface
+  labels "Title (e.g. CFO)".
+- **The evidence pack now records capacity.** It previously recorded no role or
+  title at all — the document that exists to prove a signature did not say in
+  what capacity anyone signed.
+- **Contracts signed before this fix read correctly now too.** The display
+  suppresses a value that is exactly `Admin`, `Legal` or `Viewer`, so an old
+  signature shows the name alone rather than a permission level. Display-only —
+  no stored record is altered.
+
+## Sealing
+
+Untouched. The seal folds in each signature's name, timestamp, form and image
+hash — never its role or title. A test asserts the seal string is byte-identical
+with and without a title, so nothing already sealed moves.
+
+## Manual verification
+
+1. **New workspace:** at the create-workspace screen, confirm there is now a
+   **Your job title** box. Enter *Chief Operating Officer* and finish setup.
+2. Open any draft contract and **Sign** it.
+3. Look at the *Executed & Sealed* block. Confirm it reads
+   **"<your name>, Chief Operating Officer"** — not "Admin".
+4. Click **Download evidence pack**, open the JSON, and confirm the signature
+   entry has `"capacity": "Chief Operating Officer"`.
+5. **Existing workspace:** go to **Team & Settings**. Under your own name you
+   will see *"No job title — signs with no capacity shown"* with an **Add**
+   button. Click it, enter your title, save.
+6. Confirm the same for a colleague: as an admin, click **Add/Edit** on their
+   row. Confirm a non-admin can edit their own title but not a colleague's.
+7. Open a contract **signed before this update**. Confirm the signature now
+   shows the name **alone** — the old "Admin" is no longer displayed as a
+   capacity, and the seal still verifies (click **Verify seal**).
+8. Set up a **signing route** with two named signers. Confirm the "Title (e.g.
+   CFO)" field auto-fills from the member's recorded title, and no longer fills
+   itself with "Admin" when there is none.
+
+## Known limitations
+
+- **Contracts already signed keep their stored record.** Signatures on an
+  executed contract are immutable server-side, and that rule is not being
+  relaxed — a signature that can be edited afterwards is worth nothing. The
+  display reads honestly now; correcting the underlying record is an amendment,
+  which is the existing and correct route.
+- **A job title that is literally "Admin", "Legal" or "Viewer" is suppressed.**
+  Those three strings are the product's own permission labels. A real title
+  would be "Administrator" or "Legal Counsel". Accepted trade-off: the
+  alternative leaves historic signatures claiming a permission level as
+  authority.
+
+## Test coverage
+
+19 new tests (`test/f8-signing-capacity.test.js`) covering the rule, where the
+capacity is read from, what the signed contract shows, the evidence pack, the
+seal being unaffected, and the server storing and serving it — including that a
+non-admin can set their own title and nothing else. **Suite total: 109, all
+passing.**

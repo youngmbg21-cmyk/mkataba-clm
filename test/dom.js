@@ -68,6 +68,16 @@ function loadViews(files, overrides = {}) {
     SHARE_META: { sent: {}, opened: {}, changes: {}, signed: {}, declined: {}, expired: {}, revoked: {} },
     contractRisk: () => 20,
     isMonetary: c => c.valueType !== 'none',
+    // mirrors signatureCapacity() in js/core.js, which loads before every view
+    // module in js/app.js — a signing capacity, never a permission level
+    signatureCapacity: s => {
+      if (!s) return '';
+      const t = String(s.title || '').trim();
+      if (t) return t;
+      const r = String(s.role || '').trim();
+      return (!r || ['Admin', 'Legal', 'Viewer'].includes(r)) ? '' : r;
+    },
+    signerTitle: u => String((u && u.title) || '').trim(),
     getApprovalCfg: () => ({ threshold: 5000000, approverRole: 'admin' }),
     agreementsIn: cs => cs.filter(c => !c.parentId),
     effectiveExpiry: c => c.expiry || null,
