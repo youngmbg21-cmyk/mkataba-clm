@@ -277,7 +277,9 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
-            <button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${(x.quote||x.anchor!=='doc')?'Go to the wording':'Go to document'}</button>
+            ${(x.quote||(x.anchor&&x.anchor!=='doc'))
+              ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to the wording</button>`
+              : `<span class="text-[11px] text-brand-800/45">Applies to the whole document</span>`}
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
           </div>
         </div>`:''}
