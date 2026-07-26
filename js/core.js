@@ -866,7 +866,8 @@ function renderNegotiationSection(c){
                 :`<button data-nego-accept="${r.n}" class="flex items-center gap-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-medium hover:bg-brand-800 transition">${icon('check2','w-3 h-3')} Accept${r.proposedValue!=null?' & apply value':''}</button>
                 <button data-nego-reject="${r.n}" class="rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-medium hover:bg-brand-50 transition">Reject</button>`}
               </div>`:`<div class="mt-2 text-[11px] text-brand-800/65">Awaiting an approver to resolve.</div>`)
-            :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
+            :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>
+              ${r.resolution&&r.resolution.comment?`<div class="mt-1 text-[11px] text-brand-800/80 leading-relaxed border-l-2 border-brand-200 pl-2">Your reply: ${String(r.resolution.comment).replace(/</g,'&lt;')}</div>`:''}`}
           </div>`).join('')}
       </div>
       ${resolvedRounds(c).length&&canEdit()&&c.status!=='Signed'?`
@@ -893,13 +894,26 @@ function renderNegotiationSection(c){
   });
   host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
   host.querySelectorAll('[data-nego-redline]').forEach(b=>b.addEventListener('click',()=>reviewProposedRound(c,Number(b.getAttribute('data-nego-redline')))));
-  host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
+  host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',async()=>{
+    // A rejection the other side cannot understand is a rejection they will
+    // re-send. Ask for the reason here, where it is still fresh.
+    const why=await promptDialog({ title:'Why are you turning this down?',
+      message:'This is sent to the counterparty with your decision, so they know what to do next. Leave it blank to reject without a reason.',
+      label:'Reply to '+(c.counterparty||'the counterparty'),
+      placeholder:'e.g. Net-30 stands, or we can look at a 2% price increase.',
+      confirmLabel:'Reject round' });
+    if(why==null) return;                       // cancelled — the round stays open
+    resolveRound(c,Number(b.getAttribute('data-nego-reject')),false,{ comment:why });
+  }));
 }
-function resolveRound(c, n, accept){
+function resolveRound(c, n, accept, opts={}){
   if(!canEdit()){ toast('Viewers cannot resolve negotiation rounds','err'); return; }
   const r=(c.rounds||[]).find(x=>x.n===n); if(!r||r.status!=='open') return;
   const u=currentUser();
-  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO() };
+  // The reply travels to the counterparty with the decision. A rejection with
+  // no reason is the thing that pushes the conversation back into email.
+  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO(),
+    comment:String(opts.comment||'').slice(0,2000)||null };
   if(accept && r.proposedValue!=null){
     c.value=Number(r.proposedValue);
     c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
@@ -1322,8 +1336,17 @@ function buildSharePayload(c, docHash, who){
      and base texts stay behind — they are bulk, and the current wording below
      already reflects any round that was accepted. The internal name of whoever
      ruled on it stays behind too; the banner speaks for the organisation. */
+  /* The comment is now part of it, in BOTH directions. The counterparty's own
+     ask travelling back to them is not a leak — they wrote it — and it is what
+     makes the portal a conversation rather than a series of unexplained
+     verdicts. The reply is the half that was missing entirely: the portal could
+     say a round was "not adopted" but never why, so the reasoning lived in a
+     parallel email thread, which is the fragmentation HaTi exists to end.
+     The internal name of whoever ruled stays behind; the organisation speaks. */
   const shareRounds = (c.rounds||[]).map(r=>({ n:r.n, at:r.at, by:r.by, status:r.status,
-    resolution: r.resolution ? { decision:r.resolution.decision, at:r.resolution.at } : null }));
+    comment:r.comment||null,
+    resolution: r.resolution ? { decision:r.resolution.decision, at:r.resolution.at,
+      comment:r.resolution.comment||null } : null }));
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,

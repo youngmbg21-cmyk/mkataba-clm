@@ -2082,3 +2082,36 @@ contract and a viewer role all file nothing.
 Result: `f19-counterparty-authorship.test.js` 17/17; suite 253/253 green;
 scenario 1 now 13/15 (the two remaining are the formatting-flattening
 assertions, which fix 6 owns).
+
+**2026-07-26 — fix-8: the conversation now travels with the contract.**
+The portal could tell a reader *that* their round was turned down and never
+*why*: the reasoning lived in a parallel email thread, which is the exact
+fragmentation the product exists to end, reappearing at the moment the parties
+most need a shared record.
+
+- `buildSharePayload` now carries `comment` on each round and `comment` on its
+  resolution. The counterparty's own ask travelling back is not a leak — they
+  wrote it — and it is what makes the page read as a conversation. The internal
+  name of whoever ruled still stays behind; the organisation speaks. The
+  proposed/base texts still stay behind too (bulk, and already reflected in the
+  wording shown).
+- `resolveRound(c, n, accept, {comment})` records the reply, bounded to 2000
+  characters before storage, and the negotiation panel now *asks* for it when
+  rejecting — a rejection the other side cannot understand is one they will
+  simply re-send.
+- `portalThreadHtml` renders both halves beside the document;
+  `portalOpenPointsHtml` shows points that were raised and not adopted, because
+  a rejected change that silently disappears reads as agreement.
+
+**Bug found by the escaping test, fixed in the product:** the org name was
+escaped in `portalThreadHtml` and then escaped again inside `bubble()`, so a
+counterparty at "Mwangi & Sons" would have been shown "Mwangi &amp;amp; Sons".
+Now escaped exactly once, at the point of output, with a regression test.
+
+**Test-writing note:** the first version of the injection test asserted that the
+string `onerror=` never appears in the output. That is the wrong assertion —
+escaped text may legitimately contain those letters and does no harm there, and
+the harness's own `icon()` stub emits a real `<svg>`. The assertion is now that
+none of the injected *tags* survive as tags, which is the actual vector.
+
+Result: `f20-round-thread.test.js` 18/18; suite 271/271 green.

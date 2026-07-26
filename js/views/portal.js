@@ -478,6 +478,78 @@ function portalRoundBanner(c, p){
       @media (prefers-reduced-motion:reduce){ #pt-banner .pt-pip{animation:none} }
     </style>`;
 }
+/* ---- the conversation, beside the document ----
+   The portal could tell a reader THAT their round was turned down and never
+   why: the reasoning lived in a parallel email thread, which is exactly the
+   fragmentation this product exists to end. Both halves of every round now
+   travel in the share payload (buildSharePayload), and this renders them as
+   what they are — a conversation about a document, next to the document.
+
+   Everything here is counterparty-facing and every field is escaped: comments
+   are typed by people on both sides, and this page has no login. */
+function portalThreadHtml(c, p){
+  const rounds=(c&&c.rounds)||[];
+  const said=rounds.filter(r=>r.comment || (r.resolution&&r.resolution.comment));
+  if(!said.length) return '';
+  // raw here on purpose: bubble() escapes every field it is given, and escaping
+  // twice would print "Mwangi &amp; Sons" at the counterparty
+  const org=(p&&p.org)||'The other side';
+  const bubble=(who,when,text,mine)=>`
+    <div style="display:flex;flex-direction:column;gap:2px;align-items:${mine?'flex-end':'flex-start'}">
+      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${esc(who)}${when?` · ${fmtDT(when)}`:''}</div>
+      <div style="max-width:92%;border:1px solid ${mine?'var(--color-divider)':'var(--color-accent-300)'};background:${mine?'var(--color-bg)':'var(--color-accent-100)'};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800)">${esc(text)}</div>
+    </div>`;
+  const verdict=r=>{
+    if(!r.resolution||!r.resolution.decision) return '';
+    const ok=r.resolution.decision==='accepted';
+    return `<div style="font-size:10.5px;font-weight:600;color:${ok?'#1e6b4d':'#8f322b'};margin-left:2px">${ok?'Adopted':'Not adopted'}${r.resolution.at?` · ${fmtDT(r.resolution.at)}`:''}</div>`;
+  };
+  return `
+    <div id="pt-thread" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:11px">
+        <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('history','w-4 h-4')}</span>
+        <span style="font-size:13px;font-weight:600">The discussion so far</span>
+        <span style="margin-left:auto;font-size:10.5px;color:var(--color-neutral-500);font-family:var(--font-mono)">${said.length} round${said.length===1?'':'s'}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${said.map(r=>`
+          <div style="display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--color-divider);padding-left:11px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">Round ${esc(String(r.n))}</div>
+            ${r.comment?bubble(r.by||'You', r.at, r.comment, true):''}
+            ${r.resolution&&r.resolution.comment?bubble(org, r.resolution.at, r.resolution.comment, false):''}
+            ${verdict(r)}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+/* Points this reader raised that were NOT adopted, and are therefore still
+   live between the parties. A rejected change that simply disappears reads as
+   agreement; it is not. */
+function portalOpenPointsHtml(c, p){
+  const pts=(c&&c.openPoints)||[];
+  if(!pts.length) return '';
+  const org=esc((p&&p.org)||'The other side');
+  return `
+    <div id="pt-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+        <span style="flex:none;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+        <span style="font-size:13px;font-weight:600;color:#7d5a14">Still open between us</span>
+        <span style="margin-left:auto;font-size:10.5px;color:#7d5a14;font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+      </div>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract — press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${pts.map(pt=>`
+          <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
+            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
+              <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">You asked for</span>
+              <div style="color:#8f322b">${esc(pt.after)}</div></div>`:''}
+            ${pt.reason?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
     try{
@@ -536,6 +608,8 @@ function renderSharePortal(p, opts={}){
         ${portalRevisedBanner()}
         ${portalRoundBanner(c,p)}
         ${portalCompareBar()}
+        ${portalOpenPointsHtml(c,p)}
+        ${portalThreadHtml(c,p)}
         ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
 
@@ -837,4 +911,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalGeneratedWordCard,portalWordCard,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
