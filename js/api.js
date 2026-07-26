@@ -30,6 +30,8 @@ async function loadBootstrap(){
   const b=await api('bootstrap');
   REMOTE={ org:b.org, me:b.me, users:b.users };
   uid=b.uid||uid; state.settings=b.settings||{}; state.totalCount=b.count||0; state.aiConfigured=!!b.aiConfigured;
+  // known at sign-in, so the app can warn before a send fails rather than after
+  state.emailConfigured=b.emailConfigured!==false;
   // Load contract SUMMARIES (heavy fields stripped) in pages — full bodies load
   // on open. Capped so a very large portfolio can't blow up the initial load.
   state.contracts=[]; let offset=0; const limit=200; let total=Infinity;

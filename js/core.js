@@ -124,6 +124,35 @@ const EXTRACT_MAX_CHARS = 200000;
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
 
+/* ---- the one setting everything quiet depends on ----
+   Without a mail provider a workspace cannot deliver an invitation, an update
+   notice, a signing code or a question — and signatures collected on it are
+   recorded as not independently verified, because the code that would prove the
+   signer holds their address cannot be sent. Until now the app only mentioned
+   this AFTER a send had failed ("Queued, not sent"), so the first negotiation
+   was where an owner discovered it. The server knew all along; it simply never
+   said so at sign-in. */
+const emailOff = () => typeof API_MODE==='function' && API_MODE() && state.emailConfigured===false;
+const EMAIL_SETUP_LINE = 'Email isn’t set up on this workspace yet, so nothing can be delivered: review links, update notices and signing codes all have to be copied out by hand, and any signature taken here is recorded as not independently verified.';
+function emailSetupBannerHtml(){
+  if(!emailOff()) return '';
+  return `
+    <div id="email-setup-banner" style="display:flex;align-items:flex-start;gap:11px;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:8px;padding:12px 16px">
+      <span style="flex:none;margin-top:1px;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:13px;font-weight:600;color:#7d5a14">Email isn’t set up yet</span>
+        <span style="display:block;font-size:11.5px;color:#7d5a14;margin-top:2px">${EMAIL_SETUP_LINE}</span>
+      </span>
+      ${isAdmin()?`<button id="email-setup-go" class="ui-btn" style="flex:none;font-size:11.5px;padding:6px 12px;border-color:#dcc38a">Set it up</button>`:''}
+    </div>`;
+}
+function wireEmailSetupBanner(){
+  document.getElementById('email-setup-go')?.addEventListener('click',()=>{
+    // the outbox panel in Team & Settings is where the instructions already live
+    try{ setView('settings'); }catch(_){}
+  });
+}
+
 /* ---- a filled-in blank, as a DOCUMENT reads it ----
    A drafted contract keeps its answers in form fields, and the browser tidies
    those up on screen: a date box shows 01/08/2026 whatever is stored behind it.
@@ -1568,6 +1597,8 @@ async function openShareModal(c){
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
       ${readinessPanelHtml(c)}
+      ${emailOff()?`<div id="sh-noemail" style="margin:0 0 12px;border:1px solid #e0c48a;background:#fdf6e7;border-radius:5px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:#7d5a14">
+        <b>This will not be emailed.</b> ${EMAIL_SETUP_LINE} Press <b>Create link</b> instead and send it to ${esc(c.counterparty||'them')} yourself — or set email up first and come back.</div>`:''}
       ${server?'':`<div style="margin:0 0 12px;border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:10px 12px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8f322b;margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Demo sharing — for demonstrations only</div>
         <p style="margin:0;font-size:11.5px;line-height:1.6;color:#8f322b;">Without a HaTi server the whole document travels <strong>inside the link itself</strong>. That link <strong>never expires and cannot be revoked</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
@@ -1961,4 +1992,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

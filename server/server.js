@@ -1082,6 +1082,14 @@ app.get('/api/bootstrap', auth, (req, res) => {
     settings: getSetting('appSettings') || {},
     count: db.prepare(`SELECT COUNT(*) n FROM contracts ${whereOf(f.sql)}`).get(...f.args).n,
     aiConfigured: !!(getSetting('aiKey') || process.env.ANTHROPIC_API_KEY),
+    /* Whether this workspace can send email at all. The server has always known
+       it and reported it on individual screens — creating a share, opening a
+       link, requesting a signing code — which meant the answer only ever
+       arrived at the moment something had already failed to send. Everything
+       quiet depends on this one setting: invitations, update notices, signing
+       codes, the strength of a signature, and now questions between the
+       parties. Saying it here lets the app say it on day one instead. */
+    emailConfigured: EMAIL_ON(),
   });
 });
 

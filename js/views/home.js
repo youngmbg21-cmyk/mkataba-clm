@@ -359,6 +359,7 @@ function renderDashboard(){
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
+    ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
 
     <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
     <section>
@@ -448,6 +449,7 @@ function renderDashboard(){
   document.querySelector('.dd-card')?.addEventListener('toggle',e=>{
     try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
   });
+  if(window.wireEmailSetupBanner) wireEmailSetupBanner();
   setActiveNav('dashboard');
 }
 
