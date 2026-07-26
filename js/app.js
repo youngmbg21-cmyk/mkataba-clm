@@ -5,6 +5,7 @@ import './templates.js';
 import './core.js';
 import './docx.js';
 import './richdoc.js';
+import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';
 import './advice.js';

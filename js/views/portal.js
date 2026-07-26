@@ -48,7 +48,14 @@ function portalDownloadCurrentAsDoc(c){
 /* Any uploaded document, not only Word: a counterparty sent a PDF still needs
    the file itself, and the portal is now the only place offering it. */
 function portalWordCard(c){
-  const u=c&&c.upload; if(!u||!portalFileHref(u)) return '';
+  const u=c&&c.upload;
+  /* HaTi can now WRITE a .docx (js/docxwrite.js), so "work in Word" no longer
+     depends on the contract having arrived as one. Every reader gets the
+     current wording as a real Word file and can bring their marked-up copy
+     back; a reader whose own paper is on file additionally gets that original.
+     Before this, a counterparty reviewing a HaTi-drafted contract had no Word
+     route at all — the card returned '' and they were left with the textarea. */
+  if(!u||!portalFileHref(u)) return portalGeneratedWordCard(c);
   const isWord=!!portalWordFile(c);
   const diverged=portalUploadDiverged(c);
   const kb=u.size?(u.size>1048576?(u.size/1048576).toFixed(1)+' MB':Math.round(u.size/1024)+' KB'):'';
@@ -80,8 +87,40 @@ function portalWordCard(c){
       <div id="pt-word-out" style="margin-top:12px"></div>
     </div>`;
 }
+/* The Word card for a contract with no file of its own — everything drafted in
+   HaTi. The .docx is generated from the wording on this page, so what counsel
+   marks up is exactly what the reader is looking at. */
+function portalGeneratedWordCard(c){
+  if(typeof contractDocxBytes!=='function') return '';
+  if(!portalCurrentText() && !(c&&c.redlineText)) return '';
+  return `
+    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
+        <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
+          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Download this contract as a Word document, mark it up with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
+        </span>
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button id="pt-word-gen" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download as Word (.docx)</button>
+        <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
+        <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
+      </div>
+      <div id="pt-word-out" style="margin-top:12px"></div>
+    </div>`;
+}
 function wireportalWord(c, p){
-  const u=c&&c.upload; if(!u||!portalFileHref(u)) return;
+  const u=c&&c.upload;
+  const generated=!u||!portalFileHref(u);
+  if(generated && typeof contractDocxBytes!=='function') return;
+  document.getElementById('pt-word-gen')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget, restore=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
+    try{ await downloadContractDocx({ ...c, redlineText:(portalCurrentText()||c.redlineText), format:c.format }); }
+    catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
+    btn.disabled=false; btn.innerHTML=restore;
+  });
   document.getElementById('pt-word-current')?.addEventListener('click',()=>portalDownloadCurrentAsDoc(c));
   document.getElementById('pt-word-dl')?.addEventListener('click',()=>{
     // wordTriggerDownload turns the data URL back into bytes; downloadFile
@@ -91,7 +130,7 @@ function wireportalWord(c, p){
     catch(e){ toast('Could not start the download','err'); }
   });
   const input=document.getElementById('pt-word-file');
-  document.getElementById('pt-word-up')?.addEventListener('click',()=>input.click());
+  document.getElementById('pt-word-up')?.addEventListener('click',()=>input&&input.click());
   input?.addEventListener('change',async()=>{
     const f=input.files&&input.files[0]; if(!f) return;
     const out=document.getElementById('pt-word-out');
@@ -798,4 +837,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalGeneratedWordCard,portalWordCard,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

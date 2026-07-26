@@ -1913,6 +1913,7 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
+          ${window.downloadContractDocx?`<button id="ws-word" title="Download as a Word .docx — for a counterparty who negotiates in Word" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Word</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
           <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
         </div>
@@ -2101,6 +2102,17 @@ function renderWorkspace(){
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  document.getElementById('ws-word')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget, restore=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
+    try{
+      const { name }=await downloadContractDocx(c);
+      logAudit(c,'Exported',`Downloaded as Word (${name})`);
+      persist(c); renderAuditSection(c);
+      toast('Word file downloaded — send it to the counterparty, then upload their marked-up copy');
+    }catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
+    btn.disabled=false; btn.innerHTML=restore;
+  });
   setActiveNav('workspace');
 }
 

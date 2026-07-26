@@ -1970,3 +1970,44 @@ mode genuinely uses to sign a user in. Overriding `function`-declared globals
 evaluates.
 
 Result: `f17-reshare-recipient.test.js` 16/16; suite 202/202 green.
+
+**2026-07-26 — fix-3: a real .docx writer (`js/docxwrite.js`), not the HTML-as-.doc fallback.**
+The prompt allowed falling back to extending `portalDownloadCurrentAsDoc`
+(an HTML body under a `.doc` name). I attempted the real writer first and it
+shipped, so the fallback was not used. Three decisions inside it:
+
+1. **Stored, not deflated.** A ZIP entry may be stored uncompressed (method 0)
+   and Word opens such an archive; f9 already proves HaTi *reads* one. A
+   contract is tens of kilobytes, so deflate buys nothing worth an async
+   `CompressionStream` in the middle of a download, and store-only keeps the
+   writer synchronous and dependency-free.
+
+2. **Clause numbers are literal text, never `w:numPr` list numbering.** Word
+   regenerates numbering for a real list, so a schedule beginning at clause 8
+   would be renumbered to 1 and every cross-reference in the agreement would
+   break. This is the identical reasoning `js/pdfrich.js` already applies when
+   it refuses to turn a dotted clause number into an `<ol>`. The numbers the
+   rich text projection reconstructs are the numbers that reach the file, and a
+   test pins `start="8"` still starting at 8.
+
+3. **Headings are real Word headings** (Heading1–4 with `w:outlineLvl` in a
+   styles part), so the file opens with a navigable outline rather than as one
+   undifferentiated block.
+
+**How it is proved.** The strongest available evidence that the output is a
+genuine Word file is that HaTi's own reader — written independently against the
+spec, and already proven on Word's own output in f9 — reads it back unchanged.
+The tests do that, and add what a round trip alone would miss: every OPC part
+present, every XML part well-formed (parsed with a real XML parser, checking for
+`parsererror`), markup escaped rather than injected, and control characters
+stripped so a stray byte cannot make the file unopenable.
+
+Wired into the workspace toolbar (**Word** beside PDF) and into the portal:
+`portalWordCard` used to return `''` for any contract with no uploaded file, so
+a counterparty reviewing a HaTi-drafted contract had no Word route at all. They
+now get one, generated from the wording on the page they are reading, and the
+existing "upload your marked-up copy" path — which reads the file in their own
+browser and sends only the wording — now applies to those contracts too.
+
+Result: `f15-docx-export.test.js` 15/15; suite 217/217 green; scenario 1 rounds
+1 and 2 fully green (8/15 overall, the rest awaiting fixes 6 and 7).
