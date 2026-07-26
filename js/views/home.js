@@ -30,6 +30,11 @@ const KPI_MONEY=['active_value'];
 const kpiMoneyOk=()=>typeof canViewValues!=='function'||canViewValues();
 const kpiCatalogOrder=()=>kpiMoneyOk()?KPI_ALL_ORDER:KPI_ALL_ORDER.filter(id=>!KPI_MONEY.includes(id));
 function kpiPrefsKey(){ const u=(typeof currentUser==='function')&&currentUser(); return 'hati.v1.kpis.'+((u&&u.id)||'anon'); }
+/* Decisions due is the first thing on the page and used to start shut on every
+   visit, so whatever came back overnight sat behind a click you had to know to
+   make. It now opens by default; closing it is remembered, per user. */
+function ddOpenKey(){ const u=(typeof currentUser==='function')&&currentUser(); return 'hati.v1.ddOpen.'+((u&&u.id)||'anon'); }
+function ddStartsOpen(){ try{ const v=lsGet(ddOpenKey()); return v===null||v===undefined?true:!!v; }catch(_){ return true; } }
 function getKpiSel(){ try{ const v=JSON.parse(localStorage.getItem(kpiPrefsKey())); return Array.isArray(v)?v.filter(id=>KPI_META[id]&&kpiCatalogOrder().includes(id)):[]; }catch(e){ return []; } }
 function setKpiSel(arr){ try{ localStorage.setItem(kpiPrefsKey(), JSON.stringify(arr)); }catch(e){} }
 function currentKpiSel(){ const s=getKpiSel(); return s.length?s:DEFAULT_KPI_SEL.filter(id=>kpiCatalogOrder().includes(id)); }
@@ -260,10 +265,15 @@ function renderDashboard(){
   const needAttn=(shCounts.changes||0)+(shCounts.declined||0);
   const shPri={changes:0,declined:1,opened:2,sent:3,signed:4,expired:5,revoked:6};
   shItems.sort((a,b)=>(shPri[a.state]??9)-(shPri[b.state]??9));
+  /* A share that came back wanting something — changes or a decline — is not the
+     same kind of item as one merely sent, and used to look like one. Those get an
+     amber pulse on the count and a banded row, so what is waiting on you separates
+     from what is waiting on them. */
+  const needsYou=st=>st==='changes'||st==='declined';
   const shCountChip=(st,n)=>{ if(!n) return ''; const m=SHARE_META[st];
-    return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
+    return `<span class="badge${needsYou(st)?' needs-you':''}" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
   const shareRows=(API_MODE()?shItems:[]).slice(0,5).map(it=>`
-    <button data-share-open="${it.contractId}" style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+    <button data-share-open="${it.contractId}"${needsYou(it.state)?' data-needs-you="1"':''} style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);${needsYou(it.state)?'background:#fdf6e7;box-shadow:inset 3px 0 0 #b8862b;border-radius:5px;':'background:none;'}cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='${needsYou(it.state)?'#fdf6e7':'none'}'">
       ${shareChip(it.state)}
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
@@ -311,8 +321,16 @@ function renderDashboard(){
       .dd-eyebrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:13px 0 5px}
       .dd-caught{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-neutral-600);padding:3px 0}
       .dd-more{border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:6px 0 0}
+      /* A slow breath, not a blink — and for anyone who has asked the system for
+         less motion it becomes a static outline, since a flashing element on the
+         first screen of the day is genuinely painful for some readers. */
+      @keyframes dd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.6)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
+      .dd-eyebrow .badge.needs-you{animation:dd-pulse 1.9s ease-out infinite}
+      @media (prefers-reduced-motion:reduce){
+        .dd-eyebrow .badge.needs-you{animation:none;outline:2px solid #b8862b;outline-offset:2px}
+      }
     </style>
-    <details class="dd-card">
+    <details class="dd-card"${ddStartsOpen()?' open':''}>
       <summary>
         <span class="dd-head">
           <span class="dd-ic">${icon('clock','w-3.5 h-3.5')}</span>
@@ -422,6 +440,11 @@ function renderDashboard(){
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
   document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
+  // Decisions due opens on arrival; closing it is remembered, so the preference
+  // belongs to the reader rather than being re-imposed on every render.
+  document.querySelector('.dd-card')?.addEventListener('toggle',e=>{
+    try{ lsSet(ddOpenKey(), !!e.currentTarget.open); }catch(_){}
+  });
   setActiveNav('dashboard');
 }
 

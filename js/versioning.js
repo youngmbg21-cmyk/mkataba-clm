@@ -240,19 +240,42 @@ function reviewProposedRound(c, n){
   const r=(c.rounds||[]).find(x=>x.n===n); if(!r||!r.proposedText) return;
   const base=r.baseText || (c.versions&&c.versions.length?c.versions[c.versions.length-1].text:docPlainText(c));
   const st=diffStats(base, r.proposedText);
+  /* Full window, and the redline laid out as a page rather than a panel: this is
+     a decision about contract wording, and it was being made through a 56vh
+     letterbox inside an 860px box. Header and footer stay put; only the diff
+     scrolls. Same accept and reject as before. */
+  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
   openModal(`
-    <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:#b8862b">${icon('history','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Proposed edits — round ${n}</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 2px">by ${(r.by||'counterparty')} · ${fmtDT(r.at)}</p>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${_statLine(st)} · ${_diffLegend}</p>
-      ${r.comment?`<div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--color-neutral-700);margin-bottom:12px">“${(r.comment||'').replace(/</g,'&lt;')}”</div>`:''}
-      ${_diffBox(base, r.proposedText)}
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">
-        <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject</button>
-        <button id="pr-accept" class="ui-btn ui-btn-primary">Accept — adopt as new version</button>
+    <div style="height:100%;display:flex;flex-direction:column;min-height:0">
+      <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
+        <div style="${COL}">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <span style="color:#b8862b;display:inline-flex">${icon('history','w-4 h-4')}</span>
+            <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${(r.by||'the counterparty')}</h3>
+            <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:3px 9px">Round ${n} · open</span>
+          </div>
+          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
+        </div>
       </div>
-    </div>`, {maxWidth:'860px'});
+      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
+        <div style="${COL}">
+          <div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
+          ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Their comment</div>
+            <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${(r.comment||'').replace(/</g,'&lt;')}</div></div>`:''}
+        </div>
+      </div>
+      <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
+        <div style="${COL};display:flex;align-items:center;gap:8px">
+          <span style="font-size:11.5px;color:var(--color-neutral-600)">Accepting adopts this wording and captures a new version.</span>
+          <span style="flex:1"></span>
+          <button id="pr-close" class="ui-btn">Decide later</button>
+          <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject</button>
+          <button id="pr-accept" class="ui-btn ui-btn-primary">Accept changes</button>
+        </div>
+      </div>
+    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+  document.getElementById('pr-close').addEventListener('click',closeModal);
   document.getElementById('pr-accept').addEventListener('click',()=>{ closeModal(); acceptProposedRound(c,n); });
   document.getElementById('pr-reject').addEventListener('click',()=>{ closeModal(); resolveRound(c,n,false); });
 }

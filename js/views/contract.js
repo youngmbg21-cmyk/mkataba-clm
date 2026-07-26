@@ -1798,6 +1798,42 @@ function wireDocResizer(){
   rez.addEventListener('dblclick',()=>{ try{ lsSet('hati.v1.docLeftFrac',DOC_F0); }catch(_){} layoutDocResizer(); });
   if(!window._docResizeBound){ window._docResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='workspace') layoutDocResizer(); }); }
 }
+/* Returned changes, said out loud. An open negotiation round used to be visible
+   only in the right-hand panel, below the playbook and the scan, so a contract
+   could sit all day with a counterparty's redline waiting on it while the page
+   said nothing above the fold. This strip belongs to the contract's state — it
+   sits with the status bar, not on the paper, so it cannot be scrolled past. */
+function openRounds(c){ return (c.rounds||[]).filter(r=>r.status==='open'); }
+function returnedChangesStrip(c){
+  const open=openRounds(c);
+  if(!open.length) return '';
+  const latest=open[open.length-1];
+  const withText=open.filter(r=>r.proposedText).length;
+  const who=esc(latest.by||'The counterparty');
+  return `
+    <div id="changes-strip" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:#fdf6e7;border-top:1px solid #e0c48a;border-bottom:1px solid #e0c48a">
+      <span class="changes-pip" style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#b8862b;color:#fff;border-radius:999px;padding:3px 10px">Changes returned</span>
+      <span style="font-size:12.5px;color:#7d5a14;min-width:0"><b>${who}</b> ${withText?'proposed edits':'requested changes'} — ${open.length} round${open.length===1?'':'s'} awaiting your decision.</span>
+      <span style="flex:1"></span>
+      <button id="changes-review" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid #b8862b;background:var(--color-surface);color:#7d5a14;border-radius:5px;padding:6px 13px;cursor:pointer">${withText?'Review changes':'Read the request'}</button>
+    </div>
+    <style>
+      @keyframes changes-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
+      #changes-strip .changes-pip{animation:changes-pulse 1.9s ease-out infinite}
+      @media (prefers-reduced-motion:reduce){ #changes-strip .changes-pip{animation:none} }
+    </style>`;
+}
+/* The strip's one action: open the redline if there is one, otherwise take the
+   reader to the round itself rather than leaving the button doing nothing. */
+function wireChangesStrip(c){
+  document.getElementById('changes-review')?.addEventListener('click',()=>{
+    const open=openRounds(c);
+    const redline=open.slice().reverse().find(r=>r.proposedText);
+    if(redline && window.reviewProposedRound) return reviewProposedRound(c, redline.n);
+    _docTopTab='screening'; applyDocTabs();
+    document.getElementById('nego-section')?.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+}
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -1868,6 +1904,8 @@ function renderWorkspace(){
       </div>
       <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
+
+    ${returnedChangesStrip(c)}
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
@@ -2018,6 +2056,7 @@ function renderWorkspace(){
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
+  wireChangesStrip(c);   // the returned-changes strip above the document
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;

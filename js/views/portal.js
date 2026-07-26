@@ -4,6 +4,35 @@
 // for editing, not scope isolation.
 /* ---------- counterparty portal (opened from a share link) ---------- */
 window.PORTAL_OPTS={};
+/* The mirror of the owner's returned-changes strip. When a counterparty has
+   proposed edits and the other side has ruled on them, the reshared link used to
+   arrive looking like any other first-time share — leaving them to diff two
+   documents by eye to find out what happened to their proposal. */
+function portalRoundBanner(c, p){
+  const decided=(c.rounds||[]).filter(r=>r.resolution&&r.resolution.decision);
+  if(!decided.length) return '';
+  const latest=decided[decided.length-1];
+  const accepted=decided.filter(r=>r.resolution.decision==='accepted').length;
+  const org=esc((p&&p.org)||'The other side');
+  const verb=latest.resolution.decision==='accepted'?'accepted your proposed changes':'reviewed your proposed changes';
+  const tally=decided.length>1
+    ? `${accepted} of your ${decided.length} rounds accepted`
+    : (latest.resolution.decision==='accepted'?'Your edits were adopted':'Your edits were not adopted');
+  return `
+    <div id="pt-banner" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#b8862b;color:#fff;font-size:14px;font-weight:700">!</span>
+      <span style="flex:1;min-width:200px;line-height:1.45">
+        <span style="display:block;font-size:13.5px;font-weight:600;color:#7d5a14">${org} ${verb}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">Round ${latest.n} · ${tally} · ${fmtDT(latest.resolution.at||latest.at)}</span>
+      </span>
+      ${latest.resolution.decision==='accepted'?`<span style="flex:none;font-size:11.5px;color:#7d5a14">The wording below already reflects them.</span>`:''}
+    </div>
+    <style>
+      @keyframes pt-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.55)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
+      #pt-banner .pt-pip{animation:pt-pulse 1.9s ease-out infinite}
+      @media (prefers-reduced-motion:reduce){ #pt-banner .pt-pip{animation:none} }
+    </style>`;
+}
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
     try{
@@ -57,9 +86,30 @@ function renderSharePortal(p, opts={}){
       </div>
     </header>
     <div style="max-width:1100px;margin:0 auto;display:grid;gap:22px;padding:28px 24px;align-items:start;" class="portal-grid">
-      <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
-        
-        <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
+      <div id="pt-main" style="min-width:0">
+        ${portalRoundBanner(c,p)}
+        <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
+
+          <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
+        </div>
+        <!-- Rewriting a contract used to happen in a twelve-row box inside the
+             360px column on the right. It happens here now, at the size of the
+             document it replaces. -->
+        <div id="portal-redline" class="hidden" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-md);overflow:hidden">
+          <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
+            <span style="flex:1;min-width:0">
+              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">Propose your edits</span>
+              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change any wording below. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept, reject or counter.</span>
+            </span>
+            <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
+          </div>
+          <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:#fbfbfc;"></textarea>
+          <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
+            <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">Your name is taken from the panel on the right.</span>
+            <span style="flex:1"></span>
+            <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">Submit proposed edits</button>
+          </div>
+        </div>
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">Respond to ${esc(p.org)}</h2>
@@ -81,12 +131,6 @@ function renderSharePortal(p, opts={}){
             <button id="pt-decline" class="ui-btn" style="padding:8px;font-size:12px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline</button>
           </div>
         </div>
-        <div id="portal-redline" class="hidden" style="margin-top:12px;">
-          <div style="font-size:11px;font-weight:600;color:var(--color-text);margin-bottom:4px;font-family:var(--font-mono);">Edit the text directly</div>
-          <p style="font-size:10px;color:var(--color-neutral-600);margin:0 0 6px;line-height:1.5;">Change any wording below. ${esc(p.org)} sees your edits as a tracked redline (additions and deletions highlighted) and can accept, reject or counter.</p>
-          <textarea id="pt-redline-text" rows="12" style="${TA}font-size:12px;line-height:1.6;"></textarea>
-          <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:8px;font-size:12px;">Submit proposed edits</button>
-        </div>
         <div id="portal-result" style="margin-top:16px;"></div>
       </aside>
     </div>
@@ -95,14 +139,19 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
-  // E2: reveal the redline editor, pre-filled with the current document text.
-  document.getElementById('pt-redline').addEventListener('click',()=>{
-    const box=document.getElementById('portal-redline');
-    box.classList.toggle('hidden');
+  // E2: the redline editor takes over the main column, so the document being
+  // rewritten and the box you rewrite it in are the same size.
+  const showRedline=on=>{
+    document.getElementById('portal-redline').classList.toggle('hidden',!on);
+    document.getElementById('pt-doc').classList.toggle('hidden',on);
     const ta=document.getElementById('pt-redline-text');
-    if(!ta.value) ta.value = docPlainText(c);
-    ta.scrollIntoView({behavior:'smooth',block:'nearest'});
-  });
+    if(on && !ta.value) ta.value = docPlainText(c);
+    document.getElementById('pt-main').scrollIntoView({behavior:'smooth',block:'start'});
+    if(on) setTimeout(()=>ta.focus(),260);
+  };
+  document.getElementById('pt-redline').addEventListener('click',()=>
+    showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
+  document.getElementById('pt-redline-cancel').addEventListener('click',()=>showRedline(false));
   document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
   if(opts.share){
