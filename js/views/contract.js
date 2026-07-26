@@ -1185,6 +1185,7 @@ function uploadDocBody(c){
         ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
         : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
+    ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
     ${window.wordControlsHtml?wordControlsHtml(c):''}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
@@ -1197,7 +1198,12 @@ function uploadDocBody(c){
         ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — AI review analyses the actual text`
         : 'Text not machine-readable — AI review falls back to a manual checklist'}</span>
       ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
-    </div>
+    </div>`}
+    <!-- Everything above is the owner's own handling of the file: the Word
+         round-trip control, who uploaded it and when, and how well the text
+         could be read for AI review. None of it is the counterparty's business,
+         and shown to them it produced a second Download button competing with
+         the portal's own, under copy addressed to somebody else. -->
     ${c.redlineText?`
     <div class="mb-4" data-anchor="redline">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">

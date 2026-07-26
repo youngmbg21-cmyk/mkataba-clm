@@ -21,20 +21,58 @@ window.PORTAL_OPTS={};
    writer: a template-drafted contract has no file to hand over. */
 const portalWordFile = c => { const u=c&&c.upload;
   return (u && (u.docKind==='docx' || /wordprocessingml/.test(u.mime||'') || /\.docx$/i.test(u.fileName||''))) ? u : null; };
+/* Word cannot be written by HaTi, so the .docx on record is the file that was
+   uploaded — and it does NOT contain any wording edited in HaTi since. Handing
+   that over silently is the worst outcome: counsel marks up a superseded draft
+   in good faith. Where the wording has moved, the card says so and offers the
+   CURRENT text as a document Word opens (an HTML body under a .doc name, which
+   Word has always read) so the round trip is against the live wording. */
+const portalFileHref = u => u && u.dataUrl ? u.dataUrl : null;
+function portalUploadDiverged(c){
+  const u=c&&c.upload; if(!u) return false;
+  const filed=String(u.extractedText||'').replace(/\s+/g,' ').trim();
+  const live=String(portalCurrentText()||'').replace(/\s+/g,' ').trim();
+  return !!(filed && live && filed!==live);
+}
+function portalDownloadCurrentAsDoc(c){
+  const text=portalCurrentText()||docPlainText(c)||'';
+  const name=String(c.name||c.id||'contract').replace(/[^\w \-]/g,'').trim()||'contract';
+  const body=text.split(/\n{2,}/).map(par=>
+    `<p style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5">${esc(par).replace(/\n/g,'<br/>')}</p>`).join('');
+  const html=`<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(name)}</title></head><body>${body}</body></html>`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/msword'}));
+  a.download=name+' (current wording).doc';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+/* Any uploaded document, not only Word: a counterparty sent a PDF still needs
+   the file itself, and the portal is now the only place offering it. */
 function portalWordCard(c){
-  const u=portalWordFile(c); if(!u||!u.dataUrl) return '';
+  const u=c&&c.upload; if(!u||!portalFileHref(u)) return '';
+  const isWord=!!portalWordFile(c);
+  const diverged=portalUploadDiverged(c);
   const kb=u.size?(u.size>1048576?(u.size/1048576).toFixed(1)+' MB':Math.round(u.size/1024)+' KB'):'';
+  if(!isWord) return `
+    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:13px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('file','w-4 h-4')}</span>
+      <span style="flex:1;min-width:160px;font-size:12.5px;color:var(--color-neutral-700)">The original file as it was filed${diverged?' — note the wording below has been revised since':''}.
+        <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500);margin-top:2px">${esc(u.fileName||'document')}${kb?' · '+kb:''}</span></span>
+      <button id="pt-word-dl" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">${icon('download','w-3.5 h-3.5')} Download original</button>
+    </div>`;
   return `
     <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
         <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
         <span style="flex:1;min-width:0">
           <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Download the contract, mark it up in Word with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
+          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Mark the contract up in Word with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
         </span>
       </div>
+      ${diverged?`<div style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:5px;padding:9px 12px;margin:0 0 11px;font-size:11.5px;line-height:1.55;color:#7d5a14">
+        <b>The .docx on file is the original.</b> The wording below has been revised since it was uploaded, and those revisions are not in that file. Work from <b>the current wording</b> unless you specifically need the original paper.</div>`:''}
       <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button id="pt-word-dl" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download .docx</button>
+        <button id="pt-word-current" class="ui-btn ${diverged?'ui-btn-primary':''}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the current wording</button>
+        <button id="pt-word-dl" class="ui-btn ${diverged?'':'ui-btn-primary'}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the original .docx</button>
         <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
         <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
       </div>
@@ -43,7 +81,8 @@ function portalWordCard(c){
     </div>`;
 }
 function wireportalWord(c, p){
-  const u=portalWordFile(c); if(!u||!u.dataUrl) return;
+  const u=c&&c.upload; if(!u||!portalFileHref(u)) return;
+  document.getElementById('pt-word-current')?.addEventListener('click',()=>portalDownloadCurrentAsDoc(c));
   document.getElementById('pt-word-dl')?.addEventListener('click',()=>{
     // wordTriggerDownload turns the data URL back into bytes; downloadFile
     // takes (name, content) and would have written the URL string as the file.
