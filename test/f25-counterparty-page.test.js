@@ -89,25 +89,42 @@ describe('F25 — the Word file he actually downloads', () => {
   });
 });
 
-describe('F25 — proposing edits', () => {
+describe('F25 — proposing edits, clause by clause', () => {
   let p;
   before(() => {
     p = buildPortal();
     p.open(sharePayloadFor(p, supplyContract()));
   });
 
-  test('the editor opens on the current wording, not empty', async () => {
+  test('the document opens as clauses, each one changeable on its own', async () => {
     await p.click('pt-redline');
-    const ta = p.win.document.getElementById('pt-redline-text');
-    assert.ok(ta, 'there must be an editor');
-    assert.match(ta.value, /RAW MATERIAL SUPPLY AGREEMENT/);
-    assert.match(ta.value, /thirty \(30\) days/);
+    const html = p.win.document.getElementById('pt-clause-editor').innerHTML;
+    assert.match(html, /RAW MATERIAL SUPPLY AGREEMENT/, 'the whole document is there');
+    assert.match(html, /thirty \(30\) days/);
+    assert.match(html, /data-cl-edit="/, 'and every clause has its own control');
+    assert.match(html, /No changes yet/);
   });
 
-  test('his edits are submitted with the base they were made against', async () => {
+  test('changing one clause leaves every other one exactly as it was', async () => {
     await p.click('pt-redline');
-    const ta = p.win.document.getElementById('pt-redline-text');
+    // find the row holding the payment clause and change only that
+    const host = p.win.document.getElementById('pt-clause-editor');
+    const row = Array.from(host.querySelectorAll('[data-cl]'))
+      .find(r => /thirty \(30\) days/.test(r.textContent));
+    assert.ok(row, 'the payment clause must be a row of its own');
+    const idx = row.getAttribute('data-cl');
+    await p.click(`__none__`.replace('__none__', 'x')).catch(() => {});   // no-op guard
+    row.querySelector(`[data-cl-edit="${idx}"]`).dispatchEvent(new p.win.Event('click', { bubbles: true }));
+    const ta = host.querySelector(`[data-cl-input="${idx}"]`);
+    assert.ok(ta, 'that clause opens for editing');
     ta.value = ta.value.replace('thirty (30) days', 'sixty (60) days');
+    host.querySelector(`[data-cl-save="${idx}"]`).dispatchEvent(new p.win.Event('click', { bubbles: true }));
+
+    assert.match(host.innerHTML, /1 change/, 'the count must show what he has done');
+    assert.match(host.innerHTML, /sixty \(60\) days/);
+  });
+
+  test('the whole document is submitted, with only that clause different', async () => {
     p.setValue('pt-name', 'Erik Lindqvist');
     p.setValue('pt-email', 'erik@nordkust.se');
     p.setValue('pt-comment', 'Net-60 is our standard.');
@@ -116,21 +133,56 @@ describe('F25 — proposing edits', () => {
     const sent = p.lastSent();
     assert.ok(sent, 'the response must be submitted');
     assert.equal(sent.action, 'changes');
-    assert.equal(sent.name, 'Erik Lindqvist');
-    assert.match(sent.proposedText, /sixty \(60\) days/);
+    assert.match(sent.proposedText, /sixty \(60\) days/, 'his change is in it');
+    assert.match(sent.proposedText, /RAW MATERIAL SUPPLY AGREEMENT/, 'and so is the rest of the document');
+    assert.match(sent.proposedText, /twelve \(12\) months/, 'untouched clauses come through unchanged');
     assert.ok(sent.baseText, 'the base must travel, or the owner diffs against the wrong text');
     assert.match(sent.baseText, /thirty \(30\) days/);
-    assert.equal(sent.comment, 'Net-60 is our standard.');
+  });
+
+  test('submitting without changing anything is refused, not sent as a no-op round', async () => {
+    const p2 = buildPortal();
+    p2.open(sharePayloadFor(p2, supplyContract()));
+    await p2.click('pt-redline');
+    p2.setValue('pt-name', 'Erik Lindqvist');
+    await p2.click('pt-redline-submit');
+    assert.equal(p2.lastSent(), null, 'a round with no changes is not a round');
+    assert.match(p2.toastText(), /Nothing has been changed/i);
   });
 
   test('he cannot submit without saying who he is', async () => {
     const p2 = buildPortal();
     p2.open(sharePayloadFor(p2, supplyContract()));
     await p2.click('pt-redline');
-    p2.win.document.getElementById('pt-redline-text').value = 'Some edited wording.';
+    const host = p2.win.document.getElementById('pt-clause-editor');
+    const row = Array.from(host.querySelectorAll('[data-cl]'))
+      .find(r => /thirty \(30\) days/.test(r.textContent));
+    const idx = row.getAttribute('data-cl');
+    row.querySelector(`[data-cl-edit="${idx}"]`).dispatchEvent(new p2.win.Event('click', { bubbles: true }));
+    host.querySelector(`[data-cl-input="${idx}"]`).value = 'Payment shall be made within sixty (60) days.';
+    host.querySelector(`[data-cl-save="${idx}"]`).dispatchEvent(new p2.win.Event('click', { bubbles: true }));
     await p2.click('pt-redline-submit');
     assert.equal(p2.lastSent(), null, 'an anonymous proposal must not be sent');
     assert.match(p2.toastText(), /name/i);
+  });
+
+  test('the whole-document escape hatch still exists, and carries his edits across', async () => {
+    const p2 = buildPortal();
+    p2.open(sharePayloadFor(p2, supplyContract()));
+    await p2.click('pt-redline');
+    const host = p2.win.document.getElementById('pt-clause-editor');
+    const row = Array.from(host.querySelectorAll('[data-cl]'))
+      .find(r => /thirty \(30\) days/.test(r.textContent));
+    const idx = row.getAttribute('data-cl');
+    row.querySelector(`[data-cl-edit="${idx}"]`).dispatchEvent(new p2.win.Event('click', { bubbles: true }));
+    host.querySelector(`[data-cl-input="${idx}"]`).value = 'Payment shall be made within sixty (60) days.';
+    host.querySelector(`[data-cl-save="${idx}"]`).dispatchEvent(new p2.win.Event('click', { bubbles: true }));
+
+    await p2.click('pt-plain-toggle');
+    const ta = p2.win.document.getElementById('pt-redline-text');
+    assert.match(ta.value, /sixty \(60\) days/,
+      'switching surfaces must not throw away what he has already changed');
+    assert.match(ta.value, /RAW MATERIAL SUPPLY AGREEMENT/);
   });
 });
 

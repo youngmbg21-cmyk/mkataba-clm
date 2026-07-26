@@ -2456,3 +2456,40 @@ test that needs something from that file asks for the heavier stage, and the
 rest keep the light one.
 
 Result: `f28-paper-signature.test.js` 14/14; suite 416/416 green.
+
+**2026-07-26 — item-4 phase 1 shipped: the counterparty edits a clause at a time.**
+Erik was handed the entire agreement as one stretch of plain text in a single
+box: scroll to find clause 4, edit it in place, and write one comment covering
+every unrelated change. It invited accidental deletions and it was his whole
+impression of the product, while the owner's side had become clause-aware.
+
+**The unit is the line, and that is what makes it safe.** The shared text is
+already one line per block — `richToText` emits it that way, so a heading, a
+paragraph and a numbered clause each arrive as exactly one line. Editing one
+line and rejoining is therefore exact: with nothing edited, the reassembled
+document is the original byte for byte (asserted directly). A merge that could
+drift would be far worse than the box it replaces.
+
+**Nothing about the wire format changed**, which was the whole point of the
+phasing agreed with the owner. The reassembled text goes down the same redline
+route as before, so the server, the owner's review screen and every existing
+test see exactly what they saw before. The change is confined to what Erik
+looks at.
+
+Also added, because clause-at-a-time is right for the ordinary case and wrong
+for a wholesale restructure: an **escape hatch** back to whole-document editing
+that carries across whatever he has already changed rather than discarding it.
+A returned Word file is a whole-document edit by nature, so that path switches
+to the plain surface before submitting.
+
+Two bugs of mine caught by the new tests before they could ship:
+- `wirePortalClauseEditor` attached listeners without ever doing the initial
+  render, so the editor opened empty. It now renders first, then binds.
+- `scrollIntoView` threw mid-handler under jsdom and would abort the rest of
+  the flow. Guarded in the product (it is a convenience, not a requirement) and
+  provided in the harness.
+
+Also now refuses to submit a round in which nothing was changed — previously a
+no-op round could be sent and would arrive at the owner as an empty redline.
+
+Result: `f25-counterparty-page.test.js` 18/18; suite **419/419 green**.

@@ -65,6 +65,9 @@ function buildPortal(opts = {}) {
   win.setTimeout = fn => { try { fn(); } catch (_) {} return 0; };
   win.clearTimeout = () => {};
   win.localStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+  // jsdom has no layout, so scrollIntoView does not exist; the product treats
+  // it as a convenience but a missing function would still throw mid-handler
+  win.Element.prototype.scrollIntoView = function () {};
   if (!win.URL.createObjectURL) win.URL.createObjectURL = () => 'blob:stub';
   if (!win.URL.revokeObjectURL) win.URL.revokeObjectURL = () => {};
 

@@ -192,6 +192,10 @@ function portalWordPreview(c, p, fileName, res){
   document.getElementById('pt-word-send').addEventListener('click',()=>{
     const ta=document.getElementById('pt-redline-text');
     if(ta) ta.value=res.text;                       // reuse the redline route wholesale
+    // a returned Word file IS a whole-document edit, so the plain surface is
+    // the one that must be live when portalProposedText reads it back
+    document.getElementById('portal-plain')?.classList.remove('hidden');
+    document.getElementById('pt-clause-editor')?.classList.add('hidden');
     if(!fval('pt-comment')){
       const el=document.getElementById('pt-comment');
       if(el) el.value=`Edits returned in Word (${fileName}).`;
@@ -563,6 +567,97 @@ function portalOpenPointsHtml(c, p){
     </div>`;
 }
 
+/* ---- editing a clause at a time (item 4, phase 1) ----
+   The counterparty used to be handed the entire agreement as one stretch of
+   plain text in a single box: scroll to find clause 4, edit it in place, and
+   write one comment covering every unrelated change. It invited accidental
+   deletions, and it was Erik's whole impression of the product while the
+   owner's side had become clause-aware.
+
+   The unit is the line, because the shared text is already one line per block —
+   richToText emits it that way, so a heading, a paragraph and a numbered clause
+   each arrive as exactly one line. Editing one line and rejoining is therefore
+   EXACT: with nothing edited the reassembled text is the original, byte for
+   byte, which is the property that makes this safe to do at all.
+
+   Nothing about the wire format changes. The reassembled text goes down the
+   same redline route as before, so the server, the owner's review screen and
+   every existing test see precisely what they saw before. */
+let PORTAL_CLAUSE_EDITS = {};
+function portalClauseUnits(text){
+  return String(text==null?'':text).split('\n').map((line,i)=>({
+    i, text:line, kind:(window.docLineKind?docLineKind(line):'text'),
+    prefix:(window.docClausePrefix?docClausePrefix(line):'') }));
+}
+/* Rebuild the whole document from the units and whatever was changed. */
+function portalClauseText(units, edits){
+  const e=edits||{};
+  return units.map(u=>Object.prototype.hasOwnProperty.call(e,u.i)?e[u.i]:u.text).join('\n');
+}
+function portalClauseEditorHtml(c){
+  const units=portalClauseUnits(portalCurrentText()||docPlainText(c));
+  const rows=units.filter(u=>u.text.trim()).map(u=>{
+    const edited=Object.prototype.hasOwnProperty.call(PORTAL_CLAUSE_EDITS,u.i);
+    const shown=edited?PORTAL_CLAUSE_EDITS[u.i]:u.text;
+    const heading=u.kind==='heading';
+    return `
+      <div data-cl="${u.i}" style="border:1px solid ${edited?'#b8862b':'var(--color-divider)'};background:${edited?'#fdf6e7':'var(--color-surface)'};border-radius:6px;padding:10px 13px">
+        <div data-cl-view="${u.i}" style="display:flex;align-items:flex-start;gap:10px">
+          <span style="flex:1;min-width:0;font-size:${heading?'13.5px':'13px'};line-height:1.7;${heading?'font-weight:700;letter-spacing:.02em;':''}color:var(--color-doc-text);white-space:pre-wrap">${esc(shown)}</span>
+          <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:11px;padding:4px 10px">${edited?'Edit again':'Change'}</button>
+        </div>
+        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:#7d5a14;display:flex;align-items:center;gap:7px">
+          <span>You changed this.</span>
+          <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:#7d5a14;cursor:pointer;text-decoration:underline">Undo</button></div>`:''}
+      </div>`;
+  }).join('');
+  const n=Object.keys(PORTAL_CLAUSE_EDITS).length;
+  return `
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
+      <span style="font-size:12px;color:var(--color-neutral-700)">Press <b>Change</b> on any clause you want to alter. Everything else stays exactly as it is.</span>
+      <span style="flex:1"></span>
+      <span id="pt-cl-count" style="font-size:11.5px;font-weight:600;color:${n?'#7d5a14':'var(--color-neutral-500)'}">${n?`${n} change${n===1?'':'s'}`:'No changes yet'}</span>
+    </div>
+    <div id="pt-cl-list" style="display:flex;flex-direction:column;gap:7px">${rows}</div>`;
+}
+function wirePortalClauseEditor(c, p){
+  const host=document.getElementById('pt-clause-editor'); if(!host) return;
+  const units=portalClauseUnits(portalCurrentText()||docPlainText(c));
+  const repaint=()=>{ host.innerHTML=portalClauseEditorHtml(c); wire(); };
+  function wire(){
+    host.querySelectorAll('[data-cl-edit]').forEach(b=>b.addEventListener('click',()=>{
+      const i=Number(b.getAttribute('data-cl-edit'));
+      const row=host.querySelector(`[data-cl="${i}"]`); if(!row) return;
+      const cur=Object.prototype.hasOwnProperty.call(PORTAL_CLAUSE_EDITS,i)?PORTAL_CLAUSE_EDITS[i]:units[i].text;
+      row.innerHTML=`
+        <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:5px;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
+        <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
+          <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
+          <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">Keep this change</button>
+        </div>`;
+      const ta=row.querySelector(`[data-cl-input="${i}"]`); if(ta){ ta.focus(); }
+      row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
+      row.querySelector(`[data-cl-save="${i}"]`).addEventListener('click',()=>{
+        const v=ta?ta.value:'';
+        // a clause edited back to what it said is not a change
+        if(v===units[i].text) delete PORTAL_CLAUSE_EDITS[i]; else PORTAL_CLAUSE_EDITS[i]=v;
+        repaint();
+      });
+    }));
+    host.querySelectorAll('[data-cl-undo]').forEach(b=>b.addEventListener('click',()=>{
+      delete PORTAL_CLAUSE_EDITS[Number(b.getAttribute('data-cl-undo'))]; repaint();
+    }));
+  }
+  repaint();          // render first, THEN attach — wire() alone had nothing to bind to
+}
+/* The text the counterparty is proposing, whichever surface they used. */
+function portalProposedText(c){
+  const ta=document.getElementById('pt-redline-text');
+  if(ta && !document.getElementById('portal-plain')?.classList.contains('hidden')) return ta.value||'';
+  const units=portalClauseUnits(portalCurrentText()||docPlainText(c));
+  return portalClauseText(units, PORTAL_CLAUSE_EDITS);
+}
+
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
     try{
@@ -636,13 +731,17 @@ function renderSharePortal(p, opts={}){
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
               <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">Propose your edits</span>
-              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change any wording below. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each change on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
+              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
             <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
           </div>
-          <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:#fbfbfc;"></textarea>
+          <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:#fbfbfc"></div>
+          <div id="portal-plain" class="hidden">
+            <textarea id="pt-redline-text" class="scroll-thin" spellcheck="false" style="display:block;width:100%;height:min(62vh,620px);border:0;outline:none;resize:vertical;padding:26px 32px;font:inherit;font-size:15px;line-height:1.95;color:var(--color-doc-text);background:#fbfbfc;"></textarea>
+          </div>
           <div style="padding:14px 22px;border-top:1px solid var(--color-divider);display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--color-bg)">
             <span id="pt-redline-count" style="font-size:11.5px;color:var(--color-neutral-600)">Your name is taken from the panel on the right.</span>
+            <button id="pt-plain-toggle" style="border:0;background:none;padding:0;font:inherit;font-size:11.5px;color:var(--color-accent-700);cursor:pointer;text-decoration:underline">Edit the whole document instead</button>
             <span style="flex:1"></span>
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">Submit proposed edits</button>
           </div>
@@ -693,11 +792,31 @@ function renderSharePortal(p, opts={}){
   const showRedline=on=>{
     document.getElementById('portal-redline').classList.toggle('hidden',!on);
     document.getElementById('pt-doc').classList.toggle('hidden',on);
-    const ta=document.getElementById('pt-redline-text');
-    if(on && !ta.value) ta.value = docPlainText(c);
-    document.getElementById('pt-main').scrollIntoView({behavior:'smooth',block:'start'});
-    if(on) setTimeout(()=>ta.focus(),260);
+    if(on){
+      PORTAL_CLAUSE_EDITS={};
+      wirePortalClauseEditor(c, p);
+    }
+    try{ document.getElementById('pt-main')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
   };
+  /* The escape hatch. Clause-at-a-time is right for the ordinary case — change
+     the payment term, change the delivery window — but a counterparty who
+     wants to restructure the document wholesale should not have to fight it. */
+  document.getElementById('pt-plain-toggle')?.addEventListener('click',()=>{
+    const plain=document.getElementById('portal-plain');
+    const clauses=document.getElementById('pt-clause-editor');
+    const toPlain=plain.classList.contains('hidden');
+    const ta=document.getElementById('pt-redline-text');
+    if(toPlain){
+      // carry whatever they have already changed across, rather than losing it
+      ta.value=portalProposedText(c);
+      plain.classList.remove('hidden'); clauses.classList.add('hidden');
+      document.getElementById('pt-plain-toggle').textContent='Back to editing clause by clause';
+      setTimeout(()=>ta.focus(),120);
+    } else {
+      plain.classList.add('hidden'); clauses.classList.remove('hidden');
+      document.getElementById('pt-plain-toggle').textContent='Edit the whole document instead';
+    }
+  });
   document.getElementById('pt-redline').addEventListener('click',()=>
     showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
   document.getElementById('pt-redline-cancel').addEventListener('click',()=>showRedline(false));
@@ -731,8 +850,12 @@ async function portalRespond(p, action){
   // E2: a redline is a change request carrying proposed edited text + its base.
   let proposedText=null, baseText=null, sendAction=action;
   if(action==='redline'){
-    proposedText=(document.getElementById('pt-redline-text')?.value||'').trim();
+    // whichever surface they used — clause by clause, or the whole document
+    const cRec=migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'});
+    proposedText=String(portalProposedText(cRec)||'').trim();
     if(!proposedText){ toast('Edit the text before submitting','err'); return; }
+    const beforeText=String(portalCurrentText()||docPlainText(cRec)||'').trim();
+    if(proposedText===beforeText){ toast('Nothing has been changed yet — press Change on a clause first','err'); return; }
     // the base must be the same TEXT the counterparty edited, not the markup
     // behind it, or the returned redline diffs against tags
     baseText=p.contract.redlineText
@@ -964,4 +1087,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
