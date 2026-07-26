@@ -1139,7 +1139,7 @@ function exportPDF(c){
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
-      span.textContent=inp.value||inp.getAttribute('value')||'________';
+      span.textContent=(window.fieldDisplayValue?fieldDisplayValue(inp):(inp.value||inp.getAttribute('value')||''))||'________';
       inp.replaceWith(span);
     });
     bodyHtml=holder.innerHTML;

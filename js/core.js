@@ -123,6 +123,50 @@ const EXTRACT_MAX_CHARS = 200000;
 /* ============================================================ HELPERS */
 const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
+
+/* ---- a filled-in blank, as a DOCUMENT reads it ----
+   A drafted contract keeps its answers in form fields, and the browser tidies
+   those up on screen: a date box shows 01/08/2026 whatever is stored behind it.
+   The moment the document leaves the screen — into Word, into the counterparty's
+   page, into the PDF, into the sealed record — that tidying stops and the stored
+   value shows through raw. Every copy of a wizard-drafted contract therefore
+   read "is made on 2026-08-01" and "value is KES 4800000": the first thing a
+   counterparty sees, and the text the signature is taken over.
+
+   These are the two conversions a contract needs, applied in the one place a
+   field turns into text, so the reading view, the export, the print and the seal
+   cannot drift apart. Anything not a date or an amount is left exactly as typed —
+   guessing at a number's meaning is how "2026" becomes "2,026". */
+const DOC_MONTHS = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+function fmtDocDate(v){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v==null?'':v).trim());
+  if(!m) return null;                                   // not a date input's value — leave it alone
+  const y=m[1], mo=Number(m[2]), d=Number(m[3]);
+  if(mo<1||mo>12||d<1||d>31) return null;
+  // parsed by hand, never through new Date(): a date-only string is read as UTC
+  // and would print as the day before for anyone west of Greenwich
+  return `${d} ${DOC_MONTHS[mo-1]} ${y}`;
+}
+function fmtDocAmount(v){
+  const s = String(v==null?'':v).trim();
+  if(!/^-?\d+(\.\d+)?$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n.toLocaleString('en-KE') : null;
+}
+/* The text that replaces one fill-in field. Money is marked in the document
+   itself (data-money) rather than guessed at from the number, because "5000
+   metric tonnes" and "5000 shillings" look identical to a formatter. */
+function fieldDisplayValue(inp){
+  if(!inp) return '';
+  const raw = String((inp.value!=null?inp.value:inp.getAttribute&&inp.getAttribute('value'))||'').trim();
+  if(!raw) return '';
+  const type = String((inp.getAttribute&&inp.getAttribute('type'))||'').toLowerCase();
+  if(type==='date') return fmtDocDate(raw)||raw;
+  if(inp.getAttribute&&(inp.getAttribute('data-money')||inp.getAttribute('data-sync')==='value'))
+    return fmtDocAmount(raw)||raw;
+  return raw;
+}
 // Design status treatment: friendly lifecycle labels (Drafting/In Review/
 // Executed/Closed) over the warm palette. Internal status values stay
 // Draft/Under Review/Signed/Declined so filters, backend and logic are
@@ -1082,7 +1126,7 @@ function readOnlyDocHtml(html){
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
     const s=document.createElement('span');
     s.className='field-frozen font-mono font-semibold text-brand-900';
-    const v=(inp.value||inp.getAttribute('value')||'').trim();
+    const v=fieldDisplayValue(inp);
     s.textContent=v||'—';
     if(!v) s.setAttribute('title','This term was not filled in before the contract was sent');
     inp.replaceWith(s);
@@ -1107,7 +1151,7 @@ function freezeContractHtml(c){
   tmp.querySelectorAll('input,textarea').forEach(inp=>{
     const s=document.createElement('span');
     s.className='font-mono font-semibold text-brand-900';
-    s.textContent=(inp.value||'').trim()||'—';
+    s.textContent=fieldDisplayValue(inp)||'—';
     inp.replaceWith(s);
   });
   return tmp.innerHTML;
@@ -1917,4 +1961,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

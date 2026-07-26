@@ -1475,8 +1475,12 @@ function docBody(c){
   const fDate=(id,val)=>`<input ${dis} type="date" value="${val||''}" data-field="${id}" class="field field-date"/>`;
   const fText=(id,val,ph='')=>`<input ${dis} type="text" value="${val||''}" placeholder="${ph}" data-field="${id}" class="field"/>`;
   const fNum=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" class="field field-num"/>`;
+  // a blank holding SHILLINGS says so, so it can be written out with thousands
+  // separators; a blank holding tonnes, days or years must not be (see
+  // fieldDisplayValue in js/core.js — guessing turns "2026" into "2,026")
+  const fMoney=(id,val,ph='')=>`<input ${dis} type="number" value="${val??''}" placeholder="${ph}" data-field="${id}" data-money="1" class="field field-num"/>`;
   const CP=`<input ${dis} type="text" value="${(c.counterparty||'').replace(/"/g,'&quot;')}" placeholder="Counterparty name" data-sync="counterparty" class="field"/>`;
-  const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" class="field field-num"/>`;
+  const VAL=`<input ${dis} type="number" value="${c.value||''}" placeholder="0" data-sync="value" data-money="1" class="field field-num"/>`;
   // Presentational clause flags — reuse the app's EXISTING scan findings
   // (openFindings), map each to its clause anchor, keep the worst severity.
   const flags={};
@@ -1496,6 +1500,7 @@ function docBody(c){
   const D=id=>fDate(id,f[id]);                    // date field
   const T=(id,ph)=>fText(id,f[id],ph);            // text field
   const N=(id,def,ph)=>fNum(id,(f[id]??def),ph);  // number field (with default)
+  const M=(id,def,ph)=>fMoney(id,(f[id]??def),ph);// an amount in shillings
 
   // Each builder returns { title, recital, clauses[] }. Clause 'c2' holds the
   // contract value for most types (NDA has no value; scanRules mirrors this).
@@ -1585,7 +1590,7 @@ function docBody(c){
       clauses:[
         clause(1,'Demised Premises',`The Landlord leases to the Tenant premises measuring ${N('sqm',420)} square metres, together with shared access to power, water and secure parking.`),
         clause(2,'Rent',`The Tenant shall pay monthly rent of KES ${VAL}, in advance on or before the 5th day of each month, exclusive of VAT at the prevailing KRA rate.`),
-        clause(3,'Term & Deposit',`The lease term is ${N('termYears',6)} years, secured by a deposit of ${N('deposit',0,'deposit KES')} held against dilapidations and refundable per clause 7.`),
+        clause(3,'Term & Deposit',`The lease term is ${N('termYears',6)} years, secured by a deposit of ${M('deposit',0,'deposit KES')} held against dilapidations and refundable per clause 7.`),
         clause(4,'Governing Law',`This Lease is governed by the laws of Kenya, including the Land Act (2012), with disputes referred to the Environment and Land Court at Nairobi.`),
       ]}),
     PS:()=>({ title:'PROFESSIONAL SERVICES AGREEMENT',

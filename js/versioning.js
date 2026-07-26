@@ -16,7 +16,9 @@ function htmlToStructuredText(html){
       if(ch.nodeType===3){ out+=ch.nodeValue.replace(/\s+/g,' '); return; }
       if(ch.nodeType!==1) return;
       if(ch.tagName==='BR'){ out+='\n'; return; }
-      if(ch.tagName==='INPUT'){ out+=(ch.value||ch.getAttribute('value')||''); return; }
+      // a filled-in blank reads as a contract writes it, not as the field stores
+      // it — see fieldDisplayValue in js/core.js
+      if(ch.tagName==='INPUT'){ out+=(window.fieldDisplayValue?fieldDisplayValue(ch):(ch.value||ch.getAttribute('value')||'')); return; }
       const isBlock=BLOCK.has(ch.tagName);
       const anchored=ch.hasAttribute&&ch.hasAttribute('data-anchor');
       if(isBlock&&out&&!out.endsWith('\n')) out+='\n';
