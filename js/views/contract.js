@@ -1106,23 +1106,28 @@ function openEditDocModal(c){
   if(!cur){ toast('This document has no editable text yet','err'); return; }
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
   const firstEdit=!c.redlineText&&!isUpload(c);
+  // Full-window editor: the dialog takes the whole screen and the wording sits
+  // in a centred book-page column — same save-and-version behaviour, more room.
+  const COL='width:100%;max-width:800px;margin-left:auto;margin-right:auto;flex:none';
   openModal(`
-    <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
-      <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
-      ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
-        <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
-        <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
-      <textarea id="ed-text" rows="20" class="scroll-thin" spellcheck="false" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:12px 14px;font:inherit;font-size:12.5px;line-height:1.75;resize:vertical;outline:none;min-height:300px">${esc(cur)}</textarea>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+    <div style="padding:24px 26px 20px;height:100%;display:flex;flex-direction:column;min-height:0">
+      <div style="${COL};padding:0 26px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Edit document — ${c.id}</h3></div>
+        <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 10px;line-height:1.5">Change any wording below and save. Every save is captured as a <b>new version</b> — review it under <b>Compare</b> and share the updated text with the counterparty as usual.${firstEdit?' <b>Note:</b> the first edit converts the drafted layout into working text; the highlighted quick-fill fields no longer apply after that.':''}</p>
+        ${wasRich?`<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:4px;padding:8px 11px;margin:0 0 10px;font-size:11.5px;line-height:1.5;color:var(--color-accent-800)">
+          <span style="flex:none;margin-top:1px">${icon('alert','w-3.5 h-3.5')}</span>
+          <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
+      </div>
+      <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:22px 26px;font:inherit;font-size:15px;line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
+      <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:12px">
         <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
         <span style="display:flex;gap:8px">
           <button id="ed-cancel" class="ui-btn">Cancel</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
-    </div>`, {maxWidth:'860px'});
+    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
   const ta=document.getElementById('ed-text');
   ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=ta.value.length.toLocaleString()+' characters'; });
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
@@ -1728,19 +1733,25 @@ function wireDocTabs(){
   applyDocTabs();
 }
 /* Draggable divider between the contract (left) and workspace (right). The
-   contract can only grow — from its default width up to +25% — never narrower;
-   the right panel gives up the space. The chosen fraction is remembered. */
-const DOC_F0 = 1.2 / 2.2;                 // default left share (matches the 1.2fr:1fr grid)
-const DOC_FMAX = DOC_F0 * 1.25;           // +25% wider contract, max
+   contract takes about two thirds by default and drags either way — wider for
+   reading, narrower to give the panel room. The chosen fraction is remembered
+   per browser, so an existing choice survives a change of default. */
+const DOC_FMIN = 0.50;                    // narrowest contract: an even split
+const DOC_F0   = 2 / 3;                   // default left share (matches the 2fr:1fr grid)
+const DOC_FMAX = 0.80;                    // widest contract
 const DOC_GAP = 12;
+const DOC_LEFT_MIN = 420;                 // neither column may be squeezed below
+const DOC_RIGHT_MIN = 300;                // these widths, whatever the fraction says
 function _docLeftFrac(){
-  try{ const v=Number(lsGet('hati.v1.docLeftFrac')); return (v>=DOC_F0-0.001&&v<=DOC_FMAX+0.001)?v:DOC_F0; }catch(_){ return DOC_F0; }
+  try{ const v=Number(lsGet('hati.v1.docLeftFrac')); return (v>=DOC_FMIN-0.001&&v<=DOC_FMAX+0.001)?v:DOC_F0; }catch(_){ return DOC_F0; }
 }
 function layoutDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
   if(!grid||!rez) return;
   const avail=Math.max(1, grid.clientWidth - DOC_GAP);
-  const leftPx=Math.round(_docLeftFrac()*avail);
+  let leftPx=Math.round(_docLeftFrac()*avail);
+  // On a narrow window the fraction alone would starve one side; pixels win.
+  if(avail>=DOC_LEFT_MIN+DOC_RIGHT_MIN) leftPx=Math.min(Math.max(leftPx,DOC_LEFT_MIN), avail-DOC_RIGHT_MIN);
   grid.style.gridTemplateColumns=leftPx+'px minmax(0,1fr)';
   rez.style.left=leftPx+'px';            // handle sits in the gap immediately right of the contract
 }
@@ -1748,7 +1759,7 @@ function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
   if(!grid||!rez) return;
   const grip=rez.firstElementChild;
-  const clamp=f=>Math.max(DOC_F0, Math.min(DOC_FMAX, f));
+  const clamp=f=>Math.max(DOC_FMIN, Math.min(DOC_FMAX, f));
   layoutDocResizer();
   let startX=0, startFrac=DOC_F0;
   const onMove=e=>{ const x=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX);
@@ -1756,7 +1767,7 @@ function wireDocResizer(){
     const frac=clamp(startFrac + (x-startX)/avail);
     try{ lsSet('hati.v1.docLeftFrac',frac); }catch(_){}
     layoutDocResizer(); };
-  const onUp=()=>{ delete rez.dataset.drag; grip.style.background='var(--color-divider)';
+  const onUp=()=>{ delete rez.dataset.drag; grip.style.background='var(--color-neutral-300)';
     document.body.style.cursor=''; document.body.style.userSelect='';
     window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp); };
   rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
@@ -1838,7 +1849,7 @@ function renderWorkspace(){
     </section>
 
     <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
-    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:12px">
+    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
 
       <!-- LEFT: document -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
@@ -1970,8 +1981,8 @@ function renderWorkspace(){
       </section>
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
-      <div id="doc-resizer" title="Drag right to widen the contract (up to +25%) · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:12px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-divider)'">
-        <span style="width:3px;height:44px;border-radius:999px;background:var(--color-divider);transition:background .15s"></span>
+      <div id="doc-resizer" title="Drag to set how wide the contract is · double-click to reset" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
+        <span style="width:4px;height:72px;border-radius:999px;background:var(--color-neutral-300);transition:background .15s"></span>
       </div>
     </div>
   </div>`;

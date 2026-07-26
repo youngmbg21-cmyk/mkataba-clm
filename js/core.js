@@ -887,10 +887,15 @@ function resolveRound(c, n, accept){
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   const maxw=opts.maxWidth||'32rem';
+  // Given an explicit height the panel becomes a fill-the-window shell: it stops
+  // scrolling itself and whatever is inside takes charge of its own overflow.
+  const sized=opts.height
+    ? `height:${opts.height};overflow:hidden;`
+    : `max-height:88vh;overflow-y:auto;`;
   root.innerHTML=`
   <div style="position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px">
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,#2b2b2d 50%,transparent);"></div>
-    <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};max-height:88vh;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
+    <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
   </div>`;
   document.getElementById('modal-scrim').addEventListener('click',closeModal);
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
