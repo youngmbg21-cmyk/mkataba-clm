@@ -773,17 +773,47 @@ const trackedNote=t=>(t&&(t.ins||t.del))
 /* Render extracted document text on screen the way the paper reads: prose keeps
    the document face and wraps, while ruled/columnar blocks (fee schedules drawn
    with | and +---+, side-by-side signature blocks) go into a monospace block so
-   their columns still line up. Escapes its input — never pass HTML. */
+   their columns still line up. Section titles and clause numbers are recognised
+   (docLineKind, js/docx.js) and STYLED — bold headings, set-off clause numbers —
+   so an edited contract still reads like the document it was, not a flat wall.
+   Display-only: the text underneath is byte-identical to what is stored; the
+   seal and every diff bind the text, never this presentation.
+   Escapes its input — never pass HTML. */
 function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
   const esc=s=>String(s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const kind=window.docLineKind||(()=> 'text');
   const lines=String(text||'').split('\n');
   const isRuled=l=>/^\s*[|+]/.test(l)||/[|+]\s*$/.test(l)||/\S\s{4,}\S/.test(l);
+  const hSize=(parseFloat(size)+1).toFixed(1);
   const out=[]; let buf=[], bufRuled=false;
   const flush=()=>{
     if(!buf.length) return;
-    out.push(bufRuled
-      ? `<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`
-      : `<div style="white-space:pre-wrap">${esc(buf.join('\n'))}</div>`);
+    if(bufRuled){
+      out.push(`<div class="doc-pre" style="font-family:var(--font-doc-mono),var(--font-mono);font-size:${parseFloat(size)-1.5}px;line-height:1.5;white-space:pre;overflow-x:auto;margin:8px 0">${esc(buf.join('\n'))}</div>`);
+      buf=[]; return;
+    }
+    // one pre-wrap block per run of body lines; headings break the run and
+    // absorb the single blank line each side so the rhythm doesn't double up
+    const paras=[]; let para=[];
+    const endPara=()=>{ if(para.length){ paras.push(`<div style="white-space:pre-wrap">${para.join('\n')}</div>`); para=[]; } };
+    for(let i=0;i<buf.length;i++){
+      const l=buf[i], k=kind(l);
+      if(k==='heading'){
+        if(para.length&&kind(para[para.length-1].replace(/<[^>]*>/g,''))==='blank') para.pop();
+        endPara();
+        paras.push(`<div style="font-weight:700;font-size:${hSize}px;letter-spacing:.01em;margin:${paras.length?'14px':'0'} 0 6px;white-space:pre-wrap">${esc(l)}</div>`);
+        if(i+1<buf.length&&kind(buf[i+1])==='blank') i++;
+        continue;
+      }
+      if(k==='clause'&&window.docClausePrefix){
+        const p=docClausePrefix(l), at=l.indexOf(p);
+        para.push(esc(l.slice(0,at))+`<span style="font-weight:600">${esc(p)}</span>`+esc(l.slice(at+p.length)));
+        continue;
+      }
+      para.push(esc(l));
+    }
+    endPara();
+    out.push(paras.join(''));
     buf=[];
   };
   for(const l of lines){
@@ -792,7 +822,9 @@ function documentTextHtml(text, {size='12.5px', lh='1.65'}={}){
     bufRuled=ruled; buf.push(l);
   }
   flush();
-  return `<div style="font-size:${size};line-height:${lh}">${out.join('')}</div>`;
+  // --color-doc-text is the app's ONE reading-ink (see index.html tokens) —
+  // stated here so every caller, portal included, reads black, not grey
+  return `<div style="font-size:${size};line-height:${lh};color:var(--color-doc-text)">${out.join('')}</div>`;
 }
 
 /* The contract's working-text body, in whichever format it carries. Rich
@@ -1056,7 +1088,7 @@ function redlineDocBody(c){
     <div class="mb-4 flex items-start gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="background:var(--color-accent-100);border:1px solid var(--color-accent-300);color:var(--color-accent-800)" data-anchor="recital">
       ${icon('history','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>This document carries <strong>edited working text</strong>. Use <strong>Edit</strong> to change the wording and <strong>Compare</strong> to review changes between versions — the seal binds this exact text at signing.</span>
     </div>
-    <div class="text-brand-800/85" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
+    <div style="color:var(--color-doc-text)" data-anchor="redline">${docBodyHtml(c,{size:'13.5px', lh:'1.85'})}</div>
     ${signatureBlock(c)}`;
 }
 
@@ -1167,7 +1199,7 @@ function uploadDocBody(c){
         <span style="color:var(--color-accent)">${icon('history','w-3.5 h-3.5')}</span>
         <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--color-neutral-600)">Working text (edited)</span>
       </div>
-      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-neutral-800)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
+      <div style="border:1px solid var(--color-accent-300);background:var(--color-surface);border-radius:5px;padding:12px 14px;color:var(--color-doc-text)">${docBodyHtml(c,{size:'13px',lh:'1.7'})}</div>
       <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px">This edited text is what versions, Compare and the seal operate on — the original file below is retained unchanged as the received source.</div>
     </div>`:''}
     ${preview}
@@ -1336,7 +1368,7 @@ function docBody(c){
     const p=flags['c'+n]?FLAGPAL[flags['c'+n].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:4px;padding:6px 10px;margin-bottom:14px"`:'';
     const tag=p?`<span style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:3px;flex:none">${p.tag}</span>`:'';
-    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85] text-brand-800/85" style="margin:0">${body}</p></div>`;
+    return `<div class="${p?'py-1':'mb-5 px-2 -mx-2 py-1'}" data-anchor="c${n}"${wrap}><div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px"><h4 class="font-display font-600 text-brand-900 text-[13px]" style="margin:0">${n}. ${title}</h4>${tag}</div><p class="text-[13.5px] leading-[1.85]" style="margin:0;color:var(--color-doc-text)">${body}</p></div>`;
   };
   const f=c.fields;
   const D=id=>fDate(id,f[id]);                    // date field
@@ -1450,7 +1482,7 @@ function docBody(c){
       <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
       <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
     </div>
-    <p class="text-[13px] leading-[1.7] text-brand-800/85 mb-6 px-2 -mx-2 py-1" data-anchor="recital">${recital}</p>
+    <p class="text-[13px] leading-[1.7] mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text)" data-anchor="recital">${recital}</p>
     ${clauses.join('')}
     ${signatureBlock(c)}`;
 }

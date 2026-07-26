@@ -119,5 +119,32 @@ async function docxExtract(bytes){
   return out;
 }
 
-if(typeof window!=='undefined') Object.assign(window,{docxExtract,docxXmlToText});
-if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract};
+/* ---- document-structure line classifier ----
+   Contract text keeps its shape as PATTERNS even after extraction to plain
+   text: section titles are short ALL-CAPS lines, clauses open with "3.2 ",
+   sub-paragraphs are indented. The display layer uses this to render working
+   text the way the paper read — headings bold, clause numbers set off —
+   WITHOUT altering one stored byte: classification is display-only, so the
+   seal, the diffs and the wording are untouched.
+     'blank'   — spacing line (kept: it is the document's paragraph rhythm)
+     'heading' — short ALL-CAPS title ("RECITALS", "3. CONSIDERATION")
+     'clause'  — numbered clause line; the numeric prefix gets set off
+     'text'    — everything else, rendered exactly as extracted */
+function docLineKind(line){
+  const t=String(line==null?'':line).trim();
+  if(!t) return 'blank';
+  const letters=t.replace(/[^A-Za-z]/g,'');
+  // a title is MOSTLY letters — "KES 1,800,000" is caps-and-digits, not a heading
+  if(letters.length>=3 && t.length<=80 && !/[a-z]/.test(t)
+     && letters.length >= t.replace(/\s/g,'').length*0.5) return 'heading';
+  if(/^\d+(?:\.\d+)*[.)]?\s+\S/.test(t)) return 'clause';
+  return 'text';
+}
+// the numeric prefix of a clause line ("3.2", "7.1.4", "12."), '' otherwise
+function docClausePrefix(line){
+  const m=String(line==null?'':line).match(/^(\s*)(\d+(?:\.\d+)*[.)]?)(\s+\S)/);
+  return m?m[2]:'';
+}
+
+if(typeof window!=='undefined') Object.assign(window,{docxExtract,docxXmlToText,docLineKind,docClausePrefix});
+if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix};

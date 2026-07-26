@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('./helpers');
-const { docxExtract, docxXmlToText } = require('../js/docx.js');
+const { docxExtract, docxXmlToText, docLineKind, docClausePrefix } = require('../js/docx.js');
 
 const FIX = p => new Uint8Array(fs.readFileSync(path.join(__dirname, '..', 'test-fixtures', p)));
 
@@ -114,6 +114,46 @@ describe('F9a — the .docx extractor reads real Word bytes', () => {
 
   test('an empty document (no readable text) is refused, not filed as an empty shell', async () => {
     await assert.rejects(docxExtract(mkDocx('<w:p><w:r><w:t></w:t></w:r></w:p>')), /no readable text/);
+  });
+});
+
+describe('F9c — the document-structure classifier (display-only styling of working text)', () => {
+
+  test('section titles: short ALL-CAPS lines, numbered or not', () => {
+    assert.equal(docLineKind('RECITALS'), 'heading');
+    assert.equal(docLineKind('PACKAGING SUPPLY AGREEMENT'), 'heading');
+    assert.equal(docLineKind('3. CONSIDERATION'), 'heading');
+    assert.equal(docLineKind('6. LIABILITY'), 'heading');
+    assert.equal(docLineKind('  2. TERM AND RENEWAL'), 'heading');
+  });
+
+  test('clause lines: numbered prefix with mixed-case body', () => {
+    assert.equal(docLineKind('3.2 Payment shall be made within 45 days.'), 'clause');
+    assert.equal(docLineKind('7.1.4 Either party may terminate.'), 'clause');
+    assert.equal(docLineKind('1) The Supplier shall deliver.'), 'clause');
+    assert.equal(docClausePrefix('3.2 Payment shall be made'), '3.2');
+    assert.equal(docClausePrefix('  7.1.4 Either party'), '7.1.4');
+    assert.equal(docClausePrefix('plain prose line'), '');
+  });
+
+  test('everything else stays plain text — no false headings', () => {
+    assert.equal(docLineKind(''), 'blank');
+    assert.equal(docLineKind('   '), 'blank');
+    assert.equal(docLineKind('The Counterparty shall maintain insurance.'), 'text');
+    assert.equal(docLineKind('    company number C.12/2011, whose registered office is at'), 'text');
+    // ALL-CAPS but too long to be a title — a shouty warning paragraph is body text
+    assert.equal(docLineKind('THE PARTIES HEREBY IRREVOCABLY AND UNCONDITIONALLY AGREE TO SUBMIT TO THE EXCLUSIVE JURISDICTION OF THE COURTS'), 'text');
+    // numbers/currency alone are not headings
+    assert.equal(docLineKind('KES 1,800,000'), 'text');
+    assert.equal(docLineKind('2024'), 'text');
+  });
+
+  test('the fixture contract classifies sensibly end to end', async () => {
+    const { text } = await docxExtract(FIX('contract.docx'));
+    const kinds = text.split('\n').map(docLineKind);
+    assert.ok(kinds.includes('heading'), 'fixture should contain headings');
+    assert.ok(kinds.includes('clause'), 'fixture should contain numbered clauses');
+    assert.ok(kinds.filter(k => k === 'text').length > 5, 'most lines stay plain text');
   });
 });
 
