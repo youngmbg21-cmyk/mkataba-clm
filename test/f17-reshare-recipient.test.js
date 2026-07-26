@@ -200,7 +200,7 @@ describe('F17 — "Send updated version"', () => {
     const s = core({
       api: async (p, m, body) => {
         if (p === 'contracts/MK-1/shares') return { shares: [share()] };
-        if (p === 'shares' && m === 'POST') { posted.push(body); return { token: 'newtok', link: 'https://h/#share=t:newtok' }; }
+        if (p === 'shares' && m === 'POST') { posted.push(body); return { token: 'newtok', link: 'https://h/#share=t:newtok', emailSent: true, emailConfigured: true }; }
         return {};
       },
       ensureFull: async () => {}, persist: () => {}, sha256: async () => 'h'.repeat(64),
@@ -215,8 +215,10 @@ describe('F17 — "Send updated version"', () => {
       'it must go to the person we were already negotiating with');
     assert.equal(posted[0].channel, 'email', 'and by the channel they used');
     assert.equal(out.recipient.name, 'Erik Lindqvist');
-    assert.match((c.audit || []).map(e => e.detail).join(' '), /Updated version sent to Erik Lindqvist/,
-      'the send must be on the record');
+    /* The wording is deliberately precise: "emailed" only when something
+       actually left. F24 covers the outcomes where nothing does. */
+    assert.match((c.audit || []).map(e => e.detail).join(' '), /Updated version emailed to Erik Lindqvist/,
+      'a delivered send must be on the record as delivered');
   });
 
   test('with nobody on record it refuses rather than sending into the void', async () => {

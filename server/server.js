@@ -2831,7 +2831,7 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
    moved into share_payload_history first, carrying whether this reader had
    actually opened it — that is what "revised since you last opened it" is
    measured against once the link itself stops changing. */
-app.put('/api/shares/:token/payload', auth, editor, (req, res) => {
+app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id)))
     return res.status(404).json({ error: 'Share not found' });
@@ -2847,7 +2847,28 @@ app.put('/api/shares/:token/payload', auth, editor, (req, res) => {
     .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
   db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
-  res.json({ ok: true, token: s.token, link: shareUrl(req, s.token) });
+
+  /* TELL THEM. Refreshing the link used to be silent: the owner was shown
+     "updated version sent", the contract's history recorded that it was sent,
+     and nothing left the building. The negotiation then stalled with each side
+     waiting for the other, and the record said something untrue about it.
+     A refresh is only "sent" once something has actually gone. */
+  const link = shareUrl(req, s.token);
+  let emailSent = false, emailError = null;
+  if ((s.channel || 'link') === 'email' && s.recipient_email) {
+    const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
+    const body = [
+      `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
+      `\nOpen the same link you already have to see what changed and respond — no account is needed:\n${link}`,
+      s.expires_at ? `\nThis link expires on ${String(s.expires_at).slice(0, 10)}.` : '',
+    ].filter(Boolean).join('\n');
+    const r = await sendEmail(s.recipient_email, `Updated: "${cName}" is ready for your review`, body, `share refresh: ${link}`);
+    emailSent = !!r.sent; emailError = r.detail || null;
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
+  }
+  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link',
+    recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
+    emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {

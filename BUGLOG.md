@@ -2306,3 +2306,31 @@ Backward compatibility: signatures recorded before this change carry no
 `verified` field and are read as verified, which is what they were.
 
 Result: `f23-signing-without-email.test.js` 11/11; suite 354/354 green.
+
+**2026-07-26 — item-1 shipped: "sent" now means sent.**
+`reshareToLastRecipient` refreshed the counterparty's durable link, showed the
+owner "Updated version sent to Erik Lindqvist", and wrote that sentence into
+the contract's history. Nothing was emailed. The negotiation then stalled with
+both sides waiting, and the record explained the stall incorrectly.
+
+Two halves, and the second is the larger one:
+
+1. `PUT /api/shares/:token/payload` now sends the notification for an
+   email-channel share, and returns `emailSent` / `emailConfigured` /
+   `emailError` / `channel` / `link`, exactly as `POST /api/shares` already did.
+2. **Every other outcome is reported for what it is.** Adding the email call
+   alone would have left three silent failures behind it: a copy-link share
+   (nobody to email), a WhatsApp share (HaTi has never sent those — the first
+   share opens `wa.me` in the browser), and a provider that refuses the message.
+   The audit line now reads "emailed to X" only when something left, and
+   otherwise "published to X's link — NOT emailed", naming the reason. The
+   button opens WhatsApp for a WhatsApp share, and otherwise shows a dialog
+   handing over the link to send by hand.
+
+**A test of my own from earlier in this session had to be corrected.** F17
+asserted the audit reads "Updated version sent to Erik Lindqvist". Its stub
+never simulated a delivered email, so under the new rule the honest wording is
+"NOT emailed" — the test was asserting the bug. It now stubs a delivered send
+and asserts "emailed", with F24 covering the outcomes where nothing leaves.
+
+Result: `f24-reshare-notifies.test.js` 10/10; suite 364/364 green.

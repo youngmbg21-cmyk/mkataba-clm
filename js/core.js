@@ -881,8 +881,17 @@ function renderNegotiationSection(c){
     const btn=e.currentTarget, restore=btn.innerHTML;
     btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Sending…</span>';
     try{
-      const { recipient }=await reshareToLastRecipient(c);
-      toast(`Updated version sent to ${recipient.name||recipient.email||recipient.phone}`);
+      const out=await reshareToLastRecipient(c);
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      if(out.delivered){
+        toast(`Updated version emailed to ${who}`);
+      } else if(out.channel==='whatsapp' && out.recipient.phone){
+        // the same route the first share uses — nothing sends WhatsApp for us
+        try{ window.open(waShareLink(out.recipient.phone, shareMessageText(c, out.link, '', null)),'_blank'); }catch(_){}
+        toast(`Link updated — WhatsApp opened so you can send it to ${who}`);
+      } else {
+        reshareNotSentModal(c, out, who);
+      }
       renderAuditSection(c); renderSharesSection(c); refreshShareOverview();
     }catch(err){
       // nobody on record to send to — fall back to the full dialog rather than
@@ -1407,18 +1416,34 @@ async function reshareToLastRecipient(c, opts={}){
   const live=(shares||[]).find(s=>s.durable && !s.revokedAt &&
     (last.email ? String(s.recipientEmail||'').toLowerCase()===String(last.email).toLowerCase()
                 : String(s.recipientName||'')===last.name));
-  if(live){
-    await api('shares/'+live.token+'/payload','PUT',{ payload });
-    logAudit(c,'Shared',`Updated version sent to ${last.name||last.email||last.phone||'the counterparty'} on their existing link`);
+  /* WHAT "SENT" MEANS. Refreshing a link is not the same as telling anybody
+     about it, and the two were conflated: the owner saw "updated version sent",
+     the history recorded it, and on a copy-link or WhatsApp share — or a server
+     with no mail provider — nothing had actually gone anywhere. The outcome is
+     now reported per channel, and the audit line only says "sent" when
+     something left. */
+  const who=last.name||last.email||last.phone||'the counterparty';
+  const record=(r,reused)=>{
+    const ch=last.channel||'email';
+    const delivered=ch==='email' && !!r.emailSent;
+    const detail = delivered
+      ? `Updated version emailed to ${who}${reused?' on their existing link':''}`
+      : ch==='email'
+        ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
+        : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
+    logAudit(c,'Shared',detail);
     persist(c);
-    return { share:{ token:live.token, reused:true }, recipient:last };
+    return { share:r, recipient:last, reused:!!reused, delivered, channel:ch,
+             link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
+  };
+  if(live){
+    const r=await api('shares/'+live.token+'/payload','PUT',{ payload });
+    return record(r||{}, true);
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
     message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
     expiryDays:opts.expiryDays||14, durable:opts.durable!==false });
-  logAudit(c,'Shared',`Updated version sent to ${last.name||last.email||last.phone||'the counterparty'} via ${last.channel||'email'}`);
-  persist(c);
-  return { share:r, recipient:last };
+  return record(r||{}, false);
 }
 
 async function openShareModal(c){
@@ -1601,6 +1626,36 @@ async function openShareModal(c){
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       persist(c); renderAuditSection(c);
     }
+  });
+}
+
+/* Nothing left the building. Say so plainly and hand over the link, rather
+   than reporting success and leaving the counterparty waiting for an email
+   that was never going to arrive. */
+function reshareNotSentModal(c, out, who){
+  const reason = out.channel!=='email'
+    ? `This counterparty was shared with by ${out.channel==='whatsapp'?'WhatsApp':'a copied link'}, so HaTi does not send anything automatically.`
+    : out.emailConfigured===false
+      ? 'This workspace has no email provider set up, so HaTi could not send it.'
+      : `The mail provider refused it${out.emailError?`: ${esc(out.emailError)}`:'.'}`;
+  openModal(`
+    <div style="padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:#b8862b;display:inline-flex">${icon('alert')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Link updated — but not sent</h2></div>
+      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
+        ${esc(who)} is now looking at the current wording <b>if they open their link</b> — but they have not been told.
+        ${reason} Send them this link yourself:</p>
+      <textarea id="rs-link" readonly rows="3" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:9px;font-size:10.5px;font-family:var(--font-mono);color:var(--color-text);outline:none;word-break:break-all">${esc(out.link||'')}</textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button id="rs-copy" class="ui-btn">${icon('copy','w-3 h-3')} Copy link</button>
+        <button id="rs-close" class="ui-btn ui-btn-primary">Close</button>
+      </div>
+    </div>`);
+  document.getElementById('rs-close').addEventListener('click',closeModal);
+  document.getElementById('rs-copy').addEventListener('click',async()=>{
+    const ta=document.getElementById('rs-link'); ta.select();
+    try{ await navigator.clipboard.writeText(ta.value); }catch(e){ document.execCommand('copy'); }
+    toast('Link copied');
   });
 }
 
@@ -1788,4 +1843,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
