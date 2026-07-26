@@ -290,7 +290,7 @@ function portalCompareBar(){
   const ch=portalChangedText();
   if(vs.length<2 && !ch) return '';
   const line = vs.length>1
-    ? `This contract has <b>${vs.length} versions</b> since it was first sent to you. You can compare any two.`
+    ? `This contract has <b>${vs.length} versions</b>, numbered the same as ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||'the sender')} sees them. You can compare any two.`
     : (ch&&ch.kind==='yourpaper'
         ? `The wording differs from the paper you sent. You can see exactly what was changed.`
         : `The wording has moved since the copy you were sent. You can see exactly what changed.`);
@@ -306,10 +306,19 @@ function openPortalVersionCompare(p){
   const now=portalCurrentText();
   const items=[];
   const filed=(p&&p.contract&&p.contract.upload&&p.contract.upload.extractedText)||'';
-  if(filed.trim()) items.push({ label:'The paper you sent, as it arrived', text:filed });
-  items.push(...vs.map(v=>({ label:`v${v.n} · ${v.label} · ${fmtDT(v.at)}`, text:v.text })));
+  // Same caption on both sides of the deal — "v2 · Edited by Young Mbagaya"
+  // reads identically here and in HaTi, so a version can be named out loud.
+  const cap=v=>{
+    // "v2 · Edited by Young Mbagaya · Young Mbagaya" reads like a stutter, and
+    // "· System" says nothing — only append an author the caption omits.
+    const named=v.by && v.by!=='System' && !String(v.label||'').toLowerCase().includes(String(v.by).toLowerCase());
+    return `v${v.n} · ${v.label}${named?` · ${v.by}`:''}`;
+  };
+  if(filed.trim() && !vs.some(v=>normText(v.text)===normText(filed)))
+    items.push({ label:'The paper you sent, as it arrived', text:filed });
+  items.push(...vs.map(v=>({ label:cap(v), text:v.text })));
   const last=vs[vs.length-1];
-  if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'The copy you are reading now', text:now });
+  if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'Current — the copy you are reading', text:now });
   if(items.length<2) return;
   const opts=items.map((it,i)=>`<option value="${i}">${esc(it.label)}</option>`).join('');
   const SEL='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:7px 9px;border-radius:4px;color:inherit;min-width:0;flex:1';

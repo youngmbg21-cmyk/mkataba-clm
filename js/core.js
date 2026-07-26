@@ -1248,30 +1248,43 @@ function readinessPanelHtml(c){
    portal renders has to be in here; anything not in here does not exist as far
    as the other side is concerned. */
 const shareDocText = c => { try{ return (typeof docPlainText==='function') ? docPlainText(c) : ''; }catch(_){ return ''; } };
-/* The version history a counterparty is entitled to: the drafting that happened
-   BEFORE the contract was first sent to anyone is the organisation's own work
-   and stays behind, so the history starts at the first "Shared for review"
-   snapshot. Internal authorship goes too — a version says what it is, not which
-   member of staff typed it — and internal labels are mapped to plain ones so a
-   playbook clause name or a colleague's name cannot ride along in a caption.
-   Without this the other side can be told a contract changed but has no way to
-   look, which is the position the owner's Compare button exists to avoid. */
+/* The version history a counterparty is entitled to.
+
+   Both sides now read the SAME list — same numbers, same captions, same
+   authors — so "look at v3" means one thing to everyone on the deal. Matching
+   captions is the point: a counterparty who sees "The paper you sent" while
+   the other side sees "v2 · Edited by Young Mbagaya" cannot be talked through
+   a negotiation over the phone.
+
+   What still stays behind is drafting that was never sent to anybody. A
+   contract worked on internally for a week before it went out has a history
+   that is the organisation's own; the counterparty cannot refer to a version
+   they never received, so publishing it would serve nothing and reveal
+   working. The list therefore starts at whichever comes first: the received
+   paper itself, or the first time the contract was shared. */
+/* Captions travel as written, with one exception. A playbook insertion is
+   labelled with the internal name of the clause and the fallback tier it came
+   from — that is the organisation's negotiating position, not a description of
+   the document, and naming it to the other side gives away the floor before
+   the bargaining starts. */
+function safeVersionLabel(label, org){
+  const l=String(label||'Saved');
+  return /^inserted preferred wording/i.test(l) ? ('Revised by '+(org||'the sender')) : l;
+}
 function shareVersions(c, org){
   const vs=(c.versions||[]);
+  if(!vs.length) return undefined;
   const firstSent=vs.findIndex(v=>/^shared for review/i.test(v.label||''));
-  if(firstSent<0) return undefined;
-  const by=org||'the sender';
-  const safeLabel = v => {
-    const l=String(v.label||'');
-    if(/^shared for review/i.test(l)) return 'Sent to you';
-    if(/^round\s/i.test(l)) return l.replace(/\s*\(redline from [^)]*\)/i,'').trim();
-    if(/^signed|signing/i.test(l)) return 'Signed';
-    return 'Revised by '+by;
-  };
-  const out=vs.slice(firstSent)
+  // an inbound contract's first version IS the counterparty's own paper, so it
+  // is theirs to see even though it predates any share
+  const inbound=!!(c.source==='upload');
+  let from = firstSent<0 ? (inbound?0:-1) : firstSent;
+  if(inbound && firstSent>0) from=0;
+  if(from<0) return undefined;
+  const out=vs.slice(from)
     .filter(v=>v&&typeof v.text==='string'&&v.text.trim())
-    .slice(-8)                                  // a readable list, not an archive
-    .map(v=>({ n:v.n, at:v.at, label:safeLabel(v), text:v.text }));
+    .slice(-8)
+    .map(v=>({ n:v.n, at:v.at, label:safeVersionLabel(v.label, org), by:v.by||null, text:v.text }));
   return out.length?out:undefined;
 }
 function buildSharePayload(c, docHash, who){

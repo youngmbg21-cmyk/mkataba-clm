@@ -92,6 +92,20 @@ describe('F12 — the share payload carries the negotiation history', () => {
       'internal comments and the audit trail never travel with a share');
   });
 
+  test('both sides read the same list — same numbers, same captions, same authors', () => {
+    const s = core();
+    const p = s.buildSharePayload(contract({ versions: [
+      { n: 1, at: '2026-07-22T09:00:00.000Z', label: 'Shared for review', by: 'Young Mbagaya', text: 'AS SENT' },
+      { n: 2, at: '2026-07-23T09:00:00.000Z', label: 'Edited by Young Mbagaya', by: 'Young Mbagaya', text: 'REVISED' },
+      { n: 3, at: '2026-07-24T09:00:00.000Z', label: 'Round 1 accepted (redline from Guliz Cetin)', by: 'Young Mbagaya', text: 'AFTER ROUND' },
+    ] }), 'hash', WHO);
+    // a version can only be named out loud if it is named the same on both sides
+    assert.deepEqual(p.contract.versions.map(v => v.n), [1, 2, 3]);
+    assert.deepEqual(p.contract.versions.map(v => v.label),
+      ['Shared for review', 'Edited by Young Mbagaya', 'Round 1 accepted (redline from Guliz Cetin)']);
+    assert.equal(p.contract.versions[1].by, 'Young Mbagaya');
+  });
+
   test('internal drafting never travels — the history starts when it was first sent', () => {
     const s = core();
     const p = s.buildSharePayload(contract({ versions: [
@@ -104,12 +118,23 @@ describe('F12 — the share payload carries the negotiation history', () => {
     const raw = JSON.stringify(p.contract.versions);
     assert.equal(p.contract.versions.length, 2, 'the two pre-share drafts are the org\'s own work');
     assert.ok(!raw.includes('INTERNAL DRAFT'), 'wording never sent to anyone must not arrive now');
-    assert.deepEqual(labels, ['Sent to you', 'Round 1 accepted']);
-    assert.ok(!raw.includes('Wanjiku Kamau'), 'no colleague is named in a version caption');
-    assert.ok(!raw.includes('by'.padEnd(0) + '"by"'), 'authorship is not published at all');
+    assert.deepEqual(labels, ['Shared for review', 'Round 1 accepted (redline from Guliz Cetin)']);
+    assert.ok(!raw.includes('Wanjiku Kamau'),
+      'that edit happened before the contract was ever sent — it is not in the shared history at all');
   });
 
-  test('an internal label is replaced rather than published verbatim', () => {
+  test('a received document carries its own paper as v1, which the sender never shared', () => {
+    const s = core();
+    const p = s.buildSharePayload(contract({ source: 'upload', versions: [
+      { n: 1, at: '2026-07-20T09:00:00.000Z', label: 'Original text', by: 'System', text: 'THEIR OWN PAPER' },
+      { n: 2, at: '2026-07-21T09:00:00.000Z', label: 'Edited by Young Mbagaya', by: 'Young Mbagaya', text: 'EDITED' },
+    ] }), 'hash', WHO);
+    assert.equal(p.contract.versions.length, 2,
+      'the paper they sent is theirs to see, share or no share');
+    assert.equal(p.contract.versions[0].label, 'Original text');
+  });
+
+  test('the playbook fallback tier is still not named to the other side', () => {
     const s = core();
     const p = s.buildSharePayload(contract({ versions: [
       { n: 1, at: '2026-07-22T09:00:00.000Z', label: 'Shared for review', text: 'AS SENT' },

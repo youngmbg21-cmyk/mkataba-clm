@@ -847,7 +847,13 @@ function findingsFromText(c, text){
   // document as prose, so flatten the wrapping first (quotes stay verbatim)
   text=String(text||'').replace(/\s+/g,' ');
   const F=[]; const low=text.toLowerCase();
+  /* The quote is kept as its own field, not only baked into `what`. Every
+     finding here is anchored to 'doc' because an uploaded document has no
+     clause anchors to pin to — which meant "Go to document" landed on the
+     banner at the very top rather than on the wording the finding is about.
+     With the quote carried, the panel can find the passage itself. */
   const add=(id,sev,kind,title,quote,why,fix,conf)=>F.push({id,sev,kind,title,anchor:'doc',confidence:conf,
+    quote:quote||null,
     what:quote?`The document reads: “${quote}”`:'(clause not located in the extracted text)', why, fix});
   const firstIdx=(...ks)=>{ for(const k of ks){ const i=low.indexOf(k); if(i>=0) return i; } return -1; };
   // 1) governing law — scan ALL candidate mentions and pick the one that names a

@@ -269,7 +269,7 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
-            <button data-scan-goto="${x.anchor}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${x.anchor==='doc'?'Go to document':'Go to clause'}</button>
+            <button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} ${(x.quote||x.anchor!=='doc')?'Go to the wording':'Go to document'}</button>
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
           </div>
         </div>`:''}
@@ -325,12 +325,83 @@ function renderScanSection(c){
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
-    const anchor=b.getAttribute('data-scan-goto');
-    const el=anchor==='doc' ? document.querySelector('#doc-canvas [data-anchor="doc"]') : document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`);
+    const anchor=b.getAttribute('data-scan-goto'), id=b.getAttribute('data-scan-id');
+    const f=((c.scan&&c.scan.findings)||[]).find(x=>String(x.id)===String(id));
+    // The wording itself, wherever it sits, beats a section anchor — and on an
+    // uploaded document it is the only thing that works, because there are no
+    // clause anchors to aim at.
+    if(f&&f.quote&&scrollToQuote(f.quote)) return;
+    const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`);
     if(!el) return;
     el.scrollIntoView({behavior:'smooth',block:'center'});
     el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
   }));
+}
+
+/* Find a quoted passage in the rendered document and take the reader to it.
+
+   The quote comes from the extracted text, which has been flattened to single
+   spaces and may carry typographic quotes and dashes the rendered markup does
+   not — so both sides are normalised, and the search runs over a flattened copy
+   of the canvas with an index back to the real text nodes. A Range is then laid
+   over the match so the passage itself highlights, not the paragraph it sits in. */
+function quoteNorm(s){
+  return String(s||'')
+    .replace(/[\u2018\u2019\u201b]/g,"'").replace(/[\u201c\u201d\u201f]/g,'"')
+    .replace(/[\u2010-\u2015]/g,'-').replace(/\u00a0/g,' ')
+    .replace(/\s+/g,' ').toLowerCase();
+}
+function scrollToQuote(quote){
+  const root=document.getElementById('doc-canvas');
+  const needle=quoteNorm(quote).trim();
+  if(!root||needle.length<12) return false;
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  const nodes=[]; let flat=''; let n;
+  while((n=walker.nextNode())){
+    const t=quoteNorm(n.nodeValue);
+    if(!t) continue;
+    // keep a single space between nodes so words cannot be glued together
+    if(flat && !/\s$/.test(flat) && !/^\s/.test(t)) flat+=' ';
+    nodes.push({ node:n, start:flat.length, text:t });
+    flat+=t;
+  }
+  // fall back to shorter and shorter prefixes: extraction and rendering can
+  // disagree on trailing punctuation, and half a sentence still lands you there
+  let at=-1, len=0;
+  for(const take of [needle.length, 160, 90, 50, 24]){
+    if(take>needle.length) continue;
+    const probe=needle.slice(0,take).trim();
+    if(probe.length<12) break;
+    at=flat.indexOf(probe);
+    if(at>=0){ len=probe.length; break; }
+  }
+  if(at<0) return false;
+  const from=nodes.find(x=>at>=x.start && at<x.start+x.text.length);
+  const end=at+len;
+  const to=nodes.slice().reverse().find(x=>end>x.start && end<=x.start+x.text.length) || from;
+  if(!from) return false;
+  try{
+    const r=document.createRange();
+    r.setStart(from.node, Math.min(at-from.start, from.node.nodeValue.length));
+    r.setEnd(to.node, Math.min(end-to.start, to.node.nodeValue.length));
+    const mark=document.createElement('span');
+    mark.className='anchor-flash';
+    mark.style.cssText='background:#fdf0c8;border-radius:2px;box-shadow:0 0 0 2px #fdf0c8';
+    r.surroundContents(mark);            // throws if the range crosses elements
+    mark.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>{ const p=mark.parentNode; if(!p) return;
+      while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
+      p.removeChild(mark); p.normalize(); }, 4000);
+    return true;
+  }catch(_){
+    // a quote spanning several elements cannot be wrapped — settle for the
+    // block it starts in, which is still the right part of the document
+    const host=from.node.parentElement;
+    if(!host) return false;
+    host.scrollIntoView({behavior:'smooth',block:'center'});
+    host.classList.remove('anchor-flash'); void host.offsetWidth; host.classList.add('anchor-flash');
+    return true;
+  }
 }
 
 /* ============================================================
@@ -906,4 +977,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,updateAIBadge,worstSevOf});
