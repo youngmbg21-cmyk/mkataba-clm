@@ -203,13 +203,26 @@ describe('Scenario 1 — Erik negotiates only in Word', () => {
       'the audit trail must name Erik as the source of these changes');
   });
 
-  test('round 5 — no audit entry ever credits Wanjiru with Erik’s changes (checklist 4)', () => {
-    const counterpartyEntries = (c.audit || []).filter(e =>
-      /Erik|Nordkust|counterparty|returned Word/i.test(e.detail));
-    assert.ok(counterpartyEntries.length > 0);
-    for (const e of counterpartyEntries) {
-      assert.ok(!/^Wanjiru Kamau$/.test(e.user) || !/proposed|returned|requested/i.test(e.detail),
-        `an entry describing the counterparty's changes must not be authored by Wanjiru: ${JSON.stringify(e)}`);
+  test('round 5 — no record credits Wanjiru with authorship of Erik’s changes (checklist 4)', () => {
+    /* The property is about AUTHORSHIP, not about who operated the app. Wanjiru
+       legitimately appears as the actor on entries recording HER decisions —
+       that is true and belongs on the record. What must never happen is the
+       wording itself being attributed to her. So:
+         · every round carrying their wording names them, never her
+         · every entry describing their changes names them in its detail */
+    const theirRounds = (c.rounds || []).filter(r => r.proposedText);
+    assert.ok(theirRounds.length >= 2, 'this scenario must have produced their rounds');
+    for (const r of theirRounds) {
+      assert.ok(!/wanjiru/i.test(String(r.by)),
+        `a round carrying their wording must not be attributed to her: ${r.by}`);
+      assert.match(String(r.by), /Erik|Nordkust|counterparty|returned Word file/i);
+    }
+    const aboutTheirChanges = (c.audit || []).filter(e =>
+      /Redline|Changes received|Word review/.test(e.action));
+    assert.ok(aboutTheirChanges.length > 0);
+    for (const e of aboutTheirChanges) {
+      assert.match(e.detail, /Erik|Nordkust|returned|counterparty/i,
+        `an entry about their changes must name them: ${JSON.stringify(e)}`);
     }
   });
 

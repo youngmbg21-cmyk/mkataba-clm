@@ -297,6 +297,172 @@ function richToText(html){
   flush();
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').trim();
 }
+/* ---------- putting edited text BACK into a formatted document ----------
+   A counterparty edits in a plain-text box (and a Word round trip returns
+   plain text too), so what comes back is text. Adopting it used to overwrite
+   the body with that text and mark the document 'text' — the headings, the
+   clause numbering and the tables were gone, permanently, at the first round
+   of every negotiation. By round four the other side is editing a wall of
+   plain prose and may reasonably doubt it is the same instrument.
+
+   The way back in is the LINE. richToText emits one line per block — a
+   paragraph, a heading, a list item — so the same walk, recording which node
+   produced each line, gives a map from the text the counterparty edited to the
+   elements that produced it. Diff the old lines against the new ones and the
+   changes land on the nodes that own them: an edited line rewrites that
+   block's text and keeps the block, an inserted line becomes a new paragraph
+   beside its neighbour, a deleted line takes its block with it. Everything
+   nobody touched — including its inline emphasis — is not rewritten at all.
+
+   Two honesty rules govern it, because a contract is not a place for a clever
+   guess that might be wrong:
+
+     · A line that changed loses the INLINE marks inside that one line (bold,
+       italics) unless the whole line sits in a single text node. The text is
+       what was agreed; the emphasis on a rewritten sentence is not something
+       we can honestly reconstruct from a plain-text edit.
+     · The result is VERIFIED before it is returned: its own text projection
+       must match the text that was agreed. If it does not, the merge is
+       abandoned and the caller falls back to plain text. A structurally
+       plausible document that does not say what the parties agreed would be
+       far worse than a plain one that does. */
+function _lineUnits(root){
+  const units=[];
+  let cur=null;
+  const open=(node,prefix)=>{ cur={ node, prefix:prefix||'', text:'' }; };
+  const flush=()=>{
+    if(!cur) return;
+    const t=cur.text.replace(/[ \t]+/g,' ').trim();
+    if(t) units.push({ node:cur.node, prefix:cur.prefix, text:t, line:cur.prefix+t });
+    cur=null;
+  };
+  const marker=(ol,index)=>{
+    const start=parseInt(ol.getAttribute('start')||'1',10)||1;
+    const n=start+index;
+    switch(ol.getAttribute('type')){
+      case 'a': return _alpha(n).toLowerCase();
+      case 'A': return _alpha(n);
+      case 'i': return _roman(n).toLowerCase();
+      case 'I': return _roman(n);
+      default:  return String(n);
+    }
+  };
+  (function walk(node, path, owner){
+    for(const ch of Array.from(node.childNodes)){
+      if(ch.nodeType===3){ if(cur) cur.text+=ch.nodeValue.replace(/\s+/g,' '); continue; }
+      if(ch.nodeType!==1) continue;
+      const tag=ch.tagName;
+      if(tag==='BR'){ flush(); open(owner,''); continue; }
+      if(tag==='OL'||tag==='UL'){
+        flush();
+        const dotted = tag==='OL' && !['a','A','i','I'].includes(ch.getAttribute('type')||'');
+        let i=0;
+        for(const li of Array.from(ch.children)){
+          if(li.tagName!=='LI') continue;
+          const mark = tag==='OL' ? marker(ch,i) : '•';
+          const next = (tag==='OL' && dotted) ? path.concat([mark]) : [];
+          open(li, tag==='OL' ? (dotted ? next.join('.')+'. ' : mark+'. ') : '• ');
+          walk(li, next, li);
+          flush();
+          i++;
+        }
+        continue;
+      }
+      // a PRE or a TABLE is left alone entirely: its text projection is not a
+      // simple line-per-block, so a line edit cannot be placed inside it safely
+      if(tag==='PRE'||tag==='TABLE'){ flush(); units.push({ node:ch, prefix:'', text:null, line:null, opaque:true }); continue; }
+      if(RICH_BLOCKS.has(tag)){ flush(); open(ch,''); walk(ch, path, ch); flush(); continue; }
+      walk(ch, path, owner);
+    }
+  })(root, [], root);
+  flush();
+  return units;
+}
+/* Merge edited plain text back into a rich body. Returns the new HTML, or null
+   when the result cannot be verified — the caller then keeps the plain text. */
+function richFromTextEdit(html, newText){
+  let root;
+  try{ root=_parseInert(sanitizeRich(html)); }catch(e){ return null; }
+  const units=_lineUnits(root);
+  if(units.some(u=>u.opaque)) return null;      // a table or preformatted block: leave it to plain text
+  if(!units.length) return null;
+  const oldLines=units.map(u=>u.line);
+  const newLines=String(newText==null?'':newText).split('\n').map(l=>l.replace(/[ \t]+/g,' ').trim()).filter(l=>l);
+  if(!newLines.length) return null;
+
+  // LCS over lines: the same shape as wordDiff, one line at a time
+  const n=oldLines.length, m=newLines.length;
+  const dp=Array.from({length:n+1},()=>new Uint32Array(m+1));
+  for(let i=n-1;i>=0;i--) for(let j=m-1;j>=0;j--)
+    dp[i][j]= oldLines[i]===newLines[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+
+  const doc=root.ownerDocument;
+  const setText=(unit,line)=>{
+    // strip the reconstructed marker: list numbering is regenerated from the
+    // list itself, so writing it into the text would double it
+    let t=line;
+    if(unit.prefix && t.startsWith(unit.prefix)) t=t.slice(unit.prefix.length);
+    else if(unit.prefix) t=t.replace(/^\s*(?:[0-9]+(?:\.[0-9]+)*\.?|[a-zA-Z]+\.|•)\s+/,'');
+    const el=unit.node;
+    const texts=[];
+    const w=doc.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    let x; while((x=w.nextNode())) texts.push(x);
+    if(texts.length===1){ texts[0].nodeValue=t; return; }      // emphasis outside this line survives
+    while(el.firstChild) el.removeChild(el.firstChild);        // mixed inline marks: the text is what was agreed
+    el.appendChild(doc.createTextNode(t));
+  };
+  /* Where a new line goes. After a list item there are two possibilities and
+     they are not interchangeable: a line that opens with a clause marker is a
+     new ITEM in that list (and the marker comes off, because the list
+     regenerates it); anything else is a PARAGRAPH after the list, not a
+     silently-numbered new clause. Guessing wrong would invent a clause number
+     that nobody wrote — the verification at the end catches it either way, but
+     getting it right here is what keeps the common case working. */
+  const MARKER=/^\s*(?:[0-9]+(?:\.[0-9]+)*\.?|[a-zA-Z]\.|•)\s+/;
+  const insertAfter=(unit,line)=>{
+    const ref=unit?unit.node:null;
+    const inList=!!(ref&&ref.tagName==='LI');
+    const asItem=inList&&MARKER.test(line);
+    const el=doc.createElement(asItem?'LI':'P');
+    el.appendChild(doc.createTextNode(asItem?line.replace(MARKER,''):line));
+    if(inList&&!asItem){
+      const list=ref.parentNode;                       // put it after the whole list
+      if(list&&list.parentNode) list.parentNode.insertBefore(el, list.nextSibling);
+      else root.appendChild(el);
+    } else if(ref&&ref.parentNode){
+      ref.parentNode.insertBefore(el, ref.nextSibling);
+    } else root.appendChild(el);
+    return { node:el, prefix:'', text:line, line };
+  };
+
+  const removals=[];
+  let i=0,j=0,last=null;
+  while(i<n && j<m){
+    if(oldLines[i]===newLines[j]){ last=units[i]; i++; j++; continue; }
+    if(dp[i+1][j]>=dp[i][j+1]){
+      // this old line is gone — unless the next new line is a rewrite of it,
+      // in which case the block stays and its text changes
+      if(j<m && dp[i+1][j+1]>=dp[i+1][j] && dp[i+1][j+1]>=dp[i][j+1]){
+        setText(units[i], newLines[j]); last=units[i]; i++; j++; continue;
+      }
+      removals.push(units[i]); i++; continue;
+    }
+    last=insertAfter(last, newLines[j]); j++;
+  }
+  while(i<n){ removals.push(units[i]); i++; }
+  while(j<m){ last=insertAfter(last, newLines[j]); j++; }
+  for(const u of removals){ if(u.node&&u.node.parentNode) u.node.parentNode.removeChild(u.node); }
+  // drop lists and blocks emptied by the removals
+  Array.from(root.querySelectorAll('ol,ul')).forEach(l=>{ if(!l.querySelector('li')) l.remove(); });
+
+  const out=sanitizeRich(root.innerHTML);
+  // THE VERIFICATION. What the parties agreed is the text; if the rebuilt
+  // document does not say exactly that, it is not the document.
+  const norm=s=>String(s||'').replace(/\s+/g,' ').trim();
+  if(norm(richToText(out))!==norm(newText)) return null;
+  return out;
+}
+
 function _alpha(n){ let s=''; while(n>0){ n--; s=String.fromCharCode(65+(n%26))+s; n=Math.floor(n/26); } return s||'A'; }
 function _roman(n){
   const M=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
@@ -453,4 +619,4 @@ function textToRich(text){
 Object.assign(window,{RICH_TAGS,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
-  canonicalRich,canonicalDocString,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});
+  canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});

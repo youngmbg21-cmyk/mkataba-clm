@@ -2163,3 +2163,60 @@ nothing changes at runtime — but any test sandbox that resolves a round must n
 load `js/versioning.js`, which F20's was updated to do.
 
 Result: `f21-change-blocks.test.js` 21/21; suite 292/292 green.
+
+Checkpoint `checkpoint-before-fix6` tagged at `a9ba7f4` (suite 292/292 green).
+
+**2026-07-26 — fix-6: a contract no longer gets uglier as it is negotiated.**
+The counterparty edits in a plain-text box, and a Word return is plain text
+too. Adopting that overwrote the body with the text and set `format:'text'` —
+so headings, clause numbering and tables were lost at the FIRST round of every
+negotiation, permanently, and the signed instrument was the flattened copy.
+
+`richFromTextEdit(html, newText)` in `js/richdoc.js` puts the edited text back
+into the document's own structure. The insight that makes it tractable: the
+LINE is the unit. `richToText` already emits one line per block, so the same
+walk — recording which node produced each line (`_lineUnits`) — gives a map
+from the text the counterparty edited to the elements that produced it. An LCS
+over lines then lands each change on the node that owns it: an edited line
+rewrites its block and keeps it, an inserted line becomes a new block, a
+deleted line takes its block with it, and everything nobody touched is not
+rewritten at all — including its inline emphasis.
+
+Three rules, all of them about not guessing on a legal document:
+
+1. **It verifies itself.** The rebuilt document's own text projection must
+   equal the text that was agreed; if it does not, the merge returns null and
+   the caller falls back to plain text. A structurally pretty document that
+   does not say what the parties agreed would be far worse than a plain one
+   that does.
+2. **The fallback is announced.** When it falls back, the audit entry says the
+   edit could not be placed back into the formatted document and it is now
+   plain text. A silent flattening is precisely what this fix exists to stop, so
+   an unavoidable one must at least be visible.
+3. **Structures it cannot map are refused outright** — a table or a
+   preformatted block has no line-per-block projection, so an edited line
+   cannot be placed inside it safely.
+
+Two smaller decisions found while testing:
+- **Inline marks inside a CHANGED line are not reconstructed** unless the whole
+  line sits in one text node. The text is what was agreed; the emphasis on a
+  rewritten sentence is not something a plain-text edit tells us.
+- **A line inserted after a list item** is a new list ITEM only if it opens with
+  a clause marker (which is then stripped, because the list regenerates it);
+  otherwise it is a paragraph placed after the list. Appending it into the list
+  unconditionally invented a clause number nobody had written.
+
+**Improvement made while a scenario assertion was failing, kept because it is
+right:** `openPointsFor` now also drops a point whose clause has since been
+renegotiated. Erik asks for Net-60, is refused, and the parties later settle on
+Net-45 — he did not get what he asked for, but the passage the point was
+measured against no longer exists, so the point is spent, not outstanding. A
+list that keeps showing settled items is one people learn to ignore.
+
+**Also fixed:** the redline adoption audit entry named only who decided, never
+whose wording it was, so a trail read back later said a round was accepted
+without saying who proposed it — the same omission fix-7 exists to prevent. It
+now names both sides.
+
+Result: `f22-formatting-survives.test.js` 14/14. **Full suite 342/342 green,
+including both six-round scenario scripts end to end.**

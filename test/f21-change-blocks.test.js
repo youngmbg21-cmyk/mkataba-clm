@@ -250,6 +250,24 @@ describe('F21 — a rejected change stays visible as an open point', () => {
     assert.ok(!pts.some(p => /twenty-one/.test(p.after)));
   });
 
+  test('a point whose clause was renegotiated later is spent, not open', () => {
+    // he asked for Net-60 and was refused; the parties later settle on Net-45.
+    // He did not get what he asked for, but the passage he asked about is gone,
+    // so the point is spent — keeping it would be a list nobody trusts.
+    const w2 = buildWorld();
+    const c2 = supplyContract();
+    w2.win.captureVersion(c2, 'Drafted', 'Wanjiru Kamau');
+    const base = w2.win.docPlainText(c2);
+    const proposed = base.replace('thirty (30) days', 'sixty (60) days');
+    c2.rounds.push({ n: 1, at: w2.win.nowISO(), by: 'Erik Lindqvist', comment: 'Net-60.',
+      status: 'open', resolution: null, baseText: base, proposedText: proposed });
+    w2.win.acceptProposedRound(c2, 1, { decisions: {}, comment: 'Net-30 stands.' });
+    assert.equal(w2.win.openPointsFor(c2).length, 1, 'refused, and the clause is untouched');
+
+    w2.win.applyOwnerEdit(c2, w2.win.docPlainText(c2).replace('thirty (30) days', 'forty-five (45) days'));
+    assert.equal(w2.win.openPointsFor(c2).length, 0);
+  });
+
   test('a point later agreed by another route drops off the list', () => {
     // she comes round to Net-60 in a later edit
     w.win.applyOwnerEdit(c, w.win.docPlainText(c).replace('thirty (30) days', 'sixty (60) days'));

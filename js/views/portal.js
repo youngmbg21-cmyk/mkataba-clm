@@ -622,7 +622,7 @@ function renderSharePortal(p, opts={}){
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
               <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;">Propose your edits</span>
-              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change any wording below. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept, reject or counter.</span>
+              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change any wording below. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each change on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
             <button id="pt-redline-cancel" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Cancel</button>
           </div>

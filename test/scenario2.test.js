@@ -173,12 +173,14 @@ describe('Scenario 2 — Erik negotiates inside HaTi', () => {
       'the round must record what was decided per change');
     const open = w.win.openPointsFor(c);
     assert.ok(open.length >= 1, 'the rejected change must remain a live, visible point');
-    assert.match(open.map(p => p.before + ' ' + p.after).join(' '), /sixty \(60\) days/);
+    // the point carries only the wording that CHANGED — "days" is unchanged
+    // context on both sides, so it belongs to neither half of the block
+    assert.match(open.map(p => p.before + ' ' + p.after).join(' '), /sixty \(60\)/);
 
     // and the counterparty must be able to SEE it in the portal
     const s = portal();
     const html = s.portalOpenPointsHtml({ openPoints: open }, { org: 'Wanjiru Catering Ltd' });
-    assert.match(html, /sixty \(60\) days/, 'the still-open point must be rendered for Erik');
+    assert.match(html, /sixty \(60\)/, 'the still-open point must be rendered for Erik');
   });
 
   test('round 2 — the audit trail records a partial decision honestly (checklist 4)', () => {
@@ -222,7 +224,46 @@ describe('Scenario 2 — Erik negotiates inside HaTi', () => {
     assert.equal(empty.phone, ''); assert.equal(empty.channel, 'email');
   });
 
-  /* ---------- Round 4: the durable link ---------- */
+  test('round 3 — he comes back on the refused point, as a new round', () => {
+    // she reshared; he reads the open point and counters on it
+    const base = w.win.docPlainText(c);
+    const proposed = base.replace('thirty (30) days', 'forty-five (45) days');
+    c.rounds.push({ n: c.rounds.length + 1, at: w.win.nowISO(), by: 'Erik Lindqvist, Procurement Manager',
+      comment: 'Meet in the middle at Net-45?', status: 'open', resolution: null,
+      baseText: base, proposedText: proposed });
+    const r = c.rounds[c.rounds.length - 1];
+
+    const blocks = w.win.diffBlocks(r.baseText, r.proposedText);
+    assert.equal(blocks.length, 1, 'one ask, one decision');
+    w.win.acceptProposedRound(c, r.n, { decisions: { [blocks[0].id]: 'accept' },
+      comment: 'Net-45 works. Agreed.' });
+
+    assert.equal(r.resolution.decision, 'accepted');
+    assert.match(w.win.docPlainText(c), /forty-five \(45\) days/);
+    assert.equal(w.win.docFormat(c.format), 'rich', 'still a formatted document at round 3');
+    assert.equal(w.win.openPointsFor(c).length, 0,
+      'the point he raised in round 1 is now settled and must drop off the open list');
+  });
+
+  test('round 4 — a further round on liability, decided the same way', () => {
+    const base = w.win.docPlainText(c);
+    const proposed = base.replace('capped at the total sums paid in the preceding twelve months',
+      'capped at fifty percent (50%) of the sums paid in the preceding twelve months');
+    c.rounds.push({ n: c.rounds.length + 1, at: w.win.nowISO(), by: 'Erik Lindqvist, Procurement Manager',
+      comment: 'Our board needs a cap at 50%.', status: 'open', resolution: null,
+      baseText: base, proposedText: proposed });
+    const r = c.rounds[c.rounds.length - 1];
+    const blocks = w.win.diffBlocks(r.baseText, r.proposedText);
+    w.win.acceptProposedRound(c, r.n, {
+      decisions: Object.fromEntries(blocks.map(b => [b.id, 'accept'])),
+      comment: 'Accepted.' });
+
+    assert.match(w.win.docPlainText(c), /fifty percent \(50%\)/);
+    assert.equal(w.win.docFormat(c.format), 'rich', 'still formatted after four rounds');
+    assert.match(w.win.docPlainText(c), /RAW MATERIAL SUPPLY AGREEMENT/);
+  });
+
+  /* ---------- Round 4 (server): the durable link ---------- */
 
   describe('round 4 — the durable negotiation link (checklist 6)', () => {
     let h, W;

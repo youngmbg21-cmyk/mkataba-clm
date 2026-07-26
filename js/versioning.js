@@ -194,10 +194,19 @@ function applyBlockDecisions(aStr, bStr, decisions){
   return out;
 }
 /* Points the counterparty raised that were NOT adopted, and are therefore
-   still live between the parties. Dropped once the wording they asked for is
-   in the document anyway — it may have arrived by another route, and a
-   "still open" point that has actually been agreed is noise that teaches
-   people to ignore the list. */
+   still live between the parties.
+
+   A point stops being open in two ways, and both matter — a list that keeps
+   showing settled items is a list people learn to ignore, which would make it
+   worse than no list at all:
+
+     · the wording they asked for is in the document anyway. It may have
+       arrived by another route; either way they got it.
+     · the wording it was measured AGAINST is gone. The clause has been
+       renegotiated since, so neither side's original text stands and the old
+       ask is about a passage that no longer exists. (Erik asks for Net-60,
+       is refused, and the parties later settle on Net-45: he did not get
+       what he asked for, but the point is spent, not outstanding.) */
 function openPointsFor(c){
   const live=(window.docPlainText?docPlainText(c):'').replace(/\s+/g,' ');
   const out=[];
@@ -205,7 +214,9 @@ function openPointsFor(c){
     for(const b of (r.blockDecisions||[])){
       if(b.decision!=='reject') continue;
       const want=String(b.after||'').replace(/\s+/g,' ').trim();
-      if(want && live.includes(want)) continue;      // agreed some other way
+      const had=String(b.before||'').replace(/\s+/g,' ').trim();
+      if(want && live.includes(want)) continue;      // they got it in the end
+      if(had && !live.includes(had)) continue;       // the clause has moved on since
       out.push({ id:`r${r.n}.${b.id}`, round:r.n, by:r.by,
         before:String(b.before||'').trim(), after:String(b.after||'').trim(),
         reason:(r.resolution&&r.resolution.comment)||null });
@@ -491,11 +502,23 @@ function acceptProposedRound(c, n, opts={}){
   record();
   const partly=!!(rejected&&rejected.length);
   const tally=partly?` — ${accepted.length} of ${blocks.length} changes`:'';
-  // The counterparty edits in a plain-text box, so what comes back is plain
-  // text. Adopting it makes the document plain text — say so on the record
-  // rather than leaving a 'rich' marker on a body that no longer is one.
-  c.redlineText=adopted;
-  if(wasRich) c.format=TEXT_FORMAT;
+  /* The counterparty edits in a plain-text box (and a Word return is plain
+     text too), so what comes back is text. Putting it straight into the body
+     used to flatten a formatted contract at the FIRST round of every
+     negotiation — headings, clause numbering and tables gone for good.
+     richFromTextEdit places the edited lines back into the document's own
+     structure and verifies the result says exactly what was agreed; only if
+     that verification fails do we fall back to plain text, and then the record
+     says so rather than leaving a 'rich' marker on a body that is not one. */
+  let flattened=false;
+  if(wasRich && window.richFromTextEdit){
+    const merged=richFromTextEdit(c.redlineText, adopted);
+    if(merged) c.redlineText=merged;
+    else { c.redlineText=adopted; c.format=TEXT_FORMAT; flattened=true; }
+  } else {
+    c.redlineText=adopted;
+    if(wasRich){ c.format=TEXT_FORMAT; flattened=true; }
+  }
   captureVersion(c, r.via==='word'
     ? `Round ${n} accepted${tally} (returned Word file${r.file?` “${r.file.fileName}”`:''})`
     : `Round ${n} accepted${tally} (redline from ${r.by||'counterparty'})`, u.name);
@@ -526,9 +549,12 @@ function acceptProposedRound(c, n, opts={}){
     if(c.upload){ c.upload.extractedText=adopted; c.upload.textChars=adopted.length; }
     if(window.runScan && c.scan) runScan(c);   // stale findings would describe the OLD wording
   }
-  logAudit(c,'Redline',`Round ${n} proposed edits ${partly
+  // Name BOTH sides. The entry used to record only who decided, so a trail read
+  // back later said a round was accepted without ever saying whose wording it
+  // was — which is the same omission fix-7 exists to prevent.
+  logAudit(c,'Redline',`Round ${n} proposed edits from ${r.by||'the counterparty'} ${partly
       ? `partly accepted by ${u.name} — ${accepted.length} of ${blocks.length} changes adopted, ${rejected.length} not adopted and left open`
-      : `accepted by ${u.name}`} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(window.wordVersionList?wordVersionList(c):[]).length?(window.wordVersionList(c)[window.wordVersionList(c).length-1].n):2}`:''}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
+      : `accepted by ${u.name}`} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(window.wordVersionList?wordVersionList(c):[]).length?(window.wordVersionList(c)[window.wordVersionList(c).length-1].n):2}`:''}${flattened?' · the edit could not be placed back into the formatted document, so it is now plain text':''}`);
   persist(c); renderWorkspace();
   toast(partly
     ? `Round ${n}: ${accepted.length} of ${blocks.length} changes adopted — the rest stay open`
