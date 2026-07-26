@@ -1754,6 +1754,27 @@ function layoutDocResizer(){
   if(avail>=DOC_LEFT_MIN+DOC_RIGHT_MIN) leftPx=Math.min(Math.max(leftPx,DOC_LEFT_MIN), avail-DOC_RIGHT_MIN);
   grid.style.gridTemplateColumns=leftPx+'px minmax(0,1fr)';
   rez.style.left=leftPx+'px';            // handle sits in the gap immediately right of the contract
+  applyDocZoom();
+}
+/* The sheet is a fixed-width page and no wider however much room it is given.
+   Left alone it would simply centre itself in a wide column, which is why
+   widening the divider used to do nothing for legibility — it bought margin,
+   not readable text. So the page (and the banners above it) scale up to fill
+   the width instead: the same document, nearer the eye. Capped, or a maximised
+   window would render a contract at poster size.
+   DOC_PAGE_W is the page's border-box width — it sets the max-width in the
+   markup below, so the two cannot drift apart. */
+const DOC_PAGE_W = 660;
+const DOC_ZOOM_MAX = 2.0;   // fills a 2560-wide window; past this it stops being a contract
+function applyDocZoom(){
+  const pane=document.getElementById('doc-scroll'), wrap=document.getElementById('doc-zoom');
+  if(!pane||!wrap) return;
+  const cs=getComputedStyle(pane);
+  // clientWidth already excludes the scrollbar; the 2px keeps a rounding
+  // overshoot from tipping the pane into a horizontal scroll.
+  const room=pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+  const z=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
+  wrap.style.setProperty('--doc-zoom', z.toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -1848,22 +1869,27 @@ function renderWorkspace(){
       <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
-    <!-- ============ BODY: contract (left) · workspace (right) — divider drags the contract wider (up to +25%) ============ -->
+    <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
     <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
 
       <!-- LEFT: document -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
+        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 24px;background:var(--color-bg)">
+          <!-- The page and its banners scale together to fill whatever width the
+               divider gives them (see applyDocZoom), so a wider contract is a
+               bigger contract rather than a wider margin. -->
+          <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
             :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
-          <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:660px;margin:0 auto;border-radius:4px">
+          <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px">
             
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
+          </div>
           </div>
         </div>
       </section>
@@ -1991,7 +2017,7 @@ function renderWorkspace(){
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
-  wireDocResizer();   // draggable divider — contract can grow up to +25%, never below default
+  wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
