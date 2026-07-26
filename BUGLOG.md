@@ -2493,3 +2493,15 @@ Also now refuses to submit a round in which nothing was changed — previously a
 no-op round could be sent and would arrive at the owner as an empty redline.
 
 Result: `f25-counterparty-page.test.js` 18/18; suite **419/419 green**.
+
+**2026-07-26 — Run 6 final verification.** Two clean runs on fresh clones of
+`d261282`: run 1 — 419 tests, 419 pass, 0 fail (18.6 s); run 2 — 419 tests, 419
+pass, 0 fail (18.4 s).
+
+All eight review items are now DONE (items 1, 2, 3, 4-phase-1, 5, 6, 7, 8).
+Item 4 phase 2 (a comment per clause rather than one per round) is not built.
+
+Three bugs were caught by the new counterparty-side tests before they could
+ship, all three in this run's own work and all three on the counterparty's side:
+an editor that rendered nothing, a scroll call that aborted the flow mid-step,
+and a no-change round that could be submitted as an empty redline.

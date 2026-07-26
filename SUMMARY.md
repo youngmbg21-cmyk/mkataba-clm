@@ -1504,3 +1504,100 @@ the new shape rather than removed:
 
 Deleting either because it went red would have quietly removed the protection it
 existed to provide.
+
+## Run 6 continued — the remaining four items
+
+All eight items from the review are now done. **419 checks, passing twice on
+clean copies.**
+
+### 3. Two buttons both said "Word" — FIXED (`24eb233`)
+
+One downloaded. The other downloaded *and* froze editing, silently, with no way
+back that anyone would find. There is one button now. The freeze is still there,
+because it is genuinely useful — edits made here while a copy is out in Word
+would clash with the wording coming back — but it is now a tick-box you choose,
+with a sentence explaining why, and it defaults to on.
+
+### 8. "Under review" now says which kind — FIXED (`3934772`)
+
+That status covered two completely different situations: he's reading it and
+thinking, or he never opened it and doesn't know it exists. Those need opposite
+responses from Wanjiru and looked identical.
+
+The contract now says plainly *"Erik has not opened the current version — sent 5
+days ago"*, or *"Erik opened the current wording 2 days ago. No response yet."*
+After three days unopened it escalates and offers **Send it again** in one click,
+because silence that long usually means the message never arrived.
+
+The information was already recorded. Nothing had ever shown it.
+
+### 5. A paper-signed deal can be filed on its own contract — FIXED (`981f342`)
+
+Signing on paper is still normal in cross-border trade, and it was a dead end:
+the scan could only be uploaded as a *new* contract, so six rounds of
+negotiation were orphaned from the document they produced.
+
+Now there's **"Signed on paper instead? File the signed copy here"** under the
+sign button. It attaches the scan to the same contract, keeps the whole history,
+and seals it with the scan's own fingerprint.
+
+What it refuses to do is pretend HaTi witnessed anything. No electronic
+signature is recorded, and the history says outright that none was taken and
+that the signatures are on the attached scan — the same wording an imported
+already-signed contract carries.
+
+### 4 (phase 1). Erik edits one clause at a time — FIXED (`d261282`)
+
+The last place in the product treating a contract as a wall of text. He now sees
+the document as clauses and presses **Change** on the one he wants to alter.
+Everything else stays exactly as it was.
+
+**Why this is safe.** The shared document is already stored one line per clause,
+so changing one line and rejoining is exact — with nothing changed, the rebuilt
+contract is identical to the original character for character. There's a check
+that proves this. And as agreed, none of the plumbing changed: his edits travel
+the same way they always did, so Wanjiru's side and the server behave exactly as
+before.
+
+There's still a **"Edit the whole document instead"** link for anyone who wants
+to restructure wholesale, and it carries across whatever they've already changed.
+
+Phase 2 — a comment attached to each clause rather than one per round — is not
+built.
+
+---
+
+## Final status of all eight
+
+| # | Item | Status | Commit |
+|---|---|---|---|
+| 1 | "Send updated version" actually sends | **DONE** | `8710db8` |
+| 2 | Counterparty's Word download | **DONE** | `b9f15c2` |
+| 3 | One Word button | **DONE** | `24eb233` |
+| 4 | Clause-by-clause editing (phase 1) | **DONE** | `d261282` |
+| 5 | Attach a paper-signed copy | **DONE** | `981f342` |
+| 6 | Signing without an email service | **DONE** | `6eaf573` |
+| 7 | Tests for the counterparty's side | **DONE** | `b9f15c2` |
+| 8 | Has he seen the current version? | **DONE** | `3934772` |
+
+## Verification
+
+| Run | Result |
+|---|---|
+| Clean run 1 | **419 checks, 419 passed, 0 failed** (18.6 s) |
+| Clean run 2 | **419 checks, 419 passed, 0 failed** (18.4 s) |
+
+## Three bugs the new tests caught before they shipped
+
+All three were in this run's own work, and all three were on the counterparty's
+side — the half that had no checks until now:
+
+- The clause editor opened **completely empty**, because the code attached the
+  buttons before drawing anything for them to attach to.
+- A scrolling call **crashed halfway through** opening the editor, silently
+  abandoning the rest of the step.
+- A round with **no changes at all** could be submitted, arriving at Wanjiru as
+  an empty set of edits.
+
+Which is the argument for the test harness, made better than I could make it in
+prose.
