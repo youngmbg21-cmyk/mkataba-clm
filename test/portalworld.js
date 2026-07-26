@@ -30,6 +30,7 @@ const MODULES = [
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',
+  'js/discuss.js',
   'js/wordflow.js',
   'js/core.js',
   // the real document renderer: the portal shows the contract through
@@ -71,7 +72,7 @@ function buildPortal(opts = {}) {
   if (!win.URL.createObjectURL) win.URL.createObjectURL = () => 'blob:stub';
   if (!win.URL.revokeObjectURL) win.URL.revokeObjectURL = () => {};
 
-  const log = { downloads: [], toasts: [], sent: [], modals: [] };
+  const log = { downloads: [], toasts: [], sent: [], modals: [], messages: [] };
 
   /* Every file the page hands to the browser is captured instead of saved, so
      a test can read the bytes Erik would have received. */
@@ -93,6 +94,16 @@ function buildPortal(opts = {}) {
        shape the server would receive it. */
     async api(pathname, method, body) {
       if (/\/respond$/.test(pathname)) { log.sent.push({ pathname, body }); return { ok: true }; }
+      /* A message goes down its own route on purpose — it is not a response and
+         must not close the link — so the stage records it separately and
+         answers with the refreshed thread the real server returns. */
+      if (/\/messages$/.test(pathname)) {
+        log.sent.push({ pathname, body });
+        log.messages.push({ id: log.messages.length + 1, side: 'counterparty',
+          author: body.author, topic: body.topic, topicLabel: body.topicLabel,
+          body: body.body, at: '2026-07-26T12:00:00Z' });
+        return { ok: true, messages: log.messages.slice() };
+      }
       return {};
     },
     currentUser: () => null,

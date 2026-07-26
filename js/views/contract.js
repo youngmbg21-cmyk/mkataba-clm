@@ -1174,6 +1174,40 @@ function openEditDocModal(c){
    a real and useful thing (edits made here while the file is out would collide
    with the wording coming back), so it is kept — as a choice, stated in words,
    next to the button that causes it. */
+/* ---- the owner's half of the discussion ----
+   The mirror of the panel on the counterparty's page, reading and writing the
+   same thread. Rendered even when empty and nothing has been shared yet, so the
+   channel is discoverable before it is needed rather than after. */
+function renderDiscussSection(c){
+  const host=document.getElementById('discuss-section'); if(!host) return;
+  if(!window.discussPanelHtml || !API_MODE()){ host.innerHTML=''; return; }
+  const topics=window.discussTopics?discussTopics(c, window.docPlainText?docPlainText(c):''):[];
+  host.innerHTML=discussPanelHtml({
+    messages:c._messages||[], topics, mine:'owner', idp:'ws-discuss',
+    title:`Talk it through with ${c.counterparty||'the counterparty'}`,
+    blurb:'Answer a question or raise one without opening a formal round. This sends a message only — the wording of the contract is untouched, and nothing here needs reviewing or deciding.',
+    disabled:!canEdit(), disabledNote:'Viewers can read this conversation but cannot post to it.',
+  });
+  if(!canEdit()) return;
+  wireDiscussPanel({ idp:'ws-discuss', topics,
+    send:(topic,topicLabel,body)=>api('contracts/'+c.id+'/messages','POST',{topic,topicLabel,body}),
+    onSent:res=>{
+      c._messages=(res&&res.messages)||c._messages||[];
+      renderDiscussSection(c);
+      // whether it actually reached them is the sort of thing this product says
+      // out loud rather than leaving to be discovered
+      toast(res&&res.emailSent ? `Message sent to ${res.to}`
+        : res&&res.to ? `Saved — but the email to ${res.to} could not be sent. They will see it when they open their link.`
+        : 'Saved — they will see it when they open their link');
+    } });
+}
+async function loadDiscussion(c){
+  if(!API_MODE()||!window.discussPanelHtml) return;
+  try{ const r=await api('contracts/'+c.id+'/messages'); c._messages=r.messages||[]; }
+  catch(e){ c._messages=c._messages||[]; }
+  renderDiscussSection(c);
+}
+
 function openWordExportModal(c){
   if(!canEdit()){ toast('Viewers cannot export documents','err'); return; }
   if(window.wordReviewOut&&wordReviewOut(c)){
@@ -2052,6 +2086,7 @@ function renderWorkspace(){
             </div>
           </section>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
+          <div id="discuss-section" class="empty:hidden"></div>
           <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
@@ -2142,7 +2177,7 @@ function renderWorkspace(){
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderDiscussSection(c); loadDiscussion(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
   wireChangesStrip(c);   // the returned-changes strip above the document
@@ -2673,4 +2708,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{openWordExportModal,renderDiscussSection,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

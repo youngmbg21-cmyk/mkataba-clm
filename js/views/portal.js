@@ -586,6 +586,49 @@ function portalOpenPointsHtml(c, p){
     </div>`;
 }
 
+/* ---- talking about a point, without proposing wording ----
+   The counterparty could say a great deal about this contract and only ever by
+   redrafting it: every exchange had to wear the costume of a formal round. This
+   is the light channel — a question, an answer, a "would you take Net-45?" —
+   and it deliberately changes nothing about the document. */
+function portalDiscussTopics(c){
+  return window.discussTopics ? discussTopics(c, portalCurrentText() || docPlainText(c)) : [];
+}
+function portalDiscussHtml(c, p){
+  if (!window.discussPanelHtml) return '';
+  // static-mode shares have no server to carry a conversation; offering a box
+  // that could not deliver would be worse than not offering one
+  const live = !!PORTAL_OPTS.token;
+  return discussPanelHtml({
+    messages: PORTAL_OPTS.messages || [],
+    topics: portalDiscussTopics(c),
+    mine: 'counterparty',
+    idp: 'pt-discuss',
+    title: 'Ask or reply — no formal round needed',
+    blurb: `Put a question to ${(p && p.org) || 'the sender'}, or answer one, without proposing new wording. Nothing here changes the contract; when you do want to change it, use Propose edits.`,
+    disabled: !live,
+    disabledNote: 'This copy was shared as a self-contained link, so there is no channel back for messages. Reply to the email you received.',
+  });
+}
+function wirePortalDiscuss(c, p){
+  if (!window.wireDiscussPanel || !PORTAL_OPTS.token) return;
+  const topics = portalDiscussTopics(c);
+  wireDiscussPanel({
+    idp: 'pt-discuss', topics,
+    send: async (topic, topicLabel, body) => {
+      const author = fval('pt-name') || (PORTAL_OPTS.share && PORTAL_OPTS.share.recipientName) || '';
+      if (!author) throw new Error('Enter your full name in the panel on the right first.');
+      return api('shares/' + PORTAL_OPTS.token + '/messages', 'POST', { author, topic, topicLabel, body });
+    },
+    onSent: res => {
+      PORTAL_OPTS.messages = (res && res.messages) || PORTAL_OPTS.messages || [];
+      const host = document.getElementById('pt-discuss-panel');
+      if (host){ host.outerHTML = portalDiscussHtml(c, p); wirePortalDiscuss(c, p); }
+      if (window.toast) toast('Message sent — the contract is unchanged');
+    },
+  });
+}
+
 /* ---- editing a clause at a time (item 4, phase 1) ----
    The counterparty used to be handed the entire agreement as one stretch of
    plain text in a single box: scroll to find clause 4, edit it in place, and
@@ -715,7 +758,8 @@ async function portalEntry(encoded){
       if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
       if(!r.ok) throw new Error(d?.error||'not found');
       renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{},
-        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false });
+        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false,
+        messages:d.messages||[] });
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -767,6 +811,7 @@ function renderSharePortal(p, opts={}){
         ${portalRoundBanner(c,p)}
         ${portalCompareBar()}
         ${portalOpenPointsHtml(c,p)}
+        ${portalDiscussHtml(c,p)}
         ${portalThreadHtml(c,p)}
         ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
@@ -831,6 +876,7 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   wireportalWord(c, p);
+  wirePortalDiscuss(c, p);
   if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
@@ -1140,4 +1186,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

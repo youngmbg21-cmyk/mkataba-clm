@@ -11,6 +11,7 @@ import './api.js';
 import './advice.js';
 import './metadata.js';
 import './versioning.js';
+import './discuss.js';    // the light channel: talking about a point, not redrafting it
 import './wordflow.js';
 import './obligations.js';
 import './playbook.js';

@@ -250,6 +250,21 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL, at TEXT NOT NULL,
     doc_text TEXT, opened_at TEXT);
   CREATE INDEX IF NOT EXISTS idx_share_payload_history_token ON share_payload_history(token);
+  /* Talking about the contract, as opposed to changing it.
+     Until now the only thing either side could send was a formal round of
+     proposed wording: "would you take Net-45?" cost an edit-clause, a reason, a
+     submit, a review and a decision, so the cheapest exchange in any
+     negotiation was the most expensive thing in the product — and a plain
+     question about a clause nobody wanted to change had no home at all.
+     A message is deliberately NOT a round: it proposes no text, moves no
+     document state, and closes nothing. It is keyed to the CONTRACT rather
+     than to a link, so the thread survives every reshare and both sides read
+     the same conversation. */
+  CREATE TABLE IF NOT EXISTS share_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, contract_id TEXT NOT NULL, token TEXT,
+    side TEXT NOT NULL, author TEXT NOT NULL, topic TEXT NOT NULL, topic_label TEXT,
+    body TEXT NOT NULL, at TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS idx_share_messages_contract ON share_messages(contract_id);
 `);
 addColumnIfMissing('shares', 'contract_id', 'TEXT');
 addColumnIfMissing('shares', 'recipient_name', 'TEXT');
@@ -2760,6 +2775,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     emailConfigured: EMAIL_ON(),
     responded: s.durable ? false : !!s.response,
     durable: !!s.durable, lastResponse,
+    /* The discussion is read LIVE from the contract, not from the payload
+       snapshot: an answer written by the owner has to appear on the reader's
+       page without waiting for the link to be reshared, or a reply is as slow
+       as the formal round it replaces. */
+    messages: s.contract_id ? contractMessages(s.contract_id) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? null : shareSuperseded(s),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
@@ -2858,6 +2878,101 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
   const rows = db.prepare('SELECT * FROM shares WHERE contract_id=? ORDER BY created_at DESC LIMIT 50').all(req.params.id);
   res.json({ shares: rows.map(shareInfo) });
 });
+
+/* ---------- discussion: talking about a point without proposing wording ----------
+   Kept out of the contract's own JSON on purpose. A public endpoint that
+   appended to the contract record would race the owner's saves and fight the
+   optimistic-concurrency version column for what is, in the end, a sentence.
+   Its own table also means the thread outlives any single link — a durable link
+   refreshed six times still shows one conversation. */
+const MSG_TOPIC_MAX = 160, MSG_BODY_MAX = 4000;
+function contractMessages(contractId) {
+  return db.prepare(
+    `SELECT id, side, author, topic, topic_label AS topicLabel, body, at
+       FROM share_messages WHERE contract_id=? ORDER BY id ASC LIMIT 500`).all(contractId);
+}
+function addMessage({ contractId, token, side, author, topic, topicLabel, body }) {
+  const at = now();
+  const info = db.prepare(
+    `INSERT INTO share_messages (contract_id,token,side,author,topic,topic_label,body,at)
+     VALUES (?,?,?,?,?,?,?,?)`).run(contractId, token || null, side, author,
+      String(topic).slice(0, MSG_TOPIC_MAX), topicLabel ? String(topicLabel).slice(0, 400) : null,
+      String(body).slice(0, MSG_BODY_MAX), at);
+  return { id: info.lastInsertRowid, side, author, topic, topicLabel: topicLabel || null, body, at };
+}
+const msgValid = b => b && typeof b.body === 'string' && b.body.trim()
+  && typeof b.topic === 'string' && b.topic.trim();
+
+/* The counterparty asks or answers. Deliberately NOT /respond: this does not
+   consume a one-shot link, does not open a round, and leaves the contract's
+   state exactly where it was. A reader with a live link may say something
+   about it without that being an act. */
+app.post('/api/shares/:token/messages', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if (!s.contract_id) return res.status(409).json({ error: 'This link cannot carry a discussion' });
+  if (!db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
+    return res.status(410).json({ error: 'This contract is no longer available' });
+  const b = req.body || {};
+  const author = String(b.author || s.recipient_name || '').trim();
+  if (!msgValid(b) || !author) return res.status(400).json({ error: 'A name and a message are required' });
+  const m = addMessage({ contractId: s.contract_id, token: s.token, side: 'counterparty',
+    author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
+  notifyMessage(s, m);
+  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
+});
+
+app.get('/api/contracts/:id/messages', auth, (req, res) => {
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
+  res.json({ messages: contractMessages(req.params.id) });
+});
+
+/* The owner's half. A question that can only be asked in one direction is not a
+   conversation — it is a suggestion box. */
+app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
+  if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
+  const b = req.body || {};
+  if (!msgValid(b)) return res.status(400).json({ error: 'A message is required' });
+  const m = addMessage({ contractId: req.params.id, token: null, side: 'owner',
+    author: req.user.name, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim() });
+  const sent = await notifyCounterpartyMessage(req.params.id, m);
+  res.json({ ok: true, message: m, messages: contractMessages(req.params.id),
+    emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
+});
+
+/* A question nobody is told about is a question nobody answers — which would
+   leave the lightweight channel quieter than the heavyweight one it exists to
+   replace. Both directions are notified. */
+function notifyMessage(s, m) {
+  try {
+    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
+    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
+    for (const to of shareOwnerEmails(s))
+      sendEmail(to, `Question on "${cName}"`,
+        `${m.author} wrote about "${cName}":\n\n${m.body}\n\n` +
+        `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
+        `Nothing has changed in the contract — they are asking, not proposing. Reply in HaTi.`,
+        'discussion message');
+  } catch (_) {}
+}
+async function notifyCounterpartyMessage(contractId, m) {
+  try {
+    const s = db.prepare(
+      `SELECT * FROM shares WHERE contract_id=? AND revoked_at IS NULL AND recipient_email IS NOT NULL
+        ORDER BY created_at DESC LIMIT 1`).get(contractId);
+    const to = s && String(s.recipient_email || '').trim();
+    if (!to) return { sent: false, to: null };
+    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
+    const cName = (p.contract && p.contract.name) || contractId || 'your contract';
+    const r = await sendEmail(to, `Message about "${cName}"`,
+      `${m.author} at ${p.org || 'the sender'} wrote about "${cName}":\n\n${m.body}\n\n` +
+      `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
+      `The wording of the contract has not changed. Open your link to reply.`,
+      'discussion message');
+    return { sent: !!(r && r.sent), to };
+  } catch (_) { return { sent: false, to: null }; }
+}
 
 /* Refresh a durable link to the current wording. The copy being replaced is
    moved into share_payload_history first, carrying whether this reader had
