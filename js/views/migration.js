@@ -538,7 +538,7 @@ async function migProcessFiles(fileList, opts={}){
     };
     try{
       if(!file.size){ step('error','empty file — 0 bytes, nothing to import'); errors++; continue; }
-      if(file.size>UPLOAD_MAX){ step('error','over 4 MB — compress or split'); errors++; continue; }
+      if(file.size>uploadMax()){ step('error',`over ${uploadMaxLabel()} — compress or split`); errors++; continue; }
       step('reading');
       const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); });
       const mime=file.type||'application/octet-stream';
@@ -981,7 +981,7 @@ function renderMigration(){
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Bulk import</h3>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, image or text · max 4&nbsp;MB each · Word files are refused — save them as PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the AI engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the AI engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
           <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">Import as
             <select id="mig-status" style="${selStyle}">${statusOpts}</select></label>

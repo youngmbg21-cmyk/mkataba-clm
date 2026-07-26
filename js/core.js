@@ -95,7 +95,18 @@ const cParty = c => (c && c.counterparty && c.counterparty.trim()) ? c.counterpa
 // comes from the uploaded file's name), and one unescaped call site is enough.
 const cPrimary = c => esc(cParty(c) || (c && c.name) || '');
 const cSecondary = c => cParty(c) ? esc(c.name) : 'No counterparty yet';
-const UPLOAD_MAX = 4*1024*1024; // 4 MB cap keeps localStorage/API payloads safe
+/* File-size ceiling. Two regimes, because the bytes land in different places:
+   in LOCAL/static mode the file is stored inline in localStorage (quota
+   ~5-10 MB total), so 4 MB is the honest limit; in SERVER mode the bytes go
+   to the files store, and the only ceiling is the server's 15 MB JSON body
+   limit — base64 inflates by 4/3, so a 10 MB file (~13.4 MB encoded) is the
+   largest that reliably fits. Real Word contracts carry letterheads and
+   logos and routinely pass 4 MB, which is what forced the split. */
+const UPLOAD_MAX = 4*1024*1024;        // local/static mode
+const UPLOAD_MAX_API = 10*1024*1024;   // server mode
+const uploadMax = () => (typeof API_MODE==='function' && API_MODE()) ? UPLOAD_MAX_API : UPLOAD_MAX;
+const uploadMaxLabel = () => uploadMax()===UPLOAD_MAX_API ? '10 MB' : '4 MB';
+const uploadTooBigMsg = f => `“${f.name}” is ${(f.size/1048576).toFixed(1)} MB — the limit is ${uploadMaxLabel()}. In Word: Picture Tools → Compress Pictures shrinks embedded logos/scans, or split the document.`;
 /* How much extracted text a contract keeps. The old 40k cap cut a long
    agreement off around page 10 — exactly where the renewal, termination and
    notice clauses live — so the whole document is kept and buildExtractionPayload()
@@ -223,7 +234,7 @@ async function sha256(str){
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a

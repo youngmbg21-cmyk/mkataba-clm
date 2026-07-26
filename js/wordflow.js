@@ -92,7 +92,7 @@ function openWordReturnPicker(c){
 }
 async function uploadWordVersion(c, file){
   if(wordDoorClosed(c)){ toast('This contract is executed — record an amendment instead','err'); return; }
-  if(file.size>UPLOAD_MAX){ toast('File is larger than 4 MB — please compress or split it','err'); return; }
+  if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
   const u=currentUser();
   let dataUrl;
   try{ dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }); }

@@ -341,7 +341,7 @@ function openCreateTemplateModal(mode){
     /* ---- the secondary route: a file ---- */
     const file=document.getElementById('ct-file').files[0];
     if(!file){ st('<span style="color:#8f322b">Choose a file.</span>'); return; }
-    if(file.size>UPLOAD_MAX){ toast('File is over the 4 MB limit','err'); return; }
+    if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
     st('Reading file…');
     try{
       const dataUrl=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });

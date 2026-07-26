@@ -878,7 +878,7 @@ function openUploadModal(){
         <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
       <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
       <label class="block mb-3">
-        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word .docx, image or text · max 4 MB · legacy .doc must be re-saved first)</span></span>
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word .docx, image or text · max ${uploadMaxLabel()} · legacy .doc must be re-saved first)</span></span>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
       </label>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
@@ -933,7 +933,7 @@ async function submitUpload(){
   const fileInput=document.getElementById('up-file');
   const file=fileInput.files&&fileInput.files[0];
   if(!file){ toast('Choose a file to upload','err'); return; }
-  if(file.size>UPLOAD_MAX){ toast('File is larger than 4 MB — please compress or split it','err'); return; }
+  if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
   const cp=fval('up-cp');
   const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
   const folder=document.getElementById('up-folder').value;
