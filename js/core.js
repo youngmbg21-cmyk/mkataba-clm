@@ -299,6 +299,13 @@ async function saveContract(c){
   }
   const payload={...c}; delete payload._light; delete payload._loaded; delete payload._v;
   if(payload.upload && payload.upload.fileId){ payload.upload={...payload.upload, dataUrl:undefined}; }
+  // Word-review version files and the rounds that carried them follow the same
+  // rule: once the bytes live in the files store, the synced JSON keeps only
+  // the reference — a 4 MB base64 blob per round would bloat every save.
+  if(payload.upload && Array.isArray(payload.upload.versions))
+    payload.upload={ ...payload.upload, versions: payload.upload.versions.map(v=>v&&v.fileId?{...v, dataUrl:undefined}:v) };
+  if(Array.isArray(payload.rounds))
+    payload.rounds=payload.rounds.map(r=>(r&&r.file&&r.file.fileId)?{...r, file:{...r.file, dataUrl:undefined}}:r);
   try{
     const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid });
     c._v=r.version; c._loaded=true; c._light=false;
@@ -828,7 +835,7 @@ function renderNegotiationSection(c){
         ${rounds.slice().reverse().map(r=>`
           <div class="rounded-lg border ${r.status==='open'?'border-gold-500/30 bg-gold-500/5':'border-brand-100 bg-white'} p-3">
             <div class="flex items-center gap-2 text-[11px] mb-1">
-              <span class="font-semibold text-brand-900">Round ${r.n} — changes requested</span>
+              <span class="font-semibold text-brand-900">Round ${r.n} — ${r.via==='word'?'returned Word file':'changes requested'}</span>
               <span class="ml-auto text-brand-800/60 font-mono">${fmtDT(r.at)}</span>
             </div>
             <div class="text-[11px] text-brand-800/65 mb-1">by ${r.by}</div>

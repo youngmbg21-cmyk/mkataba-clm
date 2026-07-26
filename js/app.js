@@ -3,12 +3,14 @@
 import './components.js';
 import './templates.js';
 import './core.js';
+import './docx.js';
 import './richdoc.js';
 import './richpaste.js';
 import './api.js';
 import './advice.js';
 import './metadata.js';
 import './versioning.js';
+import './wordflow.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';

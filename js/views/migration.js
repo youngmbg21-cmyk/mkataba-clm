@@ -14,10 +14,11 @@
    ai/extract, openMetaReview, files API) — no new server surface.
    ============================================================ */
 const MIG_MAX_FILES = 25;                        // realistic cap per batch (memory + AI window)
-// Word is deliberately absent: HaTi cannot read .doc/.docx, so the picker must
-// not invite them in. Drag-and-drop bypasses `accept`, so migProcessFiles()
-// also sniffs the bytes (detectWordFile) as the backstop.
-const MIG_ACCEPT = '.pdf,.txt,.png,.jpg,.jpeg';
+// Legacy .doc is deliberately absent: HaTi reads modern .docx (js/docx.js)
+// but not the pre-2007 binary format, so the picker must not invite it in.
+// Drag-and-drop bypasses `accept`, so migProcessFiles() also sniffs the bytes
+// (detectWordFile) as the backstop.
+const MIG_ACCEPT = '.pdf,.docx,.txt,.png,.jpg,.jpeg';
 const MIG_CRITICAL = ['counterparty','contractType','effectiveDate','expiryDate','value'];
 
 /* Session-scoped batch state (queue rows + manifest live in memory; every
@@ -541,9 +542,11 @@ async function migProcessFiles(fileList, opts={}){
       step('reading');
       const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); });
       const mime=file.type||'application/octet-stream';
-      // Word files are refused before any record exists — no half-contract, no
-      // audit entry claiming an import happened.
-      if(detectWordFile(dataUrl, mime, file.name)){ step('word', WORD_REFUSAL_SHORT); words++; continue; }
+      // Legacy .doc is refused before any record exists — no half-contract, no
+      // audit entry claiming an import happened. Modern .docx reads for real
+      // through extractDocText (js/docx.js) like any PDF.
+      const wordKind=detectWordFile(dataUrl, mime, file.name);
+      if(wordKind==='doc'){ step('word', WORD_REFUSAL_SHORT); words++; continue; }
       const fileHash=await sha256(dataUrl);
       if(byHash.has(fileHash)){
         const hit=byHash.get(fileHash);
@@ -563,7 +566,7 @@ async function migProcessFiles(fileList, opts={}){
       // A scan gets OCR'd before anything decides it has "no readable text".
       // The batch stays cancellable between pages, and whatever pages were read
       // before a stop are kept.
-      let ocr=null, textSource=extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none';
+      let ocr=null, textSource=wordKind==='docx'?'docx-text':(extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none');
       if(ocrNeeded(mime, extractedText)){
         step('ocr','reading the scan…');
         ocr=await ocrDocument(dataUrl, mime, {

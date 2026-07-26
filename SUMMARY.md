@@ -7,6 +7,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 2 — Rich Templates, Document Typography & Legibility](#run-2--rich-templates-document-typography--legibility)
 - [Run 3 — Visibility & Permissions Hardening (2026-07-25)](#run-3--visibility--permissions-hardening-2026-07-25)
 - [Run 3a — Signing capacity follow-up (2026-07-26)](#run-3a--signing-capacity-follow-up-2026-07-26)
+- [Run 4 — Word (.docx) Round-Trip (2026-07-26)](#run-4--word-docx-round-trip-2026-07-26)
 
 ---
 
@@ -1096,3 +1097,64 @@ capacity is read from, what the signed contract shows, the evidence pack, the
 seal being unaffected, and the server storing and serving it — including that a
 non-admin can set their own title and nothing else. **Suite total: 109, all
 passing.**
+
+---
+
+# Run 4 — Word (.docx) Round-Trip (2026-07-26)
+
+HaTi now reads modern Word files and owns the full negotiate-in-Word loop:
+upload a received `.docx`, send it OUT for external review (with a visible
+soft lock), take the marked-up file BACK as an ordinary negotiation round,
+and adopt it as the next document version — one history, whichever tool the
+counterparty negotiates in. Legacy `.doc` (pre-2007) stays refused with a
+clear instruction to re-save.
+
+## What shipped
+
+| Phase | What it does |
+|---|---|
+| 1 | Accept `.docx` in every upload entry point (single upload, bulk migration, template import). Text is read client-side by the new zero-dependency extractor `js/docx.js` and flows through the exact pipeline PDFs use — metadata extraction, obligations, clause scan, AI or heuristic alike. |
+| 2 | **Download .docx for Word review** — downloads the current file, marks the contract `Out for Word review` (amber chip with a days-out counter), pauses online editing and signing, and always offers **Cancel review** as the escape hatch. A 14-day reminder nudges a stalled review. |
+| 3 | **Upload returned .docx** — the returned file is validated on its bytes, its text extracted (tracked changes read as *accepted*, with the counts on the audit trail), stored in the files store, and filed as a negotiation round with `baseText`/`proposedText`. Review/accept/reject runs through the existing `reviewProposedRound` machinery. An unchanged return closes the review without opening a round. |
+| 4 | Adoption files the returned file as document version v2, v3… beside the untouched original — file-version picker + per-version download in the workspace, a latest-round redline card (added/removed counts), a real reading view for `.docx` uploads, and a refreshed clause scan so risk flags describe the adopted wording. |
+| 5 | Guardrails: executed contracts take no new versions (client UI + the server's existing `EXECUTED_IMMUTABLE` wall over `upload`); returned files are byte-sniffed, size-capped and refused with human-readable reasons; version files ride `c.documents` so the server's file scoping and delete-sweep cover them; heavy bytes are stripped from synced JSON once a `fileId` exists. |
+
+## New / touched
+
+- **New:** `js/docx.js` — ZIP central-directory reader + `DecompressionStream`
+  inflate + WordprocessingML→text projection. No dependencies; runs in the
+  browser and under `node:test`.
+- **New:** `js/wordflow.js` — the round-trip flow and its workspace controls.
+- **Touched:** `js/views/contract.js` (upload accepts docx, Word controls,
+  edit/sign gates, current-version re-read), `js/versioning.js` (Word rounds
+  adopt their file on accept), `js/core.js` (round/version payload slimming,
+  Word round label), `js/views/migration.js` + `js/views/library.js` (docx
+  accepted, `.doc` refused), `js/app.js` (module imports).
+- **Fixtures:** `test-fixtures/contract-v2-redline.docx` (real `w:ins`/`w:del`
+  tracked changes) via `generators/genoffice.js`.
+
+## Verification
+
+- `test/f9-word-roundtrip.test.js` — 11 tests: extractor semantics on real
+  fixture bytes (tracked changes read as accepted, deleted wording never
+  resurfaces, entities/tabs/breaks, field codes dropped) and adversarial
+  inputs (random bytes, zip-without-document, zero-byte, empty document), plus
+  the server-side signed door (PUT that grows `upload.versions` on an executed
+  record → 409) and the version-file lifecycle (readable while referenced,
+  swept on contract delete).
+- Full suite: **120/120 pass** (34 suites), no regressions.
+- Hand-driven browser run: upload → out-for-review lock → returned redline →
+  round review → adoption → version picker → sign — screenshots in the run
+  record.
+
+## Known limitations (deliberate)
+
+- The Word download is a **clean copy** of the current version — HaTi does not
+  yet write Word's own tracked-changes markup into generated files. The web
+  redline (and Word's Review → Compare) carries that duty. Native `w:ins`/`w:del`
+  export is the natural v2 of this feature.
+- Legacy `.doc` remains refused; headers/footers/footnotes/text-boxes in a
+  `.docx` are not read (body text only). Comments in the returned file are not
+  yet surfaced.
+- OCR does not apply to `.docx` (never scanned paper); no-AI mode degrades to
+  the same heuristics every other document uses.

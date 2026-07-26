@@ -264,10 +264,26 @@ function acceptProposedRound(c, n){
   const wasRich=!!(window.isRich&&isRich(c.format));
   c.redlineText=r.proposedText;
   if(wasRich) c.format=TEXT_FORMAT;
-  captureVersion(c, `Round ${n} accepted (redline from ${r.by||'counterparty'})`, u.name);
+  captureVersion(c, r.via==='word'
+    ? `Round ${n} accepted (returned Word file${r.file?` “${r.file.fileName}”`:''})`
+    : `Round ${n} accepted (redline from ${r.by||'counterparty'})`, u.name);
   r.status='closed'; r.resolution={ decision:'accepted', by:u.name, at:nowISO() };
   if(r.proposedValue!=null){ c.value=Number(r.proposedValue); c.approval=null; }
-  logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
+  // A Word round carries the returned .docx itself. Adoption files that file
+  // as the contract's CURRENT version (v2, v3…) beside the untouched original,
+  // makes its text the extracted text (so search, AI review and the reading
+  // view all follow the adopted wording), and refreshes the clause scan so the
+  // risk flags describe the document as it now reads — through the same
+  // scanner the upload ran, AI or heuristic alike.
+  if(r.via==='word' && r.file && c.upload){
+    const vs=c.upload.versions=c.upload.versions||[];
+    const fileVer=(vs.length?vs[vs.length-1].n:1)+1;
+    vs.push({ n:fileVer, roundN:n, fileName:r.file.fileName, size:r.file.size, fileHash:r.file.fileHash,
+      fileId:r.file.fileId, dataUrl:r.file.dataUrl, tracked:r.file.tracked, at:r.file.at, by:r.file.by, adoptedAs:c.versions.length });
+    c.upload.extractedText=r.proposedText; c.upload.textChars=r.proposedText.length;
+    if(window.runScan && c.scan) runScan(c);   // stale findings would describe the OLD wording
+  }
+  logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(c.upload&&c.upload.versions&&c.upload.versions.length)?c.upload.versions[c.upload.versions.length-1].n:2}`:''}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
   persist(c); renderWorkspace();
   toast(`Round ${n} accepted — adopted as new version`);
 }

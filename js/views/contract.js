@@ -716,8 +716,8 @@ function docFileUrl(c){
      .docx  — a ZIP archive: PK\x03\x04, with a "word/…" entry inside
      .doc   — an OLE2 compound file: D0 CF 11 E0 A1 B1 1A E1
    Returns 'docx' | 'doc' | null. */
-const WORD_REFUSAL = 'HaTi can’t read Word files yet. Save or print the document as a PDF and upload that instead — the PDF is also what you’d want on record as the signed version.';
-const WORD_REFUSAL_SHORT = 'Word file — save it as a PDF and upload that';
+const WORD_REFUSAL = 'HaTi can’t read legacy .doc files (the pre-2007 Word format). Open it in Word and save it as .docx — or as a PDF — and upload that instead.';
+const WORD_REFUSAL_SHORT = 'legacy .doc — re-save as .docx or PDF';
 const OLE_SIG=[0xD0,0xCF,0x11,0xE0,0xA1,0xB1,0x1A,0xE1];
 // latin1-decode a slice without the per-byte string concat used for whole PDFs
 function bytesToLatin(bytes, from, to){
@@ -757,9 +757,19 @@ async function extractDocText(dataUrl, mime){
     const bytes=dataUrlBytes(dataUrl);
     if(/text\//.test(mime)){ return new TextDecoder().decode(bytes).slice(0,EXTRACT_MAX_CHARS); }
     if(/pdf/.test(mime)){ return (await extractPdfText(bytes.buffer)).slice(0,EXTRACT_MAX_CHARS); }
+    if(detectWordBytes(bytes,'',mime)==='docx'){ return (await docxExtract(bytes)).text.slice(0,EXTRACT_MAX_CHARS); }
   }catch(e){}
   return '';
 }
+/* .docx extraction that keeps the tracked-changes counts, for the flows that
+   must put "markup was found and read as accepted" on the audit record. */
+async function extractWordText(dataUrl){
+  const out=await docxExtract(dataUrlBytes(dataUrl));
+  return { text:out.text.slice(0,EXTRACT_MAX_CHARS), tracked:out.tracked };
+}
+const trackedNote=t=>(t&&(t.ins||t.del))
+  ? `The file carried ${t.ins+t.del} tracked change${t.ins+t.del===1?'':'s'} (Word markup) — read with all changes accepted`
+  : '';
 /* Render extracted document text on screen the way the paper reads: prose keeps
    the document face and wraps, while ruled/columnar blocks (fee schedules drawn
    with | and +---+, side-by-side signature blocks) go into a monospace block so
@@ -868,8 +878,8 @@ function openUploadModal(){
         <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
       <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
       <label class="block mb-3">
-        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, image or text · max 4 MB · Word files must be saved as PDF first)</span></span>
-        <input id="up-file" type="file" accept=".pdf,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
+        <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word .docx, image or text · max 4 MB · legacy .doc must be re-saved first)</span></span>
+        <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
       </label>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
@@ -937,24 +947,33 @@ async function submitUpload(){
   const dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader(); rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }).catch(()=>null);
   if(!dataUrl){ toast('Could not read that file','err'); btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false; return; }
   const mime=file.type||'application/octet-stream';
-  // Refuse Word files BEFORE anything is created — a silent empty shell in the
-  // register is worse than a clear refusal.
+  // Legacy .doc is still refused BEFORE anything is created — a silent empty
+  // shell in the register is worse than a clear refusal. Modern .docx is read
+  // for real (see js/docx.js) and goes through the same pipeline as a PDF.
   const word=detectWordFile(dataUrl, mime, file.name);
-  if(word){
-    toast(WORD_REFUSAL,'err');
+  const refuse=(msg)=>{
+    toast(msg,'err');
     const steps=document.getElementById('up-steps');
     if(steps){ steps.classList.remove('hidden');
-      steps.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;color:#8f322b;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${WORD_REFUSAL}</div>`; }
+      steps.innerHTML=`<div style="border:1px solid #e6c9c1;background:#fdf4f2;color:#8f322b;border-radius:8px;padding:10px 12px;font-size:11.5px;line-height:1.55">${msg}</div>`; }
     btn.disabled=false; if(cancelBtn) cancelBtn.disabled=false;
     btn.innerHTML=`${icon('upload','w-3.5 h-3.5')} Add contract`;
-    return;
-  }
+  };
+  if(word==='doc'){ refuse(WORD_REFUSAL); return; }
   const fileHash=await sha256(dataUrl);
-  let extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+  let extractedText, wordTracked=null;
+  if(word==='docx'){
+    // read the wording out of the Word file itself; a failure here is a
+    // refusal, not an empty shell — the person can re-save and try again
+    try{ const w=await extractWordText(dataUrl); extractedText=w.text; wordTracked=w.tracked; }
+    catch(e){ refuse('Could not read this Word file: '+e.message); return; }
+  } else {
+    extractedText=await extractDocText(dataUrl, mime);   // real text extraction
+  }
   // A PDF with no text layer, or a photo of a contract, is read by OCR rather
   // than filed as an empty shell. Provenance is recorded either way.
-  let ocr=null, textSource=extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none';
-  if(ocrNeeded(mime, extractedText)){
+  let ocr=null, textSource=word==='docx'?'docx-text':(extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none');
+  if(word!=='docx' && ocrNeeded(mime, extractedText)){
     if(API_MODE()&&!state.aiCfg){ try{ state.aiCfg=await api('ai/config'); }catch(e){} }
     renderUploadSteps(1, 'This looks like a scan — reading it with OCR…');
     ocr=await ocrDocument(dataUrl, mime, {
@@ -966,7 +985,7 @@ async function submitUpload(){
   }
   const u=currentUser();
   const upload={ fileName:file.name, mime, size:file.size, fileHash, uploadedAt:nowISO(), uploadedBy:u?.name||'System',
-    extractedText, textChars:extractedText.length, dataUrl, textSource,
+    docKind:word||null, extractedText, textChars:extractedText.length, dataUrl, textSource,
     ocrPages: ocr?ocr.pages:0, ocrSkippedPages: ocr?ocr.skippedPages:0, ocrTotalPages: ocr?ocr.totalPages:0,
     ocrIllegible: ocr?ocr.illegible:0 };
   // API mode: store bytes on the server and keep only a reference in the synced record.
@@ -986,6 +1005,11 @@ async function submitUpload(){
   // months from now has no other way to know the dates were never typed.
   if(isOcrText(textSource)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'OCR',
     detail:ocrProvenanceLine(upload) });
+  // …and it must say when a Word file arrived carrying unresolved markup: the
+  // filed text is the document with every tracked change accepted, and only
+  // this line tells a reader that resolution happened at upload, not in Word.
+  if(wordTracked&&(wordTracked.ins||wordTracked.del)) c.audit.push({ at:nowISO(), user:u?.name||'System', action:'Document',
+    detail:trackedNote(wordTracked) });
   c._loaded=true; c._light=false; c._v=0;
   const saveContract=(metadata)=>{
     if(metadata){ applyMetadata(c, metadata); }
@@ -1041,6 +1065,9 @@ function redlineDocBody(c){
 function openEditDocModal(c){
   if(!canEdit()){ toast('Viewers cannot edit documents','err'); return; }
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  // the Word-review soft lock: edits made here while the file is out would
+  // silently lose to (or clobber) the wording coming back from Word
+  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review first','err'); return; }
   const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
   const cur=wasRich ? docPlainText(c)
     : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
@@ -1086,6 +1113,7 @@ function openEditDocModal(c){
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
+  const isDocx=!!(window.isWordDoc&&isWordDoc(c));
   // a generous reading surface: fills the viewport height, with an Expand
   // control that opens the document near-fullscreen for comfortable review
   const canPreview = isPdf||isText||isImg;
@@ -1099,6 +1127,11 @@ function uploadDocBody(c){
     ? `<iframe id="uploaded-doc-frame" src="${fileUrl}" class="w-full h-[calc(100vh-235px)] min-h-[560px] rounded-xl border border-brand-100 bg-white elev-1" title="Uploaded document"></iframe>`
     : isImg
     ? `<div class="rounded-xl border border-brand-100 bg-white elev-1 overflow-auto max-h-[calc(100vh-235px)] min-h-[420px] grid place-items-start"><img id="uploaded-doc-frame" src="${fileUrl}" class="max-w-full" alt="Uploaded document"/></div>`
+    : (isDocx&&!c.redlineText&&(u.extractedText||'').length>40)
+    ? `<div class="flex items-center justify-between gap-2 mb-2">
+         <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">Reading view — text read out of the Word file</div>
+       </div>
+       <div class="scroll-thin rounded-xl border border-brand-100 bg-white elev-1 overflow-y-auto max-h-[calc(100vh-235px)] min-h-[420px]" style="padding:26px 30px">${documentTextHtml(u.extractedText,{size:'13px',lh:'1.85'})}</div>`
     : `<div class="rounded-xl border border-dashed border-brand-200 bg-brand-50/40 p-10 text-center">
          <div class="text-brand-300 mb-2 flex justify-center">${icon('file','w-8 h-8')}</div>
          <div class="text-sm font-600 text-brand-800/80">${u.fileName||'Document'}</div>
@@ -1116,6 +1149,7 @@ function uploadDocBody(c){
         : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     ${ocrBannerHtml(u)}
+    ${window.wordControlsHtml?wordControlsHtml(c):''}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
@@ -1151,6 +1185,22 @@ async function rereadUploadText(c, btn){
   const restore=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
   try{
+    // once Word rounds have been adopted, the CURRENT file is the latest
+    // version — re-reading the v1 original would silently roll the text back
+    const cur=(window.wordCurrentFile&&window.wordFileEntries)?wordCurrentFile(c):null;
+    if(cur&&cur.key!=='v1'){
+      const dataUrl=await wordEntryDataUrl(c, cur);
+      const text=(await extractWordText(dataUrl)).text;
+      if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+      const before=Number(u.textChars||0);
+      u.extractedText=text; u.textChars=text.length;
+      c.lastAction=todayStr();
+      logAudit(c,'Document',`Re-read ${cur.key} (“${cur.fileName}”) — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+      persist(c);
+      toast(`Document re-read from ${cur.key} — ${text.length.toLocaleString()} characters`);
+      renderWorkspace();
+      return;
+    }
     if(!u.dataUrl && u.fileId && API_MODE()){
       const f=await api('files/'+u.fileId); u.dataUrl=f.dataUrl;
     }
@@ -1737,11 +1787,12 @@ function renderWorkspace(){
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
             <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
+            ${(window.wordReviewOut&&wordReviewOut(c))?`<span title="Downloaded for external review in Microsoft Word — online editing is paused until the file comes back or the review is cancelled" style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:999px;background:#fbf4e3;color:#7d5a14;border:1px solid #f1e6cd"><span style="width:6px;height:6px;border-radius:50%;background:#b8862b"></span>Out for Word review · ${wordReviewDays(c)}d</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
-          ${(canEdit()&&!locked)?`<button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
+          ${(canEdit()&&!locked&&!(window.wordReviewOut&&wordReviewOut(c)))?`<button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
           ${canEdit()?`<button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
@@ -1906,6 +1957,7 @@ function renderWorkspace(){
   }
   wireKeyTerms(c);
   wireActionBar(c);
+  if(window.wireWordControls) wireWordControls(c);   // Word round-trip buttons (docx uploads)
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
@@ -2141,6 +2193,9 @@ async function signDocument(c){
   if(!canEdit()){ toast('Viewers cannot sign documents','err'); return; }
   if(!c.compliance.consent){ toast('Tick the intent-to-sign box first','err'); return; }
   if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
+  // The document is out in Word: the counterparty may be mid-edit on wording
+  // this signature would seal. Bring the file back (or cancel) before signing.
+  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review before signing','err'); return; }
   // E2-T5: don't seal over unresolved proposed edits. Admin/Legal may override.
   const openRedlines=unresolvedRedlines(c);
   if(openRedlines){

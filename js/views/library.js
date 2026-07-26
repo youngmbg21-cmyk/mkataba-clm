@@ -224,7 +224,7 @@ function openCreateTemplateModal(mode){
       <div id="ct-pane-upload" style="display:none">
         <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5">PDF or text (Word files must be saved as PDF first). HaTi reads the file and <b>rebuilds its structure</b> — headings, bold, italics, numbered clauses and indentation — from the type sizes and positions the PDF states. That recovers most of a document but not all of it: <b>pasting is still more faithful</b>, because the clipboard carries the structure outright instead of leaving it to be inferred.</p>
         <label style="display:block;margin-bottom:6px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Document file</span>
-          <input id="ct-file" type="file" accept=".pdf,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
+          <input id="ct-file" type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" style="${FLD};font-size:12px"/></label>
       </div>
 
       <div id="ct-status" style="font-size:11px;color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
@@ -345,8 +345,9 @@ function openCreateTemplateModal(mode){
     st('Reading file…');
     try{
       const dataUrl=await new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(file); });
-      // Word is refused on the bytes, not the extension — nothing is saved.
-      if(detectWordFile(dataUrl, file.type||'', file.name)){
+      // Legacy .doc is refused on the bytes, not the extension — nothing is saved.
+      const wordKind=detectWordFile(dataUrl, file.type||'', file.name);
+      if(wordKind==='doc'){
         st(`<span style="color:#8f322b">${_tplEsc(WORD_REFUSAL)} Or open it in Word and <b>paste it</b> using the other tab — that keeps the formatting too.</span>`); return; }
       st('Reading the document and rebuilding its structure…');
       // Recover the document's SHAPE, not just its words — headings, bold,
@@ -354,7 +355,11 @@ function openCreateTemplateModal(mode){
       // were previously thrown away, which is why an uploaded template used to
       // arrive as a wall of flat text next to a pasted one. Falls back to plain
       // text whenever the reconstruction is not confidently better.
-      let rich = await extractDocRich(dataUrl, file.type||'');
+      // A .docx reads as structured plain text (js/docx.js); the paste tab is
+      // still the route that keeps Word's rich formatting.
+      let rich = wordKind==='docx'
+        ? { html:'', text:(await extractWordText(dataUrl)).text, format:TEXT_FORMAT, summary:null }
+        : await extractDocRich(dataUrl, file.type||'');
       let text = rich.text;
       // a scanned standard-form contract is still a usable template once read
       if(ocrNeeded(file.type||'', text)){
