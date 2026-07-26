@@ -2537,3 +2537,10 @@ Two test-writing notes, both mistakes I have now made twice:
   what the assertion checks.
 
 Result: `f29-clause-comments.test.js` 15/15; suite **434/434 green**.
+
+**2026-07-26 — final verification, item 4 complete.** Two clean runs on fresh
+clones of `e97bc4e`: run 1 — 434 tests, 434 pass, 0 fail (19.3 s); run 2 — 434
+tests, 434 pass, 0 fail (19.7 s).
+
+All eight review items are DONE, including both phases of item 4. Nothing from
+the review is outstanding.

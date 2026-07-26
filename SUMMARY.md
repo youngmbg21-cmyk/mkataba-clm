@@ -1601,3 +1601,57 @@ side — the half that had no checks until now:
 
 Which is the argument for the test harness, made better than I could make it in
 prose.
+
+### 4 (phase 2). A reason attached to each clause — FIXED (`e97bc4e`)
+
+**What was still wrong after phase 1.** Erik could change one clause at a time,
+but he still had a single comment box for the whole round. So *"we need changes
+to payment, delivery and liability"* arrived as one lump, and Wanjiru had to work
+out which sentence explained which edit. She also had only one reply to cover all
+three.
+
+**What it does now.** When Erik changes a clause, there's a **"Why?"** box right
+there. His reason travels with that specific change.
+
+On Wanjiru's review screen, each change now shows **"Why they asked"** above its
+Accept/Reject buttons, and she gets a reply box on that change too. So the
+conversation is: this clause, his reason, her decision, her answer — four things
+that belong together, shown together.
+
+Erik then sees, per clause, what he asked, whether it was adopted, and what she
+said back.
+
+**The tricky part, in plain terms.** Erik writes his reason against a whole
+clause. Wanjiru decides on the *specific words* that changed inside it — "thirty
+(30)" becoming "sixty (60)". So the app has to work out which of his reasons goes
+with which changed phrase, without either of them thinking about it. It does that
+by sending each reason along with the full clause before and after the change,
+then matching the changed phrase back to the clause it came from. There's a check
+that two changes get two *different* reasons rather than the same one twice.
+
+Withdrawing a change withdraws its reason with it, and a reply given on a
+specific change takes priority over a general one for the round.
+
+---
+
+## Everything is now done
+
+| # | Item | Status | Commit |
+|---|---|---|---|
+| 1 | "Send updated version" actually sends | **DONE** | `8710db8` |
+| 2 | Counterparty's Word download | **DONE** | `b9f15c2` |
+| 3 | One Word button | **DONE** | `24eb233` |
+| 4 | Clause-by-clause editing, **both phases** | **DONE** | `d261282`, `e97bc4e` |
+| 5 | Attach a paper-signed copy | **DONE** | `981f342` |
+| 6 | Signing without an email service | **DONE** | `6eaf573` |
+| 7 | Tests for the counterparty's side | **DONE** | `b9f15c2` |
+| 8 | Has he seen the current version? | **DONE** | `3934772` |
+
+## Final verification
+
+| Run | Result |
+|---|---|
+| Clean run 1 | **434 checks, 434 passed, 0 failed** (19.3 s) |
+| Clean run 2 | **434 checks, 434 passed, 0 failed** (19.7 s) |
+
+Nothing from the review is outstanding.
