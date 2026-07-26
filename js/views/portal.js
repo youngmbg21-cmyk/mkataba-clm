@@ -180,22 +180,33 @@ function portalVersions(){
   const p=PORTAL_OPTS.payload;
   return (p&&p.contract&&Array.isArray(p.contract.versions))?p.contract.versions:[];
 }
+/* The wording this reader should be compared against, best source first. The
+   third is the one that matters most for inbound contracts and was missing:
+   when a counterparty sends their own paper and it comes back edited, the thing
+   they need to see is what was done to THEIR document. That is a first send,
+   not a reshare, so neither of the other two baselines exists — and the most
+   consequential change in the whole product was going unannounced. */
 function portalChangedText(){
   const now=portalCurrentText();
   if(!now||!now.trim()) return null;
-  const prior=PORTAL_OPTS.prior;
-  if(prior&&prior.text&&normText(prior.text)!==normText(now))
-    return { before:prior.text, after:now, at:prior.at, openedAt:prior.openedAt };
-  if(prior&&prior.text) return null;                       // reshared, but nothing moved
-  /* No recorded copy on the server — the link they opened was created before
-     the wording was being kept, or they were sent this contract by a route that
-     left no trace. The history that travels with this payload still knows what
-     the previous copy said, so fall back to the snapshot taken when the
-     contract was last sent rather than saying nothing at all. */
+  const moved = before => before && before.trim() && normText(before)!==normText(now);
+
+  const prior=PORTAL_OPTS.prior;                       // a copy they opened before
+  if(prior&&prior.text){
+    return moved(prior.text)
+      ? { kind:'reshare', before:prior.text, after:now, at:prior.at, openedAt:prior.openedAt }
+      : null;                                          // reshared, but nothing moved
+  }
   const sent=portalVersions().filter(v=>v.label==='Sent to you');
-  const previous=sent.length>1?sent[sent.length-2]:null;
-  if(!previous||!previous.text||normText(previous.text)===normText(now)) return null;
-  return { before:previous.text, after:now, at:previous.at, openedAt:null };
+  const previous=sent.length>1?sent[sent.length-2]:null;   // the snapshot of the last send
+  if(previous&&moved(previous.text))
+    return { kind:'reshare', before:previous.text, after:now, at:previous.at, openedAt:null };
+
+  const p=PORTAL_OPTS.payload;                         // their own paper, as it arrived
+  const filed=(p&&p.contract&&p.contract.upload&&p.contract.upload.extractedText)||'';
+  if(moved(filed))
+    return { kind:'yourpaper', before:filed, after:now, at:null, openedAt:null };
+  return null;
 }
 function portalCurrentText(){
   const p=PORTAL_OPTS.payload;
@@ -206,12 +217,19 @@ function portalRevisedBanner(){
   if(!ch) return '';
   const st=(window.diffStats?diffStats(ch.before,ch.after):{add:0,del:0});
   const when=ch.openedAt||ch.at;
+  const org=esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||'The sender');
+  const headline=ch.kind==='yourpaper'
+    ? `${org} has made changes to the document you sent`
+    : `${org} has revised this contract since you last opened it`;
+  const sub=ch.kind==='yourpaper'
+    ? `+${st.add} added · −${st.del} removed · measured against your own paper`
+    : `+${st.add} added · −${st.del} removed · your copy was dated ${fmtDT(when)}`;
   return `
     <div id="pt-revised" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span class="pt-pip" style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#b8862b;color:#fff;font-size:14px;font-weight:700">!</span>
       <span style="flex:1;min-width:220px;line-height:1.45">
-        <span style="display:block;font-size:13.5px;font-weight:600;color:#7d5a14">${esc(PORTAL_OPTS.payload.org||'The sender')} has revised this contract since you last opened it</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">+${st.add} added · −${st.del} removed · your copy was dated ${fmtDT(when)}</span>
+        <span style="display:block;font-size:13.5px;font-weight:600;color:#7d5a14">${headline}</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);font-family:var(--font-mono)">${sub}</span>
       </span>
       <button id="pt-see-changes" style="flex:none;font:inherit;font-size:12.5px;font-weight:600;border:0;border-radius:5px;padding:9px 16px;cursor:pointer;background:#b8862b;color:#fff">See what changed</button>
     </div>
@@ -269,19 +287,27 @@ function openPortalCompare(p){
    any two of the versions that travelled with the payload. */
 function portalCompareBar(){
   const vs=portalVersions();
-  if(vs.length<2) return '';
+  const ch=portalChangedText();
+  if(vs.length<2 && !ch) return '';
+  const line = vs.length>1
+    ? `This contract has <b>${vs.length} versions</b> since it was first sent to you. You can compare any two.`
+    : (ch&&ch.kind==='yourpaper'
+        ? `The wording differs from the paper you sent. You can see exactly what was changed.`
+        : `The wording has moved since the copy you were sent. You can see exactly what changed.`);
   return `
     <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
-      <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">
-        This contract has <b>${vs.length} versions</b> since it was first sent to you. You can compare any two.</span>
+      <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">${line}</span>
       <button id="pt-compare" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">Compare versions</button>
     </div>`;
 }
 function openPortalVersionCompare(p){
   const vs=portalVersions().slice();
   const now=portalCurrentText();
-  const items=vs.map(v=>({ label:`v${v.n} · ${v.label} · ${fmtDT(v.at)}`, text:v.text }));
+  const items=[];
+  const filed=(p&&p.contract&&p.contract.upload&&p.contract.upload.extractedText)||'';
+  if(filed.trim()) items.push({ label:'The paper you sent, as it arrived', text:filed });
+  items.push(...vs.map(v=>({ label:`v${v.n} · ${v.label} · ${fmtDT(v.at)}`, text:v.text })));
   const last=vs[vs.length-1];
   if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'The copy you are reading now', text:now });
   if(items.length<2) return;
