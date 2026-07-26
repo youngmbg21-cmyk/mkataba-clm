@@ -1243,6 +1243,29 @@ function readinessPanelHtml(c){
       <span>Send it anyway. I understand the counterparty will see the contract exactly as it is above.</span></label>`:''}
   </div>`;
 }
+/* The allow-list that decides what a counterparty is shown. Everything the
+   portal renders has to be in here; anything not in here does not exist as far
+   as the other side is concerned. */
+function buildSharePayload(c, docHash, who){
+  const org=(who&&who.org)||FIRST_PARTY;
+  const sharedBy=(who&&who.sharedBy)||currentUser().name;
+  const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
+    fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
+  /* The negotiation history, trimmed to what the other side is entitled to
+     know: which round, when they raised it, and what was decided. The proposed
+     and base texts stay behind — they are bulk, and the current wording below
+     already reflects any round that was accepted. The internal name of whoever
+     ruled on it stays behind too; the banner speaks for the organisation. */
+  const shareRounds = (c.rounds||[]).map(r=>({ n:r.n, at:r.at, by:r.by, status:r.status,
+    resolution: r.resolution ? { decision:r.resolution.decision, at:r.resolution.at } : null }));
+  // written out longhand, not as shorthand: this list is read as a list
+  return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
+    contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      upload:isUpload(c)?shareUpload(c.upload):undefined,
+      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
+      rounds:shareRounds.length?shareRounds:undefined,
+      redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
+}
 async function openShareModal(c){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -1276,14 +1299,14 @@ async function openShareModal(c){
      never rendered it — it derives one from the template, falling back to
      'corp'. The upload is trimmed to the file itself; the near-duplicate
      signals (textFingerprint, simhash) and OCR bookkeeping are
-     portfolio-analysis data with no meaning to a counterparty. */
-  const shareUpload = u => u ? { fileName:u.fileName, size:u.size, mime:u.mime,
-    fileHash:u.fileHash, dataUrl:u.dataUrl, extractedText:u.extractedText } : undefined;
-  const payloadObj={ v:1, kind:'hati-share', org:FIRST_PARTY, sharedBy:currentUser().name, at:nowISO(), docHash,
-    contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
-      upload:isUpload(c)?shareUpload(c.upload):undefined,
-      counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
-      redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
+     portfolio-analysis data with no meaning to a counterparty.
+
+     Built by buildSharePayload() below rather than inline: the allow-list is the
+     thing that decides what a counterparty can be shown, so it needs to be
+     reachable by a test. It was inline when the returned-changes banner shipped,
+     which is exactly how that banner came to be verified against a payload the
+     application never actually produces. */
+  const payloadObj=buildSharePayload(c, docHash);
   const server=API_MODE();
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
@@ -1567,4 +1590,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

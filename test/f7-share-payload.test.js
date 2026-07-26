@@ -14,12 +14,16 @@ const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 
 const CORE = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
 
-/* Read the payload literal straight out of openShareModal — this is the object
-   the product actually publishes, not a copy of it kept in a test. */
+/* Read the payload literal straight out of the builder — this is the object the
+   product actually publishes, not a copy of it kept in a test. (It used to be an
+   inline literal in openShareModal; it moved into buildSharePayload so that F12
+   can call it for real rather than only reading it as text.) */
 function payloadFields() {
-  const at = CORE.indexOf('const payloadObj={');
-  assert.ok(at > 0, 'openShareModal should still build a payloadObj');
-  return CORE.slice(at, CORE.indexOf('const server=API_MODE();', at));
+  const at = CORE.indexOf('function buildSharePayload(');
+  assert.ok(at > 0, 'core.js should still build the share payload in buildSharePayload()');
+  const end = CORE.indexOf('async function openShareModal(', at);
+  assert.ok(end > at, 'buildSharePayload() should still sit just above openShareModal()');
+  return CORE.slice(at, end);
 }
 
 let h, W;
@@ -45,7 +49,8 @@ describe('F7 — the payload field list', () => {
   });
 
   test('the upload is trimmed to the file itself', () => {
-    const src = CORE.slice(CORE.indexOf('const shareUpload = u =>'), CORE.indexOf('const payloadObj={'));
+    const all = payloadFields();
+    const src = all.slice(all.indexOf('const shareUpload = u =>'), all.indexOf('const shareRounds'));
     for (const keep of ['fileName', 'size', 'mime', 'fileHash', 'dataUrl', 'extractedText'])
       assert.ok(src.includes(keep), `the portal needs upload.${keep}`);
     for (const drop of ['textFingerprint', 'simhash', 'ocrPages', 'fileId'])
