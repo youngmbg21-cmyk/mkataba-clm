@@ -2242,3 +2242,67 @@ signing, the seal, the evidence pack and version compare are untouched.
 **Scope honoured:** no mobile/WhatsApp counterparty portal was built. Fix 5
 changed the *lifecycle* of the existing web link (how long it lives, how many
 answers it takes) and nothing about its delivery channel.
+
+---
+
+# Run 6 — post-review remediation (2026-07-26)
+
+A re-review of the current code (commit `b1a333f`) found two shipped bugs, both
+on the counterparty's side of the product, and both missed because the 342-test
+suite only drives the owner's side.
+
+**Owner decisions recorded, so they are not lost:**
+
+- **Item 4 (clause-by-clause editing for the counterparty): phased.** Phase 1
+  shows the document as clauses and lets the counterparty edit one at a time,
+  reassembling the full text and submitting through the EXISTING redline route
+  so the server and the owner's side are untouched. Phase 2 adds a comment per
+  clause. Not started; queued after the urgent work.
+
+- **Item 6 (signing depends on email): allow signing without the 6-digit code.**
+  The owner's stated context is a demo platform, with safeguards to follow later.
+  Two constraints applied to that decision, neither of which was asked for but
+  both of which cost nothing:
+
+  1. **The code is only skippable when it CANNOT be delivered** (the server has
+     no mail provider). Where email works, the code stays mandatory. Otherwise
+     the verification could be bypassed by choosing to, which is a silent
+     downgrade rather than a deliberate demo setting.
+  2. **The resulting signature is labelled as unverified** on the record, the
+     certificate and the evidence pack. Demos become production more often than
+     not; a signature that overstates how it was verified is the same class of
+     false record as the "sent" bug this run exists to fix.
+
+**2026-07-26 — item-6 shipped: signing no longer requires a code that cannot be sent.**
+`POST /api/shares/:token/respond` allowed `action:'sign'` only with a verified
+one-time code. On a workspace with no mail provider that code can never arrive,
+so a deal that had cleared every round could not be signed at all.
+
+Now: where the code CAN be delivered it is still mandatory; where it cannot,
+the signature is accepted and recorded as unverified. The narrowness is the
+point — a verification the signer can decline is not a verification, and
+skipping it would be invisible to the owner.
+
+What the record says, in three places, because a signature that overstates how
+it was checked is the same class of false record as the "sent" bug:
+  · the response carries `verified:false` and a method naming the reason
+  · the audit trail appends "NOT independently verified: this workspace cannot
+    send verification codes"
+  · the stored signature carries `verified`, so the certificate and evidence
+    pack can read it back
+
+Identity is not dropped along with the code: a real email address is still
+required, so a share link can never be signed anonymously.
+
+**A pre-existing regression test failed, and was rewritten rather than deleted.**
+`regression.test.js` asserted "signing through a share still needs a verified
+email code" — written when the rule was unconditional. The guarantee still
+holds, in a different shape, so the test now asserts the half that applies to a
+server with no mail key (a nameless signature is refused, 400) and points at
+F23 for the half that needs one (code mandatory, 403). Deleting it because the
+status code moved would have quietly removed the guarantee it existed to hold.
+
+Backward compatibility: signatures recorded before this change carry no
+`verified` field and are read as verified, which is what they were.
+
+Result: `f23-signing-without-email.test.js` 11/11; suite 354/354 green.

@@ -1717,13 +1717,17 @@ async function applyResponse(c, r, opts={}){
     const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
-      method:r.method||'share-link', ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
+      method:r.method||'share-link', verified:r.verified!==false, ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     // If a signing route is running, mark this counterparty's step signed and advance.
     const ns=window.nextSigner?nextSigner(c):null;
     if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}`);
+    // r.verified===false means the server could not send a code, so nothing
+    // checked that this signer holds that address. The trail says so rather
+    // than reading like every other verified counterparty signature.
+    const unverified = r.verified===false;
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){

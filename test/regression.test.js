@@ -110,15 +110,42 @@ describe('counterparty sharing still works end to end', () => {
     assert.equal(mine.response.proposedValue, 30000000);
   });
 
-  test('signing through a share still needs a verified email code', async () => {
+  /* Signing through a share link cannot be done anonymously. The rule changed
+     shape in run 6 — a workspace that CANNOT send a verification code now lets
+     the counterparty sign without one, rather than stranding a deal at its last
+     step — but it did not go away:
+
+       · where a code can be sent, it is mandatory        (F23, on a server
+                                                           started with a mail key)
+       · where it cannot, a real email address is still   (asserted here: this
+         required and the signature is recorded as         harness never sets one)
+         not independently verified
+
+     This test asserts the half that applies to this server. Deleting it when
+     the status code changed would have quietly removed the guarantee. */
+  test('signing through a share can never be anonymous', async () => {
     const share = await W.admin.json('/api/shares', { method: 'POST', body: {
       payload: { kind: 'hati-share', contract: { id: 'MK-A2', name: 'Raw Milk Collection' } },
       channel: 'link', recipient: { name: 'Grace' } } });
     const anon = h.client('portal2');
     const r = await anon.raw('/api/shares/' + share.token + '/respond', { method: 'POST', body: {
       kind: 'hati-response', id: 'MK-A2', action: 'sign', name: 'Grace Njeri' } });
-    assert.equal(r.status, 403);
-    assert.match(r.json.error, /verification/i);
+    assert.equal(r.status, 400, 'no identifying address — the signature must be refused');
+    assert.match(r.json.error, /email is required/i);
+  });
+
+  test('an unverified signature is stored as unverified, never as a checked one', async () => {
+    const share = await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { kind: 'hati-share', contract: { id: 'MK-A2', name: 'Raw Milk Collection' } },
+      channel: 'link', recipient: { name: 'Grace' } } });
+    const anon = h.client('portal2b');
+    const r = await anon.raw('/api/shares/' + share.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', id: 'MK-A2', action: 'sign', name: 'Grace Njeri', email: 'grace@x.co.ke' } });
+    assert.equal(r.status, 200, 'this server cannot send a code, so the deal is not stranded');
+    const pending = await W.admin.json('/api/shares/pending');
+    const mine = pending.find(p => p.token === share.token);
+    assert.equal(mine.response.verified, false);
+    assert.match(mine.response.method, /unverified/i);
   });
 
   test('a one-time code is never returned to the caller', async () => {

@@ -557,7 +557,8 @@ async function portalEntry(encoded){
       const d=await r.json().catch(()=>null);
       if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
       if(!r.ok) throw new Error(d?.error||'not found');
-      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{}, prior:d.prior||null, superseded:d.superseded||null });
+      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{},
+        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false });
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -706,8 +707,14 @@ async function portalRespond(p, action){
     sig=await openSignaturePad({ name });
     if(!sig) return;   // signer cancelled the pad
   }
-  // Server-backed signing: verify the signer's email with a one-time code first.
-  if(action==='sign' && PORTAL_OPTS.token){ return portalStartOtp(p, {name,title,email,comment,sig}); }
+  /* Server-backed signing normally verifies the signer's email with a one-time
+     code. Where the server has no mail provider the code cannot reach them, so
+     they sign without it — and the page says so before they do, rather than
+     leaving them to discover it as a failure. */
+  if(action==='sign' && PORTAL_OPTS.token){
+    if(PORTAL_OPTS.emailConfigured===false) return portalSignUnverified(p, {name,title,email,comment,sig});
+    return portalStartOtp(p, {name,title,email,comment,sig});
+  }
   // E2: a redline is a change request carrying proposed edited text + its base.
   let proposedText=null, baseText=null, sendAction=action;
   if(action==='redline'){
@@ -767,6 +774,39 @@ async function portalRespond(p, action){
     toast('Response code copied');
   });
 }
+/* Signing where no verification code can be sent. The signature is real and
+   binding; what is missing is HaTi's independent check that the signer holds
+   that email address. Saying so here, on the record and on the certificate, is
+   the difference between a weaker proof and a false one. */
+async function portalSignUnverified(p, info){
+  const box=document.getElementById('portal-result');
+  box.innerHTML=`
+    <div style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:6px;padding:13px;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#7d5a14;margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
+      <p style="font-size:11.5px;color:#7d5a14;margin:0 0 10px;line-height:1.55;">This sender's HaTi cannot send verification codes, so we cannot confirm that <strong>${esc(info.email)}</strong> is yours. Your signature is still binding, and the contract's record will show that it was <strong>not independently verified</strong>.</p>
+      <button id="pt-unver-go" class="ui-btn ui-btn-primary" style="width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Sign anyway</button>
+      <button id="pt-unver-cancel" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Cancel</button>
+    </div>`;
+  document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
+  document.getElementById('pt-unver-go').addEventListener('click',async()=>{
+    const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
+      name:info.name, title:info.title, email:info.email, comment:info.comment, at:nowISO(),
+      signatureForm:info.sig?info.sig.form:null, signatureImage:info.sig?info.sig.image:null,
+      signatureImageHash:info.sig?info.sig.imageHash:null,
+      signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
+    portalSetBusy('pt-sign','Signing…');
+    try{
+      await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+      portalSetDone('pt-sign','Signed and sent');
+      box.innerHTML=`
+        <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed</div>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">Your signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. It is recorded as not independently verified, because this server cannot send verification codes.</p>
+        </div>`;
+    }catch(e){ portalSetIdle(); toast(e.message,'err'); box.innerHTML=''; }
+  });
+}
+
 /* two-step counterparty signing with email one-time code (server mode) */
 async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
@@ -911,4 +951,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

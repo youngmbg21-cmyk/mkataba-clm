@@ -2723,6 +2723,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (lastR) { try { const r = JSON.parse(lastR.response); lastResponse = { action: r.action, at: lastR.at, name: r.name }; } catch (_) {} }
   res.json({
     payload: JSON.parse(s.payload),
+    // whether this server can send a verification code at all — the portal
+    // needs it BEFORE the signer presses sign, not as a failure afterwards
+    emailConfigured: EMAIL_ON(),
     responded: s.durable ? false : !!s.response,
     durable: !!s.durable, lastResponse,
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
@@ -2930,14 +2933,33 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
-  if (r.action === 'sign') {   // require a verified email OTP to attribute the signature
+  if (r.action === 'sign') {
+    /* The signature is normally attributed by a one-time code emailed to the
+       signer. A workspace with NO mail provider cannot send that code, and
+       blocking signature there strands a deal at its least recoverable moment
+       — so signing is allowed without it, and the record says plainly that it
+       was not independently verified.
+
+       The permission is deliberately narrow: it exists only while the code
+       CANNOT be delivered. Where email works the code stays mandatory, because
+       a verification a signer can decline is not a verification — it would let
+       anyone holding the link skip the check by choosing to, invisibly. */
     const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
-    if (!otp || !otp.verified || !r.verify || otp.verify !== r.verify)
-      return res.status(403).json({ error: 'Email verification required before signing' });
+    const verified = !!(otp && otp.verified && r.verify && otp.verify === r.verify);
+    if (!verified) {
+      if (EMAIL_ON())
+        return res.status(403).json({ error: 'Email verification required before signing' });
+      if (!/.+@.+\..+/.test(String(r.email || '')))
+        return res.status(400).json({ error: 'A work email is required to sign' });
+      // unverified, and labelled as such everywhere it is read back
+      r.method = 'unverified — this server cannot send verification codes';
+      r.verified = false;
+    } else {
+      r.email = otp.email; r.method = 'email one-time code'; r.verified = true;
+    }
     // Provenance for the evidence pack and the audit trail — never for the
     // document face (F5). The counterparty's device was already recorded
     // against the share open; this pins it to the signature itself.
-    r.email = otp.email; r.method = 'email one-time code';
     r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
   }
   const at = now();
