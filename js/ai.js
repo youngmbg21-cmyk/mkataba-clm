@@ -277,7 +277,7 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
-            ${(x.quote||(x.anchor&&x.anchor!=='doc'))
+            ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'))
               ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to the wording</button>`
               : `<span class="text-[11px] text-brand-800/45">Applies to the whole document</span>`}
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
@@ -340,7 +340,8 @@ function renderScanSection(c){
     // The wording itself, wherever it sits, beats a section anchor — and on an
     // uploaded document it is the only thing that works, because there are no
     // clause anchors to aim at.
-    if(f&&f.quote&&scrollToQuote(f.quote)) return;
+    const q=findingQuote(f);
+    if(q&&scrollToQuote(q)) return;
     /* Anchors go stale — a drafted contract that has been edited renders as one
        working-text block, and an uploaded one never had clause anchors at all.
        Walk down to whatever the document does offer rather than leaving a
@@ -362,6 +363,16 @@ function renderScanSection(c){
    not — so both sides are normalised, and the search runs over a flattened copy
    of the canvas with an index back to the real text nodes. A Range is then laid
    over the match so the passage itself highlights, not the paragraph it sits in. */
+/* The quote a finding points at. Newer scans carry it as its own field; scans
+   already stored on a contract do not, and re-scanning to get a working button
+   is not something anyone should have to be told to do — so it is read back out
+   of "The document reads: …", which is where it has always been printed. */
+function findingQuote(f){
+  if(!f) return '';
+  if(f.quote) return String(f.quote);
+  const m=String(f.what||'').match(/document reads:\s*[“"']([\s\S]+?)[”"']\s*$/);
+  return m ? m[1] : '';
+}
 function quoteNorm(s){
   return String(s||'')
     .replace(/[\u2018\u2019\u201b]/g,"'").replace(/[\u201c\u201d\u201f]/g,'"')
@@ -994,4 +1005,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,updateAIBadge,worstSevOf});
