@@ -1937,3 +1937,36 @@ Node's `Array.prototype` and a strict deepEqual compares realms, not contents.
 
 Result: `f16-word-return-any-contract.test.js` 14/14; existing suite 186/186
 green, no regressions.
+
+**2026-07-26 — fix-2: the app had the counterparty's address all along and never read it.**
+Every share row on the server already carried `recipient_name`,
+`recipient_email`, `recipient_phone` and `channel`. The share dialog opened
+blank regardless, so a six-round negotiation meant six trips through an empty
+form. Added `lastShareRecipient(shares)` and `shareModalPrefill(shares)` as pure
+functions of that list (testable on their own, and one place that answers "who
+is this going to?"), `contractShares(c)` to fetch it, and
+`reshareToLastRecipient(c)` behind a **Send updated version** button that
+appears on the negotiation panel once a round has actually been decided.
+
+Decisions:
+- **A revoked or expired share still counts** as evidence of who the
+  counterparty is. The link died; the person did not.
+- **An anonymous copy-link share is skipped** — it names nobody, so it says
+  nothing about where the next round should go.
+- **The prefill says where it came from.** A field that silently fills itself
+  reads as a mistake, and on a control that sends a live contract to a named
+  address that is the wrong kind of surprise.
+- The button **falls back to the full dialog** if there is nobody on record,
+  rather than leaving a pressed button that did nothing.
+
+**Test-harness finding worth recording** (it will bite the next person):
+`js/core.js` declares `currentUser`, `canEdit` and friends as top-level `const`
+arrows. Those are *lexical* bindings of the script, so a value passed into
+`loadViews` as an override — or assigned onto the sandbox afterwards — does not
+change what other core functions see; they close over the real one. Identity in
+these tests therefore comes through `window.REMOTE`, which is the seam server
+mode genuinely uses to sign a user in. Overriding `function`-declared globals
+(e.g. `buildSharePayload`) does work, but only if assigned *after* the module
+evaluates.
+
+Result: `f17-reshare-recipient.test.js` 16/16; suite 202/202 green.

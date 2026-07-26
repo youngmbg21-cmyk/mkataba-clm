@@ -831,6 +831,11 @@ function renderAuditSection(c){
 }
 
 /* ---------- negotiation rounds ---------- */
+/* Rounds that have been ruled on. The presence of one is what makes "send the
+   updated version" meaningful: something was decided, so the wording has moved
+   and the other side is owed the new copy. */
+const resolvedRounds = c => (c.rounds||[]).filter(r=>r.status!=='open' && r.resolution);
+
 function renderNegotiationSection(c){
   const host=document.getElementById('nego-section'); if(!host) return;
   const rounds=c.rounds||[];
@@ -864,8 +869,28 @@ function renderNegotiationSection(c){
             :`<div class="mt-1.5 text-[11px] font-medium ${r.resolution?.decision==='accepted'?'text-brand-600':'text-rose-600'}">${r.resolution?.decision==='accepted'?'Accepted':'Rejected'} by ${r.resolution?.by||'—'} · ${r.resolution?fmtDT(r.resolution.at):''}</div>`}
           </div>`).join('')}
       </div>
-      <p class="mt-2 text-[10px] text-brand-800/60">After resolving, re-share the updated document to send the next round.</p>
+      ${resolvedRounds(c).length&&canEdit()&&c.status!=='Signed'?`
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:10px;border-top:1px solid var(--color-divider);padding-top:10px">
+          <span style="flex:1;min-width:140px;font-size:11px;color:var(--color-neutral-700)">Ready for the next round? Send the counterparty the wording as it now reads.</span>
+          <button id="nego-reshare" class="ui-btn ui-btn-primary" style="flex:none;font-size:11.5px;padding:6px 12px">${icon('send','w-3.5 h-3.5')} Send updated version</button>
+        </div>`
+      :`<p class="mt-2 text-[10px] text-brand-800/60">After resolving, re-share the updated document to send the next round.</p>`}
     </div>`;
+  document.getElementById('nego-reshare')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget, restore=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Sending…</span>';
+    try{
+      const { recipient }=await reshareToLastRecipient(c);
+      toast(`Updated version sent to ${recipient.name||recipient.email||recipient.phone}`);
+      renderAuditSection(c); renderSharesSection(c); refreshShareOverview();
+    }catch(err){
+      // nobody on record to send to — fall back to the full dialog rather than
+      // leaving a pressed button that did nothing
+      toast(err.message,'err');
+      try{ openShareModal(c); }catch(_){}
+    }
+    btn.disabled=false; btn.innerHTML=restore;
+  });
   host.querySelectorAll('[data-nego-accept]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-accept')),true)));
   host.querySelectorAll('[data-nego-redline]').forEach(b=>b.addEventListener('click',()=>reviewProposedRound(c,Number(b.getAttribute('data-nego-redline')))));
   host.querySelectorAll('[data-nego-reject]').forEach(b=>b.addEventListener('click',()=>resolveRound(c,Number(b.getAttribute('data-nego-reject')),false)));
@@ -1314,6 +1339,61 @@ function buildSharePayload(c, docHash, who){
       versions:shareVersions(c, org),
       redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
 }
+/* ---- who we last shared this contract with ----
+   Six rounds of a negotiation meant six trips through a blank share form,
+   retyping the same counterparty's address each time — five or six chances to
+   send a live contract to the wrong person, and enough friction to discourage
+   a round that was actually needed.
+
+   The server has always stored the recipient on every share row; nothing ever
+   read it back. These two are pure functions of that list so they can be
+   tested directly, and so "who is this going to?" has exactly one answer.
+
+   Revoked and expired shares still count as evidence of WHO the counterparty
+   is: the link died, the person did not. */
+function lastShareRecipient(shares){
+  const list=(shares||[]).filter(s=>s && (s.recipientEmail||s.recipientPhone||s.recipientName));
+  if(!list.length) return null;
+  // the shares endpoint returns newest first; sort defensively rather than trust it
+  const sorted=list.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+  const s=sorted[0];
+  return { name:s.recipientName||'', email:s.recipientEmail||'', phone:s.recipientPhone||'',
+    channel:s.channel||'email', token:s.token||null };
+}
+function shareModalPrefill(shares){
+  const last=lastShareRecipient(shares);
+  if(!last) return { name:'', email:'', phone:'', channel:'email' };
+  return { name:last.name, email:last.email, phone:last.phone, channel:last.channel||'email' };
+}
+/* The shares this contract has already had, for prefill and for the reshare
+   button. Never fatal: a contract that cannot reach the server still shares. */
+async function contractShares(c){
+  if(!API_MODE()) return [];
+  try{ const r=await api('contracts/'+c.id+'/shares'); return r.shares||[]; }
+  catch(e){ return []; }
+}
+/* ---- "Send updated version" ----
+   The one-click path a resolved round leads to: same recipient, same channel,
+   a fresh link carrying the wording as it now reads. Returns the created share
+   so the caller can report the outcome; throws only if there is nobody to send
+   to, which the button's own visibility already rules out. */
+async function reshareToLastRecipient(c, opts={}){
+  if(!canEdit()) throw new Error('Viewers cannot share contracts');
+  const shares=opts.shares||await contractShares(c);
+  const last=lastShareRecipient(shares);
+  if(!last) throw new Error('This contract has not been shared with anyone yet');
+  try{ await ensureFull(c); }catch(_){}
+  const docHash=await sha256(canonicalDoc(c));
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you'); if(v) persist(c); }
+  const payload=buildSharePayload(c, docHash);
+  const r=await api('shares','POST',{ payload, channel:last.channel||'email',
+    message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
+    expiryDays:opts.expiryDays||14, durable:opts.durable!==false });
+  logAudit(c,'Shared',`Updated version sent to ${last.name||last.email||last.phone||'the counterparty'} via ${last.channel||'email'}`);
+  persist(c);
+  return { share:r, recipient:last };
+}
+
 async function openShareModal(c){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
@@ -1360,10 +1440,16 @@ async function openShareModal(c){
      application never actually produces. */
   const payloadObj=buildSharePayload(c, docHash);
   const server=API_MODE();
+  // Who this went to last time. Fetched before the dialog is built so the
+  // fields open already filled rather than filling themselves a moment later
+  // under the user's cursor.
+  const priorShares=await contractShares(c);
+  const pre=shareModalPrefill(priorShares);
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
-  let ch='email';
+  let ch=pre.channel||'email';
+  const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   openModal(`
     <div style="padding:22px 24px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
@@ -1376,10 +1462,14 @@ async function openShareModal(c){
       </div>`}
       <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:12px;">${tab('email','✉ Email',true)}${tab('whatsapp','WhatsApp',false)}${tab('link','Copy link',false)}</div>
       <div id="share-fields">
+        ${pre.email||pre.phone||pre.name?`<div style="display:flex;align-items:center;gap:7px;margin:0 0 9px;font-size:11.5px;color:var(--color-neutral-700);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:7px 10px">
+          <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
+          <span style="flex:1;min-width:0">Filled in from the last time you shared this contract. Change it if this round goes to someone else.</span>
+        </div>`:''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <label><span style="${LBL}">Recipient name</span><input id="sh-name" type="text" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
-          <label id="sh-email-wrap"><span style="${LBL}">Recipient email *</span><input id="sh-email" type="email" placeholder="them@company.co.ke" style="${FLD}"/></label>
-          <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">WhatsApp number *</span><input id="sh-phone" type="tel" placeholder="+254 7…" style="${FLD}"/></label>
+          <label><span style="${LBL}">Recipient name</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">Recipient email *</span><input id="sh-email" type="email" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">WhatsApp number *</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
         <label style="display:block;margin-top:10px;"><span style="${LBL}">Personal message (optional)</span>
           <textarea id="sh-msg" rows="2" placeholder="e.g. As discussed — please review clause 4 in particular." style="${FLD}min-height:0;"></textarea></label>
@@ -1404,6 +1494,7 @@ async function openShareModal(c){
     document.getElementById('sh-send-lbl').textContent=k==='email'?'Send by email':k==='whatsapp'?'Open WhatsApp':'Create link';
   };
   document.querySelectorAll('[data-share-ch]').forEach(b=>b.addEventListener('click',()=>setCh(b.getAttribute('data-share-ch'))));
+  if(ch!=='email') setCh(ch);         // open on the channel they used last time
   document.getElementById('share-close').addEventListener('click',closeModal);
 
   const resultBox=(html)=>{ document.getElementById('sh-result').innerHTML=html; };
@@ -1652,4 +1743,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
