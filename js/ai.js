@@ -17,6 +17,13 @@ const KIND_LABEL = {risk:'Risk', missing:'Missing', ambiguity:'Ambiguity'};
 
 function scanRules(c){
   if(isUpload(c)) return uploadScanRules(c);
+  /* A drafted contract that has since been EDITED no longer renders per-clause
+     anchors — its whole body becomes one working-text block — so the clause
+     anchors these rules use (c1…c4) stop resolving and "Go to clause" goes
+     nowhere. Running the text checks over the working text as well gives those
+     findings verbatim quotes, which the panel can locate however the document
+     happens to be rendered. */
+  const live = c.redlineText ? (window.findingsFromText ? findingsFromText(c, docPlainText(c)) : []) : [];
   const F=[], f=c.fields||{};
   const add=(id,sev,kind,title,anchor,what,why,fix)=>F.push({id,sev,kind,title,anchor,what,why,fix});
   const valAnchor = c.template==='ND' ? 'c1' : 'c2';
@@ -40,6 +47,7 @@ function scanRules(c){
     'Tick the intent-to-sign consent box in the verification panel before signing.');
 
   // --- template-specific (tuned to FMCG contract types & Kenyan practice) ---
+  F.push(...live);
   if(c.template==='RM'){
     if(!f.material) add('rm-mat','med','missing','Material not specified','recital',
       'The recital leaves the material description blank.',
@@ -331,7 +339,14 @@ function renderScanSection(c){
     // uploaded document it is the only thing that works, because there are no
     // clause anchors to aim at.
     if(f&&f.quote&&scrollToQuote(f.quote)) return;
-    const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`);
+    /* Anchors go stale — a drafted contract that has been edited renders as one
+       working-text block, and an uploaded one never had clause anchors at all.
+       Walk down to whatever the document does offer rather than leaving a
+       button that answers a click with nothing. */
+    const el=document.querySelector(`#doc-canvas [data-anchor="${anchor}"]`)
+      || document.querySelector('#doc-canvas [data-anchor="redline"]')
+      || document.querySelector('#doc-canvas [data-anchor="doc"]')
+      || document.getElementById('doc-canvas');
     if(!el) return;
     el.scrollIntoView({behavior:'smooth',block:'center'});
     el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');

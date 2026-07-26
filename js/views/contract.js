@@ -1317,7 +1317,10 @@ function uploadScanRules(c){
     'Record the agreed KES value, or mark the contract non-monetary if none passes.');
 
   const u=c.upload||{};
-  const text=u.extractedText||'';
+  /* The working text once it exists, not the file as it arrived: the panel
+     quotes verbatim and the reader is shown the working text, so scanning the
+     original would quote wording that is no longer on the page. */
+  const text=(c.redlineText ? docPlainText(c) : '') || u.extractedText || '';
   if(text.length>200){
     // The review still quotes verbatim from whatever text we hold. When that
     // text came out of a scan, say so first and loudly — every quote below is a
