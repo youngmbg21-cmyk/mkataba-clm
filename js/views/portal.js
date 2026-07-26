@@ -289,6 +289,57 @@ function openPortalVersionCompare(p){
   document.getElementById('pv-close').addEventListener('click',closeModal);
   run();
 }
+/* Every control that submits something. Gathered in one place so a press can
+   disable the lot: the buttons used to sit live and unchanged through the whole
+   round trip, which reads as nothing having happened and invites a second and
+   third press on a contract response. */
+const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-decline',
+  'pt-redline-submit','pt-word-send','pc-accept','pc-counter','pc-decline'];
+function portalActionButtons(){
+  return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
+}
+function portalSetBusy(pressedId, label){
+  for(const b of portalActionButtons()){
+    if(!b.dataset.idle) b.dataset.idle=b.innerHTML;
+    b.disabled=true; b.style.opacity='.5'; b.style.cursor='default';
+    if(b.id===pressedId) b.innerHTML=esc(label||'Sending…');
+  }
+}
+function portalSetIdle(){
+  for(const b of portalActionButtons()){
+    b.disabled=false; b.style.opacity=''; b.style.cursor='';
+    if(b.dataset.idle){ b.innerHTML=b.dataset.idle; delete b.dataset.idle; }
+  }
+}
+/* Answered. The controls stay visible so the page still reads as the thing they
+   acted on, but they are spent and say so rather than looking ready to press. */
+function portalSetDone(pressedId, label){
+  for(const b of portalActionButtons()){
+    b.disabled=true; b.style.cursor='default';
+    if(b.id===pressedId){
+      b.innerHTML=esc(label);
+      b.style.opacity='1'; b.style.background='var(--color-neutral-100)';
+      b.style.borderColor='var(--color-divider)'; b.style.color='var(--color-neutral-600)';
+      b.style.boxShadow='none';
+    } else { b.style.opacity='.4'; }
+  }
+  const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
+}
+/* The link is answered, or the wording has moved on since it was sent. Either
+   way nothing on this page can be submitted, and the page should say so at the
+   top rather than letting someone fill a form that will be refused. */
+function portalClosedBanner(){
+  const sup=PORTAL_OPTS.superseded;
+  if(!sup) return '';
+  return `
+    <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:12px;border:1px solid #e3c4bf;background:#f9ecea;border-left:4px solid #b0453c;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;margin-top:1px;color:#8f322b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:13.5px;font-weight:600;color:#8f322b">This is an older copy — it can no longer be answered</span>
+        <span style="display:block;font-size:12px;color:#8f322b;margin-top:2px">A newer version of this contract was sent to you on ${fmtDT(sup.at)}. You can still read this copy and compare it, but signing or responding has to happen on the most recent link. If you cannot find it, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to send it again.</span>
+      </span>
+    </div>`;
+}
 function portalRoundBanner(c, p){
   const decided=(c.rounds||[]).filter(r=>r.resolution&&r.resolution.decision);
   if(!decided.length) return '';
@@ -321,7 +372,7 @@ async function portalEntry(encoded){
       const d=await r.json().catch(()=>null);
       if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
       if(!r.ok) throw new Error(d?.error||'not found');
-      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{}, prior:d.prior||null });
+      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{}, prior:d.prior||null, superseded:d.superseded||null });
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -368,6 +419,7 @@ function renderSharePortal(p, opts={}){
     </header>
     <div style="max-width:1100px;margin:0 auto;display:grid;gap:22px;padding:28px 24px;align-items:start;" class="portal-grid">
       <div id="pt-main" style="min-width:0">
+        ${portalClosedBanner()}
         ${portalRevisedBanner()}
         ${portalRoundBanner(c,p)}
         ${portalCompareBar()}
@@ -430,6 +482,10 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   wireportalWord(c, p);
+  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
+    for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
+    const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
+  }
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
   // E2: the redline editor takes over the main column, so the document being
   // rewritten and the box you rewrite it in are the same size.
@@ -483,17 +539,33 @@ async function portalRespond(p, action){
     signatureForm:sig?sig.form:null, signatureImage:sig?sig.image:null, signatureImageHash:sig?sig.imageHash:null,
     signatureTypedName:sig?sig.typedName:null, signatureFont:sig?sig.font:null };
   const label={sign:'signature',accept:'acceptance',changes:'change request',decline:'decline notice'}[sendAction];
+  // Which control the reader actually pressed, so it is the one that reports back.
+  const pressed={sign:'pt-sign',accept:'pt-accept',redline:'pt-redline-submit',
+    changes:'pt-changes',decline:'pt-decline'}[action]
+    || (document.getElementById('pt-word-send')?'pt-word-send':null);
+  const doneLabel={sign:'Signed and sent',accept:'Acceptance sent',
+    changes:'Change request sent',decline:'Decline sent'}[sendAction]||'Sent';
   if(PORTAL_OPTS.token){
+    portalSetBusy(pressed,'Sending…');
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+      portalSetDone(pressed, doneLabel);
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
           <p style="font-size:11px;color:var(--color-neutral-700);margin:0;">${esc(p.sharedBy)} at ${esc(p.org)} has been notified — you're all done.</p>
         </div>`;
-    }catch(e){ toast(e.message,'err'); }
+    }catch(e){
+      // Nothing was recorded, so the controls come back — a spent-looking
+      // button on a failed send is worse than no feedback at all.
+      portalSetIdle();
+      toast(e.message,'err');
+      const box=document.getElementById('portal-result');
+      if(box) box.innerHTML=`<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:#8f322b"><b>Not sent.</b> ${esc(e.message||'Something went wrong.')}</div>`;
+    }
     return;
   }
+  portalSetDone(pressed, doneLabel);
   const code=b64e(response);
   document.getElementById('portal-result').innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;">

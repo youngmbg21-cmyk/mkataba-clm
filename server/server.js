@@ -2663,11 +2663,38 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   } catch (_) {}
   res.json({
     payload: JSON.parse(s.payload), responded: !!s.response,
-    prior: priorCopySeenBy(s),
+    prior: priorCopySeenBy(s), superseded: shareSuperseded(s),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
 });
+
+/* A link is superseded once a NEWER copy of the same contract has gone out
+   carrying different wording. An old link must not be answerable: signing or
+   accepting from one binds the other side to text that is no longer the
+   contract, and proposing changes from one redlines against a base nobody is
+   working from. The link still OPENS — a counterparty is entitled to see what
+   they were sent — but it can no longer be responded to.
+
+   Identical wording does not supersede: two signatories may legitimately hold
+   separate links to the same document, and neither invalidates the other. */
+const sameWording = (a, b) => String(a).replace(/\s+/g, ' ').trim() === String(b).replace(/\s+/g, ' ').trim();
+function shareSuperseded(s) {
+  if (!s.contract_id) return null;
+  let mine = '';
+  try { mine = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
+  if (!mine.trim()) return null;        // nothing recorded to compare — do not guess at it
+  const rows = db.prepare(
+    `SELECT payload, created_at FROM shares
+      WHERE contract_id=? AND token!=? AND created_at > ? AND revoked_at IS NULL
+      ORDER BY created_at DESC LIMIT 12`).all(s.contract_id, s.token, s.created_at);
+  for (const r of rows) {
+    let t = '';
+    try { t = String((JSON.parse(r.payload).contract || {}).docText || ''); } catch (_) {}
+    if (t.trim() && !sameWording(t, mine)) return { at: r.created_at };
+  }
+  return null;
+}
 
 /* The wording of the last copy of this contract THIS reader actually opened.
    It is what "revised since you last saw it" is measured against, so the match
@@ -2786,6 +2813,13 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
+  // The wording moved on after this link was sent. Answering it now would bind
+  // a version of the contract that no longer exists.
+  const stale = shareSuperseded(s);
+  if (stale) return res.status(409).json({
+    error: 'This copy of the contract has been superseded — a newer version was sent to you on '
+      + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
+    superseded: stale.at });
   const r = req.body || {};
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });

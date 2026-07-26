@@ -74,6 +74,79 @@ describe('F13 — what the reader last saw', () => {
   });
 });
 
+describe('F13 — an old copy cannot be answered', () => {
+  const R = { name: 'Stale Reader', email: 'stale@example.com' };
+
+  test('a link is answerable while it is still the current wording', async () => {
+    const only = await mkShare(W, V1, { name: 'Only Copy', email: 'only@example.com' });
+    const got = await h.client('s0').json('/api/shares/' + only.token);
+    assert.equal(got.superseded, null);
+    const r = await h.client('s0b').json('/api/shares/' + only.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'accept', name: 'Only Copy' } });
+    assert.equal(r.ok, true);
+  });
+
+  test('once a newer wording has gone out, the old link refuses to be signed', async () => {
+    const old = await mkShare(W, V1, R);
+    await mkShare(W, V2, R);                                  // the revision supersedes it
+    const r = await h.client('s1').raw('/api/shares/' + old.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'sign', name: 'Stale Reader', email: 'stale@example.com' } });
+    assert.equal(r.status, 409);
+    assert.match(r.json.error, /superseded/i);
+  });
+
+  test('and refuses acceptance, which binds them just as surely', async () => {
+    const old = await mkShare(W, V1, R);
+    await mkShare(W, V2, R);
+    const r = await h.client('s2').raw('/api/shares/' + old.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'accept', name: 'Stale Reader' } });
+    assert.equal(r.status, 409, 'accepting an old version was the hole this closes');
+  });
+
+  test('and refuses a redline, which would be measured from a base nobody holds', async () => {
+    const old = await mkShare(W, V1, R);
+    await mkShare(W, V2, R);
+    const r = await h.client('s3').raw('/api/shares/' + old.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'changes', name: 'Stale Reader', comment: 'more edits',
+      proposedText: 'something', baseText: V1 } });
+    assert.equal(r.status, 409);
+  });
+
+  test('the old link still opens, and says why it cannot be used', async () => {
+    const old = await mkShare(W, V1, R);
+    await mkShare(W, V2, R);
+    const got = await h.client('s4').json('/api/shares/' + old.token);
+    assert.ok(got.superseded, 'the reader is told, rather than finding out when they press send');
+    assert.ok(got.payload, 'they can still read the copy they were actually sent');
+  });
+
+  test('a newer copy with the SAME wording does not supersede — two signatories may hold one document', async () => {
+    const first = await mkShare(W, V2, { name: 'Signatory A', email: 'a@example.com' });
+    await mkShare(W, V2, { name: 'Signatory B', email: 'b@example.com' });
+    const got = await h.client('s5').json('/api/shares/' + first.token);
+    assert.equal(got.superseded, null, 'nothing changed, so nothing is stale');
+    const r = await h.client('s6').json('/api/shares/' + first.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'accept', name: 'Signatory A' } });
+    assert.equal(r.ok, true);
+  });
+
+  test('a revoked newer copy does not strand the link it replaced', async () => {
+    const old = await mkShare(W, V1, { name: 'Revoked Case', email: 'rev@example.com' });
+    const newer = await mkShare(W, V2, { name: 'Revoked Case', email: 'rev@example.com' });
+    await W.admin.json('/api/shares/' + newer.token + '/revoke', { method: 'POST', body: {} });
+    const got = await h.client('s7').json('/api/shares/' + old.token);
+    assert.equal(got.superseded, null, 'the sender withdrew the replacement — this copy stands again');
+  });
+
+  test('a copy that recorded no wording is left answerable rather than guessed at', async () => {
+    const old = await mkShare(W, undefined, { name: 'Legacy Answer', email: 'la@example.com' });
+    await mkShare(W, V2, { name: 'Legacy Answer', email: 'la@example.com' });
+    const r = await h.client('s8').json('/api/shares/' + old.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'accept', name: 'Legacy Answer' } });
+    assert.equal(r.ok, true, 'refusing on a guess would strand real counterparties mid-negotiation');
+  });
+});
+
 describe('F13 — accepting the wording is not signing it', () => {
   test('the server takes an acceptance', async () => {
     const s = await mkShare(W, V2, GULIZ);
