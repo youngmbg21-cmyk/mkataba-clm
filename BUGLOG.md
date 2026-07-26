@@ -2400,3 +2400,27 @@ the lock status and its cancel — and now says where the download went, so
 someone hunting for the old button is not left guessing.
 
 Result: `f26-one-word-button.test.js` 9/9; suite 388/388 green.
+
+**2026-07-26 — item-8 shipped: a silent wait is now a visible state.**
+"Under Review" covered two situations that call for opposite actions: the
+counterparty is reading it and thinking, or they never opened it and do not
+know it exists. The app showed the same thing for both.
+
+The answer was already in the data and was simply never read back. The server
+records `first_opened_at` per share, and a durable link's marker is cleared on
+every payload refresh — so "opened" already means "opened THIS version", which
+is the only version worth asking about.
+
+`counterpartySeenState(c, shares)` reduces the share list to one of
+responded / opened / unopened, and `counterpartySeenHtml` renders it above the
+shares panel. Unopened for three days or more escalates and offers "Send it
+again" in one click, because silence that long usually means the message never
+arrived rather than that the deal went quiet.
+
+Deliberately says nothing when there is nothing worth saying: a revoked or
+expired link, an anonymous copy-link (nobody to have *not* seen it), a contract
+already executed, or a round already answered — the returned-changes strip
+speaks for that one, and two notices about the same fact is how notices stop
+being read.
+
+Result: `f27-seen-state.test.js` 14/14; suite 402/402 green.

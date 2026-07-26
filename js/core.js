@@ -1659,6 +1659,48 @@ function reshareNotSentModal(c, out, who){
   });
 }
 
+/* ---- has the other side actually seen this? ----
+   "Under review" covers two completely different situations: they are reading
+   it and thinking, or they never opened it and do not know it exists. The
+   server has always recorded when a link was first opened, and a durable link's
+   opened-marker is cleared each time the wording is refreshed — so the answer
+   is already in the data and was simply never shown. Without it, a stalled
+   negotiation looks exactly like a considered silence.
+
+   Returns null when there is nothing worth saying: no share, an anonymous
+   copy-link (nobody to have seen it), or a contract already executed. */
+function counterpartySeenState(c, shares){
+  if(!c || c.status==='Signed') return null;
+  const live=(shares||[]).filter(s=>!s.revokedAt && s.state!=='expired'
+    && (s.recipientEmail||s.recipientPhone||s.recipientName));
+  if(!live.length) return null;
+  const latest=live.slice().sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')))[0];
+  const who=latest.recipientName||latest.recipientEmail||latest.recipientPhone||'The counterparty';
+  if(latest.respondedAt) return { kind:'responded', who, at:latest.respondedAt, share:latest };
+  if(latest.firstOpenedAt) return { kind:'opened', who, at:latest.firstOpenedAt, share:latest };
+  return { kind:'unopened', who, at:latest.sentAt||latest.createdAt, share:latest };
+}
+/* Days since a moment, floored. Used only to decide how loudly to say it. */
+const _daysSince = iso => { const t=Date.parse(iso||''); return Number.isFinite(t)?Math.floor((Date.now()-t)/86400000):0; };
+function counterpartySeenHtml(c, shares){
+  const st=counterpartySeenState(c, shares);
+  if(!st || st.kind==='responded') return '';   // they answered; the round strip speaks
+  const days=_daysSince(st.at);
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
+  const stale=days>=3;
+  if(st.kind==='opened') return `
+    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:var(--color-neutral-700)">
+      <span style="flex:none;color:#1e6b4d;display:inline-flex">${icon('check2','w-3.5 h-3.5')}</span>
+      <span style="flex:1;min-width:160px"><b>${esc(st.who)}</b> opened the current wording ${days===0?'today':`${days} day${days===1?'':'s'} ago`}. No response yet.</span>
+    </div>`;
+  return `
+    <div id="seen-state" style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;border:1px solid ${stale?'#e0c48a':'var(--color-divider)'};background:${stale?'#fdf6e7':'var(--color-surface)'};border-radius:6px;padding:9px 13px;margin-bottom:12px;font-size:11.5px;color:${stale?'#7d5a14':'var(--color-neutral-700)'}">
+      <span style="flex:none;color:${stale?'#b8862b':'var(--color-neutral-500)'};display:inline-flex">${icon(stale?'alert':'clock','w-3.5 h-3.5')}</span>
+      <span style="flex:1;min-width:160px"><b>${esc(st.who)} has not opened the current version.</b> Sent ${days===0?'today':`${days} day${days===1?'':'s'} ago`}${stale?' — worth chasing, or check the link reached them.':'.'}</span>
+      ${canEdit()?`<button id="seen-resend" class="ui-btn" style="flex:none;font-size:11px;padding:5px 11px">Send it again</button>`:''}
+    </div>`;
+}
+
 /* ---- Shares panel (workspace): every dispatch for this contract with its
    traffic light, timestamps and per-share actions (copy / resend / revoke). */
 async function renderSharesSection(c){
@@ -1671,6 +1713,7 @@ async function renderSharesSection(c){
   const chLabel={email:'Email',whatsapp:'WhatsApp',link:'Link'};
   const live=s=>s.state==='sent'||s.state==='opened';
   host.innerHTML=`<div class="px-5 py-4">
+    ${counterpartySeenHtml(c, shares)}
     <div class="flex items-center gap-2 mb-3"><span class="text-brand-500">${icon('send')}</span>
       <h3 class="text-sm font-display font-600 text-brand-900">Shares</h3>
       <span class="ml-auto text-[10px] font-mono text-brand-800/60">${shares.length} sent</span></div>
@@ -1696,6 +1739,18 @@ async function renderSharesSection(c){
           </div>`:''}
         </div>`; }).join('')}
     </div></div>`;
+  document.getElementById('seen-resend')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget, restore=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Sending…</span>';
+    try{
+      const out=await reshareToLastRecipient(c);
+      const who=out.recipient.name||out.recipient.email||out.recipient.phone||'the counterparty';
+      if(out.delivered) toast(`Sent again to ${who}`);
+      else reshareNotSentModal(c, out, who);
+      renderAuditSection(c); renderSharesSection(c);
+    }catch(err){ toast(err.message,'err'); }
+    btn.disabled=false; btn.innerHTML=restore;
+  });
   host.querySelectorAll('[data-sh-copy]').forEach(b=>b.addEventListener('click',async()=>{
     const link=location.origin+location.pathname+'#share=t:'+b.getAttribute('data-sh-copy');
     try{ await navigator.clipboard.writeText(link); }catch(e){}
@@ -1843,4 +1898,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
