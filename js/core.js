@@ -146,6 +146,7 @@ const SHARE_META = {
   sent:    {label:'Sent',      dot:'#98989b', bg:'#eceae6', tx:'#5d5d60'},
   opened:  {label:'Opened',    dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
   changes: {label:'Changes',   dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
+  accepted:{label:'Accepted',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
   signed:  {label:'Signed',    dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
   declined:{label:'Declined',  dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
   expired: {label:'Expired',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
@@ -1246,6 +1247,7 @@ function readinessPanelHtml(c){
 /* The allow-list that decides what a counterparty is shown. Everything the
    portal renders has to be in here; anything not in here does not exist as far
    as the other side is concerned. */
+const shareDocText = c => { try{ return (typeof docPlainText==='function') ? docPlainText(c) : ''; }catch(_){ return ''; } };
 function buildSharePayload(c, docHash, who){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -1264,6 +1266,12 @@ function buildSharePayload(c, docHash, who){
       upload:isUpload(c)?shareUpload(c.upload):undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
       rounds:shareRounds.length?shareRounds:undefined,
+      /* The wording exactly as it left, in plain text. A template-drafted
+         contract has no stored body — it is rendered from the template and its
+         fields — so the server could never reconstruct what a given link said.
+         Recording it here is what lets the next link tell the same reader what
+         moved since the copy they last opened. */
+      docText:shareDocText(c)||undefined,
       redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
 }
 async function openShareModal(c){
@@ -1273,6 +1281,10 @@ async function openShareModal(c){
     toast('To share an uploaded document, run the HaTi server — or send the original file directly','err');
     return;
   }
+  // A share copies the contract out of the building, so it must be copied
+  // whole: a record loaded for a list view carries neither its uploaded file's
+  // bytes nor its round history, and both are things the payload publishes.
+  try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
   if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
@@ -1552,6 +1564,16 @@ async function applyResponse(c, r, opts={}){
       await finalizeExecution(c, { silent:!!opts.background });
       return true;
     }
+  } else if(r.action==='accept'){
+    /* Agreement to the wording, which is not execution. The contract keeps its
+       status and its seal stays unwritten; what changes is that the other side
+       has said yes to this text on the record, so the next step is signature
+       rather than another round of drafting. */
+    c.acceptance={ by:who, at:r.at, email:r.email||null, comment:r.comment||'' };
+    c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
+      text:r.comment||'Accepted the current wording. Not yet signed.', ts:fmtDT(r.at) });
+    logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
+    toast(`${r.name} accepted the wording — ready for signature`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];

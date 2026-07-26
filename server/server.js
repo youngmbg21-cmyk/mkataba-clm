@@ -2538,7 +2538,8 @@ const shareExpired = s => !!(s.expires_at && Date.parse(s.expires_at) < Date.now
 function shareState(s) {
   if (s.revoked_at) return 'revoked';
   if (s.response) {
-    try { const a = JSON.parse(s.response).action; return a === 'sign' ? 'signed' : a === 'decline' ? 'declined' : 'changes'; }
+    try { const a = JSON.parse(s.response).action;
+      return a === 'sign' ? 'signed' : a === 'decline' ? 'declined' : a === 'accept' ? 'accepted' : 'changes'; }
     catch (_) { return 'changes'; }
   }
   if (shareExpired(s)) return 'expired';
@@ -2662,10 +2663,38 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   } catch (_) {}
   res.json({
     payload: JSON.parse(s.payload), responded: !!s.response,
+    prior: priorCopySeenBy(s),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
 });
+
+/* The wording of the last copy of this contract THIS reader actually opened.
+   It is what "revised since you last saw it" is measured against, so the match
+   is deliberately narrow: same contract, same recipient identity, sent earlier,
+   and opened — a link that was never opened was never seen, and a copy sent to
+   somebody else is somebody else's business, not this reader's baseline. */
+function priorCopySeenBy(s) {
+  if (!s.contract_id) return null;
+  const email = String(s.recipient_email || '').toLowerCase();
+  const name = String(s.recipient_name || '').toLowerCase();
+  if (!email && !name) return null;
+  const rows = db.prepare(
+    `SELECT payload, created_at, first_opened_at, recipient_email, recipient_name FROM shares
+      WHERE contract_id=? AND token!=? AND first_opened_at IS NOT NULL AND created_at < ?
+      ORDER BY created_at DESC LIMIT 12`).all(s.contract_id, s.token, s.created_at);
+  for (const r of rows) {
+    const sameReader = email
+      ? String(r.recipient_email || '').toLowerCase() === email
+      : String(r.recipient_name || '').toLowerCase() === name;
+    if (!sameReader) continue;
+    let text = '';
+    try { text = String((JSON.parse(r.payload).contract || {}).docText || ''); } catch (_) {}
+    if (!text.trim()) continue;   // sent before the wording was recorded — nothing to compare
+    return { at: r.created_at, openedAt: r.first_opened_at, text };
+  }
+  return null;
+}
 
 // "Counterparty just opened it" ping to the sender — strictly opt-in per user.
 function notifyFirstOpen(s, payload) {
@@ -2758,7 +2787,7 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
   if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const r = req.body || {};
-  if (r.kind !== 'hati-response' || !['sign','changes','decline'].includes(r.action) || !r.name)
+  if (r.kind !== 'hati-response' || !['sign','accept','changes','decline'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
   if (r.action === 'sign') {   // require a verified email OTP to attribute the signature
     const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);

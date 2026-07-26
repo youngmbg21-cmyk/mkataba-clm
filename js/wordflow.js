@@ -244,4 +244,4 @@ function wireWordControls(c){
   });
 }
 
-Object.assign(window,{DOCX_MIME,isWordDoc,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});
+Object.assign(window,{DOCX_MIME,isWordDoc,wordTriggerDownload,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});
