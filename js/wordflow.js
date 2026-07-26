@@ -92,7 +92,14 @@ function wordTriggerDownload(dataUrl, fileName, mime){
 }
 
 /* ---- phase 2: OUT — download for review + the soft lock ---- */
-async function startWordReview(c, btn){
+/* Download the current wording for external review.
+   `opts.lock` decides whether online editing is paused while the file is out.
+   It used to be unconditional and invisible: one of two identically-named
+   "Word" controls froze the document with no explanation and no obvious way
+   back, while the other did not. There is one download control now, and the
+   pause is something the person chooses and can see. */
+async function startWordReview(c, btn, opts={}){
+  const lock = opts.lock!==false;
   if(!canEdit()){ toast('Viewers cannot send documents for review','err'); return; }
   if(wordDoorClosed(c)){ toast('This contract is executed — record an amendment instead','err'); return; }
   const u=currentUser();
@@ -108,20 +115,20 @@ async function startWordReview(c, btn){
       if(typeof downloadContractDocx!=='function')
         throw new Error('there is no Word file on this contract yet');
       await downloadContractDocx(c);
-      c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur?cur.n:null, generated:true };
+      if(lock) c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur?cur.n:null, generated:true };
       c.lastAction=todayStr();
-      logAudit(c,'Word review',`Current wording exported to Word for external review by ${u?.name||'System'} — online editing paused until the returned file is uploaded or the review is cancelled`);
+      logAudit(c,'Word review',`Current wording exported to Word for external review by ${u?.name||'System'}${lock?' — online editing paused until the returned file is uploaded or the review is cancelled':' — online editing left open'}`);
       persist(c); renderWorkspace();
-      toast('Downloaded for Word review — editing is paused until the file comes back');
+      toast(lock?'Downloaded for Word review — editing is paused until the file comes back':'Downloaded — you can keep editing here');
       return;
     }
     const dataUrl=await wordEntryDataUrl(c, cur);
     wordTriggerDownload(dataUrl, cur.fileName, cur.mime);
-    c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur.n };
+    if(lock) c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur.n };
     c.lastAction=todayStr();
-    logAudit(c,'Word review',`${cur.key} (“${cur.fileName}”) downloaded for external Word review by ${u?.name||'System'} — online editing paused until the returned file is uploaded or the review is cancelled`);
+    logAudit(c,'Word review',`${cur.key} (“${cur.fileName}”) downloaded for external Word review by ${u?.name||'System'}${lock?' — online editing paused until the returned file is uploaded or the review is cancelled':' — online editing left open'}`);
     persist(c); renderWorkspace();
-    toast('Downloaded for Word review — editing is paused until the file comes back');
+    toast(lock?'Downloaded for Word review — editing is paused until the file comes back':'Downloaded — you can keep editing here');
   }catch(e){
     toast('Could not prepare the download — '+e.message,'err');
     if(btn){ btn.disabled=false; btn.innerHTML=restore; }
@@ -274,11 +281,10 @@ function wordControlsHtml(c){
   return `<div data-anchor="word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 14px;margin-bottom:14px">
     <div style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--color-neutral-700)">
       <span style="color:var(--color-accent);flex:none;margin-top:1px">${icon('file','w-3.5 h-3.5')}</span>
-      <span><b>Word round-trip.</b> Download the current .docx for a counterparty who negotiates in Word; when their marked-up file comes back, upload it and HaTi files the changes as a tracked negotiation round — whether or not they used Track Changes.</span>
+      <span><b>Word round-trip.</b> Use <b>Word</b> in the toolbar above to download the current wording for a counterparty who negotiates in Word. When their marked-up file comes back, upload it here and HaTi files the changes as a tracked negotiation round — whether or not they used Track Changes.</span>
     </div>
     ${editor?`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:9px">
-      <button data-word-out class="ui-btn ui-btn-primary" style="${B}">${icon('download','w-3.5 h-3.5')} Download .docx for Word review</button>
-      <button data-word-return class="ui-btn" style="${B}">${icon('upload','w-3.5 h-3.5')} Upload returned .docx</button>
+      <button data-word-return class="ui-btn ui-btn-primary" style="${B}">${icon('upload','w-3.5 h-3.5')} Upload returned .docx</button>
     </div>`:''}
     ${versionRow}${lastCard}</div>`;
 }

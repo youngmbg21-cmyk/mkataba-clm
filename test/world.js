@@ -200,6 +200,16 @@ function buildWorld(opts = {}) {
   Object.assign(win, shell);
   win.window = win;
 
+  /* Capture every file handed to the browser. Installed AFTER the modules load
+     (below), because wordflow.js declares wordTriggerDownload itself and a
+     declaration overwrites anything assigned beforehand. */
+  const installDownloadRecorder = () => {
+    win.wordTriggerDownload = (dataUrl, fileName, mime) => {
+      const b64 = String(dataUrl || '').split(',')[1] || '';
+      log.downloads.push({ fileName, mime, bytes: new Uint8Array(Buffer.from(b64, 'base64')) });
+    };
+  };
+
   /* ---------- evaluate the real modules into the window ---------- */
   const ctx = dom.getInternalVMContext();
   const loaded = [];
@@ -209,6 +219,7 @@ function buildWorld(opts = {}) {
     vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: rel });
     loaded.push(rel);
   }
+  installDownloadRecorder();
 
   return { dom, win, log, user, shell, loaded,
     /* every audit entry recorded on this contract, newest last */

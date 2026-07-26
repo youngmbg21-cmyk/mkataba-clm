@@ -2382,3 +2382,21 @@ fail (18.1 s).
 Shipped this run: item 1 (reshare notifies), item 2 (portal Word export), item 6
 (signing without a code, labelled), item 7 (counterparty test harness).
 Not started: items 3, 5, 8, and item 4 (phased approach agreed with the owner).
+
+**2026-07-26 — item-3 shipped: one Word control, and a pause you can see.**
+Two controls on the same screen both said "Word". The toolbar one downloaded.
+The one in the panel below downloaded AND froze online editing — silently, with
+no explanation and no obvious way back.
+
+The pause is worth keeping (edits made in HaTi while a copy is out in Word
+collide with the wording coming back), so it was not removed — it was made
+visible. `startWordReview(c, btn, {lock})` takes the freeze as a parameter
+rather than applying it as an unavoidable side effect, the panel's duplicate
+download is gone, and the toolbar button opens a short dialog that explains the
+choice in words and defaults to pausing, which is the safer of the two.
+
+The panel keeps what is genuinely its own — the return trip, the version ledger,
+the lock status and its cancel — and now says where the download went, so
+someone hunting for the old button is not left guessing.
+
+Result: `f26-one-word-button.test.js` 9/9; suite 388/388 green.

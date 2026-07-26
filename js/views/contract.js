@@ -1168,6 +1168,44 @@ function openEditDocModal(c){
   });
 }
 
+/* The one Word download in the product. Two controls used to say "Word" on the
+   same screen: this one, and a second in the panel below that ALSO froze online
+   editing — silently, with no explanation and no obvious way back. The pause is
+   a real and useful thing (edits made here while the file is out would collide
+   with the wording coming back), so it is kept — as a choice, stated in words,
+   next to the button that causes it. */
+function openWordExportModal(c){
+  if(!canEdit()){ toast('Viewers cannot export documents','err'); return; }
+  if(window.wordReviewOut&&wordReviewOut(c)){
+    toast('This document is already out for Word review — upload the returned file or cancel the review first','err'); return;
+  }
+  openModal(`
+    <div style="padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('download')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Download as Word</h2></div>
+      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
+        You'll get a <b>.docx</b> of the wording as it reads right now — headings, clause numbers and all — for a counterparty who works in Word. When their marked-up copy comes back, upload it on the contract and HaTi files it as a negotiation round.</p>
+      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;cursor:pointer">
+        <input type="checkbox" id="we-lock" checked style="margin-top:2px;flex:none"/>
+        <span style="font-size:12.5px;line-height:1.55"><b>Pause editing here until the file comes back.</b>
+        <span style="display:block;color:var(--color-neutral-600);margin-top:2px">Recommended while a copy is out with the other side: changes made here in the meantime would clash with the wording coming back. You can lift it at any time from the Word panel on the contract.</span></span>
+      </label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button id="we-cancel" class="ui-btn">Cancel</button>
+        <button id="we-go" class="ui-btn ui-btn-primary">${icon('download','w-3.5 h-3.5')} Download</button>
+      </div>
+    </div>`);
+  document.getElementById('we-cancel').addEventListener('click',closeModal);
+  document.getElementById('we-go').addEventListener('click',async e=>{
+    const lock=!!document.getElementById('we-lock')?.checked;
+    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
+    try{
+      await startWordReview(c, null, { lock });
+      closeModal();
+    }catch(err){ toast('Could not build the Word file — '+err.message,'err'); btn.disabled=false; btn.innerHTML='Download'; }
+  });
+}
+
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
@@ -2117,17 +2155,7 @@ function renderWorkspace(){
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.getElementById('ws-word')?.addEventListener('click',async e=>{
-    const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    try{
-      const { name }=await downloadContractDocx(c);
-      logAudit(c,'Exported',`Downloaded as Word (${name})`);
-      persist(c); renderAuditSection(c);
-      toast('Word file downloaded — send it to the counterparty, then upload their marked-up copy');
-    }catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
-    btn.disabled=false; btn.innerHTML=restore;
-  });
+  document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));
   setActiveNav('workspace');
 }
 
@@ -2533,4 +2561,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{openWordExportModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
