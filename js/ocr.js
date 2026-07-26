@@ -80,7 +80,7 @@ function ocrCanvasToJpeg(canvas){
   catch(e){ return canvas.toDataURL('image/png'); }
 }
 /* Page count without rendering anything — used by the pre-flight estimate and
-   to apply ocrMaxPages before a single AI call is made. */
+   to apply ocrMaxPages before a single Copilot call is made. */
 async function ocrPdfPageCount(dataUrl){
   const pdfjs=await ocrLoadPdfjs();
   const doc=await pdfjs.getDocument({ data: dataUrlBytes(dataUrl) }).promise;
@@ -197,7 +197,7 @@ async function ocrDocument(dataUrl, mime, opts={}){
       }catch(e){
         // budget gone, rate limit, provider error — finish the document on the
         // offline recogniser rather than abandoning it half-read
-        out.error=e.message||'AI OCR failed';
+        out.error=e.message||'Copilot OCR failed';
         tier='local';
       }
     }
@@ -211,7 +211,7 @@ async function ocrDocument(dataUrl, mime, opts={}){
 
   out.text=parts.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{4,}/g,'\n\n\n').trim();
   // the *weakest* tier used decides the provenance — a document part-read by
-  // Tesseract must not claim to be an AI transcription
+  // Tesseract must not claim to be an Copilot transcription
   out.tier = usedLocal ? 'local' : (usedAi ? 'ai' : null);
   out.textSource = out.text ? (usedLocal ? 'ocr-local' : usedAi ? 'ocr-ai' : 'none') : 'none';
   if(out.textSource!=='none') out.error=null;   // partial success is success
@@ -231,7 +231,7 @@ function capConfidenceForOcr(meta){
   meta._ocrCapped=true;
   return meta;
 }
-const OCR_TIER_LABEL={ 'ocr-ai':'AI transcription', 'ocr-local':'offline recogniser (Tesseract)' };
+const OCR_TIER_LABEL={ 'ocr-ai':'Copilot transcription', 'ocr-local':'offline recogniser (Tesseract)' };
 /* One sentence describing where a contract's text came from — reused by the
    viewer banner, the audit detail and the clause-review warning. */
 function ocrProvenanceLine(u){

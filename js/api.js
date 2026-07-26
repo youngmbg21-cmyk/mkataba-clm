@@ -21,7 +21,7 @@ async function api(path, method='GET', body){
     if(data){ err.spendLimit=!!data.spendLimit; err.dailyLimit=!!data.dailyLimit; err.allowanceExhausted=!!data.allowanceExhausted; err.needsKey=!!data.needsKey; }
     throw err;
   }
-  // The server folds a `notice` into an AI response when the input was
+  // The server folds a `notice` into an Copilot response when the input was
   // shortened or the configured model was rejected — surface it to the user.
   if(data&&data.notice&&typeof toast==='function') toast(data.notice,'err');
   return data;

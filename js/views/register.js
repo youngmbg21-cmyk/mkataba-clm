@@ -140,7 +140,7 @@ function folderExpiryCell(c){
 function folderRowsHtml(cs){
   if(!cs.length) return `<tr><td colspan="7" style="padding:44px 20px;text-align:center">
       <div style="font-size:13px;font-weight:600;color:var(--color-text)">${(state.folderQuery||'').trim()?`No contracts match "${state.folderQuery}"`:'No contracts in this value stream yet'}</div>
-      <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi AI to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
+      <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:4px">${(state.folderQuery||'').trim()?'Clear the search, or ask HaTi Copilot to look across all folders.':'Create one with New contract, or upload received paper.'}</div>
     </td></tr>`;
   const shown=Math.min(cs.length, state.folderShown||FOLDER_PAGE);
   const sel=state.folderSel||{};
@@ -389,7 +389,7 @@ function layoutStreamPills(){
 const REG_ROW_ACTIONS=[
   {k:'open',   label:'Open workspace'},
   {k:'share',  label:'Share with counterparty'},
-  {k:'scan',   label:'Run AI scan'},
+  {k:'scan',   label:'Run Copilot scan'},
   {k:'pdf',    label:'Export PDF'},
   {k:'decline',label:'Decline & close', ruby:true},
   // permanent delete — only offered while a contract is still a draft or in review

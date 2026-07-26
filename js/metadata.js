@@ -186,7 +186,7 @@ function mergeThorough(results){
   return out;
 }
 
-/* ---- the single server-AI extraction call ----
+/* ---- the single server-Copilot extraction call ----
    One place that decides what text is sent (buildExtractionPayload, not a blind
    head-slice) and which budget it draws on. Throws on failure so the caller can
    distinguish a spend ceiling from a transport error. */
@@ -219,7 +219,7 @@ async function aiExtractMetadata(text, opts={}){
     return merged;
   }
 
-  // one AI call per contract — a 25-file batch has to get through the 15-minute
+  // one Copilot call per contract — a 25-file batch has to get through the 15-minute
   // light-tier limit of 40 calls
   const payload = buildExtractionPayload(t);
   const r = await api('ai/extract','POST', { text: payload.text, allowance: !!opts.allowance });
@@ -230,7 +230,7 @@ async function aiExtractMetadata(text, opts={}){
   return meta;
 }
 
-/* ---- run extraction: server AI if configured, else heuristic ---- */
+/* ---- run extraction: server Copilot if configured, else heuristic ---- */
 async function extractMetadata(text, seed, opts={}){
   let meta = null;
   if(API_MODE() && state.aiConfigured){
@@ -253,13 +253,13 @@ function openMetaReview(meta, onConfirm, opts={}){
   const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
     : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
   const p = meta._payload;
-  // Say how much of the document was actually read — "AI-extracted" over the
+  // Say how much of the document was actually read — "Copilot-extracted" over the
   // first eight pages is a materially different claim from over all of it.
   const coverage = !p ? ''
     : p.thorough ? ` · whole document read in ${p.sections} overlapping section${p.sections===1?'':'s'} (thorough mode)`
     : p.omitted ? ` · read the front, the back and ${p.sections-2>0?p.sections-2:0} clause window${p.sections-2===1?'':'s'} of a ${Number(p.sourceChars||0).toLocaleString('en-KE')}-character document`
     : ` · read the whole ${Number(p.chars||0).toLocaleString('en-KE')}-character document`;
-  const src = (meta._source==='ai' ? 'AI-extracted' : 'Pattern-matched (no AI key)') + coverage;
+  const src = (meta._source==='ai' ? 'Copilot-extracted' : 'Pattern-matched (no Copilot key)') + coverage;
   /* The phrase each value came from, shown under the field. This is what turns
      the confirm step from a leap of faith into a glance — the same
      verbatim-quoting pattern the clause review already uses. */

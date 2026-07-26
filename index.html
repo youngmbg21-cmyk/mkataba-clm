@@ -311,7 +311,7 @@
   .scan-pulse{animation:scanPulse 1s ease infinite;}
   @keyframes scanPulse{0%,100%{opacity:.45;}50%{opacity:1;}}
 
-  /* AI slide-over */
+  /* Copilot slide-over */
   #ai-panel{position:fixed;top:0;right:0;bottom:0;z-index:50;transform:translateX(105%);transition:transform .3s cubic-bezier(.22,.61,.36,1),max-width .28s cubic-bezier(.22,.61,.36,1);}
   /* Expanded: the panel stretches leftward (it stays anchored right), giving
      comparison tables and long answers real room. clamp() keeps it sane on
@@ -611,7 +611,7 @@
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
         <span id="side-status">Server mode · SQLite · 4 online</span>
       </div>
-      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for AI cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
+      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
         <span style="width:7px;height:7px;border-radius:50%;background:#c79a3e;flex:none;"></span>
         <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
       </button>
@@ -681,7 +681,7 @@
   </div>
 </div>
 
-<!-- ================= AI ASSISTANT (slide-over) ================= -->
+<!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:rgba(29,45,61,.35);backdrop-filter:blur(2px);"></div>
 <section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
   <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">

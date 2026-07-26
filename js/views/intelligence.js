@@ -90,15 +90,15 @@ function scanPortfolio(){
 }
 
 /* ============================================================
-   VIEW: INTEL — AI contract graph (force-directed, HaTi light theme)
-   Every contract is a node, clustered around group hubs. A free-form AI
+   VIEW: INTEL — Copilot contract graph (force-directed, HaTi light theme)
+   Every contract is a node, clustered around group hubs. A free-form Copilot
    box both FILTERS (non-matches disappear) and RE-CLUSTERS (group by
    customer / folder / status / value / city…). Uses the server LLM when a
    key is configured; otherwise the built-in interpreter.
    ============================================================ */
 const INTEL_CAP = 120;
 const STATUS_DOT = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
-window.intel = { groupBy:'folder', groups:null /*{id:label} override from AI*/,
+window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilot*/,
   lenses:[] /*[{id,label,ids:[],on,action:'filter'|'highlight',badges:{id:txt}|null}]*/,
   history:[] /*dock conversation: {role,text,cardIds?,ranked?,explainId?,compare?,err?}*/,
   compareSel:[] /*contract ids staged for a node-driven comparison*/,
@@ -251,14 +251,14 @@ async function intelGraphAsk(q){
       res=await api('ai/graph','POST',payload);
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The AI engine needs an API key — using the built-in interpreter instead.':'AI error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key — using the built-in interpreter instead.':'Copilot error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
     }
   } else if(!API_MODE() && typeof _localAiKey==='function' && _localAiKey() && typeof aiLocalGraph==='function'){
     // local mode with a browser-stored key → browser-direct graph interpreter
     try{ res=await aiLocalGraph(q); }
     catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:'AI error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
+        text:'Copilot error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
     }
   }
   if(!res) res=graphInterpret(q);           // fallback
@@ -268,7 +268,7 @@ async function intelGraphAsk(q){
   intel.history.push({role:'assistant', text:res.answer||res.note||'Done.', cardIds:(res.visibleIds||[]).slice(0,5)});
 }
 
-/* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level AI rank ---- */
+/* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
 function contractPlainText(c){
   try{
     if(isUpload(c)) return (c.upload&&c.upload.extractedText)||'';
@@ -299,14 +299,14 @@ async function intelTemplateAsk(q){
       applyTemplateResult(res.ranked, res.answer); return;
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The AI engine needs an API key for template analysis — here is a metadata-only ranking instead.':'AI template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key for template analysis — here is a metadata-only ranking instead.':'Copilot template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
     }
   }
   // fallback: deterministic metadata ranking, honest about its limits
   const ranked=shortlist.slice(0,3).map(c=>({ id:c.id,
     reason:[c.status==='Signed'?'executed — battle-tested terms':'closest match on type', cKind(c), c.counterparty?('with '+c.counterparty):null].filter(Boolean).join(' · ') }));
   const top=getContract(ranked[0].id);
-  applyTemplateResult(ranked, `Closest template match on metadata: <b>${top?.name||'—'}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the AI engine for a clause-level comparison.':''}`);
+  applyTemplateResult(ranked, `Closest template match on metadata: <b>${top?.name||'—'}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the Copilot engine for a clause-level comparison.':''}`);
 }
 function applyTemplateResult(ranked, answer){
   const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
@@ -338,7 +338,7 @@ function intelPushChatResult(res){
 }
 
 // General Copilot Q&A in the Intel dock (used for compare + typed questions).
-// With no AI key, comparisons still work via the deterministic local table;
+// With no Copilot key, comparisons still work via the deterministic local table;
 // other free-form questions get a clear nudge instead of silence.
 async function intelChatAsk(q){
   const ids=(String(q).match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
@@ -348,27 +348,27 @@ async function intelChatAsk(q){
       if(cmp){ intel.history.push({role:'assistant', text:'Side-by-side from your live contract data.'+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
     intel.history.push({role:'assistant', err:true,
-      text:'For free-form questions I need an Anthropic API key (Team &amp; Settings → AI engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
+      text:'For free-form questions I need an Anthropic API key (Team &amp; Settings → Copilot engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
     return;
   }
   try{
     const res=await copilotAsk(intelChatMessages(), { view:'intel' });
     intelPushChatResult(res);
   }catch(e){
-    // AI failed mid-flight → still deliver a local comparison if we can.
+    // Copilot failed mid-flight → still deliver a local comparison if we can.
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);
-      if(cmp){ intel.history.push({role:'assistant', text:'The AI engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+      if(cmp){ intel.history.push({role:'assistant', text:'The Copilot engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
-    intel.history.push({role:'assistant', err:true, text:'AI error: '+igEsc(e.message||String(e))});
+    intel.history.push({role:'assistant', err:true, text:'Copilot error: '+igEsc(e.message||String(e))});
   }
 }
 
 /* Portfolio-wide clause review. Reads every live contract through the
-   deterministic Kenyan-practice scan (the same engine behind per-contract "AI
+   deterministic Kenyan-practice scan (the same engine behind per-contract "Copilot
    review") and surfaces the ones carrying potential legal/compliance concerns —
    risks, missing protections, ambiguous terms. Grounded, instant, and works with
-   or without an AI key. Framed as a first-pass review for counsel, not advice. */
+   or without an Copilot key. Framed as a first-pass review for counsel, not advice. */
 async function intelComplianceScan(q){
   const cs=(state.contracts||[]).filter(c=>c.status!=='Declined');
   const RANK=(typeof SEV_RANK==='object'&&SEV_RANK)||{high:3,med:2,low:1};
@@ -388,7 +388,7 @@ async function intelComplianceScan(q){
   rows.sort((a,b)=> (RANK[b.worst]||0)-(RANK[a.worst]||0) || b.findings.length-a.findings.length);
 
   if(!rows.length){
-    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>AI review</b> for a deeper per-contract check.`});
+    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>Copilot review</b> for a deeper per-contract check.`});
     return;
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
@@ -409,7 +409,7 @@ async function intelComplianceScan(q){
       <ul style="margin:0;padding-left:16px;font-size:11.5px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
   }).join('');
-  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>AI review</b>.</div>`;
+  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>Copilot review</b>.</div>`;
 
   intel.history.push({role:'assistant', text:html});
   igPaintIds(top.map(r=>r.c.id));
@@ -437,7 +437,7 @@ function intelToggleCompare(id){
   igPaintIds(intel.compareSel);
   renderIntelDock();
 }
-// Run the comparison over the staged nodes. With no AI key (or on AI failure)
+// Run the comparison over the staged nodes. With no Copilot key (or on Copilot failure)
 // it still delivers the deterministic local table, so Compare ALWAYS works.
 async function intelRunCompare(){
   const ids=intel.compareSel.slice();
@@ -455,9 +455,9 @@ async function intelRunCompare(){
       const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
       intelPushChatResult(res);
     } else {
-      localFallback('Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">Add an AI key in Team &amp; Settings for a clause-level comparison.</span>');
+      localFallback('Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">Add an Copilot key in Team &amp; Settings for a clause-level comparison.</span>');
     }
-  }catch(e){ localFallback('The AI engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
+  }catch(e){ localFallback('The Copilot engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
   intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
 }
 
@@ -522,7 +522,7 @@ function makeIntelGraph(model){
     if(n.sub){ const sub=document.createElementNS('http://www.w3.org/2000/svg','text');
       sub.setAttribute('class','ig-sub'); sub.setAttribute('x',n.kind==='hub'?11:13); sub.setAttribute('y',31);
       sub.setAttribute('fill', n.kind==='hub'?'#b5d9fd':'#7a7a7d'); sub.textContent=n.sub.length>26?n.sub.slice(0,25)+'…':n.sub; g.appendChild(sub); }
-    if(n.badge){ // gold pill pinned to the chip's top-right corner (AI annotation)
+    if(n.badge){ // gold pill pinned to the chip's top-right corner (Copilot annotation)
       const bt=n.badge.length>14?n.badge.slice(0,13)+'…':n.badge, bw=bt.length*5.4+12;
       const br=document.createElementNS('http://www.w3.org/2000/svg','rect');
       br.setAttribute('x',n.w-bw+8); br.setAttribute('y',-8); br.setAttribute('width',bw); br.setAttribute('height',15); br.setAttribute('rx',7.5);
@@ -570,7 +570,7 @@ function igExplain(id){
   intel.history.push({role:'assistant', explainId:id});
   renderIntelDock(); igPaintIds([id]);
   // Layer a real Copilot insight beneath the instant facts card (no-op if the
-  // AI engine isn't configured — the facts card still stands on its own).
+  // Copilot engine isn't configured — the facts card still stands on its own).
   intelAIExplain(id);
 }
 function igStartDrag(e,n){ e.stopPropagation(); IG.dragging=n; IG.dragMoved=false; n.g.setPointerCapture(e.pointerId);
@@ -639,7 +639,7 @@ function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
-  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'AI grouping'})[intel.groupBy]||intel.groupBy;
+  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
   el.innerHTML = intel.busy ? `<span class="text-brand-700">Thinking…</span>`
     : `<span class="text-ink/60">Grouped by <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
       + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear all ✕</button>`:'');
@@ -715,7 +715,7 @@ function renderIntel(){
   setActiveNav('intel');
 }
 
-/* ---- right-hand AI dock ---- */
+/* ---- right-hand Copilot dock ---- */
 function igSyncDockWidth(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   dock.style.width=igDockWidth()+'px';
@@ -786,7 +786,7 @@ function renderIntelDock(){
   if(!intel.dockOpen){
     dock.innerHTML=`
       <button id="igd-expand" title="Open the intelligence panel" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
-        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">AI panel</span>
+        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">Copilot panel</span>
       </button>`;
     document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;

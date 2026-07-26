@@ -110,7 +110,7 @@ const uploadTooBigMsg = f => `“${f.name}” is ${(f.size/1048576).toFixed(1)} 
 /* How much extracted text a contract keeps. The old 40k cap cut a long
    agreement off around page 10 — exactly where the renewal, termination and
    notice clauses live — so the whole document is kept and buildExtractionPayload()
-   decides what actually goes to the AI. */
+   decides what actually goes to the Copilot. */
 const EXTRACT_MAX_CHARS = 200000;
 
 /* ============================================================ HELPERS */
@@ -147,6 +147,7 @@ const SHARE_META = {
   opened:  {label:'Opened',    dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
   changes: {label:'Changes',   dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
   accepted:{label:'Accepted',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
+  reviewed:{label:'Reviewed',  dot:'#98989b', bg:'#f2f1ee', tx:'#5d5d60'},
   signed:  {label:'Signed',    dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
   declined:{label:'Declined',  dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
   expired: {label:'Expired',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
@@ -479,7 +480,7 @@ function signatureCapacity(s){
 }
 /* Whether this member may see monetary amounts. The SERVER decides — it strips
    value fields, monetary aggregates and CSV value cells before responding, and
-   never puts a figure in an AI prompt for someone without the right. This
+   never puts a figure in an Copilot prompt for someone without the right. This
    function exists so the interface can stop OFFERING what it will not receive
    (a "sort by value" option that cannot sort, a KPI card that would read KES 0),
    not to do the hiding. In static mode there is no server and no such
@@ -745,13 +746,13 @@ function renderSideUser(){
   setTxt('side-name', u.name||org);
   setTxt('side-role', `${ROLE_LABEL[u.role]||'Member'} · ${org}`);
   const online=(getUsers()||[]).length||1;
-  // Show the storage backend AND whether the AI brain is live, so an entered key
+  // Show the storage backend AND whether the Copilot brain is live, so an entered key
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
   const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
   const st=document.getElementById('side-status');
-  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude AI':'AI off'}</span> · ${online} online`;
+  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude Copilot':'Copilot off'}</span> · ${online} online`;
 }
-// Bottom-left AI meter: today's real Anthropic API calls across the workspace,
+// Bottom-left Copilot meter: today's real Anthropic API calls across the workspace,
 // so the owner can watch actual usage and size a per-customer daily limit.
 // Server mode only (in Local mode the browser calls Anthropic directly with no
 // server tally); the count resets at local midnight (server AI_DAY_TZ).
@@ -768,7 +769,7 @@ async function refreshAiUsage(){
     const a=u.allowance;
     txt.textContent = a&&a.open
       ? `Onboarding allowance: $${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`
-      : `AI today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString('en-KE')} req`;
+      : `Copilot today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString('en-KE')} req`;
     box.style.display='flex';
   }catch(e){ box.style.display='none'; }
 }

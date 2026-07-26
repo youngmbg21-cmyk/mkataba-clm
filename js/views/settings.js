@@ -257,8 +257,8 @@ function renderTeam(){
         </section>
 
         <section style="${cardStyle}">
-          <h4 style="${h4Style}">AI engine</h4>
-          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Portfolio Intelligence graph. Without a key, AI features fall back to the built-in interpreter.</p>
+          <h4 style="${h4Style}">Copilot engine</h4>
+          <p style="font-size:11px;color:var(--color-neutral-700);margin:0 0 8px;line-height:1.5">Powers HaTi Copilot — chat, contract briefings and comparisons — plus natural-language filtering on the Portfolio Intelligence graph. Without a key, Copilot features fall back to the built-in interpreter.</p>
           <div id="ai-cfg-status" style="font-size:11px;color:var(--color-neutral-700);margin-bottom:8px">Checking…</div>
           ${isAdmin()?`
           <div style="display:flex;gap:8px;align-items:flex-end">
@@ -297,7 +297,7 @@ function renderTeam(){
 
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider)">
             <div style="font-size:12px;font-weight:600;color:var(--color-text)">Spend &amp; cost controls</div>
-            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">AI spend is governed by <b>money</b>, not request count: every Anthropic call's token usage is priced against the rate table below and accumulated in a persisted ledger. The request ceiling is kept only as a blunt backstop against a runaway loop.</p>
+            <p style="font-size:10.5px;color:var(--color-neutral-600);margin:2px 0 6px;line-height:1.5">Copilot spend is governed by <b>money</b>, not request count: every Anthropic call's token usage is priced against the rate table below and accumulated in a persisted ledger. The request ceiling is kept only as a blunt backstop against a runaway loop.</p>
             <div id="ai-usage" style="font-size:11.5px;color:var(--color-neutral-700);margin-bottom:4px">Today: —</div>
             <div style="height:6px;background:var(--color-neutral-200);border-radius:3px;overflow:hidden;margin-bottom:8px"><div id="ai-usage-bar" style="width:0%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
             <div id="ai-spend-breakdown" style="margin-bottom:10px"></div>
@@ -310,12 +310,12 @@ function renderTeam(){
               ${limitField('ai-daily','Daily request ceiling · workspace','secondary guard · 0 disables it',0)}
               ${limitField('ai-ocr-pages','Max OCR pages / document','pages past this are skipped, not failed',1)}
               ${limitField('ai-maxchars','Max characters / request','longer input is shortened first',1000)}
-              ${limitField('ai-maxcontracts','Max contracts / request','portfolio-wide AI calls',1)}
+              ${limitField('ai-maxcontracts','Max contracts / request','portfolio-wide Copilot calls',1)}
             </div>
             <label style="display:flex;align-items:flex-start;gap:8px;margin-top:9px;font-size:11px;color:var(--color-neutral-700);line-height:1.45;cursor:pointer">
               <input id="ai-thorough" type="checkbox" style="margin-top:2px;width:14px;height:14px;accent-color:var(--color-accent);flex:none"/>
               <span><b>Thorough extraction</b> — read the whole contract in overlapping chunks instead of one pass.
-              <span style="color:#7d5a14">This runs one deep-tier AI call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
+              <span style="color:#7d5a14">This runs one deep-tier Copilot call per ~30,000 characters, so a long agreement can cost several times a normal extraction.</span> Pre-flight estimates reflect it.</span></label>
             <button id="ai-limits-save" style="margin-top:9px;${primaryBtnSm}">Save limits</button>
           </div>
 
@@ -355,7 +355,7 @@ function renderTeam(){
             <button id="meta-backfill" style="${secondaryBtn}">${icon('sparkle','w-3.5 h-3.5')} <span id="meta-backfill-lbl">Extract metadata for existing contracts</span></button>
           </div>`:`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-600);line-height:1.5">Local mode: the key is stored only in this browser, and HaTi Copilot calls Anthropic directly from this browser with it. Saving clears the input box for safety — the key is kept (see the status above). Run the HaTi server for team-shared keys, model routing and usage limits.</div>`}`
-          :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the AI key.</p>`}
+          :`<p style="font-size:11px;color:var(--color-neutral-600)">Only an admin can configure the Copilot key.</p>`}
         </section>
 
       <section style="${cardStyle}">
@@ -435,14 +435,14 @@ function renderTeam(){
   document.getElementById('org-export')?.addEventListener('click',()=>document.getElementById('bk-export')?.click());
   renderClauseLibrary();
   if(API_MODE()) loadSessions();
-  // AI engine config
+  // Copilot engine config
   if(API_MODE()){
     const refreshAiCfg=async()=>{ const el=document.getElementById('ai-cfg-status'); if(!el) return;
       try{ const c=await api('ai/config'); state.aiConfigured=!!c.configured;
         const fast=c.tiers?.fast?.model||c.models?.fast||c.model||'', deep=c.tiers?.deep?.model||c.models?.deep||'';
         el.innerHTML=c.configured
           ?`<span class="text-brand-600">● Configured</span> · key ${c.hint}${c.source==='env'?' (from server env)':''}`
-          :`<span class="text-gold-600">● Not configured</span> — AI features fall back to the built-in interpreter.`;
+          :`<span class="text-gold-600">● Not configured</span> — Copilot features fall back to the built-in interpreter.`;
         const set=(id,v)=>{ const n=document.getElementById(id); if(n) n.textContent=v||'—'; };
         set('ai-model-fast-cur',fast); set('ai-model-deep-cur',deep);
         // fill overrides without clobbering a field the admin is editing
@@ -472,7 +472,7 @@ function renderTeam(){
               <span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:10px">${Number(r.requests||0).toLocaleString('en-KE')} req</span>
               <span style="font-family:var(--font-mono);font-weight:600;min-width:62px;text-align:right">${'$'+Number(r.cost||0).toFixed(4)}</span>
             </div>`).join('')}</div>`
-            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">No AI spend recorded today.</div>`;
+            :`<div style="font-size:10.5px;color:var(--color-neutral-500)">No Copilot spend recorded today.</div>`;
         }
         const fillN=(id,v)=>{ const n=document.getElementById(id); if(n&&document.activeElement!==n&&v!==undefined) n.value=v; };
         fillN('ai-rate-light',lim.rateLight); fillN('ai-rate-deep',lim.rateDeep); fillN('ai-daily',lim.dailyLimit);
@@ -482,14 +482,14 @@ function renderTeam(){
         const th=document.getElementById('ai-thorough'); if(th&&document.activeElement!==th) th.checked=!!lim.thoroughExtract;
         renderAllowancePanel(c.allowance||{});
         renderRateTable(c.rates||{}, c.ratesMeta||{});
-      }catch(e){ el.textContent='Could not read AI config.'; } };
+      }catch(e){ el.textContent='Could not read Copilot config.'; } };
     refreshAiCfg();
     // basic shape check mirroring the server (blank = clear override)
     const okModel=(s)=>s===''||(!/\s/.test(s)&&/^claude-[a-z0-9][a-z0-9.\-]*$/i.test(s));
     document.getElementById('ai-key-save')?.addEventListener('click',async()=>{
       const key=document.getElementById('ai-key').value.trim();
       if(!key){ toast('Enter a key to save','err'); return; }
-      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast('AI engine key saved'); refreshAiCfg(); }
+      try{ await api('ai/config','PUT',{ key }); document.getElementById('ai-key').value=''; toast('Copilot engine key saved'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-model-save')?.addEventListener('click',async()=>{
@@ -501,8 +501,8 @@ function renderTeam(){
       catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored AI key?', message:'AI features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
-      try{ await api('ai/config','PUT',{ clear:true }); toast('AI key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
+      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'Copilot features will fall back to the built-in interpreter until a new key is added.', confirmLabel:'Remove key', danger:true})) return;
+      try{ await api('ai/config','PUT',{ clear:true }); toast('Copilot key removed'); refreshAiCfg(); }catch(e){ toast(e.message,'err'); }
     });
     document.getElementById('ai-limits-save')?.addEventListener('click',async()=>{
       const num=id=>{ const el=document.getElementById(id); if(!el) return undefined; const v=el.value.trim(); return v===''?undefined:Number(v); };
@@ -512,7 +512,7 @@ function renderTeam(){
       const cash={ dailySpendLimit:num('ai-daily-spend'), estimateConfirmAt:num('ai-estimate-confirm') };
       for(const [k,v] of Object.entries(cash)) if(v!==undefined&&(!Number.isFinite(v)||v<0)){ toast(`"${k}" must be a non-negative amount`,'err'); return; }
       const body={ ...whole, ...cash, thoroughExtract: !!document.getElementById('ai-thorough')?.checked };
-      try{ await api('ai/config','PUT',body); toast('AI limits saved'); refreshAiCfg(); }
+      try{ await api('ai/config','PUT',body); toast('Copilot limits saved'); refreshAiCfg(); }
       catch(e){ toast(e.message,'err'); }
     });
     // ---- onboarding allowance ----
@@ -558,14 +558,14 @@ function renderTeam(){
     });
   }
   // local mode: no server to hold the key — persist it in this browser so the
-  // field is present and remembered; AI still uses the built-in interpreter.
+  // field is present and remembered; Copilot still uses the built-in interpreter.
   if(!API_MODE() && isAdmin()){
     const st=document.getElementById('ai-cfg-status');
     const refresh=()=>{ if(!st) return; const k=lsGet('hati.v1.aikey');
       st.innerHTML=k?`<span style="color:#1e6b4d;font-weight:600">● Configured</span> · key ••••${String(k).slice(-4)} stored in this browser — Copilot is live.`
-                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — Copilot and AI features use the built-in interpreter.`; };
+                    :`<span style="color:#7d5a14;font-weight:600">● Not configured</span> — Copilot and Copilot features use the built-in interpreter.`; };
     refresh();
-    // reflect the key change immediately in the sidebar status + AI panel header
+    // reflect the key change immediately in the sidebar status + Copilot panel header
     const refreshAiIndicators=()=>{ if(typeof renderSideUser==='function') renderSideUser(); if(typeof updateAiBrainPill==='function') updateAiBrainPill(); };
     document.getElementById('ai-key-save')?.addEventListener('click',()=>{
       const inp=document.getElementById('ai-key'); const key=(inp?.value||'').trim();
@@ -574,8 +574,8 @@ function renderTeam(){
       toast('Key saved (ending ••••'+key.slice(-4)+') — HaTi Copilot is now live'); refresh(); refreshAiIndicators();
     });
     document.getElementById('ai-key-clear')?.addEventListener('click',async()=>{
-      if(!await confirmDialog({title:'Remove the stored AI key?', message:'HaTi Copilot and AI features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
-      localStorage.removeItem('hati.v1.aikey'); toast('AI key removed'); refresh(); refreshAiIndicators();
+      if(!await confirmDialog({title:'Remove the stored Copilot key?', message:'HaTi Copilot and Copilot features will fall back to the built-in interpreter.', confirmLabel:'Remove key', danger:true})) return;
+      localStorage.removeItem('hati.v1.aikey'); toast('Copilot key removed'); refresh(); refreshAiIndicators();
     });
   }
   document.getElementById('meta-backfill')?.addEventListener('click',()=>runMetaBackfill());
@@ -627,7 +627,7 @@ function renderTeam(){
     const id=b.getAttribute('data-values-for'), to=b.getAttribute('data-values-to')==='1';
     const u=(getUsers()||[]).find(x=>x.id===id); if(!u) return;
     if(!to && !await confirmDialog({ title:`Hide contract values from ${u.name}?`,
-      message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the AI. They keep their folder access and everything else. You can turn this back on at any time.',
+      message:'They will stop seeing amounts on the register, on a contract, in exports, in the dashboard metrics and in anything they ask the Copilot. They keep their folder access and everything else. You can turn this back on at any time.',
       confirmLabel:'Hide values' })) return;
     try{ const r=await api('users/'+id,'PATCH',{ canViewValues:to });
       if(r&&r.user) Object.assign(u,r.user); else u.canViewValues=to;
@@ -766,7 +766,7 @@ function renderPlaybookView(){
       </span>`:''}
     </div>
     ${baseCard}${typeCards}
-    <p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The AI review checks incoming paper against these positions.${canEditPb?' Baseline positions apply to every contract; each type adds its own on top.':''}</p>`;
+    <p style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">⚑ = deviation requires Legal approval. The Copilot review checks incoming paper against these positions.${canEditPb?' Baseline positions apply to every contract; each type adds its own on top.':''}</p>`;
   if(!canEditPb) return;
   pv.querySelectorAll('[data-pb-edit]').forEach(b=>b.addEventListener('click',()=>openPlaybookEditor(b.getAttribute('data-pb-edit'))));
   pv.querySelectorAll('[data-pb-del]').forEach(b=>b.addEventListener('click',async()=>{

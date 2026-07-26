@@ -416,7 +416,7 @@ async function importHatiSample(i, btn){
 
 /* ============================================================ BLANKS EDITOR
    Three ways to create the blanks in a customer's own template, in order of
-   reliability: manual selection (always works, no key, no network), AI-assisted
+   reliability: manual selection (always works, no key, no network), Copilot-assisted
    ("Suggest blanks" — the human reviews and edits before anything is saved),
    and auto-detect of [SQUARE BRACKETS] / {{curly}} / underscore runs on import. */
 /* The user's current selection, if it lies inside `host`. Returns the Range and
@@ -468,7 +468,7 @@ function openBlanksEditor(tid){
   // live selection inside it. Free-text editing of a rich body belongs to the
   // template editor, not here.
   const rich=!!(window.isRich && isRich(templateFormat(rec)));
-  /* The text a marker-detector or the AI should read — the projection for rich
+  /* The text a marker-detector or the Copilot should read — the projection for rich
      bodies, so it sees clause numbers and no tags. */
   const bodyText=()=> rich ? richToText(body) : body;
 
@@ -589,10 +589,10 @@ function openBlanksEditor(tid){
     status(`Converted <b>${r.converted}</b> marker${r.converted===1?'':'s'} into blanks. Check the types and mappings above.`);
   });
 
-  // ---- 2. AI-assisted — reviewed and editable before anything is saved
+  // ---- 2. Copilot-assisted — reviewed and editable before anything is saved
   document.getElementById('be-suggest')?.addEventListener('click',async(e)=>{
     const btn=e.currentTarget; btn.disabled=true; const was=btn.innerHTML;
-    btn.innerHTML='Thinking…'; status('Asking the AI engine for suggestions — nothing is saved until you review them.');
+    btn.innerHTML='Thinking…'; status('Asking the Copilot engine for suggestions — nothing is saved until you review them.');
     try{
       // the model reads the document, never the markup
       const r=await api('ai/blanks','POST',{ text: bodyText().slice(0, 60000) });
@@ -1305,7 +1305,7 @@ function renderPlaybookPage(){
       </span>
       <span class="badge" style="background:#fbf4e3;color:#7d5a14;flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')
-    :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">No playbook deviations recorded yet. Run the <b>AI review</b> from a contract's workspace — deviations from these positions will be listed here.</p>`;
+    :`<p style="font-size:11.5px;color:var(--color-neutral-600);margin:0;line-height:1.6">No playbook deviations recorded yet. Run the <b>Copilot review</b> from a contract's workspace — deviations from these positions will be listed here.</p>`;
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:16px 18px 28px">
@@ -1318,7 +1318,7 @@ function renderPlaybookPage(){
           <span style="flex:1"></span>
           ${canEditLib?`<button id="cl-add" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Add clause</button>`:''}
         </div>
-        <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Your standard clauses — the wording HaTi drafts with and the AI review checks incoming paper against.</p>
+        <p style="font-size:11.5px;color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5">Your standard clauses — the wording HaTi drafts with and the Copilot review checks incoming paper against.</p>
         <div id="clause-lib" style="display:flex;flex-direction:column;gap:8px"></div>
       </section>
 

@@ -61,7 +61,7 @@ async function inflateRawBytes(comp){
 
 /* ---- WordprocessingML → structured plain text ----
    The line unit is the paragraph (w:p), matching htmlToStructuredText's
-   output shape so versions, diffs and the AI pipeline see the same kind of
+   output shape so versions, diffs and the Copilot pipeline see the same kind of
    text whether a document arrived as a PDF, pasted HTML or a Word file.
 
    Tracked changes: deleted wording lives in w:delText, insertions are

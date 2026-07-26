@@ -3,7 +3,7 @@
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
 /* ============================================================
-   AI CONTRACT SCAN  (rule engine over live contract data)
+   Copilot CONTRACT SCAN  (rule engine over live contract data)
    ============================================================ */
 // Severity chips use the design's exact warm hexes (arbitrary Tailwind values
 // so existing `${sm.chip}` className call-sites keep working unchanged).
@@ -224,7 +224,7 @@ async function runScanFor(c){
   try{ await ensureFull(c); }catch(e){ toast('Could not load that contract — '+e.message,'err'); return; }
   runScan(c);
   const n=openFindings(c).length;
-  logAudit(c,'Scanned',`AI contract scan run — ${n} open finding${n===1?'':'s'}`);
+  logAudit(c,'Scanned',`Copilot contract scan run — ${n} open finding${n===1?'':'s'}`);
   c.lastAction=todayStr(); persist(c);
   toast(n?`Scan complete — ${n} finding${n===1?'':'s'} · open the contract to read them`:'Scan complete — no issues found');
   if(state.view==='register'&&window.renderRegister) renderRegister();
@@ -239,9 +239,9 @@ function renderScanSection(c){
   const open = openFindings(c);
   const worst = open.length ? worstSevOf(open) : null;
   // The scan runs on a built-in rule-based checker (scanRules) \u2014 it works with
-  // OR without an AI key. Reflect the engine honestly: when a Claude key is
-  // configured we call it AI-assisted; when not, it's plainly "rule-based" so
-  // the label never implies AI that isn't running.
+  // OR without an Copilot key. Reflect the engine honestly: when a Claude key is
+  // configured we call it Copilot-assisted; when not, it's plainly "rule-based" so
+  // the label never implies Copilot that isn't running.
   const aiOn = (typeof copilotAvailable==='function') && copilotAvailable();
 
   let body;
@@ -251,11 +251,11 @@ function renderScanSection(c){
       <span>Checking clauses against Kenyan practice rules\u2026</span></div>`;
   } else if(!c.scan){
     const engineNote = aiOn
-      ? ' Your Claude key adds AI-assisted interpretation on top.'
-      : ' These are built-in checks \u2014 they run without an AI key. Add an Anthropic key in Team &amp; Settings for AI-assisted review.';
+      ? ' Your Claude key adds Copilot-assisted interpretation on top.'
+      : ' These are built-in checks \u2014 they run without an Copilot key. Add an Anthropic key in Team &amp; Settings for Copilot-assisted review.';
     body = `
       <p class="text-xs text-brand-800/70 leading-relaxed">${isUpload(c)?'Run a review checklist over this received document \u2014 governing law, liability, payment and exit terms to confirm before you sign, tuned to Kenyan practice.':'Review this contract against risk checks tuned for Kenyan practice \u2014 missing clauses, enforceability gaps and market-norm deviations, each pinned to the clause it concerns.'}${engineNote}</p>
-      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} ${aiOn?'Run AI scan':'Run scan'}</button>`;
+      <button id="scan-run" class="mt-3 w-full flex items-center justify-center gap-2 rounded-lg bg-brand-900 text-white py-2.5 text-sm font-medium hover:bg-brand-800 transition">${icon('scan')} ${aiOn?'Run Copilot scan':'Run scan'}</button>`;
   } else {
     const list = open.filter(x=>scanUI.filter==='all'||x.sev===scanUI.filter);
     const counts = s => open.filter(x=>x.sev===s).length;
@@ -301,8 +301,8 @@ function renderScanSection(c){
     <div class="px-5 py-4">
       <div class="flex items-center gap-2 mb-3">
         <span class="text-gold-500">${icon('scan')}</span>
-        <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'AI Contract Scan':'Contract Scan'}</h3>
-        <span title="${aiOn?'A Claude key is configured — checks run with AI-assisted interpretation.':'No AI key — checks run on built-in rules. Add a key in Team & Settings for AI-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
+        <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'Copilot Contract Scan':'Contract Scan'}</h3>
+        <span title="${aiOn?'A Claude key is configured — checks run with Copilot-assisted interpretation.':'No Copilot key — checks run on built-in rules. Add a key in Team & Settings for Copilot-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
         ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?`${open.length} open`:'All clear'}</span>` : ''}
       </div>
       ${body}
@@ -313,7 +313,7 @@ function renderScanSection(c){
     scanUI.running=true; renderScanSection(c);
     setTimeout(()=>{ runScan(c); scanUI.running=false; scanUI.filter='all'; scanUI.expanded=new Set();
       const n=openFindings(c).length;
-      logAudit(c,'Scanned',`AI contract scan run \u2014 ${n} open finding${n===1?'':'s'}`);
+      logAudit(c,'Scanned',`Copilot contract scan run \u2014 ${n} open finding${n===1?'':'s'}`);
       persist(c);
       renderScanSection(c); renderSignButton(c); renderAuditSection(c);
       toast(n?`Scan complete \u2014 ${n} finding${n===1?'':'s'} pinned to clauses`:'Scan complete \u2014 no issues found');
@@ -493,7 +493,7 @@ function scrollToQuote(quote){
 }
 
 /* ============================================================
-   AI ASSISTANT  (local intent engine over live state)
+   Copilot ASSISTANT  (local intent engine over live state)
    ============================================================ */
 const ai = { open:false, minimized:false, unread:false, busy:false, history:[] };
 const AI_SUGGESTIONS = [
@@ -631,7 +631,7 @@ function aiAnswer(qRaw){
   const cs=state.contracts;
   const has=(...words)=>words.some(w=>q.includes(w));
 
-  // 0) comparison — always works, even with no AI key: build a side-by-side
+  // 0) comparison — always works, even with no Copilot key: build a side-by-side
   // table from live fields. Resolves explicit ids, "highest-value" phrasing,
   // or counterparty-name matches; otherwise asks which two to compare.
   const idsInQ=(qRaw.match(/MK-\d+/gi)||[]).map(s=>s.toUpperCase()).filter((v,i,a)=>a.indexOf(v)===i);
@@ -646,7 +646,7 @@ function aiAnswer(qRaw){
     }
     if(ids.length>=2){
       const cmp=localCompareData(ids);
-      if(cmp) return { text:`Here's a side-by-side of <strong>${ids.join(' and ')}</strong> from your live contract data.${cmp.verdict?' '+cmp.verdict:''}${copilotAvailable()?'':' <span class="text-[11px] text-amber-700">Add an AI key in Team &amp; Settings for a deeper clause-level comparison.</span>'}`,
+      if(cmp) return { text:`Here's a side-by-side of <strong>${ids.join(' and ')}</strong> from your live contract data.${cmp.verdict?' '+cmp.verdict:''}${copilotAvailable()?'':' <span class="text-[11px] text-amber-700">Add an Copilot key in Team &amp; Settings for a deeper clause-level comparison.</span>'}`,
         cards:aiCompareTable(cmp) };
     }
     return { text:`Happy to compare — tell me which ones. Try <em>"compare MK-101 and MK-104"</em>, name a counterparty (<em>"compare the Naivas contracts"</em>), or say <em>"compare my two highest-value contracts"</em>.` };
@@ -660,7 +660,7 @@ function aiAnswer(qRaw){
     if(!c) c=cs.find(x=>q.includes(x.counterparty.toLowerCase().split(' ')[0]) && x.counterparty);
     if(!c) c=cs.find(x=>x.name.toLowerCase().split(' ').some(w=>w.length>4&&q.includes(w)));
     if(c){
-      return { text:`<strong>${esc(c.name)}</strong> (${esc(c.id)}) is ${isUpload(c)?'an uploaded <strong>external document</strong>':`a ${cKind(c)}`} with <strong>${esc(c.counterparty||'no counterparty yet')}</strong>, filed under ${esc(FOLDERS[c.folder].name)}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been AI-scanned yet.'; const o=openFindings(c); return o.length?` The AI scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The AI scan is clean — no open findings.'; })()}`,
+      return { text:`<strong>${esc(c.name)}</strong> (${esc(c.id)}) is ${isUpload(c)?'an uploaded <strong>external document</strong>':`a ${cKind(c)}`} with <strong>${esc(c.counterparty||'no counterparty yet')}</strong>, filed under ${esc(FOLDERS[c.folder].name)}. Value: <strong>${!isMonetary(c)?'non-monetary (no consideration passes)':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (estimated)':''):'not set')}</strong> · Status: <strong>${c.status}</strong> · Last action ${c.lastAction}. ${c.status==='Signed'?'It is fully executed with an SHA-256 seal and verified IPRS + PKI compliance.':c.status==='Under Review'?'It is waiting on counterparty action — compliance checks are '+((c.compliance.iprs&&c.compliance.pki)?'complete':'still open')+'.':c.status==='Draft'?'It is still in draft — fill the counterparty and value to move it into review.':'It was declined and is closed without signature.'} There are ${c.comments.length} comments on the thread.${(()=>{ if(!c.scan) return ' It has not been Copilot-scanned yet.'; const o=openFindings(c); return o.length?` The Copilot scan shows <strong>${o.length} open finding${o.length===1?'':'s'}</strong> (worst: ${SEV_META[worstSevOf(o)].label.toLowerCase()}).`:' The Copilot scan is clean — no open findings.'; })()}`,
         cards:aiCards([c]) };
     }
   }
@@ -677,7 +677,7 @@ function aiAnswer(qRaw){
   // 1b) risk / findings / scan queries
   if(has('risk','finding','findings','issue','issues','problem','scan','red flag','exposure')){
     const scanned=cs.filter(c=>c.scan);
-    if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>Run AI scan</strong> in the workspace — I’ll check its clauses against Kenyan practice and pin every finding to the clause it concerns.` };
+    if(!scanned.length) return { text:`No contracts have been scanned yet. Open any contract and hit <strong>Run Copilot scan</strong> in the workspace — I’ll check its clauses against Kenyan practice and pin every finding to the clause it concerns.` };
     const withOpen=scanned.filter(c=>openFindings(c).length).sort((a,b)=>SEV_RANK[worstSevOf(openFindings(b))]-SEV_RANK[worstSevOf(openFindings(a))]);
     if(!withOpen.length) return { text:`${scanned.length} contract${scanned.length===1?' has':'s have'} been scanned and every finding is resolved or dismissed — the reviewed book is clean.`, cards:aiCards(scanned) };
     const high=withOpen.reduce((s,c)=>s+openFindings(c).filter(x=>x.sev==='high').length,0);
@@ -733,7 +733,7 @@ function aiAnswer(qRaw){
   return { text:`I couldn't match that to your contract data. I can help with things like: <em>"show pending contracts"</em>, <em>"total value of signed"</em>, <em>"summarize MK-103"</em>, or searching by counterparty name (e.g. <em>"Naivas"</em>).` };
 }
 
-/* Tiny safe escaper for AI-authored text (the keyword engine and contract
+/* Tiny safe escaper for Copilot-authored text (the keyword engine and contract
    cards render trusted app data raw, but model output must be escaped before
    we apply our own light markdown). */
 const _aiEsc = s => String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -797,8 +797,8 @@ function aiRenderServerAnswer(res){
 }
 
 /* ── LOCAL-MODE COPILOT (browser-direct, BYOK) ──────────────────────────
-   In static/local mode there is no HaTi server to route AI calls, but the
-   admin's key is already stored in this browser (Settings → AI engine). So in
+   In static/local mode there is no HaTi server to route Copilot calls, but the
+   admin's key is already stored in this browser (Settings → Copilot engine). So in
    local mode ONLY, Copilot calls the Anthropic API directly from the browser
    with that key — single-user, own key, own data, nothing shared. Server mode
    always routes through /api/ai/chat and never does this. The local tool loop
@@ -877,9 +877,9 @@ async function aiLocalClaude(messages, context){
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:1500,system:_localSystem(context),tools:LOCAL_AI_TOOLS,messages:msgs}),
     });
-    if(r.status===401) throw new Error('The saved AI key was rejected (401) — re-check it in Team & Settings.');
-    if(r.status===429) throw new Error('Rate limited by the AI provider — wait a moment and try again.');
-    if(!r.ok) throw new Error('AI provider error '+r.status);
+    if(r.status===401) throw new Error('The saved Copilot key was rejected (401) — re-check it in Team & Settings.');
+    if(r.status===429) throw new Error('Rate limited by the Copilot provider — wait a moment and try again.');
+    if(!r.ok) throw new Error('Copilot provider error '+r.status);
     return r.json();
   };
   const working=messages.map(m=>({role:m.role,content:m.content}));
@@ -932,9 +932,9 @@ Examples: "highlight the customer contracts" → {"folder":"sales","action":"hig
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:LOCAL_AI_MODEL,max_tokens:250,system:sys,messages:[{role:'user',content:q}]}),
   });
-  if(r.status===401) throw new Error('The saved AI key was rejected (401) — re-check it in Team & Settings.');
-  if(r.status===429) throw new Error('Rate limited by the AI provider — wait a moment and try again.');
-  if(!r.ok) throw new Error('AI provider error '+r.status);
+  if(r.status===401) throw new Error('The saved Copilot key was rejected (401) — re-check it in Team & Settings.');
+  if(r.status===429) throw new Error('Rate limited by the Copilot provider — wait a moment and try again.');
+  if(!r.ok) throw new Error('Copilot provider error '+r.status);
   const d=await r.json();
   const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
   const m=txt.match(/\{[\s\S]*\}/); if(!m) return null;
@@ -946,7 +946,7 @@ Examples: "highlight the customer contracts" → {"folder":"sales","action":"hig
   if(s.counterparty){ const k=String(s.counterparty).toLowerCase(); cs=cs.filter(c=>(c.counterparty||'').toLowerCase().includes(k)); filtered=true; }
   if(s.valueMin){ cs=cs.filter(c=>Number(c.value||0)>=Number(s.valueMin)); filtered=true; }
   if(s.expiryDays!=null){ const n=Number(s.expiryDays); cs=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=n); filtered=true; }
-  const note=s.note||'AI filter';
+  const note=s.note||'Copilot filter';
   const vis=filtered?cs:null;
   const answer = vis===null
     ? (s.groupBy?'Regrouped the graph.':"I couldn't turn that into a map filter — try naming a value stream, status, type, party or expiry window.")
@@ -967,9 +967,9 @@ function copilotAvailable(){
    answering. */
 function copilotBrainInfo(){
   const server = typeof API_MODE==='function' && API_MODE();
-  if(server && state.aiConfigured) return { live:true,  label:'Claude AI · via server',    hint:'Answers come from Claude, routed through your HaTi server.' };
-  if(!server && _localAiKey())     return { live:true,  label:'Claude AI · this browser',  hint:'Answers come from Claude, called directly from this browser with your saved key.' };
-  return { live:false, label:'Basic mode — add a key for AI', hint:'No AI key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → AI engine.' };
+  if(server && state.aiConfigured) return { live:true,  label:'Claude Copilot · via server',    hint:'Answers come from Claude, routed through your HaTi server.' };
+  if(!server && _localAiKey())     return { live:true,  label:'Claude Copilot · this browser',  hint:'Answers come from Claude, called directly from this browser with your saved key.' };
+  return { live:false, label:'Basic mode — add a key for Copilot', hint:'No Copilot key found — answers use the built-in keyword interpreter. Add an Anthropic key in Team & Settings → Copilot engine.' };
 }
 /* Refresh the main panel's header subtitle to show the live brain. */
 function updateAiBrainPill(){
@@ -988,8 +988,8 @@ async function copilotAsk(messages, context){
   const e=new Error('needsKey'); e.needsKey=true; throw e;
 }
 
-/* Deterministic side-by-side from live fields — works with NO AI at all, so
-   "compare" always does something. The AI path layers judgement on top. */
+/* Deterministic side-by-side from live fields — works with NO Copilot at all, so
+   "compare" always does something. The Copilot path layers judgement on top. */
 function localCompareData(ids){
   const cs=ids.map(id=>getContract(id)).filter(Boolean).slice(0,4);
   if(cs.length<2) return null;
@@ -1039,8 +1039,8 @@ async function aiSubmit(){
       // Graceful degrade: answer from the keyword engine, note why.
       const local=aiAnswer(q);
       const why=(e.needsKey||/key|configure|401|needsKey/i.test(e.message||''))
-        ? 'Add your Anthropic API key in Team & Settings → AI engine to unlock the full assistant.'
-        : 'The AI engine is unavailable right now ('+(e.message||'error')+'), so this is a basic answer.';
+        ? 'Add your Anthropic API key in Team & Settings → Copilot engine to unlock the full assistant.'
+        : 'The Copilot engine is unavailable right now ('+(e.message||'error')+'), so this is a basic answer.';
       local.text=(local.text||'')+`<div class="text-[11px] text-amber-700 mt-2">${_aiEsc(why)}</div>`;
       finish(local);
     }
@@ -1059,8 +1059,8 @@ document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-min').addEventListener('click',minimizeAI);
 document.getElementById('ai-clear').addEventListener('click',clearAIHistory);
 document.getElementById('ai-scrim').addEventListener('click',closeAI);
-// AI is opened from the command bar (#cmd-ai, wired in app.js). The "/" key
-// focuses the command-bar search (app.js); Esc closes the AI panel.
+// Copilot is opened from the command bar (#cmd-ai, wired in app.js). The "/" key
+// focuses the command-bar search (app.js); Esc closes the Copilot panel.
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
