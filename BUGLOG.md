@@ -2053,3 +2053,32 @@ wants.
 
 Result: `f18-durable-link.test.js` 19/19 (including authorisation, revocation,
 deleted-contract and viewer cases); suite 236/236 green.
+
+**2026-07-26 — fix-7: the record now says who actually wrote the words.**
+When a negotiation runs partly outside HaTi, the only way to get the
+counterparty's wording in was to type it into the Edit box — which recorded the
+owner as the author of the other side's changes, silently. Split into two paths
+that are genuinely different events:
+
+- `applyOwnerEdit(c, text)` — we changed it: versioned immediately, logged as
+  ours. (The Edit modal's save body moved into this function rather than being
+  duplicated, so there is one implementation of "an owner edit".)
+- `fileCounterpartyEdit(c, text, {by, comment, channel})` — they changed it and
+  it reached us off-platform: an **open** round in their name, going through the
+  same review and accept step as a redline that came through the portal. The
+  wording does not enter the document until it is accepted.
+
+Decision on whose name goes where, because both facts are true and hiding
+either would be its own dishonesty: the **round** is attributed to the
+counterparty (they wrote the words), the **audit entry** names them as the
+source *and* records who typed it in (`filedBy`, and "entered by …" in the
+detail). Anyone reading the trail later can see both that the wording is Erik's
+and that Wanjiru was the one at the keyboard. With no name supplied it falls
+back to the contract's counterparty — never to the current user.
+
+Also refuses to invent a round: identical wording, empty wording, an executed
+contract and a viewer role all file nothing.
+
+Result: `f19-counterparty-authorship.test.js` 17/17; suite 253/253 green;
+scenario 1 now 13/15 (the two remaining are the formatting-flattening
+assertions, which fix 6 owns).

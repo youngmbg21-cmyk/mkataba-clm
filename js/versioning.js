@@ -325,7 +325,62 @@ function acceptProposedRound(c, n){
   toast(`Round ${n} accepted — adopted as new version`);
 }
 
+/* ---- who made this change? ----
+   Two ways new wording arrives at a contract, and they are not the same event.
+
+   applyOwnerEdit      — we changed it. Recorded as ours, versioned immediately.
+   fileCounterpartyEdit— THEY changed it, and it reached us outside HaTi (an
+                         emailed Word file, a PDF, a phone call written up).
+                         Recorded as a negotiation round in their name, still
+                         open, so it goes through the same review and accept
+                         step as a redline that came through the portal.
+
+   Before this second path existed, the only way to get a counterparty's
+   changes into a contract negotiated over email was to type them into the Edit
+   box — which recorded the owner as the author of the other side's wording.
+   For a product whose case rests on an honest record, that was the record
+   lying, and it is the one thing here that cannot be allowed to stay wrong. */
+function applyOwnerEdit(c, text, opts={}){
+  if(!canEdit()){ toast('Viewers cannot edit documents','err'); return null; }
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return null; }
+  const txt=String(text==null?'':text);
+  if(!txt.trim()){ toast('The document text cannot be empty','err'); return null; }
+  const u=currentUser();
+  const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+  if(!(c.versions||[]).length) captureVersion(c, isUpload(c)?'As received':'Original text', 'System');
+  c.redlineText=txt;
+  // the plain-text editor produces plain text; say so on the record rather than
+  // leaving a 'rich' marker on a body that is no longer one
+  if(wasRich && opts.plainText!==false && window.TEXT_FORMAT) c.format=TEXT_FORMAT;
+  const v=captureVersion(c, opts.label||`Edited by ${u?.name||'user'}`, u?.name);
+  logAudit(c,'Edited',`${opts.detail||'Document wording edited in the workspace'}${(wasRich&&opts.plainText!==false)?' using the plain-text editor — formatting was not retained':''}${v?` — captured as v${v.n}`:''}`);
+  c.lastAction=todayStr();
+  return v;
+}
+function fileCounterpartyEdit(c, text, opts={}){
+  if(!canEdit()){ toast('Viewers cannot file changes','err'); return null; }
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return null; }
+  const txt=String(text==null?'':text);
+  if(!txt.trim()){ toast('The proposed wording cannot be empty','err'); return null; }
+  const base=docPlainText(c);
+  if(normText(txt)===normText(base)){ toast('That wording is identical to the current document — nothing to file'); return null; }
+  const u=currentUser();
+  const who=String(opts.by||c.counterparty||'The counterparty').trim();
+  c.rounds=c.rounds||[];
+  const n=c.rounds.length+1;
+  const round={ n, at:opts.at||nowISO(), by:who, status:'open', via:'external',
+    comment:opts.comment||`Changes received from ${who} outside HaTi.`,
+    baseText:base, proposedText:txt,
+    // WHO typed it in is not who wrote it; both belong on the record
+    filedBy:u?.name||'System', filedAt:nowISO() };
+  c.rounds.push(round);
+  logAudit(c,'Changes received',
+    `Wording from ${who} received outside HaTi and filed as negotiation round ${n} in their name, for review${opts.channel?` (${opts.channel})`:''} — entered by ${u?.name||'System'}`);
+  c.lastAction=todayStr();
+  return round;
+}
+
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

@@ -1126,7 +1126,14 @@ function openEditDocModal(c){
           <span>This document carries <b>formatting</b> — headings, bold, numbered clauses, tables. This is the plain-text editor, so saving here <b>converts it to plain text and the formatting is lost</b>. The clause numbers below are written out as text so the wording survives. Cancel if you did not intend that.</span></div>`:''}
       </div>
       <textarea id="ed-text" class="scroll-thin" spellcheck="false" style="${COL};flex:1 1 auto;min-height:0;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:22px 26px;font:inherit;font-size:15px;line-height:1.95;resize:none;outline:none">${esc(cur)}</textarea>
-      <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+      <div style="${COL};padding:0 26px;margin-top:12px">
+        <label style="display:flex;align-items:flex-start;gap:8px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:9px 11px;font-size:11.5px;cursor:pointer">
+          <input type="checkbox" id="ed-from-cp" style="margin-top:2px;flex:none"/>
+          <span><b>These changes came from ${esc(c.counterparty||'the counterparty')} (received outside HaTi).</b>
+          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">Tick this when you are typing in wording they sent by email, Word or on the phone. It is filed as a negotiation round <b>in their name</b> and waits for your decision, instead of being recorded as your own edit.</span></span>
+        </label>
+      </div>
+      <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <span id="ed-count" style="font-size:10.5px;color:var(--color-neutral-500)">${cur.length.toLocaleString()} characters</span>
         <span style="display:flex;gap:8px">
           <button id="ed-cancel" class="ui-btn">Cancel</button>
@@ -1141,13 +1148,21 @@ function openEditDocModal(c){
     const txt=ta.value;
     if(txt.trim()===cur.trim()){ toast('No changes made'); closeModal(); return; }
     if(!txt.trim()){ toast('The document text cannot be empty','err'); return; }
-    const u=currentUser();
-    if(!(c.versions||[]).length) captureVersion(c,'Original text','System');
-    c.redlineText=txt;
-    if(wasRich) c.format=TEXT_FORMAT;   // the plain-text editor produces plain text; say so on the record
-    const v=captureVersion(c,`Edited by ${u?.name||'user'}`,u?.name);
-    logAudit(c,'Edited',`Document wording edited in the workspace${wasRich?' using the plain-text editor — formatting was not retained':''}${v?` — captured as v${v.n}`:''}`);
-    c.lastAction=todayStr(); persist(c);
+    const fromCp=!!document.getElementById('ed-from-cp')?.checked;
+    if(fromCp){
+      // THEIR wording, typed in by us. It becomes a round in their name and
+      // goes through the same review step as a redline sent through the portal
+      // — never a silent owner edit, which is what this used to record.
+      const r=fileCounterpartyEdit(c, txt, { by:c.counterparty, channel:'received outside HaTi' });
+      if(!r) return;
+      persist(c); closeModal(); renderWorkspace();
+      toast(`Filed as round ${r.n} from ${c.counterparty||'the counterparty'} — review the changes`);
+      if(window.reviewProposedRound) reviewProposedRound(c, r.n);
+      return;
+    }
+    const v=applyOwnerEdit(c, txt);
+    if(!v && !c.redlineText) return;
+    persist(c);
     closeModal(); renderWorkspace();
     toast('Changes saved — open Compare to review them');
   });
