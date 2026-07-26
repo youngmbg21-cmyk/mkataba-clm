@@ -52,7 +52,7 @@ async function extractObligations(c){
   if(!text || text.length<120){ toast('No readable clause text to scan for obligations','err'); return []; }
   if(API_MODE() && state.aiConfigured){
     try{ const r=await api('ai/obligations','POST',{ text:text.slice(0,20000) }); return r.obligations||[]; }
-    catch(e){ toast('AI obligation scan unavailable — using a basic scan','err'); }
+    catch(e){ toast('Copilot obligation scan unavailable — using a basic scan','err'); }
   }
   return heuristicObligations(text, c);
 }
@@ -167,7 +167,7 @@ function openObligationsReview(c, found){
     let n=0;
     document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(cb.checked){ const o=found[Number(cb.getAttribute('data-ob-pick'))];
       c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++; } });
-    logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from AI scan`);
+    logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`);
     persist(c); closeModal(); renderObligationsSection(c);
     toast(`Added ${n} obligation${n===1?'':'s'}`);
   });

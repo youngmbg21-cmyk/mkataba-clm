@@ -261,9 +261,12 @@ function renderDashboard(){
       <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
     </div>`; }).join('');
   // ---- out with counterparties (share dispatch traffic lights) ----
-  const so=state.shareOverview||{}; const shCounts=so.counts||{}; const shItems=(so.items||[]).slice();
+  const so=state.shareOverview||{}; const shCounts=so.counts||{};
+  // Changes already reviewed are finished business — they leave the card
+  // instead of impersonating work that still needs a decision.
+  const shItems=(so.items||[]).filter(i=>i.state!=='reviewed');
   const needAttn=(shCounts.changes||0)+(shCounts.declined||0);
-  const shPri={changes:0,declined:1,opened:2,sent:3,signed:4,expired:5,revoked:6};
+  const shPri={changes:0,declined:1,opened:2,sent:3,signed:4,reviewed:5,expired:6,revoked:7};
   shItems.sort((a,b)=>(shPri[a.state]??9)-(shPri[b.state]??9));
   /* A share that came back wanting something — changes or a decline — is not the
      same kind of item as one merely sent, and used to look like one. Those get an

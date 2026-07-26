@@ -6,14 +6,14 @@
    VIEW: MIGRATION (bulk contract onboarding)
    Bring an existing portfolio into HaTi in one sitting: drop many
    files at once, each is hashed (dedupe), text-extracted, run
-   through AI/heuristic metadata extraction, filed and saved — then
+   through Copilot/heuristic metadata extraction, filed and saved — then
    a confidence-routed review queue lets a human confirm only the
    fields the machine was unsure about. An optional manifest CSV
    reconciles what the customer SAID they sent against what arrived.
    Composes the existing single-upload machinery (extractDocText,
    ai/extract, openMetaReview, files API) — no new server surface.
    ============================================================ */
-const MIG_MAX_FILES = 25;                        // realistic cap per batch (memory + AI window)
+const MIG_MAX_FILES = 25;                        // realistic cap per batch (memory + Copilot window)
 // Legacy .doc is deliberately absent: HaTi reads modern .docx (js/docx.js)
 // but not the pre-2007 binary format, so the picker must not invite it in.
 // Drag-and-drop bypasses `accept`, so migProcessFiles() also sniffs the bytes
@@ -271,7 +271,7 @@ function migManifestTemplate(){
   downloadFile('hati-migration-manifest.csv', head+'\n'+ex, 'text/csv');
 }
 
-/* ---------- AI budget: allowance state + pre-flight estimate ----------
+/* ---------- Copilot budget: allowance state + pre-flight estimate ----------
    The Migration screen is where onboarding spend actually happens, so it shows
    the onboarding allowance burning down and estimates a batch BEFORE it runs.
    Everything here is an estimate and is labelled as one — never a charge. */
@@ -337,16 +337,16 @@ async function migConfirmEstimate(files){
     message:`${est.docs} document${est.docs===1?'':'s'}, about ${est.pages} page${est.pages===1?'':'s'} — estimated ${migMoney(est.extractCost)} to read the details`
       + `, up to ${migMoney(est.worstCase)} if every one turns out to be a scan needing OCR.`
       + (est.thorough?' Thorough extraction is on, which multiplies the cost.':'')
-      + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily AI budget.')
+      + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily Copilot budget.')
       + ' These are estimates from file sizes, not charges — the real figure lands in Team & Settings as the batch runs.',
     confirmLabel:'Run the batch' });
 }
 
 /* ---------- bulk metadata extraction (429-safe) ----------
-   Uses the same server endpoint as single uploads, but stops calling the AI
+   Uses the same server endpoint as single uploads, but stops calling the Copilot
    for the rest of the batch after the first rate-limit/failure (the server
-   allows 40 light AI calls / 15 min) — remaining files fall back to the
-   pattern-matcher and are flagged so "Re-run AI" can finish the job later. */
+   allows 40 light Copilot calls / 15 min) — remaining files fall back to the
+   pattern-matcher and are flagged so "Re-run Copilot" can finish the job later. */
 async function migExtract(text, seed){
   const M=migState();
   let meta=null;
@@ -359,9 +359,9 @@ async function migExtract(text, seed){
     catch(e){ M.aiDown=true;
       M.aiDownMsg = e.allowanceExhausted
         ? 'Onboarding allowance used up — the rest of this batch is pattern-matched'
-        : e.spendLimit ? 'Daily AI budget reached — the rest of this batch is pattern-matched'
-        : /limit/i.test(e.message) ? 'AI rate limit reached'
-        : 'AI unavailable ('+e.message+')';
+        : e.spendLimit ? 'Daily Copilot budget reached — the rest of this batch is pattern-matched'
+        : /limit/i.test(e.message) ? 'Copilot rate limit reached'
+        : 'Copilot unavailable ('+e.message+')';
     }
   }
   if(!meta){ meta=heuristicExtract(text); meta._source='heuristic'; }
@@ -633,7 +633,7 @@ async function migProcessFiles(fileList, opts={}){
   await migLoadAiState();
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
   updateSidebarCounts();
-  window.refreshAiUsage&&refreshAiUsage();   // batch just spent AI calls — update the meter
+  window.refreshAiUsage&&refreshAiUsage();   // batch just spent Copilot calls — update the meter
   M.cancelled=M.queue.some(q=>q.status==='cancelled');
   await syncBatch(M.cancelled?'stopped':'finished');
   M.ocrError=ocrErrors?ocrLastError:'';
@@ -678,12 +678,12 @@ function migReviewAll(){
   };
   next();
 }
-/* Re-run AI over contracts that only got the pattern-matcher (e.g. the batch
-   hit the 15-minute AI rate limit) — auto-applies, keeps the review flag
+/* Re-run Copilot over contracts that only got the pattern-matcher (e.g. the batch
+   hit the 15-minute Copilot rate limit) — auto-applies, keeps the review flag
    honest, never overwrites human-confirmed metadata. */
 async function migRerunAi(){
   const M=migState();
-  if(!API_MODE()||!state.aiConfigured){ toast('Connect an AI key in Team & Settings first','err'); return; }
+  if(!API_MODE()||!state.aiConfigured){ toast('Connect an Copilot key in Team & Settings first','err'); return; }
   M.aiDown=false;
   const todo=migContracts().filter(c=>c.migration.needsReview && c.migration.aiSource!=='ai' && !(c.metadata&&c.metadata.confirmedAt));
   if(!todo.length){ toast('No pattern-matched contracts left to re-run'); return; }
@@ -691,7 +691,7 @@ async function migRerunAi(){
   let done=0;
   for(const c of todo){
     if(migState().aiDown) break;
-    if(btn) btn.textContent=`Re-running AI… ${done}/${todo.length}`;
+    if(btn) btn.textContent=`Re-running Copilot… ${done}/${todo.length}`;
     try{ await ensureFull(c); }catch(e){}
     const text=(c.upload&&c.upload.extractedText)||'';
     if(text.length<200) continue;
@@ -702,13 +702,13 @@ async function migRerunAi(){
     if(meta.counterparty&&!c.counterparty) c.counterparty=meta.counterparty;
     if(meta.value&&!(Number(c.value)>0)){ c.value=Number(meta.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
     if(meta.expiryDate&&!c.expiry) c.expiry=meta.expiryDate;
-    logAudit(c,'AI extraction','Re-ran AI metadata extraction over the stored document text');
+    logAudit(c,'Copilot extraction','Re-ran Copilot metadata extraction over the stored document text');
     c.migration.aiSource='ai';
     c.migration.needsReview=migNeedsReview(meta, c);
     persist(c); done++;
   }
   if(API_MODE()){ try{ await flushSaves(); }catch(e){} }
-  toast(migState().aiDown?`AI re-run stopped (${migState().aiDownMsg}) — ${done} done, try again later`:`AI re-ran on ${done} contract${done===1?'':'s'}`);
+  toast(migState().aiDown?`Copilot re-run stopped (${migState().aiDownMsg}) — ${done} done, try again later`:`Copilot re-ran on ${done} contract${done===1?'':'s'}`);
   window.refreshAiUsage&&refreshAiUsage();
   updateSidebarCounts(); renderMigration();
 }
@@ -775,7 +775,7 @@ function migAllowanceHtml(){
   const a=M.allowance;
   if(!a||!a.open){
     return `<div style="font-size:11px;color:var(--color-neutral-600);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:4px;padding:7px 10px;margin-bottom:12px">
-      This batch draws on the workspace's <b>daily AI budget</b>. For a large back catalogue, an admin can open a one-off <b>onboarding allowance</b> in Team &amp; Settings so the day-to-day ceiling doesn't stop the import.</div>`;
+      This batch draws on the workspace's <b>daily Copilot budget</b>. For a large back catalogue, an admin can open a one-off <b>onboarding allowance</b> in Team &amp; Settings so the day-to-day ceiling doesn't stop the import.</div>`;
   }
   const moneyPct=a.budget>0?Math.min(100,Math.round((a.spent||0)/a.budget*100)):0;
   const docsPct=a.docs>0?Math.min(100,Math.round((a.docsUsed||0)/a.docs*100)):0;
@@ -805,7 +805,7 @@ const MIG_QSTATE = {
   waiting:   {t:'Waiting',        c:'var(--color-neutral-500)'},
   reading:   {t:'Reading file…',  c:'var(--color-accent-700)'},
   extracting:{t:'Extracting text…',c:'var(--color-accent-700)'},
-  ai:        {t:'AI extracting…', c:'var(--color-accent-700)'},
+  ai:        {t:'Copilot extracting…', c:'var(--color-accent-700)'},
   matching:  {t:'Pattern-matching…',c:'#7d5a14'},
   ocr:       {t:'Reading scan…',  c:'var(--color-accent-700)'},
   saved:     {t:'Imported',       c:'#1e6b4d'},
@@ -835,8 +835,8 @@ function renderMigQueue(){
         ${M.running?`<button id="mig-cancel" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Stop after current file</button>`:''}
       </div>
       <div style="height:6px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:10px"><div style="width:${pct}%;height:100%;background:var(--color-accent);transition:width .3s"></div></div>
-      ${M.ocrError?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run AI extraction”.</div>`:''}
-      ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'AI unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run AI extraction” once the limit resets.</div>`:''}
+      ${M.ocrError?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">A scanned document could not be read: ${migEsc(M.ocrError)}. Those files were imported with no text — open each one and enter the details, or fix the reader and use “Re-run Copilot extraction”.</div>`:''}
+      ${M.aiDown?`<div style="font-size:11.5px;color:#7d5a14;background:#fbf4e3;border:1px solid #f0e3c2;border-radius:4px;padding:7px 10px;margin-bottom:8px">${migEsc(M.aiDownMsg||'Copilot unavailable')} — remaining files use the built-in pattern-matcher and are flagged for review. Use “Re-run Copilot extraction” once the limit resets.</div>`:''}
       <div class="scroll-thin" style="max-height:260px;overflow-y:auto">
         ${M.queue.map((q,i)=>{ const s=MIG_QSTATE[q.status]||MIG_QSTATE.waiting;
           const active=['reading','extracting','ai','matching','ocr'].includes(q.status);
@@ -981,7 +981,7 @@ function renderMigration(){
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Bulk import</h3>
         </div>
-        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the AI engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
+        <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">Drop your whole portfolio at once (PDF, Word .docx, image or text · max ${uploadMaxLabel()} each · legacy .doc must be re-saved as .docx or PDF first). Every file is hashed for duplicates, text-extracted and ${API_MODE()&&state.aiConfigured?'read by the Copilot engine':'pattern-matched'} — then only the fields the machine wasn’t sure about come back to you for review. ${API_MODE()?'':'<strong>Static mode stores files in this browser (≈5 MB total) — for a real migration, run the HaTi server.</strong>'}</p>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
           <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--color-neutral-700)">Import as
             <select id="mig-status" style="${selStyle}">${statusOpts}</select></label>
@@ -1019,7 +1019,7 @@ function renderMigration(){
           <span style="font-size:11px;color:var(--color-neutral-600)">${k.complete}/${k.total} fully migrated</span>
           <span style="flex:1"></span>
           ${canEdit()&&k.review?`<button id="mig-review-all" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('check2','w-3.5 h-3.5')} Review all (${k.review})</button>`:''}
-          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Re-run AI extraction (${heur})</button>`:''}
+          ${canEdit()&&heur&&API_MODE()&&state.aiConfigured?`<button id="mig-rerun" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Re-run Copilot extraction (${heur})</button>`:''}
           <button id="mig-sheet-out" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('download','w-3.5 h-3.5')} Review sheet</button>
           ${canEdit()?`<button id="mig-sheet-in" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload','w-3.5 h-3.5')} Import sheet</button>
           <input id="mig-sheet-file" type="file" accept=".csv" style="display:none">`:''}

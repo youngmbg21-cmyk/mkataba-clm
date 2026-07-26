@@ -914,7 +914,7 @@ function openUploadModal(){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
         <h2 class="font-display font-700 text-brand-900">Upload a received contract</h2></div>
-      <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, AI-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
+      <p class="text-xs text-brand-800/70 mb-4">Add a contract another company sent you — on their own paper. Attach the file and a few details, then review, Copilot-scan and sign it here, with a full audit trail and a cryptographic seal.</p>
       <label class="block mb-3">
         <span class="text-xs font-medium text-brand-800/70">Contract file <span class="text-brand-800/65">(PDF, Word .docx, image or text · max ${uploadMaxLabel()} · legacy .doc must be re-saved first)</span></span>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="mt-1 w-full text-sm rounded-lg border border-brand-100 bg-canvas p-1.5 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-900 file:text-white file:px-3 file:py-2 file:text-xs file:font-medium"/>
@@ -1035,7 +1035,7 @@ async function submitUpload(){
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
-    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for AI review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
+    comments:[{author:'System',role:'Automation',side:'internal',text:`Uploaded “${file.name}”, received from ${cp||'a counterparty'} and filed under ${FOLDERS[folder].name}.${extractedText.length>200?` ${extractedText.length.toLocaleString()} characters of text extracted for Copilot review.`:''} Review and sign to record acceptance.`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Uploaded',detail:`Received “${file.name}” (${Math.round(file.size/1024)} KB)${extractedText.length>200?`, ${extractedText.length.toLocaleString()} chars extracted`:', no text extracted'}`}],
     signatures:[], upload };
@@ -1079,7 +1079,7 @@ function applyMetadata(c, m){
   if(m.counterparty && !c.counterparty) c.counterparty=m.counterparty;
   if(m.value && !(Number(c.value)>0)){ c.value=Number(m.value)||0; if(c.valueType==='none') c.valueType='estimated'; }
   if(m.expiryDate && !c.expiry) c.expiry=m.expiryDate;
-  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'AI-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
+  logAudit(c,'Metadata confirmed',`Filed with ${m._source==='ai'?'Copilot-extracted':'pattern-matched'} details (type ${m.contractType||'—'}, renewal ${m.renewalType||'—'})`);
 }
 
 /* Working-text document body: shown once a contract carries edited wording
@@ -1242,7 +1242,7 @@ function uploadDocBody(c){
     <div class="mb-5 flex items-start gap-2 rounded-lg bg-gold-500/10 border border-gold-500/25 px-3 py-2.5 text-[11px] text-gold-700" data-anchor="doc">
       ${icon('upload','w-3.5 h-3.5 mt-0.5 shrink-0')}<span>${isExternallyExecuted(c)
         ? `This contract was <strong>executed outside HaTi</strong>${c.counterparty?` with <strong>${esc(c.counterparty)}</strong>`:''} and migrated in as a record. It is filed for reference, renewal and reporting — there is nothing to sign here.`
-        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the AI review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
+        : `This is a contract <strong>received from ${c.counterparty||'a counterparty'}</strong>, on their own paper. Review it below, run the Copilot review, then sign to record <strong>${FIRST_PARTY}</strong>’s acceptance with a cryptographic seal.`}</span>
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
@@ -1254,13 +1254,13 @@ function uploadDocBody(c){
     <div class="mb-4 flex flex-wrap items-center gap-2">
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition">${icon('download','w-3.5 h-3.5')} Download original</a>
       <span class="inline-flex items-center gap-1.5 rounded-lg border ${u.textChars>200?(isOcrText(u.textSource)?'border-gold-500/25 bg-gold-500/10 text-gold-700':'border-brand-100 bg-brand-50/50 text-brand-700'):'border-gold-500/25 bg-gold-500/10 text-gold-700'} px-3 py-2 text-[11px]">${icon('scan','w-3.5 h-3.5')}${u.textChars>200
-        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — AI review analyses the actual text`
-        : 'Text not machine-readable — AI review falls back to a manual checklist'}</span>
+        ? `${Number(u.textChars).toLocaleString()} characters ${isOcrText(u.textSource)?`machine-read from ${u.ocrPages||'the'} scanned page${u.ocrPages===1?'':'s'}`:'read'} — Copilot review analyses the actual text`
+        : 'Text not machine-readable — Copilot review falls back to a manual checklist'}</span>
       ${canEdit()?`<button type="button" data-reread class="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-white px-3 py-2 text-xs font-medium text-brand-700 hover:bg-brand-50 transition" title="Read the original file again — use this if the extracted text looks garbled">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
-         could be read for AI review. None of it is the counterparty's business,
+         could be read for Copilot review. None of it is the counterparty's business,
          and shown to them it produced a second Download button competing with
          the portal's own, under copy addressed to somebody else. -->
     ${c.redlineText?`
@@ -1407,7 +1407,7 @@ function uploadScanRules(c){
   }
   // always — honest disclaimer
   add('u-legal','low','missing','Have qualified counsel review before signing',
-    'This AI review flags common issues but is not legal advice and cannot catch everything.',
+    'This Copilot review flags common issues but is not legal advice and cannot catch everything.',
     'External paper is drafted for the other side; a clause-by-clause read by a lawyer catches what heuristics miss.',
     'Obtain independent legal review before signing where the value or risk is material.');
   return F;
@@ -1761,7 +1761,7 @@ function focusKeyTerms(c){
 
 /* ---- Document workspace right-panel: two tabs (Screening | Signing) --------
    Screening (default while a contract is in progress) stacks Playbook review →
-   Insert clause → AI Contract Scan, with a "Next: Signing" button. Signing
+   Insert clause → Copilot Contract Scan, with a "Next: Signing" button. Signing
    (default once executed) shows read-only Key terms on top and a card with
    four inner tabs: Activity · Terms · Audit · Signing. Tab choices persist
    across re-renders of the same contract, and reset when a different contract
@@ -1989,7 +1989,7 @@ function renderWorkspace(){
           <div id="doc-zoom" style="zoom:var(--doc-zoom,1)">
           ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
             :!canEdit()?`<div class="mb-5 flex items-center gap-2 rounded-[4px] px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px;background:var(--color-neutral-100);border:1px solid var(--color-divider);color:var(--color-neutral-700)">${icon('lock','w-3.5 h-3.5')}<span>You have viewer access — the document is read-only for your role.</span></div>`
-            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the AI review, then sign to record acceptance.</span></div>`
+            :isUpload(c)?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('scan','w-3.5 h-3.5')}<span>Received document — read it below, run the Copilot review, then sign to record acceptance.</span></div>`
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
@@ -2249,7 +2249,7 @@ function wireKeyTerms(c){
   document.getElementById('kt-fill')?.addEventListener('click',()=>fillKeyTermsFromDocument(c));
 }
 /* Read what the document itself says and drop it into the EMPTY fields — never
-   over something already entered. Uses the AI reader when a key is configured
+   over something already entered. Uses the Copilot reader when a key is configured
    (it finds party names, which the pattern matcher can't) and the pattern
    matcher otherwise. */
 async function fillKeyTermsFromDocument(c){
@@ -2263,7 +2263,7 @@ async function fillKeyTermsFromDocument(c){
     if(!c.counterparty && meta.counterparty){ c.counterparty=String(meta.counterparty).trim(); filled.push('counterparty'); }
     // the pattern matcher just takes the first money amount it sees — in a
     // contract that is as likely to be a unit rate as the deal value, so only
-    // trust a figure the AI reader picked out
+    // trust a figure the Copilot reader picked out
     if(meta._source==='ai' && isMonetary(c) && !(Number(c.value)>0) && Number(meta.value)>0){
       c.value=Number(meta.value); if(c.valueType!=='estimated') c.valueType='estimated'; filled.push('value');
     }
@@ -2271,11 +2271,11 @@ async function fillKeyTermsFromDocument(c){
     if(!c.expiry && meta.expiryDate){ c.expiry=meta.expiryDate; filled.push('expiry'); }
     if(!filled.length){
       toast(meta._source==='ai'?'Nothing new found — the fields already hold what the document says'
-                               :'Nothing found. Party names and the deal value need an AI key — type them in instead','err');
+                               :'Nothing found. Party names and the deal value need an Copilot key — type them in instead','err');
       return;
     }
     c.lastAction=todayStr();
-    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'AI':'pattern match'})`);
+    logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Copilot':'pattern match'})`);
     persist(c);
     toast(`Filled ${filled.join(', ')} — check it before signing`);
     renderWorkspace();

@@ -147,6 +147,61 @@ describe('F13 — an old copy cannot be answered', () => {
   });
 });
 
+describe('F13 — reviewed changes leave the attention list', () => {
+  // one full cycle: they send changes back, the owner decides the round,
+  // and the share stops reading as work that still needs a decision
+  const respondAt = '2026-07-26T10:00:00.000Z';
+  const closeRound = async (decision) => {
+    const got = await W.admin.json('/api/contracts/MK-A2');
+    const c = got.contract || got;
+    c.rounds = (c.rounds || []).map(r => r.at === respondAt
+      ? { ...r, status: 'closed', resolution: { decision, by: 'Young Mbagaya', at: '2026-07-26T12:00:00.000Z' } } : r);
+    await W.admin.json('/api/contracts/MK-A2', { method: 'PUT',
+      body: { contract: c, baseVersion: c._v || got.version } });
+  };
+  const openRound = async () => {
+    const got = await W.admin.json('/api/contracts/MK-A2');
+    const c = got.contract || got;
+    c.rounds = [ ...(c.rounds || []), { n: (c.rounds || []).length + 1, at: respondAt,
+      by: 'Review Case', comment: 'lower it', proposedText: 'NEW WORDS', baseText: V2, status: 'open', resolution: null } ];
+    await W.admin.json('/api/contracts/MK-A2', { method: 'PUT',
+      body: { contract: c, baseVersion: c._v || got.version } });
+  };
+  const stateOf = async (token) => {
+    const list = await W.admin.json('/api/shares/overview');
+    const row = (list.items || []).find(i => i.token === token);
+    return row ? row.state : '(not listed)';
+  };
+
+  test('an undecided round keeps the share on the list as changes', async () => {
+    const s = await mkShare(W, V2, { name: 'Review Case', email: 'review@example.com' });
+    await h.client('rv').json('/api/shares/' + s.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'changes', name: 'Review Case', comment: 'lower it',
+      proposedText: 'NEW WORDS', baseText: V2, at: respondAt } });
+    await openRound();                                   // the response has landed on the contract
+    assert.equal(await stateOf(s.token), 'changes', 'still waiting on the owner — it must stay');
+
+    await closeRound('accepted');                        // the owner decides
+    assert.equal(await stateOf(s.token), 'reviewed', 'decided changes are finished business');
+  });
+
+  test('a rejection clears the list just as an acceptance does — either way, it was decided', async () => {
+    const s = await mkShare(W, V2, { name: 'Review Case', email: 'review@example.com' });
+    await h.client('rv2').json('/api/shares/' + s.token + '/respond', { method: 'POST', body: {
+      kind: 'hati-response', action: 'changes', name: 'Review Case', comment: 'again',
+      proposedText: 'MORE WORDS', baseText: V2, at: respondAt } });
+    await closeRound('rejected');
+    assert.equal(await stateOf(s.token), 'reviewed');
+  });
+
+  test('the counts follow: reviewed shares are not counted as changes', async () => {
+    const list = await W.admin.json('/api/shares/overview');
+    assert.ok((list.counts.reviewed || 0) >= 2, 'the two decided shares count as reviewed');
+    const changed = (list.items || []).filter(i => i.recipientEmail === 'review@example.com' && i.state === 'changes');
+    assert.equal(changed.length, 0, 'nothing decided may still read as changes');
+  });
+});
+
 describe('F13 — accepting the wording is not signing it', () => {
   test('the server takes an acceptance', async () => {
     const s = await mkShare(W, V2, GULIZ);

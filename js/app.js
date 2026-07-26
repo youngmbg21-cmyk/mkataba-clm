@@ -73,11 +73,11 @@ function commandMeta(view){
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
-    case 'intel':     return ['Portfolio Intelligence', 'AI contract graph · clustered by value stream'];
+    case 'intel':     return ['Portfolio Intelligence', 'Copilot contract graph · clustered by value stream'];
     case 'calendar':  return ['Renewal Calendar', 'expiries, renewal decisions and obligation due dates'];
-    case 'migration': return ['Migration', 'bulk-import an existing portfolio · AI extraction with human review'];
+    case 'migration': return ['Migration', 'bulk-import an existing portfolio · Copilot extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
-    case 'team':      return ['Team & Settings', 'members, roles, approval gate and the AI engine'];
+    case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];
     case 'folder': {
       const f=FOLDERS[state.folderId]; return ['Register', f?`filtered to ${f.name}`:'filter, sort and act in bulk'];
     }
@@ -407,7 +407,7 @@ function wireShell(){
   nb&&nb.addEventListener('click',e=>{ e.stopPropagation(); if(nm.classList.contains('hidden')) renderNewMenu(); nm.classList.toggle('hidden'); });
   document.addEventListener('click',e=>{ if(nm&&!nm.classList.contains('hidden')&&!nm.contains(e.target)&&e.target!==nb&&!nb.contains(e.target)) nm.classList.add('hidden'); });
 
-  // AI
+  // Copilot
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
   document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
 

@@ -163,7 +163,7 @@ function _normaliseStructure(root){
   // write and impossible to read: the text projection walks a list's <li>
   // children, so a stray inner list — and everything in it — is skipped
   // silently. Content vanishing from the projection is the worst kind of bug
-  // here, because the projection is what the diff compares, the AI reads,
+  // here, because the projection is what the diff compares, the Copilot reads,
   // search matches and the seal hashes. Move it inside the preceding item.
   root.querySelectorAll('ul>ul, ul>ol, ol>ul, ol>ol').forEach(inner=>{
     const parent=inner.parentElement; if(!parent) return;
@@ -237,7 +237,7 @@ function renderDocHtml(content, format, opts={}){
 }
 
 /* ---------- text projection ----------
-   The unit the diff, the AI features, search and (for plain documents) the seal
+   The unit the diff, the Copilot features, search and (for plain documents) the seal
    all work on. Preserves the document's shape — headings, clauses and
    paragraphs on their own lines — rather than collapsing to one blob.
 

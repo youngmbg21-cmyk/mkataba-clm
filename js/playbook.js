@@ -127,7 +127,7 @@ async function runPlaybookReview(c){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       const r=await api('ai/playbook','POST',{ text:text.slice(0,20000), playbook:pb, kind:cKind(c) });
       return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
-    }catch(e){ toast('AI playbook review unavailable — using the basic checks','err'); }
+    }catch(e){ toast('Copilot playbook review unavailable — using the basic checks','err'); }
   }
   return playbookReviewHeuristic(c, text);
 }
@@ -157,7 +157,7 @@ function renderPlaybookSection(c){
         <h3 class="text-sm font-display font-600 text-ink">Playbook review</h3>
         ${sm?`<span class="ml-auto text-[10px] font-mono ${sm.ok?'text-brand-600':'text-gold-600'}">${sm.ok?'aligned':`${sm.dev} deviation${sm.dev===1?'':'s'}, ${sm.miss} missing`}</span>`:''}
       </div>
-      <p class="text-[11px] text-ink/60 mb-3">${r?`Checked against the <b>${r.label}</b> playbook · ${r.source==='ai'?'AI review':'basic checks'}.`:'Review this contract against your preferred and fallback positions for its type.'}</p>
+      <p class="text-[11px] text-ink/60 mb-3">${r?`Checked against the <b>${r.label}</b> playbook · ${r.source==='ai'?'Copilot review':'basic checks'}.`:'Review this contract against your preferred and fallback positions for its type.'}</p>
       ${r?`<div class="space-y-1.5 mb-3">${r.verdicts.map((v,i)=>`
         <div class="rounded-lg border border-line bg-white px-3 py-2">
           <div class="flex items-center gap-2 text-[12px]">

@@ -494,8 +494,8 @@ const rlShare = rateLimit('share', 30, 15 * 60 * 1000);
 const rlShareSend = rateLimit('share-send', 100, 24 * 60 * 60 * 1000,
   { keyFn: req => 'u:' + ((req.user && req.user.id) || 'anon'), message: 'Daily share limit reached — try again tomorrow' });
 
-/* ---------- AI cost controls (rate limit, input caps, daily backstop) ------
-   Each AI endpoint calls Anthropic and costs real money. These controls reuse
+/* ---------- Copilot cost controls (rate limit, input caps, daily backstop) ------
+   Each Copilot endpoint calls Anthropic and costs real money. These controls reuse
    the settings store so an admin can tune them from Team & Settings, each with
    an env-var fallback and a built-in default. Like the rate limiter above, the
    daily counter is single-instance (persisted per workspace in settings) and
@@ -508,7 +508,7 @@ const intSetting = (key, envVar, def) => {
   return def;
 };
 
-// FIX 1 — per-user AI rate limits, two tiers reflecting cost. DEEP (playbook,
+// FIX 1 — per-user Copilot rate limits, two tiers reflecting cost. DEEP (playbook,
 // obligations — larger prompts + the Sonnet-class model) is tighter than LIGHT
 // (search, graph, template, extract). Keyed by user id so an office behind one
 // IP isn't a single shared budget and a signed-in abuser can't dodge it by
@@ -516,7 +516,7 @@ const intSetting = (key, envVar, def) => {
 // real demo or a busy reviewer, but a runaway client loop is stopped fast.
 const AI_WINDOW_MS = 15 * 60 * 1000;
 const aiUserKey = req => 'u:' + ((req.user && req.user.id) || clientIp(req) || 'unknown');
-const AI_LIMIT_MSG = 'AI limit reached — try again in a few minutes';
+const AI_LIMIT_MSG = 'Copilot limit reached — try again in a few minutes';
 const rlAiLight = rateLimit('ai-light', () => intSetting('aiRateLight', 'AI_RATE_LIGHT', 40), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
 const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE_DEEP',  15), AI_WINDOW_MS, { keyFn: aiUserKey, message: AI_LIMIT_MSG });
 
@@ -525,7 +525,7 @@ const rlAiDeep  = rateLimit('ai-deep',  () => intSetting('aiRateDeep',  'AI_RATE
 // but a pasted-in monster document or a scripted bulk payload is bounded before
 // it reaches (and is billed by) Anthropic. Truncation sets req.aiInputCapped so
 // the endpoint can tell the user their input was shortened.
-const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to AI…]';
+const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
 function capAiInput(req, res, next) {
   const b = req.body || {};
   let capped = false;
@@ -548,7 +548,7 @@ function capAiInput(req, res, next) {
   next();
 }
 
-/* FIX 4 — the AI endpoints below assemble their prompt from a contract list the
+/* FIX 4 — the Copilot endpoints below assemble their prompt from a contract list the
    BROWSER posts, which means the browser was deciding what the model got to
    read. It no longer does: every id is checked against the caller's folder
    scope and anything they may not see is dropped before the prompt is built,
@@ -602,7 +602,7 @@ function scopeAiPortfolio(req, res, next) {
 // SQLite table (below) because losing a daily budget on a restart is not a
 // tolerable failure mode, whereas losing a 15-minute rate window is.
 const aiDailyLimit = () => intSetting('aiDailyLimit', 'AI_DAILY_LIMIT', 5000);
-// The AI "day" rolls over at local midnight in this timezone (default EAT), so
+// The Copilot "day" rolls over at local midnight in this timezone (default EAT), so
 // the counter and the daily ceiling reset when the customer's day does — not at
 // 03:00 local (UTC midnight). Override with AI_DAY_TZ (an IANA zone name) — set
 // it to "UTC" if you would rather the ledger key on UTC dates.
@@ -752,7 +752,7 @@ function allowanceView() {
 }
 
 /* ---------- the guard ----------
-   Runs before every AI endpoint. Order of checks: allowance (if the caller
+   Runs before every Copilot endpoint. Order of checks: allowance (if the caller
    asked to draw on it) → daily spend ceiling → daily request ceiling.
    Every rejection keeps the existing 429 + Retry-After shape; the message
    differs because the remedy differs (wait vs. an admin raising a budget). */
@@ -786,10 +786,10 @@ function aiBudgetGuard(req, res, next) {
   if (spendCeiling > 0) {
     const s = aiSpendToday();
     if (s.cost >= spendCeiling) {
-      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further AI calls.`);
+      console.warn(`[ai] daily SPEND ceiling reached: ${s.cost.toFixed(4)}/${spendCeiling} on ${s.date} — blocking further Copilot calls.`);
       res.setHeader('Retry-After', 3600);
       return res.status(429).json({
-        error: `Daily AI budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
+        error: `Daily Copilot budget reached (${money(s.cost)} of ${money(spendCeiling)} spent today). Waiting will not help — an admin needs to raise the budget in Team & Settings, or open an onboarding allowance for a migration.`,
         spendLimit: true, dailySpend: s.cost, dailySpendLimit: spendCeiling, retryAfter: 3600 });
     }
   }
@@ -797,9 +797,9 @@ function aiBudgetGuard(req, res, next) {
   if (ceiling > 0) {
     const u = aiUsageToday();
     if (u.count >= ceiling) {
-      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further AI calls.`);
+      console.warn(`[ai] daily request ceiling reached: ${u.count}/${ceiling} on ${u.date} — blocking further Copilot calls.`);
       res.setHeader('Retry-After', 3600);
-      return res.status(429).json({ error: `Daily AI limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
+      return res.status(429).json({ error: `Daily Copilot limit reached (${u.count}/${ceiling} requests today). An admin can raise or disable this in Team & Settings.`, dailyLimit: true, retryAfter: 3600 });
     }
   }
   next();
@@ -949,8 +949,8 @@ app.get('/api/status', (req, res) => {
    with the variable unset the route 404s exactly as though it were never
    built, so a default deployment has no extra surface at all.
 
-   What it returns is deliberately tiny: the AI caps currently in force, the
-   number of AI requests made today, whether a provider key is configured (a
+   What it returns is deliberately tiny: the Copilot caps currently in force, the
+   number of Copilot requests made today, whether a provider key is configured (a
    boolean — never the key), the server mode and the deployed commit. It
    returns NO contract text, no counterparty or user names, no emails, no
    monetary values, no file names, and no tokens of any kind.
@@ -1211,10 +1211,10 @@ app.get('/api/search', auth, (req, res) => {
   } catch (e) { res.status(200).json({ hits: [], fts: true, error: 'search parse' }); }
 });
 
-// E6-T2: AI semantic search — answer a portfolio question with quoted evidence.
+// E6-T2: Copilot semantic search — answer a portfolio question with quoted evidence.
 app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { question, candidates } = req.body || {};
   if (!question || !Array.isArray(candidates)) return res.status(400).json({ error: 'question and candidates are required' });
   const tool = {
@@ -1230,12 +1230,12 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
     const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search' });
-    if (!out.ok) return res.status(502).json({ error: 'AI provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
+    if (!out.ok) return res.status(502).json({ error: 'Copilot provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     res.json({ answer: block.input?.answer || '', matches: Array.isArray(block.input?.matches) ? block.input.matches : [], ...aiNotice(req, out) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
 app.get('/api/contracts/:id', auth, (req, res) => {
@@ -1383,7 +1383,7 @@ app.put('/api/settings/templates', auth, templateManager, (req, res) => {
   res.json({ ok: true });
 });
 
-/* ---------- AI engine (Portfolio Intelligence graph) ----------
+/* ---------- Copilot engine (Portfolio Intelligence graph) ----------
    An admin pastes an Anthropic API key (stored server-side, never returned
    to the browser). The graph endpoint proxies to Claude and returns which
    contracts to show and how to group them. No key → the client falls back
@@ -1403,7 +1403,7 @@ const ANTHROPIC_BASE = String(process.env.ANTHROPIC_BASE_URL || 'https://api.ant
    "Models overview" page (https://docs.claude.com): a Haiku-class model for
    FAST and a Sonnet-class model for DEEP. */
 const AI_TIER_DEFAULTS = { fast: 'claude-haiku-4-5-20251001', deep: 'claude-sonnet-5' };
-// Which tier each AI endpoint runs on.
+// Which tier each Copilot endpoint runs on.
 const AI_TASK_TIER = {
   search: 'fast', graph: 'fast', extract: 'fast', template: 'fast',
   obligations: 'deep', playbook: 'deep',
@@ -1479,8 +1479,8 @@ async function anthropicMessages(key, tier, payload, meter = {}) {
 // warning (FIX 2) and the model-fell-back warning into one `notice` string.
 const aiNotice = (req, out) => {
   const parts = [];
-  if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the AI.');
-  if (out && out.fellBack) parts.push(`The configured AI model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
+  if (req && req.aiInputCapped) parts.push('Your input was large, so it was shortened before being sent to the Copilot.');
+  if (out && out.fellBack) parts.push(`The configured Copilot model "${out.rejectedModel}" was rejected by the provider, so the built-in default "${out.model}" was used instead. Update the model in Team & Settings.`);
   return parts.length ? { notice: parts.join(' ') } : {};
 };
 
@@ -1650,7 +1650,7 @@ app.put('/api/ai/config', auth, admin, (req, res) => {
 });
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { query, contracts, history, activeIds } = req.body || {};
   if (!query || !Array.isArray(contracts)) return res.status(400).json({ error: 'query and contracts are required' });
   const list = contracts.slice(0, 600);
@@ -1677,17 +1677,17 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph' });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     const out = block.input || {};
     res.json({ visibleIds: Array.isArray(out.visibleIds) && out.visibleIds.length ? out.visibleIds : null,
       action: out.action === 'highlight' ? 'highlight' : 'filter',
       badges: (out.badges && typeof out.badges === 'object') ? out.badges : null,
       answer: typeof out.answer === 'string' ? out.answer : '',
       groupBy: out.groupBy || null, groups: (out.groupBy === 'custom' && out.groups) ? out.groups : null, note: out.note || '', ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
 /* ---------- OCR: read scanned paper ----------
@@ -1716,7 +1716,7 @@ Rules — these are absolute:
 
 app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { pages, first } = req.body || {};
   const list = Array.isArray(pages) ? pages : (req.body && req.body.page ? [req.body.page] : []);
   if (!list.length) return res.status(400).json({ error: 'pages (array of data URLs) is required' });
@@ -1750,9 +1750,9 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
       max_tokens: 8000, tools: [tool], tool_choice: { type: 'tool', name: 'transcribe_page' },
       messages: [{ role: 'user', content: [...blocks, { type: 'text', text: OCR_PROMPT }] }],
     }, { feature: 'ocr', countRequest: !!first, allowance: req.aiAllowance });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no transcription' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no transcription' });
     const out = block.input || {};
     res.json({
       text: typeof out.text === 'string' ? out.text : '',
@@ -1765,7 +1765,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
   } catch (e) { res.status(502).json({ error: 'OCR request failed: ' + e.message }); }
 });
 
-/* ---------- AI template advisor (two-stage) ----------
+/* ---------- Copilot template advisor (two-stage) ----------
    Stage 1: the client sends candidate contracts (metadata + full clause text);
    the server re-scores on metadata and keeps at most 8 — Signed first, then by
    value and text richness. Stage 2: Claude (FAST tier — this is a ranking
@@ -1773,7 +1773,7 @@ app.post('/api/ai/ocr', auth, rlAiOcr, aiFeature('ocr'), aiBudgetGuard, async (r
    contract described. */
 app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { query, candidates } = req.body || {};
   if (!query || !Array.isArray(candidates) || !candidates.length)
     return res.status(400).json({ error: 'query and candidates are required' });
@@ -1804,19 +1804,19 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template' });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     const out = block.input || {};
     const ids = new Set(scored.map(c => c.id));
     const ranked = (Array.isArray(out.ranked) ? out.ranked : []).filter(x => x && ids.has(x.id)).slice(0, 3);
-    if (!ranked.length) return res.status(502).json({ error: 'AI returned no usable ranking' });
+    if (!ranked.length) return res.status(502).json({ error: 'Copilot returned no usable ranking' });
     res.json({ ranked, answer: typeof out.answer === 'string' ? out.answer : '', ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
-/* ---------- AI metadata extraction (E1 "file it for me") ----------
+/* ---------- Copilot metadata extraction (E1 "file it for me") ----------
    Given the extracted text of a received contract, pull structured fields
    (counterparty, type, dates, value, renewal terms, governing law, payment
    terms), each with a confidence level. The human always confirms before it
@@ -1824,7 +1824,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
    fallback and never calls this. */
 app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { text, thorough, part, parts } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const today = new Date().toISOString().slice(0, 10);
@@ -1881,24 +1881,24 @@ ${String(text)}`;
     // over partial context, so it runs on the deep tier.
     const tier = thorough ? 'deep' : 'fast';
     const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     const out = block.input || {};
     const sourceSpans = (out.sourceSpans && typeof out.sourceSpans === 'object') ? out.sourceSpans : null;
     delete out.sourceSpans;
     res.json({ metadata: out, sourceSpans, source: 'ai', tier, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
-/* ---------- AI: suggest the blanks in a customer's template ----------
+/* ---------- Copilot: suggest the blanks in a customer's template ----------
    Proposes fields plus a rewritten body with {{key}} placeholders inserted.
    The human reviews and edits every proposal in the template editor before
    anything is saved — nothing here is written on the model's say-so. */
 app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { text } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = {
@@ -1937,9 +1937,9 @@ TEMPLATE:
 ${String(text)}`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks' });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     const out = block.input || {};
     // Only keep proposals whose `find` actually appears in the document — the
     // client rewrites the body by literal replacement, so a hallucinated span
@@ -1948,16 +1948,16 @@ ${String(text)}`;
       .filter(f => f && typeof f.find === 'string' && f.find.length > 0 && f.find.length < 200 && String(text).includes(f.find));
     res.json({ fields, note: typeof out.note === 'string' ? out.note : '',
       dropped: (Array.isArray(out.fields) ? out.fields.length : 0) - fields.length, ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
-/* ---------- AI obligation extraction (E3) ----------
+/* ---------- Copilot obligation extraction (E3) ----------
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The
    human confirms before any are saved; no key -> the client heuristic. */
 app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { text } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = {
@@ -1979,22 +1979,22 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations' });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     res.json({ obligations: Array.isArray(block.input?.obligations) ? block.input.obligations : [], ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
-/* ---------- AI playbook review (E4) ----------
+/* ---------- Copilot playbook review (E4) ----------
    Review a document against the org's playbook (preferred/fallback positions,
    ranges). Returns per-clause verdicts (aligned/deviation/missing) with a
    verbatim quote, the playbook position, and a suggested redline in the
    preferred wording. No key -> client heuristic. */
 app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { text, playbook, kind } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
   const tool = {
@@ -2018,18 +2018,18 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
   const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
-    if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
-    if (!block) return res.status(502).json({ error: 'AI returned no structured result' });
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
     res.json({ verdicts: Array.isArray(block.input?.verdicts) ? block.input.verdicts : [], ...aiNotice(req, resp) });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
 /* ============================================================
    HaTi Copilot — conversational assistant (server-mediated, tool-using)
    ============================================================
-   Unlike the single-shot AI endpoints above, Copilot runs a short agentic
+   Unlike the single-shot Copilot endpoints above, Copilot runs a short agentic
    TOOL LOOP. Claude may search the portfolio, pull a contract, read its scan
    findings, list by status/expiry/value, and compare contracts — each tool
    executed server-side against the DB (org-scoped) — then MUST finish by
@@ -2037,7 +2037,7 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
    an optional comparison table. Everything the model quotes is fetched from the
    workspace's own data, never invented. No key -> the client never calls this;
    it falls back to its built-in keyword assistant. Cost/rate/daily controls are
-   inherited from the shared middleware, exactly like the other AI endpoints.
+   inherited from the shared middleware, exactly like the other Copilot endpoints.
 
    NOTE: replies are request/response (not token-streamed). The tool loop is
    inherently multi-round; a future enhancement can stream the final turn over
@@ -2152,7 +2152,7 @@ function copilotList(ctx, filter = {}) {
 const COPILOT_TOOLS = [
   { name: 'search_contracts', description: 'Full-text search the workspace by keyword, counterparty, or clause content. Returns matching contracts with a snippet. Use when the user names a party or topic rather than an exact id.',
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
-  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open AI-scan findings, and body text. Use before answering about, or quoting, a specific contract.',
+  { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, and body text. Use before answering about, or quoting, a specific contract.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
   { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic Kenyan-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
@@ -2245,7 +2245,7 @@ function normalizeDeliver(input, cx) {
 
 app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
-  if (!key) return res.status(400).json({ error: 'AI engine not configured', needsKey: true });
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true });
   const { messages, context } = req.body || {};
   if (!Array.isArray(messages) || !messages.length) return res.status(400).json({ error: 'messages are required' });
   const cx = copilotCtx(req);
@@ -2261,7 +2261,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
   try {
     for (let step = 0; step < 5; step++) {
       const resp = await anthropicMessages(key, 'fast', { max_tokens: 1500, system, tools: COPILOT_TOOLS, messages: working }, { feature: 'chat' });
-      if (!resp.ok) return res.status(502).json({ error: 'AI provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+      if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
       if (resp.fellBack) { fellBack = true; rejectedModel = resp.rejectedModel; usedModel = resp.model; }
       const content = resp.data.content || [];
       const toolUses = content.filter(b => b.type === 'tool_use');
@@ -2285,7 +2285,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     const cards = cardIds.map(id => copilotCard(cx, id)).filter(Boolean);
     const notice = aiNotice(req, { fellBack, rejectedModel, model: usedModel });
     res.json({ answer: final.answer, citations: final.citations, compare: final.compare, cards, ...notice });
-  } catch (e) { res.status(502).json({ error: 'AI request failed: ' + e.message }); }
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
 // E8-T4: full workspace export as a zip (contracts incl. versions/audit,
@@ -2585,7 +2585,11 @@ function shareState(s) {
 function shareInfo(s) {
   let r = null; try { r = s.response ? JSON.parse(s.response) : null; } catch (_) {}
   return {
-    token: s.token, contractId: s.contract_id, state: shareState(s), channel: s.channel || 'link',
+    /* Both sides of the merge belong here: main's shareStateResolved upgrades a
+       decided changes-share to 'reviewed' (it wraps shareState, so a durable
+       link's latest-response state feeds it correctly), and the durable flag is
+       what the client's reshare and seen-state features read. */
+    token: s.token, contractId: s.contract_id, state: shareStateResolved(s), channel: s.channel || 'link',
     durable: !!s.durable,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
@@ -2668,7 +2672,34 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
 // "hottest" state per contract (for register/folder dots) and recent items
 // (for the dashboard strip). Registered before /api/shares/:token.
-const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'expired', 'revoked'];
+const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'reviewed', 'expired', 'revoked'];
+/* A share whose returned changes have already been dealt with is finished
+   business: the round it raised on the contract has been accepted or rejected.
+   Leaving it labelled "changes" kept it on the home page's attention list
+   forever — MK-184 sat there three times over for rounds long since decided.
+   The share row itself cannot know this; the contract's negotiation record can.
+   `cache` lets one request resolve many shares without re-reading a contract. */
+function shareStateResolved(s, cache) {
+  const st = shareState(s);
+  if (st !== 'changes' || !s.contract_id) return st;
+  let rounds = cache && cache.get(s.contract_id);
+  if (rounds === undefined) {
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+      rounds = row ? ((JSON.parse(row.json).rounds) || []) : null;
+    } catch (_) { rounds = null; }
+    if (cache) cache.set(s.contract_id, rounds);
+  }
+  if (!rounds || !rounds.length) return st;
+  // the round this response created carries the response's own timestamp
+  let mine = null;
+  try { const r = JSON.parse(s.response); mine = rounds.find(x => x.at === r.at) || null; } catch (_) {}
+  if (mine) return mine.status === 'open' ? st : 'reviewed';
+  // older data whose timestamps don't line up: once the response has been
+  // imported and no round on the contract is open, nothing is waiting
+  if (s.applied && !rounds.some(x => x.status === 'open')) return 'reviewed';
+  return st;
+}
 app.get('/api/shares/overview', auth, (req, res) => {
   const fs = scopeFrag(folderScopeFor(req.user), 'c.folder');
   const rows = db.prepare(`SELECT s.*, c.name AS c_name, c.counterparty AS c_counterparty
@@ -2676,8 +2707,9 @@ app.get('/api/shares/overview', auth, (req, res) => {
     ${whereOf('s.contract_id IS NOT NULL', fs.sql)}
     ORDER BY COALESCE(s.responded_at, s.first_opened_at, s.sent_at, s.created_at) DESC LIMIT 400`).all(...fs.args);
   const counts = {}, byContract = {}, items = [];
+  const roundsCache = new Map();
   for (const s of rows) {
-    const st = shareState(s);
+    const st = shareStateResolved(s, roundsCache);
     const at = s.responded_at || s.first_opened_at || s.sent_at || s.created_at;
     counts[st] = (counts[st] || 0) + 1;
     const cur = byContract[s.contract_id];

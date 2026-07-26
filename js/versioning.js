@@ -30,7 +30,7 @@ function htmlToStructuredText(html){
 }
 
 /* Plain text of a contract's current body — the unit versions/diffs work on,
-   and the unit every AI feature reads. For a RICH body this is the text
+   and the unit every Copilot feature reads. For a RICH body this is the text
    projection, which reconstructs ordered-list numbering, so clause numbers
    reach the diff, the model and search rather than vanishing with the markup. */
 function docPlainText(c){
@@ -570,10 +570,10 @@ function acceptProposedRound(c, n, opts={}){
   if(r.proposedValue!=null){ c.value=Number(r.proposedValue); c.approval=null; }
   // A Word round carries the returned .docx itself. Adoption files that file
   // as the contract's CURRENT version (v2, v3…) beside the untouched original,
-  // makes its text the extracted text (so search, AI review and the reading
+  // makes its text the extracted text (so search, Copilot review and the reading
   // view all follow the adopted wording), and refreshes the clause scan so the
   // risk flags describe the document as it now reads — through the same
-  // scanner the upload ran, AI or heuristic alike.
+  // scanner the upload ran, Copilot or heuristic alike.
   if(r.via==='word' && r.file){
     /* Which ledger the returned file goes into depends on where the contract
        came from — a received document stacks versions on its original, a
