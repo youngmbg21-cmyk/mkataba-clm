@@ -893,6 +893,12 @@ function openModal(html, opts={}){
     <div class="modal-in scroll-thin" style="position:relative;width:100%;max-width:${maxw};max-height:88vh;overflow-y:auto;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;">${html}</div>
   </div>`;
   document.getElementById('modal-scrim').addEventListener('click',closeModal);
+  // Esc closes, exactly like the scrim click — some modals (Compare, share)
+  // otherwise strand keyboard users with no visible way out
+  document.addEventListener('keydown',function esc(e){
+    if(e.key!=='Escape'){ if(!document.getElementById('modal-scrim')) document.removeEventListener('keydown',esc); return; }
+    document.removeEventListener('keydown',esc); closeModal();
+  });
   return root;
 }
 function closeModal(){ document.getElementById('modal-root').innerHTML=''; }

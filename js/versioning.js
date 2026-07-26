@@ -198,7 +198,8 @@ function openCompareModal(c){
   openModal(`
     <div style="padding:20px 22px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Compare versions</h3></div>
+        <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0;flex:1">Compare versions</h3>
+        <button id="cmp-x" title="Close" class="ui-btn" style="flex:none;width:30px;height:30px;padding:0">${icon('close','w-3.5 h-3.5')}</button></div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <select id="cmp-a" style="${selStyle}">${opts}</select>
         <span style="color:var(--color-neutral-500);flex:none">→</span>
@@ -207,7 +208,10 @@ function openCompareModal(c){
       </div>
       <div id="cmp-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin-bottom:10px"></div>
       <div id="cmp-out" style="font-size:12px;color:var(--color-neutral-500)">Pick two versions and press <b>Compare</b> to see the changes.</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:14px"><button id="cmp-done" class="ui-btn ui-btn-primary">Close</button></div>
     </div>`, {maxWidth:'860px'});
+  document.getElementById('cmp-x').addEventListener('click',closeModal);
+  document.getElementById('cmp-done').addEventListener('click',closeModal);
   document.getElementById('cmp-a').value=String(items.length-2);
   document.getElementById('cmp-b').value=String(items.length-1);
   const run=()=>{
