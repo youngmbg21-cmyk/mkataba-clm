@@ -1846,3 +1846,48 @@ browser exercise catches the difference.
 the dropdown listed v1 and v2 but showed v1 selected, so "Download selected"
 one click away from re-sending the superseded original. The latest version is
 now pre-selected.
+
+---
+
+# Run: overnight fix-and-verify loop (UX-review remediation)
+
+Starting point: commit `2d4cd99`, the commit the UX review examined. All times UTC.
+
+## Phase 0 — the verification harness
+
+**2026-07-26 — decision: a real DOM, not a hand-rolled fake.**
+The existing tests render one view module into a small fake `document`
+(`test/dom.js`) and read the markup back. That is enough for markup assertions
+but not for a six-round negotiation: the rich-document engine (`js/richdoc.js`)
+parses into an inert document, walks live cursors (`firstChild`/`nextSibling`
+while mutating the same child list) and calls `querySelector` with a compound
+selector. Reimplementing that faithfully in a test double would mean the
+scenarios ran against my imitation of a browser rather than a browser.
+
+Decision: add **jsdom as a devDependency** and boot the real modules into it
+(`test/world.js`). The frontend keeps its no-build-step, no-runtime-dependency
+rule — jsdom is `devDependencies` only and never reaches a browser. Recorded
+here because it changes test infrastructure: the *style* of the tests is
+unchanged (node:test, `describe`/`test`, assertions on real product output),
+only the DOM underneath is now real.
+
+**2026-07-26 — decision: the shell is stubbed, the logic never is.**
+`test/world.js` stands in for the application shell — `persist()`, `toast()`,
+`api()`, `renderWorkspace()` — but every module whose behaviour is under test is
+loaded from `js/` and run for real. `logAudit()` is deliberately a *recorder*:
+the product decides which actor and which wording go into the audit trail, and
+checklist line 4 is an assertion about exactly that decision. Had `logAudit`
+been reimplemented in the test, line 4 would have been testing the test.
+
+**2026-07-26 — decision: Erik's Word files are real ZIP bytes.**
+`test/docxfix.js` writes genuine `.docx` archives with tracked changes expressed
+the way Word expresses them (`w:ins` around inserted runs, `w:delText` for
+struck-out wording), so `js/docx.js` is exercised on the shape it meets in the
+field rather than on a convenient paraphrase.
+
+**2026-07-26 — baseline run.** `node --test test/scenario1.test.js
+test/scenario2.test.js` → **6 pass, 27 fail**. This failing baseline is the
+intended starting point: the scenario scripts describe the end state, and 27 of
+their assertions describe behaviour that does not exist yet. The 6 that already
+pass are the parts the UX review found genuinely working — the word diff, version
+capture, the value-counter path and the signed door.
