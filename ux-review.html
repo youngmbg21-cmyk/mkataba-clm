@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HaTi UX Review — Two Negotiation Simulations</title>
+<style>
+  :root{
+    --ink:#1d1f20; --muted:#5b5f63; --line:#dcdee1; --bg:#f4f5f6; --card:#ffffff;
+    --red:#b0453c; --redbg:#f9ecea; --green:#1e6b4d; --greenbg:#e4f1ea;
+    --amber:#8a6516; --amberbg:#fdf6e7; --accent:#456a8f; --accentbg:#eef2f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.65 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;}
+  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 80px}
+  h1{font-size:27px;line-height:1.25;margin:0 0 6px}
+  h2{font-size:21px;margin:44px 0 4px;padding-top:18px;border-top:2px solid var(--ink)}
+  h3{font-size:16px;margin:26px 0 8px}
+  p{margin:10px 0}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  code{background:#eceef0;border:1px solid var(--line);border-radius:4px;
+       padding:1px 5px;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:nowrap}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;
+        padding:18px 20px;margin:16px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}
+  @media(max-width:700px){.facts{grid-template-columns:1fr}}
+  .fact{font-size:13.5px;padding:8px 0;border-bottom:1px dashed var(--line)}
+  .yes{color:var(--green);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  .part{color:var(--amber);font-weight:700}
+  .round{border-left:4px solid var(--accent);background:var(--card);
+         border-radius:0 8px 8px 0;border-top:1px solid var(--line);
+         border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+         padding:14px 18px;margin:14px 0}
+  .round h4{margin:0 0 6px;font-size:14.5px}
+  .rlabel{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
+          text-transform:uppercase;background:var(--accentbg);color:var(--accent);
+          border-radius:999px;padding:2px 10px;margin-right:8px}
+  .kv{margin:6px 0 0;padding:0;list-style:none;font-size:13.5px}
+  .kv li{margin:5px 0;padding-left:0}
+  .kv b{display:inline-block;min-width:118px;color:var(--muted);font-weight:600;font-size:12.5px}
+  .ouch{background:var(--redbg);border:1px solid #e3c4bf;border-radius:6px;
+        padding:9px 13px;margin-top:9px;font-size:13.5px}
+  .ouch b{color:var(--red)}
+  .okay{background:var(--greenbg);border:1px solid #bcd9ca;border-radius:6px;
+        padding:9px 13px;margin-top:9px;font-size:13.5px}
+  .okay b{color:var(--green)}
+  .verdict{border:2px solid var(--ink);border-radius:10px;background:var(--card);
+           padding:20px 22px;margin:22px 0}
+  .score{font-size:38px;font-weight:800;line-height:1}
+  .score small{font-size:16px;font-weight:600;color:var(--muted)}
+  .fig{margin:18px 0;background:var(--card);border:1px solid var(--line);
+       border-radius:8px;padding:12px 12px 6px;overflow-x:auto}
+  .fig svg{display:block;width:100%;height:auto;min-width:640px}
+  .figcap{font-size:12.5px;color:var(--muted);padding:6px 6px 6px;line-height:1.5}
+  .imp{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .badge{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+         border-radius:999px;padding:2px 10px}
+  .b-small{background:var(--greenbg);color:var(--green)}
+  .b-medium{background:var(--amberbg);color:var(--amber)}
+  .b-large{background:var(--redbg);color:var(--red)}
+  .term{border-bottom:1px dotted var(--muted)}
+  /* shared classes for the hand-drawn SVG sketches (inline SVGs inherit page CSS) */
+  svg .box{fill:#fff;stroke:#9aa0a5;stroke-width:1.2;rx:6}
+  svg .panel{fill:#f2f3f5;stroke:#c6c9cc;stroke-width:1;rx:6}
+  svg .btn{fill:#eceef0;stroke:#9aa0a5;stroke-width:1;rx:5}
+  svg .btn-dark{fill:#33475c;stroke:#33475c;rx:5}
+  svg .btn-green{fill:#e4f1ea;stroke:#1e6b4d;stroke-width:1.4;rx:5}
+  svg .lbl{font:11px ui-monospace,Consolas,monospace;fill:#42474b}
+  svg .lbl-w{font:11px ui-monospace,Consolas,monospace;fill:#fff}
+  svg .lbl-g{font:600 11px ui-monospace,Consolas,monospace;fill:#1e6b4d}
+  svg .note{font:12px -apple-system,Arial,sans-serif;fill:#42474b}
+  svg .note-red{font:600 12px -apple-system,Arial,sans-serif;fill:#b0453c}
+  svg .note-green{font:600 12px -apple-system,Arial,sans-serif;fill:#1e6b4d}
+  svg .head{font:700 13px -apple-system,Arial,sans-serif;fill:#1d1f20}
+  svg .prob{fill:none;stroke:#b0453c;stroke-width:2.4;stroke-dasharray:5 4}
+  svg .arrow{stroke:#5b5f63;stroke-width:1.6;fill:none;marker-end:url(#arr)}
+  svg .arrow-red{stroke:#b0453c;stroke-width:1.8;fill:none;marker-end:url(#arrR)}
+  svg .arrow-green{stroke:#1e6b4d;stroke-width:1.8;fill:none;marker-end:url(#arrG)}
+  svg .doc line{stroke:#c9ccd0;stroke-width:2;stroke-linecap:round}
+  svg .divider{stroke:#dcdee1;stroke-width:1;stroke-dasharray:3 4}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>HaTi — how it really feels to negotiate a contract in it</h1>
+<p class="sub">A user-experience review of the HaTi contract platform (repo <code>youngmbg21-cmyk/mkataba-clm</code>).
+Every claim below was checked against the actual code — the file and function names are given so you can find them.
+Reviewed at commit <code>2d4cd99</code>, 26&nbsp;July&nbsp;2026. Nothing here is imagined; if a feature is missing, it says so.</p>
+
+<div class="card">
+<h3 style="margin-top:0">The two people in the story</h3>
+<p style="margin:6px 0"><b>Wanjiru</b> owns a small catering company in Nairobi. She drafted a 12-month supply agreement
+inside HaTi, using the built-in "Raw Material Supply Agreement" template
+(<code>js/templates.js</code>, template <code>RM</code>) and the guided wizard (<code>js/wizard.js</code>).</p>
+<p style="margin:6px 0"><b>Erik</b> is a procurement manager at a mid-size Swedish firm. In Scenario&nbsp;1 he only works in
+Microsoft Word with <span class="term" title="Word's built-in way of marking every edit in red">tracked changes</span> over email.
+In Scenario&nbsp;2 he agrees to work inside HaTi.</p>
+</div>
+
+<h2>First: what the app actually has (and doesn't)</h2>
+<p>Before the role-play, here is the honest inventory, from reading the code:</p>
+<div class="card"><div class="facts">
+  <div class="fact"><span class="yes">YES</span> — Draft a contract from 12 Kenyan templates with a fill-in wizard (<code>js/wizard.js</code>).</div>
+  <div class="fact"><span class="yes">YES</span> — Share by email/WhatsApp/link; the other side opens a review page with <b>no account needed</b> (<code>js/views/portal.js</code>).</div>
+  <div class="fact"><span class="yes">YES</span> — The other side can propose edits; the owner sees them as a colour-marked comparison and accepts or rejects (<code>js/versioning.js</code>).</div>
+  <div class="fact"><span class="yes">YES</span> — Version history with side-by-side compare, on both sides of the deal (<code>renderVersionsSection</code>, <code>openPortalVersionCompare</code>).</div>
+  <div class="fact"><span class="yes">YES</span> — E-signing with a 6-digit email code, a digital <span class="term" title="a SHA-256 fingerprint that proves exactly which text was signed">seal</span>, and a full audit trail (<code>portalStartOtp</code>, <code>finalizeExecution</code>).</div>
+  <div class="fact"><span class="yes">YES</span> — A Word round-trip (download the .docx, get a marked-up copy back, file it as a negotiation round) — <b>but only for contracts that arrived as an uploaded Word file</b> (<code>js/wordflow.js</code>, gate: <code>isWordDoc()</code>).</div>
+  <div class="fact"><span class="no">NO</span> — Export a HaTi-drafted contract to Word. There is no Word writer anywhere. The code says it itself: <i>"HaTi has no Word writer"</i> (<code>js/views/portal.js</code>, line 21).</div>
+  <div class="fact"><span class="no">NO</span> — Import a marked-up Word file into a HaTi-drafted contract. The upload button files it as a <b>new, separate</b> contract instead.</div>
+  <div class="fact"><span class="no">NO</span> — Accept some of a counterparty's edits and reject others. It is the whole round or nothing (<code>acceptProposedRound</code>).</div>
+  <div class="fact"><span class="no">NO</span> — A counterparty account or login. "Inviting" Erik really means emailing him a one-shot link. Team invites exist, but they would put Erik <i>inside</i> Wanjiru's company.</div>
+  <div class="fact"><span class="part">PARTLY</span> — "PDF export" is the browser's print dialog (<code>exportPDF</code> ends in <code>window.print()</code>); the user must pick "Save as PDF" themselves.</div>
+  <div class="fact"><span class="part">PARTLY</span> — Each share link accepts exactly <b>one</b> response, then goes dead. Every negotiation round needs a freshly created link.</div>
+</div></div>
+
+<!-- ============================================================ -->
+<h2>Scenario 1 — Erik refuses HaTi and lives in Microsoft Word</h2>
+<p>Wanjiru drafted the agreement in HaTi. Erik will only exchange Word files with tracked changes, by email.
+Six full rounds. Watch where HaTi helps and where it simply is not in the room.</p>
+
+<div class="round"><h4><span class="rlabel">Round 1</span> Wanjiru sends the draft to Erik</h4>
+<ul class="kv">
+<li><b>She wants to</b> email Erik an editable Word file of her draft.</li>
+<li><b>Screen used</b> Contract workspace (<code>js/views/contract.js</code>). The toolbar offers: Edit · Share · Import · Compare · <b>PDF</b>. There is no Word button — the Word panel (<code>wordControlsHtml</code> in <code>js/wordflow.js</code>) only renders for contracts that were <i>uploaded</i> as .docx, and hers was drafted inside HaTi.</li>
+<li><b>Steps</b> She tries PDF (2 clicks + the print dialog). Erik replies: "I can't track-change a PDF, send Word." So she selects the contract text in the browser, copies it, pastes it into a blank Word document, and rebuilds the headings, clause numbers and signature block by hand. Roughly 12 clicks plus 20–30 minutes of reformatting.</li>
+</ul>
+<div class="ouch"><b>Blocked in the first five minutes.</b> She searches the toolbar for "Export to Word", finds only PDF, and is forced outside the app before the negotiation even starts. Every later round inherits this problem.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 250" role="img" aria-label="Before and after sketch: the workspace toolbar has no Word export button">
+<defs>
+ <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b5f63"/></marker>
+ <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b0453c"/></marker>
+ <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1e6b4d"/></marker>
+</defs>
+<text x="20" y="26" class="head">TODAY — the toolbar on Wanjiru's contract</text>
+<rect x="20" y="40" width="400" height="150" class="box"/>
+<rect x="34" y="54" width="180" height="14" rx="3" fill="#e2e4e6"/>
+<rect x="34" y="80" width="52" height="24" class="btn"/><text x="44" y="96" class="lbl">Edit</text>
+<rect x="92" y="80" width="60" height="24" class="btn"/><text x="102" y="96" class="lbl">Share</text>
+<rect x="158" y="80" width="64" height="24" class="btn"/><text x="167" y="96" class="lbl">Import</text>
+<rect x="228" y="80" width="76" height="24" class="btn"/><text x="236" y="96" class="lbl">Compare</text>
+<rect x="310" y="80" width="46" height="24" class="btn"/><text x="321" y="96" class="lbl">PDF</text>
+<ellipse cx="388" cy="92" rx="26" ry="18" class="prob"/>
+<text x="34" y="136" class="note-red">No "Word" button exists here.</text>
+<text x="34" y="154" class="note">She copies the text out by hand and</text>
+<text x="34" y="170" class="note">rebuilds the document in Word herself.</text>
+<path d="M440 115 L480 115" class="arrow-green"/>
+<text x="480" y="26" class="head">THE FIX — a real .docx download</text>
+<rect x="480" y="40" width="380" height="150" class="box"/>
+<rect x="494" y="54" width="180" height="14" rx="3" fill="#e2e4e6"/>
+<rect x="494" y="80" width="52" height="24" class="btn"/><text x="504" y="96" class="lbl">Edit</text>
+<rect x="552" y="80" width="60" height="24" class="btn"/><text x="562" y="96" class="lbl">Share</text>
+<rect x="618" y="80" width="76" height="24" class="btn"/><text x="626" y="96" class="lbl">Compare</text>
+<rect x="700" y="80" width="46" height="24" class="btn"/><text x="711" y="96" class="lbl">PDF</text>
+<rect x="752" y="80" width="94" height="24" class="btn-green"/><text x="762" y="96" class="lbl-g">Word ⬇</text>
+<text x="494" y="136" class="note-green">One click gives Erik an editable .docx</text>
+<text x="494" y="154" class="note">with the headings and clause numbers intact —</text>
+<text x="494" y="170" class="note">no copy-paste, no rebuilding.</text>
+</svg>
+<div class="figcap"><b>Friction #1 (Scenario 1, Round 1).</b> The problem area is circled in red: the toolbar in
+<code>js/views/contract.js</code> has no way to produce a Word file. The green button on the right is the proposed fix.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 2</span> Erik returns his marked-up Word file</h4>
+<ul class="kv">
+<li><b>She wants to</b> load Erik's redlined .docx into HaTi and see his changes highlighted.</li>
+<li><b>Screen used</b> None fits. The <b>Import</b> button (<code>openImportModal</code>, <code>js/core.js:1547</code>) only accepts a pasted response <i>code</i> from a share link — not a file. The upload flow files his .docx as a brand-new, separate contract. The real Word-return feature (<code>uploadWordVersion</code>, <code>js/wordflow.js:102</code>) is unreachable, because her contract fails the <code>isWordDoc()</code> check.</li>
+<li><b>Steps</b> She reviews Erik's tracked changes in Word itself. Then, to keep HaTi truthful, she opens <b>Edit</b> (<code>openEditDocModal</code>, <code>js/views/contract.js:1103</code>), pastes the whole new text over the old one, and saves. About 6 clicks in HaTi plus the full review done outside it.</li>
+</ul>
+<div class="ouch"><b>Three things quietly go wrong.</b> (1) The version is recorded as <i>"Edited by Wanjiru"</i> — the audit trail now says <b>she</b> made Erik's changes. (2) The edit modal warns that the first edit "converts the drafted layout into working text" — the neat template formatting and the quick-fill fields are gone for good. (3) There is no accept/reject moment in HaTi at all; the decision already happened in Word.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 240" role="img" aria-label="Before and after sketch: a returned Word file cannot enter the contract">
+<text x="20" y="26" class="head">TODAY — Erik's file has no door into her contract</text>
+<rect x="20" y="46" width="120" height="80" class="box"/>
+<rect x="34" y="60" width="60" height="10" rx="2" fill="#d9dbde"/>
+<g class="doc"><line x1="34" y1="82" x2="126" y2="82"/><line x1="34" y1="94" x2="112" y2="94"/><line x1="34" y1="106" x2="120" y2="106"/></g>
+<text x="24" y="146" class="note">Erik's redlined .docx</text>
+<path d="M150 86 L232 86" class="arrow-red"/>
+<text x="168" y="76" class="note-red" font-size="18">✕</text>
+<rect x="240" y="46" width="170" height="80" class="box"/>
+<text x="254" y="70" class="note">Her HaTi contract</text>
+<text x="254" y="90" class="note">"Import" = paste a code.</text>
+<text x="254" y="108" class="note">"Upload" = a NEW record.</text>
+<ellipse cx="325" cy="86" rx="92" ry="46" class="prob"/>
+<text x="20" y="180" class="note-red">Result: she retypes his changes by hand, and the audit trail</text>
+<text x="20" y="198" class="note-red">records them as HER edits — Erik's authorship disappears.</text>
+<line x1="450" y1="20" x2="450" y2="220" class="divider"/>
+<text x="470" y="26" class="head">THE FIX — reuse the Word-return door HaTi already built</text>
+<rect x="470" y="46" width="120" height="80" class="box"/>
+<rect x="484" y="60" width="60" height="10" rx="2" fill="#d9dbde"/>
+<g class="doc"><line x1="484" y1="82" x2="576" y2="82"/><line x1="484" y1="94" x2="562" y2="94"/><line x1="484" y1="106" x2="570" y2="106"/></g>
+<text x="474" y="146" class="note">Erik's redlined .docx</text>
+<path d="M600 86 L648 86" class="arrow-green"/>
+<rect x="656" y="46" width="204" height="80" class="box"/>
+<rect x="668" y="58" width="180" height="24" class="btn-green"/><text x="676" y="74" class="lbl-g">Upload returned .docx</text>
+<text x="668" y="102" class="note">Filed as "Round 2 — from Erik"</text>
+<text x="668" y="118" class="note">with a colour-marked comparison.</text>
+<text x="470" y="180" class="note-green">The reader (docxExtract) and the round machinery already exist in the code —</text>
+<text x="470" y="198" class="note-green">they are just switched off for contracts drafted inside HaTi.</text>
+</svg>
+<div class="figcap"><b>Friction #2 (Scenario 1, Round 2).</b> The red circle marks the missing door: no path from a returned
+Word file into a HaTi-drafted contract, even though <code>js/wordflow.js</code> contains exactly this feature for uploaded contracts.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 3</span> Wanjiru counters</h4>
+<ul class="kv">
+<li><b>She wants to</b> send Erik her counter-changes, marked up so he can see them.</li>
+<li><b>Screen used</b> None. To give Erik tracked changes she must make her edits <b>in Word</b>, with Track Changes on. HaTi cannot write a Word file, so it cannot mark her changes into one either.</li>
+<li><b>Steps</b> All the real work happens in Word and email. If she wants HaTi's record to stay true, she then repeats the paste-into-Edit routine (Edit → paste → save), creating version 3. Double data entry, every round.</li>
+</ul>
+<div class="ouch"><b>The quiet failure begins here.</b> HaTi has become a diary she must keep by hand about a negotiation happening somewhere else. Most busy people stop keeping the diary. From this round on, the "version history" in HaTi only shows what she remembered to paste, not what was actually offered and refused.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 4</span> Erik replies again</h4>
+<ul class="kv">
+<li><b>She wants to</b> see what changed between his last file and this one.</li>
+<li><b>Screen used</b> Word's own compare, outside HaTi. HaTi's Compare (<code>openCompareModal</code>, <code>js/versioning.js:169</code>) can only compare the snapshots she pasted in — and only if she pasted them.</li>
+<li><b>Steps</b> Review in Word; optionally paste-back #3 into HaTi.</li>
+</ul>
+<div class="ouch"><b>Realistic outcome:</b> she skips the paste-back this round. HaTi is now one version behind reality and nobody notices.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 5</span> Near-final pass</h4>
+<ul class="kv">
+<li><b>She wants to</b> confirm only two clauses are still open.</li>
+<li><b>Screen used</b> Email threads and Word. HaTi's negotiation panel (<code>renderNegotiationSection</code>, <code>js/core.js:834</code>) shows zero rounds — every "round" of this deal happened outside it, so the feature built for exactly this is empty.</li>
+<li><b>Steps</b> None inside the app.</li>
+</ul>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 6</span> Agreement — and a dead end at the finish line</h4>
+<ul class="kv">
+<li><b>She wants to</b> get the final text signed and sealed in HaTi.</li>
+<li><b>Screen used</b> She pastes the final wording (Edit → save), then signs: consent tick + signature pad (<code>signDocument</code>, <code>js/views/contract.js:2325</code>). Her half works.</li>
+<li><b>Steps / the wall</b> Erik's signature has exactly two paths. (a) He opens a HaTi share link and signs with an email code — the tool he has refused all along; best case, one click of hypocrisy. (b) They sign on paper — but then the signed scan <b>cannot be attached to this contract</b>; uploading it creates a second, separate record, and the contract she nursed through six rounds never honestly reaches "Signed".</li>
+</ul>
+<div class="ouch"><b>Blocked at the very last step.</b> A deal negotiated outside HaTi cannot cleanly finish inside it unless the counterparty finally uses HaTi anyway.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 230" role="img" aria-label="Sketch of the signing dead end and its fix">
+<text x="20" y="26" class="head">TODAY — the finish line</text>
+<rect x="20" y="44" width="200" height="56" class="box"/>
+<text x="34" y="68" class="note">Final text agreed</text><text x="34" y="86" class="note">after 6 rounds in Word</text>
+<path d="M228 60 L300 60" class="arrow"/>
+<rect x="306" y="40" width="250" height="42" class="box"/>
+<text x="318" y="58" class="note">Path A: Erik signs via a HaTi link</text>
+<text x="318" y="74" class="note">— the tool he refused to use</text>
+<path d="M228 84 L300 110" class="arrow-red"/>
+<rect x="306" y="94" width="250" height="56" class="box"/>
+<text x="318" y="112" class="note">Path B: sign on paper —</text>
+<text x="318" y="128" class="note-red">the signed scan can only enter HaTi</text>
+<text x="318" y="144" class="note-red">as a NEW, disconnected contract</text>
+<ellipse cx="432" cy="122" rx="132" ry="35" class="prob"/>
+<line x1="590" y1="20" x2="590" y2="210" class="divider"/>
+<text x="606" y="26" class="head">THE FIX</text>
+<rect x="606" y="44" width="254" height="106" class="box"/>
+<rect x="618" y="56" width="230" height="24" class="btn-green"/>
+<text x="626" y="72" class="lbl-g">Attach signed copy to THIS contract</text>
+<text x="618" y="100" class="note">Mark it "executed outside HaTi",</text>
+<text x="618" y="116" class="note">keep the 6-round history and the</text>
+<text x="618" y="132" class="note">file fingerprint on one record.</text>
+<text x="606" y="180" class="note-green">HaTi already has this concept for migrated contracts —</text>
+<text x="606" y="198" class="note-green">it just isn't offered on a drafted contract.</text>
+</svg>
+<div class="figcap"><b>Friction #3 (Scenario 1, Round 6).</b> Red circle: a paper-signed deal cannot land on the contract it belongs to.</div>
+</div>
+
+<div class="verdict">
+<h3 style="margin-top:0">Scenario 1 verdict — brutally honest</h3>
+<p><span class="score">2<small>/10</small></span></p>
+<p><b>The single worst friction point:</b> for a contract drafted inside HaTi, the app can neither produce nor accept a Word file.
+The one feature that would carry this whole scenario — the Word round-trip in <code>js/wordflow.js</code>, which is genuinely well built —
+is locked to contracts that <i>arrived</i> as Word files. It exists on the wrong side of the deal.</p>
+<p><b>Would a real Kenyan SME owner keep using this?</b> No — not for any counterparty who works in Word, which in cross-border trade is most of them.
+Wanjiru would stop updating HaTi by round 3, finish the deal in Word and email, and next time she would draft in Word from the start.
+HaTi would survive, at best, as a filing cabinet for the final PDF — and even that files as a second, disconnected record.
+The drafting wizard, the diffs, the seal — none of it gets a chance, because the app leaves the room the moment Erik says "just send the Word file".</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>Scenario 2 — Erik agrees to negotiate inside HaTi</h2>
+<p>First, an honest correction to the setup: HaTi has <b>no counterparty account to invite Erik into</b>.
+"Both parties in HaTi" really means Erik uses the no-login review page (the "portal", <code>renderSharePortal</code> in
+<code>js/views/portal.js</code>) that opens from an emailed link. Each link accepts exactly one response, then goes dead.
+That design decision shapes every round below.</p>
+
+<div class="round"><h4><span class="rlabel">Access</span> How Erik gets in</h4>
+<ul class="kv">
+<li><b>Wanjiru does</b> Contract → <b>Share</b> → types Erik's name and email → picks link expiry → Send (<code>openShareModal</code>, <code>js/core.js:1317</code>). 6 steps.</li>
+<li><b>Erik does</b> Clicks the link in his email. No account, no password. The page shows the contract with all filled-in terms readable, who sent it, and when the link expires.</li>
+</ul>
+<div class="okay"><b>This part is genuinely good.</b> Zero-friction entry for the counterparty is the right call for SME deals. (Caveat: if the server has no email key set up, the email never leaves — it sits in an admin "outbox" and Wanjiru must copy the link and send it herself. She may not discover this until Erik says "what email?")</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 1</span> Erik proposes edits</h4>
+<ul class="kv">
+<li><b>He wants to</b> change the delivery clause and the payment terms, and say why.</li>
+<li><b>Screen used</b> Portal → "Propose edits (redline)" button. The <b>entire contract</b> appears as plain text in one big typing box (<code>pt-redline-text</code> textarea, <code>js/views/portal.js:516</code>). He scrolls through raw text to find clause 4, edits it in place, adds one overall comment, fills in his name, submits. ~7 steps.</li>
+<li><b>What HaTi does well</b> His edits travel as a proper <span class="term" title="a comparison where added words are green and removed words are red-struck">redline</span>; nothing is lost.</li>
+</ul>
+<div class="ouch"><b>The confusion moment:</b> a procurement manager expects to comment on a clause. Instead he is handed the whole agreement as one wall of unformatted text and asked to rewrite it. It works, but it feels like editing a contract in Notepad — and one slip of the keyboard silently deletes a paragraph nobody notices until the diff.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 250" role="img" aria-label="Before and after sketch: whole-document textarea versus clause-level editing">
+<text x="20" y="26" class="head">TODAY — "Propose edits" in the portal</text>
+<rect x="20" y="40" width="390" height="180" class="box"/>
+<rect x="34" y="54" width="150" height="12" rx="3" fill="#e2e4e6"/>
+<rect x="34" y="76" width="362" height="126" class="panel"/>
+<g class="doc">
+<line x1="48" y1="94" x2="382" y2="94"/><line x1="48" y1="108" x2="370" y2="108"/>
+<line x1="48" y1="122" x2="382" y2="122"/><line x1="48" y1="136" x2="356" y2="136"/>
+<line x1="48" y1="150" x2="382" y2="150"/><line x1="48" y1="164" x2="368" y2="164"/>
+<line x1="48" y1="178" x2="330" y2="178"/><line x1="48" y1="192" x2="376" y2="192"/>
+</g>
+<ellipse cx="215" cy="143" rx="192" ry="76" class="prob"/>
+<text x="34" y="238" class="note-red">One giant text box: the whole contract, no headings, no clauses.</text>
+<line x1="440" y1="20" x2="440" y2="240" class="divider"/>
+<text x="460" y="26" class="head">THE FIX — edit and comment per clause</text>
+<rect x="460" y="40" width="400" height="180" class="box"/>
+<rect x="474" y="54" width="150" height="12" rx="3" fill="#e2e4e6"/>
+<rect x="474" y="76" width="372" height="38" class="panel"/>
+<text x="486" y="92" class="lbl">3. Delivery</text>
+<g class="doc"><line x1="486" y1="102" x2="800" y2="102"/></g>
+<rect x="474" y="120" width="372" height="52" class="btn-green"/>
+<text x="486" y="138" class="lbl-g">4. Payment — editing…</text>
+<g class="doc"><line x1="486" y1="150" x2="820" y2="150"/><line x1="486" y1="162" x2="760" y2="162"/></g>
+<rect x="474" y="178" width="372" height="30" class="panel"/>
+<text x="486" y="197" class="lbl">💬 comment on this clause</text>
+<text x="460" y="238" class="note-green">Open one clause, change it, attach the comment where it belongs.</text>
+</svg>
+<div class="figcap"><b>Friction #4 (Scenario 2, Round 1).</b> Red circle: the single textarea in
+<code>js/views/portal.js</code> that stands in for a contract editor.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 2</span> Wanjiru reviews — and hits the all-or-nothing wall</h4>
+<ul class="kv">
+<li><b>She wants to</b> accept Erik's delivery change but refuse his payment change.</li>
+<li><b>Screen used</b> An amber "Changes returned" strip appears on the contract (<code>returnedChangesStrip</code>, <code>js/views/contract.js:1822</code>) → "Review changes" opens a full-screen colour-marked comparison (<code>reviewProposedRound</code>, <code>js/versioning.js:239</code>). Reading it is excellent. Erik's response arrived automatically — no code-pasting in server mode (<code>pollPendingResponses</code>).</li>
+<li><b>The wall</b> The buttons are <b>Accept changes</b> / <b>Reject</b> — for the whole round as one block (<code>acceptProposedRound</code> adopts the entire proposed text). To take one change and not the other she must accept everything and then hand-edit the unwanted part back out, or reject everything and retype the part she liked. ~10 steps either way, all in the plain-text editor.</li>
+<li><b>Also lost here</b> The moment she accepts a redline, the formatted document becomes plain text permanently (<code>js/versioning.js:291</code> — <i>"the counterparty edited plain text, so the document is no longer formatted"</i>). The contract gets visibly uglier as the deal progresses.</li>
+</ul>
+<div class="ouch"><b>This is the worst moment of Scenario 2.</b> Real negotiations are never take-it-all-or-refuse-it-all. Every mixed round — which is every round — turns into manual text surgery.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 250" role="img" aria-label="Before and after sketch: all-or-nothing accept versus per-change decisions">
+<text x="20" y="26" class="head">TODAY — review of Erik's round</text>
+<rect x="20" y="40" width="390" height="180" class="box"/>
+<text x="34" y="62" class="note">Change 1: delivery ✎ (she agrees)</text>
+<text x="34" y="84" class="note">Change 2: payment ✎ (she refuses)</text>
+<text x="34" y="106" class="note">Change 3: penalty ✎ (she agrees)</text>
+<rect x="34" y="126" width="150" height="26" class="btn-dark"/><text x="46" y="143" class="lbl-w">Accept changes</text>
+<rect x="192" y="126" width="72" height="26" class="btn"/><text x="206" y="143" class="lbl">Reject</text>
+<ellipse cx="150" cy="140" rx="132" ry="24" class="prob"/>
+<text x="34" y="178" class="note-red">Two buttons for three decisions.</text>
+<text x="34" y="196" class="note-red">Mixed rounds mean retyping text by hand.</text>
+<line x1="440" y1="20" x2="440" y2="240" class="divider"/>
+<text x="460" y="26" class="head">THE FIX — decide each change on its own</text>
+<rect x="460" y="40" width="400" height="180" class="box"/>
+<rect x="474" y="54" width="372" height="34" class="btn-green"/>
+<text x="486" y="75" class="lbl-g">Change 1: delivery — ✔ accept</text>
+<rect x="474" y="94" width="372" height="34" class="panel"/>
+<text x="486" y="115" class="lbl">Change 2: payment — ✕ reject</text>
+<rect x="474" y="134" width="372" height="34" class="btn-green"/>
+<text x="486" y="155" class="lbl-g">Change 3: penalty — ✔ accept</text>
+<rect x="474" y="178" width="200" height="28" class="btn-dark"/>
+<text x="486" y="196" class="lbl-w">Apply my decisions</text>
+<text x="460" y="238" class="note-green">Accepted parts merge in; rejected parts bounce back to Erik, no retyping.</text>
+</svg>
+<div class="figcap"><b>Friction #5 (Scenario 2, Round 2).</b> Red circle: the whole-round Accept/Reject pair in
+<code>reviewProposedRound</code> (<code>js/versioning.js</code>).</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 3</span> Wanjiru sends her position back — the link treadmill starts</h4>
+<ul class="kv">
+<li><b>She wants to</b> get the updated text back in front of Erik.</li>
+<li><b>Screen used</b> Share modal again (<code>openShareModal</code>). The recipient fields are <b>blank</b> — no memory of the person she shared with two days ago. She retypes "Erik", retypes his email, picks expiry, sends. The negotiation panel even tells her this is the routine: <i>"After resolving, re-share the updated document to send the next round"</i> (<code>js/core.js:867</code>).</li>
+<li><b>Erik sees</b> A new email, a new link. To his credit HaTi handles the arrival well: an amber banner — <i>"…has revised this contract since you last opened it"</i> — with a one-click "See what changed" comparison (<code>portalRevisedBanner</code>), plus a version list numbered the same way Wanjiru sees it (<code>openPortalVersionCompare</code>). If he opens an old link instead, it plainly says "This is an older copy — it can no longer be answered".</li>
+</ul>
+<div class="ouch"><b>Six rounds = six hand-built shares.</b> Erik's email address will be typed from scratch five or six times before this deal closes. Each retype is a chance to send a live contract to the wrong address.</div>
+</div>
+
+<div class="fig">
+<svg viewBox="0 0 880 240" role="img" aria-label="Before and after sketch: retyping the recipient every round versus one-click reshare">
+<text x="20" y="26" class="head">TODAY — every round, the same empty form</text>
+<rect x="20" y="40" width="390" height="170" class="box"/>
+<text x="34" y="62" class="note">Share with counterparty</text>
+<rect x="34" y="72" width="170" height="24" class="panel"/><text x="42" y="88" class="lbl">Recipient name…</text>
+<rect x="214" y="72" width="180" height="24" class="panel"/><text x="222" y="88" class="lbl">Recipient email…</text>
+<ellipse cx="214" cy="84" rx="192" ry="26" class="prob"/>
+<rect x="34" y="106" width="360" height="24" class="panel"/><text x="42" y="122" class="lbl">Personal message…</text>
+<rect x="34" y="140" width="120" height="26" class="btn-dark"/><text x="48" y="157" class="lbl-w">Send by email</text>
+<text x="34" y="196" class="note-red">Round 2, 3, 4, 5, 6: type Erik's details again. And again.</text>
+<line x1="440" y1="20" x2="440" y2="230" class="divider"/>
+<text x="460" y="26" class="head">THE FIX — the app remembers the other side</text>
+<rect x="460" y="40" width="400" height="170" class="box"/>
+<text x="474" y="62" class="note">Round 2 resolved ✔</text>
+<rect x="474" y="76" width="330" height="30" class="btn-green"/>
+<text x="486" y="95" class="lbl-g">Send updated version to Erik (erik@…se)</text>
+<text x="474" y="130" class="note">One click. Same recipient, new link,</text>
+<text x="474" y="146" class="note">old link automatically marked "older copy".</text>
+<text x="460" y="196" class="note-green">The server already stores the recipient on every share — it is never reused.</text>
+</svg>
+<div class="figcap"><b>Friction #6 (Scenario 2, Round 3).</b> Red circle: the always-empty recipient fields in
+<code>openShareModal</code> (<code>js/core.js</code>).</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 4</span> Erik counters on the now-plain text</h4>
+<ul class="kv">
+<li><b>He wants to</b> tighten one clause and see what happened to his earlier asks.</li>
+<li><b>Screen used</b> The new link. A banner tells him the outcome of his rounds — e.g. <i>"2 of your 3 rounds accepted"</i> (<code>portalRoundBanner</code>) — which is honest and welcome. But the document he now edits is the flattened plain-text version: the headings and numbering he saw in round 1 are gone (they died in round 2's accept). The <i>discussion</i> — why Wanjiru refused his payment term — is not in the portal at all; her reasoning lives in the email she wrote separately. Comments only flow one way per response.</li>
+<li><b>Steps</b> Same textarea routine, ~7 steps.</li>
+</ul>
+<div class="ouch"><b>Confusion moment:</b> "Why does the contract look worse than the one I was first sent?" A counterparty can reasonably wonder whether this plainer document is even the same instrument.</div>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 5</span> The money round</h4>
+<ul class="kv">
+<li><b>He wants to</b> propose a lower annual value.</li>
+<li><b>Screen used</b> Portal → "Request changes" — this reveals a "Propose a different value" number field plus his comment. Clean. Wanjiru accepts the round (<code>resolveRound</code>) and the value updates on the contract — and HaTi correctly voids any internal approvals she had collected (<code>c.approval=null</code>), so if her approval gate applies she must get re-approved before signing. Honest, but it's another loop she didn't expect.</li>
+<li><b>Steps</b> Erik ~5, Wanjiru ~4 (+ re-approval if the gate is on) + reshare #5 (retype email again).</li>
+</ul>
+</div>
+
+<div class="round"><h4><span class="rlabel">Round 6</span> Agreement and signing — the strong finish</h4>
+<ul class="kv">
+<li><b>Erik does</b> On the final link: "Accept the wording (without signing)" — a real and thoughtful distinction (<code>pt-accept</code>). Then, on the signing pass: <b>Approve &amp; sign</b> → draw/type/upload a signature → 6-digit code sent to his email → verified, signed (<code>portalStartOtp</code> → <code>portalVerifyAndSign</code>).</li>
+<li><b>Wanjiru does</b> Consent tick → sign in the workspace. When the last signature lands, HaTi freezes the exact text, seals it with a digital fingerprint, and writes the audit trail (<code>finalizeExecution</code>). If a signing order was set up, the app even opens the share modal for her at the right moment — though yes, with Erik's email blank again.</li>
+</ul>
+<div class="okay"><b>The ending is the best part of the product.</b> Email-verified counterparty signature, a seal that proves which exact text was signed, an evidence pack, and version history that both sides can read with the same numbering. This is better than what most SMEs do today (a scanned signature on the fifth emailed Word file).</div>
+</div>
+
+<div class="verdict">
+<h3 style="margin-top:0">Scenario 2 verdict — brutally honest</h3>
+<p><span class="score">5<small>/10</small></span></p>
+<p><b>The single worst friction point:</b> the round-trip machinery. One-shot links plus a from-scratch share form plus
+all-or-nothing acceptance means a six-round negotiation costs six hand-built shares, five retyped email addresses,
+and at least two sessions of manual text surgery — while the document itself sheds its formatting along the way.
+The individual screens are often good; the <i>loop between them</i> is what wears people down.</p>
+<p><b>Would a real Kenyan SME owner keep using this?</b> A qualified yes. For the common case — one or two rounds, then sign —
+HaTi genuinely beats email: instant access for the other side, readable diffs, verified signing, a tamper-proof record.
+Wanjiru would keep it for those deals. But for a genuinely contested negotiation like this one, she would finish it
+grinding her teeth, and next time a deal looks heavy she'll drift back to Word and email until signature time.
+The product keeps her as a user, but loses the negotiation itself around round 3.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>What to fix, in order</h2>
+<p>Eight items, ordered by how much pain they remove per unit of work. Sizes: <span class="badge b-small">small</span> = days,
+<span class="badge b-medium">medium</span> = 1–2 weeks, <span class="badge b-large">large</span> = several weeks.
+(The mobile/WhatsApp counterparty portal is intentionally not on this list — it is deferred by design.)</p>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">1. Let a returned Word file into every contract</h3><span class="badge b-small">small</span></div>
+<p><b>Change:</b> remove the "must have arrived as .docx" gate (<code>isWordDoc</code> in <code>js/wordflow.js</code>) so
+"Upload returned .docx" appears on drafted contracts too. The file reader (<code>docxExtract</code>) and the
+round-filing machinery already exist and already handle tracked changes.</p>
+<p><b>Why it hurts today:</b> Scenario 1 collapses at round 2 — Erik's edits must be retyped by hand and get logged
+under Wanjiru's name, corrupting the audit trail.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 120" role="img" aria-label="Sketch: unlock the existing Word-return feature for all contracts">
+<rect x="20" y="30" width="250" height="60" class="box"/>
+<text x="34" y="54" class="note">Uploaded .docx contract:</text><text x="34" y="72" class="note-green">Word round-trip ✔ (exists)</text>
+<rect x="310" y="30" width="250" height="60" class="box"/>
+<text x="324" y="54" class="note">HaTi-drafted contract:</text><text x="324" y="72" class="note-red">Word round-trip ✕ (gated off)</text>
+<ellipse cx="435" cy="72" rx="118" ry="18" class="prob"/>
+<path d="M270 60 L306 60" class="arrow"/>
+<path d="M564 60 L620 60" class="arrow-green"/>
+<rect x="626" y="30" width="234" height="60" class="btn-green"/>
+<text x="640" y="54" class="lbl-g">Same feature, every contract</text>
+<text x="640" y="72" class="lbl-g">— delete one condition</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">2. One-click "Send updated version" reshare</h3><span class="badge b-small">small</span></div>
+<p><b>Change:</b> after a round is accepted or rejected, show a button that reshares to the <b>last recipient</b>
+(name, email and channel are already stored per share in the server's <code>shares</code> table) — one confirm, done.
+Prefill the share modal from the previous share in all other cases.</p>
+<p><b>Why it hurts today:</b> every round of Scenario 2 begins with retyping the counterparty's details into a blank
+form; six rounds means six chances to mistype a live contract's destination — and the friction quietly discourages
+another round even when one is needed.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 110" role="img" aria-label="Sketch: empty share form versus remembered recipient">
+<rect x="20" y="20" width="330" height="70" class="box"/>
+<rect x="34" y="34" width="140" height="22" class="panel"/><text x="42" y="49" class="lbl">name…</text>
+<rect x="182" y="34" width="150" height="22" class="panel"/><text x="190" y="49" class="lbl">email…</text>
+<ellipse cx="184" cy="45" rx="160" ry="22" class="prob"/>
+<text x="34" y="80" class="note-red">Blank every single round</text>
+<path d="M360 55 L420 55" class="arrow-green"/>
+<rect x="428" y="20" width="432" height="70" class="box"/>
+<rect x="442" y="34" width="340" height="26" class="btn-green"/>
+<text x="454" y="51" class="lbl-g">Send updated version to Erik (erik@…se)</text>
+<text x="442" y="80" class="note-green">One click after each resolved round</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">3. Export any contract as a real Word (.docx) file</h3><span class="badge b-medium">medium</span></div>
+<p><b>Change:</b> add a "Download as Word" button to the workspace toolbar and to the portal, generating a genuine .docx
+(the format HaTi already knows how to <i>read</i>; writing a minimal one is the same ZIP-plus-XML in reverse).
+At minimum, offer the portal's existing "HTML saved as .doc" trick (<code>portalDownloadCurrentAsDoc</code>) to the owner too — today it is buried in the portal and only for uploaded files.</p>
+<p><b>Why it hurts today:</b> Scenario 1 dies in round 1: Wanjiru copy-pastes into Word and rebuilds the formatting by
+hand, ~30 minutes of avoidable work, before the negotiation even begins. Combined with fix #1 this makes the
+Word-only counterparty a fully supported loop: export → they mark up → upload the return.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 110" role="img" aria-label="Sketch: copy-paste export versus one-click docx">
+<rect x="20" y="20" width="360" height="70" class="box"/>
+<text x="34" y="44" class="note">Select all → copy → paste into Word →</text>
+<text x="34" y="62" class="note">rebuild headings, numbering, signature block</text>
+<ellipse cx="200" cy="52" rx="176" ry="30" class="prob"/>
+<text x="34" y="82" class="note-red">≈ 30 minutes, every fresh draft</text>
+<path d="M390 55 L450 55" class="arrow-green"/>
+<rect x="458" y="20" width="402" height="70" class="box"/>
+<rect x="472" y="34" width="120" height="26" class="btn-green"/><text x="484" y="51" class="lbl-g">Word ⬇</text>
+<text x="472" y="80" class="note-green">Structure intact, zero retyping</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">4. Accept or reject each change, not the whole round</h3><span class="badge b-large">large</span></div>
+<p><b>Change:</b> in the redline review (<code>reviewProposedRound</code>), group the diff into change blocks and give each
+one its own accept/reject control; build the adopted text from the decisions. Rejected blocks travel back to the
+counterparty as still-open points.</p>
+<p><b>Why it hurts today:</b> every mixed round in Scenario 2 (and they are all mixed) forces the owner into manual
+text surgery in a plain-text box — the single biggest reason a contested negotiation feels safer in Word.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 110" role="img" aria-label="Sketch: one accept button versus per-change decisions">
+<rect x="20" y="20" width="330" height="70" class="box"/>
+<rect x="34" y="34" width="130" height="24" class="btn-dark"/><text x="44" y="50" class="lbl-w">Accept ALL</text>
+<rect x="172" y="34" width="90" height="24" class="btn"/><text x="186" y="50" class="lbl">Reject ALL</text>
+<ellipse cx="150" cy="46" rx="128" ry="22" class="prob"/>
+<text x="34" y="80" class="note-red">3 changes, 1 decision allowed</text>
+<path d="M360 55 L420 55" class="arrow-green"/>
+<rect x="428" y="20" width="432" height="70" class="box"/>
+<text x="442" y="42" class="note-green">✔ delivery&nbsp;&nbsp;&nbsp;✕ payment&nbsp;&nbsp;&nbsp;✔ penalty</text>
+<rect x="442" y="54" width="180" height="24" class="btn-green"/><text x="454" y="70" class="lbl-g">Apply decisions</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">5. A durable negotiation link per counterparty</h3><span class="badge b-medium">medium</span></div>
+<p><b>Change:</b> instead of a fresh one-shot link per round, give each counterparty one long-lived link per contract
+that always shows the current state and accepts the next response. Keep one-shot links for the final signature if
+the extra ceremony is wanted. (This is the same web portal with a different link lifecycle — not the deferred mobile portal.)</p>
+<p><b>Why it hurts today:</b> Erik collects six emailed links and must always find the newest; opening an old one shows
+"this copy can no longer be answered". The dead-link ceremony exists only because links are single-use.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 110" role="img" aria-label="Sketch: six one-shot links versus one durable link">
+<rect x="20" y="20" width="360" height="70" class="box"/>
+<text x="34" y="42" class="note">link1✕ link2✕ link3✕ link4✕ link5✕ link6✔</text>
+<ellipse cx="200" cy="38" rx="176" ry="18" class="prob"/>
+<text x="34" y="66" class="note-red">"Which email has the live one?"</text>
+<path d="M390 55 L450 55" class="arrow-green"/>
+<rect x="458" y="20" width="402" height="70" class="box"/>
+<rect x="472" y="34" width="240" height="26" class="btn-green"/><text x="484" y="51" class="lbl-g">hati.app/n/erik-KX3 (always current)</text>
+<text x="472" y="80" class="note-green">One bookmark for the whole deal</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">6. Keep the formatting through negotiation rounds</h3><span class="badge b-large">large</span></div>
+<p><b>Change:</b> stop converting a formatted document to plain text when a redline is accepted
+(<code>acceptProposedRound</code>) or edited in the portal. HaTi already has a rich-document engine
+(<code>js/richdoc.js</code>, <code>js/richpaste.js</code>) — use it for the portal editor and for merging accepted changes,
+so headings, clause numbering and tables survive the deal.</p>
+<p><b>Why it hurts today:</b> the contract visibly degrades the moment negotiation starts; by round 4 the counterparty
+is editing a wall of plain text and may doubt it is the same document. The final signed instrument is the ugly version.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 120" role="img" aria-label="Sketch: formatted document degrading to plain text">
+<rect x="20" y="20" width="170" height="84" class="box"/>
+<rect x="34" y="32" width="90" height="10" rx="2" fill="#33475c"/>
+<g class="doc"><line x1="34" y1="54" x2="176" y2="54"/><line x1="46" y1="68" x2="176" y2="68"/><line x1="46" y1="82" x2="160" y2="82"/></g>
+<text x="34" y="118" class="note">v1: formatted</text>
+<path d="M200 60 L250 60" class="arrow-red"/>
+<rect x="258" y="20" width="170" height="84" class="box"/>
+<g class="doc"><line x1="272" y1="40" x2="414" y2="40"/><line x1="272" y1="54" x2="414" y2="54"/><line x1="272" y1="68" x2="414" y2="68"/><line x1="272" y1="82" x2="400" y2="82"/></g>
+<ellipse cx="343" cy="61" rx="92" ry="42" class="prob"/>
+<text x="272" y="118" class="note-red">v2+: plain blob, forever</text>
+<path d="M440 60 L500 60" class="arrow-green"/>
+<rect x="508" y="20" width="170" height="84" class="box"/>
+<rect x="522" y="32" width="90" height="10" rx="2" fill="#33475c"/>
+<g class="doc"><line x1="522" y1="54" x2="664" y2="54"/><line x1="534" y1="68" x2="664" y2="68"/><line x1="534" y1="82" x2="648" y2="82"/></g>
+<text x="508" y="118" class="note-green">Fix: still formatted at v6</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">7. "File these changes on behalf of the counterparty"</h3><span class="badge b-small">small</span></div>
+<p><b>Change:</b> in the Edit modal (<code>openEditDocModal</code>), add an option: "these changes came from the
+counterparty (received outside HaTi)". It files the edit as a negotiation round under the counterparty's name —
+with the normal review/accept step — instead of a silent owner edit.</p>
+<p><b>Why it hurts today:</b> whenever the deal partly happens outside HaTi (all of Scenario 1), the audit trail
+records the owner as the author of the other side's changes. For a product whose selling point is an honest record,
+that is the record lying.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 100" role="img" aria-label="Sketch: audit entry attributing counterparty changes to the owner, and the fix">
+<rect x="20" y="20" width="380" height="60" class="box"/>
+<text x="34" y="44" class="lbl">v3 · Edited by Wanjiru · 14:02</text>
+<ellipse cx="150" cy="40" rx="126" ry="16" class="prob"/>
+<text x="34" y="68" class="note-red">…but these were Erik's edits</text>
+<path d="M410 50 L470 50" class="arrow-green"/>
+<rect x="478" y="20" width="382" height="60" class="box"/>
+<text x="492" y="44" class="lbl-g">Round 2 · from Erik (via Word/email)</text>
+<text x="492" y="68" class="note-green">Reviewed &amp; accepted by Wanjiru — truthful trail</text>
+</svg></div>
+</div>
+
+<div class="card">
+<div class="imp"><h3 style="margin:0">8. Show the conversation in the portal</h3><span class="badge b-medium">medium</span></div>
+<p><b>Change:</b> carry round comments in both directions. The share payload (<code>buildSharePayload</code>) already
+sends round outcomes to the portal; add the comments — Erik's asks and Wanjiru's replies — as a small thread beside
+the document, so the "why" of each round lives with the contract.</p>
+<p><b>Why it hurts today:</b> the portal tells Erik <i>that</i> his round was rejected but not <i>why</i>; the reasoning
+happens in a parallel email thread, which is exactly the fragmentation HaTi exists to end.</p>
+<div class="fig" style="margin:10px 0 0;border:0;padding:0">
+<svg viewBox="0 0 880 110" role="img" aria-label="Sketch: outcome-only banner versus a visible discussion thread">
+<rect x="20" y="20" width="360" height="70" class="box"/>
+<text x="34" y="44" class="note">"Round 2: not adopted."</text>
+<ellipse cx="130" cy="40" rx="110" ry="16" class="prob"/>
+<text x="34" y="66" class="note-red">No reason given — check your email</text>
+<path d="M390 55 L450 55" class="arrow-green"/>
+<rect x="458" y="20" width="402" height="70" class="box"/>
+<text x="472" y="40" class="lbl">Erik: "Net-60 is our standard."</text>
+<text x="472" y="58" class="lbl-g">Wanjiru: "Net-30, or +2% on price."</text>
+<text x="472" y="80" class="note-green">The why lives with the contract</text>
+</svg></div>
+</div>
+
+<div class="card" style="border-left:4px solid var(--green)">
+<h3 style="margin-top:0">A closing word</h3>
+<p>The unusual thing about this codebase is that its <i>best</i> engineering — the Word file reader, the tracked-change
+handling, the versioned file ledger, the honest audit trail — already solves most of Scenario 1's pain. It is simply
+switched on for the wrong case (contracts the other side drafted) and switched off for the case an SME owner lives in
+(contracts she drafted herself). Items 1–3 above are mostly about unlocking doors that are already built, and together
+they would move Scenario 1 from a 2 to roughly a 6 within a couple of weeks of work.</p>
+</div>
+
+<p class="sub" style="margin-top:34px">Method note: this review is based on reading the source code (frontend modules in
+<code>js/</code>, server in <code>server/server.js</code>, tests in <code>test/</code>) and tracing each user action through
+the actual functions named above. Step counts are counted from the real click paths in the code. No feature described
+here was assumed from what "a typical CLM tool" would have.</p>
+
+</div>
+</body>
+</html>
