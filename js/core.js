@@ -81,7 +81,14 @@ const isUpload = c => c && c.source==='upload';
 /* Migrated paper: signed elsewhere before it was filed here, so HaTi never took
    a signature for it. Its seal is the string 'MIGRATED' and the evidence of
    record is the uploaded file's own SHA-256 (see verifySeal / sealString). */
-const isExternallyExecuted = c => !!c && (c.hash==='MIGRATED' || !!(c.migration&&c.migration.executedOutside));
+/* Executed somewhere other than HaTi. Two ways that happens: a historical
+   contract migrated in already signed, and — since run 6 — a contract
+   negotiated here and then signed on paper, which is still normal for
+   cross-border deals. Both render the same way: a filing record, not a HaTi
+   signing certificate, because HaTi took no electronic signature. */
+const isExternallyExecuted = c => !!c && (c.hash==='MIGRATED'
+  || !!(c.migration&&c.migration.executedOutside)
+  || !!(c.execution&&c.execution.offPlatform));
 const cIcon = c => isUpload(c) ? 'upload' : (TEMPLATES[c.template]?.ic || 'file');
 const cKind = c => isUpload(c) ? 'External Document' : (TEMPLATES[c.template]?.kind || 'Contract');
 // Card / row identity: the counterparty (the named party) is the headline so a

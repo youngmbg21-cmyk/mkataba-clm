@@ -40,6 +40,13 @@ const MODULES = [
   'js/versioning.js',
   'js/wordflow.js',
 ];
+/* js/views/contract.js is loaded ONLY on request (buildWorld({contractView:true})).
+   It is the whole workspace screen: it declares its own detectWordFile,
+   extractWordText, dataUrlBytes and renderWorkspace, which replace the shell
+   this stage provides and drag in the rest of the application. A test that
+   needs something living in that file — paper execution, for one — asks for it
+   and accepts the heavier stage; every other test keeps the light one. */
+const CONTRACT_VIEW = 'js/views/contract.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -129,6 +136,10 @@ function buildWorld(opts = {}) {
 
     // document helpers the modules borrow from core.js / views/contract.js
     isUpload: c => !!(c && c.source === 'upload'),
+    isExternallyExecuted: c => !!c && (c.hash === 'MIGRATED'
+      || !!(c.migration && c.migration.executedOutside)
+      || !!(c.execution && c.execution.offPlatform)),
+    fval: id => { const el = win.document.getElementById(id); return el ? (el.value || '') : ''; },
     normText: html => {
       const d = win.document.createElement('div');
       d.innerHTML = html || '';
@@ -213,13 +224,27 @@ function buildWorld(opts = {}) {
   /* ---------- evaluate the real modules into the window ---------- */
   const ctx = dom.getInternalVMContext();
   const loaded = [];
-  for (const rel of MODULES) {
+  const files = opts.contractView ? [...MODULES, CONTRACT_VIEW] : MODULES;
+  for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3
     vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: rel });
     loaded.push(rel);
   }
   installDownloadRecorder();
+  /* Re-install the shell functions the loaded modules DECLARE for themselves.
+     js/views/contract.js declares renderWorkspace, renderSignButton,
+     renderAuditSection and docBody; a declaration overwrites whatever was
+     assigned before it, so the real renderWorkspace would run here and reach
+     for the whole application (getContract, the view router, the DOM of a
+     screen this stage does not have). The logic under test is still the real
+     one — only the shell around it is stood in for. */
+  for (const k of ['renderWorkspace', 'renderSignButton', 'renderAuditSection',
+    'renderVersionsSection', 'renderNegotiationSection', 'renderSharesSection',
+    'persist', 'toast', 'logAudit', 'docBody', 'freezeContractHtml', 'setView',
+    'openModal', 'closeModal', 'isExternallyExecuted']) {
+    if (shell[k]) win[k] = shell[k];
+  }
 
   return { dom, win, log, user, shell, loaded,
     /* every audit entry recorded on this contract, newest last */

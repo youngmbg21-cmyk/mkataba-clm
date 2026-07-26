@@ -2424,3 +2424,35 @@ speaks for that one, and two notices about the same fact is how notices stop
 being read.
 
 Result: `f27-seen-state.test.js` 14/14; suite 402/402 green.
+
+**2026-07-26 — item-5 shipped: a paper-signed deal lands on its own contract.**
+A contract negotiated in HaTi and then signed on paper had nowhere to go. The
+scan could only be uploaded as a NEW record, so every round, version and
+decision was orphaned from the document those rounds produced — a dead end at
+the last step, for a way of signing that is still normal in cross-border trade.
+
+`attachPaperSignature(c, file, {signedOn, note})` executes the contract in
+place: the wording and the whole negotiation history stay, the scan is stored
+and registered in `c.documents`, and `c.hash` becomes the scan's own SHA-256 —
+because the scan IS the signed document.
+
+The line it does not cross: **HaTi witnessed nothing, and the record says so.**
+No electronic signature is recorded (`c.signatures` stays empty), the execution
+carries `offPlatform:true`, `isExternallyExecuted` now includes it so the UI
+renders a filing record rather than a signing certificate, and the audit entry
+states outright that no electronic signature was taken and that the signatures
+are on the retained scan. That is the same claim, in the same words, that a
+migrated already-signed contract already carried.
+
+Refuses to run where it would produce a false record: over unresolved proposed
+edits, on an already-executed contract, while a copy is out for Word review,
+for a viewer, or with an oversized file.
+
+**Harness note.** Loading `js/views/contract.js` into `test/world.js` for every
+test broke F16 and scenario 1: it declares its own `detectWordFile`,
+`extractWordText` and `dataUrlBytes`, which replaced the shell those tests rely
+on. It is now loaded only on request (`buildWorld({contractView:true})`) — a
+test that needs something from that file asks for the heavier stage, and the
+rest keep the light one.
+
+Result: `f28-paper-signature.test.js` 14/14; suite 416/416 green.

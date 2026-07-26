@@ -2356,6 +2356,12 @@ function renderSignButton(c){
     wrap.innerHTML=`<div class="text-center text-[11px] text-brand-800/65 py-2">Viewer access — signing is disabled for your role.</div>`;
     return;
   }
+  // The other way a deal ends. Offered once the wording is settled, because
+  // until then there is nothing to have signed on paper.
+  const paperRoute = !(window.unresolvedRedlines && unresolvedRedlines(c))
+    ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">Signed on paper instead? File the signed copy here</button>`
+    : '';
+  const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
   const appr=approvalState(c);
   const ns=nextSigner(c), planned=signerPlan(c).length>0;
   // With a signer plan, the in-app button only acts when it's an internal
@@ -2377,9 +2383,11 @@ function renderSignButton(c){
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
            :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
-      return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}`;
+      return oh?`<p class="mt-1.5 text-[11px] text-center text-rose-600 font-medium flex items-center justify-center gap-1">${icon('alert','w-3 h-3')} ${oh} high-severity finding${oh===1?'':'s'} still open</p>`:''; })()}
+    ${paperRoute}`;
   if(ready) document.getElementById('sign-btn').addEventListener('click',()=>signDocument(c));
   document.getElementById('sp-setup')?.addEventListener('click',()=>openSignerPlanEditor(c));
+  wirePaper();
   wireApprovalPanel(c);
 }
 async function signDocument(c){
@@ -2448,6 +2456,95 @@ async function signDocument(c){
 async function captureSignature(name){
   if(typeof openSignaturePad!=='function') return { form:'session', image:null, imageHash:null };
   return await openSignaturePad({ name });
+}
+
+/* ---- signed on paper ----
+   A deal negotiated in HaTi and then signed on paper had nowhere to land. The
+   scan could only be uploaded as a NEW contract, so the record of how the
+   parties got there — every round, every version, every decision — was
+   orphaned from the document those rounds produced. Cross-border deals are
+   still signed on paper often enough that this was a real dead end at the last
+   step.
+
+   What this does NOT do is pretend HaTi witnessed anything. No electronic
+   signature is taken, the seal is the scanned file's own fingerprint, and the
+   record says "executed outside HaTi" — the same language a migrated
+   already-signed contract carries, because it is the same claim. */
+async function attachPaperSignature(c, file, opts={}){
+  if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return null; }
+  if(c.status==='Signed' || (c.execution&&c.execution.at)){
+    toast('This contract is already executed — record an amendment instead','err'); return null; }
+  if(window.unresolvedRedlines && unresolvedRedlines(c)){
+    toast('There are still open proposed edits — resolve them before recording a signature','err'); return null; }
+  if(window.wordReviewOut && wordReviewOut(c)){
+    toast('This document is out for Word review — bring it back or cancel the review first','err'); return null; }
+  if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return null; }
+
+  let dataUrl;
+  try{ dataUrl=await new Promise((res,rej)=>{ const rd=new FileReader();
+    rd.onload=()=>res(rd.result); rd.onerror=()=>rej(new Error('read failed')); rd.readAsDataURL(file); }); }
+  catch(e){ toast('Could not read that file','err'); return null; }
+
+  const u=currentUser();
+  const fileHash=await sha256(dataUrl);
+  const at=nowISO();
+  let fileId=null;
+  if(API_MODE()){
+    try{ const r=await api('files','POST',{ name:file.name, mime:file.type||'application/pdf', dataUrl }); fileId=r.id; }
+    catch(e){ /* fall back to inline bytes, as the Word return does */ }
+  }
+  // the server authorises file reads and sweeps files from c.documents
+  if(fileId){
+    c.documents=Array.isArray(c.documents)?c.documents:[];
+    c.documents.push({ fileId, name:file.name, mime:file.type||'application/pdf',
+      size:file.size, kind:'paper-signature', at, by:u?.name||'System' });
+  }
+  // the wording as it stood when the parties signed it, kept as a version
+  if(window.captureVersion) captureVersion(c,'Executed on paper', u?.name);
+  c.execution={ at, by:u?.name||'System', method:'paper', offPlatform:true,
+    fileName:file.name, fileHash, fileId, dataUrl:fileId?null:dataUrl,
+    signedOn:opts.signedOn||null, note:opts.note||null };
+  c.hash=fileHash;                       // the seal IS the scanned file
+  c.signedAt=opts.signedOn||at;
+  c.status='Signed';
+  c.lastAction=todayStr();
+  logAudit(c,'Executed outside HaTi',
+    `Signed on paper and filed by ${u?.name||'System'} — “${file.name}” (${Math.round(file.size/1024)} KB), SHA-256 ${fileHash.slice(0,16)}…${opts.signedOn?`, signed on ${opts.signedOn}`:''}. No electronic signature was taken in HaTi; the signatures are on the scanned document, which is retained here. The negotiation history above is the record of how this wording was reached.`);
+  persist(c); renderWorkspace();
+  toast('Filed as executed on paper — the negotiation history stays with it');
+  return c.execution;
+}
+/* The dialog: a date, an optional note, and the scan itself. */
+function openPaperSignatureModal(c){
+  if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return; }
+  openModal(`
+    <div style="padding:22px 24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('finger')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Signed on paper</h2></div>
+      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
+        Attach the signed copy to <b>this</b> contract, so the ${(c.rounds||[]).length} round${(c.rounds||[]).length===1?'':'s'} of negotiation stay with the document they produced.
+        HaTi records it as <b>executed outside HaTi</b> — no electronic signature is taken, and the seal is the scanned file's own fingerprint.</p>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Date signed (optional)</span>
+        <input id="ps-date" type="date" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
+      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Note (optional)</span>
+        <input id="ps-note" type="text" placeholder="e.g. Signed at the Nairobi office, both parties present" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none"/></label>
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">The signed copy *</span>
+        <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:12.5px"/></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+        <button id="ps-cancel" class="ui-btn">Cancel</button>
+        <button id="ps-go" class="ui-btn ui-btn-primary">File as executed</button>
+      </div>
+    </div>`);
+  document.getElementById('ps-cancel').addEventListener('click',closeModal);
+  document.getElementById('ps-go').addEventListener('click',async e=>{
+    const input=document.getElementById('ps-file');
+    const file=input&&input.files&&input.files[0];
+    if(!file){ toast('Choose the signed copy first','err'); return; }
+    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+    const ok=await attachPaperSignature(c, file, {
+      signedOn:fval('ps-date')||null, note:fval('ps-note')||null });
+    if(ok) closeModal(); else { btn.disabled=false; btn.innerHTML='File as executed'; }
+  });
 }
 
 /* Freeze + seal + (single-signer) record the first mark + distribute. Called
@@ -2561,4 +2658,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{openWordExportModal,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
