@@ -2505,3 +2505,35 @@ Three bugs were caught by the new counterparty-side tests before they could
 ship, all three in this run's own work and all three on the counterparty's side:
 an editor that rendered nothing, a scroll call that aborted the flow mid-step,
 and a no-change round that could be submitted as an empty redline.
+
+**2026-07-26 — item-4 phase 2 shipped: a reason belongs to the change it is about.**
+Phase 1 let the counterparty edit a clause at a time, but the explanation was
+still one comment for the whole round — "we need changes to payment, delivery
+and liability" arrived as a lump, leaving the owner to work out which sentence
+explained which edit, and leaving her one reply to cover all three.
+
+**The join was the interesting part.** He writes a reason against a whole
+CLAUSE; she decides individual DIFF FRAGMENTS ("thirty (30)" → "sixty (60)").
+A note keyed by line index would be meaningless on her screen. So each note
+travels with the whole line **before and after** the change, and
+`noteForBlock(block, notes)` matches a fragment to its note by containment —
+sound by construction, because the fragment came from that very edit. Pinned by
+a test that two changes get two different reasons rather than the same one twice.
+
+The conversation now runs per clause in both directions:
+  · portal: a "Why?" field on the clause being changed; withdrawing the change
+    withdraws its reason
+  · response: `clauseNotes[]`, capped at 60 entries and 600 characters each
+  · review screen: "Why they asked" against each change, plus a reply box on it
+  · `blockDecisions` keep the ask and the reply beside the decision
+  · open points and the portal thread show both halves, per clause, with the
+    reply given on a specific change beating the one given for the whole round
+
+Two test-writing notes, both mistakes I have now made twice:
+- `new RegExp(literalWording)` — "thirty (30) days" contains regex grouping
+  characters and silently matched the wrong row. Literal text needs `includes`.
+- An injection assertion on the substring `onload=` fails on escaped text that
+  harmlessly contains those letters. The vector is a TAG forming, and that is
+  what the assertion checks.
+
+Result: `f29-clause-comments.test.js` 15/15; suite **434/434 green**.

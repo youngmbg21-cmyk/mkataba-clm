@@ -193,6 +193,22 @@ function applyBlockDecisions(aStr, bStr, decisions){
   }
   return out;
 }
+/* Which of the counterparty's per-clause reasons explains THIS change.
+   They wrote a reason against a whole clause; the review screen decides
+   fragments of one ("thirty (30)" → "sixty (60)"). A note matches a block when
+   the block's new wording appears in the line the note was written against —
+   which is true by construction, since the block came from that very edit. */
+function noteForBlock(block, notes){
+  if(!block || !Array.isArray(notes) || !notes.length) return null;
+  const a=String(block.after||'').trim(), b=String(block.before||'').trim();
+  for(const n of notes){
+    const after=String(n.after||''), before=String(n.before||'');
+    if(a && after.includes(a)) return n.note||null;
+    if(!a && b && before.includes(b)) return n.note||null;   // a pure deletion
+  }
+  return null;
+}
+
 /* Points the counterparty raised that were NOT adopted, and are therefore
    still live between the parties.
 
@@ -219,7 +235,10 @@ function openPointsFor(c){
       if(had && !live.includes(had)) continue;       // the clause has moved on since
       out.push({ id:`r${r.n}.${b.id}`, round:r.n, by:r.by,
         before:String(b.before||'').trim(), after:String(b.after||'').trim(),
-        reason:(r.resolution&&r.resolution.comment)||null });
+        // their reason for asking, and ours for saying no — the reply given
+        // against THIS change wins over the one given for the whole round
+        ask:b.note||null,
+        reason:b.reply||(r.resolution&&r.resolution.comment)||null });
     }
   }
   return out;
@@ -362,19 +381,25 @@ function reviewProposedRound(c, n){
   for(const b of blocks) decisions[b.id]='accept';
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
   const e=x=>String(x==null?'':x).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-  const blockRow=b=>`
+  const blockRow=b=>{
+    const ask=noteForBlock(b, r.clauseNotes);
+    return `
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:7px;padding:11px 13px">
       ${b.context?`<div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:6px">…${e(b.context)}</div>`:''}
       <div style="font-size:13px;line-height:1.7">
         ${b.before.trim()?`<del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 2px">${e(b.before.trim())}</del> `:''}
         ${b.after.trim()?`<ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 2px">${e(b.after.trim())}</ins>`:''}
       </div>
+      ${ask?`<div style="margin-top:8px;border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0 4px 4px 0;padding:7px 10px">
+        <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-800);margin-bottom:2px">Why they asked</span>
+        <span style="font-size:12px;line-height:1.55;color:var(--color-neutral-800)">${e(ask)}</span></div>`:''}
       <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
         <button data-dec="accept" data-for="${b.id}" class="ui-btn" style="font-size:11.5px;padding:5px 12px">Accept</button>
         <button data-dec="reject" data-for="${b.id}" class="ui-btn" style="font-size:11.5px;padding:5px 12px">Reject</button>
         <span data-state="${b.id}" style="margin-left:auto;font-size:11px;font-weight:600"></span>
       </div>
-    </div>`;
+      <input data-reply="${b.id}" type="text" placeholder="Your reply on this point (optional) — they see it against this change" style="width:100%;margin-top:7px;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px;font:inherit;font-size:11.5px;background:var(--color-bg);outline:none"/>
+    </div>`;};
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
@@ -448,11 +473,25 @@ function reviewProposedRound(c, n){
   paint();
 
   const reply=()=>{ const el=document.getElementById('pr-reply'); return el?el.value:''; };
+  const perBlockReplies=()=>{
+    const out={};
+    document.querySelectorAll('[data-reply]').forEach(el=>{
+      const v=String(el.value||'').trim();
+      if(v) out[el.getAttribute('data-reply')]=v;
+    });
+    return out;
+  };
   document.getElementById('pr-close').addEventListener('click',closeModal);
   document.getElementById('pr-accept').addEventListener('click',()=>{
-    const d={...decisions}, note=reply(); closeModal(); acceptProposedRound(c,n,{ decisions:d, comment:note }); });
+    const d={...decisions}, note=reply(), replies=perBlockReplies();
+    closeModal(); acceptProposedRound(c,n,{ decisions:d, comment:note, replies }); });
   document.getElementById('pr-reject').addEventListener('click',()=>{
-    const note=reply(); closeModal(); resolveRound(c,n,false,{ comment:note }); });
+    const note=reply(), replies=perBlockReplies();
+    // a straight rejection still records what was said about each change
+    if(blocks.length) r.blockDecisions=blocks.map(b=>({ id:b.id, decision:'reject',
+      before:b.before, after:b.after, note:noteForBlock(b, r.clauseNotes)||null,
+      reply:String(replies[b.id]||'').trim()||null }));
+    closeModal(); resolveRound(c,n,false,{ comment:note }); });
 }
 
 function resolveRound(c, n, accept, opts={}){
@@ -489,8 +528,11 @@ function acceptProposedRound(c, n, opts={}){
   const adopted=decisions?applyBlockDecisions(base, r.proposedText, decisions):r.proposedText;
   const accepted=blocks?blocks.filter(b=>decisions[b.id]==='accept'):null;
   const rejected=blocks?blocks.filter(b=>decisions[b.id]!=='accept'):null;
+  const replies=opts.replies||{};
   const record=()=>{ if(blocks) r.blockDecisions=blocks.map(b=>({ id:b.id,
-    decision:decisions[b.id]==='accept'?'accept':'reject', before:b.before, after:b.after })); };
+    decision:decisions[b.id]==='accept'?'accept':'reject', before:b.before, after:b.after,
+    note:noteForBlock(b, r.clauseNotes)||null,
+    reply:String(replies[b.id]||'').trim().slice(0,2000)||null })); };
   /* Taking nothing is a rejection. Recording it as an "acceptance" that changed
      no wording would put a false decision on the record and tell the
      counterparty their round was adopted when it was refused outright. */
@@ -619,4 +661,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,resolveRound,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

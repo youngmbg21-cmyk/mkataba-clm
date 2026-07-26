@@ -516,6 +516,23 @@ function portalThreadHtml(c, p){
       <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${esc(who)}${when?` · ${fmtDT(when)}`:''}</div>
       <div style="max-width:92%;border:1px solid ${mine?'var(--color-divider)':'var(--color-accent-300)'};background:${mine?'var(--color-bg)':'var(--color-accent-100)'};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800)">${esc(text)}</div>
     </div>`;
+  /* What was said about individual clauses, under the round it belonged to.
+     A reason attached to one change is more use than the same words in a lump
+     at the top, and it is where the reader is already looking. */
+  const clauseExchanges=(r,orgName)=>{
+    const parts=(r.blockDecisions||[]).filter(b=>b.note||b.reply);
+    if(!parts.length) return '';
+    return `<div style="display:flex;flex-direction:column;gap:7px;margin-top:2px">${parts.map(b=>`
+      <div style="border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;background:var(--color-bg)">
+        <div style="font-size:11.5px;line-height:1.55;color:var(--color-neutral-800)">
+          ${b.before?`<span style="text-decoration:line-through;color:#8f322b">${esc(String(b.before).trim())}</span> `:''}
+          ${b.after?`<span style="color:#1e6b4d">${esc(String(b.after).trim())}</span>`:''}
+          <span style="font-size:10px;font-weight:700;margin-left:6px;color:${b.decision==='accept'?'#1e6b4d':'#8f322b'}">${b.decision==='accept'?'ADOPTED':'NOT ADOPTED'}</span>
+        </div>
+        ${b.note?`<div style="margin-top:4px;font-size:11px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(b.note)}</div>`:''}
+        ${b.reply?`<div style="margin-top:3px;font-size:11px;color:var(--color-neutral-700)"><b>${esc(orgName)}:</b> ${esc(b.reply)}</div>`:''}
+      </div>`).join('')}</div>`;
+  };
   const verdict=r=>{
     if(!r.resolution||!r.resolution.decision) return '';
     const ok=r.resolution.decision==='accepted';
@@ -534,6 +551,7 @@ function portalThreadHtml(c, p){
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">Round ${esc(String(r.n))}</div>
             ${r.comment?bubble(r.by||'You', r.at, r.comment, true):''}
             ${r.resolution&&r.resolution.comment?bubble(org, r.resolution.at, r.resolution.comment, false):''}
+            ${clauseExchanges(r, org)}
             ${verdict(r)}
           </div>`).join('')}
       </div>
@@ -561,7 +579,8 @@ function portalOpenPointsHtml(c, p){
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
             ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">You asked for</span>
               <div style="color:#8f322b">${esc(pt.after)}</div></div>`:''}
-            ${pt.reason?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
           </div>`).join('')}
       </div>
     </div>`;
@@ -584,6 +603,11 @@ function portalOpenPointsHtml(c, p){
    same redline route as before, so the server, the owner's review screen and
    every existing test see precisely what they saw before. */
 let PORTAL_CLAUSE_EDITS = {};
+/* Phase 2: a reason per clause. One comment per round meant "we need changes to
+   payment, delivery and liability" arriving as a single lump, leaving the other
+   side to work out which sentence explained which edit. A reason belongs to the
+   change it is about. */
+let PORTAL_CLAUSE_NOTES = {};
 function portalClauseUnits(text){
   return String(text==null?'':text).split('\n').map((line,i)=>({
     i, text:line, kind:(window.docLineKind?docLineKind(line):'text'),
@@ -606,8 +630,9 @@ function portalClauseEditorHtml(c){
           <span style="flex:1;min-width:0;font-size:${heading?'13.5px':'13px'};line-height:1.7;${heading?'font-weight:700;letter-spacing:.02em;':''}color:var(--color-doc-text);white-space:pre-wrap">${esc(shown)}</span>
           <button data-cl-edit="${u.i}" class="ui-btn" style="flex:none;font-size:11px;padding:4px 10px">${edited?'Edit again':'Change'}</button>
         </div>
-        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:#7d5a14;display:flex;align-items:center;gap:7px">
+        ${edited?`<div style="margin-top:6px;font-size:10.5px;color:#7d5a14;display:flex;align-items:center;gap:7px;flex-wrap:wrap">
           <span>You changed this.</span>
+          ${PORTAL_CLAUSE_NOTES[u.i]?`<span style="color:var(--color-neutral-700);font-size:11px">“${esc(PORTAL_CLAUSE_NOTES[u.i])}”</span>`:''}
           <button data-cl-undo="${u.i}" style="border:0;background:none;padding:0;font:inherit;font-size:10.5px;font-weight:600;color:#7d5a14;cursor:pointer;text-decoration:underline">Undo</button></div>`:''}
       </div>`;
   }).join('');
@@ -631,6 +656,10 @@ function wirePortalClauseEditor(c, p){
       const cur=Object.prototype.hasOwnProperty.call(PORTAL_CLAUSE_EDITS,i)?PORTAL_CLAUSE_EDITS[i]:units[i].text;
       row.innerHTML=`
         <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:5px;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
+        <label style="display:block;margin-top:7px">
+          <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">Why? (optional — shown next to this change)</span>
+          <input data-cl-note="${i}" type="text" value="${esc(PORTAL_CLAUSE_NOTES[i]||'').replace(/"/g,'&quot;')}" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none"/>
+        </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
           <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
           <button data-cl-save="${i}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:4px 11px">Keep this change</button>
@@ -639,16 +668,36 @@ function wirePortalClauseEditor(c, p){
       row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
       row.querySelector(`[data-cl-save="${i}"]`).addEventListener('click',()=>{
         const v=ta?ta.value:'';
-        // a clause edited back to what it said is not a change
-        if(v===units[i].text) delete PORTAL_CLAUSE_EDITS[i]; else PORTAL_CLAUSE_EDITS[i]=v;
+        const noteEl=row.querySelector(`[data-cl-note="${i}"]`);
+        const note=noteEl?String(noteEl.value||'').trim():'';
+        // a clause edited back to what it said is not a change, and carries no reason
+        if(v===units[i].text){ delete PORTAL_CLAUSE_EDITS[i]; delete PORTAL_CLAUSE_NOTES[i]; }
+        else { PORTAL_CLAUSE_EDITS[i]=v; if(note) PORTAL_CLAUSE_NOTES[i]=note; else delete PORTAL_CLAUSE_NOTES[i]; }
         repaint();
       });
     }));
     host.querySelectorAll('[data-cl-undo]').forEach(b=>b.addEventListener('click',()=>{
-      delete PORTAL_CLAUSE_EDITS[Number(b.getAttribute('data-cl-undo'))]; repaint();
+      const i=Number(b.getAttribute('data-cl-undo'));
+      delete PORTAL_CLAUSE_EDITS[i]; delete PORTAL_CLAUSE_NOTES[i]; repaint();
     }));
   }
   repaint();          // render first, THEN attach — wire() alone had nothing to bind to
+}
+/* The per-clause reasons, in a shape the other side can match to what they see.
+   The owner reviews DIFF FRAGMENTS ("thirty (30)" → "sixty (60)"), not line
+   numbers, so a note keyed by line index would be meaningless there. Each note
+   travels with the whole line before and after the change, which is enough for
+   the review screen to line them up. */
+function portalClauseNotes(c){
+  const units=portalClauseUnits(portalCurrentText()||docPlainText(c));
+  const out=[];
+  for(const key of Object.keys(PORTAL_CLAUSE_EDITS)){
+    const i=Number(key);
+    const note=String(PORTAL_CLAUSE_NOTES[i]||'').trim();
+    if(!note || !units[i]) continue;
+    out.push({ before:units[i].text, after:PORTAL_CLAUSE_EDITS[i], note:note.slice(0,600) });
+  }
+  return out;
 }
 /* The text the counterparty is proposing, whichever surface they used. */
 function portalProposedText(c){
@@ -793,7 +842,7 @@ function renderSharePortal(p, opts={}){
     document.getElementById('portal-redline').classList.toggle('hidden',!on);
     document.getElementById('pt-doc').classList.toggle('hidden',on);
     if(on){
-      PORTAL_CLAUSE_EDITS={};
+      PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={};
       wirePortalClauseEditor(c, p);
     }
     try{ document.getElementById('pt-main')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
@@ -864,8 +913,12 @@ async function portalRespond(p, action){
     sendAction='changes';
   }
   const proposedValue = (action==='changes') ? fval('pt-proposed') : '';
+  const clauseNotes = (action==='redline')
+    ? portalClauseNotes(migrateContract({...p.contract, status:'Under Review', folder:p.contract.folder||'corp'}))
+    : null;
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:sendAction, name, title, email, comment,
     proposedValue: proposedValue||null, proposedText, baseText, at:nowISO(),
+    clauseNotes: (clauseNotes&&clauseNotes.length)?clauseNotes:null,
     signatureForm:sig?sig.form:null, signatureImage:sig?sig.image:null, signatureImageHash:sig?sig.imageHash:null,
     signatureTypedName:sig?sig.typedName:null, signatureFont:sig?sig.font:null };
   const label={sign:'signature',accept:'acceptance',changes:'change request',decline:'decline notice'}[sendAction];
@@ -1087,4 +1140,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

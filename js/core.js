@@ -1348,6 +1348,14 @@ function buildSharePayload(c, docHash, who){
      The internal name of whoever ruled stays behind; the organisation speaks. */
   const shareRounds = (c.rounds||[]).map(r=>({ n:r.n, at:r.at, by:r.by, status:r.status,
     comment:r.comment||null,
+    /* Per-clause exchanges: what they asked on a specific change, what was
+       decided about it, and the reply given against it. Their own words coming
+       back is not a leak, and the decision is theirs to know. The wording
+       fragments are already visible in the document they are reading. */
+    blockDecisions: Array.isArray(r.blockDecisions)&&r.blockDecisions.length
+      ? r.blockDecisions.map(b=>({ id:b.id, decision:b.decision,
+          before:b.before, after:b.after, note:b.note||null, reply:b.reply||null }))
+      : undefined,
     resolution: r.resolution ? { decision:r.resolution.decision, at:r.resolution.at,
       comment:r.resolution.comment||null } : null }));
   // written out longhand, not as shorthand: this list is read as a list
@@ -1872,6 +1880,9 @@ async function applyResponse(c, r, opts={}){
       proposedValue:(r.proposedValue!=null&&r.proposedValue!=='')?Number(r.proposedValue):null,
       proposedText: hasRedline ? r.proposedText : null,
       baseText: hasRedline ? (r.baseText || docPlainText(c)) : null,
+      // a reason per clause, when they gave one — matched to the individual
+      // changes on the review screen rather than read as one lump
+      clauseNotes: Array.isArray(r.clauseNotes)&&r.clauseNotes.length ? r.clauseNotes.slice(0,60) : null,
       status:'open', resolution:null });
     logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
     toast(`${r.name} requested changes — review in Negotiation`);
