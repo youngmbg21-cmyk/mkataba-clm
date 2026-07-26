@@ -117,7 +117,20 @@ function wireportalWord(c, p){
   document.getElementById('pt-word-gen')?.addEventListener('click',async e=>{
     const btn=e.currentTarget, restore=btn.innerHTML;
     btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    try{ await downloadContractDocx({ ...c, redlineText:(portalCurrentText()||c.redlineText), format:c.format }); }
+    /* NEVER label plain text as formatted. This handed the writer the plain
+       text projection while keeping format:'rich', so the writer parsed it as
+       markup, found none, and produced the whole contract as ONE paragraph —
+       while the owner's identical button produced a properly structured file.
+       The descriptor now says what the content actually is. */
+    try{
+      const live=portalCurrentText();
+      const richBody=c.redlineText && window.isRich && isRich(c.format);
+      const same=richBody && normText(richToText(c.redlineText))===normText(live||'');
+      const doc = (richBody && (same || !live))
+        ? c                                              // the formatted document itself
+        : { ...c, redlineText:(live||c.redlineText||''), format:TEXT_FORMAT };
+      await downloadContractDocx(doc);
+    }
     catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
     btn.disabled=false; btn.innerHTML=restore;
   });

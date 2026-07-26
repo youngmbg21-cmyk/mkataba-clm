@@ -183,9 +183,18 @@ function textToBlocks(text){
 
 /* Blocks for a contract, whichever shape its body is in. */
 function contractBlocks(c){
-  const rich = !!(window.isRich && isRich(c.format) && c.redlineText);
-  if (rich) return richToBlocks(c.redlineText);
-  const text = (window.docPlainText ? docPlainText(c) : '') || '';
+  /* A body marked 'rich' that contains no markup at all is plain text wearing
+     the wrong label. Treating it as markup yields one undifferentiated block —
+     the whole contract as a single paragraph — which is exactly what the
+     counterparty portal shipped. The caller is the right place to fix a
+     mislabelled descriptor, and it has been; this is the floor under every
+     other caller, present and future. */
+  const marked = !!(window.isRich && isRich(c.format) && c.redlineText);
+  const hasMarkup = marked && /<[a-zA-Z][^>]*>/.test(String(c.redlineText));
+  if (marked && hasMarkup) return richToBlocks(c.redlineText);
+  const text = marked
+    ? String(c.redlineText)
+    : ((window.docPlainText ? docPlainText(c) : '') || '');
   return textToBlocks(text);
 }
 

@@ -2334,3 +2334,43 @@ never simulated a delivered email, so under the new rule the honest wording is
 and asserts "emailed", with F24 covering the outcomes where nothing leaves.
 
 Result: `f24-reshare-notifies.test.js` 10/10; suite 364/364 green.
+
+**2026-07-26 — item-2 shipped: the counterparty's Word download was one paragraph.**
+`wireportalWord` handed the writer `portalCurrentText()` — the plain text
+projection — while keeping `format:'rich'`. The writer parsed it as markup,
+found none, and produced the entire contract as ONE block. The owner's
+identical button produced sixteen properly structured lines.
+
+The cause is a class of bug worth naming: **a format marker that lies about its
+content.** Fixed in two places, deliberately:
+
+1. **At the caller** — the portal now builds an honest descriptor. It hands over
+   the formatted body when the body IS formatted and still matches what is on
+   the page, and otherwise labels the plain text as plain text.
+2. **At the writer** — `contractBlocks` treats content marked rich that contains
+   no markup at all as text. That is the floor under every other caller,
+   present and future; the caller fix is the correct one.
+
+**2026-07-26 — item-7 (partial) shipped: the counterparty finally has a stage.**
+`test/portalworld.js` boots `js/views/portal.js` — plus the real `core.js`,
+`docxwrite.js` and the real document renderer — into a DOM, renders the page
+from a payload built by the product's own `buildSharePayload`, presses its
+buttons and reads what Erik actually receives.
+
+`f25-counterparty-page.test.js` then drives what he does: opens the link,
+downloads the Word file and reads the bytes back, proposes edits and checks the
+submitted shape, reads the thread and the open points, and signs both with and
+without a verification code available. **One of its assertions is that the file
+he downloads and the file she exports are the same document** — the check that
+would have caught this bug on the day it was written.
+
+Two harness lessons, both the same lesson:
+- A recorder assigned BEFORE the modules load is silently lost, because several
+  of these names are declared by the modules themselves (`wordflow.js` declares
+  `wordTriggerDownload`, `core.js` declares `toast`). Recorders are re-installed
+  after loading.
+- The page's handlers are async — building a Word file, capturing a signature —
+  so `click()` awaits the microtask queue. A synchronous check reads the state
+  before the work has happened, which looks exactly like a dead button.
+
+Result: `f25-counterparty-page.test.js` 15/15; suite **379/379 green**.
