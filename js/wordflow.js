@@ -85,9 +85,18 @@ function cancelWordReview(c){
 function openWordReturnPicker(c){
   if(!canEdit()){ toast('Viewers cannot upload documents','err'); return; }
   if(wordDoorClosed(c)){ toast('This contract is executed — record an amendment instead','err'); return; }
+  // The input must LIVE IN THE DOM while the dialog is up: a detached input
+  // is eligible for garbage collection the moment this function returns, and
+  // when the collector wins the race the dialog silently never opens — a
+  // dead button with no error (BUGLOG F9-004). Parked off-screen, removed
+  // after the choice (or when focus returns from a cancelled dialog).
   const input=document.createElement('input');
   input.type='file'; input.accept='.docx';
-  input.addEventListener('change',()=>{ const f=input.files&&input.files[0]; if(f) uploadWordVersion(c,f); });
+  input.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';
+  document.body.appendChild(input);
+  const cleanup=()=>{ try{ input.remove(); }catch(e){} };
+  input.addEventListener('change',()=>{ const f=input.files&&input.files[0]; cleanup(); if(f) uploadWordVersion(c,f); });
+  window.addEventListener('focus',()=>setTimeout(cleanup,1200),{once:true});
   input.click();
 }
 async function uploadWordVersion(c, file){

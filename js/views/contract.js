@@ -1952,12 +1952,12 @@ function renderWorkspace(){
   // rehydrate a server-stored uploaded file's bytes for preview/download
   if(API_MODE() && isUpload(c) && c.upload?.fileId && !c.upload?.dataUrl){
     api('files/'+c.upload.fileId).then(f=>{ c.upload.dataUrl=f.dataUrl;
-      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc) dc.innerHTML=docBody(c); }
+      if(state.activeId===c.id){ const dc=document.getElementById('doc-canvas'); if(dc){ dc.innerHTML=docBody(c); wireDocCanvas(c); } }
     }).catch(()=>{});
   }
   wireKeyTerms(c);
   wireActionBar(c);
-  if(window.wireWordControls) wireWordControls(c);   // Word round-trip buttons (docx uploads)
+  wireDocCanvas(c);   // expand / re-read / Word round-trip buttons (inside #doc-canvas)
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
@@ -1973,9 +1973,19 @@ function renderWorkspace(){
   document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  setActiveNav('workspace');
+}
+
+/* Listeners on nodes INSIDE #doc-canvas die with every innerHTML re-render of
+   the canvas — and the canvas re-renders more than once per visit: after the
+   stored file's bytes are fetched (the rehydrate above) and after signing.
+   Wiring them through one function lets every re-render re-arm them; wiring
+   them inline at only the first render is how the Word buttons went dead the
+   moment a reloaded page rehydrated (BUGLOG F9-003). */
+function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
-  setActiveNav('workspace');
+  if(window.wireWordControls) wireWordControls(c);
 }
 
 /* -------- doc field sync --------
@@ -2305,7 +2315,7 @@ async function finalizeExecution(c, opts={}){
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
-    const canvas=document.getElementById('doc-canvas'); if(canvas) canvas.innerHTML=docBody(c);
+    const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBody(c); wireDocCanvas(c); }
     if(typeof updateStatusUI==='function') updateStatusUI(c);
     renderSignButton(c); renderAuditSection(c);
   }catch(e){ /* not on screen — fine */ }
