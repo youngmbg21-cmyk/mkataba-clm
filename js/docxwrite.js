@@ -198,24 +198,215 @@ function contractBlocks(c){
   return textToBlocks(text);
 }
 
+/* ---------- the red ink ----------
+   HaTi could always READ Word's tracked changes and never write its own, so
+   every counter a HaTi user sent left as clean text: the counterparty opened a
+   document that looked untouched and had to run Word's own Compare to find out
+   what had moved — the last manual, error-prone step in an otherwise closed
+   loop, and the one a Word-only counterparty is least likely to perform
+   reliably on the sixth round of a negotiation.
+
+   What goes in the file is a REVISION, in Word's own vocabulary: inserted
+   wording inside <w:ins>, removed wording inside <w:del> as <w:delText>, each
+   stamped with the party who made it. Two properties are non-negotiable and
+   both are tested:
+
+     · Accepting every revision in Word must yield EXACTLY the document HaTi
+       holds. A redline that accepts to something other than the live wording
+       would put words into a contract that neither party wrote.
+     · The author on the markup is the PARTY, not the software. Who changed a
+       clause is the first question anyone asks of a redline, and answering it
+       "HaTi System" would erase the only fact the balloon exists to carry. */
+
+/* Which wording the counterparty is holding — the document their copy of this
+   contract says, and therefore the only baseline a redline can honestly be
+   measured against. Two things put a document in their hands, and the later
+   one wins:
+     · the file they last sent BACK to us, once we have decided it. Their
+       proposal is the paper on their desk; marking up from it shows them both
+       what we accepted and what we put back. An UNDECIDED round is excluded on
+       purpose — striking their still-open asks would tell them they had been
+       refused before anyone had ruled on them.
+     · the wording we last sent THEM, recorded at export (c.wordSent), which is
+       what makes a second counter in a row mark up correctly. */
+function redlineBaseline(c){
+  let best = null;
+  const later = (a, b) => !b || String(a || '') >= String(b.at || '');
+  for (const r of (c && c.rounds) || []){
+    if (!r.proposedText || r.status === 'open') continue;
+    const at = (r.resolution && r.resolution.at) || r.at;
+    if (later(at, best)) best = { at, text: r.proposedText, format: 'text', body: null, from: 'round' + r.n };
+  }
+  const sent = c && c.wordSent;
+  if (sent && sent.text && later(sent.at, best))
+    best = { at: sent.at, text: sent.text, format: sent.format || 'text', body: sent.body || null, from: 'export' };
+  return best;
+}
+/* The baseline as BLOCKS, built by the same two producers the live document
+   goes through — so paragraphs on the two sides are the same kind of thing and
+   an alignment between them means what it looks like it means. */
+function baselineBlocks(base){
+  if (!base) return [];
+  const rich = !!(window.isRich && isRich(base.format) && base.body &&
+                  /<[a-zA-Z][^>]*>/.test(String(base.body)));
+  return rich ? richToBlocks(base.body) : textToBlocks(base.text);
+}
+
+const _blockText = b => b.runs.map(r => r.text).join('');
+/* The formatting of a stretch of one block, as runs. A redline that dropped
+   the bold from a changed clause would fix the markup and break the document. */
+function _slice(block, from, to){
+  const out = [];
+  let at = 0;
+  for (const r of block.runs){
+    const s = at, e = at + r.text.length;
+    at = e;
+    if (e <= from || s >= to) continue;
+    const t = r.text.slice(Math.max(0, from - s), Math.min(r.text.length, to - s));
+    if (t) out.push({ text: t, b: r.b, i: r.i, u: r.u });
+  }
+  return out;
+}
+/* Paragraph-level alignment. The unit here is the whole paragraph, not the
+   word — wordDiff owns words, and is called below once two paragraphs are
+   known to be versions of each other. */
+function _blockOps(A, B){
+  const n = A.length, m = B.length;
+  const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const ops = [];
+  let i = 0, j = 0;
+  while (i < n && j < m){
+    if (A[i] === B[j]){ ops.push({ t: 'eq', a: i, b: j }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]){ ops.push({ t: 'del', a: i }); i++; }
+    else { ops.push({ t: 'add', b: j }); j++; }
+  }
+  while (i < n){ ops.push({ t: 'del', a: i }); i++; }
+  while (j < m){ ops.push({ t: 'add', b: j }); j++; }
+  return ops;
+}
+/* Is the new paragraph an EDIT of the old one, or a different paragraph
+   standing where it used to? An edited clause is marked word by word, which is
+   what a reader wants; two unrelated paragraphs marked that way would produce
+   an unreadable ransom note of interleaved fragments. */
+function _sameParagraph(a, b){
+  if (!a.trim() || !b.trim()) return false;
+  let eq = 0;
+  for (const p of wordDiff(a, b)) if (p.t === 'eq') eq += p.text.length;
+  return eq / Math.max(a.length, b.length, 1) >= 0.4;
+}
+/* Runs for a paragraph that exists on both sides: unchanged and inserted text
+   keeps the LIVE document's formatting, struck-out text keeps the formatting it
+   had when it was written. */
+function _editedRuns(baseB, curB){
+  const before = _blockText(baseB), after = _blockText(curB);
+  const out = [];
+  let bi = 0, ci = 0;
+  for (const p of wordDiff(before, after)){
+    const len = p.text.length;
+    if (p.t === 'eq'){
+      for (const r of _slice(curB, ci, ci + len)) out.push({ ...r, mark: null });
+      bi += len; ci += len;
+    } else if (p.t === 'add'){
+      for (const r of _slice(curB, ci, ci + len)) out.push({ ...r, mark: 'ins' });
+      ci += len;
+    } else {
+      for (const r of _slice(baseB, bi, bi + len)) out.push({ ...r, mark: 'del' });
+      bi += len;
+    }
+  }
+  return out;
+}
+/* The live document, marked up against what the counterparty is holding.
+   Blocks carry a `mark` per run and, for a paragraph that wholly arrived or
+   wholly went, a `pMark` — the paragraph MARK itself is part of the revision,
+   or accepting a deletion in Word would leave an empty paragraph behind where
+   the clause used to be. */
+function redlineBlocks(baseBlocks, curBlocks){
+  if (typeof wordDiff !== 'function')
+    throw new Error('the word diff is not loaded, so a redline cannot be written');
+  const A = baseBlocks.map(_blockText), B = curBlocks.map(_blockText);
+  const ops = _blockOps(A, B);
+  const out = [];
+  const whole = (blk, mark) => ({ style: blk.style, indent: blk.indent, pMark: mark,
+    runs: blk.runs.map(r => ({ text: r.text, b: r.b, i: r.i, u: r.u, mark })) });
+  for (let k = 0; k < ops.length; ){
+    if (ops[k].t === 'eq'){ out.push(curBlocks[ops[k].b]); k++; continue; }
+    // one contiguous divergence: the paragraphs that went, and those that came
+    let end = k;
+    while (end < ops.length && ops[end].t !== 'eq') end++;
+    const group = ops.slice(k, end);
+    const dels = group.filter(o => o.t === 'del').map(o => o.a);
+    const adds = group.filter(o => o.t === 'add').map(o => o.b);
+    const pairs = new Map();
+    for (let p = 0; p < Math.min(dels.length, adds.length); p++)
+      if (_sameParagraph(A[dels[p]], B[adds[p]])) pairs.set(dels[p], adds[p]);
+    const taken = new Set(pairs.values());
+    for (const o of group){
+      if (o.t === 'del'){
+        if (pairs.has(o.a)){
+          const cur = curBlocks[pairs.get(o.a)];
+          out.push({ style: cur.style, indent: cur.indent, runs: _editedRuns(baseBlocks[o.a], cur) });
+        } else out.push(whole(baseBlocks[o.a], 'del'));
+      } else if (!taken.has(o.b)) out.push(whole(curBlocks[o.b], 'ins'));
+    }
+    k = end;
+  }
+  return out;
+}
+const hasRevisions = blocks => blocks.some(b => b.pMark || b.runs.some(r => r.mark));
+
 /* ---------- WordprocessingML ---------- */
+/* Every revision needs an id unique in the document, an author and a date;
+   `meta` carries them and hands out the ids. */
+function revisionMeta(opts){
+  const iso = (opts && opts.date) || (window.nowISO ? nowISO() : new Date().toISOString());
+  return {
+    author: String((opts && opts.author) || window.FIRST_PARTY || 'HaTi') || 'HaTi',
+    date: String(iso).replace(/\.\d+Z$/, 'Z'),   // Word wants seconds, not milliseconds
+    n: 1,
+  };
+}
+const _rev = m => `w:id="${m.n++}" w:author="${XE(m.author)}" w:date="${XE(m.date)}"`;
+
 function runXml(r){
   const props = (r.b ? '<w:b/>' : '') + (r.i ? '<w:i/>' : '') + (r.u ? '<w:u w:val="single"/>' : '');
+  // struck-out wording is w:delText, never w:t: text left in a w:t inside a
+  // deletion is live text to every reader, so the "removed" clause would still
+  // be in the contract after the revision was accepted
+  const tag = r.mark === 'del' ? 'w:delText' : 'w:t';
   // a tab inside a run has to be a real w:tab element, not a tab character
   const body = String(r.text).split('\t')
-    .map(seg => `<w:t xml:space="preserve">${XE(seg)}</w:t>`).join('<w:tab/>');
+    .map(seg => `<${tag} xml:space="preserve">${XE(seg)}</${tag}>`).join('<w:tab/>');
   return `<w:r>${props ? `<w:rPr>${props}</w:rPr>` : ''}${body}</w:r>`;
 }
-function blockXml(b){
+function runsXml(runs, meta){
+  if (!meta) return runs.map(runXml).join('');
+  let out = '';
+  for (let i = 0; i < runs.length; ){
+    const mark = runs[i].mark || null;
+    let j = i;
+    while (j < runs.length && (runs[j].mark || null) === mark) j++;
+    const inner = runs.slice(i, j).map(runXml).join('');
+    out += mark ? `<w:${mark === 'ins' ? 'ins' : 'del'} ${_rev(meta)}>${inner}</w:${mark === 'ins' ? 'ins' : 'del'}>` : inner;
+    i = j;
+  }
+  return out;
+}
+function blockXml(b, meta){
   const ind = b.indent ? `<w:ind w:left="${Math.min(b.indent, 6) * 360}"/>` : '';
   const style = b.style && b.style !== 'Normal' ? `<w:pStyle w:val="${XE(b.style)}"/>` : '';
-  const pPr = (style || ind) ? `<w:pPr>${style}${ind}</w:pPr>` : '';
-  return `<w:p>${pPr}${b.runs.map(runXml).join('')}</w:p>`;
+  // w:rPr closes w:pPr in the schema, and the revision on the paragraph mark
+  // lives inside it — this is what makes a deleted clause close up cleanly
+  const rPr = (meta && b.pMark) ? `<w:rPr><w:${b.pMark === 'ins' ? 'ins' : 'del'} ${_rev(meta)}/></w:rPr>` : '';
+  const pPr = (style || ind || rPr) ? `<w:pPr>${style}${ind}${rPr}</w:pPr>` : '';
+  return `<w:p>${pPr}${runsXml(b.runs, meta)}</w:p>`;
 }
-function documentXml(blocks){
+function documentXml(blocks, meta){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
-    '<w:body>' + blocks.map(blockXml).join('') +
+    '<w:body>' + blocks.map(b => blockXml(b, meta)).join('') +
     '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>' +
     '<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>' +
     '</w:body></w:document>';
@@ -270,11 +461,11 @@ function stylesXml(){
 
 /* Word bytes for a set of blocks. Exposed so a test can drive the writer
    without building a whole contract. */
-function docxFromBlocks(blocks){
+function docxFromBlocks(blocks, meta){
   return zipStore([
     { name: '[Content_Types].xml', data: CONTENT_TYPES },
     { name: '_rels/.rels', data: ROOT_RELS },
-    { name: 'word/document.xml', data: documentXml(blocks) },
+    { name: 'word/document.xml', data: documentXml(blocks, meta) },
     { name: 'word/_rels/document.xml.rels', data: DOC_RELS },
     { name: 'word/styles.xml', data: stylesXml() },
   ]);
@@ -282,13 +473,36 @@ function docxFromBlocks(blocks){
 function docxFromText(text){ return docxFromBlocks(textToBlocks(text)); }
 function docxFromRich(html){ return docxFromBlocks(richToBlocks(html)); }
 
+/* What the export will carry, decided before it is built, so the caller can
+   say so on screen and on the record instead of the user finding out by
+   opening the file. */
+function redlinePlan(c, opts = {}){
+  if (opts.tracked === false) return null;
+  const base = redlineBaseline(c);
+  if (!base) return null;
+  const blocks = contractBlocks(c);
+  const marked = redlineBlocks(baselineBlocks(base), blocks);
+  if (!hasRevisions(marked)) return null;   // nothing has moved: a clean file is the truth
+  return { base, blocks: marked };
+}
+
 /* Word bytes for a contract as it currently reads. Async because a caller may
-   need the full record loaded first; the computation itself is synchronous. */
-async function contractDocxBytes(c){
+   need the full record loaded first; the computation itself is synchronous.
+   Where the counterparty is holding an earlier wording, the differences go in
+   as real tracked changes; where they are not, or nothing has changed since,
+   the file is clean — because it would be a lie for it to be anything else. */
+async function contractDocxBytes(c, opts = {}){
   if (window.ensureFull){ try { await ensureFull(c); } catch (_) {} }
   const blocks = contractBlocks(c);
   if (!blocks.length) throw new Error('this contract has no wording to export yet');
-  return docxFromBlocks(blocks);
+  let plan = null;
+  try { plan = redlinePlan(c, opts); }
+  catch (e){
+    // a redline that cannot be computed must not silently become a clean file
+    // presented as a marked-up one — say so and send the clean wording
+    if (window.console) console.warn('redline skipped:', e.message);
+  }
+  return plan ? docxFromBlocks(plan.blocks, revisionMeta(opts)) : docxFromBlocks(blocks);
 }
 
 /* A filename a person can find again: the contract's name, its id, and the
@@ -299,8 +513,8 @@ function wordExportName(c){
   return `${base}${v}.docx`;
 }
 
-async function downloadContractDocx(c){
-  const bytes = await contractDocxBytes(c);
+async function downloadContractDocx(c, opts = {}){
+  const bytes = await contractDocxBytes(c, opts);
   const name = wordExportName(c);
   if (window.wordTriggerDownload){
     // reuse the one download path, so a blob URL is revoked the same way
@@ -314,6 +528,7 @@ async function downloadContractDocx(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   crc32, zipStore, richToBlocks, textToBlocks, contractBlocks, documentXml, stylesXml,
-  docxFromBlocks, docxFromText, docxFromRich, contractDocxBytes, wordExportName, downloadContractDocx });
+  docxFromBlocks, docxFromText, docxFromRich, contractDocxBytes, wordExportName, downloadContractDocx,
+  redlineBaseline, baselineBlocks, redlineBlocks, hasRevisions, redlinePlan, revisionMeta });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   crc32, zipStore, documentXml, stylesXml, docxFromBlocks, textToBlocks };

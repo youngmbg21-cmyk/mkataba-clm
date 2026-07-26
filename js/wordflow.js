@@ -92,6 +92,19 @@ function wordTriggerDownload(dataUrl, fileName, mime){
 }
 
 /* ---- phase 2: OUT — download for review + the soft lock ---- */
+/* What the counterparty now holds. Recorded when a file leaves, because the
+   next export has to be marked up against the copy on THEIR desk — and after
+   the first counter that copy is no longer any version in our own ledger. It
+   is deliberately a snapshot of the wording, not a pointer to a version: a
+   version can be superseded, but what they received cannot un-happen. */
+function recordWordSent(c, text){
+  const t=String(text!=null?text:(window.docPlainText?docPlainText(c):''))||'';
+  if(!t.trim()) return null;
+  c.wordSent={ at:nowISO(), text:t,
+    format:(window.docFormat?docFormat(c.format):'text'),
+    body:(text==null&&c.redlineText!=null)?c.redlineText:null };
+  return c.wordSent;
+}
 /* Download the current wording for external review.
    `opts.lock` decides whether online editing is paused while the file is out.
    It used to be unconditional and invisible: one of two identically-named
@@ -114,16 +127,28 @@ async function startWordReview(c, btn, opts={}){
     if(!cur || wordFileStale(c, cur)){
       if(typeof downloadContractDocx!=='function')
         throw new Error('there is no Word file on this contract yet');
-      await downloadContractDocx(c);
-      if(lock) c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur?cur.n:null, generated:true };
+      // whether the file goes out marked up is decided BEFORE it is written, so
+      // the audit trail and the toast can say which of the two went out
+      let marked=null, why='';
+      try{ marked=window.redlinePlan?redlinePlan(c,{tracked:opts.tracked}):null; }catch(e){ marked=null; why=`could not be computed (${e.message})`; }
+      if(marked) why=`sent as a tracked redline against the wording ${c.counterparty||'the counterparty'} last held (${marked.base.from==='export'?'the copy we last sent them':'their own returned wording'}), marked in the name of ${window.FIRST_PARTY||'this workspace'}`;
+      else if(!why) why=opts.tracked===false ? 'sent clean — markup was turned off for this copy'
+        : (window.redlineBaseline&&redlineBaseline(c)) ? 'sent clean — nothing has changed since the copy they are holding'
+        : 'sent clean — they have not seen an earlier wording of this document, so there is nothing to mark';
+      await downloadContractDocx(c, { tracked:opts.tracked });
+      recordWordSent(c);
+      if(lock) c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur?cur.n:null, generated:true, tracked:!!marked };
       c.lastAction=todayStr();
-      logAudit(c,'Word review',`Current wording exported to Word for external review by ${u?.name||'System'}${lock?' — online editing paused until the returned file is uploaded or the review is cancelled':' — online editing left open'}`);
+      logAudit(c,'Word review',`Current wording exported to Word for external review by ${u?.name||'System'} — ${why}${lock?'; online editing paused until the returned file is uploaded or the review is cancelled':'; online editing left open'}`);
       persist(c); renderWorkspace();
-      toast(lock?'Downloaded for Word review — editing is paused until the file comes back':'Downloaded — you can keep editing here');
+      toast(marked
+        ?(lock?'Downloaded with your changes marked in red — editing is paused until the file comes back':'Downloaded with your changes marked in red')
+        :(lock?'Downloaded for Word review — editing is paused until the file comes back':'Downloaded — you can keep editing here'));
       return;
     }
     const dataUrl=await wordEntryDataUrl(c, cur);
     wordTriggerDownload(dataUrl, cur.fileName, cur.mime);
+    recordWordSent(c, (cur.src&&cur.src.text)||(cur.key==='v1'?(c.upload&&c.upload.extractedText):null));
     if(lock) c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur.n };
     c.lastAction=todayStr();
     logAudit(c,'Word review',`${cur.key} (“${cur.fileName}”) downloaded for external Word review by ${u?.name||'System'}${lock?' — online editing paused until the returned file is uploaded or the review is cancelled':' — online editing left open'}`);
@@ -308,4 +333,4 @@ function wireWordControls(c){
   });
 }
 
-Object.assign(window,{DOCX_MIME,isWordDoc,wordCapable,wordVersionLedger,wordVersionList,wordFileStale,wordTriggerDownload,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});
+Object.assign(window,{DOCX_MIME,isWordDoc,wordCapable,wordVersionLedger,wordVersionList,wordFileStale,wordTriggerDownload,recordWordSent,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});

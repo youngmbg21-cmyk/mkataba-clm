@@ -1179,12 +1179,26 @@ function openWordExportModal(c){
   if(window.wordReviewOut&&wordReviewOut(c)){
     toast('This document is already out for Word review — upload the returned file or cancel the review first','err'); return;
   }
+  /* Will this copy carry markup? A Word user reads a document by its red ink,
+     so which of the two files is going out is the most important thing on this
+     screen — and it is knowable before the file is built. */
+  let plan=null;
+  try{ plan=window.redlinePlan?redlinePlan(c):null; }catch(err){ plan=null; }
+  const who=(c.counterparty||'the counterparty').replace(/</g,'&lt;');
   openModal(`
     <div style="padding:22px 24px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('download')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Download as Word</h2></div>
       <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
         You'll get a <b>.docx</b> of the wording as it reads right now — headings, clause numbers and all — for a counterparty who works in Word. When their marked-up copy comes back, upload it on the contract and HaTi files it as a negotiation round.</p>
+      ${plan?`
+      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid #bcd9ca;background:#e4f1ea;border-radius:5px;padding:10px 12px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="we-track" checked style="margin-top:2px;flex:none"/>
+        <span style="font-size:12.5px;line-height:1.55"><b>Mark your changes in red (tracked changes).</b>
+        <span style="display:block;color:var(--color-neutral-700);margin-top:2px">${who} opens the file and sees exactly what you changed since the copy they last had, marked in the name of <b>${(window.FIRST_PARTY||'this workspace').replace(/</g,'&lt;')}</b> — insertions underlined, removals struck through, the way Word does it. Untick to send clean text they'd have to compare by hand.</span></span>
+      </label>`:`
+      <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;margin-bottom:8px;font-size:12px;line-height:1.55;color:var(--color-neutral-700)">
+        This copy goes out as <b>clean text</b> — ${who} has not seen an earlier wording of this document, so there is nothing to mark. Once they return a copy and you decide it, later exports carry your changes in red automatically.</div>`}
       <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;cursor:pointer">
         <input type="checkbox" id="we-lock" checked style="margin-top:2px;flex:none"/>
         <span style="font-size:12.5px;line-height:1.55"><b>Pause editing here until the file comes back.</b>
@@ -1198,9 +1212,10 @@ function openWordExportModal(c){
   document.getElementById('we-cancel').addEventListener('click',closeModal);
   document.getElementById('we-go').addEventListener('click',async e=>{
     const lock=!!document.getElementById('we-lock')?.checked;
+    const trackEl=document.getElementById('we-track');
     const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
     try{
-      await startWordReview(c, null, { lock });
+      await startWordReview(c, null, { lock, tracked:trackEl?!!trackEl.checked:undefined });
       closeModal();
     }catch(err){ toast('Could not build the Word file — '+err.message,'err'); btn.disabled=false; btn.innerHTML='Download'; }
   });
