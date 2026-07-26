@@ -1248,6 +1248,32 @@ function readinessPanelHtml(c){
    portal renders has to be in here; anything not in here does not exist as far
    as the other side is concerned. */
 const shareDocText = c => { try{ return (typeof docPlainText==='function') ? docPlainText(c) : ''; }catch(_){ return ''; } };
+/* The version history a counterparty is entitled to: the drafting that happened
+   BEFORE the contract was first sent to anyone is the organisation's own work
+   and stays behind, so the history starts at the first "Shared for review"
+   snapshot. Internal authorship goes too — a version says what it is, not which
+   member of staff typed it — and internal labels are mapped to plain ones so a
+   playbook clause name or a colleague's name cannot ride along in a caption.
+   Without this the other side can be told a contract changed but has no way to
+   look, which is the position the owner's Compare button exists to avoid. */
+function shareVersions(c, org){
+  const vs=(c.versions||[]);
+  const firstSent=vs.findIndex(v=>/^shared for review/i.test(v.label||''));
+  if(firstSent<0) return undefined;
+  const by=org||'the sender';
+  const safeLabel = v => {
+    const l=String(v.label||'');
+    if(/^shared for review/i.test(l)) return 'Sent to you';
+    if(/^round\s/i.test(l)) return l.replace(/\s*\(redline from [^)]*\)/i,'').trim();
+    if(/^signed|signing/i.test(l)) return 'Signed';
+    return 'Revised by '+by;
+  };
+  const out=vs.slice(firstSent)
+    .filter(v=>v&&typeof v.text==='string'&&v.text.trim())
+    .slice(-8)                                  // a readable list, not an archive
+    .map(v=>({ n:v.n, at:v.at, label:safeLabel(v), text:v.text }));
+  return out.length?out:undefined;
+}
 function buildSharePayload(c, docHash, who){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -1272,6 +1298,7 @@ function buildSharePayload(c, docHash, who){
          Recording it here is what lets the next link tell the same reader what
          moved since the copy they last opened. */
       docText:shareDocText(c)||undefined,
+      versions:shareVersions(c, org),
       redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
 }
 async function openShareModal(c){

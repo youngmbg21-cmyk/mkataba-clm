@@ -92,6 +92,42 @@ describe('F12 — the share payload carries the negotiation history', () => {
       'internal comments and the audit trail never travel with a share');
   });
 
+  test('internal drafting never travels — the history starts when it was first sent', () => {
+    const s = core();
+    const p = s.buildSharePayload(contract({ versions: [
+      { n: 1, at: '2026-07-20T09:00:00.000Z', label: 'Original text', by: 'System', text: 'FIRST INTERNAL DRAFT' },
+      { n: 2, at: '2026-07-21T09:00:00.000Z', label: 'Edited by Wanjiku Kamau', by: 'Wanjiku Kamau', text: 'SECOND INTERNAL DRAFT' },
+      { n: 3, at: '2026-07-22T09:00:00.000Z', label: 'Shared for review', by: 'Young Mbagaya', text: 'AS SENT' },
+      { n: 4, at: '2026-07-23T09:00:00.000Z', label: 'Round 1 accepted (redline from Guliz Cetin)', by: 'Young Mbagaya', text: 'AFTER THEIR ROUND' },
+    ] }), 'hash', WHO);
+    const labels = p.contract.versions.map(v => v.label);
+    const raw = JSON.stringify(p.contract.versions);
+    assert.equal(p.contract.versions.length, 2, 'the two pre-share drafts are the org\'s own work');
+    assert.ok(!raw.includes('INTERNAL DRAFT'), 'wording never sent to anyone must not arrive now');
+    assert.deepEqual(labels, ['Sent to you', 'Round 1 accepted']);
+    assert.ok(!raw.includes('Wanjiku Kamau'), 'no colleague is named in a version caption');
+    assert.ok(!raw.includes('by'.padEnd(0) + '"by"'), 'authorship is not published at all');
+  });
+
+  test('an internal label is replaced rather than published verbatim', () => {
+    const s = core();
+    const p = s.buildSharePayload(contract({ versions: [
+      { n: 1, at: '2026-07-22T09:00:00.000Z', label: 'Shared for review', text: 'AS SENT' },
+      { n: 2, at: '2026-07-23T09:00:00.000Z', label: 'Inserted preferred wording: Limitation of Liability (Tier 2 fallback)', text: 'REVISED' },
+    ] }), 'hash', WHO);
+    const raw = JSON.stringify(p.contract.versions);
+    assert.ok(!raw.includes('Tier 2 fallback'), 'the playbook\'s internal naming is not counterparty business');
+    assert.equal(p.contract.versions[1].label, 'Revised by Mkataba Ltd');
+  });
+
+  test('a contract never sent to anyone publishes no history', () => {
+    const s = core();
+    const p = s.buildSharePayload(contract({ versions: [
+      { n: 1, at: '2026-07-20T09:00:00.000Z', label: 'Original text', text: 'DRAFT' },
+    ] }), 'hash', WHO);
+    assert.equal(p.contract.versions, undefined);
+  });
+
   test('the fields the portal has always needed are all still there', () => {
     const s = core();
     const p = s.buildSharePayload(contract(), 'the-hash', WHO);

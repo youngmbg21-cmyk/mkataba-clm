@@ -137,13 +137,26 @@ function portalWordDiffModal(base, next, fileName, st){
    text is what this link carries. Identical in kind to the owner's strip: a
    notice is only worth showing if it opens onto the thing it is about, so the
    button is not optional furniture. */
+function portalVersions(){
+  const p=PORTAL_OPTS.payload;
+  return (p&&p.contract&&Array.isArray(p.contract.versions))?p.contract.versions:[];
+}
 function portalChangedText(){
-  const prior=PORTAL_OPTS.prior;
-  if(!prior||!prior.text) return null;
   const now=portalCurrentText();
   if(!now||!now.trim()) return null;
-  if(normText(prior.text)===normText(now)) return null;    // reshared, but nothing moved
-  return { before:prior.text, after:now, at:prior.at, openedAt:prior.openedAt };
+  const prior=PORTAL_OPTS.prior;
+  if(prior&&prior.text&&normText(prior.text)!==normText(now))
+    return { before:prior.text, after:now, at:prior.at, openedAt:prior.openedAt };
+  if(prior&&prior.text) return null;                       // reshared, but nothing moved
+  /* No recorded copy on the server — the link they opened was created before
+     the wording was being kept, or they were sent this contract by a route that
+     left no trace. The history that travels with this payload still knows what
+     the previous copy said, so fall back to the snapshot taken when the
+     contract was last sent rather than saying nothing at all. */
+  const sent=portalVersions().filter(v=>v.label==='Sent to you');
+  const previous=sent.length>1?sent[sent.length-2]:null;
+  if(!previous||!previous.text||normText(previous.text)===normText(now)) return null;
+  return { before:previous.text, after:now, at:previous.at, openedAt:null };
 }
 function portalCurrentText(){
   const p=PORTAL_OPTS.payload;
@@ -210,6 +223,71 @@ function openPortalCompare(p){
   document.getElementById('pc-accept').addEventListener('click',()=>{ closeModal(); portalRespond(p,'accept'); });
   document.getElementById('pc-decline').addEventListener('click',()=>{ closeModal(); portalRespond(p,'decline'); });
   document.getElementById('pc-counter').addEventListener('click',()=>{ closeModal(); document.getElementById('pt-redline')?.click(); });
+}
+/* The counterparty's Compare — the mirror of the owner's toolbar button, and
+   the answer to "how do I see what changed" when no banner happens to be up.
+   Always available whenever the contract has been sent more than once; picks
+   any two of the versions that travelled with the payload. */
+function portalCompareBar(){
+  const vs=portalVersions();
+  if(vs.length<2) return '';
+  return `
+    <div id="pt-history" style="display:flex;align-items:center;gap:11px;flex-wrap:wrap;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:11px 16px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;display:inline-flex;color:var(--color-accent)">${icon('history','w-4 h-4')}</span>
+      <span style="flex:1;min-width:180px;font-size:12.5px;color:var(--color-neutral-700);line-height:1.5">
+        This contract has <b>${vs.length} versions</b> since it was first sent to you. You can compare any two.</span>
+      <button id="pt-compare" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">Compare versions</button>
+    </div>`;
+}
+function openPortalVersionCompare(p){
+  const vs=portalVersions().slice();
+  const now=portalCurrentText();
+  const items=vs.map(v=>({ label:`v${v.n} · ${v.label} · ${fmtDT(v.at)}`, text:v.text }));
+  const last=vs[vs.length-1];
+  if(now&&(!last||normText(last.text)!==normText(now))) items.push({ label:'The copy you are reading now', text:now });
+  if(items.length<2) return;
+  const opts=items.map((it,i)=>`<option value="${i}">${esc(it.label)}</option>`).join('');
+  const SEL='font:inherit;font-size:12.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:7px 9px;border-radius:4px;color:inherit;min-width:0;flex:1';
+  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
+  openModal(`
+    <div style="height:100%;display:flex;flex-direction:column;min-height:0">
+      <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
+        <div style="${COL}">
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 10px">Compare versions</h3>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <select id="pv-a" style="${SEL}">${opts}</select>
+            <span style="color:var(--color-neutral-500);flex:none">→</span>
+            <select id="pv-b" style="${SEL}">${opts}</select>
+            <button id="pv-go" class="ui-btn ui-btn-primary" style="flex:none">Compare</button>
+          </div>
+          <p id="pv-legend" style="font-size:11.5px;color:var(--color-neutral-600);margin:9px 0 0"></p>
+        </div>
+      </div>
+      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
+        <div id="pv-out" style="${COL};font-size:12.5px;color:var(--color-neutral-600)">Pick two versions and press <b>Compare</b>.</div>
+      </div>
+      <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
+        <div style="${COL};display:flex;align-items:center;gap:9px">
+          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">Nothing here sends anything — close when you are done.</span>
+          <button id="pv-close" class="ui-btn">Close</button>
+        </div>
+      </div>
+    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+  const A=document.getElementById('pv-a'), B=document.getElementById('pv-b');
+  A.value=String(Math.max(0,items.length-2)); B.value=String(items.length-1);
+  const run=()=>{
+    const a=items[Number(A.value)], b=items[Number(B.value)];
+    if(!a||!b) return;
+    if(a===b){ document.getElementById('pv-out').innerHTML='<div style="font-size:12.5px;color:var(--color-neutral-600)">Those are the same version — pick two different ones.</div>'; return; }
+    const st=(window.diffStats?diffStats(a.text,b.text):{add:0,del:0});
+    document.getElementById('pv-legend').innerHTML=`+${st.add} added · −${st.del} removed ·
+      <span style="background:#dff0e6;color:#1e6b4d;padding:0 4px;border-radius:2px">added</span>
+      <span style="background:#fbe3e1;color:#b0453c;text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span>`;
+    document.getElementById('pv-out').innerHTML=`<div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(a.text,b.text)}</div>`;
+  };
+  document.getElementById('pv-go').addEventListener('click',run);
+  document.getElementById('pv-close').addEventListener('click',closeModal);
+  run();
 }
 function portalRoundBanner(c, p){
   const decided=(c.rounds||[]).filter(r=>r.resolution&&r.resolution.decision);
@@ -292,6 +370,7 @@ function renderSharePortal(p, opts={}){
       <div id="pt-main" style="min-width:0">
         ${portalRevisedBanner()}
         ${portalRoundBanner(c,p)}
+        ${portalCompareBar()}
         ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
 
@@ -349,6 +428,7 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
+  document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   wireportalWord(c, p);
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
   // E2: the redline editor takes over the main column, so the document being
