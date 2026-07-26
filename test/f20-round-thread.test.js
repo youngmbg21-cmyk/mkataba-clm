@@ -13,7 +13,10 @@ const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 
-const core = () => loadViews(['js/richdoc.js', 'js/core.js'], {
+/* resolveRound lives in js/versioning.js (beside acceptProposedRound — they are
+   the same decision seen from two sides), so a sandbox that resolves a round
+   loads it, exactly as js/app.js does. */
+const core = () => loadViews(['js/richdoc.js', 'js/core.js', 'js/versioning.js'], {
   TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });
 const portal = () => loadViews(['js/views/portal.js'], {
   TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });

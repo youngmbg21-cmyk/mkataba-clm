@@ -114,6 +114,106 @@ function diffHtml(aStr, bStr){
 }
 function diffStats(aStr,bStr){ let add=0,del=0; wordDiff(aStr,bStr).forEach(p=>{ const w=p.text.trim()?p.text.trim().split(/\s+/).length:0; if(p.t==='add') add+=w; else if(p.t==='del') del+=w; }); return {add,del}; }
 
+/* ---- change blocks (E2-T6): a redline is not one decision ----
+   Accepting or rejecting a whole round is not how negotiation works. A round
+   typically carries three or four separate asks, and the answer to them is
+   rarely the same answer. Until now the only way to take one and refuse
+   another was to accept everything and hand-edit the unwanted part back out,
+   in a plain-text box, on a legal document — the single worst moment in the
+   product.
+
+   A BLOCK is one contiguous divergence between the two texts: the words that
+   would go (`before`) and the words that would arrive (`after`). The eq runs
+   between them are context and belong to neither side. Because the blocks are
+   derived from the same diff the reviewer is reading, a decision per block is
+   a decision per highlighted passage — there is nothing to line up by hand. */
+/* The segmentation both of the functions below run on. They MUST agree on
+   where a block starts and ends — one builds the controls, the other builds the
+   document from what those controls say — so the boundary rule lives here once.
+
+   Rule: consecutive divergences separated only by WHITESPACE are one block.
+   Word-level diffing splits "fourteen (14) days" → "twenty-one (21) days" into
+   two changes, because the space between them is unchanged; presented as two
+   independent decisions, a reviewer could accept "twenty-one" while rejecting
+   "(21)" and produce "twenty-one (14) days" — a clause that neither party ever
+   proposed. The shared whitespace is unchanged text, so it belongs to both
+   sides of the merged block and reconstruction stays exact. */
+function _diffSegments(aStr, bStr){
+  const parts=wordDiff(aStr,bStr);
+  const segs=[];
+  let before='', after='', open=false, pendingWs='';
+  const flush=()=>{
+    if(!open) return;
+    segs.push({ type:'change', before, after });
+    before=''; after=''; open=false;
+  };
+  for(const p of parts){
+    if(p.t==='eq'){
+      if(open && !p.text.trim()){ pendingWs+=p.text; continue; }   // hold: may bridge two changes
+      flush();
+      if(pendingWs){ segs.push({ type:'eq', text:pendingWs }); pendingWs=''; }
+      segs.push({ type:'eq', text:p.text });
+      continue;
+    }
+    if(pendingWs){ before+=pendingWs; after+=pendingWs; pendingWs=''; }  // the bridge joins the block
+    open=true;
+    if(p.t==='del') before+=p.text; else after+=p.text;
+  }
+  flush();
+  if(pendingWs) segs.push({ type:'eq', text:pendingWs });
+  return segs;
+}
+/* A BLOCK is one contiguous divergence: the words that would go (`before`) and
+   the words that would arrive (`after`), with the unchanged text around them as
+   context. Blocks are numbered in document order and that number is their id. */
+function diffBlocks(aStr, bStr){
+  const segs=_diffSegments(aStr,bStr);
+  const blocks=[];
+  let ctx='';
+  for(const sg of segs){
+    if(sg.type==='eq'){ ctx+=sg.text; continue; }
+    if(!(sg.before.trim()||sg.after.trim())) continue;   // whitespace-only: nobody means this
+    blocks.push({ id:'b'+blocks.length, index:blocks.length,
+      before:sg.before, after:sg.after, context:ctx.replace(/\s+/g,' ').slice(-90).trim() });
+  }
+  return blocks;
+}
+/* Build the adopted text from a decision per block. Anything not named is
+   REJECTED: silence must not adopt a change, because the failure mode of the
+   other default — a block nobody looked at quietly entering a contract — is
+   unrecoverable once the document is signed. */
+function applyBlockDecisions(aStr, bStr, decisions){
+  const d=decisions||{};
+  let out='', i=0;
+  for(const sg of _diffSegments(aStr,bStr)){
+    if(sg.type==='eq'){ out+=sg.text; continue; }
+    if(!(sg.before.trim()||sg.after.trim())){ out+=sg.before; continue; }
+    const id='b'+(i++);
+    out += (d[id]==='accept') ? sg.after : sg.before;
+  }
+  return out;
+}
+/* Points the counterparty raised that were NOT adopted, and are therefore
+   still live between the parties. Dropped once the wording they asked for is
+   in the document anyway — it may have arrived by another route, and a
+   "still open" point that has actually been agreed is noise that teaches
+   people to ignore the list. */
+function openPointsFor(c){
+  const live=(window.docPlainText?docPlainText(c):'').replace(/\s+/g,' ');
+  const out=[];
+  for(const r of (c.rounds||[])){
+    for(const b of (r.blockDecisions||[])){
+      if(b.decision!=='reject') continue;
+      const want=String(b.after||'').replace(/\s+/g,' ').trim();
+      if(want && live.includes(want)) continue;      // agreed some other way
+      out.push({ id:`r${r.n}.${b.id}`, round:r.n, by:r.by,
+        before:String(b.before||'').trim(), after:String(b.after||'').trim(),
+        reason:(r.resolution&&r.resolution.comment)||null });
+    }
+  }
+  return out;
+}
+
 /* ---- version history panel in the workspace ---- */
 function renderVersionsSection(c){
   const host=document.getElementById('versions-section'); if(!host) return;
@@ -240,18 +340,37 @@ function reviewProposedRound(c, n){
   const r=(c.rounds||[]).find(x=>x.n===n); if(!r||!r.proposedText) return;
   const base=r.baseText || (c.versions&&c.versions.length?c.versions[c.versions.length-1].text:docPlainText(c));
   const st=diffStats(base, r.proposedText);
-  /* Full window, and the redline laid out as a page rather than a panel: this is
-     a decision about contract wording, and it was being made through a 56vh
-     letterbox inside an 860px box. Header and footer stay put; only the diff
-     scrolls. Same accept and reject as before. */
+  const blocks=diffBlocks(base, r.proposedText);
+  /* Each change gets its own decision. Every real negotiation round carries
+     several asks and the answer to them is rarely the same answer; until now
+     the only way to take one and refuse another was to accept everything and
+     then hand-edit the unwanted part back out, in a plain-text box, on a legal
+     document. The blocks come from the same diff shown below, so a decision
+     here is a decision about a passage the reviewer can see highlighted. */
+  const decisions={};
+  for(const b of blocks) decisions[b.id]='accept';
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
+  const e=x=>String(x==null?'':x).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const blockRow=b=>`
+    <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:7px;padding:11px 13px">
+      ${b.context?`<div style="font-size:10.5px;color:var(--color-neutral-500);margin-bottom:6px">…${e(b.context)}</div>`:''}
+      <div style="font-size:13px;line-height:1.7">
+        ${b.before.trim()?`<del style="background:#f1dcd8;color:#8f322b;border-radius:2px;padding:0 2px">${e(b.before.trim())}</del> `:''}
+        ${b.after.trim()?`<ins style="background:#d9eae0;color:#1e6b4d;text-decoration:none;border-radius:2px;padding:0 2px">${e(b.after.trim())}</ins>`:''}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:9px;align-items:center">
+        <button data-dec="accept" data-for="${b.id}" class="ui-btn" style="font-size:11.5px;padding:5px 12px">Accept</button>
+        <button data-dec="reject" data-for="${b.id}" class="ui-btn" style="font-size:11.5px;padding:5px 12px">Reject</button>
+        <span data-state="${b.id}" style="margin-left:auto;font-size:11px;font-weight:600"></span>
+      </div>
+    </div>`;
   openModal(`
     <div style="height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <span style="color:#b8862b;display:inline-flex">${icon('history','w-4 h-4')}</span>
-            <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${(r.by||'the counterparty')}</h3>
+            <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Changes proposed by ${e(r.by||'the counterparty')}</h3>
             <span style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:3px 9px">Round ${n} · open</span>
           </div>
           <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center">${fmtDT(r.at)} · ${_statLine(st)} · ${_diffLegend}</p>
@@ -259,42 +378,130 @@ function reviewProposedRound(c, n){
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
         <div style="${COL}">
+          ${blocks.length?`
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px">
+              <span style="font-size:12px;font-weight:600">${blocks.length} change${blocks.length===1?'':'s'} — decide each one</span>
+              <span style="flex:1"></span>
+              <button id="pr-all-acc" class="ui-btn" style="font-size:11.5px;padding:5px 11px">Accept all</button>
+              <button id="pr-all-rej" class="ui-btn" style="font-size:11.5px;padding:5px 11px">Reject all</button>
+            </div>
+            <div id="pr-blocks" style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px">${blocks.map(blockRow).join('')}</div>`:''}
+          <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">The document, with their changes marked</div>
           <div style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base, r.proposedText)}</div>
           ${r.comment?`<div style="margin-top:14px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:12px 16px">
             <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Their comment</div>
-            <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${(r.comment||'').replace(/</g,'&lt;')}</div></div>`:''}
+            <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${e(r.comment)}</div></div>`:''}
+          <label style="display:block;margin-top:14px">
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Your reply to ${e(r.by||'them')} — sent with your decision</span>
+            <textarea id="pr-reply" rows="2" placeholder="e.g. Net-30 stands, or we can look at a 2% price increase." style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"></textarea>
+          </label>
         </div>
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
-        <div style="${COL};display:flex;align-items:center;gap:8px">
-          <span style="font-size:11.5px;color:var(--color-neutral-600)">Accepting adopts this wording and captures a new version.</span>
+        <div style="${COL};display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="pr-summary" style="font-size:11.5px;color:var(--color-neutral-600)"></span>
           <span style="flex:1"></span>
           <button id="pr-close" class="ui-btn">Decide later</button>
-          <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject</button>
-          <button id="pr-accept" class="ui-btn ui-btn-primary">Accept changes</button>
+          <button id="pr-reject" class="ui-btn" style="border-color:#e6c9c1;color:#8f322b">Reject the round</button>
+          <button id="pr-accept" class="ui-btn ui-btn-primary">Apply my decisions</button>
         </div>
       </div>
     </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+
+  const paint=()=>{
+    let acc=0;
+    for(const b of blocks){
+      const on=decisions[b.id]==='accept';
+      if(on) acc++;
+      const tag=document.querySelector(`[data-state="${b.id}"]`);
+      if(tag){ tag.textContent=on?'Accepted':'Rejected'; tag.style.color=on?'#1e6b4d':'#8f322b'; }
+      document.querySelectorAll(`[data-for="${b.id}"]`).forEach(btn=>{
+        const active=(btn.getAttribute('data-dec')==='accept')===on;
+        btn.style.background=active?(on?'#d9eae0':'#f1dcd8'):'';
+        btn.style.borderColor=active?(on?'#2e8763':'#b0453c'):'';
+        btn.style.fontWeight=active?'700':'';
+      });
+    }
+    const sum=document.getElementById('pr-summary');
+    if(sum) sum.textContent=blocks.length
+      ? `${acc} of ${blocks.length} change${blocks.length===1?'':'s'} will be adopted`
+      : 'This round proposes no wording changes.';
+    const go=document.getElementById('pr-accept');
+    if(go && blocks.length) go.textContent=acc===0?'Reject the round'
+      :(acc===blocks.length?'Accept all changes':`Apply my decisions (${acc} of ${blocks.length})`);
+  };
+  document.querySelectorAll('[data-dec]').forEach(btn=>btn.addEventListener('click',()=>{
+    decisions[btn.getAttribute('data-for')]=btn.getAttribute('data-dec'); paint(); }));
+  document.getElementById('pr-all-acc')?.addEventListener('click',()=>{ for(const b of blocks) decisions[b.id]='accept'; paint(); });
+  document.getElementById('pr-all-rej')?.addEventListener('click',()=>{ for(const b of blocks) decisions[b.id]='reject'; paint(); });
+  paint();
+
+  const reply=()=>{ const el=document.getElementById('pr-reply'); return el?el.value:''; };
   document.getElementById('pr-close').addEventListener('click',closeModal);
-  document.getElementById('pr-accept').addEventListener('click',()=>{ closeModal(); acceptProposedRound(c,n); });
-  document.getElementById('pr-reject').addEventListener('click',()=>{ closeModal(); resolveRound(c,n,false); });
+  document.getElementById('pr-accept').addEventListener('click',()=>{
+    const d={...decisions}, note=reply(); closeModal(); acceptProposedRound(c,n,{ decisions:d, comment:note }); });
+  document.getElementById('pr-reject').addEventListener('click',()=>{
+    const note=reply(); closeModal(); resolveRound(c,n,false,{ comment:note }); });
 }
-function acceptProposedRound(c, n){
+
+function resolveRound(c, n, accept, opts={}){
+  if(!canEdit()){ toast('Viewers cannot resolve negotiation rounds','err'); return; }
+  const r=(c.rounds||[]).find(x=>x.n===n); if(!r||r.status!=='open') return;
+  const u=currentUser();
+  // The reply travels to the counterparty with the decision. A rejection with
+  // no reason is the thing that pushes the conversation back into email.
+  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO(),
+    comment:String(opts.comment||'').slice(0,2000)||null };
+  if(accept && r.proposedValue!=null){
+    c.value=Number(r.proposedValue);
+    c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
+  }
+  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
+  persist(c); renderWorkspace();
+  toast(`Round ${n} ${accept?'accepted':'rejected'}`);
+}
+
+/* Adopt a round. With no decisions given this takes the whole proposal, which
+   is exactly what it always did. With decisions, the adopted text is BUILT from
+   them: accepted blocks enter the document, rejected ones stay as they were and
+   are recorded on the round so they can travel back as still-open points. */
+function acceptProposedRound(c, n, opts={}){
   if(!canEdit()){ toast('Viewers cannot resolve rounds','err'); return; }
   const r=(c.rounds||[]).find(x=>x.n===n); if(!r||!r.proposedText) return;
   const u=currentUser();
   // ensure the pre-redline text is captured, then adopt the proposed text
   if(!c.versions||!c.versions.length) captureVersion(c,'Before redline','System');
+  const wasRich=!!(window.isRich&&isRich(c.format));
+  const base=r.baseText||docPlainText(c);
+  const decisions=opts.decisions||null;
+  const blocks=decisions?diffBlocks(base, r.proposedText):null;
+  const adopted=decisions?applyBlockDecisions(base, r.proposedText, decisions):r.proposedText;
+  const accepted=blocks?blocks.filter(b=>decisions[b.id]==='accept'):null;
+  const rejected=blocks?blocks.filter(b=>decisions[b.id]!=='accept'):null;
+  const record=()=>{ if(blocks) r.blockDecisions=blocks.map(b=>({ id:b.id,
+    decision:decisions[b.id]==='accept'?'accept':'reject', before:b.before, after:b.after })); };
+  /* Taking nothing is a rejection. Recording it as an "acceptance" that changed
+     no wording would put a false decision on the record and tell the
+     counterparty their round was adopted when it was refused outright. */
+  if(blocks && blocks.length && accepted.length===0){
+    record();
+    resolveRound(c, n, false, { comment:opts.comment });
+    return;
+  }
+  record();
+  const partly=!!(rejected&&rejected.length);
+  const tally=partly?` — ${accepted.length} of ${blocks.length} changes`:'';
   // The counterparty edits in a plain-text box, so what comes back is plain
   // text. Adopting it makes the document plain text — say so on the record
   // rather than leaving a 'rich' marker on a body that no longer is one.
-  const wasRich=!!(window.isRich&&isRich(c.format));
-  c.redlineText=r.proposedText;
+  c.redlineText=adopted;
   if(wasRich) c.format=TEXT_FORMAT;
   captureVersion(c, r.via==='word'
-    ? `Round ${n} accepted (returned Word file${r.file?` “${r.file.fileName}”`:''})`
-    : `Round ${n} accepted (redline from ${r.by||'counterparty'})`, u.name);
-  r.status='closed'; r.resolution={ decision:'accepted', by:u.name, at:nowISO() };
+    ? `Round ${n} accepted${tally} (returned Word file${r.file?` “${r.file.fileName}”`:''})`
+    : `Round ${n} accepted${tally} (redline from ${r.by||'counterparty'})`, u.name);
+  r.status='closed';
+  r.resolution={ decision:partly?'partly-accepted':'accepted', by:u.name, at:nowISO(),
+    comment:String(opts.comment||'').slice(0,2000)||null };
   if(r.proposedValue!=null){ c.value=Number(r.proposedValue); c.approval=null; }
   // A Word round carries the returned .docx itself. Adoption files that file
   // as the contract's CURRENT version (v2, v3…) beside the untouched original,
@@ -303,12 +510,11 @@ function acceptProposedRound(c, n){
   // risk flags describe the document as it now reads — through the same
   // scanner the upload ran, AI or heuristic alike.
   if(r.via==='word' && r.file){
-    /* The returned .docx is filed as this contract's current document version.
-       Which ledger it goes into depends on where the contract came from — a
-       received document stacks versions on its original, a drafted one has no
-       original to stack on — and wordVersionLedger() owns that decision. Before
-       this, the whole block was skipped unless c.upload existed, so a drafted
-       contract adopted the WORDING but silently dropped the FILE it came in. */
+    /* Which ledger the returned file goes into depends on where the contract
+       came from — a received document stacks versions on its original, a
+       drafted one has no original to stack on — and wordVersionLedger() owns
+       that decision. Before this, the whole block was skipped unless c.upload
+       existed, so a drafted contract adopted the WORDING but dropped the FILE. */
     const vs=(window.wordVersionLedger?wordVersionLedger(c):(c.upload?(c.upload.versions=c.upload.versions||[]):(c.wordVersions=c.wordVersions||[])));
     const hasOriginal=!!(isUpload(c)&&c.upload&&(c.upload.fileId||c.upload.dataUrl));
     const fileVer=(vs.length?vs[vs.length-1].n:(hasOriginal?1:0))+1;
@@ -316,13 +522,17 @@ function acceptProposedRound(c, n){
       fileId:r.file.fileId, dataUrl:r.file.dataUrl, tracked:r.file.tracked, text:r.file.text,
       at:r.file.at, by:r.file.by, adoptedAs:c.versions.length });
     // an uploaded document's extracted text IS its reading view, so it follows
-    // the adopted wording; a drafted contract's wording is c.redlineText, set above
-    if(c.upload){ c.upload.extractedText=r.proposedText; c.upload.textChars=r.proposedText.length; }
+    // the adopted wording; a drafted contract's wording is c.redlineText, above
+    if(c.upload){ c.upload.extractedText=adopted; c.upload.textChars=adopted.length; }
     if(window.runScan && c.scan) runScan(c);   // stale findings would describe the OLD wording
   }
-  logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(c.upload&&c.upload.versions&&c.upload.versions.length)?c.upload.versions[c.upload.versions.length-1].n:2}`:''}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
+  logAudit(c,'Redline',`Round ${n} proposed edits ${partly
+      ? `partly accepted by ${u.name} — ${accepted.length} of ${blocks.length} changes adopted, ${rejected.length} not adopted and left open`
+      : `accepted by ${u.name}`} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(window.wordVersionList?wordVersionList(c):[]).length?(window.wordVersionList(c)[window.wordVersionList(c).length-1].n):2}`:''}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);
   persist(c); renderWorkspace();
-  toast(`Round ${n} accepted — adopted as new version`);
+  toast(partly
+    ? `Round ${n}: ${accepted.length} of ${blocks.length} changes adopted — the rest stay open`
+    : `Round ${n} accepted — adopted as new version`);
 }
 
 /* ---- who made this change? ----
@@ -383,4 +593,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,resolveRound,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

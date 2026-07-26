@@ -906,22 +906,9 @@ function renderNegotiationSection(c){
     resolveRound(c,Number(b.getAttribute('data-nego-reject')),false,{ comment:why });
   }));
 }
-function resolveRound(c, n, accept, opts={}){
-  if(!canEdit()){ toast('Viewers cannot resolve negotiation rounds','err'); return; }
-  const r=(c.rounds||[]).find(x=>x.n===n); if(!r||r.status!=='open') return;
-  const u=currentUser();
-  // The reply travels to the counterparty with the decision. A rejection with
-  // no reason is the thing that pushes the conversation back into email.
-  r.status='closed'; r.resolution={ decision:accept?'accepted':'rejected', by:u.name, at:nowISO(),
-    comment:String(opts.comment||'').slice(0,2000)||null };
-  if(accept && r.proposedValue!=null){
-    c.value=Number(r.proposedValue);
-    c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
-  }
-  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
-  persist(c); renderWorkspace();
-  toast(`Round ${n} ${accept?'accepted':'rejected'}`);
-}
+/* resolveRound lives in js/versioning.js, beside acceptProposedRound:
+   resolving a round and adopting one are the same decision seen from two
+   sides, and the all-rejected branch of adoption has to be able to call it. */
 
 /* ---------- modal helper ---------- */
 function openModal(html, opts={}){
@@ -1359,6 +1346,10 @@ function buildSharePayload(c, docHash, who){
          Recording it here is what lets the next link tell the same reader what
          moved since the copy they last opened. */
       docText:shareDocText(c)||undefined,
+      /* Changes they asked for that were NOT adopted. A rejected change that
+         simply disappears from the document reads as agreement — the reader
+         has no way to tell "we said no" from "we missed it". */
+      openPoints:(window.openPointsFor?openPointsFor(c):[]).length?openPointsFor(c):undefined,
       versions:shareVersions(c, org),
       redlineText:c.redlineText||undefined, format:c.redlineText?docFormat(c.format):undefined } };
 }
@@ -1793,4 +1784,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,resolveRound,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,buildSharePayload,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

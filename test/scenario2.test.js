@@ -123,8 +123,11 @@ describe('Scenario 2 — Erik negotiates inside HaTi', () => {
       assert.ok('id' in b, 'each block needs an identity so a decision can be attached');
       assert.ok(typeof b.before === 'string' && typeof b.after === 'string');
     }
+    // the blocks carry only what CHANGED — "days" is unchanged context and
+    // belongs to neither side, which is why it is not in them
     const joined = blocks.map(b => b.after).join(' ');
-    assert.match(joined, /sixty \(60\) days|twenty-one \(21\) days/);
+    assert.match(joined, /sixty \(60\)/);
+    assert.match(joined, /twenty-one \(21\)/);
   });
 
   test('round 2 — she accepts one block and rejects the other, in one pass (checklist 7)', () => {
@@ -211,8 +214,12 @@ describe('Scenario 2 — Erik negotiates inside HaTi', () => {
     ]);
     assert.equal(pre.email, 'erik@nordkust.se');
     assert.equal(pre.channel, 'email');
-    // with no history there is nothing to prefill, and that must not crash
-    assert.deepEqual(s.shareModalPrefill([]), { name: '', email: '', phone: '', channel: 'email' });
+    // with no history there is nothing to prefill, and that must not crash.
+    // Field-by-field: the object is built inside the vm realm and does not
+    // share Node's Object.prototype, so a strict deepEqual compares realms.
+    const empty = s.shareModalPrefill([]);
+    assert.equal(empty.name, ''); assert.equal(empty.email, '');
+    assert.equal(empty.phone, ''); assert.equal(empty.channel, 'email');
   });
 
   /* ---------- Round 4: the durable link ---------- */

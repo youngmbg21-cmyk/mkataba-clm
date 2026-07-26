@@ -2115,3 +2115,51 @@ the harness's own `icon()` stub emits a real `<svg>`. The assertion is now that
 none of the injected *tags* survive as tags, which is the actual vector.
 
 Result: `f20-round-thread.test.js` 18/18; suite 271/271 green.
+
+## Phase 2 — the two large fixes
+
+Checkpoint `checkpoint-before-fix4` tagged at `f5e67d5` (suite 271/271 green).
+
+**2026-07-26 — fix-4: a redline is not one decision.**
+`diffBlocks(base, proposed)` splits a redline into individually decidable
+changes and `applyBlockDecisions(base, proposed, decisions)` rebuilds the
+document from the answers. `reviewProposedRound` now renders a control per
+change (plus Accept-all / Reject-all), and `acceptProposedRound(c, n,
+{decisions, comment})` adopts exactly what was accepted.
+
+The decisions that matter, in order of how badly each could have gone:
+
+1. **One segmenter, two consumers.** The function that builds the controls and
+   the function that builds the document must agree on where a block starts, or
+   a decision would be applied to the wrong passage. `_diffSegments` is the
+   single boundary rule both run on.
+2. **Changes separated only by whitespace are ONE block.** Word-level diffing
+   splits "fourteen (14) days" → "twenty-one (21) days" into two changes,
+   because the space between them is unchanged. Offered as two decisions, a
+   reviewer could accept "twenty-one" and reject "(21)" and produce
+   **"twenty-one (14) days"** — a clause neither party ever proposed. That is a
+   far worse failure than the one this fix replaces, so the shared whitespace is
+   absorbed into the block and a block moves as a whole. Pinned by an exhaustive
+   test over all 2^n decision combinations asserting the merged text contains no
+   word neither side wrote.
+3. **Silence rejects.** A block with no decision stays as it was. The other
+   default — an unreviewed change quietly entering a contract — is unrecoverable
+   once signed.
+4. **Taking nothing is a rejection**, recorded as `rejected`, not as an
+   "acceptance" that changed no wording. A partial acceptance is recorded as
+   `partly-accepted` with the tally in the audit detail, so the record never
+   reads as a full acceptance of something that was only half taken.
+5. **Rejected blocks become open points** (`openPointsFor`), carried in the
+   share payload and rendered in the portal, because a refused change that
+   simply vanishes from the document reads as agreement. A point later agreed by
+   another route drops off the list — a "still open" item that is actually
+   settled teaches people to ignore the list.
+
+**Refactor recorded:** `resolveRound` moved from `js/core.js` to
+`js/versioning.js`. The all-rejected branch of adoption has to resolve the round,
+and resolving a round and adopting one are the same decision seen from two
+sides; they now sit together. `js/app.js` already loads both, in that order, so
+nothing changes at runtime — but any test sandbox that resolves a round must now
+load `js/versioning.js`, which F20's was updated to do.
+
+Result: `f21-change-blocks.test.js` 21/21; suite 292/292 green.
