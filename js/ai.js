@@ -277,7 +277,7 @@ function renderScanSection(c){
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Why it matters</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
           <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">Suggested fix</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
-            ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'))
+            ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'&&document.querySelector(`#doc-canvas [data-anchor="${x.anchor}"]`)))
               ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" class="flex items-center gap-1 text-[11px] font-medium text-brand-600 hover:text-brand-800 transition">${icon('target','w-3 h-3')} Go to the wording</button>`
               : `<span class="text-[11px] text-brand-800/45">Applies to the whole document</span>`}
             <button data-scan-dismiss="${x.id}" class="ml-auto text-[11px] font-medium text-brand-800/65 hover:text-brand-800 transition">Dismiss</button>
@@ -335,6 +335,7 @@ function renderScanSection(c){
     renderScanSection(c); renderSignButton(c);
   }));
   host.querySelectorAll('[data-scan-goto]').forEach(b=>b.addEventListener('click',()=>{
+    clearQuoteMarks();
     const anchor=b.getAttribute('data-scan-goto'), id=b.getAttribute('data-scan-id');
     const f=((c.scan&&c.scan.findings)||[]).find(x=>String(x.id)===String(id));
     // The wording itself, wherever it sits, beats a section anchor — and on an
@@ -352,7 +353,9 @@ function renderScanSection(c){
       || document.getElementById('doc-canvas');
     if(!el) return;
     el.scrollIntoView({behavior:'smooth',block:'center'});
-    el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash');
+    const pane=document.getElementById('doc-scroll');
+    const small=!pane || el.getBoundingClientRect().height <= pane.clientHeight*0.6;
+    if(small){ el.classList.remove('anchor-flash'); void el.offsetWidth; el.classList.add('anchor-flash'); }
   }));
 }
 
@@ -379,22 +382,55 @@ function quoteNorm(s){
     .replace(/[\u2010-\u2015]/g,'-').replace(/\u00a0/g,' ')
     .replace(/\s+/g,' ').toLowerCase();
 }
+function clearQuoteMarks(){
+  for(const mark of document.querySelectorAll('#doc-canvas span.anchor-flash')){
+    const p=mark.parentNode; if(!p) continue;
+    while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
+    p.removeChild(mark); p.normalize();
+  }
+  for(const el of document.querySelectorAll('#doc-canvas .anchor-flash')) el.classList.remove('anchor-flash');
+}
 function scrollToQuote(quote){
   const root=document.getElementById('doc-canvas');
   const needle=quoteNorm(quote).trim();
   if(!root||needle.length<12) return false;
-  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
-  const nodes=[]; let flat=''; let n;
+
+  /* Normalising collapses whitespace, so a position in the normalised text is
+     NOT a position in the real text node — the document renders pre-wrap, full
+     of newlines and doubled blanks, and every collapsed run shifts the offsets.
+     The first version applied normalised offsets to raw nodes anyway, which is
+     why it either wrapped nothing (and "jumped to the top") or threw and fell
+     back to flashing a block that holds most of the page. Each node therefore
+     carries a map from its normalised characters back to its raw indices. */
+  const mapNode=raw=>{
+    let norm=''; const idx=[]; let ws=-1;
+    for(let i=0;i<raw.length;i++){
+      let ch=raw[i];
+      if(ch==='\u2018'||ch==='\u2019'||ch==='\u201b') ch="'";
+      else if(ch==='\u201c'||ch==='\u201d'||ch==='\u201f') ch='"';
+      else if(ch>='\u2010'&&ch<='\u2015') ch='-';
+      else if(ch==='\u00a0') ch=' ';
+      if(/\s/.test(ch)){ if(ws<0) ws=i; continue; }
+      if(ws>=0){ if(norm){ norm+=' '; idx.push(ws); } ws=-1; }
+      norm+=ch.toLowerCase(); idx.push(i);
+    }
+    if(ws>=0){ norm+=' '; idx.push(ws); }
+    return { norm, idx };
+  };
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{
+    const p=n.parentElement;
+    return (p&&(p.tagName==='SCRIPT'||p.tagName==='STYLE'))?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;
+  }});
+  const segs=[]; let flat=''; let n;
   while((n=walker.nextNode())){
-    const t=quoteNorm(n.nodeValue);
-    if(!t) continue;
-    // keep a single space between nodes so words cannot be glued together
-    if(flat && !/\s$/.test(flat) && !/^\s/.test(t)) flat+=' ';
-    nodes.push({ node:n, start:flat.length, text:t });
-    flat+=t;
+    const m=mapNode(n.nodeValue);
+    if(!m.norm.trim()) continue;
+    if(flat && !/\s$/.test(flat) && !/^\s/.test(m.norm)) flat+=' ';
+    segs.push({ node:n, start:flat.length, norm:m.norm, idx:m.idx });
+    flat+=m.norm;
   }
-  // fall back to shorter and shorter prefixes: extraction and rendering can
-  // disagree on trailing punctuation, and half a sentence still lands you there
+  // shorter and shorter prefixes: extraction and rendering can disagree about
+  // trailing punctuation, and half a sentence still lands the reader there
   let at=-1, len=0;
   for(const take of [needle.length, 160, 90, 50, 24]){
     if(take>needle.length) continue;
@@ -404,32 +440,56 @@ function scrollToQuote(quote){
     if(at>=0){ len=probe.length; break; }
   }
   if(at<0) return false;
-  const from=nodes.find(x=>at>=x.start && at<x.start+x.text.length);
-  const end=at+len;
-  const to=nodes.slice().reverse().find(x=>end>x.start && end<=x.start+x.text.length) || from;
-  if(!from) return false;
-  try{
-    const r=document.createRange();
-    r.setStart(from.node, Math.min(at-from.start, from.node.nodeValue.length));
-    r.setEnd(to.node, Math.min(end-to.start, to.node.nodeValue.length));
-    const mark=document.createElement('span');
-    mark.className='anchor-flash';
-    mark.style.cssText='background:#fdf0c8;border-radius:2px;box-shadow:0 0 0 2px #fdf0c8';
-    r.surroundContents(mark);            // throws if the range crosses elements
-    mark.scrollIntoView({behavior:'smooth',block:'center'});
-    setTimeout(()=>{ const p=mark.parentNode; if(!p) return;
-      while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
-      p.removeChild(mark); p.normalize(); }, 4000);
-    return true;
-  }catch(_){
-    // a quote spanning several elements cannot be wrapped — settle for the
-    // block it starts in, which is still the right part of the document
-    const host=from.node.parentElement;
-    if(!host) return false;
-    host.scrollIntoView({behavior:'smooth',block:'center'});
-    host.classList.remove('anchor-flash'); void host.offsetWidth; host.classList.add('anchor-flash');
-    return true;
+  const end2=at+len;
+
+  /* Highlight node by node. A single-node range over text can neither cross an
+     element boundary nor throw, so a quote spanning a heading, a bold clause
+     number and a paragraph gets several small marks — never a whole-block
+     flash, never an exception. */
+  const marks=[];
+  for(const g of segs){
+    const gEnd=g.start+g.norm.length;
+    const s0=Math.max(at,g.start), e0=Math.min(end2,gEnd);
+    if(e0<=s0) continue;
+    let rawS=g.idx[s0-g.start], rawE;
+    const lastNorm=e0-g.start-1;
+    rawE=g.idx[lastNorm]+1;
+    if(rawS==null||rawE==null||rawE<=rawS) continue;
+    try{
+      const r=document.createRange();
+      r.setStart(g.node, Math.min(rawS,g.node.nodeValue.length));
+      r.setEnd(g.node, Math.min(rawE,g.node.nodeValue.length));
+      if(r.collapsed) continue;
+      const mark=document.createElement('span');
+      mark.className='anchor-flash';
+      mark.style.cssText='background:#fdf0c8;border-radius:2px;box-shadow:0 0 0 2px #fdf0c8';
+      r.surroundContents(mark);
+      marks.push(mark);
+    }catch(_){ /* a malformed node is skipped, not fatal */ }
   }
+  if(!marks.length) return false;
+
+  /* Centre the first mark by adjusting every scrollable ancestor directly.
+     scrollIntoView is unreliable here: the document sits inside a zoom wrapper
+     and sometimes inside a nested reading pane, and either can make it land at
+     the top. Rect deltas are visual pixels on both sides, so dividing by the
+     ancestor's own render scale keeps the sum right even under zoom. */
+  const target=marks[0];
+  let a=target.parentElement;
+  while(a){
+    if(a.scrollHeight>a.clientHeight+8){
+      const ar=a.getBoundingClientRect(), er=target.getBoundingClientRect();
+      const scale=(a.offsetWidth?ar.width/a.offsetWidth:1)||1;
+      a.scrollTop += ((er.top-ar.top)/scale) - a.clientHeight/2 + (er.height/scale)/2;
+    }
+    a=a.parentElement;
+  }
+  const er=target.getBoundingClientRect();
+  if(er.top<0||er.bottom>window.innerHeight) window.scrollBy({top:er.top-window.innerHeight/2});
+  setTimeout(()=>{ for(const mark of marks){ const p=mark.parentNode; if(!p) continue;
+    while(mark.firstChild) p.insertBefore(mark.firstChild,mark);
+    p.removeChild(mark); p.normalize(); } }, 6000);
+  return true;
 }
 
 /* ============================================================
@@ -1005,4 +1065,4 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&ai.open) closeAI();
 });
 
-Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,updateAIBadge,worstSevOf});
+Object.assign(window,{AI_SUGGESTIONS,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,aiCompareTable,aiChatMessages,aiChatContext,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderScanSection,runScan,runScanFor,scanRules,scanUI,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
