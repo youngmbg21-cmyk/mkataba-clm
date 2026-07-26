@@ -221,6 +221,8 @@ addColumnIfMissing('contracts', 'simhash', 'TEXT');
 addColumnIfMissing('contracts', 'parent_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_fingerprint ON contracts(text_fingerprint)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_parent ON contracts(parent_id)');
+// why a message was refused, in the provider's own words (see sendEmail)
+addColumnIfMissing('outbox', 'detail', 'TEXT');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
 // share is bound to a recipient and channel, expires, can be revoked, and
@@ -803,22 +805,44 @@ const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
    an admin can read what would have been sent (including dev codes) — the
    single place a key turns this from demo into production email. */
 const EMAIL_ON = () => !!process.env.RESEND_API_KEY;
+/* When Resend refuses a message it says why, in a plain sentence — the address
+   is suppressed, the domain is unverified, the key is restricted, the plan's
+   daily quota is spent. Keeping only the status code threw that sentence away
+   and left "it failed" as the whole diagnosis, which is no diagnosis at all.
+   The reason is stored alongside the message and shown in the outbox. */
+async function resendError(r) {
+  try {
+    const t = (await r.text() || '').slice(0, 2000);
+    try { const j = JSON.parse(t); return String(j.message || j.error || t).slice(0, 400); }
+    catch (_) { return t.slice(0, 400); }
+  } catch (_) { return ''; }
+}
 async function sendEmail(to, subject, body, devHint) {
   const id = 'e_' + rid(8), at = now();
-  let sent = 0, provider = 'outbox';
+  let sent = 0, provider = 'outbox', detail = null;
   if (EMAIL_ON()) {
+    const from = process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>';
     try {
-      const r = await fetch('https://api.resend.com/emails', {
+      // Base URL overridable exactly as ANTHROPIC_BASE_URL is, so the refusal
+      // paths can be exercised against a stub instead of live-firing at Resend.
+      const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>', to: [to], subject, text: body }),
+        body: JSON.stringify({ from, to: [to], subject, text: body }),
       });
-      if (r.ok) { sent = 1; provider = 'resend'; } else provider = 'resend-http-' + r.status;
-    } catch (e) { provider = 'resend-error'; }
+      if (r.ok) { sent = 1; provider = 'resend'; }
+      else { provider = 'resend-http-' + r.status; detail = (await resendError(r)) || `Resend rejected this message (${r.status}).`; }
+    } catch (e) {
+      provider = 'resend-error';
+      detail = `Could not reach Resend: ${String(e && e.message || e).slice(0, 200)}`;
+    }
+    // The sending identity is half of most refusals, and it is not otherwise
+    // visible anywhere in the product.
+    if (detail) detail += ` · sent from ${from}`;
   }
-  db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,created_at) VALUES (?,?,?,?,?,?,?,?)')
-    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), at);
-  return { id, sent, provider };
+  db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), detail, at);
+  return { id, sent, provider, detail };
 }
 
 /* ---------- session handling (httpOnly cookie) ---------- */
@@ -2556,7 +2580,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
       String(message || '').slice(0, 1000) || null, req.user.id, expires);
   const link = shareUrl(req, token);
-  let emailSent = false;
+  let emailSent = false, emailError = null;
   if (ch === 'email') {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const body = [
@@ -2566,10 +2590,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
       `\nThis link expires on ${expires.slice(0, 10)}. Replies to this email reach ${req.user.name} directly.`,
     ].filter(Boolean).join('\n');
     const r = await sendEmail(email, `${req.user.name} shared "${cName}" for your review`, body, `share link: ${link}`);
-    emailSent = !!r.sent;
+    emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
   }
-  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, emailSent, emailConfigured: EMAIL_ON() });
+  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -2678,17 +2702,17 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
   if (s.revoked_at) return res.status(409).json({ error: 'This share was revoked — create a new share instead' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This share has expired — create a new share instead' });
   const link = shareUrl(req, s.token);
-  let emailSent = false;
+  let emailSent = false, emailError = null;
   if ((s.channel || 'link') === 'email' && s.recipient_email) {
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const r = await sendEmail(s.recipient_email, `Reminder: "${cName}" is waiting for your review`,
       `${req.user.name} at ${p.org || 'HaTi'} is waiting for your response on "${cName}".\n\nReview it here — no account needed:\n${link}\n\n${s.expires_at ? `This link expires on ${String(s.expires_at).slice(0, 10)}.` : ''}`,
       `share resend: ${link}`);
-    emailSent = !!r.sent;
+    emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
   }
-  res.json({ ok: true, link, channel: s.channel || 'link', emailSent, emailConfigured: EMAIL_ON() });
+  res.json({ ok: true, link, channel: s.channel || 'link', emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 // E5-T4: engagement timeline for a contract (owner side)
@@ -2868,7 +2892,7 @@ app.delete('/api/batches/:id', auth, editor, (req, res) => {
 
 /* ---------- outbox (admin can see what was emailed / dev codes) ---------- */
 app.get('/api/outbox', auth, admin, (req, res) => {
-  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
+  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
   res.json({ emailConfigured: EMAIL_ON(), items: rows });
 });
 

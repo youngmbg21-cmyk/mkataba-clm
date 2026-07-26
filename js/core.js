@@ -1365,7 +1365,18 @@ async function openShareModal(c){
         recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14 }); }
       catch(e){ toast(e.message,'err'); return; }
       if(ch==='email'){
-        resultBox(`<div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:12px;font-size:12px;color:#1e6b4d;display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>${r.emailSent?'Email sent':'Email queued'}</strong> to ${email}.${r.emailSent?'':' Delivery isn’t configured on this server yet — an admin can see it (and the link) in the outbox under Team &amp; Settings.'} You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+        // Three different outcomes used to read as one cheerful green box that
+        // always blamed a missing mail key — including when the key was working
+        // and the provider had refused the message for a stated reason. Say
+        // which of the three actually happened, and quote the reason.
+        const link=r.link?`<div style="margin-top:8px"><span style="font-family:var(--font-mono);font-size:10.5px;word-break:break-all">${esc(r.link)}</span></div>`:'';
+        if(r.emailSent){
+          resultBox(`<div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:12px;font-size:12px;color:#1e6b4d;display:flex;align-items:flex-start;gap:8px;">${icon('check2','w-4 h-4')}<span><strong>Email sent</strong> to ${esc(email)}. You’ll be emailed when they open it${currentUser()?.prefs?.notifyShareOpens?'':' (if enabled in settings)'} and when they respond. Fill in another recipient to share again.</span></div>`);
+        } else if(r.emailConfigured){
+          resultBox(`<div style="border:1px solid color-mix(in srgb,#b8862b 45%,transparent);background:color-mix(in srgb,#b8862b 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:#7d5a14;display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Not delivered — the mail provider refused it.</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;line-height:1.5">${esc(r.emailError)}</span>`:' No reason was given.'}${link}</span></div>`);
+        } else {
+          resultBox(`<div style="border:1px solid color-mix(in srgb,#b8862b 45%,transparent);background:color-mix(in srgb,#b8862b 10%,transparent);border-radius:6px;padding:12px;font-size:12px;color:#7d5a14;display:flex;align-items:flex-start;gap:8px;">${icon('alert','w-4 h-4')}<span><strong>Queued, not sent.</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
+        }
       } else if(ch==='whatsapp'){
         const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
         window.open(wa,'_blank');
