@@ -1891,3 +1891,49 @@ intended starting point: the scenario scripts describe the end state, and 27 of
 their assertions describe behaviour that does not exist yet. The 6 that already
 pass are the parts the UX review found genuinely working — the word diff, version
 capture, the value-counter path and the signed door.
+
+## Phase 1 — the six safe fixes
+
+**2026-07-26 — fix-1: the Word round trip was gated on the wrong side of the deal.**
+`wordControlsHtml` opened with `if(!isWordDoc(c)) return ''` — the contract had
+to have *arrived* as a .docx. Everything underneath (`docxExtract`, the round
+filing, the version ledger, the soft lock) was already origin-agnostic; only the
+gate was not. Replaced with `wordCapable(c)`: a live, editable contract with
+wording to send.
+
+Two things the gate was hiding, found while removing it:
+
+1. **The panel was never rendered for a drafted contract at all.** It lives
+   inside `uploadDocBody()`, which only runs for received documents, so removing
+   the gate alone would have changed nothing visible. The panel is now also
+   rendered in the drafted-document path in `renderWorkspace`, guarded by
+   `!isUpload(c)` so a received document does not show it twice.
+
+2. **Adoption silently dropped the returned file on drafted contracts.**
+   `acceptProposedRound` filed the .docx only `if(r.via==='word' && r.file &&
+   c.upload)`. A drafted contract has no `c.upload`, so it adopted the wording
+   and threw the file away. Decision, per the integrity rule: give a drafted
+   contract its own ledger (`c.wordVersions`) rather than fabricate an `upload`
+   block on it — a synthetic upload would make the record claim a document was
+   received that never was, and `isUpload()` drives sealing, the portal and the
+   register. `wordVersionLedger(c)` now decides which array in one place.
+   Received documents keep numbering from v2 on top of their original, pinned by
+   a regression test, so records created before tonight read identically.
+
+**2026-07-26 — decision: a generated file must never be a stale file.**
+Once a drafted contract can go out to Word, "download the current .docx" has two
+possible meanings, and the dangerous one is silent: hand over the last *stored*
+file after the wording has moved on, and counsel marks up text that no longer
+exists. `wordFileStale(c, entry)` compares the wording filed with a stored file
+against the live document, and `startWordReview` regenerates from the document
+whenever the stored file has fallen behind (and always, for a drafted contract).
+
+**Harness corrections made while running fix-1** (test-side only, no product
+change): the world's `openModal` now really writes into `#modal-root`, because
+the product wires modal buttons with `getElementById(...).addEventListener`
+immediately afterwards; and array assertions use `.length` rather than
+`deepEqual`, because an array built inside the jsdom realm does not share
+Node's `Array.prototype` and a strict deepEqual compares realms, not contents.
+
+Result: `f16-word-return-any-contract.test.js` 14/14; existing suite 186/186
+green, no regressions.

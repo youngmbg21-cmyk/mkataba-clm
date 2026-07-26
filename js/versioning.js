@@ -302,12 +302,22 @@ function acceptProposedRound(c, n){
   // view all follow the adopted wording), and refreshes the clause scan so the
   // risk flags describe the document as it now reads — through the same
   // scanner the upload ran, AI or heuristic alike.
-  if(r.via==='word' && r.file && c.upload){
-    const vs=c.upload.versions=c.upload.versions||[];
-    const fileVer=(vs.length?vs[vs.length-1].n:1)+1;
+  if(r.via==='word' && r.file){
+    /* The returned .docx is filed as this contract's current document version.
+       Which ledger it goes into depends on where the contract came from — a
+       received document stacks versions on its original, a drafted one has no
+       original to stack on — and wordVersionLedger() owns that decision. Before
+       this, the whole block was skipped unless c.upload existed, so a drafted
+       contract adopted the WORDING but silently dropped the FILE it came in. */
+    const vs=(window.wordVersionLedger?wordVersionLedger(c):(c.upload?(c.upload.versions=c.upload.versions||[]):(c.wordVersions=c.wordVersions||[])));
+    const hasOriginal=!!(isUpload(c)&&c.upload&&(c.upload.fileId||c.upload.dataUrl));
+    const fileVer=(vs.length?vs[vs.length-1].n:(hasOriginal?1:0))+1;
     vs.push({ n:fileVer, roundN:n, fileName:r.file.fileName, size:r.file.size, fileHash:r.file.fileHash,
-      fileId:r.file.fileId, dataUrl:r.file.dataUrl, tracked:r.file.tracked, at:r.file.at, by:r.file.by, adoptedAs:c.versions.length });
-    c.upload.extractedText=r.proposedText; c.upload.textChars=r.proposedText.length;
+      fileId:r.file.fileId, dataUrl:r.file.dataUrl, tracked:r.file.tracked, text:r.file.text,
+      at:r.file.at, by:r.file.by, adoptedAs:c.versions.length });
+    // an uploaded document's extracted text IS its reading view, so it follows
+    // the adopted wording; a drafted contract's wording is c.redlineText, set above
+    if(c.upload){ c.upload.extractedText=r.proposedText; c.upload.textChars=r.proposedText.length; }
     if(window.runScan && c.scan) runScan(c);   // stale findings would describe the OLD wording
   }
   logAudit(c,'Redline',`Round ${n} proposed edits accepted by ${u.name} — adopted as v${c.versions.length}${r.via==='word'&&r.file?` · returned file “${r.file.fileName}” filed as document version v${(c.upload&&c.upload.versions&&c.upload.versions.length)?c.upload.versions[c.upload.versions.length-1].n:2}`:''}${wasRich?' · the counterparty edited plain text, so the document is no longer formatted':''}`);

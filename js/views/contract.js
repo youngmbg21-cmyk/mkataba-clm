@@ -1939,6 +1939,11 @@ function renderWorkspace(){
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
+          <!-- The Word round-trip panel. An uploaded document renders it inside
+               uploadDocBody (beside the file it arrived as); a DRAFTED contract
+               has no such block, which is why the whole round trip used to be
+               invisible on exactly the contracts an SME writes itself. -->
+          ${(!isUpload(c)&&window.wordControlsHtml)?`<div style="max-width:${DOC_PAGE_W}px;margin:0 auto">${wordControlsHtml(c)}</div>`:''}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px">
             
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>

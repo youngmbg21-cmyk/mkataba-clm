@@ -11,18 +11,47 @@
 
 const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const isWordDoc = c => !!(c && c.source==='upload' && c.upload && (c.upload.docKind==='docx' || /wordprocessingml/.test(c.upload.mime||'') || /\.docx$/i.test(c.upload.fileName||'')));
+/* WHO CAN USE THE WORD ROUND TRIP.
+   It used to be `isWordDoc` — the contract had to have ARRIVED as a .docx. That
+   is the wrong side of the deal: the counterparty who insists on Word is most
+   often answering paper WE drafted, and for that contract the whole round trip
+   was switched off. The reader (docxExtract), the round filing and the version
+   ledger never cared where the contract came from; only the gate did.
+   The gate is now about the contract being a live, editable agreement with
+   wording to send — an executed one is excluded by wordDoorClosed, below. */
+const wordCapable = c => !!(c && !PORTAL_MODE && (isWordDoc(c) || !isUpload(c) || !!(c.upload&&c.upload.extractedText) || !!c.redlineText));
 const wordReviewOut = c => !!(c && c.wordReview && c.wordReview.out);
 const wordReviewDays = c => wordReviewOut(c) ? Math.max(0, Math.floor((Date.now()-new Date(c.wordReview.since).getTime())/86400000)) : 0;
 // the signed door: executed records take no new versions, ever — a change to
 // an executed agreement is an amendment (a new record), never an edit
 const wordDoorClosed = c => !!(c && (c.status==='Signed' || c.hash || (c.execution && c.execution.at)));
 
-/* ---- the file ledger: v1 (original) + every adopted Word return ---- */
+/* ---- the file ledger: v1 (original, when there is one) + every adopted return ----
+   Two shapes of contract reach this now:
+     · one that ARRIVED as a file — v1 is that file, and returns stack on top of
+       it in c.upload.versions (unchanged: this is what already shipped, and
+       existing records must keep reading exactly as they did)
+     · one DRAFTED in HaTi — there is no received original, so the ledger holds
+       only what came back, in c.wordVersions. The wording itself lives in the
+       contract, and the exporter regenerates a .docx from it on demand.
+   `wordVersionLedger` names which array a given contract stacks returns into,
+   so the two shapes are decided in ONE place rather than at each call site. */
+function wordVersionLedger(c){
+  if(isUpload(c) && c.upload) return (c.upload.versions=c.upload.versions||[]);
+  return (c.wordVersions=c.wordVersions||[]);
+}
+function wordVersionList(c){
+  return (isUpload(c)&&c.upload ? c.upload.versions : c.wordVersions)||[];
+}
 function wordFileEntries(c){
   const u=c.upload||{};
-  const out=[{ key:'v1', n:1, label:'v1 · Original', fileName:u.fileName||'contract.docx',
-    mime:u.mime||DOCX_MIME, size:u.size, fileId:u.fileId, dataUrl:u.dataUrl, fileHash:u.fileHash }];
-  for(const v of (u.versions||[])) out.push({ key:'v'+v.n, n:v.n,
+  const out=[];
+  // an original file exists only where one was received; a drafted contract's
+  // "original" is the agreement itself, which is generated, not stored
+  if(isUpload(c) && (u.fileId||u.dataUrl))
+    out.push({ key:'v1', n:1, label:'v1 · Original', fileName:u.fileName||'contract.docx',
+      mime:u.mime||DOCX_MIME, size:u.size, fileId:u.fileId, dataUrl:u.dataUrl, fileHash:u.fileHash });
+  for(const v of wordVersionList(c)) out.push({ key:'v'+v.n, n:v.n,
     label:`v${v.n} · Word round ${v.roundN}`, fileName:v.fileName||('v'+v.n+'.docx'),
     mime:DOCX_MIME, size:v.size, fileId:v.fileId, dataUrl:v.dataUrl, fileHash:v.fileHash, src:v });
   return out;
@@ -30,6 +59,17 @@ function wordFileEntries(c){
 function wordCurrentFile(c){
   const list=wordFileEntries(c);
   return list[list.length-1];
+}
+/* Has the wording moved on since this file was filed? A stored .docx is a
+   snapshot; the document is not. Comparing the two by their words (not their
+   bytes, which differ for reasons that are not wording) is what decides whether
+   the file may still be handed over as "current". */
+function wordFileStale(c, entry){
+  if(!entry) return true;
+  const filed=String((entry.src&&entry.src.text) || (entry.key==='v1'?(c.upload&&c.upload.extractedText):'') || '').replace(/\s+/g,' ').trim();
+  if(!filed) return false;                       // nothing to compare — trust the file
+  const live=String((window.docPlainText?docPlainText(c):'')||'').replace(/\s+/g,' ').trim();
+  return !!(live && filed!==live);
 }
 /* Resolve an entry's bytes. Version entries are saved as references (see
    saveContract) so the dataUrl is fetched on first use and cached on the
@@ -59,6 +99,22 @@ async function startWordReview(c, btn){
   const cur=wordCurrentFile(c);
   const restore=btn?btn.innerHTML:''; if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Preparing…</span>'; }
   try{
+    /* What goes out must be the CURRENT wording. Where a stored file exists it
+       is only the current wording while nothing has been edited since; where it
+       has, and for every drafted contract, the file is generated from the
+       document itself. Handing over a superseded file would have counsel mark
+       up wording that no longer exists — the one failure this flow cannot have. */
+    if(!cur || wordFileStale(c, cur)){
+      if(typeof downloadContractDocx!=='function')
+        throw new Error('there is no Word file on this contract yet');
+      await downloadContractDocx(c);
+      c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur?cur.n:null, generated:true };
+      c.lastAction=todayStr();
+      logAudit(c,'Word review',`Current wording exported to Word for external review by ${u?.name||'System'} — online editing paused until the returned file is uploaded or the review is cancelled`);
+      persist(c); renderWorkspace();
+      toast('Downloaded for Word review — editing is paused until the file comes back');
+      return;
+    }
     const dataUrl=await wordEntryDataUrl(c, cur);
     wordTriggerDownload(dataUrl, cur.fileName, cur.mime);
     c.wordReview={ out:true, since:nowISO(), by:u?.name||'System', fileVersion:cur.n };
@@ -125,8 +181,10 @@ async function uploadWordVersion(c, file){
     return;
   }
   const fileHash=await sha256(dataUrl);
+  // the wording read out of the file travels WITH the file record, so a later
+  // "is this file still current?" question can be answered without re-reading it
   const fileRec={ fileName:file.name, mime:DOCX_MIME, size:file.size, fileHash, tracked,
-    at:nowISO(), by:u?.name||'System', dataUrl };
+    at:nowISO(), by:u?.name||'System', dataUrl, text };
   if(API_MODE()){
     try{ const r=await api('files','POST',{ name:file.name, mime:DOCX_MIME, dataUrl });
       fileRec.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
@@ -161,7 +219,7 @@ function wordLastRound(c){
   return rs.length?rs[rs.length-1]:null;
 }
 function wordControlsHtml(c){
-  if(!isWordDoc(c)) return '';
+  if(!wordCapable(c)) return '';
   const editor=canEdit(), closed=wordDoorClosed(c), out=wordReviewOut(c);
   const entries=wordFileEntries(c);
   const days=wordReviewDays(c);
@@ -244,4 +302,4 @@ function wireWordControls(c){
   });
 }
 
-Object.assign(window,{DOCX_MIME,isWordDoc,wordTriggerDownload,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});
+Object.assign(window,{DOCX_MIME,isWordDoc,wordCapable,wordVersionLedger,wordVersionList,wordFileStale,wordTriggerDownload,wordReviewOut,wordReviewDays,wordDoorClosed,wordFileEntries,wordCurrentFile,wordEntryDataUrl,wordControlsHtml,wireWordControls,startWordReview,cancelWordReview,openWordReturnPicker,uploadWordVersion,wordLastRound});

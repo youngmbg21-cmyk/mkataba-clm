@@ -159,9 +159,17 @@ function buildWorld(opts = {}) {
     freezeContractHtml: c => `<div data-anchor="redline">${shell.esc(c.redlineText || '')}</div>`,
     docBody: c => `<div>${shell.esc(c.redlineText || '')}</div>`,
 
-    // modal plumbing — records what was opened so a test can assert on the UI
-    openModal(html, o) { log.modals.push({ html: String(html), opts: o || {} }); return win.document.getElementById('modal-root'); },
-    closeModal() {},
+    /* Modal plumbing. The html is REALLY written into #modal-root, because the
+       product wires its buttons straight afterwards with
+       getElementById(...).addEventListener — a modal that only recorded its
+       markup would make every one of those a null dereference. */
+    openModal(html, o) {
+      log.modals.push({ html: String(html), opts: o || {} });
+      const root = win.document.getElementById('modal-root');
+      root.innerHTML = String(html);
+      return root;
+    },
+    closeModal() { win.document.getElementById('modal-root').innerHTML = ''; },
     confirmDialog: async () => true,
     promptDialog: async () => null,
 
