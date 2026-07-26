@@ -179,7 +179,7 @@ function wordControlsHtml(c){
     <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px">
       <span style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--color-neutral-600)">File versions</span>
       <select id="word-ver-pick" style="font:inherit;font-size:11.5px;border:1px solid var(--color-divider);background:var(--color-surface);padding:5px 8px;border-radius:5px;color:inherit">
-        ${entries.map(e=>`<option value="${e.key}">${e.label} — ${e.fileName.replace(/</g,'&lt;')}</option>`).join('')}
+        ${entries.map((e,i)=>`<option value="${e.key}"${i===entries.length-1?' selected':''}>${e.label} — ${e.fileName.replace(/</g,'&lt;')}</option>`).join('')}
       </select>
       <button data-word-dl class="ui-btn" style="font-size:11.5px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Download selected</button>
     </div>` : '';

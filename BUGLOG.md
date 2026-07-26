@@ -1827,3 +1827,22 @@ Contracts signed before this fix keep whatever was written on them. The display
 change means they no longer *show* "Admin" as a capacity — they show the name
 alone, which is true — but the stored record is untouched. Correcting the record
 itself is an amendment, which is the existing, correct route.
+
+---
+
+## Run 4 — Word round-trip (2026-07-26)
+
+**F9-001 — `extractWordText`/`trackedNote` not window-attached.** Found by the
+hand-driven browser run, not by unit tests: `js/wordflow.js` calls both, they
+lived in `js/views/contract.js`, and the modules share scope only through
+`window` (see components.js) — module-scoped `const`s are invisible across
+files. Uploading a returned .docx threw `ReferenceError` inside an async click
+handler, which surfaces nowhere: no toast, no round, nothing. Fixed by adding
+both to contract.js's window exports. Lesson repeated from earlier runs: in
+this codebase "defined" and "exported" are different facts, and only a real
+browser exercise catches the difference.
+
+**F9-002 — file-version picker defaulted to v1.** After adopting a Word round
+the dropdown listed v1 and v2 but showed v1 selected, so "Download selected"
+one click away from re-sending the superseded original. The latest version is
+now pre-selected.
