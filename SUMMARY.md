@@ -8,6 +8,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 3 — Visibility & Permissions Hardening (2026-07-25)](#run-3--visibility--permissions-hardening-2026-07-25)
 - [Run 3a — Signing capacity follow-up (2026-07-26)](#run-3a--signing-capacity-follow-up-2026-07-26)
 - [Run 4 — Word (.docx) Round-Trip (2026-07-26)](#run-4--word-docx-round-trip-2026-07-26)
+- [Run 5 — UX-review remediation: the negotiation loop (2026-07-26)](#run-5--ux-review-remediation-the-negotiation-loop-2026-07-26)
 
 ---
 
@@ -1158,3 +1159,223 @@ clear instruction to re-save.
   yet surfaced.
 - OCR does not apply to `.docx` (never scanned paper); no-AI mode degrades to
   the same heuristics every other document uses.
+
+---
+
+# Run 5 — UX-review remediation: the negotiation loop (2026-07-26)
+
+A UX review of HaTi ran two contract negotiations end to end and scored them
+2/10 and 5/10. This run fixed the eight problems it found, and proved each fix
+with automated tests that replay those same two negotiations against the real
+code.
+
+**All eight items are DONE. All 14 checks passed twice in a row on clean
+checkouts. No fix was rolled back.**
+
+---
+
+## The two people in the story
+
+The tests are written as a real negotiation, because that is the only way to
+find out whether the product works.
+
+**Wanjiru** owns a small catering company in Nairobi. She drafted a 12-month
+supply agreement in HaTi. **Erik** is a procurement manager at a Swedish firm.
+In the first story he refuses to use HaTi and works only in Microsoft Word. In
+the second he negotiates inside HaTi. Each story runs six full rounds and ends
+with a signed, sealed contract.
+
+---
+
+## What was wrong, and what changed
+
+### 1. She could not send her contract as a Word file — DONE (`0e233df`)
+
+**Before.** A contract drafted in HaTi could only be exported as a PDF. Erik
+cannot mark up a PDF. So Wanjiru copied the text out by hand, pasted it into
+Word and rebuilt the headings and clause numbers herself — about half an hour,
+before the negotiation even started.
+
+**Now.** A **Word** button beside PDF produces a genuine `.docx`. Headings stay
+headings, clause numbers stay exactly as written, bold and italics survive, and
+the signature block is there. The counterparty review page offers the same
+download, so Erik can take a Word copy from the page he is reading.
+
+**How we know it works.** HaTi already knows how to *read* Word files — that
+reader was built separately and is proven against files Word itself produced.
+The test writes a contract out and reads it back with that same reader: what
+comes back is the contract, unchanged.
+
+**One deliberate choice.** Clause numbers are written into the file as ordinary
+text rather than as Word's automatic numbering. Word renumbers its own lists —
+a schedule that starts at clause 8 would be renumbered to 1, and every
+cross-reference in the agreement would break.
+
+### 2. Erik's marked-up file had no way into her contract — DONE (`2f76520`)
+
+**Before.** HaTi had a good Word round-trip: send the file out, get the
+marked-up copy back, see the changes highlighted. But it only worked for
+contracts that had *arrived* as Word files. For a contract Wanjiru wrote
+herself — the normal case for a small business — it was switched off entirely.
+Uploading Erik's file created a second, unrelated contract.
+
+**Now.** It works on every contract. Erik's file lands on the contract it
+belongs to, as a numbered negotiation round, with his tracked changes counted
+and shown.
+
+**Two things found while fixing it.** The panel was never even drawn on a
+drafted contract, so removing the restriction alone would have changed nothing
+visible. And when the file was accepted, HaTi kept the new wording but silently
+threw the file itself away. Both fixed. Contracts that arrived as Word files
+behave exactly as before — there is a test that fails if that changes.
+
+### 3. The record said she wrote his changes — DONE (`1a5860f`)
+
+**Before.** When part of a negotiation happens by email, the only way to get
+the other side's wording in was to type it into the Edit box. The history then
+recorded **Wanjiru** as the author of **Erik's** changes.
+
+**Now.** The Edit box has a tick-box: *"These changes came from Nordkust
+Industri AB (received outside HaTi)."* Ticking it files the wording as a round
+in **their** name, waiting for her decision, exactly like a change that arrived
+through the app. The wording does not enter the contract until she accepts it.
+
+Both facts are kept, because both are true: the round is theirs, and the record
+also says who typed it in. Nobody can later claim the history was disguised.
+
+### 4. She had to retype his email address every round — DONE (`144f9c4`)
+
+**Before.** The share form opened blank every time. Six rounds meant typing
+Erik's address six times — six chances to send a live contract to the wrong
+person.
+
+**Now.** After a round is decided, one button: **Send updated version**. It goes
+to the person she was already negotiating with. If she opens the full form
+instead, it is already filled in and says where the details came from. The
+information was always stored; nothing had ever read it back.
+
+### 5. Every round needed a new link — DONE (`0effb2c`)
+
+**Before.** Each link accepted exactly one reply and then died. Erik collected
+six links and had to work out which was live.
+
+**Now.** One standing link per counterparty, for the whole negotiation. It
+always shows the current wording and always takes the next reply. Single-use
+links still exist and are still the default for a final signature, where one
+copy should bind one answer.
+
+**The subtle part.** A standing link must not make other links look out of
+date — otherwise opening the negotiation link would quietly kill the signature
+link someone was about to sign. There is a test for exactly that.
+
+### 6. Accept everything or refuse everything — DONE (`a9ba7f4`)
+
+**Before.** A round arrives with three changes. She agrees with two. Her only
+options were to accept all three, then delete the third by hand in a plain text
+box — or refuse all three and retype the two she wanted.
+
+**Now.** Each change gets its own **Accept** / **Reject**, with a running count
+and a reply box. The contract is rebuilt from her decisions.
+
+**The dangerous part, and how it is handled.** Changes that sit next to each
+other must move together. "fourteen (14) days" → "twenty-one (21) days" looks
+to a computer like two separate changes; accepting one and refusing the other
+would produce **"twenty-one (14) days"** — wording neither party ever proposed.
+Related changes are therefore treated as one decision, and a test tries every
+possible combination of decisions and checks that the result never contains a
+word neither side wrote.
+
+A change nobody looked at is **not** adopted. Taking nothing is recorded as a
+refusal, not as an acceptance that happened to change nothing.
+
+### 7. Refused changes vanished, and "no" came with no reason — DONE (`f5e67d5`, `a9ba7f4`)
+
+**Before.** The portal could tell Erik his round was not adopted, but never
+why — that lived in a separate email. And a refused change simply disappeared
+from the document, which reads like agreement.
+
+**Now.** Her reply travels with her decision and both sides of every round are
+shown as a conversation beside the contract. Refused changes are listed under
+**Still open between us**, showing what he asked for, what the contract still
+says, and why. A point drops off the list once it is settled — including when
+the clause is later renegotiated to something else entirely — because a list
+that shows settled items is one people stop reading.
+
+### 8. The contract got uglier every round — DONE (`82d62e2`)
+
+**Before.** The moment a redline was accepted, the document became plain text.
+Headings, numbered clauses and tables — gone, permanently, at the first round.
+By round four Erik is editing a wall of prose, and the version that gets signed
+is the ugly one.
+
+**Now.** Edited wording is put back into the document's own structure. Six
+rounds later the title is still a title, clause 5 is still clause 5, and the
+signed contract is the properly formatted document.
+
+**The rule that makes this safe.** After rebuilding, HaTi checks that the
+document says *exactly* what the parties agreed. If it cannot verify that, it
+does not guess — it falls back to plain text **and says so in the history**. A
+good-looking contract that does not say what was agreed would be far worse than
+a plain one that does.
+
+---
+
+## Status of all eight items
+
+| # | Item | Status | Commit |
+|---|---|---|---|
+| 1 | Word return works on every contract | **DONE** | `2f76520` |
+| 2 | One-click reshare, remembered recipient | **DONE** | `144f9c4` |
+| 3 | Real .docx export | **DONE** | `0e233df` |
+| 4 | Accept or reject each change separately | **DONE** | `a9ba7f4` |
+| 5 | One standing negotiation link | **DONE** | `0effb2c` |
+| 6 | Formatting survives the negotiation | **DONE** | `82d62e2` |
+| 7 | File changes under the counterparty's name | **DONE** | `1a5860f` |
+| 8 | Two-way conversation in the portal | **DONE** | `f5e67d5` |
+
+Supporting commits: `0456e54` (the test harness and the failing baseline it
+starts from).
+
+Nothing was rolled back. Both large items (4 and 6) were tagged before work
+began — `checkpoint-before-fix4` and `checkpoint-before-fix6` — and both were
+brought fully green, so neither tag was needed.
+
+The mobile/WhatsApp counterparty portal was **not** built; it is deferred by
+design. Item 5 changes how long an existing web link lives, nothing else.
+
+---
+
+## Verification
+
+Two runs of the complete test suite, each on a **fresh copy of the final
+commit** (`82d62e2`) in its own directory with a fresh install:
+
+| Run | Result |
+|---|---|
+| Clean run 1 | **342 tests, 342 passed, 0 failed** (15.05 s) |
+| Clean run 2 | **342 tests, 342 passed, 0 failed** (15.60 s) |
+
+All 14 checks in `CHECKLIST.md` passed twice in a row on clean runs.
+
+Where the suite started: at the commit the review examined, the existing 172
+tests passed and the two new negotiation scripts failed 27 of their 33 checks.
+Those 27 failures described work that had not been done yet; they are the
+distance this run closed.
+
+Of the 342 tests, 172 are the pre-existing suite, unchanged and still passing —
+drafting, the twelve templates, PDF export, email-code signing, the seal, the
+evidence pack and version compare all behave exactly as they did before.
+
+---
+
+## Two things worth knowing
+
+**A test dependency was added.** The tests now use `jsdom`, a stand-in browser,
+so the negotiation scripts run against the real code rather than an imitation
+of it. It is a *testing* tool only: the app itself still has no build step and
+still ships no libraries to the browser.
+
+**Two real bugs were found by the new tests and fixed**: a counterparty company
+name containing "&" would have been displayed to them as "&amp;" in the portal,
+and the history entry for an accepted round named only who decided it, never
+whose wording it was.

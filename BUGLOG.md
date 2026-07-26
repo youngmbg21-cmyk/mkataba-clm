@@ -2220,3 +2220,25 @@ now names both sides.
 
 Result: `f22-formatting-survives.test.js` 14/14. **Full suite 342/342 green,
 including both six-round scenario scripts end to end.**
+
+## Phase 3 — final verification
+
+**2026-07-26 — two clean runs, both green.**
+`node --test test/*.test.js` on a fresh `git clone` of `82d62e2` with a fresh
+`npm install`, in two separate directories:
+
+  clean run 1 — 342 tests, 342 pass, 0 fail (75 suites, 15.05 s)
+  clean run 2 — 342 tests, 342 pass, 0 fail (75 suites, 15.60 s)
+
+All 14 checklist lines PASS, each against a named test. Nothing was rolled
+back: both large fixes were tagged first (`checkpoint-before-fix4` at `a9ba7f4`,
+`checkpoint-before-fix6` at `f5e67d5`) and both reached green, so neither tag
+was needed.
+
+Of the 342 tests, 172 are the pre-existing suite, unchanged and still passing —
+which is checklist line 13: drafting, the twelve templates, PDF export, OTP
+signing, the seal, the evidence pack and version compare are untouched.
+
+**Scope honoured:** no mobile/WhatsApp counterparty portal was built. Fix 5
+changed the *lifecycle* of the existing web link (how long it lives, how many
+answers it takes) and nothing about its delivery channel.
