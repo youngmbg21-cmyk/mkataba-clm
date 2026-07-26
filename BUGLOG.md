@@ -2011,3 +2011,45 @@ browser and sends only the wording — now applies to those contracts too.
 
 Result: `f15-docx-export.test.js` 15/15; suite 217/217 green; scenario 1 rounds
 1 and 2 fully green (8/15 overall, the rest awaiting fixes 6 and 7).
+
+**2026-07-26 — fix-5: one standing link per counterparty, instead of six dead ones.**
+Every share was single-use, so a six-round negotiation meant six emailed links
+and the counterparty's job included working out which was still live. Durability
+is now opt-in per share (`shares.durable`), defaulting to **off**.
+
+Design decisions, all forced by the fact that a durable link outlives the single
+`response` and single `payload` columns a one-shot share was happy with:
+
+- **`share_responses`, one row per round.** Reusing `shares.response` would make
+  a second round look like the first being re-delivered. `/api/shares/pending`
+  now returns durable answers with a `responseId`, and `/applied` marks off that
+  one answer. Marking the whole link applied — the old behaviour — would have
+  silenced every later round on it, which is the exact bug this feature could
+  most easily have introduced.
+- **`share_payload_history`, so "revised since you last opened it" survives.**
+  The existing baseline (`priorCopySeenBy`) works by looking at *other* share
+  rows; a durable link is refreshed in place and has none. On refresh the
+  outgoing copy is moved into history along with whether this reader had
+  actually opened it, and `priorCopyOfDurable` applies the same rule to that
+  store: a copy never opened was never seen, and identical wording is not a
+  revision.
+- **A durable link is never superseded, and never supersedes.** It is the
+  current copy by definition, so `shareSuperseded` is skipped for it — and,
+  the direction that matters more, other links no longer treat a durable link's
+  wording as grounds to invalidate themselves. Without that second half, opening
+  a standing negotiation link would have killed the one-shot signature link
+  someone was about to sign. Pinned by a test.
+- **One-shot is untouched**: still the default, still binds exactly one answer to
+  exactly one copy, still superseded by a newer copy. Refreshing a one-shot
+  link's payload is refused outright (409) — silently swapping the wording under
+  a single-answer link would be indefensible.
+- `reshareToLastRecipient` **refreshes an existing durable link** rather than
+  minting another one, which is the whole point of the feature from the
+  counterparty's side: one URL for the whole deal.
+
+The share dialog now offers the choice in plain words, defaulting to the
+standing link and explaining that a single-answer link is what a final signature
+wants.
+
+Result: `f18-durable-link.test.js` 19/19 (including authorisation, revocation,
+deleted-contract and viewer cases); suite 236/236 green.

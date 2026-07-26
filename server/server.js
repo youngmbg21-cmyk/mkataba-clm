@@ -227,6 +227,30 @@ addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`)
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
 // share is bound to a recipient and channel, expires, can be revoked, and
 // carries the lifecycle timestamps the derived share state is computed from.
+addColumnIfMissing('shares', 'durable', 'INTEGER NOT NULL DEFAULT 0');
+/* A DURABLE share is one long-lived link per counterparty per contract: it
+   always serves the current wording and accepts the next response, round after
+   round. A one-shot share is the original behaviour and stays the default —
+   the final signature pass wants exactly one answer bound to exactly one copy.
+
+   Two tables support it, because a durable link outlives the single `response`
+   and single `payload` columns a one-shot share is happy with:
+     share_responses       — every answer sent through a durable link, each
+                             applied to the contract independently
+     share_payload_history — the wording each earlier copy carried, so
+                             "revised since you last opened it" still has a
+                             baseline once the payload is refreshed in place */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS share_responses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL, response TEXT NOT NULL,
+    at TEXT NOT NULL, applied INTEGER NOT NULL DEFAULT 0);
+  CREATE INDEX IF NOT EXISTS idx_share_responses_token ON share_responses(token);
+  CREATE INDEX IF NOT EXISTS idx_share_responses_applied ON share_responses(applied);
+  CREATE TABLE IF NOT EXISTS share_payload_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, token TEXT NOT NULL, at TEXT NOT NULL,
+    doc_text TEXT, opened_at TEXT);
+  CREATE INDEX IF NOT EXISTS idx_share_payload_history_token ON share_payload_history(token);
+`);
 addColumnIfMissing('shares', 'contract_id', 'TEXT');
 addColumnIfMissing('shares', 'recipient_name', 'TEXT');
 addColumnIfMissing('shares', 'recipient_email', 'TEXT');
@@ -2537,6 +2561,18 @@ const shareUrl = (req, token) =>
 const shareExpired = s => !!(s.expires_at && Date.parse(s.expires_at) < Date.now());
 function shareState(s) {
   if (s.revoked_at) return 'revoked';
+  // A durable link's answers do not close it — it is still the live channel to
+  // this counterparty, so it reports the LATEST answer while staying open.
+  if (s.durable) {
+    const last = db.prepare('SELECT response FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token);
+    if (last) {
+      try { const a = JSON.parse(last.response).action;
+        return a === 'sign' ? 'signed' : a === 'decline' ? 'declined' : a === 'accept' ? 'accepted' : 'changes'; }
+      catch (_) { return 'changes'; }
+    }
+    if (shareExpired(s)) return 'expired';
+    return s.first_opened_at ? 'opened' : 'sent';
+  }
   if (s.response) {
     try { const a = JSON.parse(s.response).action;
       return a === 'sign' ? 'signed' : a === 'decline' ? 'declined' : a === 'accept' ? 'accepted' : 'changes'; }
@@ -2550,6 +2586,7 @@ function shareInfo(s) {
   let r = null; try { r = s.response ? JSON.parse(s.response) : null; } catch (_) {}
   return {
     token: s.token, contractId: s.contract_id, state: shareState(s), channel: s.channel || 'link',
+    durable: !!s.durable,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
     firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
@@ -2562,7 +2599,7 @@ function shareOwnerEmails(s) {   // the sender if known, else workspace admins
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
-  const { payload, recipient, channel, message, expiryDays } = req.body || {};
+  const { payload, recipient, channel, message, expiryDays, durable } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const shareId = (payload.contract && payload.contract.id) || null;
   if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
@@ -2575,11 +2612,14 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const days = Math.min(90, Math.max(1, Number(expiryDays) || SHARE_EXPIRY_DEFAULT_DAYS));
   const expires = new Date(Date.now() + days * 86400000).toISOString();
   const token = rid(12);
-  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+  /* Durability is opt-in per share. The default stays one-shot: the signature
+     pass wants exactly one answer bound to exactly one copy of the wording. */
+  const isDurable = durable === true || durable === 1 ? 1 : 0;
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
-      String(message || '').slice(0, 1000) || null, req.user.id, expires);
+      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable);
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   if (ch === 'email') {
@@ -2594,7 +2634,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
   }
-  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, emailSent, emailConfigured: EMAIL_ON(), emailError });
+  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable, emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -2605,13 +2645,24 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
   // Left join so a share whose contract row is gone still surfaces for an
   // unrestricted caller, exactly as it did before.
   const rows = db.prepare(`SELECT s.token, s.response FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
-    ${whereOf('s.response IS NOT NULL', 's.applied=0', fs.sql)}`).all(...fs.args);
-  res.json(rows.map(r => {
-    const response = JSON.parse(r.response);
+    ${whereOf('s.durable=0', 's.response IS NOT NULL', 's.applied=0', fs.sql)}`).all(...fs.args);
+  /* A durable link's answers live in their own table — one row per round — so
+     that a second round is not mistaken for the first one being re-delivered.
+     Each is applied to the contract independently and marked off by id. */
+  const durableRows = db.prepare(`SELECT r.id, r.token, r.response FROM share_responses r
+    JOIN shares s ON s.token = r.token
+    LEFT JOIN contracts c ON c.id = s.contract_id
+    ${whereOf('r.applied=0', fs.sql)} ORDER BY r.id`).all(...fs.args);
+  const shape = (token, raw, responseId) => {
+    const response = JSON.parse(raw);
     // a counter-proposed amount is a monetary figure like any other
     if (!money && response && response.proposedValue != null) response.proposedValue = null;
-    return { token: r.token, response };
-  }));
+    return responseId ? { token, responseId, response } : { token, response };
+  };
+  res.json([
+    ...rows.map(r => shape(r.token, r.response)),
+    ...durableRows.map(r => shape(r.token, r.response, r.id)),
+  ]);
 });
 
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
@@ -2661,9 +2712,21 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
       notifyFirstOpen(s, payload);   // opt-in, fire-and-forget
     }
   } catch (_) {}
+  /* A durable link is never superseded — it IS the current copy, refreshed in
+     place — and answering it once does not shut it: the next round comes back
+     through the same link. What it does report is the last answer this reader
+     sent, so the page can say so rather than looking untouched. */
+  const lastR = s.durable
+    ? db.prepare('SELECT response, at FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
+    : null;
+  let lastResponse = null;
+  if (lastR) { try { const r = JSON.parse(lastR.response); lastResponse = { action: r.action, at: lastR.at, name: r.name }; } catch (_) {} }
   res.json({
-    payload: JSON.parse(s.payload), responded: !!s.response,
-    prior: priorCopySeenBy(s), superseded: shareSuperseded(s),
+    payload: JSON.parse(s.payload),
+    responded: s.durable ? false : !!s.response,
+    durable: !!s.durable, lastResponse,
+    prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
+    superseded: s.durable ? null : shareSuperseded(s),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
@@ -2686,12 +2749,30 @@ function shareSuperseded(s) {
   if (!mine.trim()) return null;        // nothing recorded to compare — do not guess at it
   const rows = db.prepare(
     `SELECT payload, created_at FROM shares
-      WHERE contract_id=? AND token!=? AND created_at > ? AND revoked_at IS NULL
+      WHERE contract_id=? AND token!=? AND created_at > ? AND revoked_at IS NULL AND durable=0
       ORDER BY created_at DESC LIMIT 12`).all(s.contract_id, s.token, s.created_at);
   for (const r of rows) {
     let t = '';
     try { t = String((JSON.parse(r.payload).contract || {}).docText || ''); } catch (_) {}
     if (t.trim() && !sameWording(t, mine)) return { at: r.created_at };
+  }
+  return null;
+}
+
+/* A durable link is refreshed in place, so its earlier copies are not other
+   share rows — they are its own payload history. The baseline is the most
+   recent earlier copy this reader actually opened whose wording differs from
+   what they are looking at now. Same rule as priorCopySeenBy, different store. */
+function priorCopyOfDurable(s) {
+  let mine = '';
+  try { mine = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
+  const rows = db.prepare(
+    `SELECT at, doc_text, opened_at FROM share_payload_history
+      WHERE token=? AND opened_at IS NOT NULL ORDER BY id DESC LIMIT 12`).all(s.token);
+  for (const r of rows) {
+    if (!r.doc_text || !String(r.doc_text).trim()) continue;
+    if (mine.trim() && sameWording(r.doc_text, mine)) continue;   // nothing moved
+    return { at: r.at, openedAt: r.opened_at, text: r.doc_text };
   }
   return null;
 }
@@ -2743,10 +2824,33 @@ app.get('/api/contracts/:id/shares', auth, (req, res) => {   // owner side: shar
   res.json({ shares: rows.map(shareInfo) });
 });
 
+/* Refresh a durable link to the current wording. The copy being replaced is
+   moved into share_payload_history first, carrying whether this reader had
+   actually opened it — that is what "revised since you last opened it" is
+   measured against once the link itself stops changing. */
+app.put('/api/shares/:token/payload', auth, editor, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id)))
+    return res.status(404).json({ error: 'Share not found' });
+  if (!s.durable) return res.status(409).json({ error: 'Only a durable link can be refreshed — create a new share instead' });
+  if (s.revoked_at) return res.status(409).json({ error: 'This link was revoked' });
+  const { payload } = req.body || {};
+  if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
+  if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
+    return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  let oldText = '';
+  try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
+  db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
+    .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
+  db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
+    .run(JSON.stringify(payload), now(), s.token);
+  res.json({ ok: true, token: s.token, link: shareUrl(req, s.token) });
+});
+
 app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id))) return res.status(404).json({ error: 'Share not found' });
-  if (s.response) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
+  if (s.response && !s.durable) return res.status(409).json({ error: 'This share already has a response — it cannot be revoked' });
   if (!s.revoked_at) db.prepare('UPDATE shares SET revoked_at=? WHERE token=?').run(now(), s.token);
   res.json({ ok: true });
 });
@@ -2812,10 +2916,13 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
-  if (s.response) return res.status(409).json({ error: 'A response was already submitted for this link' });
+  // A one-shot link answers once. A durable link is the standing channel to
+  // this counterparty and takes the next round's answer through the same URL.
+  if (s.response && !s.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
   // The wording moved on after this link was sent. Answering it now would bind
-  // a version of the contract that no longer exists.
-  const stale = shareSuperseded(s);
+  // a version of the contract that no longer exists. A durable link cannot be
+  // in that position: it always carries the current copy.
+  const stale = s.durable ? null : shareSuperseded(s);
   if (stale) return res.status(409).json({
     error: 'This copy of the contract has been superseded — a newer version was sent to you on '
       + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
@@ -2833,7 +2940,15 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     r.email = otp.email; r.method = 'email one-time code';
     r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
   }
-  db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), now(), req.params.token);
+  const at = now();
+  if (s.durable) {
+    // every round's answer is kept, and applied to the contract on its own
+    db.prepare('INSERT INTO share_responses (token,response,at,applied) VALUES (?,?,?,0)')
+      .run(req.params.token, JSON.stringify(r), at);
+    db.prepare('UPDATE shares SET response=?, responded_at=? WHERE token=?').run(JSON.stringify(r), at, req.params.token);
+  } else {
+    db.prepare('UPDATE shares SET response=?, responded_at=?, applied=0 WHERE token=?').run(JSON.stringify(r), at, req.params.token);
+  }
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
   res.json({ ok: true });
 });
@@ -3064,7 +3179,11 @@ app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders(
 setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
-  db.prepare('UPDATE shares SET applied=1 WHERE token=?').run(req.params.token);
+  // A durable link is never "used up", so marking it applied wholesale would
+  // silence every future round. Only the one answer just applied is marked.
+  const responseId = Number((req.body || {}).responseId);
+  if (responseId) db.prepare('UPDATE share_responses SET applied=1 WHERE id=? AND token=?').run(responseId, req.params.token);
+  else db.prepare('UPDATE shares SET applied=1 WHERE token=?').run(req.params.token);
   res.json({ ok: true });
 });
 

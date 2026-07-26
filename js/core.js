@@ -1386,6 +1386,19 @@ async function reshareToLastRecipient(c, opts={}){
   const docHash=await sha256(canonicalDoc(c));
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you'); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash);
+  /* If this counterparty already has a durable link, refresh THAT rather than
+     mint another one: the point of a durable link is that the other side keeps
+     one URL for the whole negotiation. A new link is created only when there
+     is none to refresh. */
+  const live=(shares||[]).find(s=>s.durable && !s.revokedAt &&
+    (last.email ? String(s.recipientEmail||'').toLowerCase()===String(last.email).toLowerCase()
+                : String(s.recipientName||'')===last.name));
+  if(live){
+    await api('shares/'+live.token+'/payload','PUT',{ payload });
+    logAudit(c,'Shared',`Updated version sent to ${last.name||last.email||last.phone||'the counterparty'} on their existing link`);
+    persist(c);
+    return { share:{ token:live.token, reused:true }, recipient:last };
+  }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
     message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
     expiryDays:opts.expiryDays||14, durable:opts.durable!==false });
@@ -1473,7 +1486,14 @@ async function openShareModal(c){
         </div>
         <label style="display:block;margin-top:10px;"><span style="${LBL}">Personal message (optional)</span>
           <textarea id="sh-msg" rows="2" placeholder="e.g. As discussed — please review clause 4 in particular." style="${FLD}min-height:0;"></textarea></label>
-        ${server?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--color-neutral-700)">Link expires in
+        ${server?`<div style="margin-top:11px;border:1px solid var(--color-divider);border-radius:5px;padding:9px 11px">
+          <label style="display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:var(--color-neutral-800);cursor:pointer">
+            <input type="checkbox" id="sh-durable" checked style="margin-top:2px;flex:none"/>
+            <span><b>Keep this link open for the whole negotiation.</b>
+            <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">They keep one link and always see the current wording, round after round. Untick for a <b>single-answer link</b> — the right choice for a final signature, where one copy gets exactly one response.</span></span>
+          </label>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:11.5px;color:var(--color-neutral-700)">Link expires in
           <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;font:inherit;font-size:12px;color:inherit;">
             ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${d} days</option>`).join('')}
           </select></label>`:''}
@@ -1527,8 +1547,10 @@ async function openShareModal(c){
     const rcptLabel=name||email||phone||c.counterparty||'counterparty';
     if(server){
       let r;
+      const durableEl=document.getElementById('sh-durable');
       try{ r=await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
-        recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14 }); }
+        recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
+        durable:durableEl?!!durableEl.checked:false }); }
       catch(e){ toast(e.message,'err'); return; }
       if(ch==='email'){
         // Three different outcomes used to read as one cheerful green box that
@@ -1738,7 +1760,12 @@ async function pollPendingResponses(){
       const c=getContract(item.response?.id);
       if(!c) continue;
       const ok=await applyResponse(c, item.response, {background:true});
-      if(ok){ await api('shares/'+item.token+'/applied','POST'); refreshShareOverview(); }
+      // A durable link carries one row per round, so the acknowledgement names
+      // the answer just applied. Marking the whole link applied would silence
+      // every later round on it.
+      if(ok){ await api('shares/'+item.token+'/applied','POST',
+                item.responseId?{ responseId:item.responseId }:{});
+              refreshShareOverview(); }
     }
   }catch(e){ /* transient network issues — next poll retries */ }
 }
