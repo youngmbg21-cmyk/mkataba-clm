@@ -3,645 +3,573 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>HaTi UX Review — Fourth Pass, on the Current Code</title>
+<title>HaTi UX Review — Wanjiru &amp; Erik, six rounds of negotiation</title>
 <style>
   :root{
-    --ink:#1d1f20; --muted:#5b5f63; --line:#dcdee1; --bg:#f4f5f6; --card:#fff;
-    --red:#b0453c; --redbg:#f9ecea; --green:#1e6b4d; --greenbg:#e4f1ea;
-    --amber:#8a6516; --amberbg:#fdf6e7; --accent:#456a8f; --accentbg:#eef2f6;
+    --ink:#1b1d1e; --muted:#5a5f63; --line:#dcdee1; --bg:#f4f5f6; --card:#fff;
+    --red:#b3382c; --redbg:#faecea; --green:#1d6b4c; --greenbg:#e5f1ea;
+    --amber:#8a6516; --amberbg:#fdf6e7; --blue:#3f6a92; --bluebg:#eef2f6;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
-       font:15px/1.65 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
-  .wrap{max-width:900px;margin:0 auto;padding:36px 20px 80px}
-  h1{font-size:27px;line-height:1.25;margin:0 0 6px}
-  h2{font-size:21px;margin:44px 0 4px;padding-top:18px;border-top:2px solid var(--ink)}
-  h3{font-size:16px;margin:26px 0 8px}
-  p{margin:10px 0}
-  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+       font:15.5px/1.68 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:38px 20px 90px}
+  h1{font-size:28px;line-height:1.24;margin:0 0 8px}
+  h2{font-size:22px;margin:48px 0 6px;padding-top:20px;border-top:2px solid var(--ink)}
+  h3{font-size:16.5px;margin:28px 0 8px}
+  h4{font-size:14.5px;margin:0 0 6px}
+  p{margin:11px 0}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px}
   code{background:#eceef0;border:1px solid var(--line);border-radius:4px;
-       padding:1px 5px;font:12px/1.5 ui-monospace,Consolas,monospace}
+       padding:1px 5px;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:nowrap}
   .card{background:var(--card);border:1px solid var(--line);border-radius:8px;
         padding:18px 20px;margin:16px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-  .facts{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px}
-  @media(max-width:700px){.facts{grid-template-columns:1fr}}
-  .fact{font-size:13.5px;padding:8px 0;border-bottom:1px dashed var(--line)}
-  .yes{color:var(--green);font-weight:700}
-  .no{color:var(--red);font-weight:700}
-  .part{color:var(--amber);font-weight:700}
-  .new{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.07em;
-       text-transform:uppercase;background:var(--greenbg);color:var(--green);
-       border-radius:999px;padding:1px 7px;margin-left:5px;vertical-align:1px}
-  .round{border-left:4px solid var(--accent);background:var(--card);
-         border-radius:0 8px 8px 0;border-top:1px solid var(--line);
-         border-right:1px solid var(--line);border-bottom:1px solid var(--line);
-         padding:14px 18px;margin:14px 0}
-  .round h4{margin:0 0 6px;font-size:14.5px}
-  .rlabel{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;
-          text-transform:uppercase;background:var(--accentbg);color:var(--accent);
-          border-radius:999px;padding:2px 10px;margin-right:8px}
-  .kv{margin:6px 0 0;padding:0;list-style:none;font-size:13.5px}
-  .kv li{margin:5px 0}
-  .kv b{display:inline-block;min-width:104px;color:var(--muted);font-weight:600;font-size:12.5px}
-  .ouch{background:var(--redbg);border:1px solid #e3c4bf;border-radius:6px;
-        padding:9px 13px;margin-top:9px;font-size:13.5px}
-  .ouch b{color:var(--red)}
-  .okay{background:var(--greenbg);border:1px solid #bcd9ca;border-radius:6px;
-        padding:9px 13px;margin-top:9px;font-size:13.5px}
-  .okay b{color:var(--green)}
-  .warn{background:var(--amberbg);border:1px solid #e8d5ad;border-radius:6px;
-        padding:9px 13px;margin-top:9px;font-size:13.5px}
-  .warn b{color:var(--amber)}
-  .verdict{border:2px solid var(--ink);border-radius:10px;background:var(--card);
-           padding:20px 22px;margin:22px 0}
-  .score{font-size:38px;font-weight:800;line-height:1}
-  .score small{font-size:16px;font-weight:600;color:var(--muted)}
-  .was{font-size:13px;color:var(--muted);font-weight:600}
-  .fig{margin:18px 0;background:var(--card);border:1px solid var(--line);
-       border-radius:8px;padding:12px 12px 6px;overflow-x:auto}
-  .fig svg{display:block;width:100%;height:auto;min-width:640px}
-  .figcap{font-size:12.5px;color:var(--muted);padding:6px 6px 6px;line-height:1.5}
-  .imp{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-  .badge{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-         border-radius:999px;padding:2px 10px}
-  .b-small{background:var(--greenbg);color:var(--green)}
-  .b-medium{background:var(--amberbg);color:var(--amber)}
-  .b-large{background:var(--redbg);color:var(--red)}
-  .term{border-bottom:1px dotted var(--muted)}
-  svg .box{fill:#fff;stroke:#9aa0a5;stroke-width:1.2}
-  svg .panel{fill:#f2f3f5;stroke:#c6c9cc;stroke-width:1}
-  svg .btn{fill:#eceef0;stroke:#9aa0a5;stroke-width:1}
-  svg .btn-green{fill:#e4f1ea;stroke:#1e6b4d;stroke-width:1.4}
-  svg .btn-amber{fill:#fdf6e7;stroke:#b8862b;stroke-width:1.3}
-  svg .lbl{font:11px ui-monospace,Consolas,monospace;fill:#42474b}
-  svg .lbl-g{font:600 11px ui-monospace,Consolas,monospace;fill:#1e6b4d}
-  svg .lbl-r{font:600 11px ui-monospace,Consolas,monospace;fill:#b0453c}
-  svg .note{font:12px -apple-system,Arial,sans-serif;fill:#42474b}
-  svg .note-red{font:600 12px -apple-system,Arial,sans-serif;fill:#b0453c}
-  svg .note-green{font:600 12px -apple-system,Arial,sans-serif;fill:#1e6b4d}
-  svg .head{font:700 13px -apple-system,Arial,sans-serif;fill:#1d1f20}
-  svg .prob{fill:none;stroke:#b0453c;stroke-width:2.4;stroke-dasharray:5 4}
-  svg .arrow{stroke:#5b5f63;stroke-width:1.6;fill:none;marker-end:url(#arr)}
-  svg .arrow-red{stroke:#b0453c;stroke-width:1.8;fill:none;marker-end:url(#arrR)}
-  svg .arrow-green{stroke:#1e6b4d;stroke-width:1.8;fill:none;marker-end:url(#arrG)}
-  svg .doc line{stroke:#c9ccd0;stroke-width:2;stroke-linecap:round}
-  svg .divider{stroke:#dcdee1;stroke-width:1;stroke-dasharray:3 4}
+  .persona{border-left:4px solid var(--blue)}
+  .round{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);
+         border-radius:0 8px 8px 0;padding:16px 20px;margin:18px 0}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.07em;
+       text-transform:uppercase;border-radius:999px;padding:2px 9px;vertical-align:2px}
+  .tag.r{background:var(--redbg);color:var(--red)}
+  .tag.g{background:var(--greenbg);color:var(--green)}
+  .tag.a{background:var(--amberbg);color:var(--amber)}
+  .tag.b{background:var(--bluebg);color:var(--blue)}
+  .meta{font-size:13px;color:var(--muted);margin:8px 0 12px;
+        border-bottom:1px dashed var(--line);padding-bottom:10px}
+  .meta b{color:var(--ink)}
+  .hurt{background:var(--redbg);border:1px solid #eccfc9;border-radius:6px;
+        padding:11px 14px;margin:12px 0;font-size:14.5px}
+  .hurt b{color:var(--red)}
+  .good{background:var(--greenbg);border:1px solid #cbe2d6;border-radius:6px;
+        padding:11px 14px;margin:12px 0;font-size:14.5px}
+  .good b{color:var(--green)}
+  ol.steps{margin:8px 0 8px 0;padding-left:22px;font-size:14.5px}
+  ol.steps li{margin:3px 0}
+  table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+  th{background:#eceef0;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+  .size{font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+  .s-small{color:var(--green)} .s-med{color:var(--amber)} .s-large{color:var(--red)}
+  figure{margin:22px 0;background:var(--card);border:1px solid var(--line);
+         border-radius:8px;padding:16px 16px 10px}
+  figure svg{width:100%;height:auto;display:block}
+  figcaption{font-size:13px;color:var(--muted);margin-top:8px;text-align:center}
+  .score{background:var(--ink);color:#fff;border-radius:10px;padding:22px 24px;margin:20px 0}
+  .score .n{font-size:52px;font-weight:800;line-height:1;letter-spacing:-.02em}
+  .score p{color:#d8dadc;margin:10px 0 0}
+  .note{font-size:13.5px;color:var(--muted);font-style:italic}
+  ul{margin:10px 0;padding-left:22px}
+  li{margin:4px 0}
+  .fileref{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-  <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5b5f63"/></marker>
-  <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b0453c"/></marker>
-  <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1e6b4d"/></marker>
-</defs></svg>
-
 <div class="wrap">
 
-<h1>HaTi — the same two negotiations, run a fourth time on today's code</h1>
-<p class="sub">A user-experience review of the HaTi contract platform (repo <code>youngmbg21-cmyk/mkataba-clm</code>),
-based on reading and <b>running</b> the source at commit <code>ba6534d</code>, 26&nbsp;July&nbsp;2026.
-The two problems the last review called the worst have both been fixed. I checked them by running them, not by
-trusting the commit messages — including on the exact kind of contract the last review admitted its own tests had
-never used. Six real problems remain. Four are new to this pass, and two of those are faults in the work that just
-landed.</p>
+<h1>HaTi — an honest UX review</h1>
+<p class="sub">Two people, one catering contract, six rounds of back-and-forth. Written after reading the code that is actually in the repository today.</p>
 
 <div class="card">
-<h3 style="margin-top:0">The two people in the story</h3>
-<p style="margin:6px 0"><b>Wanjiru</b> owns a small catering company in Nairobi. She drafted a 12-month supply
-agreement inside HaTi using the built-in "Raw Material Supply Agreement" template and the guided wizard
-(<code>js/wizard.js</code>). This matters more than it sounds. A contract drafted this way is not saved as a
-document at all. It is saved as a <i>recipe</i> — the template, plus the answers she typed — and the document is
-rebuilt on screen each time she opens it (<code>docBody</code>, <code>js/views/contract.js</code>).</p>
-<p style="margin:6px 0"><b>Erik</b> is a procurement manager at a mid-size Swedish firm. In Scenario&nbsp;1 he only
-uses Microsoft Word with <span class="term" title="Word's built-in way of marking every edit in red">tracked
-changes</span> (Word's way of showing every edit in red), over email. In Scenario&nbsp;2 he works inside HaTi.</p>
+<h3 style="margin-top:0">How I did this review</h3>
+<p>I read the real files in the repo — the negotiation room, the contract page, the sharing code, the server routes and the counterparty portal — and then walked two imaginary people through a full negotiation, clicking only the buttons that genuinely exist.</p>
+<p>Where a feature is missing, I say it is missing. I have not invented anything. Every claim below points at a file so you can check it.</p>
+<p><b>Out of scope on purpose:</b> the mobile / WhatsApp counterparty experience. You have deliberately parked that, so nothing here asks for it.</p>
 </div>
 
-<h2>What the app actually has today</h2>
-<p>The honest inventory, taken from the code — not from what a contract tool usually has:</p>
-<div class="card"><div class="facts">
-  <div class="fact"><span class="yes">YES</span> — One-click export of any contract as a real Word file, with a plain choice about pausing edits while the copy is out (<code>openWordExportModal</code>).</div>
-  <div class="fact"><span class="yes">YES</span> — <b>The exported Word file now carries her changes in red.</b><span class="new">new</span> Insertions and strike-outs are written as genuine Word tracked changes, signed with her company's name (<code>js/docxwrite.js</code>). Checked: HaTi's own Word reader finds them, and accepting them all produces exactly the wording HaTi holds.</div>
-  <div class="fact"><span class="yes">YES</span> — Upload the counterparty's marked-up Word file onto the <i>same</i> contract; his changes are counted and filed as a round in his name (<code>js/wordflow.js</code>).</div>
-  <div class="fact"><span class="yes">YES</span> — Accept or reject <i>each change separately</i>, see <i>why they asked</i> against each one, and reply on that change (<code>reviewProposedRound</code>).</div>
-  <div class="fact"><span class="yes">YES</span> — <b>A message channel that is not a formal round.</b><span class="new">new</span> Either side can ask or answer a question without proposing new wording (<code>js/discuss.js</code>). Checked: sending one opens no round, saves no new version, changes not a character of the contract, and leaves the link still answerable.</div>
-  <div class="fact"><span class="yes">YES</span> — The counterparty edits <i>clause by clause</i>, with a "Why?" box per change, on one link that lasts the whole negotiation (<code>js/views/portal.js</code>).</div>
-  <div class="fact"><span class="yes">YES</span> — "Send updated version" genuinely emails him, and says plainly when it could not.</div>
-  <div class="fact"><span class="yes">YES</span> — A paper-signed scan files onto its own contract, history intact, honestly labelled "executed outside HaTi".</div>
-  <div class="fact"><span class="no">NO</span> — A drafted contract that <b>reads like a contract</b>. Dates leave as <code>2026-08-01</code> and money as <code>KES 4800000</code> in every copy that leaves the screen: the Word file, the counterparty's page and the signed record. Read straight out of the exported file.</div>
-  <div class="fact"><span class="no">NO</span> — A wizard-drafted contract that keeps its fill-in blanks. Checked by running the code: six blanks before the first accepted round, <b>zero</b> after — and the history says nothing about it.</div>
-  <div class="fact"><span class="no">NO</span> — A reply box where the conversation actually is. The "Still open between us" card has no way to answer; the new message box is a separate panel further down the page.</div>
-  <div class="fact"><span class="no">NO</span> — Any sign, anywhere outside that one contract's page, that a question is waiting for her. Nothing on the dashboard or the work queue counts them.</div>
-  <div class="fact"><span class="no">NO</span> — A way for Erik to see that his proposal arrived and is being read.</div>
-  <div class="fact"><span class="no">NO</span> — Adding or deleting a whole clause in the clause editor. No such control exists.</div>
-  <div class="fact"><span class="part">PARTLY</span> — Email setup is still only discovered <i>after</i> pressing Send. The server knows the answer but never passes it to the app at sign-in. That same sign-in call already reports whether the Copilot features are set up; email was left out of it.</div>
-  <div class="fact"><span class="part">PARTLY</span> — "PDF export" is still the browser's print window (<code>exportPDF</code> ends in <code>window.print()</code>, <code>js/views/portal.js:1167</code>).</div>
-</div></div>
+<h2>The two people</h2>
 
-<!-- ============================================================ -->
-<h2>Scenario 1 — Erik will only use Word</h2>
-<p>Wanjiru drafted the agreement in HaTi with the wizard. Erik exchanges Word files by email. Six rounds.</p>
+<div class="card persona">
+<h4>Wanjiru — owner, Karibu Catering, Nairobi</h4>
+<p>Runs a 14-person catering business. Does her own contracts between kitchen shifts, mostly on a laptop in the office, sometimes on her phone in a matatu. She has never used contract software before. She is fast, impatient, and she trusts paper more than screens. If something takes more than a minute she goes back to WhatsApp and email.</p>
+</div>
 
-<div class="round"><h4><span class="rlabel">Round 1</span> She sends the draft as a Word file — and it goes out looking half-finished</h4>
-<ul class="kv">
-<li><b>She wants to</b> email Erik an editable Word copy.</li>
-<li><b>Screen</b> The <b>Word</b> button in the toolbar (<code>js/views/contract.js</code>) → a short dialog.</li>
-<li><b>Steps</b> Three clicks. The file is a genuine Word document: title as a real heading, clause numbers intact, signature block present. I confirmed this by having HaTi's own Word reader open the file HaTi wrote.</li>
+<div class="card persona">
+<h4>Erik — procurement manager, a Swedish company with a Nairobi office</h4>
+<p>Buys catering for corporate events. Signs maybe forty supplier contracts a year. He has used DocuSign and a proper CLM at his last job, so he has expectations. He is careful, he reads clauses, and he will not sign anything where he cannot see what changed.</p>
+</div>
+
+<h2>What HaTi genuinely has today</h2>
+<p>So the rest of the review is fair, here is what really exists. This is a serious piece of software, not a prototype.</p>
+<ul>
+<li>A contract workspace with a real document editor, clauses that keep durable ids, and a full version history (<code>js/views/contract.js</code>, <code>js/versioning.js</code>).</li>
+<li>A negotiation room where every proposed change is a tracked item you can accept, reject, comment on or withdraw, and where each change is fingerprinted and chained so tampering shows up (<code>js/negotiation.js</code>).</li>
+<li>Share links with a purpose — either "negotiate" or "sign" — and a strict list of what data is allowed to leave the building (<code>buildSharePayload</code> in <code>js/core.js</code>).</li>
+<li>A counterparty portal, a one-time-code login, an internal approval chain, an audit trail, an obligations tracker, a template library, and an AI copilot that can draw charts.</li>
+<li>Around a thousand automated tests, plus browser checks. The engineering underneath is stronger than the experience on top of it.</li>
 </ul>
-<div class="ouch"><b>New finding — the document reads like a database record, not an agreement.</b> Her contract opens
-with "This Raw Material Supply Agreement is made on <b>2026-08-01</b>", and later "the estimated annual contract
-value is <b>KES 4800000</b>". Those are the raw values as a computer stores them. On her own screen this is hidden,
-because each blank is a form box that the browser tidies up for display. The moment the document leaves that screen
-— into Word, into the counterparty's page, into the signed record — the tidying stops and the raw values show
-through. I read them out of the exported file itself. This is the first thing Erik sees, and it happens on the
-default path that every wizard user is on.</div>
+
+<h2>Round by round</h2>
+<p class="note">Step counts are real clicks and keystrokes on the current code, from a standing start on the contract page.</p>
+
+<!-- ROUND 1 -->
+<div class="round">
+<h4><span class="tag b">Round 1</span> &nbsp;Wanjiru sends Erik the first draft</h4>
+<div class="meta">
+<b>What she wants:</b> get the contract in front of Erik.<br/>
+<b>Where it happens:</b> <code>js/views/contract.js</code> (the share button) → <code>openShareModal</code> in <code>js/core.js</code> → <code>POST /api/shares</code> in <code>server/server.js</code>.<br/>
+<b>Steps:</b> 10.
+</div>
+<ol class="steps">
+<li>Open the contract.</li>
+<li>Click <b>Share</b>.</li>
+<li>Choose the purpose — negotiate or sign.</li>
+<li>Type Erik's name.</li>
+<li>Type Erik's email.</li>
+<li>Decide whether the link should be durable or one-shot (a checkbox she does not understand).</li>
+<li>Create the link.</li>
+<li>Read the warning that email is not configured.</li>
+<li>Copy the link by hand.</li>
+<li>Paste it into her own Gmail and write the covering note herself.</li>
+</ol>
+<div class="hurt"><b>Exact point of confusion:</b> step 8. HaTi ships with no mail provider connected. The code says so plainly — <code>EMAIL_SETUP_LINE</code> at <code>js/core.js:136</code> warns that "review links, update notices and signing codes all have to be copied out by hand, and any signature taken here is recorded as not independently verified." Wanjiru has just spent seven steps in a tool whose main job was to send something, and it cannot send it. Worse, the durable-versus-one-shot checkbox at step 6 has no plain-English explanation of what she loses by picking wrong.</div>
 </div>
 
-<div class="fig">
-<svg viewBox="0 0 880 210" role="img" aria-label="Sketch: the drafted contract shows raw computer values once it leaves the screen">
-<text x="20" y="24" class="head">TODAY — what she sees vs what Erik receives</text>
-<rect x="20" y="38" width="215" height="140" rx="6" class="box"/>
-<text x="32" y="58" class="note">On her screen</text>
-<g class="doc"><line x1="32" y1="74" x2="222" y2="74"/></g>
-<text x="32" y="98" class="note">made on</text>
-<rect x="92" y="86" width="96" height="17" rx="3" class="btn"/><text x="99" y="99" class="lbl">01/08/2026</text>
-<text x="32" y="128" class="note">value</text>
-<rect x="74" y="116" width="114" height="17" rx="3" class="btn"/><text x="81" y="129" class="lbl">4,800,000</text>
-<text x="32" y="164" class="note-green">Tidy form boxes</text>
-<path d="M243 105 L292 105" class="arrow-red"/>
-<rect x="300" y="38" width="215" height="140" rx="6" class="box"/>
-<text x="312" y="58" class="note">In Erik's Word file</text>
-<g class="doc"><line x1="312" y1="74" x2="502" y2="74"/></g>
-<text x="312" y="100" class="lbl-r">…made on 2026-08-01…</text>
-<text x="312" y="126" class="lbl-r">…value is KES 4800000…</text>
-<ellipse cx="407" cy="112" rx="102" ry="30" class="prob"/>
-<text x="312" y="164" class="note-red">Raw values, on his desk</text>
-<line x1="540" y1="20" x2="540" y2="196" class="divider"/>
-<text x="560" y="24" class="head">THE FIX</text>
-<rect x="560" y="38" width="300" height="140" rx="6" class="box"/>
-<text x="574" y="62" class="note">Write the values out the way a</text>
-<text x="574" y="80" class="note">contract writes them, everywhere</text>
-<text x="574" y="98" class="note">the document leaves the screen.</text>
-<rect x="574" y="112" width="268" height="24" rx="5" class="btn-green"/>
-<text x="584" y="128" class="lbl-g">…made on 1 August 2026…</text>
-<rect x="574" y="142" width="268" height="24" rx="5" class="btn-green"/>
-<text x="584" y="158" class="lbl-g">…value is KES 4,800,000…</text>
+<figure>
+<svg viewBox="0 0 880 300" role="img" aria-label="Before and after sketch of the share dialog">
+  <style>
+    .pen{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .pen-t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .redpen{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .lbl{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .lbl-s{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .lbl-r{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .lbl-g{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .hd{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .btn{fill:#eceef0;stroke:#1b1d1e;stroke-width:1.6}
+    .btnG{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+  </style>
+  <text class="hd" x="20" y="20">BEFORE</text>
+  <rect class="pen" x="20" y="32" width="380" height="236" rx="7"/>
+  <text class="lbl" x="38" y="58">Share this contract</text>
+  <line class="pen-t" x1="38" y1="68" x2="382" y2="68"/>
+  <rect class="pen-t" x="38" y="80" width="344" height="24" rx="4"/>
+  <text class="lbl-s" x="46" y="97">Erik Lindqvist</text>
+  <rect class="pen-t" x="38" y="112" width="344" height="24" rx="4"/>
+  <text class="lbl-s" x="46" y="129">erik@company.se</text>
+  <rect class="pen-t" x="38" y="146" width="14" height="14" rx="3"/>
+  <text class="lbl-s" x="60" y="158">Durable link (keeps updating)</text>
+  <rect class="btn" x="38" y="176" width="120" height="28" rx="5"/>
+  <text class="lbl" x="56" y="195">Create link</text>
+  <text class="lbl-r" x="38" y="230">Email is not set up.</text>
+  <text class="lbl-r" x="38" y="248">Copy this link and send it yourself.</text>
+  <ellipse class="redpen" cx="150" cy="238" rx="128" ry="26"/>
+  <ellipse class="redpen" cx="140" cy="152" rx="112" ry="17"/>
+  <text class="lbl-r" x="272" y="152">?</text>
+  <path class="redpen" d="M410 150 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="hd" x="480" y="20">AFTER</text>
+  <rect class="pen" x="480" y="32" width="380" height="236" rx="7"/>
+  <text class="lbl" x="498" y="58">Share this contract</text>
+  <line class="pen-t" x1="498" y1="68" x2="842" y2="68"/>
+  <rect class="pen-t" x="498" y="80" width="344" height="24" rx="4"/>
+  <text class="lbl-s" x="506" y="97">Erik Lindqvist</text>
+  <rect class="pen-t" x="498" y="112" width="344" height="24" rx="4"/>
+  <text class="lbl-s" x="506" y="129">erik@company.se</text>
+  <rect class="pen-t" x="498" y="146" width="14" height="14" rx="3"/>
+  <path class="pen" d="M501 153 l4 4 l7 -8"/>
+  <text class="lbl-s" x="520" y="158">Keep this link live as I edit</text>
+  <text class="lbl-s" x="520" y="172">(off = one look only, then it dies)</text>
+  <rect class="btnG" x="498" y="188" width="180" height="30" rx="5"/>
+  <text class="lbl-g" x="516" y="208">Send to Erik by email</text>
+  <text class="lbl-g" x="498" y="242">Mail is connected. HaTi sends it,</text>
+  <text class="lbl-g" x="498" y="258">and signatures count as verified.</text>
 </svg>
-<div class="figcap"><b>Friction 1 — the worst in this scenario.</b> Circled: the raw values as they arrive in Erik's
-Word file. The same text is what the counterparty's page shows, and what the signature seal is taken over.</div>
+<figcaption>Round 1 — the tool asks her to do the one job she came for. Connect mail during setup and the dead end disappears.</figcaption>
+</figure>
+
+<!-- ROUND 2 -->
+<div class="round">
+<h4><span class="tag b">Round 2</span> &nbsp;Erik opens the link and asks for two changes</h4>
+<div class="meta">
+<b>What he wants:</b> understand what he is looking at, then push back on the cancellation clause and the payment terms.<br/>
+<b>Where it happens:</b> <code>js/views/portal.js</code> — <code>portalStartOtp</code> (line 1596), <code>portalNegoPhase</code>, the change list and the response post.<br/>
+<b>Steps:</b> 6.
+</div>
+<ol class="steps">
+<li>Click the link in Wanjiru's own email.</li>
+<li>Enter the one-time code.</li>
+<li>Land on the contract with no explanation of what he is expected to do.</li>
+<li>Find the change list.</li>
+<li>Write two counter-proposals.</li>
+<li>Type his name and send.</li>
+</ol>
+<div class="good"><b>What works:</b> the one-time-code login is quick and unfussy. The document keeps its numbering and bullets, so clause 7.2 is still clause 7.2 on his screen.</div>
+<div class="hurt"><b>Exact point of confusion:</b> step 3. He arrives and nothing tells him whether he is being asked to <i>comment</i>, <i>negotiate</i> or <i>sign</i>. The code knows — the share carries a <code>purpose</code> and <code>portalNegoPhase</code> reads it — but the screen never turns that into a sentence like "Wanjiru wants your comments on this draft before anyone signs." He also has to type his own name at step 6, having already proved who he is with a code at step 2. That reads as sloppy to someone who signs forty contracts a year.</div>
 </div>
 
-<div class="round"><h4><span class="rlabel">Round 2</span> Erik returns his marked-up file — and the blanks disappear for good</h4>
-<ul class="kv">
-<li><b>She wants to</b> see his changes and take some, not all.</li>
-<li><b>Screen</b> <b>Upload returned .docx</b> (<code>uploadWordVersion</code>) → the review window. His changes are counted and listed separately, each with Accept / Reject and a reply box.</li>
-<li><b>Steps</b> About six, all inside the app. His authorship is on the record, not hers.</li>
-</ul>
-<div class="ouch"><b>Confirmed, and worse than the last review reported.</b> I ran the real code on a real
-wizard-drafted contract. Before she accepts, the document has <b>six</b> fill-in blanks. The instant she accepts, it
-has <b>zero</b>, and the contract stops being a recipe and becomes a block of plain working text. That much the last
-review found. What it missed: <b>the history says nothing about it.</b> The record shows "Round 1 proposed edits
-from Nordkust accepted — adopted as v2", and not one word about the document changing character. HaTi does warn
-about this when it happens to an uploaded document. On the wizard path — the default path — it is silent.</div>
-</div>
-
-<div class="fig">
-<svg viewBox="0 0 880 220" role="img" aria-label="Sketch: a wizard-drafted contract loses its fill-in blanks at the first accepted round, silently">
-<text x="20" y="24" class="head">TODAY — round 1 empties the document of its blanks, quietly</text>
-<rect x="20" y="38" width="190" height="150" rx="6" class="box"/>
-<text x="32" y="58" class="note">Before she accepts</text>
-<rect x="32" y="68" width="110" height="10" rx="2" fill="#33475c"/>
-<g class="doc"><line x1="32" y1="92" x2="196" y2="92"/></g>
-<rect x="32" y="102" width="78" height="15" rx="3" class="btn-green"/><text x="38" y="114" class="lbl-g">blank ×6</text>
-<g class="doc"><line x1="32" y1="132" x2="180" y2="132"/><line x1="44" y1="146" x2="196" y2="146"/></g>
-<text x="32" y="176" class="note-green">6 fill-in blanks</text>
-<path d="M218 110 L272 110" class="arrow-red"/>
-<rect x="280" y="38" width="190" height="150" rx="6" class="box"/>
-<text x="292" y="58" class="note">After she accepts</text>
-<g class="doc"><line x1="292" y1="76" x2="456" y2="76"/><line x1="292" y1="92" x2="440" y2="92"/>
-<line x1="292" y1="108" x2="456" y2="108"/><line x1="292" y1="124" x2="420" y2="124"/>
-<line x1="292" y1="140" x2="456" y2="140"/></g>
-<ellipse cx="375" cy="108" rx="100" ry="48" class="prob"/>
-<text x="292" y="176" class="note-red">0 blanks · history silent</text>
-<line x1="500" y1="20" x2="500" y2="200" class="divider"/>
-<text x="520" y="24" class="head">THE FIX</text>
-<rect x="520" y="38" width="340" height="150" rx="6" class="box"/>
-<text x="534" y="60" class="note">Turn the recipe into a real saved</text>
-<text x="534" y="78" class="note">document the first time it is edited,</text>
-<text x="534" y="96" class="note">keeping the blanks as blanks. The</text>
-<text x="534" y="114" class="note">layout-keeping merge already works —</text>
-<text x="534" y="132" class="note">wizard contracts just never reach it.</text>
-<rect x="534" y="146" width="250" height="24" rx="5" class="btn-green"/>
-<text x="544" y="162" class="lbl-g">Same document at round 6 as at 0</text>
+<figure>
+<svg viewBox="0 0 880 280" role="img" aria-label="Before and after sketch of what Erik sees on arrival">
+  <style>
+    .pen2{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .pen2t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .red2{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .t{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .ts{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .tr{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .tg{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .band{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+  </style>
+  <text class="h" x="20" y="20">BEFORE</text>
+  <rect class="pen2" x="20" y="32" width="380" height="220" rx="7"/>
+  <text class="t" x="38" y="58">Catering Services Agreement</text>
+  <line class="pen2t" x1="38" y1="70" x2="382" y2="70"/>
+  <line class="pen2t" x1="38" y1="86" x2="360" y2="86"/>
+  <line class="pen2t" x1="38" y1="100" x2="372" y2="100"/>
+  <line class="pen2t" x1="38" y1="114" x2="300" y2="114"/>
+  <line class="pen2t" x1="38" y1="136" x2="368" y2="136"/>
+  <line class="pen2t" x1="38" y1="150" x2="340" y2="150"/>
+  <line class="pen2t" x1="38" y1="164" x2="376" y2="164"/>
+  <line class="pen2t" x1="38" y1="178" x2="290" y2="178"/>
+  <text class="tr" x="120" y="216">what am I supposed</text>
+  <text class="tr" x="150" y="234">to do here?</text>
+  <ellipse class="red2" cx="210" cy="60" rx="185" ry="26"/>
+  <path class="red2" d="M410 140 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h" x="480" y="20">AFTER</text>
+  <rect class="pen2" x="480" y="32" width="380" height="220" rx="7"/>
+  <rect class="band" x="492" y="44" width="356" height="46" rx="6"/>
+  <text class="tg" x="504" y="62">Wanjiru is asking for your comments</text>
+  <text class="ts" x="504" y="80">Nothing is signed yet. Mark what you want changed.</text>
+  <text class="t" x="498" y="114">Catering Services Agreement</text>
+  <line class="pen2t" x1="498" y1="126" x2="842" y2="126"/>
+  <line class="pen2t" x1="498" y1="142" x2="820" y2="142"/>
+  <line class="pen2t" x1="498" y1="156" x2="832" y2="156"/>
+  <line class="pen2t" x1="498" y1="170" x2="760" y2="170"/>
+  <line class="pen2t" x1="498" y1="192" x2="828" y2="192"/>
+  <line class="pen2t" x1="498" y1="206" x2="800" y2="206"/>
+  <text class="ts" x="498" y="238">Signed in as Erik Lindqvist — no need to retype your name</text>
 </svg>
-<div class="figcap"><b>Friction 2.</b> Circled: the blanks, gone. Both the loss and the silence about it are on the
-default path — this is what happens to the contract Wanjiru actually drafted.</div>
+<figcaption>Round 2 — the share already knows its purpose. One green sentence at the top turns that into an instruction.</figcaption>
+</figure>
+
+<!-- ROUND 3 -->
+<div class="round">
+<h4><span class="tag b">Round 3</span> &nbsp;Wanjiru reads his asks and counter-proposes</h4>
+<div class="meta">
+<b>What she wants:</b> accept the payment change, reject the cancellation change, and explain why.<br/>
+<b>Where it happens:</b> the negotiation room — <code>js/views/negotiation.js</code>, backed by <code>negoResolve</code> and <code>negoOpenPoints</code> in <code>js/negotiation.js</code>.<br/>
+<b>Steps:</b> 5.
+</div>
+<ol class="steps">
+<li>Open the negotiation room.</li>
+<li>Accept Erik's payment-terms change.</li>
+<li>Reject his cancellation change.</li>
+<li>Type her reason.</li>
+<li>Send the decisions.</li>
+</ol>
+<div class="good"><b>What works:</b> this is the strongest screen in the product. One change per row, accept or reject in one click, bulk actions when there are twenty of them, and a running count of what is still open. The change fingerprints mean neither side can quietly rewrite history.</div>
+<div class="hurt"><b>Exact point of confusion:</b> step 4. She types her reason into a comment box, but a comment is a separate thing from the rejection — it goes to the message thread, not onto the change itself. On Erik's side the rejection arrives as a bare "rejected" with his explanation living somewhere else on the page. A rejection without its reason attached is the single most argument-causing thing in a negotiation.</div>
 </div>
 
-<div class="round"><h4><span class="rlabel">Round 3</span> She counters — and this time Erik sees red ink</h4>
-<ul class="kv">
-<li><b>She wants to</b> send her middle position so Erik can see exactly what she changed.</li>
-<li><b>Screen</b> <b>Edit</b> → save → the <b>Word</b> button. The dialog now says plainly that this copy will carry her changes in red, in her company's name, and offers to turn that off.</li>
-<li><b>Steps</b> Four.</li>
-</ul>
-<div class="okay"><b>The worst problem in the last review is genuinely fixed.</b> I checked it on a wizard-drafted
-contract — the case the last review's own tests had never covered — and the export carried two insertions and one
-strike-out, correctly attributed to her company rather than to the software. I also checked the property that
-matters most: pressing "Accept All" in Word produces <i>exactly</i> the wording HaTi holds, so the file cannot
-quietly invent contract text. Erik no longer has to run Word's Compare by hand.</div>
-<div class="warn"><b>One caution worth knowing.</b> HaTi decides what to mark in red by remembering the last copy
-that left the building, and it records that on <i>every</i> Word download — including one she takes purely to read
-on her own laptop. If she does that, HaTi will assume Erik is holding a copy he never received, and the next file
-she sends him will mark the wrong things. The fix is one question in the dialog. Today there is no question.</div>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 4</span> Erik returns again, with a brand-new clause</h4>
-<ul class="kv">
-<li><b>She does</b> Upload → review. His inserted clause appears as its own change with its own Accept / Reject. Works.</li>
-<li><b>Small note</b> Clause numbers are ordinary text on purpose, so Word cannot renumber a schedule and break cross-references. The cost: if Erik inserts "clause 5a", renumbering is his manual job. A reasonable trade, worth knowing.</li>
-</ul>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 5</span> Two changes arrive as email prose, not a file</h4>
-<ul class="kv">
-<li><b>She does</b> <b>Edit</b> → ticks <b>"These changes came from Nordkust Industri AB (received outside HaTi)"</b> → the wording files as a round in <i>his</i> name, waiting for her decision.</li>
-<li><b>Steps</b> Four. The record stays truthful about whose words are whose.</li>
-</ul>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 6</span> Agreement — both endings exist</h4>
-<ul class="kv">
-<li><b>Electronic</b> She sends a single-answer link; Erik signs with an emailed code — or, on a server with no email service, signs after being told plainly that the signature will be recorded as not independently verified.</li>
-<li><b>Paper</b> "Signed on paper instead? File the signed copy here" attaches the scan to <i>this</i> contract, six rounds of history intact.</li>
-</ul>
-<div class="ouch"><b>And the document he signs still says "made on 2026-08-01".</b> The formatting problem from round
-1 stops being cosmetic here: it is baked into the sealed record and into the PDF.</div>
-</div>
-
-<div class="verdict">
-<h3 style="margin-top:0">Scenario 1 verdict</h3>
-<p><span class="score">8<small>/10</small></span> &nbsp; <span class="was">(first: 2/10 · second: 6/10 · third: 7/10)</span></p>
-<p><b>The single worst friction point:</b> the drafted contract reads like a database record rather than an
-agreement. "Made on 2026-08-01" and "KES 4800000" are in every copy that leaves her screen, from round one through
-to the sealed signature. It is the first impression a Swedish procurement manager forms of a Kenyan supplier, and
-it is entirely avoidable.</p>
-<p><b>Would a real Kenyan SME owner keep using this?</b> Yes. The round trip that used to force her out of the
-product now runs inside it from end to end, and the red-ink export closes the last manual step. What holds it back
-from a 9 is that the document itself degrades: it looks unfinished on day one, and loses its blanks on day two with
-nothing on the record to say so.</p>
-</div>
-
-<!-- ============================================================ -->
-<h2>Scenario 2 — Erik negotiates inside HaTi</h2>
-<p>The same correction as always: there is no counterparty account. "Inside HaTi" means the no-login review page
-(<code>js/views/portal.js</code>) on one link that stays live for the whole negotiation.</p>
-
-<div class="round"><h4><span class="rlabel">Access</span> How Erik gets in</h4>
-<ul class="kv">
-<li><b>She does</b> <b>Share</b> → name and email (prefilled after the first time) → Send.</li>
-<li><b>He does</b> Clicks the link. No account, no password.</li>
-</ul>
-<div class="ouch"><b>Unchanged from the last review, and it now matters more.</b> If the server has no email service
-connected, the invitation sits in an internal outbox and she must copy the link out by hand. The app says so
-honestly — but only <i>after</i> she presses Send. I checked why. The server does work this out, and hands it over
-on several screens, but it is never included in the one call the app makes when she signs in. That call already
-reports whether the Copilot features are set up. Email was simply left out of it.</div>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 1</span> Erik proposes changes, clause by clause, with reasons</h4>
-<ul class="kv">
-<li><b>He does</b> <b>Propose edits</b> → the document appears as clauses, each with a <b>Change</b> button and a <b>Why?</b> box. He edits payment and delivery, submits.</li>
-<li><b>Steps</b> About eight. Clauses he did not touch are provably untouched.</li>
-</ul>
-<div class="ouch"><b>Still no way to add or remove a whole clause.</b> He can change any clause but cannot propose a
-new one, or the deletion of one, without dropping into the "edit the whole document" text box — the exact surface
-the clause editor exists to retire.</div>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 2</span> Wanjiru decides — with his reasons in front of her</h4>
-<ul class="kv">
-<li><b>She does</b> The amber "Changes returned" strip → review. Each change shows <b>Why they asked</b> above its Accept / Reject, with a reply box on that change. She accepts delivery, refuses payment with "Net-30 stands, or a 2% price increase."</li>
-<li><b>Steps</b> Four clicks and a sentence.</li>
-</ul>
-<div class="okay"><b>This screen is still the best thing in the product.</b> His ask, her decision and her answer sit
-together on the change they are about, in both directions.</div>
-</div>
-
-<div class="round"><h4><span class="rlabel">Round 3</span> He wants to answer with one sentence — and now he can, but not where he is standing</h4>
-<ul class="kv">
-<li><b>What he wants</b> To answer "Net-30 stands, or 2%" with "would you take Net-45?" — a sentence, not a redraft.</li>
-<li><b>What exists now</b> A real message channel. I confirmed it does exactly what it should: no round is opened, no version saved, the contract's wording untouched to the character, and the link still answerable afterwards.</li>
-<li><b>What he must actually do</b> Read her refusal in the <b>"Still open between us"</b> card. Find no way to answer there. Scroll past two more panels to a separate message box. Open a dropdown of <b>seven</b> options. Notice the default is "The contract generally", not the point he was just reading. Pick the right line. Type. Send.</li>
-</ul>
-<div class="ouch"><b>New finding — the reply is not where the conversation is.</b> I rendered the real page and read
-it. The "Still open between us" card contains no reply box and no reply button. Its instruction is still <i>"press
-Propose edits if you want to come back on it"</i> — the six-step route the new channel was built to replace. The
-light channel exists. It just is not where anybody is standing when they need it.</div>
-</div>
-
-<div class="fig">
-<svg viewBox="0 0 880 250" role="img" aria-label="Sketch: the reply box sits in a different panel from the point being discussed">
-<text x="20" y="24" class="head">TODAY — read it here, answer it far below</text>
-<rect x="20" y="36" width="300" height="86" rx="6" class="box"/>
-<text x="32" y="54" class="note">Still open between us</text>
-<g class="doc"><line x1="32" y1="66" x2="300" y2="66"/></g>
-<text x="32" y="84" class="lbl">Their reply: Net-30 stands, or 2%</text>
-<text x="32" y="106" class="lbl-r">"press Propose edits…"  ← no reply box</text>
-<ellipse cx="170" cy="99" rx="146" ry="20" class="prob"/>
-<path d="M170 128 L170 156" class="arrow-red"/>
-<text x="182" y="148" class="note-red">scroll…</text>
-<rect x="20" y="162" width="300" height="72" rx="6" class="box"/>
-<text x="32" y="180" class="note">Ask or reply</text>
-<rect x="32" y="190" width="276" height="17" rx="3" class="panel"/>
-<text x="39" y="203" class="lbl">The contract generally        ▾  (7)</text>
-<text x="32" y="226" class="lbl-r">wrong item pre-selected</text>
-<line x1="350" y1="20" x2="350" y2="240" class="divider"/>
-<text x="370" y="24" class="head">THE FIX — answer where you are reading</text>
-<rect x="370" y="36" width="490" height="120" rx="6" class="box"/>
-<text x="384" y="56" class="note">Still open between us</text>
-<g class="doc"><line x1="384" y1="68" x2="840" y2="68"/></g>
-<text x="384" y="86" class="lbl">Their reply: Net-30 stands, or 2%</text>
-<rect x="384" y="96" width="360" height="24" rx="5" class="btn-green"/>
-<text x="394" y="112" class="lbl-g">Would you take Net-45?</text>
-<rect x="752" y="96" width="88" height="24" rx="5" class="btn-green"/>
-<text x="776" y="112" class="lbl-g">Reply</text>
-<text x="384" y="142" class="note-green">One box, on the point it is about. No dropdown to get wrong.</text>
-<rect x="370" y="166" width="490" height="68" rx="6" class="box"/>
-<text x="384" y="186" class="note">The same box on every clause, both directions — so</text>
-<text x="384" y="204" class="note">"does clause 7 cover cold-chain?" has a home too.</text>
-<rect x="384" y="212" width="210" height="16" rx="4" class="btn-green"/>
-<text x="394" y="224" class="lbl-g">7. Liability …          [Ask]</text>
+<figure>
+<svg viewBox="0 0 880 260" role="img" aria-label="Before and after sketch of a rejected change">
+  <style>
+    .p3{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .p3t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .r3{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .t3{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .s3{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .rr{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .gg{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h3{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .pill{fill:#faecea;stroke:#b3382c;stroke-width:1.5}
+    .quote{fill:#f4f5f6;stroke:#1b1d1e;stroke-width:1.4}
+  </style>
+  <text class="h3" x="20" y="20">BEFORE — what Erik sees</text>
+  <rect class="p3" x="20" y="32" width="380" height="200" rx="7"/>
+  <text class="t3" x="38" y="58">Clause 9 — Cancellation</text>
+  <text class="s3" x="38" y="76">You asked for 14 days notice</text>
+  <rect class="pill" x="38" y="90" width="76" height="22" rx="11"/>
+  <text class="rr" x="52" y="105">Rejected</text>
+  <ellipse class="r3" cx="76" cy="101" rx="60" ry="21"/>
+  <text class="rr" x="150" y="106">— but why?</text>
+  <line class="p3t" x1="38" y1="140" x2="382" y2="140"/>
+  <text class="s3" x="38" y="162">Messages (3)  ▾</text>
+  <text class="s3" x="38" y="182">…the reason is buried somewhere</text>
+  <text class="s3" x="38" y="198">in here, under two other threads</text>
+  <ellipse class="r3" cx="205" cy="180" rx="175" ry="34"/>
+  <path class="r3" d="M410 130 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h3" x="480" y="20">AFTER</text>
+  <rect class="p3" x="480" y="32" width="380" height="200" rx="7"/>
+  <text class="t3" x="498" y="58">Clause 9 — Cancellation</text>
+  <text class="s3" x="498" y="76">You asked for 14 days notice</text>
+  <rect class="pill" x="498" y="90" width="76" height="22" rx="11"/>
+  <text class="rr" x="512" y="105">Rejected</text>
+  <rect class="quote" x="498" y="122" width="344" height="58" rx="6"/>
+  <line class="p3" x1="506" y1="130" x2="506" y2="172"/>
+  <text class="s3" x="518" y="144">Wanjiru: &#8220;Our kitchen buys fresh stock</text>
+  <text class="s3" x="518" y="162">72 hours out. 14 days is not possible.&#8221;</text>
+  <text class="gg" x="498" y="206">Reason travels with the decision</text>
 </svg>
-<div class="figcap"><b>Friction 3.</b> Circled: the card that carries the argument and offers no way to answer it,
-and the dropdown that defaults to the wrong thing.</div>
+<figcaption>Round 3 — the reason is already typed. It just needs to sit on the change instead of in a side thread.</figcaption>
+</figure>
+
+<!-- ROUND 4 -->
+<div class="round">
+<h4><span class="tag r">Round 4</span> &nbsp;Wanjiru edits the wording and sends the new draft</h4>
+<div class="meta">
+<b>What she wants:</b> rewrite clause 9 as a compromise and get it back to Erik.<br/>
+<b>Where it happens:</b> the room's "Send to …" goes through <code>openShareModal</code> and creates a <b>new</b> share; the contract page's <code>reshareToLastRecipient</code> refreshes the existing one via <code>PUT /api/shares/:token/payload</code>.<br/>
+<b>Steps:</b> 4 — but there are two different buttons that both look like "send it to Erik", and they do different things.
+</div>
+<ol class="steps">
+<li>Edit clause 9 in the document.</li>
+<li>Look for the send button.</li>
+<li>Find two of them, on two different screens.</li>
+<li>Pick one and hope.</li>
+</ol>
+<div class="hurt"><b>Exact point of confusion:</b> step 3. One path <i>updates</i> the link Erik already has open. The other path <i>mints a new link</i> and leaves the old one behind. Nothing on screen explains the difference. If she picks the wrong one, Erik is reading a stale draft in a tab he never closed and neither of them knows it. This is the kind of thing that ends in "but I sent it to you" on a phone call.</div>
 </div>
 
-<div class="round"><h4><span class="rlabel">Round 4</span> His question sits unread</h4>
-<ul class="kv">
-<li><b>He does</b> Sends "Would you take Net-45?" The page confirms it went.</li>
-<li><b>She does</b> Nothing, because nothing tells her.</li>
-</ul>
-<div class="ouch"><b>New finding — a waiting question is invisible.</b> I searched the whole app. Nothing on the
-dashboard, the work queue or the contract list counts unanswered messages. The only two ways she finds out are an
-email, or opening that one contract and scrolling. And email is the setting most workspaces have not configured —
-the very problem three panels above. Put those together and on a fresh workspace <b>there is no alert at all</b>.
-The message is stored safely and displayed correctly; it is simply somewhere nobody is looking. A channel nobody
-watches is slower than the formal round it replaced, because a formal round at least raises an amber strip on her
-screen.</div>
-</div>
-
-<div class="fig">
-<svg viewBox="0 0 880 200" role="img" aria-label="Sketch: a question waits unseen because nothing counts it">
-<text x="20" y="24" class="head">TODAY — the question lands somewhere nobody looks</text>
-<rect x="20" y="36" width="150" height="56" rx="6" class="box"/>
-<text x="32" y="58" class="note">Erik asks</text><text x="32" y="76" class="lbl">"Net-45?"</text>
-<path d="M178 64 L222 64" class="arrow"/>
-<rect x="230" y="36" width="170" height="56" rx="6" class="box"/>
-<text x="242" y="58" class="note">Stored correctly</text><text x="242" y="76" class="lbl">on the contract page</text>
-<path d="M408 64 L452 64" class="arrow-red"/>
-<rect x="460" y="36" width="240" height="56" rx="6" class="box"/>
-<text x="472" y="58" class="note-red">Her dashboard: nothing.</text>
-<text x="472" y="76" class="note-red">No email either (not set up).</text>
-<ellipse cx="580" cy="64" rx="128" ry="32" class="prob"/>
-<text x="20" y="132" class="head">THE FIX</text>
-<rect x="20" y="142" width="410" height="44" rx="6" class="btn-amber"/>
-<text x="34" y="160" class="lbl">Decisions due                          2</text>
-<text x="34" y="178" class="lbl">Questions waiting for you              1  ←</text>
-<path d="M446 164 L490 164" class="arrow-green"/>
-<rect x="498" y="142" width="362" height="44" rx="6" class="btn-green"/>
-<text x="512" y="160" class="lbl-g">Counted on the dashboard she already opens</text>
-<text x="512" y="178" class="lbl-g">every morning — with or without email.</text>
+<figure>
+<svg viewBox="0 0 880 300" role="img" aria-label="Before and after sketch of the two send buttons">
+  <style>
+    .p4{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .p4t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .r4{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .t4{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .s4{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .r4t{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .g4t{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h4{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .b4{fill:#eceef0;stroke:#1b1d1e;stroke-width:1.6}
+    .b4g{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+  </style>
+  <text class="h4" x="20" y="20">BEFORE — two buttons, one job</text>
+  <rect class="p4" x="20" y="32" width="180" height="110" rx="7"/>
+  <text class="s4" x="34" y="52">Contract page</text>
+  <rect class="b4" x="34" y="66" width="150" height="30" rx="5"/>
+  <text class="t4" x="46" y="86">Send update</text>
+  <text class="s4" x="34" y="118">updates Erik&#8217;s</text>
+  <text class="s4" x="34" y="132">existing link</text>
+  <rect class="p4" x="222" y="32" width="180" height="110" rx="7"/>
+  <text class="s4" x="236" y="52">Negotiation room</text>
+  <rect class="b4" x="236" y="66" width="150" height="30" rx="5"/>
+  <text class="t4" x="248" y="86">Send to Erik</text>
+  <text class="s4" x="236" y="118">makes a brand</text>
+  <text class="s4" x="236" y="132">new link</text>
+  <ellipse class="r4" cx="109" cy="81" rx="90" ry="24"/>
+  <ellipse class="r4" cx="311" cy="81" rx="90" ry="24"/>
+  <path class="r4" d="M150 175 q60 30 160 0" />
+  <text class="r4t" x="120" y="212">Erik ends up with two links.</text>
+  <text class="r4t" x="120" y="230">He reads the old one.</text>
+  <path class="r4" d="M420 150 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h4" x="490" y="20">AFTER — one button, states the effect</text>
+  <rect class="p4" x="490" y="32" width="370" height="150" rx="7"/>
+  <text class="s4" x="506" y="52">Either screen</text>
+  <rect class="b4g" x="506" y="66" width="230" height="32" rx="5"/>
+  <text class="g4t" x="520" y="87">Send the new draft to Erik</text>
+  <text class="s4" x="506" y="120">Erik&#8217;s existing link will show this version.</text>
+  <text class="s4" x="506" y="138">He gets a notice that clause 9 changed.</text>
+  <text class="s4" x="506" y="156">Nothing older stays open.</text>
+  <text class="g4t" x="490" y="212">One link per person. Always current.</text>
 </svg>
-<div class="figcap"><b>Friction 4 — the worst in this scenario.</b> Circled: the moment the question stops moving.
-The "Decisions due" card on her dashboard already exists and already gets read. It simply does not count
-messages.</div>
+<figcaption>Round 4 — the two paths can stay in the code, but the person should only ever see one button and one promise.</figcaption>
+</figure>
+
+<!-- ROUND 5 -->
+<div class="round">
+<h4><span class="tag a">Round 5</span> &nbsp;Erik is still not happy — a genuine stand-off</h4>
+<div class="meta">
+<b>What he wants:</b> hold his position on cancellation without killing the deal.<br/>
+<b>Where it happens:</b> <code>negoAlignment</code> and <code>negoWithdraw</code> in <code>js/negotiation.js</code>; the counterparty bar in <code>js/views/negotiation.js</code>.<br/>
+<b>Steps:</b> 3 — leave the change contested, or withdraw it.
+</div>
+<div class="good"><b>What works, and works well:</b> HaTi is honest about disagreement. It will not let either side click "Ready to sign" while a change is still contested — the button is greyed out with a line saying exactly what is blocking it. Erik can also <b>withdraw</b> his own ask, which is the polite way to concede and is a verb most contract tools do not have. This is genuinely good design and it is rare.</div>
+<div class="hurt"><b>Exact point of confusion:</b> nothing here is broken, but the room never suggests a way forward. It correctly reports "you are not aligned" and then stops. A first-time user reads a greyed-out button as a fault in the software rather than a fact about the negotiation. One line — "two points still open; talk to Erik or withdraw your ask" — would turn a dead end into an instruction.</div>
 </div>
 
-<div class="round"><h4><span class="rlabel">Round 5</span> The money round</h4>
-<ul class="kv">
-<li><b>He does</b> <b>Request changes</b> → proposes a lower annual value with a comment.</li>
-<li><b>She does</b> Accepts. The value updates, and any internal approval already collected is correctly cancelled — she must be re-approved before signing. Honest, one extra loop.</li>
-</ul>
-<div class="ouch"><b>He still cannot tell "being considered" from "lost".</b> After he submits anything, his page
-shows a green tick and then goes quiet until she reshares. There is no "delivered", no "opened by them", no "you'll
-hear when they respond". She has all of that about him. He has none of it about her.</div>
+<!-- ROUND 6 -->
+<div class="round">
+<h4><span class="tag r">Round 6</span> &nbsp;They agree — and signing goes wrong twice</h4>
+<div class="meta">
+<b>What they want:</b> sign it and be done.<br/>
+<b>Where it happens:</b> <code>internalAllSigned</code> in <code>js/approvals.js:103</code>; the signing share in <code>js/core.js</code>; the print block in <code>js/views/portal.js</code>.<br/>
+<b>Steps:</b> Wanjiru signs, then issues a signing link, then Erik signs — but two things bite.
+</div>
+<div class="hurt"><b>Blocker one — the order is hidden.</b> <code>internalAllSigned</code> means Wanjiru's side must sign <i>before</i> Erik's signing link becomes live. Nothing tells her that in advance. She sends Erik a signing link, Erik opens it, and it does not let him sign. He emails her. She has no idea why. There is no message anywhere on the screen saying "you need to sign first."</div>
+<div class="hurt"><b>Blocker two — the old link dies silently.</b> Issuing a signing link retires the negotiation link (<code>shareRetiredBySigning</code>). That is correct behaviour, but Erik's open tab just stops working, with no explanation on Wanjiru's screen that it happened.</div>
+<div class="good"><b>What works:</b> once they get through it, the executed contract prints properly, with the seal and execution block, and — correctly — contracts that were merely uploaded print exactly as they came in, with no HaTi markings added.</div>
 </div>
 
-<div class="round"><h4><span class="rlabel">Round 6</span> Acceptance, signature, seal</h4>
-<ul class="kv">
-<li><b>He does</b> <b>Accept the wording (without signing)</b> — a real distinction — then signs: with email configured, a 6-digit code; without it, a plain warning first, and the signature recorded everywhere as not independently verified.</li>
-<li><b>She does</b> Ticks intent-to-sign, signs. The exact text is frozen and sealed, and the history tells the whole story: who asked for what, why, what was decided, and what was said back — per clause.</li>
-</ul>
+<figure>
+<svg viewBox="0 0 880 280" role="img" aria-label="Before and after sketch of the signing order">
+  <style>
+    .p5{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .p5t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .r5{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .t5{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .s5{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .r5t{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .g5t{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h5{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .b5{fill:#eceef0;stroke:#1b1d1e;stroke-width:1.6}
+    .b5g{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+    .b5d{fill:#f4f5f6;stroke:#b0b4b8;stroke-width:1.5;stroke-dasharray:4 3}
+    .step{fill:#fff;stroke:#1b1d1e;stroke-width:1.8}
+    .stepD{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+  </style>
+  <text class="h5" x="20" y="20">BEFORE</text>
+  <rect class="p5" x="20" y="32" width="380" height="220" rx="7"/>
+  <text class="t5" x="38" y="58">Everyone has agreed</text>
+  <rect class="b5" x="38" y="72" width="180" height="30" rx="5"/>
+  <text class="t5" x="52" y="92">Send signing link</text>
+  <path class="p5t" d="M228 87 l38 0 m-10 -6 l10 6 l-10 6"/>
+  <rect class="p5t" x="272" y="66" width="110" height="42" rx="5"/>
+  <text class="s5" x="284" y="84">Erik&#8217;s screen</text>
+  <text class="r5t" x="284" y="100">nothing happens</text>
+  <ellipse class="r5" cx="327" cy="92" rx="66" ry="30"/>
+  <text class="r5t" x="38" y="152">Erik: &#8220;the link does not work&#8221;</text>
+  <text class="r5t" x="38" y="172">Wanjiru: &#8220;it worked on my side&#8221;</text>
+  <text class="s5" x="38" y="206">Nowhere on screen: you must sign first.</text>
+  <text class="s5" x="38" y="224">Nowhere on screen: the old link just died.</text>
+  <path class="r5" d="M410 140 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h5" x="480" y="20">AFTER</text>
+  <rect class="p5" x="480" y="32" width="380" height="220" rx="7"/>
+  <text class="t5" x="498" y="58">Signing — in order</text>
+  <circle class="stepD" cx="512" cy="82" r="12"/>
+  <text class="g5t" x="508" y="87">1</text>
+  <text class="s5" x="534" y="87">You sign (Karibu Catering)</text>
+  <line class="p5t" x1="512" y1="94" x2="512" y2="112"/>
+  <circle class="step" cx="512" cy="124" r="12"/>
+  <text class="t5" x="508" y="129">2</text>
+  <text class="s5" x="534" y="129">Erik&#8217;s signing link goes live</text>
+  <line class="p5t" x1="512" y1="136" x2="512" y2="154"/>
+  <circle class="step" cx="512" cy="166" r="12"/>
+  <text class="t5" x="508" y="171">3</text>
+  <text class="s5" x="534" y="171">Erik signs — contract is executed</text>
+  <rect class="b5g" x="498" y="192" width="150" height="30" rx="5"/>
+  <text class="g5t" x="514" y="212">Sign now (step 1)</text>
+  <text class="s5" x="498" y="242">Erik&#8217;s review link closes when step 2 starts.</text>
+</svg>
+<figcaption>Round 6 — the rule already exists in the code. Draw it as three numbered steps and both blockers vanish.</figcaption>
+</figure>
+
+<h2>One more thing: versions</h2>
+<p>Snapshots are now named and saved deliberately, which is a real improvement — the version list reads like a story instead of machine noise. But I searched the whole repository and <b>there is no way to restore a version.</b> No <code>restoreVersion</code> function exists anywhere.</p>
+<p>So Wanjiru can look at what the contract said three rounds ago, and she can compare it to now, and then she has to retype it. For a small-business owner who has just talked herself into a worse position, "go back to the draft from Tuesday" is the most obvious button in the world, and it is not there.</p>
+
+<figure>
+<svg viewBox="0 0 880 240" role="img" aria-label="Before and after sketch of the version list">
+  <style>
+    .p6{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .p6t{fill:none;stroke:#1b1d1e;stroke-width:1.4}
+    .r6{fill:none;stroke:#b3382c;stroke-width:2.6;stroke-linecap:round}
+    .t6{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .s6{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .r6t{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .g6t{font:11.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h6{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.08em}
+    .b6{fill:#eceef0;stroke:#1b1d1e;stroke-width:1.4}
+    .b6g{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.6}
+  </style>
+  <text class="h6" x="20" y="20">BEFORE</text>
+  <rect class="p6" x="20" y="32" width="380" height="180" rx="7"/>
+  <text class="t6" x="38" y="58">Versions</text>
+  <line class="p6t" x1="38" y1="68" x2="382" y2="68"/>
+  <text class="s6" x="38" y="90">Before Erik&#8217;s asks &#183; 12 Jun</text>
+  <rect class="b6" x="270" y="76" width="66" height="20" rx="4"/>
+  <text class="s6" x="282" y="90">Compare</text>
+  <text class="s6" x="38" y="124">Round 2 closed &#183; 14 Jun</text>
+  <rect class="b6" x="270" y="110" width="66" height="20" rx="4"/>
+  <text class="s6" x="282" y="124">Compare</text>
+  <text class="s6" x="38" y="158">Round 3 closed &#183; 15 Jun</text>
+  <rect class="b6" x="270" y="144" width="66" height="20" rx="4"/>
+  <text class="s6" x="282" y="158">Compare</text>
+  <ellipse class="r6" cx="352" cy="120" rx="42" ry="62"/>
+  <text class="r6t" x="38" y="196">No way back. Only looking.</text>
+  <path class="r6" d="M410 120 l40 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h6" x="480" y="20">AFTER</text>
+  <rect class="p6" x="480" y="32" width="380" height="180" rx="7"/>
+  <text class="t6" x="498" y="58">Versions</text>
+  <line class="p6t" x1="498" y1="68" x2="842" y2="68"/>
+  <text class="s6" x="498" y="90">Before Erik&#8217;s asks &#183; 12 Jun</text>
+  <rect class="b6" x="656" y="76" width="60" height="20" rx="4"/>
+  <text class="s6" x="666" y="90">Compare</text>
+  <rect class="b6g" x="722" y="76" width="112" height="20" rx="4"/>
+  <text class="g6t" x="732" y="90">Restore this</text>
+  <text class="s6" x="498" y="124">Round 2 closed &#183; 14 Jun</text>
+  <rect class="b6" x="656" y="110" width="60" height="20" rx="4"/>
+  <text class="s6" x="666" y="124">Compare</text>
+  <rect class="b6g" x="722" y="110" width="112" height="20" rx="4"/>
+  <text class="g6t" x="732" y="124">Restore this</text>
+  <text class="s6" x="498" y="158">Round 3 closed &#183; 15 Jun</text>
+  <rect class="b6" x="656" y="144" width="60" height="20" rx="4"/>
+  <text class="s6" x="666" y="158">Compare</text>
+  <rect class="b6g" x="722" y="144" width="112" height="20" rx="4"/>
+  <text class="g6t" x="732" y="158">Restore this</text>
+  <text class="s6" x="498" y="196">Restoring saves a new named version. Nothing is lost.</text>
+</svg>
+<figcaption>Versions — restoring should itself create a new snapshot, so the history stays honest.</figcaption>
+</figure>
+
+<h2>The verdict</h2>
+
+<div class="score">
+<div class="n">6 / 10</div>
+<p>Strong bones, rough edges. The negotiation model underneath is better than most commercial CLM tools — tracked changes with reasons, fingerprints, a withdraw verb, a hard block on signing while people still disagree. What lets it down is the plumbing at the edges: sending, arriving, and signing. A user meets those three things first, and they are the three weakest moments in the product.</p>
 </div>
 
-<div class="verdict">
-<h3 style="margin-top:0">Scenario 2 verdict</h3>
-<p><span class="score">8<small>/10</small></span> &nbsp; <span class="was">(first: 5/10 · second: 5/10 · third: 7/10)</span></p>
-<p><b>The single worst friction point:</b> a question can wait unseen. The light channel is real and correctly
-built, but nothing outside that one contract page says a question is waiting, and the email that would say so is
-the setting most workspaces have not configured. The product built a doorbell and did not connect it to a bell.</p>
-<p><b>Would a real Kenyan SME owner keep using this?</b> Yes. Both sides now see the same conversation, a sentence
-no longer costs a full round, and the deal can end by e-signature or on paper without losing its history. What is
-left is about <i>where things are put</i>, not about whether they work — a much better class of problem than this
-product had six months ago. Connect the alert, move the reply box to where the argument is, and this is a 9.</p>
+<h3>The single worst friction point</h3>
+<div class="hurt" style="font-size:16px">
+<b>Everything depends on email, and email is off by default.</b><br/><br/>
+HaTi's whole flow assumes a link reaches the other person. With no mail provider connected, every link has to be copied out by hand, every update notice never arrives, every signing code has to be read out over the phone — and the code itself records the resulting signature as <i>not independently verified</i> (<code>js/core.js:136</code>). That is not a small configuration detail. It quietly downgrades the legal weight of the thing the product exists to produce, and the person doing the signing is never really told.
 </div>
 
-<!-- ============================================================ -->
-<h2>What to fix, in order</h2>
-<p>Eight items, ordered by pain removed per unit of work. Sizes: <span class="badge b-small">small</span> = days,
-<span class="badge b-medium">medium</span> = 1–2 weeks, <span class="badge b-large">large</span> = several weeks.
-The mobile/WhatsApp counterparty portal is deliberately not on this list.</p>
+<h3>Would a Kenyan SME owner keep using it?</h3>
+<p><b>With email connected: yes.</b> Wanjiru would keep using HaTi, because the alternative is a WhatsApp thread and three files called <i>contract-final-FINAL2.docx</i>. The negotiation room genuinely solves her problem — she can see every ask in one list, decide each one, and prove afterwards what was agreed. That is worth the learning curve.</p>
+<p><b>With email off: no.</b> She would give up in the first session. She came to send a contract, the tool told her to send it herself, and at that point it is a filing cabinet with extra steps. She has a business to run.</p>
+<p>The honest summary: HaTi is one good setup screen and three small labels away from being something she would recommend to other caterers.</p>
 
-<div class="card">
-<div class="imp"><h3 style="margin:0">1. Write dates and money the way a contract writes them</h3><span class="badge b-small">small</span></div>
-<p><b>Change:</b> when the document is turned into text — for Word, for the counterparty's page, for the PDF, for
-the signature seal — write dates as <i>1 August 2026</i> and money as <i>KES 4,800,000</i>, instead of the raw
-values the computer stores.</p>
-<p><b>Why it hurts today:</b> every copy that leaves her screen says "made on 2026-08-01" and "KES 4800000". It is
-the first impression the counterparty forms, it is what he marks up, and it ends up inside the sealed signature
-record. Looking professional here costs almost nothing. Not doing it costs a great deal.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: raw values versus contract wording">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="42" class="lbl-r">…is made on 2026-08-01 between…</text>
-<text x="34" y="64" class="lbl-r">…value is KES 4800000, based on…</text>
-<ellipse cx="210" cy="50" rx="182" ry="26" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="42" class="lbl-g">…is made on 1 August 2026 between…</text>
-<text x="488" y="64" class="lbl-g">…value is KES 4,800,000, based on…</text>
-</svg></div>
-</div>
+<h2>Eight things to fix, in order</h2>
 
-<div class="card">
-<div class="imp"><h3 style="margin:0">2. Warn about missing email on day one, not at Send</h3><span class="badge b-small">small</span></div>
-<p><b>Change:</b> include "is email set up?" in the information the app already fetches when she signs in, and show
-a plain banner until it is connected. Repeat it in the Share window <i>before</i> she presses Send.</p>
-<p><b>Why it hurts today:</b> the first negotiation is where she discovers the invitation never left. Everything
-quiet depends on this one setting — invitations, update notices, signing codes, the strength of the signature
-itself, and now the new questions channel too. The server already works this out and reports it on several other
-screens. It is simply missing from the one call that would let the app say it early.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: warning at setup instead of after send">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="42" class="note">Found out after pressing Send:</text>
-<text x="34" y="64" class="note-red">"Queued, not sent"</text>
-<ellipse cx="210" cy="50" rx="182" ry="26" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="42" class="lbl-g">Day one: "Email isn't set up — links,</text>
-<text x="488" y="64" class="lbl-g">codes and questions can't be delivered."</text>
-</svg></div>
-</div>
+<table>
+<thead>
+<tr><th style="width:22%">What to do</th><th style="width:56%">Why it hurts right now</th><th style="width:12%">Size</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><b>1. Put email setup in first-run</b></td>
+  <td>Nothing works properly without it, and today nobody is asked. Make connecting mail part of getting started, and show the "signatures will not be independently verified" warning in plain words <i>before</i> the first signature, not after.</td>
+  <td class="size s-med">Medium</td>
+</tr>
+<tr>
+  <td><b>2. Attach the reason to the decision</b></td>
+  <td>A rejection with no reason attached is the biggest cause of a follow-up phone call. The text is already being typed — it just needs to land on the change instead of in a side thread.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>3. One send button</b></td>
+  <td>Two buttons, two behaviours, no explanation. The wrong one leaves the other side reading a stale draft. Show one action and one sentence about what it does to the existing link.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>4. Show the signing order</b></td>
+  <td>Your side must sign before the other side's link goes live. That rule is in the code and nowhere on the screen, so the first signing attempt fails for a reason nobody can see. Three numbered steps fixes it.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>5. Tell the counterparty what they are here for</b></td>
+  <td>The share already carries its purpose. Turn it into one green sentence at the top of the portal — "comments wanted" or "ready for your signature" — and stop asking for a name they already proved with a code.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>6. Add restore-to-version</b></td>
+  <td>You can look at any past version and compare it, but you cannot go back to one. Retyping a paragraph from three rounds ago is exactly the manual work this product is meant to remove.</td>
+  <td class="size s-med">Medium</td>
+</tr>
+<tr>
+  <td><b>7. Show link status on the contract</b></td>
+  <td>Nowhere does it say who currently holds a live link, when they last opened it, or that a link was retired when signing began. The owner is guessing about the one thing she most needs to know.</td>
+  <td class="size s-med">Medium</td>
+</tr>
+<tr>
+  <td><b>8. Turn dead ends into next steps</b></td>
+  <td>When "Ready to sign" is greyed out, the room says what is blocking it but never what to do. A first-time user reads that as a broken button. One suggested action — talk to them, or withdraw your ask — changes the whole feel.</td>
+  <td class="size s-small">Small</td>
+</tr>
+</tbody>
+</table>
 
-<div class="card">
-<div class="imp"><h3 style="margin:0">3. Count waiting questions where she already looks</h3><span class="badge b-small">small</span></div>
-<p><b>Change:</b> add unanswered questions to the "Decisions due" card on the dashboard and to the contract list,
-the same way returned changes already appear. Do the mirror on the counterparty's page.</p>
-<p><b>Why it hurts today:</b> the new message channel works perfectly and is watched by nobody. The only alerts are
-an email that most workspaces cannot send, and opening that one contract. A question can sit for a week while each
-side believes the other is thinking about it.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: dashboard without and with a question count">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="40" class="lbl">Decisions due                       2</text>
-<text x="34" y="64" class="note-red">(questions: not counted anywhere)</text>
-<ellipse cx="210" cy="58" rx="182" ry="20" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="40" class="lbl-g">Decisions due                       2</text>
-<text x="488" y="64" class="lbl-g">Questions waiting for you           1</text>
-</svg></div>
-</div>
-
-<div class="card">
-<div class="imp"><h3 style="margin:0">4. Put the reply box where the argument is</h3><span class="badge b-medium">medium</span></div>
-<p><b>Change:</b> a reply box directly inside each "Still open between us" point and on each clause, both
-directions, with no dropdown to choose from — the point you are reading is the point you are answering. The
-separate panel can stay for a general remark.</p>
-<p><b>Why it hurts today:</b> the card that carries the disagreement still tells the reader to "press Propose
-edits", which is the six-step route the message channel was built to avoid. To use the light route he must scroll
-away from what he is answering and pick it out of a seven-item list whose default is the wrong one. Half the
-feature landed.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: dropdown far from the point versus a reply box on it">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="38" class="note">Read it here → scroll → dropdown (7) →</text>
-<text x="34" y="62" class="note-red">pick the right one → type → send</text>
-<ellipse cx="210" cy="50" rx="182" ry="26" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="38" class="lbl-g">Net-30 stands, or 2%</text>
-<text x="488" y="62" class="lbl-g">[ Would you take Net-45?      ]  [Reply]</text>
-</svg></div>
-</div>
-
-<div class="card">
-<div class="imp"><h3 style="margin:0">5. Keep the wizard-drafted document whole — and say so if it changes</h3><span class="badge b-medium">medium</span></div>
-<p><b>Change:</b> the first time a wizard-drafted contract is edited, or a round is accepted on it, turn it into a
-real saved document that keeps its blanks, instead of flattening it into plain text. Until that is done, at the
-very least write a line in the history saying the document changed character.</p>
-<p><b>Why it hurts today:</b> six fill-in blanks become zero at the first accepted round, permanently, and the
-history does not mention it. This is the default path for every wizard user. The layout-keeping machinery already
-exists and is already proven for uploaded documents — wizard contracts simply never reach it.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: blanks lost at round one versus kept to signing">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<rect x="34" y="28" width="70" height="9" rx="2" fill="#33475c"/>
-<g class="doc"><line x1="34" y1="50" x2="200" y2="50"/></g>
-<text x="212" y="54" class="note-red">→ 6 blanks become 0</text>
-<ellipse cx="290" cy="50" rx="108" ry="20" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="box"/>
-<rect x="488" y="28" width="70" height="9" rx="2" fill="#33475c"/>
-<g class="doc"><line x1="488" y1="48" x2="846" y2="48"/><line x1="500" y1="64" x2="830" y2="64"/></g>
-<text x="686" y="36" class="note-green">still whole at round 6</text>
-</svg></div>
-</div>
-
-<div class="card">
-<div class="imp"><h3 style="margin:0">6. Tell Erik his proposal arrived and is being read</h3><span class="badge b-small">small</span></div>
-<p><b>Change:</b> after he submits, show on his page "Delivered to Wanjiru Catering Ltd — you'll get an email when
-they respond", and update it when she opens the round. The mirror of the seen-state she already has about him.</p>
-<p><b>Why it hurts today:</b> he gets a green tick and then silence until she reshares. He cannot tell "being
-considered" from "lost" — the same silence problem an earlier review fixed for her side only.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: silence after submitting versus a delivery state">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="42" class="note">Submitted. Then…</text>
-<text x="34" y="64" class="note-red">nothing, until she reshares</text>
-<ellipse cx="210" cy="52" rx="182" ry="22" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="42" class="lbl-g">✓ Delivered · opened by them 26 Jul</text>
-<text x="488" y="64" class="lbl-g">You'll get an email when they respond.</text>
-</svg></div>
-</div>
-
-<div class="card">
-<div class="imp"><h3 style="margin:0">7. Let the clause editor add and remove whole clauses</h3><span class="badge b-small">small</span></div>
-<p><b>Change:</b> an "add a clause here" control between clauses, and a "propose deleting this clause" option on
-each — feeding the same rebuild that already proves itself exact.</p>
-<p><b>Why it hurts today:</b> the counterparty can change any clause but cannot propose a new one, or the removal of
-one, without dropping into the whole-document text box — the exact surface the clause editor exists to retire.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: no add-clause control versus one between clauses">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<rect x="34" y="28" width="352" height="18" rx="4" class="panel"/><text x="44" y="41" class="lbl">4. Payment …</text>
-<rect x="34" y="52" width="352" height="18" rx="4" class="panel"/><text x="44" y="65" class="lbl">5. Liability …</text>
-<ellipse cx="210" cy="49" rx="186" ry="10" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="box"/>
-<rect x="488" y="26" width="358" height="16" rx="4" class="panel"/><text x="498" y="38" class="lbl">4. Payment …</text>
-<rect x="488" y="46" width="358" height="14" rx="4" class="btn-green"/><text x="498" y="57" class="lbl-g">+ add a clause here</text>
-<rect x="488" y="64" width="358" height="12" rx="4" class="panel"/><text x="498" y="74" class="lbl">5. Liability …</text>
-</svg></div>
-</div>
-
-<div class="card">
-<div class="imp"><h3 style="margin:0">8. A real PDF file, not the print window</h3><span class="badge b-medium">medium</span></div>
-<p><b>Change:</b> produce an actual PDF file, the way the Word export now produces an actual Word file. Build it
-in-house: this app deliberately carries no outside code libraries, which is why it is cheap to host and hard to
-break, and the Word writer already proves the approach works.</p>
-<p><b>Why it hurts today:</b> "Export PDF" opens the browser's print window and relies on the user knowing to choose
-"Save as PDF". The result varies by browser and printer, page headers leak in, and "where did the PDF go?" is a
-support question waiting to happen — including in a demo.</p>
-<div class="fig" style="margin:10px 0 0;border:0;padding:0">
-<svg viewBox="0 0 880 96" role="img" aria-label="Sketch: print dialog versus direct PDF download">
-<rect x="20" y="18" width="380" height="60" rx="6" class="box"/>
-<text x="34" y="42" class="note">PDF button → print window → margins?</text>
-<text x="34" y="64" class="note-red">destination? "Save as PDF" if you know how</text>
-<ellipse cx="210" cy="50" rx="182" ry="26" class="prob"/>
-<path d="M410 48 L466 48" class="arrow-green"/>
-<rect x="474" y="18" width="386" height="60" rx="6" class="btn-green"/>
-<text x="488" y="42" class="lbl-g">PDF button → contract.pdf downloads.</text>
-<text x="488" y="64" class="lbl-g">The same file on every machine.</text>
-</svg></div>
-</div>
-
-<div class="card" style="border-left:4px solid var(--green)">
-<h3 style="margin-top:0">Where this leaves the product</h3>
-<p>Four reviews in, the findings have changed shape again. The first found a product whose best engineering was
-switched on for the wrong side of the deal. The second found the counterparty's half broken and untested. The third
-found a working machine with two real holes in it. This one found both holes properly filled — checked by running
-them, not by reading the commit messages — and a different kind of problem underneath.</p>
-<p>What is left is almost entirely about <b>placement</b>. The message channel is correct and unwatched. The reply
-box is correct and in the wrong panel. The email setting is known by the server and never said out loud early
-enough. The document is assembled correctly and written out carelessly. None of these is a hole in the machine. All
-of them are things put where nobody is standing.</p>
-<p>Two of the six problems in this review are faults in the work that landed since the last one. That is worth
-saying plainly rather than quietly: shipping the right feature into the wrong place is the failure mode this
-product now has, and it will not show up in a test suite. Every one of those tests passes.</p>
-</div>
-
-<p class="sub" style="margin-top:34px">Method note: this review is based on reading the source at commit
-<code>ba6534d</code> and checking every claim by running it. The red-ink export and the loss of the fill-in blanks
-were both reproduced on a contract built the way <code>js/wizard.js</code> actually builds one — no saved document,
-no formatting marker — because the previous review admitted its own tests had used a convenient stand-in instead,
-and missed a real fault as a result. The raw dates and money were read out of the exported Word file itself. The
-missing reply box and the seven-option dropdown were read off the counterparty page as it renders. The absence of
-any question counter was established by searching the dashboard and work-queue code. The existing automated suite
-(476 checks) passes in full — which is rather the point: not one problem in this review is a failing test.</p>
+<p class="note">Nothing above requires new infrastructure. Six of the eight are labels, ordering and copy on screens that already exist; two are small features. None of them touch the mobile / WhatsApp counterparty portal.</p>
 
 </div>
 </body>
