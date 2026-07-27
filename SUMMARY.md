@@ -2068,3 +2068,121 @@ What can be said honestly is narrower and still worth something: the specific
 defect has been fixed and is now pinned by tests that would fail if it came back;
 the safety rules are enforced in the engine rather than in the interface; and the
 badge that says "Verified" is now doing the work it claims to be doing.
+
+---
+
+# Follow-up: three fixes, in plain English
+**27 July 2026, later the same day**
+
+## 1. The page was inventing changes nobody had made
+
+**What you saw.** You opened a contract, touched nothing, and the screen showed a
+big red line through the end of Clause 10 and a brand-new clause called "BUYER:
+SUPPLIER:". Neither was real. Nobody had edited anything.
+
+**Why.** To compare two versions, the software has to rebuild the document from
+plain text — and when it does that it has to work out which lines are *headings*.
+Its only clue was: **a line written entirely in CAPITAL LETTERS is a heading.**
+
+Your contract has a signature block and schedule titles in capitals on their own
+lines:
+
+> BUYER: SUPPLIER:
+> SCHEDULE A: MATERIAL SPECIFICATIONS
+
+In the real document those are ordinary lines *inside* Clause 10. The rebuild
+turned them into headings, which split Clause 10 in two. So the software compared
+a document with 10 clauses against one it had accidentally given 12, and reported
+the difference as changes — a deletion where the clause got cut short, and an
+insertion where the new "clause" appeared.
+
+**The fix.** The original document already knows its own shape, so the rebuild now
+copies that shape instead of guessing at one. A line that was an ordinary
+paragraph stays an ordinary paragraph. Only wording that genuinely moved can now
+show up as a change.
+
+**What stops it coming back.** A permanent test with a deliberately blunt rule:
+*open a contract, change nothing, and nothing may be recorded.* It runs against
+the exact document from your screenshot, against all three ways a contract can
+arrive, against a document with no headings at all, and against one whose
+headings really are in capitals — plus the reverse check, that a real edit is
+still caught. That last one matters: the easy way to pass "don't invent changes"
+is to stop noticing changes altogether.
+
+## 2. Ask Copilot, in the negotiation screen
+
+There's a new **✦ Ask Copilot** button in the top bar, on both sides. It opens a
+panel on the right of the negotiation screen.
+
+**Two things it does, and it tells you which one is running:**
+
+- **Finding things always works.** Type "ninety days" and it lists every clause
+  containing it, with the surrounding sentence, and each result is a button that
+  jumps you straight there. No setup, no internet connection needed. It also
+  searches *proposed* wording — text that only exists as someone's suggestion —
+  and labels it as proposed rather than as part of the contract.
+- **Answering in sentences needs a key.** This is the same Copilot the rest of
+  HaTi uses, so it needs an Anthropic key set in Team & Settings → Copilot
+  engine. Without one, the panel says "Search only" and explains why, rather than
+  looking broken.
+
+**It reads your contract. It never edits it.** This is enforced, not just
+intended. There's a test that makes Copilot reply *"I have updated clause 4 to
+Net-60 for you"* and then checks that the contract is completely unchanged — no
+wording moved, no change recorded, no version saved. If you want to act on a
+suggestion, you click **Edit** on that clause yourself, and it's recorded as a
+tracked change in your name like any other.
+
+One design note: the panel had to be built *inside* the negotiation screen.
+HaTi's usual Copilot panel lives behind that screen, so opening it from here
+would have slid it in underneath the page you were reading. We checked this in a
+real browser by clicking the middle of the panel and confirming the panel is what
+receives the click.
+
+## 3. Share now shows you what you're sending
+
+**Before:** clicking Share Link went straight to "who do you want to send this
+to?" — asking you to send a contract to another company without ever showing you
+what had changed since it last went out. Six rounds into a negotiation, nobody
+can hold that in their head.
+
+**Now** it's two steps:
+
+1. **What you are sending** — every change on the table, with its reference
+   number, which clause it affects, who asked for it, and whether it's been
+   accepted, rejected or is still waiting.
+2. **Next →** the send form exactly as it was.
+
+The summary is **editable** before you send, because the covering note is yours
+to write. But the list it starts from comes straight from the record — either the
+sentence the person typed when they proposed the change, or a direct quote of
+what moved ("thirty (30)" → "forty-five (45)"). Nothing writes a description of a
+legal change on your behalf.
+
+And the summary **travels with the link**. It goes into the email, and onto the
+page the counterparty lands on — so if they open the link a week later, they
+still see what they were asked to look at instead of an unexplained document.
+
+## Something else found along the way
+
+Checking the above in a real browser turned up a separate bug: after you accepted
+or rejected a change, the "Fingerprints: verified" indicator at the bottom got
+stuck on "checking…" and never finished. The full-screen negotiation view and the
+smaller embedded one each had their own copy of that step, and only one of them
+had been updated. They now share a single one, so they can't drift apart again.
+That's the third time this session that a difference between those two views has
+hidden a bug — each time caught only by looking at a real browser, because the
+underlying page was correct and it was the *behaviour* that was missing.
+
+## Where the tests stand
+
+- **741 automated tests, all passing** (701 before this round of work, 664 at the
+  start of the session).
+- **31 out of 31 browser checks passing**, up from 21 — the new ones cover the
+  Copilot panel, the Share summary step, and the verification indicator finishing
+  properly.
+
+As before: this means the things we thought to check behave as expected. It
+doesn't mean the system is certainly correct — the phantom-changes bug you
+reported lived happily under a fully green test suite, because nobody had thought
+to test "open a contract and change nothing". That test exists now.

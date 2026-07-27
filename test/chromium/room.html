@@ -14,6 +14,11 @@
   body{font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#f2f4f7;color:#2b3440}
   .ui-btn{border:1px solid #d6e0ea;background:#fff;border-radius:7px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
   .ui-btn-primary{background:#33475c;color:#fff;border-color:#33475c}
+  /* Verbatim from index.html. The app's own utility class, which the share
+     dialog toggles to switch between its two steps — without it here both
+     steps would render at once and the harness would be measuring its own
+     omission rather than the product. */
+  .hidden{display:none!important;}
 </style>
 </head>
 <body>
@@ -22,11 +27,29 @@
 <div id="nego-tab"></div>
 <div id="modal-root"></div>
 
+<!-- The hosts js/ai.js wires itself to at load. The application shell supplies
+     these in index.html; the harness supplies them so ai.js loads cleanly and
+     the room's Copilot dock can be measured against the REAL copilotBrainInfo
+     rather than against its absence. -->
+<div id="ai-scrim"></div>
+<div id="ai-panel"><div id="ai-feed"></div><div id="ai-suggest"></div>
+  <input id="ai-input"/><button id="ai-send"></button><button id="ai-close"></button>
+  <button id="ai-min"></button><button id="ai-clear"></button><button id="ai-expand"></button>
+  <span id="ai-brain-sub"></span><span id="ai-badge"></span></div>
+
 <script>
 /* The application shell, stood in for. Everything below this line that matters
    is the product's own code, loaded unmodified from js/. */
 window.FIRST_PARTY = 'Wanjiru Catering Ltd';
 window.PORTAL_MODE = false;
+/* A signed-in owner, seeded where js/core.js actually reads it. Assigning
+   window.currentUser is not enough: core.js declares it as a lexical `const`,
+   so its own callers — buildSharePayload among them — resolve to that binding
+   and never see a replacement. Share is an owner action and needs a real one. */
+try{
+  localStorage.setItem('hati.v1.users', JSON.stringify([{ id:'u_w', name:'Wanjiru Kamau', role:'legal', email:'wanjiru@company.co.ke' }]));
+  localStorage.setItem('hati.v1.session', JSON.stringify({ userId:'u_w' }));
+}catch(e){}
 window.currentUser = () => ({ id:'u_w', name:'Wanjiru Kamau', role:'legal' });
 window.canEdit = () => true;
 window.isAdmin = () => false;
@@ -69,6 +92,7 @@ window.uploadMax = () => 25*1024*1024;
 <script src="../../js/versioning.js"></script>
 <script src="../../js/discuss.js"></script>
 <script src="../../js/negotiation.js"></script>
+<script src="../../js/ai.js"></script>
 <script src="../../js/views/negotiation.js"></script>
 
 <script>
@@ -115,7 +139,28 @@ const ASKS = {
     "<p>Either party may terminate this Agreement for convenience by giving the other party not less than thirty (30) days' written notice. Termination shall not affect fees accrued for services already rendered.</p>"],
 };
 
+/* The application's own stylesheet, lifted out of index.html at load.
+
+   It is not duplicated here on purpose. index.html carries it inline, and a
+   copy in this harness would drift from it — at which point the screenshots
+   would be proving a stylesheet nobody ships. Anything rendered by the app
+   rather than by the negotiation component (the share dialog, the readiness
+   panel, the icons) needs those tokens and utility classes to look like it
+   looks in production. */
+async function loadAppStyles(){
+  try{
+    const html = await (await fetch('/index.html')).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    for (const st of doc.querySelectorAll('style')){
+      const el = document.createElement('style');
+      el.textContent = st.textContent;
+      document.head.appendChild(el);
+    }
+  }catch(e){ console.warn('app styles unavailable:', e.message); }
+}
+
 window.READY = (async () => {
+  await loadAppStyles();
   const c = { id:'MK-191', name:'Warehousing and Logistics Services Agreement',
     counterparty:'Nordfrakt Logistik AB', template:'WH', status:'Under Review',
     folder:'dist', fields:{}, metadata:{}, audit:[], rounds:[], versions:[],
@@ -131,7 +176,11 @@ window.READY = (async () => {
     { side:'counterparty', author:'Erik Lindqvist' });
   await negoRefreshVerification(c);
   window.CONTRACT = c;
-  openNegotiationRoom(c, { side:'owner', by:'Wanjiru Kamau', persist:false });
+  openNegotiationRoom(c, { side:'owner', by:'Wanjiru Kamau', persist:false,
+    /* The same hook js/views/contract.js supplies — the room renders Share
+       Link, it does not implement sharing. Without it the button is inert, and
+       the harness would be measuring its own omission. */
+    onShareLink: x => openShareModal(x) });
   return true;
 })();
 </script>

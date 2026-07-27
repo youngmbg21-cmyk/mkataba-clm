@@ -286,6 +286,37 @@ function negoStyleHtml(){
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
   .nego-edit-bar .b-cancel{background:#fff;border-color:var(--n-line);color:var(--n-ink-soft)}
+  /* The Copilot dock. Inside the room, because the room is a full-window mode
+     and the application's own Copilot panel lives in the shell underneath it —
+     opening that one from here would slide a panel in behind the page you are
+     looking at. The BRAIN is the same (copilotAsk in js/ai.js); only the
+     surface is local. */
+  #nego-copilot-dock{position:absolute;top:0;right:0;bottom:0;width:min(92vw,380px);z-index:8;
+    display:none;flex-direction:column;background:var(--n-paper);border-left:1px solid var(--n-line);
+    box-shadow:var(--n-shadow-pop)}
+  #nego-copilot-dock.open{display:flex}
+  .nego-cop-head{flex:none;display:flex;align-items:center;gap:8px;padding:11px 14px;
+    border-bottom:1px solid var(--n-line);background:#fff}
+  .nego-cop-head h3{font-size:12.5px;font-weight:800;margin:0}
+  .nego-cop-brain{font-size:10px;font-weight:700;border-radius:99px;padding:1px 8px;white-space:nowrap}
+  .nego-cop-brain.live{background:var(--n-ins-bg);color:var(--n-ins-fg)}
+  .nego-cop-brain.off{background:#fdf3e3;color:#9a6a1f}
+  .nego-cop-x{margin-left:auto;border:0;background:none;font:inherit;font-size:16px;line-height:1;
+    color:var(--n-ink-soft);cursor:pointer;padding:2px 4px}
+  .nego-cop-feed{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+  .nego-cop-msg{font-size:12px;line-height:1.55;border-radius:9px;padding:8px 11px;max-width:100%}
+  .nego-cop-msg.me{background:var(--n-slate);color:#fff;align-self:flex-end;border-radius:9px 9px 0 9px}
+  .nego-cop-msg.it{background:var(--n-badge-bg);color:var(--n-ink);border-radius:9px 9px 9px 0}
+  .nego-cop-msg.note{background:#fdf3e3;color:#7d5a14;font-size:11.5px}
+  .nego-cop-hit{border:1px solid var(--n-line);border-radius:7px;padding:7px 9px;background:#fff;cursor:pointer;
+    font-size:11.5px;line-height:1.5;text-align:left;width:100%;font-family:inherit;color:var(--n-ink)}
+  .nego-cop-hit:hover{border-color:var(--n-slate-soft);background:var(--n-badge-bg)}
+  .nego-cop-hit b{display:block;font-size:11px;color:var(--n-slate-soft);margin-bottom:2px}
+  .nego-cop-ask{flex:none;display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--n-line);background:#fff}
+  .nego-cop-ask input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:6px;padding:7px 10px;
+    font:inherit;font-size:12px;color:var(--n-ink);background:var(--n-paper)}
+  .nego-cop-ask button{border:0;background:var(--n-slate);color:#fff;border-radius:6px;padding:0 13px;
+    font:inherit;font-size:12px;font-weight:700;cursor:pointer}
   .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     border-radius:5px;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
@@ -623,6 +654,35 @@ function negoVerifyPill(c, ch){
     isThis ? 'Integrity check failed' : 'Chain unverified'}</span>`;
 }
 
+/* What both render paths do once the markup is on the page.
+
+   It lives here rather than inside either of them because it was inside only
+   ONE of them: the embedded tab refreshed the verification, the full-window
+   room did not, so in the mode the component mostly runs in the pill and the
+   status strip sat on "Checking…" for ever. That is the same room-vs-tab
+   divergence as the synchronised-highlight bug, and the same fix — one
+   function, called by both — rather than a second copy that can drift again.
+
+   Verification hashes, so it cannot run inside a synchronous render. The first
+   paint therefore claims nothing, and this repaints the two places that report
+   it once the chain has actually been walked. Showing "Verified" first and
+   correcting it afterwards would be the same lie the pill was fixed for,
+   briefly. */
+function negoAfterPaint(c, opts, host){
+  if (!host || !window.negoRefreshVerification) return;
+  if (window.negoVerifyCached && negoVerifyCached(c)) return;
+  negoRefreshVerification(c).then(() => {
+    if (!host.isConnected) return;          // the screen moved on while we hashed
+    const strip = host.querySelector('#nego-status');
+    if (strip) strip.outerHTML = negoStatusHtml(c, opts);
+    host.querySelectorAll('[data-nego-card]').forEach(card => {
+      const ch = negoChangeById(c, card.getAttribute('data-nego-card'));
+      const pill = card.querySelector('.nego-st');
+      if (ch && pill) pill.outerHTML = negoVerifyPill(c, ch);
+    });
+  }).catch(() => {});
+}
+
 /* ---------- the status strip ----------
    Every field is read from the product rather than typed in: emailOff() and
    counterpartySeenState() already own their answers elsewhere in the app, and a
@@ -709,6 +769,40 @@ function negoReadyHtml(c, opts){
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
         : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
+}
+
+/* ---------- Ask Copilot, scoped to this negotiation ----------
+   One box, two capabilities, and it is deliberately explicit about which of
+   them is running:
+
+     SEARCH always works. It reads the clauses and change records already in
+     memory — no key, no network — so "where does it say ninety days" is
+     answerable offline. Every result is a button that jumps to the clause.
+
+     ANSWERS need an Anthropic key. Where there is one, the question also goes
+     to copilotAsk() in js/ai.js — the same engine the rest of the app uses,
+     reused rather than reimplemented — with this negotiation as its context.
+     Where there is not, the dock says so plainly instead of appearing broken.
+
+   It advises; it does not edit. Nothing in here writes to the document. */
+function negoCopilotHtml(c, opts){
+  const brain = window.copilotBrainInfo ? copilotBrainInfo() : { live: false, label: 'Search only', hint: '' };
+  return `<aside id="nego-copilot-dock" aria-label="Ask Copilot about this contract">
+    <div class="nego-cop-head">
+      <h3>✦ Ask Copilot</h3>
+      <span class="nego-cop-brain ${brain.live ? 'live' : 'off'}" title="${_ne(brain.hint)}">${_ne(brain.live ? 'Copilot live' : 'Search only')}</span>
+      <button class="nego-cop-x" id="nego-cop-close" aria-label="Close Copilot">×</button>
+    </div>
+    <div class="nego-cop-feed" id="nego-cop-feed">
+      <div class="nego-cop-msg it">Ask about this contract — I can find wording, tell you what is on the table this round, and help you word a change.${
+        brain.live ? '' : ' <b>No Copilot key is set on this browser</b>, so I can search the document but cannot answer in prose yet. Add a key in Team &amp; Settings → Copilot engine.'}</div>
+    </div>
+    <form class="nego-cop-ask" id="nego-cop-form">
+      <input id="nego-cop-input" type="text" autocomplete="off"
+        placeholder="e.g. where does it say ninety days" aria-label="Ask about this contract"/>
+      <button type="submit">Ask</button>
+    </form>
+  </aside>`;
 }
 
 /* ---------- 2.4: whose turn it is ----------
@@ -826,11 +920,13 @@ function negoRoomActionsHtml(c, opts){
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-propose">Propose edits</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-accept">Accept wording</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
-      ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}`;
+      ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}
+      <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>`;
   }
   return `
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
     <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
+    <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
     ${canAct ? `<button class="nego-tbtn ghost" id="nego-propose">Propose edits</button>` : ''}
     <button class="nego-tbtn acc" id="nego-all-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
     <button class="nego-tbtn rej" id="nego-all-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
@@ -866,6 +962,7 @@ function negoRoomHtml(c, opts = {}){
     <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
+      ${negoCopilotHtml(c, opts)}
     </div>
     ${negoStatusHtml(c, opts)}
   </div>`;
@@ -993,6 +1090,7 @@ function openNegotiationRoom(c, opts = {}){
     _negoEscHandler = e => { if (e.key === 'Escape' && _negoRoomOpen) closeNegotiationRoom(opts); };
     document.addEventListener('keydown', _negoEscHandler);
   }
+  negoAfterPaint(c, { ...opts, hostId: 'nego-room-root' }, host);
   const fade = () => host.querySelectorAll('[data-fade]').forEach(n => n.classList.add('nego-faded'));
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(fade, 900));
   else setTimeout(fade, 900);
@@ -1019,24 +1117,7 @@ function renderNegotiationTab(c, opts = {}){
   negoEnsureStyle();                 // in <head>, so a repaint cannot strip it
   host.innerHTML = negoTabHtml(c, opts);
   wireNegotiationTab(c, opts);
-  /* Verification hashes, so it cannot run inside a synchronous render. The
-     first paint therefore claims nothing — "Checking…" — and this repaints the
-     two places that report it once the chain has actually been walked. Showing
-     "Verified" first and correcting it later would be the same lie the pill is
-     being fixed for, briefly. */
-  if (window.negoRefreshVerification && !window.negoVerifyCached(c)){
-    negoRefreshVerification(c).then(() => {
-      const still = document.getElementById(opts.hostId || 'nego-tab');
-      if (!still || still !== host) return;
-      const strip = host.querySelector('#nego-status');
-      if (strip) strip.outerHTML = negoStatusHtml(c, opts);
-      host.querySelectorAll('[data-nego-card]').forEach(card => {
-        const ch = negoChangeById(c, card.getAttribute('data-nego-card'));
-        const pill = card.querySelector('.nego-st');
-        if (ch && pill) pill.outerHTML = negoVerifyPill(c, ch);
-      });
-    }).catch(() => {});
-  }
+  negoAfterPaint(c, opts, host);
   // soften the wash on freshly accepted wording, the way the prototype does
   const fade = () => host.querySelectorAll('[data-fade]').forEach(n => n.classList.add('nego-faded'));
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(fade, 900));
@@ -1121,6 +1202,93 @@ function wireNegotiationTab(c, opts = {}){
     if (window.toast) toast(msg(ch));
     again();
   };
+
+  /* ---------- Ask Copilot ---------- */
+  const dock = host.querySelector('#nego-copilot-dock');
+  const copBtn = host.querySelector('#nego-copilot');
+  if (copBtn && dock){
+    const feed = host.querySelector('#nego-cop-feed');
+    const input = host.querySelector('#nego-cop-input');
+    const say = (cls, html) => {
+      const el = document.createElement('div');
+      el.className = 'nego-cop-msg ' + cls;
+      el.innerHTML = html;
+      feed.appendChild(el);
+      feed.scrollTop = feed.scrollHeight;
+      return el;
+    };
+    copBtn.addEventListener('click', () => {
+      const open = dock.classList.toggle('open');
+      if (open && input && input.focus) input.focus();
+    });
+    host.querySelector('#nego-cop-close')?.addEventListener('click', () => dock.classList.remove('open'));
+
+    const form = host.querySelector('#nego-cop-form');
+    if (form) form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const q = String(input.value || '').trim();
+      if (!q) return;
+      input.value = '';
+      say('me', _ne(q));
+
+      /* Search first, always. It costs nothing, needs no key, and it is what
+         most questions about a contract actually are. */
+      const hits = window.negoSearch ? negoSearch(c, q) : [];
+      if (hits.length){
+        const wrap = say('it', `Found <b>${hits.length}</b> place${hits.length === 1 ? '' : 's'} in this contract:`);
+        for (const h of hits.slice(0, 8)){
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'nego-cop-hit';
+          b.style.marginTop = '6px';
+          b.innerHTML = `<b>${_ne(h.label)}${h.more ? ` · +${h.more} more here` : ''}</b>${_ne(h.snippet || '')}`;
+          /* Every result is a way to GET THERE. A search that tells you the
+             clause exists and leaves you to scroll for it has done half a job. */
+          b.addEventListener('click', () => {
+            dock.classList.remove('open');
+            if (h.changeId) negoFocus(c, h.changeId, 'card');
+            else {
+              const el = document.getElementById('nw-' + negoDomId(h.clauseId));
+              if (el){ el.classList.add('flash'); if (el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+            }
+          });
+          wrap.appendChild(b);
+        }
+      } else {
+        say('it', 'Nothing in this contract matches that wording.');
+      }
+
+      /* Then the model, if there is one to ask. */
+      if (!window.copilotAsk || !window.copilotAvailable || !copilotAvailable()){
+        say('note', 'Answers in prose need a Copilot key — add one in Team &amp; Settings → Copilot engine. '
+          + 'Search works without it.');
+        return;
+      }
+      const thinking = say('it', 'Thinking…');
+      try {
+        const res = await copilotAsk(
+          [{ role: 'user', content: q }],
+          window.negoCopilotContext ? negoCopilotContext(c) : {});
+        const answer = (res && (res.answer || res.text)) || '';
+        thinking.innerHTML = answer
+          ? (window.aiFmt ? aiFmt(answer) : _ne(answer))
+          : 'No answer came back.';
+        /* Said once, on the first answer: this reads the document, it does not
+           change it. A suggestion becomes a change only when a person applies
+           it, and then it is filed in their name like any other edit. */
+        if (!dock.dataset.advised){
+          dock.dataset.advised = '1';
+          say('note', 'Copilot reads this contract — it never edits it. To act on a suggestion, '
+            + 'use <b>Edit</b> on the clause and it will be filed as a tracked change in your name.');
+        }
+      } catch (err){
+        thinking.className = 'nego-cop-msg note';
+        thinking.textContent = err && err.needsKey
+          ? 'No Copilot key is set, so I cannot answer in prose. Search still works.'
+          : `Copilot could not answer: ${err && err.message ? err.message : 'unknown error'}`;
+      }
+    });
+  }
 
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {

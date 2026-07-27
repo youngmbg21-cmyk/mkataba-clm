@@ -214,6 +214,20 @@ const check = (name, pass, detail) => {
     `${accepted.badge} · ${accepted.note} · ${accepted.text.slice(0, 50)}…`);
   await page.screenshot({ path: path.join(OUT, '03-accepted.png') });
 
+  /* A decision invalidates the verification cache, so the room has to walk the
+     chain again and SAY SO. It used to sit on "checking…" for ever here,
+     because the refresh lived only in the embedded-tab render path. */
+  await page.waitForTimeout(400);
+  const reverify = await page.evaluate(() => {
+    const seg = document.querySelector('.nego-room #nego-integrity');
+    const pill = document.querySelector('.nego-room .nego-card [data-verify]');
+    return { strip: seg ? seg.textContent.replace(/\s+/g, ' ').trim() : null,
+      pill: pill ? pill.getAttribute('data-verify') : null };
+  });
+  check('after a decision the room re-verifies rather than sitting on "checking…"',
+    /Fingerprints: \d+ verified/.test(reverify.strip || '') && reverify.pill === 'ok',
+    `${reverify.strip} · pill ${reverify.pill}`);
+
   /* ---------- the clause tools ---------- */
   await page.hover('.nego-room .nego-pane.working .nego-clause');
   await page.waitForTimeout(200);
@@ -229,6 +243,90 @@ const check = (name, pass, detail) => {
     tools && Number(tools.opacity) === 1 && tools.left >= tools.textRight,
     tools ? `opacity ${tools.opacity}, left ${tools.left}px ≥ text right ${tools.textRight}px, [${tools.buttons.join(', ')}]` : 'missing');
   await page.screenshot({ path: path.join(OUT, '04-clause-tools.png') });
+
+  /* ---------- the two features added after the first Chromium pass ---------- */
+
+  /* Ask Copilot. The dock has to be INSIDE the room: the application's own
+     Copilot panel lives in the shell, which the full-window room covers, so a
+     dock that opened there would slide in behind the page. Measured, because
+     that is exactly the kind of thing a rule-level test cannot see. */
+  const cop = await page.evaluate(() => {
+    const btn = document.querySelector('.nego-room #nego-copilot');
+    const dock = document.querySelector('.nego-room #nego-copilot-dock');
+    if (!btn || !dock) return { btn: !!btn, dock: !!dock };
+    const beforeVisible = getComputedStyle(dock).display !== 'none';
+    btn.click();
+    const r = dock.getBoundingClientRect();
+    const room = document.querySelector('.nego-room').getBoundingClientRect();
+    return { btn: true, dock: true, beforeVisible,
+      afterVisible: getComputedStyle(dock).display !== 'none',
+      w: Math.round(r.width), h: Math.round(r.height),
+      insideRoom: r.right <= Math.ceil(room.right) + 1 && r.top >= Math.floor(room.top) - 1,
+      onTop: document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2))
+        ?.closest('#nego-copilot-dock') !== null,
+      brain: (dock.querySelector('.nego-cop-brain') || {}).textContent };
+  });
+  check('the room carries an Ask Copilot button', cop.btn);
+  check('its dock starts hidden and opens on the button',
+    cop.dock && cop.beforeVisible === false && cop.afterVisible === true,
+    `before ${cop.beforeVisible}, after ${cop.afterVisible}`);
+  check('the dock is inside the room and on top of it, not behind',
+    cop.insideRoom && cop.onTop, `${cop.w}×${cop.h}, insideRoom ${cop.insideRoom}, hit-testable ${cop.onTop}`);
+  check('it says which mode it is in rather than looking broken',
+    /Search only|Copilot live/.test(cop.brain || ''), cop.brain);
+
+  const search = await page.evaluate(async () => {
+    const form = document.querySelector('.nego-room #nego-cop-form');
+    document.querySelector('.nego-room #nego-cop-input').value = 'ninety';
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 30));
+    const feed = document.querySelector('.nego-room #nego-cop-feed');
+    return { text: feed.textContent.replace(/\s+/g, ' ').trim().slice(0, 160),
+      hits: feed.querySelectorAll('.nego-cop-hit').length };
+  });
+  check('search runs with no Copilot key and returns clickable results',
+    search.hits > 0, `${search.hits} result(s) — ${JSON.stringify(search.text.slice(0, 90))}`);
+  await page.screenshot({ path: path.join(OUT, '05-copilot.png') });
+
+  /* Share: the summary step. */
+  const share = await page.evaluate(async () => {
+    document.querySelector('.nego-room #nego-cop-close')?.click();
+    document.querySelector('.nego-room #nego-share-link').click();
+    await new Promise(r => setTimeout(r, 60));
+    const root = document.getElementById('modal-root');
+    const s1 = root.querySelector('#share-step-1'), s2 = root.querySelector('#share-step-2');
+    if (!s1 || !s2) return { s1: !!s1, s2: !!s2 };
+    const vis = el => getComputedStyle(el).display !== 'none';
+    const out = { s1: true, s2: true, step1Visible: vis(s1), step2Visible: vis(s2),
+      summary: (root.querySelector('#sh-summary') || {}).value || '',
+      ids: Array.from(s1.querySelectorAll('span')).map(n => n.textContent.trim())
+        .filter(t => /^#CHG-\d+$/.test(t)) };
+    return out;
+  });
+  check('Share opens on the summary, with the send form behind Next',
+    share.step1Visible === true && share.step2Visible === false,
+    `step1 ${share.step1Visible}, step2 ${share.step2Visible}`);
+  check('the summary lists the fingerprints on the table',
+    (share.ids || []).length === 4, (share.ids || []).join(' '));
+  check('the summary is prefilled from the record',
+    /#CHG-001 · Clause 4 · Payment Terms/.test(share.summary || ''),
+    JSON.stringify(String(share.summary).split('\n')[1] || '').slice(0, 80));
+  await page.screenshot({ path: path.join(OUT, '06-share-summary.png') });
+
+  const afterNext = await page.evaluate(async () => {
+    const root = document.getElementById('modal-root');
+    root.querySelector('#share-next').click();
+    await new Promise(r => setTimeout(r, 40));
+    const vis = el => getComputedStyle(el).display !== 'none';
+    return { step1Visible: vis(root.querySelector('#share-step-1')),
+      step2Visible: vis(root.querySelector('#share-step-2')),
+      email: !!root.querySelector('#sh-email'), back: !!root.querySelector('#share-back') };
+  });
+  check('Next reveals the send form, with a way back to the summary',
+    afterNext.step2Visible === true && afterNext.step1Visible === false
+      && afterNext.email && afterNext.back,
+    JSON.stringify(afterNext));
+  await page.screenshot({ path: path.join(OUT, '07-share-send.png') });
 
   await browser.close();
   srv.close();

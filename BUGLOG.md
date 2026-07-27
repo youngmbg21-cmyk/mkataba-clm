@@ -3244,3 +3244,157 @@ is the failure the fixture rule exists to prevent — so this is not 664 + 37 ne
 as **unmodified and non-interfering**: nothing in this session touched
 `js/pdfrich.js`, and it reads the document body through the same accessors it
 always did. It is NOT recorded as covered.
+
+---
+
+# Follow-up: the phantom-change bug, Ask Copilot, and the Share summary
+**2026-07-27, later** · branch `claude/new-session-7glnhu`
+
+## B-010 — opening a contract invented changes nobody had made
+
+**Reported from the product**, with screenshots: a contract (MK-194) was opened,
+nothing was edited, and the negotiation screen immediately showed a large red
+strikeout across the end of "Clause 10 · MISCELLANEOUS" plus a brand-new clause
+`#CHG-003` titled "BUYER: SUPPLIER:". Both were fiction — the wording on the two
+sides was identical.
+
+**Reproduced before fixing**, on a document shaped like the screenshot:
+
+```
+clauses in the baseline           : 1
+changes filed by an UNEDITED load : 2   <-- must be 0
+    CHG-001 modify        "GULIZ LLC gg By: ______ By: ______"
+    CHG-002 insertClause  "(Attach technical parameters, grade levels here)."
+```
+
+which is exactly the reported `#CHG-002` strikeout and `#CHG-003` new clause.
+
+**Mechanism.** A proposal arriving as TEXT was rebuilt into a document by
+`negoRichFromLines()`. That function has only the lines to go on, so it decides
+what is a heading with `docLineKind()` — which promotes any line in CAPITALS.
+Real contracts keep the signature block and the schedule titles in capitals on
+their own lines:
+
+```
+BUYER: SUPPLIER:
+SCHEDULE A: MATERIAL SPECIFICATIONS
+```
+
+In the SOURCE document those are `<p>` inside the miscellaneous clause. Rebuilt
+from text they became `<h2>`, opening clauses the baseline did not have — so the
+clause they were sitting in read as truncated (phantom `modify`) and each
+promoted line read as new (phantom `insertClause`).
+
+**Fix.** The baseline already knows the document's shape. `richFromTextEdit()`
+maps new lines onto the baseline's OWN block structure — a paragraph stays a
+paragraph, a list item stays a list item — and verifies its own output before
+returning it. So a text proposal is segmented exactly as the baseline is, and
+only wording that genuinely moved can register. `negoRichFromLines` remains the
+fallback for the one case it is right for: a document with no prior structure to
+preserve. (`negoProposedBodyFromText`, js/negotiation.js.)
+
+**Test.** `f41-no-phantom-changes` (7), pinning the invariant bluntly because
+that is what failed: **round-tripping a document without editing it files
+nothing.** Checked on the reported shape, on all three intake paths, on a
+headingless document, and on one whose headings really ARE in capitals — plus
+the opposite assertion, that a genuine edit is still caught and only it, since
+an easy way to pass the first half is to stop detecting changes at all.
+
+**Related, and worth stating:** this is the same family as B-008 (the accept
+path flattening `<ol start="3">`). Both come from treating the text projection
+as if it were the document. The projection is a READ of the document; anything
+that rebuilds a document from it has to be handed the structure to rebuild into.
+
+## B-011 — the room never re-verified after a decision
+
+Found in the Chromium pass. `negoRefreshVerification` was kicked off inside
+`renderNegotiationTab` only. The full-window room has its own render path
+(`openNegotiationRoom`), so after any decision — which invalidates the
+verification cache — the pill and the status strip sat on "Checking…"
+permanently. Third instance of the same room-vs-tab divergence (B-009 was the
+first). Fixed by extracting `negoAfterPaint()` and calling it from both, rather
+than adding a second copy that can drift again. Chromium check: "after a
+decision the room re-verifies rather than sitting on checking…".
+
+## Ask Copilot in the negotiation room
+
+Added to both sides' top bars. **The engine is reused, not reimplemented** —
+`copilotAsk()` in js/ai.js, the same brain the rest of the app uses. What is new
+is the surface and the context.
+
+The dock is rendered INSIDE the room. The application's own Copilot panel lives
+in the shell, which the full-window room covers, so opening that one from here
+would slide a panel in behind the page being looked at. Verified in Chromium by
+hit-testing the dock's centre point (`elementFromPoint`), not by reading a
+z-index.
+
+Two capabilities behind one box, and it is explicit about which is running:
+
+- **Search always works.** `negoSearch()` reads clauses and change records
+  already in memory — no key, no network — so "where does it say ninety days" is
+  answerable offline. One row per clause however many times the word occurs
+  (extra occurrences are counted, not repeated). Proposed wording that exists
+  only as a change is findable and reported as proposed, not as the contract.
+  Every result is a button that jumps to the clause.
+- **Prose answers need an Anthropic key.** Without one the dock says so
+  (`Search only` pill, and a note on the first ask) rather than appearing broken.
+
+**Copilot reads the contract; it never edits it.** Asserted in the least
+convenient way available: `copilotAsk` is stubbed to answer *"I have updated
+clause 4 to Net-60 for you"* and the test asserts the wording is unchanged, no
+fingerprint was filed and no version was captured. A machine quietly altering a
+legal instrument is the failure the whole change model exists to prevent, and a
+chat box is not a way around it. Test: `f43-ask-copilot` (18).
+
+## Share opens on what you are sending
+
+`openShareModal` was one step: recipient fields. It asked someone to dispatch a
+contract to another company without once showing them what had changed since it
+last went out.
+
+Now two: **what you are sending** → Next → the existing send form, unchanged.
+The summary is built by `negoChangeSummary()` from the change records — each
+line is the sentence its proposer typed, or the mechanical "what goes → what
+arrives" from its stored ops. Editable, because a covering note is the sender's
+to write; but nothing composes prose about a legal change.
+
+It travels: into the message body, and onto `payload.contract.changeSummary` so
+the counterparty's landing page shows it (`portalChangeSummaryHtml`) to someone
+opening the link a week later.
+
+Both steps are built once and toggled rather than re-rendered — the send form
+wires a dozen listeners by id, and rebuilding it on Next would mean wiring them
+all again, where the first one forgotten is a silent dead control. The readiness
+blockers stay on step 2, next to the button they block.
+
+Test: `f42-share-summary-step` (15).
+
+## Test-stage findings (not product defects)
+
+- **N-003.** `test/portalworld.js` boots on an OPAQUE ORIGIN, where
+  `localStorage` throws — deliberate, since that is the counterparty's own
+  situation. But `openShareModal` is an OWNER action needing a signed-in user,
+  and js/core.js reads the session from `localStorage`. It cannot be faked by
+  assigning `window.currentUser`: core.js declares it as a lexical `const`, so
+  its own callers resolve to that binding and never see a replacement — the same
+  trap `negoResolve` documents for `canEdit`. `buildPortal({url})` now lets a
+  test ask for a real origin; the default is unchanged.
+- **N-004.** The Chromium harness was missing `.hidden{display:none!important}`,
+  which index.html defines and the share dialog toggles between its two steps.
+  Both steps rendered at once — the harness measuring its own omission. It now
+  lifts index.html's `<style>` blocks at load rather than keeping a copy, since a
+  copy would drift from the stylesheet that actually ships.
+
+## Chromium
+
+`node test/chromium/verify.js` — **31/31**, up from 21. New checks cover the
+Copilot dock (hidden → open, inside the room, hit-testable on top, mode label,
+search returning clickable results), the Share summary step (opens on step 1,
+lists the fingerprints, prefilled from the record, Next reveals the form with a
+way back) and the room's re-verification after a decision. Screenshots
+`05-copilot.png`, `06-share-summary.png`, `07-share-send.png`.
+
+## Regression
+
+**741 tests / 154 suites / 0 fail** (was 701 before this follow-up, 664 at the
+session checkpoint).

@@ -306,3 +306,55 @@ full-window room).
 | `test/f35-change-model.test.js` | 32 | **rewritten** — the change record on prototype-shaped fixtures |
 | `test/scenario3.test.js` | 4 | **rewritten** — six rounds × three intake paths, asserted against each other |
 | `test/clausefixtures.js` | — | **new** — the prototype-shaped fixtures the rule requires |
+
+---
+
+# Follow-up: phantom changes, Ask Copilot, Share summary
+**2026-07-27, later**
+
+| # | Capability | Status | Proving test |
+|---|---|---|---|
+| B-010 | opening a contract files NO changes (the reported bug) | **PASS** | `f41` "the reported document: an unedited round trip files nothing" |
+| B-010 | a CAPITALS line inside a clause body is not promoted to a clause | **PASS** | `f41` "a line in CAPITALS inside a clause body is not promoted to a clause" |
+| B-010 | a genuine edit in that same document is still caught, and only it | **PASS** | `f41` "a genuine edit in that same document is still caught, and only it" |
+| B-010 | the rebuild is stable — twice gives the same answer as once | **PASS** | `f41` "rebuilding the document twice gives the same answer as once" |
+| B-010 | the invariant holds on all three intake paths + headingless + all-caps | **PASS** | `f41` "an unedited load files nothing, whichever way the contract arrived" |
+| B-010 | a document whose headings ARE capitals still segments by them | **PASS** | `f41` "a document whose headings ARE in capitals still segments by them" |
+| B-011 | the room re-verifies after a decision | **PASS** | Chromium "after a decision the room re-verifies rather than sitting on checking…" |
+| Copilot | the button is in both sides' top bars | **PASS** | `f43` "the room carries an Ask Copilot button"; "the counterparty gets the same button" |
+| Copilot | the dock is inside the room, on top, not behind it | **PASS** | Chromium "the dock is inside the room and on top of it, not behind" (hit-tested) |
+| Copilot | search works with no key, offline | **PASS** | `f43` "with no key it says so, and still searches"; Chromium "search runs with no Copilot key" |
+| Copilot | a result jumps to the clause | **PASS** | `f43` "a search result is a button that jumps to the clause" |
+| Copilot | proposed wording is findable and reported as proposed | **PASS** | `f43` "it searches the proposed wording, not only the current wording" |
+| Copilot | one row per clause, extras counted not repeated | **PASS** | `f43` "a clause is ONE result however many times the word occurs in it" |
+| Copilot | it reuses the app's own engine with this negotiation as context | **PASS** | `f43` "with a key it asks the app's own Copilot, given this negotiation" |
+| Copilot | the context is bounded and says when it was cut | **PASS** | `f43` "a very long contract is capped rather than sent whole" |
+| Copilot | **it reads the contract and never edits it** | **PASS** | `f43` "asking Copilot changes no wording and files no fingerprint" |
+| Copilot | a failure is reported, not swallowed | **PASS** | `f43` "a Copilot failure is reported, not swallowed" |
+| Copilot | a question is text, never markup | **PASS** | `f43` "a question is shown as text, never as markup" |
+| Share | it opens on the summary, send form behind Next | **PASS** | `f42` "it opens on the summary, with the send form hidden behind Next"; Chromium |
+| Share | every line is quoted from a change that exists | **PASS** | `f42` "every line can be traced to a change that really exists" |
+| Share | no written summary → the quoted diff stands in | **PASS** | `f42` "a change with no written summary falls back to the quoted diff" |
+| Share | the summary is editable before sending | **PASS** | `f42` "the summary is editable before it is sent" |
+| Share | Next reveals the form; Back returns | **PASS** | `f42` "Next reveals the send form; Back returns to the summary" |
+| Share | readiness blockers stay on the send step | **PASS** | `f42` "the readiness warnings stay on the send step, where they were" |
+| Share | a contract with no changes still opens and says so | **PASS** | `f42` "a contract with no changes still opens, and says there are none" |
+| Share | the summary reaches the counterparty's landing page | **PASS** | `f42` "the summary reaches the counterparty’s landing page" |
+| Share | no summary → no empty panel | **PASS** | `f42` "a link with no summary shows no empty box" |
+| Share | a summary is text, never markup | **PASS** | `f42` "a summary is text, never markup" |
+
+## Regression
+
+| Run | Result |
+|---|---|
+| before this follow-up | 701 tests, 0 fail |
+| after | **741 tests, 154 suites, 0 fail** |
+| Chromium | **31/31** (was 21/21) |
+
+## Test files added
+
+| File | Tests | Covers |
+|---|---|---|
+| `test/f41-no-phantom-changes.test.js` | 7 | opening a contract creates no changes |
+| `test/f42-share-summary-step.test.js` | 15 | the Share summary step, and the summary travelling with the link |
+| `test/f43-ask-copilot.test.js` | 18 | search, Copilot context, the dock, and the read-never-edit rule |

@@ -342,3 +342,35 @@ been shaped to fit the old implementation — single-sentence clauses, contiguou
 numbering, all-caps headings — which is precisely how a model that returns
 fourteen fragments for a six-clause contract passes 664 tests. Both now run on
 prototype-shaped fixtures.
+
+---
+
+# Follow-up: phantom changes, Ask Copilot, Share summary
+**2026-07-27, later**
+
+## Changed
+
+- `js/negotiation.js` — `negoProposedBodyFromText()` (the B-010 fix: a text
+  proposal is mapped onto the baseline's own structure, not rebuilt from
+  scratch); `negoChangeSummary()`, `negoSearch()`, `negoCopilotContext()`.
+- `js/views/negotiation.js` — the Ask Copilot button and its in-room dock;
+  `negoAfterPaint()` extracted so the room and the embedded tab share one
+  post-paint verification pass (B-011).
+- `js/core.js` — `shareSummaryStepHtml()`; `openShareModal` is two steps; the
+  approved summary travels on `payload.contract.changeSummary`.
+- `js/views/portal.js` — `portalChangeSummaryHtml()`, so the landing page shows
+  what changed.
+- `test/portalworld.js` — `buildPortal({url})` for tests needing a real origin.
+- `test/chromium/room.html`, `test/chromium/verify.js` — Copilot and Share
+  checks; the harness now lifts index.html's stylesheet rather than copying it.
+
+## Why the phantom-change bug was possible at all
+
+The same root as B-008, and worth naming once: **the text projection is a READ
+of the document, not the document.** Anything that rebuilds a document *from*
+the projection has to be handed a structure to rebuild into, or it will invent
+one — and `docLineKind()`'s only signal is whether a line shouts, which a
+signature block and a schedule title both do. Two functions now exist for the
+two genuinely different cases: `negoProposedBodyFromText` (there is a baseline;
+map onto it) and `negoRichFromLines` (there is not; infer, and accept that
+inference is what it is).

@@ -936,6 +936,94 @@ function negoChangeSummary(c){
   };
 }
 
+/* ---------- asking about this negotiation ----------
+   Two capabilities behind one box, and the difference matters because one of
+   them always works and the other needs a key.
+
+   SEARCH is deterministic. It reads the clauses and the change records that are
+   already in memory and reports where a word occurs. No model, no network, no
+   key — so "where does it say ninety days" is answerable on a contract, in a
+   browser, offline. That is the majority of what people actually want.
+
+   ANSWERS come from the Copilot in js/ai.js (copilotAsk), which needs an
+   Anthropic key. The engine is reused rather than reimplemented; what is built
+   here is the CONTEXT — this contract, this round, these clauses, these
+   changes — so the answer is about the negotiation on the screen rather than
+   about contracts in general.
+
+   Nothing here edits the document. A suggestion is text a person reads and may
+   then act on; applying it goes through negoEditClause like any other edit and
+   files a tracked change in that person's name. A machine quietly altering a
+   legal instrument is the failure this whole module is built to prevent, and it
+   is not going to be introduced through a chat box. */
+function negoSearch(c, query){
+  negoInit(c);
+  const q = String(query == null ? '' : query).trim();
+  if (q.length < 2) return [];
+  const needle = q.toLowerCase();
+  const hits = [];
+  const snip = (text, at) => {
+    const from = Math.max(0, at - 60), to = Math.min(text.length, at + q.length + 60);
+    return (from ? '…' : '') + text.slice(from, to).replace(/\s+/g, ' ').trim() + (to < text.length ? '…' : '');
+  };
+  const scan = (text, on) => {
+    const hay = String(text || '').toLowerCase();
+    let at = hay.indexOf(needle), n = 0;
+    while (at !== -1 && n < 8){ on(snip(String(text), at), at); at = hay.indexOf(needle, at + needle.length); n++; }
+    return n;
+  };
+
+  /* ONE ROW PER CLAUSE, however many times the word occurs in it. A clause that
+     says "liability" four times is still one place to go and one thing to read;
+     four rows pointing at the same paragraph is a list that buries the other
+     clauses under it. The extra occurrences are counted, not repeated. */
+  for (const cl of negoClauseList(c)){
+    const snippets = [];
+    const n = scan(cl.text, s => snippets.push(s));
+    const inHeading = String(cl.headingText || '').toLowerCase().includes(needle);
+    if (!n && !inHeading) continue;
+    hits.push({ where: inHeading && !n ? 'heading' : 'clause', clauseId: cl.clauseId,
+      label: negoClauseLabel(cl), snippet: snippets[0] || cl.headingText,
+      more: Math.max(0, n - 1), inHeading });
+  }
+  for (const ch of negoChanges(c).filter(x => x.status !== 'superseded')){
+    const inNew = String(ch.newText || '').toLowerCase().includes(needle);
+    const inOld = String(ch.oldText || '').toLowerCase().includes(needle);
+    if (!inNew && !inOld && !String(ch.summary || '').toLowerCase().includes(needle)) continue;
+    hits.push({ where: 'change', changeId: ch.id, clauseId: ch.clauseId,
+      label: `#${ch.id} · ${ch.clauseLabel || ch.clauseId}`,
+      snippet: ch.summary || '',
+      side: inNew && !inOld ? 'proposed' : inOld && !inNew ? 'current' : 'both' });
+  }
+  return hits;
+}
+
+/* What Copilot is told about this page. Capped, because a schedule can be
+   thousands of words and a request that never returns is worse than one that
+   answers from slightly less. The changes are the part that matters and they
+   are sent in full. */
+const NEGO_CTX_CHARS = 24000;
+function negoCopilotContext(c){
+  negoInit(c);
+  const clip = (s, n) => { const t = String(s || ''); return t.length > n ? t.slice(0, n) + '…[truncated]' : t; };
+  return {
+    surface: 'negotiation-room',
+    contractId: c.id || null,
+    name: c.name || null,
+    counterparty: c.counterparty || null,
+    round: negoRound(c),
+    turn: negoTurn(c),
+    readyToSign: negoReadyToSign(c),
+    clauses: negoClauseList(c).map(cl => ({ id: cl.clauseId, label: negoClauseLabel(cl),
+      text: clip(cl.text, 2000) })),
+    changes: negoChanges(c).filter(x => x.status !== 'superseded').map(ch => ({
+      id: ch.id, clause: ch.clauseLabel || ch.clauseId, type: ch.changeType,
+      status: ch.status, summary: ch.summary, author: ch.author,
+      currentWording: clip(ch.oldText, 1200), proposedWording: clip(ch.newText, 1200) })),
+    workingText: clip(negoResolvedText(c), NEGO_CTX_CHARS),
+  };
+}
+
 /* ---------- the turn model ----------
    Whose move it is. Built on the existing share/response routes — no new
    endpoints, no websockets — because a public no-login URL that mutates a
@@ -1185,7 +1273,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll,
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoChangeSummary, negoTurn, negoHandOver, negoTurnBanner,
+  negoChangeSummary, negoSearch, negoCopilotContext, NEGO_CTX_CHARS, negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });
