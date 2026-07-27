@@ -44,7 +44,11 @@ const MODULES = [
   'js/views/portal.js',
 ];
 
-const HOST_IDS = ['share-root', 'app-shell', 'modal-root', 'print-root', 'content'];
+/* 'nego-tab' is the owner-side host for js/views/negotiation.js. It is on this
+   stage because the negotiation tests need BOTH sides on one window: the portal
+   renders the counterparty's copy into #pt-nego, and the owner's copy renders
+   here, so the two can be diffed against each other. */
+const HOST_IDS = ['share-root', 'app-shell', 'modal-root', 'print-root', 'content', 'nego-tab'];
 
 const STUB_TEMPLATES = new Proxy({}, {
   get: (_, k) => ({ id: String(k), folder: 'proc', valueType: 'standard', ic: 'file', kind: 'Contract', name: String(k) }),

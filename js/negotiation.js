@@ -123,7 +123,7 @@ function negoInit(c, opts = {}){
       baselineFormat: (window.docFormat ? docFormat(c.format) : 'text'),
       baselineBody: (c.redlineText != null ? c.redlineText : null),
       round: 1,
-      startedAt: (window.nowISO ? nowISO() : new Date().toISOString()),
+      startedAt: (window.nowISO ? window.nowISO() : new Date().toISOString()),
       seq: 0,
     };
   }
@@ -217,9 +217,9 @@ async function negoFileProposal(c, proposedText, opts = {}){
 
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
-    ? ((window.currentUser && currentUser()?.name) || 'This workspace')
+    ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
-  const createdAt = opts.at || (window.nowISO ? nowISO() : new Date().toISOString());
+  const createdAt = opts.at || (window.nowISO ? window.nowISO() : new Date().toISOString());
   const roundN = opts.roundN != null ? opts.roundN : negoRound(c);
 
   const baseClauses = negoClausesOf(base);
@@ -345,7 +345,7 @@ function negoCommitText(c, text){
   /* An uploaded document's extracted text IS its reading view, so it follows
      the adopted wording — otherwise search, the Copilot review and the reading
      pane would all keep describing wording the parties have moved past. */
-  if (c.upload && window.isUpload && isUpload(c)){
+  if (c.upload && window.isUpload && window.isUpload(c)){
     c.upload.extractedText = text;
     c.upload.textChars = text.length;
   }
@@ -363,7 +363,17 @@ function negoResolve(c, id, status, opts = {}){
   const ch = negoChangeById(c, id);
   if (!ch) return null;
   if (!['pending', 'accepted', 'rejected'].includes(status)) return null;
-  if (window.canEdit && !canEdit() && !opts.side){
+  /* Read the permission through `window` deliberately, not as a bare call.
+     js/core.js declares `const canEdit = …`, which is a LEXICAL binding rather
+     than a property of the global object — so a bare `canEdit()` here resolves
+     to that binding and cannot be substituted, while `window.canEdit` is the
+     name every other module reaches this function by. Under ES modules the two
+     are the same function; in a single shared script scope they are not, and the
+     difference is a permission check that silently ignores its own subject.
+     A decision taken by a named side is always someone acting AS that side —
+     the counterparty holds no workspace role at all — so the role gate applies
+     only to an unattributed call from inside the workspace. */
+  if (!opts.side && typeof window.canEdit === 'function' && !window.canEdit()){
     if (window.toast) toast('Viewers cannot decide changes', 'err');
     return null;
   }
@@ -371,13 +381,13 @@ function negoResolve(c, id, status, opts = {}){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
-  const who = String(opts.by || (window.currentUser && currentUser()?.name) || 'System');
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   const prev = ch.status;
   if (prev === status) return ch;
 
   ch.status = status;
   ch.resolvedBy = status === 'pending' ? null : who;
-  ch.resolvedAt = status === 'pending' ? null : (window.nowISO ? nowISO() : new Date().toISOString());
+  ch.resolvedAt = status === 'pending' ? null : (window.nowISO ? window.nowISO() : new Date().toISOString());
   ch.reply = String(opts.reply || ch.reply || '').slice(0, 2000) || null;
 
   const text = negoResolvedText(c);
@@ -393,7 +403,7 @@ function negoResolve(c, id, status, opts = {}){
     `${flattened ? ' · the merge could not be placed back into the formatted document, so it is now plain text' : ''}`);
   if (window.captureVersion && status !== 'pending')
     captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who);
-  c.lastAction = window.todayStr ? todayStr() : c.lastAction;
+  c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
   return ch;
 }
 /* Accept or reject everything still undecided, in one pass. Nothing pending is
@@ -419,9 +429,9 @@ function negoPostComment(c, id, text, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const who = String(opts.author || (side === 'counterparty'
     ? (c.counterparty || 'The counterparty')
-    : ((window.currentUser && currentUser()?.name) || 'This workspace'))).trim();
+    : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
   ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
-  const msg = { who, side, at: (window.nowISO ? nowISO() : new Date().toISOString()),
+  const msg = { who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000) };
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
@@ -451,15 +461,44 @@ function negoReadyToSign(c){
   return p.total > 0 && p.pending === 0;
 }
 /* Points the counterparty raised that were refused, and are therefore still
-   live between the parties. The mirror of openPointsFor() in js/versioning.js,
-   for the change model — a rejected change that simply vanishes from the
-   document reads as agreement, and it is not. */
+   live between the parties. A rejected change that simply vanishes from the
+   document reads as agreement, and it is not.
+
+   Two things this has to get right, and openPointsFor() in js/versioning.js
+   already worked both of them out for the round model — the reasoning is the
+   same here and is deliberately not re-derived:
+
+     · It spans EVERY round, not the one in flight. A refusal in round 1 is
+       still a refusal in round 5, and negoAdvanceRound archives the round's
+       changes onto the record — so reading only the live set would quietly
+       drop every earlier disagreement at the moment the round closed. That is
+       exactly the failure the list exists to prevent, arriving through the
+       back door.
+
+     · A point stops being open in TWO ways, because a list that keeps showing
+       settled items is a list people learn to ignore:
+         — the wording they asked for is in the document anyway. It may have
+           arrived by another route; either way they got it.
+         — the wording it was measured AGAINST is gone. The clause has been
+           renegotiated since, so neither side's original text stands and the
+           old ask is about a passage that no longer exists. (Erik asks for
+           EUR 250,000, is refused, and the parties later settle on EUR 500,000
+           per event: he did not get what he asked for, but the point is spent,
+           not outstanding.) */
 function negoOpenPoints(c){
-  return negoChanges(c)
-    .filter(x => x.status === 'rejected' && x.authorSide === 'counterparty')
-    .map(x => ({ id: x.id, clauseId: x.clauseId, clauseLabel: x.clauseLabel,
-      before: x.oldText, after: x.newText, ask: x.note || null,
-      reason: x.reply || null, by: x.author, at: x.resolvedAt }));
+  const live = String((window.docPlainText ? docPlainText(c) : '') || '').replace(/\s+/g, ' ');
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const out = [];
+  for (const x of negoAllChanges(c)){
+    if (x.status !== 'rejected' || x.authorSide !== 'counterparty') continue;
+    const want = norm(x.newText), had = norm(x.oldText);
+    if (want && live.includes(want)) continue;      // they got it in the end
+    if (had && !live.includes(had)) continue;       // the clause has moved on since
+    out.push({ id: x.id, clauseId: x.clauseId, clauseLabel: x.clauseLabel || null,
+      round: x.roundN || null, before: x.oldText, after: x.newText,
+      ask: x.note || null, reason: x.reply || null, by: x.author, at: x.resolvedAt || null });
+  }
+  return out;
 }
 
 /* ---------- advancing the round ----------
@@ -474,7 +513,7 @@ function negoAdvanceRound(c, opts = {}){
   if (!decided.length) return null;
   const n = c.negotiation.round;
   c.negotiation.rounds = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
-  c.negotiation.rounds.push({ n, at: (window.nowISO ? nowISO() : new Date().toISOString()),
+  c.negotiation.rounds.push({ n, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     baselineText: c.negotiation.baselineText,
     changes: decided.map(x => ({ id: x.id, clauseId: x.clauseId, type: x.type,
       oldText: x.oldText, newText: x.newText, hash: x.hash, status: x.status,
@@ -487,7 +526,7 @@ function negoAdvanceRound(c, opts = {}){
   c.negotiation.round = n + 1;
   c.changes = [];                             // the archived set lives on the round
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Round ${n} closed by ${opts.by || (window.currentUser && currentUser()?.name) || 'System'}` +
+    `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
     ` the agreed wording is now the baseline for round ${n + 1}`);
   return c.negotiation.rounds[c.negotiation.rounds.length - 1];
@@ -535,23 +574,52 @@ function negoDiffHtml(oldText, newText){
    Returns a descriptor of the normalised document. It does NOT invent wording:
    a contract with no body yet is reported as such rather than given one. */
 function negoIntakePath(c){
-  if (window.isUpload && isUpload(c)) return 'upload';
+  if (window.isUpload && window.isUpload(c)) return 'upload';
   if (c.templateId && window.customTemplates && customTemplates().some(t => t.id === c.templateId)) return 'custom-template';
   if (c.templateId) return 'custom-template';
   if (c.template && window.TEMPLATES && TEMPLATES[c.template]) return 'standard-template';
   return c.template ? 'standard-template' : 'unknown';
 }
+/* Extracted Word text → a rich document, ONE BLOCK PER LINE.
+   docxExtract emits one line per Word paragraph, and a Word paragraph is a
+   block, so this mapping is a faithful reading rather than a guess. It is also
+   the only mapping that survives being negotiated.
+
+   textToRich() is the general-purpose lift and it is the wrong tool here: it
+   splits on BLANK lines, and extracted Word text has none, so a whole contract
+   became a single <p> with <br> between the clauses. richToText's projection of
+   that still reads correctly — which is why it looked fine — but
+   richFromTextEdit's _lineUnits maps every one of those lines to the SAME <p>
+   node, so rewriting one line rewrote the paragraph and took the other clauses
+   with it. The verification caught the damage and fell back to plain text, so an
+   uploaded contract quietly lost its formatting on the first accepted change.
+
+   The first heading line is the document's title (<h1>); later ones are section
+   headings (<h2>). docLineKind() decides which lines are headings — the same
+   function the clause segmentation uses, so the two cannot disagree about what
+   is a term and what is a label. */
+function negoRichFromLines(text){
+  const e = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let seenTitle = false;
+  return String(text == null ? '' : text).split('\n').map(line => {
+    const t = line.trim();
+    if (!t) return '';
+    const kind = window.docLineKind ? docLineKind(t) : 'text';
+    if (kind !== 'heading') return `<p>${e(t)}</p>`;
+    if (!seenTitle){ seenTitle = true; return `<h1>${e(t)}</h1>`; }
+    return `<h2>${e(t)}</h2>`;
+  }).filter(Boolean).join('');
+}
 function negoNormalizeDocument(c, opts = {}){
   const path = negoIntakePath(c);
   /* An uploaded document's wording lives in upload.extractedText until someone
      edits it. Lifting it into the rich model here — once, at intake — is what
-     lets it be negotiated clause by clause like anything else. textToRich() is
-     conservative by design: it recovers paragraph structure and never guesses
-     at emphasis. */
+     lets it be negotiated clause by clause like anything else, and it is the
+     one and only place Word's format matters from now on. */
   if (path === 'upload' && c.redlineText == null){
     const text = (c.upload && c.upload.extractedText) || '';
-    if (text.trim() && window.textToRich){
-      c.redlineText = textToRich(text);
+    if (text.trim()){
+      c.redlineText = negoRichFromLines(text);
       c.format = window.RICH_FORMAT || 'rich';
     }
   }
@@ -578,6 +646,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoFileProposal, negoResolvedText, negoCommitText, negoResolve, negoResolveAll,
   negoPostComment, negoTopicFor, negoProgress, negoReadyToSign, negoOpenPoints,
   negoAdvanceRound, negoAllChanges, negoDiffHtml,
-  negoIntakePath, negoNormalizeDocument });
+  negoIntakePath, negoNormalizeDocument, negoRichFromLines });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   negoClausesOf, negoSummarise, negoHashInput, negoShortHash };

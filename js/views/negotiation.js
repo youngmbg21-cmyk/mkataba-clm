@@ -372,7 +372,7 @@ function negoCardsHtml(c, opts){
 function negoStatusHtml(c, opts){
   const p = negoProgress(c);
   const seen = (window.counterpartySeenState ? counterpartySeenState(c, opts.shares || []) : null);
-  const off = !!(window.emailOff && emailOff());
+  const off = !!(window.emailOff && window.emailOff());
   const seenLine = seen
     ? (seen.kind === 'responded' ? 'Counterparty: responded'
       : seen.kind === 'opened' ? 'Last seen: opened the current wording'
