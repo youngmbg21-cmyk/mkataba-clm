@@ -27,6 +27,7 @@ import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
 import './family.js';
+import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
 import './pdfrich.js';
 import './views/intelligence.js';

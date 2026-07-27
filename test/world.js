@@ -49,11 +49,17 @@ const MODULES = [
    needs something living in that file — paper execution, for one — asks for it
    and accepts the heavier stage; every other test keeps the light one. */
 const CONTRACT_VIEW = 'js/views/contract.js';
+/* The Negotiation tab renderer. Loaded on request like the contract view, and
+   independently of it: a test can assert on the three panes without dragging in
+   the whole workspace screen (buildWorld({negotiationView:true})), which is
+   what the interaction tests do. */
+const NEGOTIATION_VIEW = 'js/views/negotiation.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
 const HOST_IDS = ['content', 'modal-root', 'print-root', 'share-root', 'app-shell',
-  'versions-section', 'nego-section', 'audit-section', 'shares-section', 'doc-scroll'];
+  'versions-section', 'nego-section', 'audit-section', 'shares-section', 'doc-scroll',
+  'nego-tab'];
 
 function buildWorld(opts = {}) {
   const dom = new JSDOM(
@@ -226,7 +232,9 @@ function buildWorld(opts = {}) {
   /* ---------- evaluate the real modules into the window ---------- */
   const ctx = dom.getInternalVMContext();
   const loaded = [];
-  const files = opts.contractView ? [...MODULES, CONTRACT_VIEW] : MODULES;
+  const files = [...MODULES];
+  if (opts.negotiationView) files.push(NEGOTIATION_VIEW);
+  if (opts.contractView) files.push(CONTRACT_VIEW);
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

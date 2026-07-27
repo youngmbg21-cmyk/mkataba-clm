@@ -1869,6 +1869,150 @@ function docTabDefaults(c){
     _docTabsFor = c.id;
   }
 }
+/* ---- Workspace-level tabs: Docs · Negotiation ------------------------------
+   A sibling of the Docs view, not a card inside it. The three-pane redline
+   needs the full width of the window — baseline, working copy and change index
+   at once — and the right-hand panel is a third of the screen, so it could
+   never have lived there.
+
+   The choice persists per contract, like the panel tabs above, and resets when
+   a different contract opens. Switching only toggles `display`, so the
+   negotiation's own view state (which fingerprint is focused, which threads are
+   open) survives a trip to Docs and back — "without reloading or losing state"
+   is a property of the mechanism rather than something re-established on the
+   way in. */
+let _wsTab='docs';                           // 'docs' | 'negotiation'
+let _wsTabFor=null;
+function wsTabDefaults(c){
+  if(_wsTabFor!==c.id){
+    _wsTab='docs';
+    _wsTabFor=c.id;
+    if(window.negoResetView) negoResetView();   // don't open on another contract's fingerprint
+  }
+}
+function wsTabBtn(k,label,ic){
+  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 16px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+}
+/* The count of undecided changes, on the tab itself. A negotiation waiting on
+   the reader is the one thing that must not be discoverable only by clicking. */
+function negoTabCountHtml(c){
+  if(!window.negoProgress) return '';
+  const p=negoProgress(c);
+  if(!p.pending) return '';
+  return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:#b8862b;color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
+}
+function applyWsTabs(c){
+  if(_wsTab!=='docs'&&_wsTab!=='negotiation') _wsTab='docs';
+  document.querySelectorAll('[data-ws-pane]').forEach(p=>{
+    const on=p.getAttribute('data-ws-pane')===_wsTab;
+    p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
+  });
+  document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')===_wsTab;
+    b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
+  // The redline is only rendered once the reader asks for it: it is a whole
+  // second document view, and building it for every workspace open would cost
+  // every contract that is not being negotiated.
+  if(_wsTab==='negotiation' && window.renderNegotiationTab) renderNegotiationOwnerTab(c);
+}
+function wireWsTabs(c){
+  document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>{
+    _wsTab=b.getAttribute('data-ws-tab'); _wsTabFor=c.id; applyWsTabs(c); }));
+  applyWsTabs(c);
+}
+/* The owner's side of the shared component. Everything side-specific about the
+   owner lives here — who they are, what pressing "Propose edits" does, where
+   the hand-off goes — so js/views/negotiation.js stays the same code for both
+   parties. */
+function renderNegotiationOwnerTab(c){
+  if(!window.renderNegotiationTab) return;
+  renderNegotiationTab(c, {
+    hostId:'nego-tab',
+    side:'owner',
+    readonly:!canEdit()||c.status==='Signed',
+    by:currentUser()?.name,
+    author:currentUser()?.name,
+    shares:(window.cachedShares?cachedShares(c):[]),
+    onChange(){ const t=document.getElementById('nego-tab-count'); if(t) t.remove(); renderAuditSection(c); renderVersionsSection(c); },
+    onPropose(){ openNegoProposeModal(c); },
+    /* The transition point, and nothing past it. It closes the round so the
+       agreed wording becomes the baseline, then puts the reader on the Docs
+       tab where signing lives. No signing logic is built here, by design. */
+    onReadyToSign(){
+      negoAdvanceRound(c,{ by:currentUser()?.name });
+      logAudit(c,'Negotiation','Negotiation complete — every change resolved; the agreed wording was carried to the Docs tab for signature');
+      persist(c);
+      _wsTab='docs'; _docTopTab='signing';
+      renderWorkspace();
+      toast('Agreed wording carried to the Docs tab — sign it there when you are ready');
+    },
+  });
+}
+/* ---- proposing wording, from either side ----------------------------------
+   The distinction this modal exists to keep is between EDITING a contract and
+   PROPOSING a change to it. Editing is what ws-edit does: it is our document,
+   we change it, it versions immediately. Proposing puts wording on the table
+   for the other side to answer, and it does not touch the document until they
+   do — which is why the wording typed here goes through negoFileProposal and
+   arrives as pending fingerprints rather than as a new version.
+
+   The box is prefilled with the round's BASELINE, not the live document, so the
+   edits are measured against exactly what both sides agreed they are arguing
+   about. One line per block, because that is what richToText emits and what
+   negoClausesOf reads back. */
+function openNegoProposeModal(c){
+  if(!canEdit()){ toast('Viewers cannot propose changes','err'); return; }
+  if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  const base=negoBaseText(c);
+  if(!base.trim()){ toast('This contract has no wording to propose changes to','err'); return; }
+  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
+  openModal(`
+    <div style="height:100%;display:flex;flex-direction:column;min-height:0">
+      <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
+        <div style="${COL}">
+          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Propose changes to ${esc(c.counterparty||'the counterparty')}</h3>
+          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0;line-height:1.55">Edit the wording below. Each clause you change becomes its own fingerprinted change on the index, for them to accept, reject or discuss. <b>Nothing here changes the contract</b> — the document moves only when a change is accepted.</p>
+        </div>
+      </div>
+      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:20px 26px;background:var(--color-bg)">
+        <div style="${COL}">
+          <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:14px 16px;font:inherit;font-family:var(--font-mono);font-size:12.5px;line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
+          <label style="display:block;margin-top:12px">
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">Why you are asking (optional) — they see it against each change</span>
+            <input id="nego-prop-why" type="text" placeholder="e.g. Our AP cycle runs monthly, so Net-30 forces out-of-cycle payments." style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;padding:9px 11px;font:inherit;font-size:12.5px;outline:none"/>
+          </label>
+        </div>
+      </div>
+      <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
+        <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <span style="flex:1;min-width:150px;font-size:11.5px;color:var(--color-neutral-600)">Changed clauses become pending fingerprints. Unchanged ones are left alone.</span>
+          <button id="nego-prop-cancel" class="ui-btn">Cancel</button>
+          <button id="nego-prop-go" class="ui-btn ui-btn-primary">Propose these changes</button>
+        </div>
+      </div>
+    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+  document.getElementById('nego-prop-cancel').addEventListener('click',closeModal);
+  document.getElementById('nego-prop-go').addEventListener('click',async e=>{
+    const text=document.getElementById('nego-prop-text')?.value||'';
+    const why=String(document.getElementById('nego-prop-why')?.value||'').trim();
+    const btn=e.currentTarget, restore=btn.innerHTML;
+    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Filing…</span>';
+    let filed=[];
+    try{
+      filed=await negoFileProposal(c, text, { side:'owner', author:currentUser()?.name,
+        via:'the Negotiation tab' });
+      // one reason, given once, against every change it explains
+      if(why) for(const ch of filed) ch.note=why;
+    }catch(err){
+      btn.disabled=false; btn.innerHTML=restore;
+      toast('Could not file those changes — '+err.message,'err'); return;
+    }
+    closeModal();
+    if(!filed.length){ toast('That wording is identical to the current baseline — nothing to propose'); return; }
+    persist(c);
+    toast(`${filed.length} change${filed.length===1?'':'s'} proposed — ${filed.map(x=>'#'+x.id).join(', ')}`);
+    renderWorkspace();
+  });
+}
 function topTabBtn(k,label,ic){
   return `<button data-top-tab="${k}" title="${label}" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 4px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
 }
@@ -2068,8 +2212,21 @@ function renderWorkspace(){
 
     ${returnedChangesStrip(c)}
 
+    <!-- ============ WORKSPACE TABS: Docs · Negotiation ============
+         Two ways of working on one contract, side by side rather than one
+         behind the other. Docs is everything that existed before — the
+         document, the review panel, signing. Negotiation is the three-pane
+         fingerprinted redline. Switching is a display toggle over markup that
+         is already rendered, so nothing reloads and no state is lost: an open
+         thread, a focused fingerprint and a half-typed comment all survive a
+         trip to the Docs tab and back. -->
+    <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm);align-self:flex-start">
+      ${wsTabBtn('docs','Docs','file')}
+      ${wsTabBtn('negotiation','Negotiation','history')}${negoTabCountHtml(c)}
+    </div>
+
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
-    <div id="doc-grid" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
+    <div id="doc-grid" data-ws-pane="docs" style="position:relative;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px">
 
       <!-- LEFT: document -->
       <section style="${CARD};overflow:hidden;display:flex;flex-direction:column;min-height:0">
@@ -2216,12 +2373,20 @@ function renderWorkspace(){
         <span style="width:4px;height:72px;border-radius:999px;background:var(--color-neutral-300);transition:background .15s"></span>
       </div>
     </div>
+
+    <!-- ============ NEGOTIATION: the three-pane fingerprinted redline ============
+         Rendered by js/views/negotiation.js — the SAME component the
+         counterparty's link renders, so neither side is looking at a lesser
+         screen than the other. -->
+    <div id="nego-tab" data-ws-pane="negotiation" style="display:none;flex:1;min-height:0"></div>
   </div>`;
 
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
+  wsTabDefaults(c);    // Docs by default; the choice persists per contract
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderDiscussSection(c); loadDiscussion(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
+  wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
   wireChangesStrip(c);   // the returned-changes strip above the document
   // rehydrate a server-stored uploaded file's bytes for preview/download
@@ -2751,4 +2916,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{openWordExportModal,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,renderNegotiationOwnerTab,openNegoProposeModal});
