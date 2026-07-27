@@ -10,6 +10,8 @@ import './redline.js';   // the negotiation's diff: Myers ops, stored and render
 import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';
+import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input
+import './aichart.js'; // in-chat charts, built from live state and never from the model
 import './advice.js';
 import './metadata.js';
 import './versioning.js';

@@ -2683,3 +2683,134 @@ checks.** Both suites run clean twice.
   `MK-196 · WH (Draft)` next to a **SIGNED** chip. The chip is correct and comes
   from the contract's status; the "(Draft)" is inside the contract's own name or
   template text. I'd need to see the record to say which.
+
+---
+
+# Round: the Copilot gets markdown, tone and charts
+
+## What I found before building, and what I changed because of it
+
+Step 0 said inspect first. Five of the spec's stack constraints don't describe
+this repo, so I followed HaTi's actual conventions — which the spec also asks
+for — and recorded the divergences here rather than inventing the missing parts.
+
+| The spec said | What HaTi actually is | What I did |
+|---|---|---|
+| Supabase | SQLite behind the Express server in `server/server.js`; no Supabase anywhere | Used the existing persistence |
+| Cloudflare Worker proxy | The project's own server already proxies AI: `/api/ai/chat`, `/search`, `/graph`, `/ocr`, with budget guards and rate limits | Used it. **No key ever reaches the browser** in server mode — that constraint holds |
+| Single-file HTML, ES modules | `index.html` + ~40 window-attached scripts, loaded through one module entry | Followed the repo: two new files, imported in `js/app.js` |
+| Flat snake_case records | camelCase (`redlineText`, `lastAction`) | Followed the repo |
+| Chart.js from cdnjs | Not present | Added, loaded lazily on first chart |
+
+**There was already an AI assistant.** `js/ai.js` — a slide-in panel with an
+unread badge, expand/minimise/clear, persisted history and a context builder.
+I **extended it** rather than adding a second floating chat. Two assistants in
+one app is the duplication we've spent three rounds removing, and they would
+have had two context builders that could disagree.
+
+**`jurisdiction` and `role_profile` do not exist.** "Jurisdiction" appears only
+as contract *text* the scanner looks at for a governing-law clause. The
+workspace is Kenya-only and money is KES. Step 0 said never invent data, so
+`jurisdictionSplit` is **not** built. Its place is taken by `valueStreamSplit`,
+which uses the app's own real segmentation. Where the spec says `role_profile`
+I used the real `role` (Admin / Legal / Viewer).
+
+I did **not** read the `horizon` repo — it isn't in this session's scope and I
+wouldn't pull in another repository without asking. Everything is built from
+your spec.
+
+## What was built
+
+**Safe rendering** (`js/aimd.js`). A block-aware markdown renderer — fenced
+code, tables, rules, headings, nested lists, quotes, bold/italic/code, links —
+where every non-markdown chunk is escaped. Links only survive as links for
+`https`, `http`, `mailto`, `#` and `/`; anything else renders as plain text.
+Then the tone markers: `{+good}` `{-bad}` `{!watch}` `{~aside}`, applied *after*
+escaping so a marker can't carry markup.
+
+This replaced the old `aiFmt`, which is the single point every answer passes
+through — so the upgrade reaches the server path, the browser-direct path and
+the built-in keyword engine at once.
+
+**In-chat charts** (`js/aichart.js`). The model emits a fenced `hati-chart`
+block naming a **kind** and nothing else. The client pulls those blocks out
+*before* markdown runs, leaves placeholders, and hydrates each one from live
+state. So a chart in an answer is built by the same code, from the same records,
+as the dashboard beside it — it cannot drift and cannot be hallucinated.
+
+**Final recipe list:** `statusBreakdown`, `expiryTimeline`, `valueByCounterparty`,
+`renewalPipeline`, `valueStreamSplit`, `cycleTime`, `obligationsDue`.
+
+**Final series catalog** (for `custom`), all month-indexed on one x-axis:
+
+- `contracts.signed` — Contracts signed (count)
+- `contracts.expiring` — Contracts expiring (count)
+- `value.expiring` — Value expiring (KES)
+- `renewals.due` — Renewal decisions due (count)
+- `obligations.due` — Obligations due (count)
+- `counterparty.<slug>` — value expiring for each real counterparty, generated
+  from the live portfolio, top 12
+
+A chart mixing KES with counts is refused: two meanings on one axis is a chart
+that lies without stating a single false number.
+
+**`quoted`** is the one kind carrying the model's own figures. Bounded to 2–12
+plain numbers — a numeric string or an expression is rejected — and the card
+says on its face *"as stated in this answer, not read from your records"*,
+because a reader can't otherwise tell it from the ones built from the record,
+and that difference is what makes the others trustworthy.
+
+**The live snapshot.** Rebuilt on every message, never cached: status counts,
+total value, value-stream and counterparty breakdowns, expiries at 30/60/90,
+open and overdue obligations, then up to **40** per-contract lines, soonest to
+expire first. The cap is stated in the prompt so the model says the list is
+partial rather than concluding from it.
+
+**Plain / Legal toggle**, above the input, persisted per user. Plain: everyday
+language, short. Legal: clause names, dates and amounts exact, assumptions
+stated.
+
+**Ask-AI triggers** in two places: the dashboard's decisions-due card ("what
+needs my attention in the next 90 days") and the contract page's action bar
+("what should I be watching in *this contract*").
+
+**Sanitizer** for AI output rendered outside the chat — strips `hati-chart`
+fences, json fences whose body is a chart spec, and bare spec-shaped JSON.
+
+## Quality gates
+
+- **XSS:** `<script>`, `<img onerror>` and `javascript:`/`data:`/`vbscript:`
+  links all render as inert text. Tested.
+- **Invalid kind / unknown series:** a plain error card naming the problem,
+  never raw JSON. Tested.
+- **Chart cleanup:** one registry keyed `aichart-<msg>-<block>`; clearing the
+  conversation destroys every instance, and a sweep after each repaint drops
+  canvases whose message is gone. Tested.
+- **No regressions:** 965 tests passing (933 before), 72/72 Chromium checks.
+- **Mobile:** the chart canvas has its own height at ≤640px; the panel is
+  unchanged.
+
+## Deviations, and why
+
+1. **Extended the existing Copilot** instead of adding a second panel.
+2. **No `jurisdictionSplit`** — the field doesn't exist. `valueStreamSplit`
+   instead.
+3. **No Supabase, no Cloudflare Worker** — neither exists here; used what does.
+4. **Not a single-file app** — the repo isn't one, and the spec also says to
+   follow its conventions.
+5. **Per-contract analysis (Step 5)** rides the context the panel already builds
+   when a contract is open, plus the negotiation block it already carried. I did
+   **not** add per-contract chart series: with one contract there is nothing to
+   chart that a sentence doesn't say better.
+6. **Chart.js is loaded from cdnjs on first use.** A workspace with no outbound
+   network gets a plain card saying so, not a broken panel.
+
+## Still open
+
+- The chart pipeline is proven by unit tests, not yet by a browser pass — the
+  Chromium harness doesn't boot the Copilot panel. Rendering, recipes, cleanup
+  and the error paths are all covered in jsdom; what isn't measured is how a
+  chart *looks* at 430px.
+- `cycleTime` reads the audit trail, which is the only place stage timing is
+  recorded. Contracts whose trail doesn't carry both ends are left out rather
+  than guessed at; if none do, the chart says there's no data.

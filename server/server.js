@@ -2291,6 +2291,21 @@ function buildCopilotSystem(context, scopeCtx) {
 
 ${view ? 'CURRENT VIEW: ' + view + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 
+${''/* THE CLIENT'S LIVE BRIEF, verbatim.
+
+     The portfolio snapshot, the Plain/Legal register, the tone markers and the
+     chart rules are assembled in the browser from the state the reader is
+     actually looking at, and travel here as one string. They are NOT rebuilt
+     server-side: two builders would be two descriptions of one portfolio, and
+     the day they disagree is the day the assistant cites a figure that is not
+     on the screen.
+
+     It is untrusted in the sense that it came over the wire — but it is a
+     PROMPT, not markup and not a query, and it is bounded by capAiInput
+     upstream. It says nothing the caller could not already ask about their own
+     scoped portfolio. */}
+${typeof ctx.guide === 'string' ? ctx.guide.slice(0, 24000) : ''}
+
 HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.

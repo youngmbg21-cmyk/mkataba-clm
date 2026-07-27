@@ -35,6 +35,8 @@ const ROOT = path.join(__dirname, '..');
 /* The modules a negotiation actually runs through, in js/app.js order. */
 const MODULES = [
   'js/richdoc.js',
+  'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
+  'js/aichart.js',   // the chart recipes: pure functions of state
   'js/redline.js',
   'js/clausemodel.js',
   'js/docx.js',

@@ -360,6 +360,11 @@ function renderDashboard(){
   const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
   const wqTotal=(state.waitingQuestions&&state.waitingQuestions.total)||0;
   const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span><b>${wqTotal}</b> question${wqTotal===1?'':'s'} waiting for you</span>`:'';
+  /* ASK-AI, FROM THE PLACE THE QUESTION OCCURS TO YOU. A pre-filled question
+     rather than an empty box: the hard part of using an assistant is knowing
+     what it can answer, and the dashboard already knows what is worth asking
+     about today. */
+  const askDash=`<button id="dd-ask-ai" class="dd-more" style="padding:0;margin-left:auto;font-weight:600">Ask Copilot about this →</button>`;
   const readyStat=readyItems.length?`<span class="dd-sep"></span><span class="dd-stat" id="dd-ready-stat"><span class="dd-badge" style="background:#e8f4ee;color:#1e6b4d">•</span><b>${readyItems.length}</b> ready to sign</span>`:'';
   const readyRows=readyToSignRowsHtml(readyItems);
   const questionRows=wq.length?`
@@ -422,7 +427,7 @@ function renderDashboard(){
       </summary>
       <div class="dd-detail">
         <div class="dd-col">
-          <div class="dd-eyebrow" style="margin-top:6px">Renewal decisions · next 90 days</div>
+          <div class="dd-eyebrow" style="margin-top:6px">Renewal decisions · next 90 days${askDash}</div>
           ${decisions.length?decisionRows+(decisions.length>6?`<button data-open-decisions class="dd-more">See all in the calendar →</button>`:'')
             :`<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>None due — you're all caught up.</div>`}
           ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
@@ -519,6 +524,10 @@ function renderDashboard(){
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
+  document.getElementById('dd-ask-ai')?.addEventListener('click',e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');
+  });
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));

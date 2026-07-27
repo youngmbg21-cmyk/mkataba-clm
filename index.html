@@ -698,6 +698,13 @@
 
   <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-bg);"></div>
 
+  <!-- How much to say, and in what register. Above the input because it
+       changes the NEXT answer, not the ones already on the screen. -->
+  <div class="px-5 pt-2 flex items-center gap-2" style="background:var(--color-bg);">
+    <span class="text-[10px] font-600 uppercase tracking-wider" style="color:var(--color-neutral-500);">Answers</span>
+    <div id="ai-style" class="flex items-center gap-1"></div>
+  </div>
+
   <div id="ai-suggest" class="px-5 pb-2 flex flex-wrap gap-1.5" style="background:var(--color-bg);"></div>
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
@@ -711,6 +718,38 @@
 <div id="modal-root"></div>
 <div id="toast-root" class="fixed bottom-6 right-6 z-[60] space-y-2"></div>
 <div id="print-root"></div>
+
+<style>
+/* Copilot answers: markdown, tone markers and charts. Scoped to #ai-feed so a
+   model's output can never restyle the application around it. */
+#ai-feed .ai-p{margin:0 0 .5em}
+#ai-feed .ai-p:last-child{margin-bottom:0}
+#ai-feed .ai-h{font-family:var(--font-heading);font-weight:600;font-size:13.5px;margin:.7em 0 .3em}
+#ai-feed .ai-list{margin:.3em 0 .5em;padding-left:1.15rem}
+#ai-feed ul.ai-list{list-style:disc}
+#ai-feed ol.ai-list{list-style:decimal}
+#ai-feed .ai-list li{margin:.15em 0}
+#ai-feed .ai-quote{border-left:2px solid var(--color-divider);padding-left:.65rem;margin:.4em 0;color:var(--color-neutral-700)}
+#ai-feed .ai-code{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:4px;
+  padding:.5rem .65rem;overflow-x:auto;font-family:var(--font-mono);font-size:11px;margin:.4em 0}
+#ai-feed .ai-table-wrap{overflow-x:auto;margin:.45em 0}
+#ai-feed .ai-table{width:100%;border-collapse:collapse;font-size:11.5px}
+#ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:4px 7px;text-align:left}
+#ai-feed .ai-table th{background:var(--color-bg);font-weight:600}
+#ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+.ai-tone{font-weight:600;border-radius:3px;padding:0 3px}
+.ai-tone-pos{color:#1e6b4d;background:rgba(46,135,99,.10)}
+.ai-tone-neg{color:#8f322b;background:rgba(176,69,60,.10)}
+.ai-tone-warn{color:#7d5a14;background:rgba(184,134,43,.12)}
+.ai-tone-mut{color:var(--color-neutral-600)}
+.ai-chart{border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;
+  padding:10px 12px;margin:.5em 0}
+.ai-chart-title{font-family:var(--font-heading);font-weight:600;font-size:12px;margin-bottom:6px}
+.ai-chart-canvas{position:relative;height:200px}
+.ai-chart-src{font-size:10px;color:var(--color-neutral-600);margin-top:6px;line-height:1.45}
+.ai-chart-note{font-size:11.5px;color:var(--color-neutral-700);line-height:1.5}
+@media (max-width:640px){ .ai-chart-canvas{height:168px} }
+</style>
 
 <script type="module" src="js/app.js"></script>
 </body>

@@ -2313,6 +2313,7 @@ function renderWorkspace(){
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
+          <button id="ws-ask-ai" title="Ask Copilot about this contract" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           ${window.downloadContractDocx?`<button id="ws-word" title="Download as a Word .docx — for a counterparty who negotiates in Word" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Word</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
@@ -2526,6 +2527,13 @@ function renderWorkspace(){
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
   // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
+  /* ASK-AI FROM THE CONTRACT ITSELF, pre-filled. The panel already knows which
+     contract is open — this supplies the question, which is the part people
+     stall on. */
+  document.getElementById('ws-ask-ai')?.addEventListener('click',()=>{
+    if(typeof openAI!=='function'){ toast('Copilot is not available on this page','err'); return; }
+    openAI(`What should I be watching in ${c.name}? Key dates, obligations and anything unusual.`);
+  });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));
   setActiveNav('workspace');
