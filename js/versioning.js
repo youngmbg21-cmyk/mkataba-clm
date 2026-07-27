@@ -67,17 +67,111 @@ function reflowWorkingText(t){
 }
 
 /* ---- version records (E2-T1) ---- */
-function captureVersion(c, label, by){
+/* ---- taking a version ----
+   TWO KINDS, ONE STORE, AND ONLY ONE OF THEM IS A VERSION.
+
+   This used to fire on anything that touched the wording — a share going out, a
+   turn handed over, each individual change accepted — and every one of those
+   landed in the version list named after the EVENT that triggered it rather
+   than after what changed. So the list read "#CHG-001 accepted — Clause 4",
+   "Shared for review", "Round 1 — sent to Juno Limited": bookkeeping presented
+   as document history, and none of it anything a person would choose to compare
+   against.
+
+   A version is now something a PERSON took and NAMED. Everything else the
+   system still needs is kept as an `auto` copy: unlisted, still readable, still
+   there for the machinery that depends on it.
+
+   `auto` copies are NOT an optimisation and must not be removed. Two things
+   depend on them:
+     · the copy taken before a first edit is the only record of the original
+       wording — delete it and the original is gone for good;
+     · reviewing a returned redline diffs against the most recent copy when the
+       response does not carry its own base text.
+
+   `listed` is what the version list reads. Undefined means listed, so every
+   version stored before this existed keeps appearing — a change to how versions
+   are taken must not retire the ones already taken. */
+/* The versions a person is offered — named snapshots, plus the few automatic
+   copies that record a real milestone (the original, a round's outcome, the
+   signature). The rest are kept and not shown. */
+/* TAKING A SNAPSHOT IS A DELIBERATE, NAMED ACT.
+
+   It used to be one click that filed "Manual snapshot" — a label that says
+   nothing, on a list where every other entry was named after the event that
+   happened to trigger it. A version list is only useful if you can tell, six
+   weeks later, which one you want; "Manual snapshot" three times over tells you
+   nothing at all.
+
+   So the name is asked for, and it is required. An unnamed snapshot is not
+   saved — better no version than one nobody can identify. And a snapshot of
+   wording that has not moved since the last one is refused with a plain reason
+   rather than filed as a duplicate. */
+async function takeNamedSnapshot(c, after){
+  if(typeof canEdit==='function' && !canEdit()){ toast('Viewers cannot take snapshots','err'); return null; }
+  const before=(c.versions||[]).length;
+  let name='';
+  if(typeof window.promptDialog==='function'){
+    name=await window.promptDialog({ title:'Name this version',
+      message:'You are saving the wording exactly as it reads now. The name is how you will recognise it later.',
+      label:'Version name', placeholder:'e.g. Before sending to Juno · liability cap agreed',
+      confirmLabel:'Save version' });
+    if(name==null) return null;                       // cancelled
+    name=String(name).trim();
+    if(!name){ toast('Give the version a name so you can find it again','err'); return null; }
+  }
+  const v=captureVersion(c, name.slice(0,120) || 'Saved version');
+  if(!v || (c.versions||[]).length===before){
+    toast('Nothing has changed since the last version — there is nothing new to save','err');
+    return null;
+  }
+  if(typeof persist==='function') persist(c);
+  toast(`Saved as v${v.n} — “${v.label}”`);
+  if(typeof after==='function') after();
+  return v;
+}
+
+function listedVersions(c){
+  return ((c && Array.isArray(c.versions)) ? c.versions : [])
+    .filter(v => v && v.listed !== false);
+}
+
+function captureVersion(c, label, by, opts){
   const text=docPlainText(c); if(!text) return null;
   const canon=docCanonical(c);
   c.versions=c.versions||[];
+  const o=opts||{};
   const last=c.versions[c.versions.length-1];
   // No material change — don't spam versions. "Material" now includes the
   // SHAPE: a version whose wording is identical but whose headings, emphasis
   // or clause numbering changed is a real change and gets its own record.
-  if(last && last.text===text && (last.canon||last.text)===canon){ return last; }
+  if(last && last.text===text && (last.canon||last.text)===canon){
+    /* PROMOTION, and without it milestones disappear.
+
+       The wording is unchanged, so no new record — but the reason for asking
+       may be better than the reason the existing record carries. A round closes
+       moments after the last change in it was accepted: same text, and the copy
+       already stored is the unlisted per-change one. Returning it untouched
+       would let an internal baseline swallow the milestone, and "Round 1
+       closed" would never appear in the list at all.
+
+       So a listed request promotes an unlisted record, and takes its name with
+       it. A named snapshot promotes an automatic one for the same reason: the
+       person asked for this wording to be findable, and it now is. */
+    const wantListed=!o.auto || o.listed;
+    if(wantListed && last.listed===false){
+      last.listed=true;
+      last.kind=o.auto?'auto':'named';
+      if(label) last.label=label;
+      if(!o.auto) last.by=by||currentUser()?.name||last.by;
+    }
+    return last;
+  }
   const v={ n:c.versions.length+1, at:nowISO(), by:by||currentUser()?.name||'System',
     label:label||'Saved', text, canon,
+    /* Who asked for it, and whether it belongs in the list a person reads. */
+    kind:o.auto?'auto':'named',
+    listed:o.auto?!!o.listed:true,
     // the raw body and its format, so a rich version can be shown or restored
     // as the document it was rather than as its text shadow
     format:(window.docFormat?docFormat(c.format):'text'),
@@ -249,7 +343,7 @@ function openPointsFor(c){
 /* ---- version history panel in the workspace ---- */
 function renderVersionsSection(c){
   const host=document.getElementById('versions-section'); if(!host) return;
-  const vs=c.versions||[];
+  const vs=listedVersions(c);
   const canSnap=canEdit()&&c.status!=='Signed';
   const H6='margin:0;font-size:10px;font-weight:600;color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.1em';
   host.innerHTML=`
@@ -274,7 +368,7 @@ function renderVersionsSection(c){
     </div>`;
   host.querySelectorAll('[data-ver-diff]').forEach(b=>b.addEventListener('click',()=>{ const n=Number(b.getAttribute('data-ver-diff'));
     const cur=vs.find(v=>v.n===n), prev=vs.find(v=>v.n===n-1); if(cur&&prev) openDiffModal(prev.text,cur.text,`v${prev.n}`,`v${cur.n}`); }));
-  document.getElementById('ver-snap')?.addEventListener('click',()=>{ const v=captureVersion(c,'Manual snapshot'); if(v&&v.n>(vs.length)){ persist(c); renderVersionsSection(c); toast('Captured v'+v.n); } else toast('No changes since the last version'); });
+  document.getElementById('ver-snap')?.addEventListener('click',()=>takeNamedSnapshot(c,()=>renderVersionsSection(c)));
   document.getElementById('ver-compare')?.addEventListener('click',()=>openCompareModal(c));
 }
 
@@ -299,7 +393,7 @@ function openDiffModal(aText, bText, labelA, labelB){
 // live document text (so a diff is always available once the doc has changed),
 // which fixes the old silent no-op when fewer than two versions existed.
 function openCompareModal(c){
-  const vs=c.versions||[];
+  const vs=listedVersions(c);
   const live=docPlainText(c);
   const liveCanon=docCanonical(c);
   const items=vs.map(v=>({label:`v${v.n} · ${(v.label||'').replace(/"/g,'')}`, short:`v${v.n}`, text:v.text, canon:v.canon||v.text}));
@@ -321,7 +415,8 @@ function openCompareModal(c){
         </div>
       </div>`);
     document.getElementById('cmp-close').addEventListener('click',closeModal);
-    document.getElementById('cmp-snap')?.addEventListener('click',()=>{ const v=captureVersion(c,'Manual snapshot'); persist(c); closeModal(); renderVersionsSection(c); toast(v?('Captured v'+v.n):'Snapshot taken'); });
+    document.getElementById('cmp-snap')?.addEventListener('click',()=>
+      takeNamedSnapshot(c,()=>{ closeModal(); renderVersionsSection(c); }));
     return;
   }
 
@@ -522,7 +617,9 @@ function acceptProposedRound(c, n, opts={}){
   const r=(c.rounds||[]).find(x=>x.n===n); if(!r||!r.proposedText) return;
   const u=currentUser();
   // ensure the pre-redline text is captured, then adopt the proposed text
-  if(!c.versions||!c.versions.length) captureVersion(c,'Before redline','System');
+  /* The only copy of the wording this redline was measured against. Unlisted:
+     it is a base, not a version somebody took. */
+  if(!c.versions||!c.versions.length) captureVersion(c,'Before redline','System',{auto:true});
   const wasRich=!!(window.isRich&&isRich(c.format));
   const base=r.baseText||docPlainText(c);
   const decisions=opts.decisions||null;
@@ -563,6 +660,8 @@ function acceptProposedRound(c, n, opts={}){
     c.redlineText=adopted;
     if(wasRich){ c.format=TEXT_FORMAT; flattened=true; }
   }
+  /* A round's outcome moved the wording, so it is listed — this is the "update
+     to the contract" a reader means. */
   captureVersion(c, r.via==='word'
     ? `Round ${n} accepted${tally} (returned Word file${r.file?` “${r.file.fileName}”`:''})`
     : `Round ${n} accepted${tally} (redline from ${r.by||'counterparty'})`, u.name);
@@ -627,7 +726,9 @@ function applyOwnerEdit(c, text, opts={}){
   if(!txt.trim()){ toast('The document text cannot be empty','err'); return null; }
   const u=currentUser();
   const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
-  if(!(c.versions||[]).length) captureVersion(c, isUpload(c)?'As received':'Original text', 'System');
+  /* THE ORIGINAL, and the one copy that can never be recreated. Automatic and
+     LISTED: nobody has to remember to take it, and everybody needs it. */
+  if(!(c.versions||[]).length) captureVersion(c, isUpload(c)?'As received':'Original text', 'System', {auto:true, listed:true});
   c.redlineText=txt;
   // the plain-text editor produces plain text; say so on the record rather than
   // leaving a 'rich' marker on a body that is no longer one
@@ -663,4 +764,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

@@ -1649,7 +1649,7 @@ async function reshareToLastRecipient(c, opts={}){
   if(!last) throw new Error('This contract has not been shared with anyone yet');
   try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
-  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you'); if(v) persist(c); }
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
   /* If this counterparty already has a durable link, refresh THAT rather than
      mint another one: the point of a durable link is that the other side keeps
@@ -1711,7 +1711,7 @@ async function openShareModal(c, opts={}){
   try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
-  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
   /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
      In server mode it sits in the shares table and is served to anyone holding
      the link; in static mode the whole thing travels inside the URL. Either

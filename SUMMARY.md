@@ -2904,3 +2904,49 @@ four; `f44` and `f49` rewritten where "Add a clause" was asserted.
 
 The version-list naming question above — that's the one thing from these five I
 handed back rather than guessed at.
+
+## Follow-up: snapshots are now named
+
+You take a snapshot, you name it, it saves. That's the model now, and it
+answers the version-list question I'd handed back.
+
+**What counts as a version:** the ones you name, plus three milestones nobody
+should have to remember — the original wording, a negotiation round closing, and
+signing. That's it. Accepting a single change, sharing the contract, or handing
+the turn over no longer creates something in the list.
+
+**What the list looks like now** on a contract negotiated in the room:
+
+- Original Baseline
+- Working Version
+- v1 · Round 1 closed
+
+instead of `#CHG-001 accepted — Clause 4`, `Shared for review` and
+`Round 1 — sent to Juno Limited`.
+
+**The copies still get taken behind the scenes**, they're just not shown. That
+isn't tidiness — two things genuinely need them. The copy taken before your
+first edit is **the only record of the original wording**, and reviewing a
+returned redline compares against the most recent copy when the response doesn't
+carry its own starting point. Deleting those would have lost real things
+quietly.
+
+**One bug I hit building it, worth knowing about.** A round closes seconds after
+its last change was accepted, so the wording is identical and HaTi refuses a
+duplicate — which meant the *invisible* per-change copy stayed and the "Round 1
+closed" milestone never appeared. A milestone now takes over the copy that's
+already there and renames it. The existing tests caught this on the first
+attempt.
+
+**Naming is required.** Cancel or leave it blank and nothing is saved — better
+no version than one you can't identify in six weeks, which is what "Manual
+snapshot" filed three times over gave you. And a snapshot of wording that hasn't
+changed is refused with a reason rather than filed as a duplicate.
+
+**Old versions are untouched.** Anything already stored still appears — changing
+how versions are taken shouldn't retire the ones you already have.
+
+**One thing that still doesn't exist:** you can look at and compare old versions,
+but you can't roll a contract back to one. I checked the code before saying so.
+
+**990 tests passing, 72 of 72 browser checks.**

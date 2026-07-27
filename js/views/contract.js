@@ -2922,7 +2922,7 @@ async function attachPaperSignature(c, file, opts={}){
       size:file.size, kind:'paper-signature', at, by:u?.name||'System' });
   }
   // the wording as it stood when the parties signed it, kept as a version
-  if(window.captureVersion) captureVersion(c,'Executed on paper', u?.name);
+  if(window.captureVersion) captureVersion(c,'Executed on paper', u?.name, {auto:true,listed:true});
   c.execution={ at, by:u?.name||'System', method:'paper', offPlatform:true,
     fileName:file.name, fileHash, fileId, dataUrl:fileId?null:dataUrl,
     signedOn:opts.signedOn||null, note:opts.note||null };
@@ -3011,7 +3011,7 @@ async function finalizeExecution(c, opts={}){
   c.sealVersion=2;                       // fold the marks into the seal (see sealString)
   c.hash=await sha256(sealString(c));
   c.status='Signed';
-  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System');
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System',{auto:true,listed:true});
   logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
   persist(c);                            // critical state saved before any DOM work
   // Re-render if the contract is open; guarded so a headless finalize (the

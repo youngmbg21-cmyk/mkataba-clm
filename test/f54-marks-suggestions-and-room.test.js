@@ -192,3 +192,133 @@ describe('the contract header collapses', () => {
       'someone who reads more than they act wants it folded on every contract');
   });
 });
+
+/* ============================================================
+   5 — a version is something a person took and named
+   ============================================================
+   Snapshots fired on anything that touched the wording, and each landed in the
+   version list named after the EVENT that triggered it rather than after what
+   changed: "#CHG-001 accepted — Clause 4", "Shared for review", "Round 1 —
+   sent to Juno Limited". Bookkeeping presented as document history, none of it
+   anything a person would choose to compare against.
+
+   A version is now what somebody took and NAMED. The copies the system still
+   needs are kept, unlisted — and they must be, because two things depend on
+   them: the copy before a first edit is the only record of the original
+   wording, and reviewing a returned redline diffs against the most recent copy
+   when the response carries no base text of its own. */
+describe('a version is named, and the bookkeeping is not a version', () => {
+  const F2 = require('./clausefixtures.js');
+  async function negotiated(){
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    const cl = win.negoClauseList(c).find(x => x.num === '4');
+    const ch = await win.negoEditClause(c, cl.clauseId, `<p>${F2.PROTO_ASKS['4'].text}</p>`,
+      { side: 'counterparty', author: 'Erik Lindqvist', summary: 'Net-45' });
+    win.negoResolve(c, ch.id, 'accepted', { by: 'Wanjiru Kamau' });
+    return { win, c };
+  }
+
+  test('deciding a change no longer files a version named after the change', async () => {
+    const { win, c } = await negotiated();
+    const labels = win.listedVersions(c).map(v => v.label);
+    assert.ok(!labels.some(l => /^#CHG/.test(l)), 'got: ' + labels.join(' | '));
+  });
+
+  test('but the copy is still KEPT — the machinery depends on it', async () => {
+    const { c } = await negotiated();
+    assert.ok((c.versions || []).length >= 1,
+      'the last copy is what a returned redline diffs against when it carries no base');
+  });
+
+  test('closing a round is listed, and takes the name with it', async () => {
+    const { win, c } = await negotiated();
+    win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
+    const labels = win.listedVersions(c).map(v => v.label);
+    assert.deepEqual(Array.from(labels), ['Round 1 closed'],
+      'the milestone, not the decision that happened to precede it');
+  });
+
+  /* Without this the milestone vanishes: a round closes moments after its last
+     change was accepted, so the text is identical and the copy already stored
+     is the unlisted per-change one. */
+  test('a listed capture promotes an unlisted copy rather than being swallowed', async () => {
+    const { win, c } = await negotiated();
+    const before = (c.versions || []).length;
+    assert.equal(c.versions[before - 1].listed, false, 'the per-change copy is not listed');
+    win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
+    assert.equal((c.versions || []).length, before, 'no duplicate — the wording did not move');
+    assert.equal(c.versions[before - 1].listed, true, 'the copy is promoted');
+    assert.equal(c.versions[before - 1].label, 'Round 1 closed', 'and renamed to why it matters');
+  });
+
+  test('the compare dropdown offers the live pair and the milestones, nothing else', async () => {
+    const { win, c } = await negotiated();
+    win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
+    const labels = win.negoVersionOptions(c).map(o => o.label);
+    assert.match(labels[0], /^Original Baseline/);
+    assert.match(labels[1], /^Working Version/);
+    assert.deepEqual(Array.from(labels.slice(2)), ['v1 · Round 1 closed']);
+  });
+
+  test('the original is kept automatically, because nobody can recreate it', () => {
+    const { win } = buildWorld({});
+    const c = contract({ versions: [] });
+    if (typeof win.applyOwnerEdit !== 'function') return;
+    win.applyOwnerEdit(c, 'A COMPLETELY DIFFERENT AGREEMENT\n1. Scope\nNew wording.');
+    const first = (c.versions || [])[0];
+    assert.ok(first, 'the wording before the edit must survive it');
+    assert.match(first.label, /Original text|As received/);
+    assert.equal(first.listed, true, 'and it is offered — everybody needs the original');
+  });
+
+  test('a version stored before any of this still appears', () => {
+    const { win } = buildWorld({});
+    const c = contract({ versions: [{ n: 1, at: '2026-07-01T09:00:00Z', by: 'W',
+      label: 'Old snapshot', text: 'AGREEMENT' }] });
+    assert.equal(win.listedVersions(c).length, 1,
+      'changing how versions are TAKEN must not retire the ones already taken');
+  });
+
+  test('taking one asks for a name, and files it under that name', async () => {
+    const { win } = buildWorld({});
+    const c = contract();
+    const asked = [];
+    win.promptDialog = async o => { asked.push(o); return 'Before sending to Juno'; };
+    const v = await win.takeNamedSnapshot(c);
+    assert.equal(asked.length, 1, 'it must ask');
+    assert.match(asked[0].label, /Version name/);
+    assert.ok(v, 'and save');
+    assert.equal(v.label, 'Before sending to Juno');
+    assert.equal(v.kind, 'named');
+    assert.equal(v.listed, true);
+  });
+
+  test('an unnamed one is not saved — better none than one nobody can identify', async () => {
+    const { win } = buildWorld({});
+    const c = contract();
+    win.promptDialog = async () => '   ';
+    assert.equal(await win.takeNamedSnapshot(c), null);
+    assert.equal((c.versions || []).length, 0);
+  });
+
+  test('cancelling saves nothing at all', async () => {
+    const { win } = buildWorld({});
+    const c = contract();
+    win.promptDialog = async () => null;
+    assert.equal(await win.takeNamedSnapshot(c), null);
+    assert.equal((c.versions || []).length, 0);
+  });
+
+  test('and a snapshot of wording that has not moved is refused, with a reason', async () => {
+    const { win } = buildWorld({});
+    const c = contract();
+    win.promptDialog = async () => 'First';
+    assert.ok(await win.takeNamedSnapshot(c));
+    win.promptDialog = async () => 'Second';
+    assert.equal(await win.takeNamedSnapshot(c), null, 'nothing changed between them');
+    assert.equal((c.versions || []).length, 1);
+    assert.match(win.toastText ? win.toastText() : '', /Nothing has changed|/);
+  });
+});

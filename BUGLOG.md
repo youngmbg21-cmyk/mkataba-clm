@@ -4229,3 +4229,56 @@ wants it folded on every contract they open.
 
 **979 automated tests / 0 failures** (966 before this round; `f54` is new with
 13, `f44` and `f49` rewritten), and **72 of 72 Chromium checks**.
+
+## Follow-up: a version is something a person took and named
+
+The half handed back above is now decided and built. A snapshot is a deliberate,
+named act; the automatic copies stay, unlisted.
+
+**`captureVersion(c, label, by, opts)`** grew two fields. `kind` — `named` or
+`auto`. `listed` — whether it belongs in the list a person reads. Undefined
+means listed, so **every version stored before this keeps appearing**: changing
+how versions are taken must not retire the ones already taken.
+
+**Unlisted (kept, not shown):** each individual change decided, a turn handed
+over, a share going out, the copy taken before a redline. These are not
+optional. Two things depend on them and would break silently:
+
+- the copy before a first edit is **the only record of the original wording**;
+- `resolveRound` diffs a returned redline against the most recent copy when the
+  response carries no base text of its own (`js/versioning.js:373`).
+
+**Listed:** named snapshots, the original, a round closing, signing.
+
+**PROMOTION, and without it the milestones disappear.** A round closes moments
+after the last change in it was accepted — same wording, so `captureVersion`
+deduplicates, and the record already stored is the *unlisted* per-change one.
+Returning it untouched let an internal baseline swallow the milestone, and
+"Round 1 closed" never appeared at all. A listed request now promotes an
+unlisted record and takes its name with it. Found because `f46` went red on the
+first attempt; the test was right and the model was wrong.
+
+**Taking one requires a name.** `takeNamedSnapshot` asks, and refuses to save
+without an answer — better no version than one nobody can identify six weeks
+later, which is what "Manual snapshot" filed three times over amounted to. A
+snapshot of wording that has not moved is refused with a reason rather than
+filed as a duplicate.
+
+**What the list now reads**, on a contract negotiated through the room:
+
+    Original Baseline · round 2      (live)
+    Working Version · round 2        (live)
+    v1 · Round 1 closed
+
+rather than `#CHG-001 accepted — Clause 4`, `Shared for review` and
+`Round 1 — sent to Juno Limited`.
+
+**Found by the browser pass:** a contract nobody has snapshotted now has nothing
+to compare against, which is correct and meant the Chromium fixture could no
+longer reach the compare screen at all. The fixture takes a named version, which
+is the flow it should have been exercising.
+
+**Still not built:** there is no way to restore a contract to an earlier
+version. Versions are for reading and comparing. I checked before saying so.
+
+**990 tests / 0 failures**, 72 of 72 Chromium checks.

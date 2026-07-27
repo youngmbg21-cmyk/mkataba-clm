@@ -805,7 +805,7 @@ function negoResolve(c, id, status, opts = {}){
     `${status === 'rejected' ? ' · the clause stays at the baseline and the ask travels back as an open point' : ''}` +
     `${status === 'pending' ? ` (was ${prev})` : ''}`);
   if (window.captureVersion && status !== 'pending')
-    captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who);
+    captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who, { auto: true });
   c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
   return ch;
 }
@@ -1242,7 +1242,10 @@ function negoVersionOptions(c){
   }];
   /* Newest first: the version you want is nearly always a recent one, and a
      list that makes you scroll past 1 to reach 40 is a list nobody uses. */
-  for (const v of (c.versions || []).slice().reverse()){
+  /* The versions a person is offered to compare against: named snapshots and
+     the milestones. The event copies the system keeps for its own baselines are
+     not versions of the document and are not listed — see listedVersions. */
+  for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || [])).slice().reverse()){
     const body = v.body != null && String(v.body).trim()
       ? String(v.body)
       : negoRichFromLines(v.text || '');
@@ -1354,7 +1357,7 @@ function negoHandOver(c, opts = {}){
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   /* Every turn close snapshots a version, so version compare keeps working and
      the history reads as a sequence of hand-offs rather than a pile of edits. */
-  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by);
+  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by, { auto: true });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
   return { turn: to, at: n.turnAt };
@@ -1400,8 +1403,10 @@ function negoAdvanceRound(c, opts = {}){
   c.negotiation.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
   c.negotiation.round = n + 1;
   c.changes = [];                             // the archived set lives on the round
+  /* A round closing makes the agreed wording the new baseline — that is an
+     update to the contract, so it is listed even though nobody asked for it. */
   if (window.captureVersion) captureVersion(c, `Round ${n} closed`, opts.by
-    || (window.currentUser && window.currentUser()?.name) || 'System');
+    || (window.currentUser && window.currentUser()?.name) || 'System', { auto: true, listed: true });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
