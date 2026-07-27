@@ -517,7 +517,7 @@ async function negoFileProposal(c, proposedText, opts = {}){
      numbering. That is the B-004 failure class, and this is where it would
      otherwise re-enter through the whole-document route. */
   const fromText = !/<[a-z]/i.test(next);
-  const proposedBody = fromText ? negoRichFromLines(next) : next;
+  const proposedBody = fromText ? negoProposedBodyFromText(c, next) : next;
   const baseClauses = negoClauseList(c);
   const nextClauses = window.clauseSegment ? clauseSegment(proposedBody) : [];
   const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
@@ -577,6 +577,45 @@ async function negoFileProposal(c, proposedText, opts = {}){
       `${opts.via ? ` · received via ${opts.via}` : ''}`);
   }
   return filed;
+}
+
+/* A proposal that arrived as TEXT, lifted back into a document.
+
+   THIS IS THE FIX FOR THE PHANTOM-CHANGE BUG (B-010). It matters which way the
+   lift is done, and the obvious way is wrong.
+
+   negoRichFromLines() builds a document from nothing but the lines, and it has
+   to decide what is a heading from the text alone — so it promotes any line in
+   CAPITALS. In a real contract the signature block and the schedule titles are
+   in capitals on their own lines:
+
+       BUYER: SUPPLIER:
+       SCHEDULE A: MATERIAL SPECIFICATIONS
+
+   In the SOURCE document those are paragraphs inside the miscellaneous clause.
+   Lifted from text they become HEADINGS, which opens clauses the baseline does
+   not have — so the clause they were sitting in appears truncated (a phantom
+   deletion) and each promoted line appears as a brand-new clause (a phantom
+   insertion). Opening a contract and touching nothing produced a screen full of
+   changes nobody had made.
+
+   The baseline is right there and already knows the answer. richFromTextEdit()
+   maps the new lines onto the baseline's OWN block structure — a paragraph
+   stays a paragraph, a list item stays a list item — and verifies its own
+   output before returning it. So the proposal is segmented exactly as the
+   baseline is, and only wording that genuinely moved can register as a change.
+
+   negoRichFromLines stays as the fallback for the one case it is right for: a
+   document that has no prior structure to preserve, either because there is no
+   baseline yet or because the edit changed the shape so much that the mapping
+   could not be verified. */
+function negoProposedBodyFromText(c, text){
+  const base = negoBaseBody(c);
+  if (base && base.trim() && window.richFromTextEdit){
+    const merged = richFromTextEdit(base, text);
+    if (merged) return merged;
+  }
+  return negoRichFromLines(text);
 }
 
 /* The reason a counterparty gave for ONE clause, matched to the change filed
@@ -1100,7 +1139,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
-  negoNoteFor, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
+  negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll,
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
