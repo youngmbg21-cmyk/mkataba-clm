@@ -61,6 +61,12 @@ const NEGOTIATION_VIEW = 'js/views/negotiation.js';
    a tracked insertClause change — so proving that needs playbook.js and
    negotiation.js standing on the same floor. */
 const PLAYBOOK = 'js/playbook.js';
+/* The dashboard (buildWorld({homeView:true})). Loaded on request like the
+   others. renderDashboard itself needs the whole application shell — metrics,
+   risk scoring, the family model, localStorage-backed KPI preferences — so what
+   the tests drive is the pair of pure functions the readiness surface is built
+   from, not the full boot. */
+const HOME_VIEW = 'js/views/home.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -251,6 +257,7 @@ function buildWorld(opts = {}) {
   if (opts.negotiationView) files.push(NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.playbook) files.push(PLAYBOOK);
+  if (opts.homeView) files.push(HOME_VIEW);
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

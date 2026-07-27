@@ -71,6 +71,51 @@ function openKpiCustomizer(anchor){
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ setKpiSel(DEFAULT_KPI_SEL.slice()); renderDashboard(); });
   setTimeout(()=>{ const onDoc=e=>{ if(!pop.contains(e.target)&&e.target!==anchor&&!anchor.contains(e.target)){ pop.remove(); document.removeEventListener('click',onDoc,true); } }; document.addEventListener('click',onDoc,true); },0);
 }
+/* ---- THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER ------------------
+   The waiting-on-you card on the dashboard, which is the one surface they see
+   without opening anything.
+
+   Read straight off the contract records rather than fetched: the signal
+   arrives on the counterparty's response and applyResponse writes it onto the
+   contract, so by the time this renders it is already there. Nothing new is
+   polled and no endpoint was added for it.
+
+   Split out of renderDashboard so both halves can be tested on their own — the
+   dashboard proper needs the whole application shell around it, and the two
+   questions worth asking here (which contracts, and what does it say) do not.
+
+   A contract signed or declined since is not waiting on anybody and drops out.
+   Newest signal first: the point of the list is what just landed. */
+function readyToSignItems(cs){
+  return (cs||[])
+    .filter(c=>c && c.status!=='Signed' && c.status!=='Declined'
+      && (window.negoReadySignal?negoReadySignal(c,'counterparty'):null))
+    .map(c=>({ c, sig:negoReadySignal(c,'counterparty') }))
+    /* A signal the change set has moved past does not belong on a list whose
+       one instruction is "issue a signing link". The room and the Docs strip
+       both still carry it, marked — this is the list of things actually ready
+       for the next step, and that one is not. */
+    .filter(x=>!x.sig.stale)
+    .sort((a,b)=>String(b.sig.at||'').localeCompare(String(a.sig.at||'')));
+}
+/* Named "ready to sign" and never "signed", and it says outright that nothing
+   has been. The whole point of the signal is that it is a message from the
+   other side, not a state the deal has reached by itself. */
+function readyToSignRowsHtml(items){
+  if(!items||!items.length) return '';
+  return `
+    <div style="margin-bottom:10px" id="dd-ready-rows">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#1e6b4d;margin-bottom:5px">Ready to sign — issue a signing link</div>
+      ${items.slice(0,6).map(r=>`
+        <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
+          </span>
+          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#1e6b4d;flex:none">issue link</span>
+        </button>`).join('')}
+    </div>`;
+}
 function renderDashboard(){
   const cs=state.contracts;
   /* state.contracts, state.serverStats and state.shareOverview are already
@@ -292,7 +337,18 @@ function renderDashboard(){
   // ---- Decisions due: one collapsible card merging renewal decisions with the
   // shares out for counterparty review — a compact summary that expands on click,
   // so the dashboard stays tight instead of two full-height stacked cards. ----
-  const ddCount=decisions.length+(hasShares?shItems.length:0)+(((state.waitingQuestions||{}).total)||0);
+  /* THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER, and the one they see
+     without opening anything: the waiting-on-you card on the dashboard.
+
+     Read straight off the contract record rather than fetched — the signal
+     arrives on the response and is applied by applyResponse, so by the time
+     this renders it is already part of the contract. A contract that has been
+     signed or declined since is not waiting on anybody, and drops out.
+
+     Named "ready to sign", never "signed": the whole point of the signal is
+     that it is a message, not a state the deal has reached. */
+  const readyItems=readyToSignItems(cs);
+  const ddCount=decisions.length+(hasShares?shItems.length:0)+(((state.waitingQuestions||{}).total)||0)+readyItems.length;
   const ddTone=(needAttn||decisions.some(x=>x.d<=30))?'#b8862b':'var(--color-accent)';
   const chevron=`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
   const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span><b>${decisions.length}</b> renewal decision${decisions.length===1?'':'s'} <span style="color:var(--color-neutral-500)">· 90d</span></span>`;
@@ -304,6 +360,8 @@ function renderDashboard(){
   const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
   const wqTotal=(state.waitingQuestions&&state.waitingQuestions.total)||0;
   const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span><b>${wqTotal}</b> question${wqTotal===1?'':'s'} waiting for you</span>`:'';
+  const readyStat=readyItems.length?`<span class="dd-sep"></span><span class="dd-stat" id="dd-ready-stat"><span class="dd-badge" style="background:#e8f4ee;color:#1e6b4d">•</span><b>${readyItems.length}</b> ready to sign</span>`:'';
+  const readyRows=readyToSignRowsHtml(readyItems);
   const questionRows=wq.length?`
     <div style="margin-bottom:10px">
       <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7d5a14;margin-bottom:5px">Questions waiting for you</div>
@@ -360,7 +418,7 @@ function renderDashboard(){
           ${ddCount?`<span class="dd-count">${ddCount}</span>`:''}
           <span class="dd-chev">${chevron}</span>
         </span>
-        <span class="dd-stats">${renewalStat}${questionStat}${shareStat}</span>
+        <span class="dd-stats">${renewalStat}${readyStat}${questionStat}${shareStat}</span>
       </summary>
       <div class="dd-detail">
         <div class="dd-col">
@@ -370,6 +428,7 @@ function renderDashboard(){
           ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
         </div>
         <div class="dd-col dd-col-r">
+          ${readyRows}
           ${questionRows}
           <div class="dd-eyebrow"${questionRows?'':' style="margin-top:6px"'}>Waiting longest · in review${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
           ${waitDdRows}

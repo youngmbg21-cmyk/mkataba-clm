@@ -122,11 +122,24 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     assert.ok(v.$('#nego-status'), 'and the same status strip');
   });
 
-  test('it says out loud that it is the same screen', async () => {
+  /* REWRITTEN. This asserted a sentence — "this is the same screen they are
+     looking at" — printed on a card in the page column. That card was scenery:
+     the room opens over it as the landing, so nobody ever read the sentence,
+     and the card's duplicate ids were what silently rewired half the room's own
+     controls to a copy behind the overlay. The card is gone.
+
+     A claim of parity is worth less than a demonstration of it in any case, and
+     the demonstration is the test immediately below, which diffs the two
+     screens element by element. What is asserted here is the thing the sentence
+     was describing: they land ON the component, not on a description of it. */
+  test('they land on the component itself, not on a card describing one', async () => {
     const o = await negotiated();
     const v = counterpartyView(o.c);
-    assert.match(v.$('#pt-nego-wrap').textContent,
-      /same screen .* is looking at — same clauses, same changes, same statuses/);
+    assert.equal(v.$('#pt-nego-wrap'), null,
+      'a card in a column, behind the room, is a second copy nobody can reach');
+    assert.equal(v.$('#pt-nego-open'), null, 'and a second way into a room they are already in');
+    assert.ok(v.$('#nego-room'), 'the room is what they were sent');
+    assert.equal(v.$$('#nego-room .nego-pane').length, 3, 'at full size, all three panes');
   });
 
   test('the fingerprints, statuses, hashes and authors are identical on both sides', async () => {
@@ -348,14 +361,24 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     v.p.setValue('pt-name', 'Erik Lindqvist');
     await v.p.click('pt-nego-send');
 
+    /* CORRECTED, and the old shape is why the bug lived.
+
+       This read `sent.response.kind`, matching what the page was posting:
+       { response: … }. Every other action on this route posts the response AS
+       the body, which is what the server reads — so the wrapper made the server
+       see a body with no `kind` and answer 400 Invalid response, and this test
+       agreed with the page instead of with the wire. It now asserts the shape
+       the server actually parses. */
     const sent = v.p.lastSent();
     assert.ok(sent, 'a response must have been posted');
-    assert.equal(sent.response.kind, 'hati-response');
-    assert.equal(sent.response.action, 'decisions');
-    assert.equal(sent.response.name, 'Erik Lindqvist');
-    assert.equal(sent.response.negoDecisions.length, 1);
-    assert.equal(sent.response.negoDecisions[0].id, id);
-    assert.equal(sent.response.negoDecisions[0].status, 'accepted');
+    assert.equal(sent.response, undefined,
+      'the response is the body — the server reads req.body.kind, not req.body.response.kind');
+    assert.equal(sent.kind, 'hati-response');
+    assert.equal(sent.action, 'decisions');
+    assert.equal(sent.name, 'Erik Lindqvist');
+    assert.equal(sent.negoDecisions.length, 1);
+    assert.equal(sent.negoDecisions[0].id, id);
+    assert.equal(sent.negoDecisions[0].status, 'accepted');
     assert.match(v.p.toastText(), /1 decision sent/);
   });
 

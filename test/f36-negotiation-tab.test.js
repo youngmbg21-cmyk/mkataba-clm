@@ -561,15 +561,40 @@ describe('progress, bulk actions and the status strip', () => {
 });
 
 describe('the one transition out', () => {
-  test('Ready to sign appears only when every change has an answer', async () => {
+  /* REWRITTEN. This used to read "appears only when every change has an
+     answer", and a refusal is an answer — so with one of their asks turned down
+     the banner appeared and said "Nothing is outstanding between the parties",
+     which was not true. They asked for something, we said no, and that is a
+     live disagreement until the side that asked lets it go.
+
+     The banner is now gated on ALIGNMENT: nothing pending and nothing refused
+     that has not been withdrawn. */
+  test('Ready to sign waits for every change to be ANSWERED', async () => {
     const m = await mounted();
     assert.equal(m.$('#nego-ready'), null, 'not while anything is pending');
     m.click(`[data-nego-accept="${m.filed[0].id}"]`);
     assert.equal(m.$('#nego-ready'), null, 'not part-way through');
+    m.click(`[data-nego-accept="${m.filed[1].id}"]`);
+    m.click(`[data-nego-accept="${m.filed[2].id}"]`);
+    assert.ok(m.$('#nego-ready'), 'once all three are settled');
+    assert.match(m.$('#nego-ready').textContent, /Ready to sign — every change is resolved/);
+  });
+
+  test('and for them to be AGREED — a refusal is an answer, not agreement', async () => {
+    const m = await mounted();
+    m.click(`[data-nego-accept="${m.filed[0].id}"]`);
     await m.reject(m.filed[1].id);
     m.click(`[data-nego-accept="${m.filed[2].id}"]`);
-    assert.ok(m.$('#nego-ready'), 'once all three are decided');
-    assert.match(m.$('#nego-ready').textContent, /Ready to sign — every change is resolved/);
+    assert.equal(m.win.negoProgress(m.c).pending, 0, 'every change has an answer');
+    assert.equal(m.$('#nego-ready'), null,
+      '"nothing is outstanding between the parties" would not be true — we refused one of their asks');
+    /* The asks are theirs, so it is theirs to withdraw. Done through the model
+       here, as it would arrive from their link. */
+    m.win.negoWithdraw(m.c, m.filed[1].id, { side: 'counterparty', by: 'Erik Lindqvist' });
+    m.win.renderNegotiationTab(m.c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau' });
+    assert.ok(m.$('#nego-ready'), 'they let it go, and now nothing is outstanding');
+    assert.match(m.$('#nego-ready').textContent.replace(/\s+/g, ' '), /1 ask withdrawn/,
+      'and the banner accounts for it rather than quietly counting it as agreed');
   });
 
   test('it names the hand-off, and builds no signing logic', async () => {

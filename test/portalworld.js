@@ -192,9 +192,9 @@ function buildPortal(opts = {}) {
 
 /* A share payload built by the product's own allow-list, from a contract of
    the shape Wanjiru actually negotiates. */
-function sharePayloadFor(p, contract, who = {}) {
+function sharePayloadFor(p, contract, who = {}, opts) {
   return p.win.buildSharePayload(contract, 'dochash-test', {
-    org: who.org || 'Wanjiru Catering Ltd', sharedBy: who.sharedBy || 'Wanjiru Kamau' });
+    org: who.org || 'Wanjiru Catering Ltd', sharedBy: who.sharedBy || 'Wanjiru Kamau' }, opts);
 }
 
 const RICH_SUPPLY = [

@@ -198,25 +198,45 @@ describe('the top bar, and the way out', () => {
       'proposing happens on the clause instead, and every clause offers it');
   });
 
-  test('the counterparty gets his verbs in the same slot', async () => {
+  /* REWRITTEN. There were four counterparty verbs at two different scopes:
+     "Accept wording" (the whole document), "Approve & sign" (which signed
+     nothing), "Decline" (the whole deal) and "Send N decisions" (per change).
+     Only the two that are about the WHOLE DEAL belong in a bar of deal verbs.
+     Accept wording is gone — pressed with changes pending it filed an
+     acceptance on nobody's behalf. The decisions send moved to the change
+     index, beside the decisions it carries. */
+  test('the counterparty gets the two deal verbs, and only those', async () => {
     const r = await room({ side: 'counterparty' });
     const slot = r.$('.nego-top-actions');
-    for (const id of ['nego-cp-sign', 'nego-cp-accept', 'nego-cp-decline'])
+    for (const id of ['nego-cp-ready', 'nego-cp-decline'])
       assert.ok(slot.querySelector('#' + id), 'missing counterparty action: ' + id);
+    assert.equal(slot.querySelector('#nego-cp-accept'), null,
+      'accepting the whole document is not an answer to anybody\'s specific ask');
+    assert.equal(slot.querySelector('#nego-cp-sign'), null,
+      'nothing is signed in the room — the verb is Ready to sign');
+    assert.match(slot.querySelector('#nego-cp-ready').textContent, /Ready to sign/);
     assert.equal(r.$('#nego-save-draft'), null, 'and not the owner\'s');
     assert.equal(r.$('#nego-share-link'), null);
   });
 
+  test('their name is asked for in the room, because the room is their page', async () => {
+    const r = await room({ side: 'counterparty', render: { recipientName: 'Erik Lindqvist' } });
+    const box = r.$('.nego-top-actions #nego-cp-name');
+    assert.ok(box, 'the field that gates every send must be reachable from the room');
+    assert.equal(box.value, 'Erik Lindqvist', 'prefilled from who the link was addressed to');
+  });
+
   test('a read-only copy offers no verbs at all', async () => {
     const r = await room({ side: 'counterparty', readonly: true });
-    assert.equal(r.$('#nego-cp-sign'), null);
+    assert.equal(r.$('#nego-cp-ready'), null);
+    assert.equal(r.$('#nego-cp-decline'), null);
     assert.equal(r.$('[data-nego-accept]'), null);
     assert.ok(r.$('.nego-pane.working'), 'but it still renders, so it can be read');
   });
 
   test('an unhandled action says so rather than failing silently', async () => {
-    const r = await room({ side: 'counterparty' });   // no onSign hook supplied
-    r.click('#nego-cp-sign');
+    const r = await room({ side: 'counterparty' });   // no onDecline hook supplied
+    r.click('#nego-cp-decline');
     assert.match(r.w.toastText(), /not available on this screen/);
   });
 });

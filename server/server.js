@@ -228,6 +228,12 @@ addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`)
 // share is bound to a recipient and channel, expires, can be revoked, and
 // carries the lifecycle timestamps the derived share state is computed from.
 addColumnIfMissing('shares', 'durable', 'INTEGER NOT NULL DEFAULT 0');
+/* What the link is FOR — 'negotiate' or 'sign'. Stored on the row as well as
+   inside the payload, because supersession has to compare two links without
+   parsing both payloads, and because the owner's shares panel reads it. NULL
+   on every link created before purposes existed; those keep the old
+   behaviour, where the reader's page inferred a phase from the change set. */
+addColumnIfMissing('shares', 'purpose', 'TEXT');
 /* A DURABLE share is one long-lived link per counterparty per contract: it
    always serves the current wording and accepts the next response, round after
    round. A one-shot share is the original behaviour and stays the default —
@@ -2669,7 +2675,7 @@ function shareInfo(s) {
        link's latest-response state feeds it correctly), and the durable flag is
        what the client's reshare and seen-state features read. */
     token: s.token, contractId: s.contract_id, state: shareStateResolved(s), channel: s.channel || 'link',
-    durable: !!s.durable,
+    durable: !!s.durable, purpose: s.purpose || null,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
     firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
@@ -2682,7 +2688,7 @@ function shareOwnerEmails(s) {   // the sender if known, else workspace admins
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
-  const { payload, recipient, channel, message, expiryDays, durable } = req.body || {};
+  const { payload, recipient, channel, message, expiryDays, durable, purpose } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   const shareId = (payload.contract && payload.contract.id) || null;
   if (shareId && !idInScope(folderScopeFor(req.user), shareId)) return res.status(404).json({ error: 'Contract not found' });
@@ -2698,11 +2704,17 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   /* Durability is opt-in per share. The default stays one-shot: the signature
      pass wants exactly one answer bound to exactly one copy of the wording. */
   const isDurable = durable === true || durable === 1 ? 1 : 0;
-  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+  /* The body may state it; the payload the reader will actually be served
+     always does. They are the same value, and the payload is the one the page
+     obeys, so it is the one that wins here — a row that disagreed with the
+     document it serves would supersede the wrong links. */
+  const purp = ['negotiate', 'sign'].includes(payload.purpose) ? payload.purpose
+    : ['negotiate', 'sign'].includes(purpose) ? purpose : null;
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
-      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable);
+      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp);
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   if (ch === 'email') {
@@ -2710,10 +2722,20 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
       message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
-      `\nOpen the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:\n${link}`,
+      /* The invitation matches the link. A negotiation link opens the room,
+         where the verbs are per-change decisions and "ready to sign" — telling
+         its recipient to "approve & sign" describes a screen they will not
+         see. */
+      purp === 'negotiate'
+        ? `\nOpen the link to work through the proposed changes clause by clause — accept, refuse or discuss each one, and propose your own wording. Nothing is signed there. No account is needed:\n${link}`
+        : `\nOpen the contract to review it and respond — approve & sign, propose changes, or decline. No account is needed:\n${link}`,
       `\nThis link expires on ${expires.slice(0, 10)}. Replies to this email reach ${req.user.name} directly.`,
     ].filter(Boolean).join('\n');
-    const r = await sendEmail(email, `${req.user.name} shared "${cName}" for your review`, body, `share link: ${link}`);
+    const r = await sendEmail(email,
+      purp === 'negotiate'
+        ? `${req.user.name} sent you "${cName}" to negotiate`
+        : `${req.user.name} shared "${cName}" for your review`,
+      body, `share link: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
   }
@@ -2845,7 +2867,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        as the formal round it replaces. */
     messages: s.contract_id ? contractMessages(s.contract_id) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
-    superseded: s.durable ? null : shareSuperseded(s),
+    superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
@@ -2861,8 +2883,40 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
    Identical wording does not supersede: two signatories may legitimately hold
    separate links to the same document, and neither invalidates the other. */
 const sameWording = (a, b) => String(a).replace(/\s+/g, ' ').trim() === String(b).replace(/\s+/g, ' ').trim();
+/* Has a signing link been issued for this contract since this link went out?
+   Deliberately separate from the wording rule, and applied to DURABLE links
+   too. A durable link is exempt from supersession because it is refreshed in
+   place — it always carries the current wording, so the text can never leave it
+   behind. Purpose can: the standing negotiation channel is exactly the link
+   that has to stop being a negotiation once the parties are signing, and it is
+   the link the counterparty still has open in a tab. */
+function shareRetiredBySigning(s) {
+  if (!s.contract_id) return null;
+  if ((s.purpose || 'negotiate') === 'sign') return null;
+  const signer = db.prepare(
+    `SELECT created_at FROM shares
+      WHERE contract_id=? AND token!=? AND created_at > ? AND revoked_at IS NULL AND purpose='sign'
+      ORDER BY created_at DESC LIMIT 1`).get(s.contract_id, s.token, s.created_at);
+  return signer ? { at: signer.created_at, reason: 'signing-link-issued' } : null;
+}
 function shareSuperseded(s) {
   if (!s.contract_id) return null;
+  /* THE SECOND WAY A LINK IS SPENT, and it has nothing to do with the wording.
+
+     When a negotiation ends the owner issues a SIGNING link. The wording is
+     usually identical at that moment — that is the whole point, the parties
+     agreed on it — so the text comparison below would let the old negotiation
+     link stay live alongside it. Two live links then say two different things
+     about the same deal: one still invites redlines on a contract nobody is
+     redlining any more.
+
+     A signing link therefore retires the negotiation links it replaces. Not the
+     other way round: issuing a fresh negotiation link means the deal reopened,
+     and that already supersedes through the wording rule when the text moves.
+     Checked BEFORE the wording, because it holds whether the text moved or
+     not. */
+  const retired = shareRetiredBySigning(s);
+  if (retired) return retired;
   let mine = '';
   try { mine = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
   if (!mine.trim()) return null;        // nothing recorded to compare — do not guess at it
@@ -3189,13 +3243,20 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   // The wording moved on after this link was sent. Answering it now would bind
   // a version of the contract that no longer exists. A durable link cannot be
   // in that position: it always carries the current copy.
-  const stale = s.durable ? null : shareSuperseded(s);
+  const stale = s.durable ? shareRetiredBySigning(s) : shareSuperseded(s);
   if (stale) return res.status(409).json({
-    error: 'This copy of the contract has been superseded — a newer version was sent to you on '
-      + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
+    error: stale.reason === 'signing-link-issued'
+      ? 'The negotiation on this contract has closed and a signing link was issued on '
+        + String(stale.at).slice(0, 10) + '. Open that link to sign.'
+      : 'This copy of the contract has been superseded — a newer version was sent to you on '
+        + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
     superseded: stale.at });
   const r = req.body || {};
-  if (r.kind !== 'hati-response' || !['sign','accept','changes','decline'].includes(r.action) || !r.name)
+  /* 'decisions' and 'ready' were missing from this list, and the portal had
+     been sending 'decisions' for a whole release. Every batch of per-change
+     answers a counterparty ever sent was rejected here with "Invalid response"
+     — the third, and quietest, of the three reasons their Send did nothing. */
+  if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
   if (r.action === 'sign') {
     /* The signature is normally attributed by a one-time code emailed to the
@@ -3248,9 +3309,19 @@ function notifyShareResponse(s, r) {
     const who = r.name + (r.title ? `, ${r.title}` : '');
     const subject = r.action === 'sign' ? `Signed: "${cName}"`
       : r.action === 'decline' ? `Declined: "${cName}"`
+      : r.action === 'ready' ? `Ready to sign: "${cName}"`
+      : r.action === 'decisions' ? `Decisions returned: "${cName}"`
       : `Changes requested: "${cName}"`;
+    const n = Array.isArray(r.negoDecisions) ? r.negoDecisions.length : 0;
     const detail = r.action === 'sign'
       ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
+      : r.action === 'ready'
+        ? `${who} has signalled they are ready to sign "${cName}".`
+          + `${n ? `\n\nThey answered ${n} proposed change${n === 1 ? '' : 's'} in the same step.` : ''}`
+          + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`
+      : r.action === 'decisions'
+        ? `${who} answered ${n} proposed change${n === 1 ? '' : 's'} on "${cName}".`
+          + `\n\nThe decisions have been recorded on the contract — open Negotiation to see where the deal stands.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +

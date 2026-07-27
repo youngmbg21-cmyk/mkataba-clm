@@ -159,7 +159,35 @@ function negoStyleHtml(){
   .nego-tbtn.acc{background:var(--n-accept);color:#fff}
   .nego-tbtn.rej{background:var(--n-reject);color:#fff}
   .nego-tbtn.acc:hover,.nego-tbtn.rej:hover{filter:brightness(1.08)}
-  .nego-tbtn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  /* A refused control stays ON THE SCREEN and stays legible. Hiding it until it
+     works would leave the reader with no idea the step exists, still less what
+     they have to do to reach it; .45 opacity on a dark bar is a control you
+     cannot read the label of. It is visibly not-pressable, and the line beside
+     it says why. */
+  .nego-tbtn:disabled{opacity:1;cursor:not-allowed;filter:none;background:transparent;
+    color:rgba(230,236,242,.62);border:1px dashed rgba(255,255,255,.34)}
+  .nego-why{flex:0 1 auto;max-width:300px;font-size:10.5px;line-height:1.35;color:#c3cfda}
+  .nego-readysig{display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap;margin:10px 14px 0;
+    border:1px solid #a8cbb8;border-left:4px solid var(--n-accept);background:#eef7f1;
+    border-radius:6px;padding:10px 14px}
+  .nego-readysig .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+    background:var(--n-accept);color:#fff;font-size:11px;font-weight:800}
+  .nego-readysig .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:#14503a}
+  .nego-readysig .row{display:block}
+  .nego-readysig .row+.row{margin-top:3px;color:var(--n-ink-soft)}
+  .nego-readysig .nego-tbtn{flex:none;align-self:center}
+  /* A signal the change set has moved past is not good news, and must not be
+     dressed as it. Same box, the colour of an open point. */
+  .nego-readysig.stale{border-color:#e0c48a;border-left-color:#b8862b;background:#fdf6e7}
+  .nego-readysig.stale .tick{background:#b8862b}
+  .nego-readysig.stale .body{color:#7d5a14}
+  /* Their name, in the room, because the room is their page. */
+  .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
+    border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
+  .nego-who .lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c3cfda}
+  .nego-who input{width:150px;border:0;outline:none;background:transparent;color:#fff;
+    font:inherit;font-size:12.5px;padding:5px 6px}
+  .nego-who input::placeholder{color:rgba(230,236,242,.55)}
   .nego-avatar{width:28px;height:28px;border-radius:50%;flex:none;
     background:linear-gradient(135deg,#c98f5f,#8a5a3b);border:2px solid rgba(255,255,255,.5);
     display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
@@ -324,6 +352,13 @@ function negoStyleHtml(){
   .nego-st.accepted{background:var(--n-ins-bg);color:var(--n-ins-fg)}
   .nego-st.rejected{background:var(--n-del-bg);color:var(--n-del-fg)}
   .nego-st.verified{background:var(--n-badge-bg);color:var(--n-slate-soft)}
+  /* A withdrawn ask sits NEXT TO its status, not instead of it. "rejected ·
+     withdrawn" is the whole story: they asked, we said no, they let it go.
+     Replacing the status would erase the refusal from the face of the card. */
+  .nego-st.withdrawn{margin-left:0;background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
+  .nego-st.sent{margin-left:0;background:var(--n-ins-bg);color:var(--n-ins-fg);border:1px solid #a8cbb8}
+  .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:0 4px 4px 0;
+    padding:6px 9px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--n-ink)}
   .nego-hash{font-family:var(--n-font-mono);font-size:9.5px;color:var(--n-slate-soft);
     background:var(--n-badge-bg);border:1px solid #dde5ee;border-radius:5px;padding:4px 7px;
     margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -339,6 +374,18 @@ function negoStyleHtml(){
   .nego-acts .b-dis.has-thread{border-color:var(--n-slate-soft)}
   .nego-acts .b-undo{border-color:#c9d5e1;color:var(--n-ink-soft);flex:0 0 auto;padding:6px 12px}
   .nego-acts .b-undo:hover{background:#f2f4f7}
+  .nego-acts .b-wdr{border-color:var(--n-slate-soft);color:var(--n-slate);padding:6px 10px}
+  .nego-acts .b-wdr:hover{background:var(--n-slate);color:#fff}
+  /* ---- sending decisions, from the index ----
+     The send sits with the decisions it sends, under the bulk pair, because
+     that is where the decisions are made. It used to be in the top bar next to
+     verbs about the whole deal, where it read as a third answer to the deal
+     rather than the postbox for the answers already given. */
+  .nego-index-send{margin-top:9px;border-top:1px dashed var(--n-line);padding-top:9px}
+  .nego-index-send button{width:100%;border:0;border-radius:7px;padding:8px 0;font:inherit;font-size:12px;
+    font-weight:700;color:#fff;background:var(--n-slate);cursor:pointer;transition:filter .12s ease}
+  .nego-index-send button:hover{filter:brightness(1.12)}
+  .nego-index-send .why{display:block;font-size:10.5px;line-height:1.45;color:var(--n-ink-soft);margin-top:5px}
   .nego-bulk{display:flex;gap:8px;margin-top:10px}
   .nego-bulk button{flex:1;border:0;border-radius:7px;padding:7px 0;font:inherit;font-size:12px;
     font-weight:700;color:#fff;cursor:pointer;transition:filter .12s ease}
@@ -606,8 +653,26 @@ function negoLiveCardsHtml(c, opts){
        other it was agreed. They can still discuss it, and withdraw it by
        proposing something else. */
     const mine = ch.authorSide === side;
-    const decidable = canAct && !mine && ch.status === 'pending';
-    const undoable = canAct && !mine && ch.status !== 'pending';
+    /* ALREADY SENT to the other side. The page that holds decisions until they
+       are posted marks them when they go, because the copy of the contract this
+       screen reads was snapshotted before they existed — without the mark the
+       cards would repaint as undecided the moment the send succeeded, which
+       reads as the send having done nothing.
+
+       A sent decision is no longer theirs to UNDO: it is filed with the other
+       party, and quietly returning it to "pending" here would leave the two
+       sides holding different answers. Changing their mind is still allowed —
+       that is a new decision, and it travels — so the verbs stay. */
+    const sent = !!ch.sentByMe;
+    const decidable = canAct && !mine && (ch.status === 'pending' || sent);
+    const undoable = canAct && !mine && ch.status !== 'pending' && !sent;
+    /* THE ONE VERB A SIDE HAS OVER ITS OWN ASK. It is not a decision — they
+       cannot accept their own proposal — it is an acknowledgement that the
+       other side refused it and they are letting it go. Without it a single
+       refusal leaves the deal permanently unaligned and neither party can ever
+       signal readiness, which is a worse failure than the one the gate fixes.
+       Only on a REFUSED ask, and only for the side that made it. */
+    const withdrawable = canAct && mine && ch.status === 'rejected';
 
     const thread = `
       <div class="nego-thread${open ? ' open' : ''}" id="nego-thread-${_ne(ch.id)}">
@@ -631,6 +696,12 @@ function negoLiveCardsHtml(c, opts){
       : `<div class="nego-acts">
         <button class="b-dis${n ? ' has-thread' : ''}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
         ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">Undo</button>` : ''}
+        ${withdrawable && !ch.withdrawn
+          ? `<button class="b-wdr" data-nego-withdraw="${_ne(ch.id)}"
+              title="They refused this. Take it off the table so it stops standing between you — the record keeps the ask and the refusal.">Withdraw this ask</button>` : ''}
+        ${withdrawable && ch.withdrawn
+          ? `<button class="b-undo" data-nego-unwithdraw="${_ne(ch.id)}"
+              title="Put this ask back on the table">Put it back</button>` : ''}
       </div>`;
 
     return `
@@ -640,7 +711,14 @@ function negoLiveCardsHtml(c, opts){
           <span class="nego-id">#${_ne(ch.id)}</span>
           ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
+          ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
+            title="This answer has been sent. Decide it differently and the new answer travels too.">sent</span>` : ''}
+          ${ch.withdrawn ? `<span class="nego-st withdrawn" data-withdrawn="${_ne(ch.id)}"
+            title="Refused, and the side that asked for it has withdrawn the ask — it is no longer outstanding between the parties">withdrawn</span>` : ''}
         </div>
+        ${ch.status === 'rejected' && !ch.withdrawn ? `<div class="nego-contested" data-contested="${_ne(ch.id)}">
+          <b>Still between you.</b> This was refused. It stops being outstanding when
+          ${mine ? 'you withdraw it' : `${_ne(ch.author)} withdraws it`} — until then neither side can signal readiness to sign.</div>` : ''}
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b>${mine ? ' <span style="font-style:italic">(your side)</span>' : ''}</div>
@@ -820,7 +898,14 @@ function negoIntegritySeg(c){
    provides, and repeating them would put two headers on one screen. */
 function negoHeadHtml(c, opts){
   const p = negoProgress(c);
-  const ready = negoReadyToSign(c);
+  /* ALIGNMENT, not "every change has an answer". negoReadyToSign asks whether
+     the ROUND is finished, which a refused ask satisfies. This banner says
+     "nothing is outstanding between the parties", which a refused ask does not
+     — so gating it on the weaker question had it announce agreement over a live
+     disagreement, which is the class of untruth this screen exists to remove.
+     A refusal clears when the side that asked withdraws it. */
+  const ready = negoProgress(c).total > 0
+    && (window.negoAlignment ? negoAlignment(c).aligned : negoReadyToSign(c));
   const canAct = !opts.readonly;
   const side = opts.side || 'owner';
   return `
@@ -851,6 +936,7 @@ function negoReadyHtml(c, opts){
   const side = opts.side || 'owner';
   const p = negoProgress(c);
   const accepted = negoChanges(c).filter(x => x.status === 'accepted').length;
+  const withdrawn = negoChanges(c).filter(x => x.withdrawn).length;
   return `
     <div id="nego-ready" style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
       border:1px solid #a8cbb8;background:#eef7f1;border-left:4px solid #1e6b4d;border-radius:6px;
@@ -858,12 +944,62 @@ function negoReadyHtml(c, opts){
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
         <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">Ready to sign — every change is resolved</span>
-        <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}. Nothing is outstanding between the parties.</span>
+        <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}${withdrawn ? ` · ${withdrawn} ask${withdrawn === 1 ? '' : 's'} withdrawn` : ''}. Nothing is outstanding between the parties.</span>
       </span>
       ${side === 'owner'
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
         : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
+}
+
+/* ---------- somebody has said they are ready ----------
+   The first of the three places the owner meets this: in the room, at the top,
+   where the negotiation they were reading is.
+
+   It reports a SIGNAL, and says so — "signalled", "nothing is signed yet", and
+   the next step named as an action the owner takes. A banner that said "ready
+   to sign" with a green tick and no verb would read as a state the contract had
+   arrived at by itself, which is exactly the inference this whole change
+   removes.
+
+   Both directions. The counterparty sees ours too, because a reader who cannot
+   tell whether the other side has answered cannot tell waiting from finished. */
+function negoReadySignalHtml(c, opts = {}){
+  if (!window.negoReadySignal) return '';
+  const me = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const them = me === 'owner' ? 'counterparty' : 'owner';
+  const theirs = negoReadySignal(c, them);
+  const mine = negoReadySignal(c, me);
+  if (!theirs && !mine) return '';
+  const when = at => (at && window.fmtDT ? fmtDT(at) : String(at || ''));
+  const rows = [];
+  if (theirs) rows.push(`<span class="row" data-ready="them"><b>${_ne(theirs.by)}</b> signalled
+    ${me === 'owner' ? `${_ne(c.counterparty || 'the counterparty')} is` : 'they are'}
+    ready to sign — ${_ne(when(theirs.at))}. <b>Nothing is signed yet.</b>
+    ${theirs.stale
+      ? 'Something has been reopened since, so this no longer describes where the deal stands — settle it and the signal counts again.'
+      : me === 'owner'
+        ? 'Issue a signing link to take it forward; this negotiation link is superseded the moment you do.'
+        : `${_ne(window.FIRST_PARTY || 'They')} will send a signing link.`}</span>`);
+  /* What the reader's OWN signal means for them next, said plainly. "You
+     signalled" on its own leaves the obvious question — and then what? —
+     unanswered, and the answer is different on each side: the owner issues the
+     signing link, the counterparty waits for it. */
+  if (mine){
+    const other = me === 'owner' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'the other side');
+    rows.push(`<span class="row" data-ready="me">You signalled ready to sign on
+      ${_ne(when(mine.at))}${theirs ? '' : `, and ${_ne(other)} has not yet`}.
+      ${theirs || me === 'owner' ? '' : `${_ne(other)} will send a signing link when they are ready — nothing is signed until you open it.`}</span>`);
+  }
+  const both = !!(theirs && mine);
+  const stale = !!((theirs && theirs.stale) || (mine && mine.stale));
+  return `<div class="nego-readysig${both ? ' both' : ''}${stale ? ' stale' : ''}" id="nego-ready-signal"
+      data-ready-side="${theirs ? them : me}" role="status">
+    <span class="tick" aria-hidden="true">${both ? '✓✓' : '✓'}</span>
+    <span class="body">${rows.join('')}</span>
+    ${theirs && !theirs.stale && me === 'owner' && !opts.readonly
+      ? `<button class="nego-tbtn acc" id="nego-issue-signing">Issue a signing link</button>` : ''}
+  </div>`;
 }
 
 /* ---------- 2.4: whose turn it is ----------
@@ -886,8 +1022,21 @@ function negoTurnBannerHtml(c, opts){
       border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
     <span style="flex:1;min-width:200px;font-size:12.5px;font-weight:600;color:${mine ? '#14503a' : 'var(--n-ink)'}">
       ${_ne(b.text)}${!mine && when ? ` <span style="font-weight:400;color:var(--n-ink-soft)">— sent ${_ne(when)}</span>` : ''}</span>
-    ${mine && !opts.readonly
-      ? `<button id="nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 13px">Send to ${_ne(side === 'owner' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'the owner'))}</button>`
+    ${''/* THE BUTTON THAT DID NOTHING, and only ever could have done nothing.
+
+           "Send to <the owner>" was rendered on both sides of the banner and
+           wired, on both sides, to the OWNER's share route — it opened the
+           share dialog, which mints a new link to a contract. A counterparty
+           holding a link cannot mint links to somebody else's contract, so on
+           their side the press either opened a dialog they could not complete
+           or, on their page, silently found nothing to open.
+
+           Their answers do not travel by minting a link. They travel on the
+           response route, from the send that sits in the change index beside
+           the decisions it carries. So the banner's send is the owner's, and
+           theirs is where their work is. */}
+    ${mine && !opts.readonly && side === 'owner'
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 13px">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;
 }
@@ -897,6 +1046,27 @@ function negoTurnBannerHtml(c, opts){
    The three panes and the two dividers between them, shared by the room and by
    the embedded mode so there is exactly one of these to get right. Labels are
    the prototype's own words. */
+/* THE POSTBOX FOR PER-CHANGE ANSWERS, and it belongs in the index.
+
+   A decision is taken on one card at a time; the send is what puts the batch of
+   them in the post. It sat in the top bar, beside verbs about the whole deal,
+   which made it read as a third answer to the deal — and put it next to a
+   SECOND send ("Send to …", the owner's share route, which on the
+   counterparty's link tried to mint a share link they cannot mint and silently
+   did nothing at all). One send, in the place the thing it sends is made.
+
+   Rendered only where there is something to send. A button that is always there
+   and usually does nothing teaches people to ignore it. */
+function negoIndexSendHtml(c, opts = {}){
+  if ((opts.side || 'owner') !== 'counterparty' || opts.readonly) return '';
+  const n = opts.pendingDecisions || 0;
+  if (!n) return '';
+  return `<div class="nego-index-send">
+    <button id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>
+    <span class="why">Held on this page until you send them. Nothing has reached
+      ${_ne(String(opts.org || window.FIRST_PARTY || 'the other side'))} yet.</span>
+  </div>`;
+}
 function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
@@ -944,7 +1114,8 @@ function negoPanesHtml(c, opts = {}){
         ${canAct ? `<div class="nego-bulk">
           <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
-        </div>` : ''}`}
+        </div>` : ''}
+        ${negoIndexSendHtml(c, opts)}`}
       </div>
       <div class="nego-index-scroll" id="nego-cards">${negoCardsHtml(c, opts)}</div>
     </aside>
@@ -978,6 +1149,48 @@ function negoTabHtml(c, opts = {}){
    breadcrumb rather than a new button — "Doc ›" already reads as where you came
    from, so making it the exit says the same thing with one control instead of
    two. */
+/* WHO IS ANSWERING, asked in the room.
+
+   Their name gated every send, and the field it was read from lived on the page
+   UNDERNEATH the full-window room. Once the room became the page they were sent
+   rather than a mode they entered, that field was unreachable — so the very
+   first line of the send ("Enter your full name") failed a check against a box
+   nobody could see or fill, and the button did nothing, forever, with no
+   explanation. The field belongs where the sending happens.
+
+   Prefilled from the share's recipient where the sender addressed it to a
+   person, and still theirs to correct: the sender's address book is not
+   evidence of who is actually at the keyboard. */
+function negoNameFieldHtml(opts = {}){
+  /* ONLY from the share's recipient. Not from opts.by, which falls back to the
+     counterparty ORGANISATION when nobody is named — filling this box with
+     "Nordfrakt Logistik AB" would file a company as the person who answered,
+     and would do it silently because the box would look already-filled. An
+     empty box asks the question; a wrong one answers it. */
+  const v = String(opts.recipientName || '').trim();
+  return `<label class="nego-who" title="The name recorded against your answers">
+    <span class="lbl">You</span>
+    <input id="nego-cp-name" type="text" value="${_ne(v)}" placeholder="Your full name"
+      aria-label="Your full name, recorded against your answers"/>
+  </label>`;
+}
+/* IS THERE ANYWHERE TO GO? The room has a way out only when there is a page
+   behind it. For the owner there always is — the workspace they came from. For
+   the counterparty it depends entirely on what the link was:
+
+     a NEGOTIATION link  → the room IS the page they were sent. Nothing is
+                           behind it, so "← Doc" led to an empty shell and Esc
+                           did the same by accident. No exit, and none wanted.
+     a SIGNING link      → they are reading the document and pressed "Review
+                           what changed". That is a mode they entered from a
+                           page that still exists, so it has a way back.
+
+   Defaulting to "no exit for the counterparty" keeps the first case right
+   without every caller having to remember; the second says so explicitly. */
+function negoRoomHasExit(opts = {}){
+  if (opts.noExit != null) return !opts.noExit;
+  return (opts.side || 'owner') !== 'counterparty';
+}
 function negoRoomActionsHtml(c, opts){
   const side = opts.side || 'owner';
   const p = negoProgress(c);
@@ -1004,13 +1217,52 @@ function negoRoomActionsHtml(c, opts){
        and common answer — withholding the button would not withhold the
        decision, only make them press Accept six times to say the same thing.
        A lesser screen for the other side is the thing this room exists not to
-       be. Everything needed to read, judge, propose and answer is here. */
-    const n = (opts.pendingDecisions || 0);
+       be. Everything needed to read, judge, propose and answer is here.
+
+       TWO VERBS, BOTH ABOUT THE WHOLE DEAL. There were four, at two different
+       scopes, rendered as equals:
+
+         · "Accept wording" accepted the entire document. In a room whose whole
+           premise is a decision per change, pressing it with changes still
+           pending filed an acceptance on nobody's behalf — an answer to
+           everyone's ask that answered none of them. Gone.
+         · "Approve & sign" signed nothing; it routed to a panel. It is now
+           "Ready to sign", which is what it always did.
+         · "Send N decisions" moved to the change index, next to the decisions.
+
+       What is left is the pair that has no per-change equivalent: say the deal
+       is settled, or end it. */
+    const al = window.negoAlignment ? negoAlignment(c) : { aligned: true };
+    const why = window.negoAlignmentWhy ? negoAlignmentWhy(c, 'counterparty') : '';
+    const sent = !!opts.readySignalled;
+    const ready = al.aligned && !comparing && !sent;
+    /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE. Read-only is a real and
+       correct state — a spent link, an answered one-shot, a copy with no
+       channel back — but rendering it as simply an absence leaves the reader
+       looking for a button that was never going to be there. */
+    if (opts.readonly && opts.readonlyWhy)
+      return `<span class="nego-why" id="nego-readonly-why">${_ne(opts.readonlyWhy)}</span>`;
+    /* RENDERED ON !readonly, DISABLED ON comparing — two different questions
+       that one flag was answering for both.
+
+       `canAct` is false while the panes show two OLD versions, which is right
+       for the bulk verbs: nothing on that screen is a live proposal. It is
+       wrong for this bar. Gating the bar on it emptied the top of their screen
+       the moment they compared two versions — no Decline, no explanation, and
+       the NAME FIELD gone, taking whatever they had typed into it with it.
+       Ending a deal has no precondition, and who you are does not depend on
+       which version you are looking at. */
+    const canShow = !opts.readonly;
     return `
-      ${n ? `<button class="nego-tbtn acc" id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>` : ''}
-      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-accept">Accept wording</button>` : ''}
-      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
-      ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}
+      ${canShow ? negoNameFieldHtml(opts) : ''}
+      ${canShow ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
+      ${canShow ? `<button class="nego-tbtn acc" id="nego-cp-ready"${ready ? '' : ' disabled'}
+        title="${sent ? 'Already sent — they know you are ready'
+          : ready ? 'Tell them everything is settled from your side. Nothing is signed here.'
+          : _ne(comparing ? 'Not while you are comparing versions' : why)}">${
+        sent ? 'Sent — they know you are ready' : 'Ready to sign'}</button>` : ''}
+      ${canShow && !ready && !sent ? `<span class="nego-why" id="nego-ready-why">${
+        _ne(comparing ? 'Not while you are comparing versions' : why)}</span>` : ''}
 `;
   }
   return `
@@ -1028,7 +1280,14 @@ function negoRoomActionsHtml(c, opts){
 function negoRoomHtml(c, opts = {}){
   negoInit(c);
   const side = opts.side || 'owner';
-  const ready = negoReadyToSign(c);
+  /* ALIGNMENT, not "every change has an answer". negoReadyToSign asks whether
+     the ROUND is finished, which a refused ask satisfies. This banner says
+     "nothing is outstanding between the parties", which a refused ask does not
+     — so gating it on the weaker question had it announce agreement over a live
+     disagreement, which is the class of untruth this screen exists to remove.
+     A refusal clears when the side that asked withdraws it. */
+  const ready = negoProgress(c).total > 0
+    && (window.negoAlignment ? negoAlignment(c).aligned : negoReadyToSign(c));
   const org = String(opts.org || (window.FIRST_PARTY || 'HaTi'));
   const who = String(opts.author || (window.currentUser && window.currentUser()?.name) || '');
   const initials = who.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'HT';
@@ -1042,10 +1301,25 @@ function negoRoomHtml(c, opts = {}){
     <header class="nego-topbar">
       <div class="nego-brand"><span class="mark">Ha</span>HaTi <small>Contract Lifecycle Management</small></div>
       <nav class="nego-crumbs" aria-label="Workspace breadcrumbs">
-        <button class="nego-exit" id="nego-exit" title="Leave the negotiation room and go back to the Doc page (Esc)">
+        ${''/* NO WAY OUT ON THEIR SIDE, and that is the correct shape.
+
+              "← Doc" is a breadcrumb: it says there is a workspace behind this
+              room and you came from it. For the owner that is true. For the
+              counterparty there is no Doc page, no workspace, and nothing
+              underneath — the room IS the page they were sent. Pressing it left
+              them on an empty shell with no way back, and Esc did the same
+              thing by accident.
+
+              This deliberately reverses an assertion made a round ago, that
+              "leaving the room lands on their page and does not snap shut
+              again". That was true while the room was a mode you entered from a
+              portal page. It stopped being true when the room became the
+              landing. The f49 test that asserted it has been rewritten to
+              assert the opposite, rather than worked around. */}
+        ${negoRoomHasExit(opts) ? `<button class="nego-exit" id="nego-exit" title="Leave the negotiation room and go back to the Doc page (Esc)">
           <span aria-hidden="true">←</span> Doc
         </button>
-        <span class="sep" aria-hidden="true">›</span>
+        <span class="sep" aria-hidden="true">›</span>` : ''}
         <span class="path">${side === 'counterparty' ? '' : 'Contract Workspace '}${_ne(path)}</span>
         <span class="draft-chip">${_ne(statusChip)}</span>
       </nav>
@@ -1054,6 +1328,7 @@ function negoRoomHtml(c, opts = {}){
         <div class="nego-avatar" title="${_ne(who || org)}">${_ne(initials)}</div>
       </div>
     </header>
+    ${negoReadySignalHtml(c, opts)}
     ${ready ? negoReadyHtml(c, opts) : ''}
     <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
     ${negoCompareBarHtml(c)}
@@ -1101,7 +1376,12 @@ function negoSetLayout(patch){
 /* The dividers. Applied to the live element rather than through a re-render, so
    a drag is smooth and does not rebuild two documents on every pointer move. */
 function wireNegoLayout(opts = {}){
-  const work = document.getElementById('nego-work');
+  /* Same trap as wireNegotiationTab's, and the same fix: the counterparty's
+     page mounts two copies of the workbench, so a document-wide lookup wired
+     the ROOM's dividers to the hidden embedded one. Dragging the room's
+     dividers did nothing. */
+  const root = (opts.hostId && document.getElementById(opts.hostId)) || document;
+  const work = negoPick(root, 'nego-work');
   if (!work) return;
   const drag = (rz, onDelta, onReset) => {
     if (!rz) return;
@@ -1123,19 +1403,19 @@ function wireNegoLayout(opts = {}){
     });
     rz.addEventListener('dblclick', onReset);
   };
-  drag(document.getElementById('nego-rz-a'),
+  drag(negoPick(root, 'nego-rz-a'),
     (dx, start, box) => {
       const docs = Math.max(1, box.width - negoLayout().c - 12);
       negoSetLayout({ f: start.f + dx / docs });
     },
     () => negoSetLayout({ f: NEGO_F0 }));
-  drag(document.getElementById('nego-rz-b'),
+  drag(negoPick(root, 'nego-rz-b'),
     (dx, start) => negoSetLayout({ c: start.c - dx }),   // drag left widens the index
     () => negoSetLayout({ c: NEGO_C0 }));
 
   const refold = () => { if (opts.rerender) opts.rerender(); };
-  document.getElementById('nego-fold')?.addEventListener('click', () => { negoSetLayout({ idxOff: true }); refold(); });
-  document.getElementById('nego-unfold')?.addEventListener('click', () => { negoSetLayout({ idxOff: false }); refold(); });
+  negoPick(root, 'nego-fold')?.addEventListener('click', () => { negoSetLayout({ idxOff: true }); refold(); });
+  negoPick(root, 'nego-unfold')?.addEventListener('click', () => { negoSetLayout({ idxOff: false }); refold(); });
 }
 
 /* ---------- entering and leaving ----------
@@ -1155,6 +1435,13 @@ let _negoRoomC = null;
    the screen without the room having to reach into the panel. */
 const negoRoomContract = () => (_negoRoomOpen ? _negoRoomC : null);
 let _negoEscHandler = null;
+/* The opts the room is CURRENTLY open with. The Escape handler is registered
+   once on the document and outlives any one room, so it has to ask what is on
+   the screen now rather than what was on it when it was installed — a page that
+   opened the owner's room and then the counterparty's kept the owner's handler
+   and closed a room that has nowhere to go back to. Chromium found it; jsdom
+   could not, because the jsdom stage only ever opens one side. */
+let _negoRoomOpts = null;
 function negoRoomHost(){
   let host = document.getElementById('nego-room-root');
   if (!host){
@@ -1171,32 +1458,62 @@ function openNegotiationRoom(c, opts = {}){
   if (shell && !_negoRoomOpen){ shell.dataset.negoHidden = '1'; shell.classList.add('hidden'); }
   _negoRoomOpen = true;
   _negoRoomC = c;
+  _negoRoomOpts = opts;
   document.body.classList.add('nego-room-open');
   host.innerHTML = negoRoomHtml(c, opts);
-  const rerender = () => openNegotiationRoom(c, opts);
+  /* THE CALLER'S OWN REPAINT WINS, when it supplied one.
+
+     This used to be unconditionally `() => openNegotiationRoom(c, opts)` — the
+     same contract object and the same opts, forever. On the counterparty's page
+     that froze two things the room is supposed to react to: the record is
+     rebuilt from the share payload plus the decisions held in the browser, and
+     `pendingDecisions` is counted from those decisions. Re-opening with the
+     captured opts meant the count stayed at whatever it was when the room first
+     opened — so the send that appears once there is something to send never
+     appeared at all, however many changes they decided.
+
+     Falling back to the local closure keeps the owner's room, which supplies no
+     rerender, working exactly as before. */
+  const rerender = typeof opts.rerender === 'function'
+    ? opts.rerender
+    : () => openNegotiationRoom(c, opts);
   wireNegotiationTab(c, { ...opts, hostId: 'nego-room-root', rerender });
-  wireNegoLayout({ rerender });
-  document.getElementById('nego-exit')?.addEventListener('click', () => closeNegotiationRoom(opts));
-  document.getElementById('nego-save-draft')?.addEventListener('click', () => {
+  wireNegoLayout({ rerender, hostId: 'nego-room-root' });
+  const roomId = id => negoPick(host, id);
+  roomId('nego-exit')?.addEventListener('click', () => closeNegotiationRoom(opts));
+  roomId('nego-save-draft')?.addEventListener('click', () => {
     if (opts.onSaveDraft) opts.onSaveDraft(c);
     else if (window.toast) toast('Saving is not available on this screen', 'err');
   });
-  document.getElementById('nego-share-link')?.addEventListener('click', () => {
+  roomId('nego-share-link')?.addEventListener('click', () => {
     if (opts.onShareLink) opts.onShareLink(c, {});
     else if (window.toast) toast('Sharing is not available on this screen', 'err');
   });
   /* The counterparty's verbs. Each one hands back to the page that owns it —
      the room renders them, it does not implement signing or declining. */
-  for (const [id, hook] of [['nego-cp-sign', 'onSign'], ['nego-cp-accept', 'onAcceptWording'],
+  for (const [id, hook] of [['nego-cp-ready', 'onSignalReady'],
     ['nego-cp-decline', 'onDecline'],
+    ['nego-issue-signing', 'onIssueSigningLink'],
     ['nego-send-decisions', 'onSendDecisions']]){
-    document.getElementById(id)?.addEventListener('click', () => {
+    roomId(id)?.addEventListener('click', () => {
       if (typeof opts[hook] === 'function') opts[hook](c);
       else if (window.toast) toast('That action is not available on this screen', 'err');
     });
   }
+  /* Esc leaves the room — for whoever has somewhere to go. The counterparty
+     does not: the room is the page they were sent, and an accidental Esc used
+     to empty the window under them with no way back.
+
+     The test is made INSIDE the handler, against the room that is open now.
+     Guarding only at registration time was not enough: the listener is a
+     document-level singleton, so one installed for a room with an exit went on
+     answering Escape for every room opened afterwards. */
   if (!_negoEscHandler){
-    _negoEscHandler = e => { if (e.key === 'Escape' && _negoRoomOpen) closeNegotiationRoom(opts); };
+    _negoEscHandler = e => {
+      if (e.key !== 'Escape' || !_negoRoomOpen) return;
+      if (!negoRoomHasExit(_negoRoomOpts || {})) return;
+      closeNegotiationRoom(_negoRoomOpts || {});
+    };
     document.addEventListener('keydown', _negoEscHandler);
   }
   negoAfterPaint(c, { ...opts, hostId: 'nego-room-root' }, host);
@@ -1212,6 +1529,7 @@ function closeNegotiationRoom(opts = {}){
   if (shell && shell.dataset.negoHidden){ delete shell.dataset.negoHidden; shell.classList.remove('hidden'); }
   _negoRoomOpen = false;
   _negoRoomC = null;
+  _negoRoomOpts = null;
   document.body.classList.remove('nego-room-open');
   if (_negoEscHandler){ document.removeEventListener('keydown', _negoEscHandler); _negoEscHandler = null; }
   if (opts && typeof opts.onExit === 'function') opts.onExit();
@@ -1248,36 +1566,71 @@ function negoFocus(c, id, source){
      mode this component mostly runs in. jsdom could not catch it: the markup
      was right in both, and only a browser that actually applies the class shows
      that nothing lights up. Found in the Chromium pass, recorded in BUGLOG. */
-  const root = document.getElementById('nego-root') || document.getElementById('nego-room');
+  /* The ROOM first when the room is open. Both mounts carry these ids, and
+     #nego-root is the embedded copy — so on the counterparty's page every
+     synchronised highlight was applied to a hidden panel while the screen they
+     were reading did not move. */
+  const root = (_negoRoomOpen && document.getElementById('nego-room'))
+    || document.getElementById('nego-root') || document.getElementById('nego-room');
   if (!root) return;
 
   root.querySelectorAll('.nego-clause').forEach(n => n.classList.remove('is-active', 'flash'));
   root.querySelectorAll('.nego-badge').forEach(n => n.classList.remove('is-active'));
   root.querySelectorAll('.nego-card').forEach(n => n.classList.remove('is-active'));
 
-  const base = document.getElementById('nb-' + negoDomId(ch.clauseId));
+  const base = negoPick(root, 'nb-' + negoDomId(ch.clauseId));
   if (base){
     base.classList.add('is-active', 'flash');
     if (base.scrollIntoView) base.scrollIntoView({ block: 'center' });
   }
-  const work = document.getElementById('nw-' + negoDomId(ch.clauseId));
+  const work = negoPick(root, 'nw-' + negoDomId(ch.clauseId));
   if (work){
     work.classList.add('is-active', 'flash');
     if (source !== 'clause' && work.scrollIntoView) work.scrollIntoView({ block: 'center' });
   }
   const badge = root.querySelector(`[data-badge="${ch.id}"]`);
   if (badge && ch.status === 'pending') badge.classList.add('is-active');
-  const card = document.getElementById('nego-card-' + ch.id);
+  const card = negoPick(root, 'nego-card-' + ch.id);
   if (card){
     card.classList.add('is-active');
     if (source !== 'card' && card.scrollIntoView) card.scrollIntoView({ block: 'nearest' });
   }
 }
 
+/* FIND AN ELEMENT BY ID, WITHIN ONE MOUNT.
+
+   Written as an attribute selector rather than `#id` on purpose. The
+   counterparty's page mounts this component twice — the room over the window
+   and the embedded copy underneath — so several ids exist twice in the
+   document, which is what the scoping above exists to survive. But a `#id`
+   selector is answered from the document's id map: it finds the FIRST element
+   with that id and then checks whether it is inside the subtree, returning null
+   when it is not. Scoping to the room would therefore have returned null for
+   every duplicated id instead of the room's own copy — trading one wrong
+   element for none, which is not an improvement.
+
+   `[id="…"]` is matched against the subtree itself and gives the right answer.
+   The value is escaped for the quoted-string form, not for a selector. */
+const negoPick = (root, id) =>
+  (root || document).querySelector('[id="' + String(id).replace(/["\\]/g, '\\$&') + '"]');
+
 function wireNegotiationTab(c, opts = {}){
   const side = opts.side || 'owner';
   const host = document.getElementById(opts.hostId || 'nego-tab');
   if (!host) return;
+  /* SCOPED TO THIS MOUNT, and it has to be.
+
+     The counterparty's page carries TWO copies of this component: the room over
+     the window, and the embedded tab underneath it that the parity test diffs
+     the two sides against. Both mount the same element ids, and every wiring
+     here used document.getElementById — which returns the FIRST match in the
+     document, always the embedded one. So on their page the room's Accept All,
+     Reject All, the index drawer, the export and the per-change reply boxes
+     were all wired to a hidden copy and did nothing when pressed. The controls
+     the reader could actually see had no handlers on them at all.
+
+     Every lookup below goes through the mount this call is wiring. */
+  const byId = id => negoPick(host, id);
   /* Repaint whatever is actually mounted. In the room that is the room —
      re-rendering the embedded tab instead would quietly replace a full-window
      mode with a panel. */
@@ -1342,7 +1695,7 @@ function wireNegotiationTab(c, opts = {}){
     const go = () => {
       const id = row.getAttribute('data-nego-cmp-row');
       for (const prefix of ['nb-', 'nw-']){
-        const el = document.getElementById(prefix + negoDomId(id));
+        const el = byId(prefix + negoDomId(id));
         if (el){ el.classList.add('flash'); if (el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
       }
     };
@@ -1521,6 +1874,30 @@ function wireNegotiationTab(c, opts = {}){
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-undo'), 'pending'); }));
+  /* Withdrawing an ask, and putting it back. Not routed through decide(): this
+     is not a decision on the change and must not read like one — the change
+     keeps its rejected status, and what moves is whether the point is still
+     outstanding between the parties. */
+  host.querySelectorAll('[data-nego-withdraw]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.getAttribute('data-nego-withdraw');
+    if (!window.negoWithdraw || !negoWithdraw(c, id, { side, by: opts.by })) return;
+    _negoActive = id;
+    if (opts.persist !== false && window.persist) persist(c);
+    if (typeof opts.onWithdraw === 'function') opts.onWithdraw(c, id, true);
+    if (window.toast) toast(`#${id} withdrawn — the ask is off the table and no longer stands between you`);
+    again();
+  }));
+  host.querySelectorAll('[data-nego-unwithdraw]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.getAttribute('data-nego-unwithdraw');
+    if (!window.negoUnwithdraw || !negoUnwithdraw(c, id, { side, by: opts.by })) return;
+    _negoActive = id;
+    if (opts.persist !== false && window.persist) persist(c);
+    if (typeof opts.onWithdraw === 'function') opts.onWithdraw(c, id, false);
+    if (window.toast) toast(`#${id} is back on the table`);
+    again();
+  }));
   host.querySelectorAll('[data-nego-reject]').forEach(b => b.addEventListener('click', async e => {
     e.stopPropagation();
     /* A refusal the other side cannot understand is a refusal they will send
@@ -1544,26 +1921,38 @@ function wireNegotiationTab(c, opts = {}){
     _negoThreads[id] = !_negoThreads[id];
     _negoActive = id;
     again();
-    const inp = document.getElementById('nego-ti-' + id);
+    const inp = byId('nego-ti-' + id);
     if (inp && inp.focus) inp.focus();
   }));
   host.querySelectorAll('[data-nego-send]').forEach(b => {
     const id = b.getAttribute('data-nego-send');
     const send = () => {
-      const inp = document.getElementById('nego-ti-' + id);
+      const inp = byId('nego-ti-' + id);
       const text = inp ? String(inp.value || '').trim() : '';
       if (!text){ if (window.toast) toast('Write your reply first', 'err'); return; }
-      negoPostComment(c, id, text, { side, author: opts.author });
+      const msg = negoPostComment(c, id, text, { side, author: opts.author });
       _negoThreads[id] = true;
       _negoActive = id;
       if (opts.persist !== false && window.persist) persist(c);
-      if (window.toast) toast(`Comment posted on #${id} — the contract is unchanged and no round was opened`);
+      /* WHERE THE COMMENT ACTUALLY GOES.
+
+         negoPostComment writes it onto the contract record this screen is
+         reading. On the OWNER's screen that record is the contract, so writing
+         it is the whole job. On the counterparty's it is a copy assembled from
+         the share payload, thrown away on the next paint and never persisted —
+         so a reply typed in the room reached nobody at all, and the room is now
+         the only page they have. The page that owns a channel back supplies one
+         here, and the comment rides the messages route that already exists for
+         exactly this: it changes no wording and closes no link. */
+      if (typeof opts.onComment === 'function' && msg)
+        opts.onComment(c, negoChangeById(c, id), msg);
+      else if (window.toast) toast(`Comment posted on #${id} — the contract is unchanged and no round was opened`);
       again();
-      const back = document.getElementById('nego-ti-' + id);
+      const back = byId('nego-ti-' + id);
       if (back && back.focus) back.focus();
     };
     b.addEventListener('click', e => { e.stopPropagation(); send(); });
-    const inp = document.getElementById('nego-ti-' + id);
+    const inp = byId('nego-ti-' + id);
     if (inp){
       inp.addEventListener('click', e => e.stopPropagation());
       inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); send(); } });
@@ -1579,13 +1968,13 @@ function wireNegotiationTab(c, opts = {}){
       : `${done.length} change${done.length === 1 ? '' : 's'} rejected — those clauses revert to the baseline`);
     again();
   };
-  ['nego-bulk-acc', 'nego-all-acc'].forEach(id => document.getElementById(id)?.addEventListener('click', () => bulk('accepted')));
-  ['nego-bulk-rej', 'nego-all-rej'].forEach(id => document.getElementById(id)?.addEventListener('click', () => bulk('rejected')));
+  ['nego-bulk-acc', 'nego-all-acc'].forEach(id => byId(id)?.addEventListener('click', () => bulk('accepted')));
+  ['nego-bulk-rej', 'nego-all-rej'].forEach(id => byId(id)?.addEventListener('click', () => bulk('rejected')));
 
-  document.getElementById('nego-drawer')?.addEventListener('click', () =>
-    document.getElementById('nego-index')?.classList.toggle('open'));
+  byId('nego-drawer')?.addEventListener('click', () =>
+    byId('nego-index')?.classList.toggle('open'));
 
-  document.getElementById('nego-export')?.addEventListener('click', () => {
+  byId('nego-export')?.addEventListener('click', () => {
     if (negoProgress(c).pending){ if (window.toast) toast('Pending changes must be resolved before a clean export', 'err'); return; }
     if (window.exportContractPdf) exportContractPdf(c);
     else if (window.toast) toast('Export is unavailable on this page', 'err');
@@ -1593,7 +1982,7 @@ function wireNegotiationTab(c, opts = {}){
   /* The hand-off. It closes the round — making the agreed wording the baseline
      — and moves the reader to the tab that owns signing. It does NOT sign, and
      deliberately builds none of that flow. */
-  document.getElementById('nego-to-docs')?.addEventListener('click', () => {
+  byId('nego-to-docs')?.addEventListener('click', () => {
     if (opts.onReadyToSign){ opts.onReadyToSign(c); return; }
     negoAdvanceRound(c, { by: opts.by });
     if (window.persist) persist(c);
@@ -1610,6 +1999,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
+  negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

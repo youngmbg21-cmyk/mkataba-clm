@@ -431,6 +431,7 @@ const check = (name, pass, detail) => {
     window.PORTAL_OPTS = { payload, token: 'tok', superseded: false, responded: false };
     window.openNegotiationRoom(portalNegoContract(payload), {
       side: 'counterparty', by: 'Erik Lindqvist', author: 'Erik Lindqvist',
+      recipientName: 'Erik Lindqvist',
       org: 'Wanjiru Catering Ltd', persist: false });
     await new Promise(r => setTimeout(r, 200));
     const room = document.querySelector('.nego-room');
@@ -447,7 +448,9 @@ const check = (name, pass, detail) => {
       cards: room.querySelectorAll('.nego-card').length,
       tools: room.querySelectorAll('.nego-pane.working .nego-tools').length,
       ownerOnly: ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'].filter(has),
-      theirVerbs: ['nego-cp-sign', 'nego-cp-accept', 'nego-cp-decline'].filter(has),
+      theirVerbs: ['nego-cp-ready', 'nego-cp-decline'].filter(has),
+      /* The verbs that are GONE, and the one that was never theirs to press. */
+      retired: ['nego-cp-sign', 'nego-cp-accept', 'nego-send'].filter(has),
       crumbs: room.querySelector('.nego-crumbs').textContent.replace(/\s+/g, ' ').trim(),
       strip: room.querySelector('#nego-status').textContent.replace(/\s+/g, ' ').trim(),
       bodyScrollW: document.body.scrollWidth, innerW: window.innerWidth };
@@ -473,8 +476,11 @@ const check = (name, pass, detail) => {
   check('none of the owner-only controls reach their screen',
     theirs.ownerOnly && theirs.ownerOnly.length === 0,
     (theirs.ownerOnly || []).join(', ') || 'none');
-  check('their own verbs are in the slot the owner uses for Save Draft',
-    theirs.theirVerbs && theirs.theirVerbs.length === 3, (theirs.theirVerbs || []).join(', '));
+  check('their two deal verbs are in the slot the owner uses for Save Draft',
+    theirs.theirVerbs && theirs.theirVerbs.length === 2, (theirs.theirVerbs || []).join(', '));
+  check('and the retired ones are not rendered at all',
+    theirs.retired && theirs.retired.length === 0,
+    (theirs.retired || []).join(', ') || 'none: Accept wording, Approve & sign and the owner’s Send are gone');
   check('our filing structure is not on their breadcrumb',
     !/Contract Workspace/.test(theirs.crumbs || '') && !/\bWH\b/.test(theirs.crumbs || ''),
     theirs.crumbs);
@@ -484,6 +490,138 @@ const check = (name, pass, detail) => {
   check('their page does not scroll sideways either',
     theirs.bodyScrollW <= theirs.innerW, `${theirs.bodyScrollW} ≤ ${theirs.innerW}`);
   await page.screenshot({ path: path.join(OUT, '09-counterparty.png') });
+
+  /* ---------- THE WAY OUT THAT IS NOT THERE ----------
+     jsdom can say the element is absent. Only a browser can say the breadcrumb
+     row still looks like a breadcrumb row afterwards rather than collapsing,
+     and that nothing else in the chrome is offering a route off the page. */
+  const noExit = await page.evaluate(() => {
+    const room = document.querySelector('.nego-room');
+    const crumbs = room.querySelector('.nego-crumbs');
+    const cr = crumbs.getBoundingClientRect();
+    const clickable = Array.from(room.querySelectorAll('.nego-topbar button, .nego-topbar a'))
+      .map(n => (n.id || n.className) + ':' + n.textContent.replace(/\s+/g, ' ').trim());
+    return { exit: !!room.querySelector('#nego-exit'),
+      exitClass: room.querySelectorAll('.nego-exit').length,
+      crumbText: crumbs.textContent.replace(/\s+/g, ' ').trim(),
+      crumbH: Math.round(cr.height), crumbW: Math.round(cr.width),
+      topbarControls: clickable };
+  });
+  check('there is no exit control anywhere in their chrome',
+    noExit.exit === false && noExit.exitClass === 0,
+    `#nego-exit ${noExit.exit}, .nego-exit ×${noExit.exitClass}`);
+  check('and no route off the page is offered by any other name',
+    !/(^|:)\s*(←|Doc|Back|Close|Exit)/i.test(noExit.topbarControls.join(' | ')),
+    noExit.topbarControls.join(' | '));
+  check('the breadcrumb row still lays out, rather than collapsing without it',
+    noExit.crumbH >= 14 && noExit.crumbW > 100,
+    `${noExit.crumbW}×${noExit.crumbH} — "${noExit.crumbText}"`);
+
+  /* Escape, pressed for real. */
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(120);
+  const afterEsc = await page.evaluate(() => !!document.querySelector('.nego-room'));
+  check('Escape does not empty the window under them', afterEsc === true,
+    afterEsc ? 'the room is still the page' : 'THE ROOM CLOSED');
+
+  /* ---------- THE NAME FIELD, in the room ---------- */
+  const who = await page.evaluate(() => {
+    const el = document.querySelector('.nego-room #nego-cp-name');
+    if (!el) return { there: false };
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    const bar = document.querySelector('.nego-room .nego-top-actions').getBoundingClientRect();
+    return { there: true, value: el.value, w: Math.round(r.width), h: Math.round(r.height),
+      color: cs.color, inBar: r.x >= bar.x - 1 && r.right <= bar.right + 1 };
+  });
+  check('the name they answer under is a real, visible field in the room',
+    who.there && who.w > 80 && who.h > 18, `${who.w}×${who.h}`);
+  check('prefilled from who the link was addressed to',
+    who.value === 'Erik Lindqvist', JSON.stringify(who.value));
+  check('and it sits in the action bar, not off the edge of it', who.inBar === true,
+    `in bar: ${who.inBar}, colour ${who.color}`);
+
+  /* ---------- THE GATE, SHUT ----------
+     The claim is "visible but plainly disabled, and says what is outstanding".
+     Each half of that is a measurement: the button has real size, its label is
+     not washed out to unreadability, and the line beside it is on screen with
+     text in it. */
+  const shut = await page.evaluate(() => {
+    const room = document.querySelector('.nego-room');
+    const b = room.querySelector('#nego-cp-ready');
+    const why = room.querySelector('#nego-ready-why');
+    const rb = b.getBoundingClientRect();
+    const cb = getComputedStyle(b);
+    const rw = why ? why.getBoundingClientRect() : null;
+    return { label: b.textContent.trim(), disabled: b.disabled,
+      w: Math.round(rb.width), h: Math.round(rb.height),
+      opacity: Number(cb.opacity), color: cb.color, border: cb.borderStyle,
+      cursor: cb.cursor, title: b.getAttribute('title'),
+      why: why ? why.textContent.replace(/\s+/g, ' ').trim() : null,
+      whyW: rw ? Math.round(rw.width) : 0, whyH: rw ? Math.round(rw.height) : 0,
+      whyOnScreen: !!rw && rw.right <= window.innerWidth + 1 && rw.width > 40 };
+  });
+  check('with changes outstanding the button is present, and says Ready to sign',
+    shut.label === 'Ready to sign' && shut.w > 60 && shut.h > 20,
+    `"${shut.label}" ${shut.w}×${shut.h}`);
+  check('it is plainly not pressable', shut.disabled === true && shut.cursor === 'not-allowed',
+    `disabled ${shut.disabled}, cursor ${shut.cursor}, border ${shut.border}`);
+  check('and it is still LEGIBLE — not faded out to where the label cannot be read',
+    shut.opacity === 1, `opacity ${shut.opacity}, colour ${shut.color}`);
+  check('the reason is on the screen beside it, not only in a tooltip',
+    shut.whyOnScreen && /waiting on a decision|refused/.test(shut.why || ''),
+    `${shut.whyW}×${shut.whyH} — "${shut.why}"`);
+  check('and the tooltip says the same thing rather than something else',
+    shut.title === shut.why, `title "${shut.title}"`);
+  await page.screenshot({ path: path.join(OUT, '10-ready-disabled.png') });
+
+  /* ---------- THE GATE, OPEN ----------
+     Every ask on this fixture is the counterparty's own, so it is the OWNER who
+     answers them. Answered, the parties are aligned and the button opens. */
+  const open = await page.evaluate(async () => {
+    const c = window.CONTRACT;
+    for (const ch of negoChanges(c))
+      negoResolve(c, ch.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
+    const payload = buildSharePayload(c, 'dochash-chromium',
+      { org: 'Wanjiru Catering Ltd', sharedBy: 'Wanjiru Kamau' }, { purpose: 'negotiate' });
+    window.PORTAL_OPTS = { payload, token: 'tok', superseded: false, responded: false };
+    document.getElementById('nego-room-root').innerHTML = '';
+    window.openNegotiationRoom(portalNegoContract(payload), {
+      side: 'counterparty', by: 'Erik Lindqvist', author: 'Erik Lindqvist',
+      recipientName: 'Erik Lindqvist', org: 'Wanjiru Catering Ltd', persist: false,
+      /* One decision held on their page, so the send that carries it is on the
+         screen to be measured. Where it SITS is the claim here. */
+      pendingDecisions: 1 });
+    await new Promise(r => setTimeout(r, 200));
+    const room = document.querySelector('.nego-room');
+    const b = room.querySelector('#nego-cp-ready');
+    const cb = getComputedStyle(b);
+    const rb = b.getBoundingClientRect();
+    const send = room.querySelector('#nego-send-decisions');
+    const idx = room.querySelector('.nego-pane.index').getBoundingClientRect();
+    const bar = room.querySelector('.nego-top-actions').getBoundingClientRect();
+    const rs = send ? send.getBoundingClientRect() : null;
+    return { label: b.textContent.trim(), disabled: b.disabled,
+      bg: cb.backgroundColor, cursor: cb.cursor,
+      w: Math.round(rb.width), h: Math.round(rb.height),
+      why: !!room.querySelector('#nego-ready-why'),
+      send: !!send, sendText: send ? send.textContent.replace(/\s+/g, ' ').trim() : null,
+      sendInIndex: !!rs && rs.x >= idx.x - 1 && rs.right <= idx.right + 1
+        && rs.y >= idx.y - 1 && rs.bottom <= idx.bottom + 1,
+      sendInTopBar: !!rs && rs.y < bar.bottom };
+  });
+  check('with everything settled the same button opens',
+    open.disabled === false && open.cursor !== 'not-allowed',
+    `disabled ${open.disabled}, cursor ${open.cursor}, background ${open.bg}`);
+  check('it keeps its size and its name — the control did not move or rename itself',
+    open.label === 'Ready to sign' && Math.abs(open.w - shut.w) <= 2 && open.h === shut.h,
+    `${open.w}×${open.h} vs ${shut.w}×${shut.h}`);
+  check('and the line explaining what was outstanding is gone, because nothing is',
+    open.why === false, `why line present: ${open.why}`);
+  check('the send for held decisions sits INSIDE the change index',
+    open.send && open.sendInIndex && !open.sendInTopBar,
+    `${open.sendText} — in index: ${open.sendInIndex}, in top bar: ${open.sendInTopBar}`);
+  await page.screenshot({ path: path.join(OUT, '11-ready-enabled.png') });
 
   await browser.close();
   srv.close();

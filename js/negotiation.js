@@ -786,6 +786,11 @@ function negoResolve(c, id, status, opts = {}){
 
   negoInvalidateVerification(c);
   ch.status = status;
+  /* A withdrawal answers ONE rejection. Rule on the change again — reopen it,
+     accept it, refuse it afresh — and the acknowledgement is about a decision
+     that no longer stands, so it goes with it. Leaving it would let a stale
+     withdrawal report the parties as aligned over a live disagreement. */
+  if (ch.withdrawn) ch.withdrawn = null;
   ch.resolvedBy = status === 'pending' ? null : who;
   ch.resolvedAt = status === 'pending' ? null : (window.nowISO ? window.nowISO() : new Date().toISOString());
   ch.reply = String(opts.reply || ch.reply || '').slice(0, 2000) || null;
@@ -812,6 +817,64 @@ function negoResolveAll(c, status, opts = {}){
   const out = [];
   for (const ch of pending){ if (negoResolve(c, ch.id, status, opts)) out.push(ch); }
   return out;
+}
+
+/* ---------- withdrawing an ask ----------
+   THE DEADLOCK THIS EXISTS TO BREAK.
+
+   "Ready to sign" is gated on the parties being aligned, and a rejected change
+   is not agreement — it is one side asking for something and the other side
+   saying no. If "aligned" meant only "nothing pending", a refusal would count
+   as settled and the button would go green over a live disagreement. If it
+   meant "everything accepted", a single refusal would block signature forever
+   and neither party could ever get out, which is worse than the bug it fixes.
+
+   So a rejected change is settled when THE PARTY WHO ASKED accepts the refusal
+   and takes the ask off the table. That is this verb. It is an acknowledgement,
+   not a second rejection: the change keeps its status, its author, its
+   fingerprint and its reply, and the record still reads "proposed, refused,
+   and the proposer let it go" rather than pretending the ask never happened.
+
+   Only the proposer may press it. A side that could withdraw the OTHER side's
+   ask could clear the board of every objection raised against its own wording
+   and then report the deal as aligned — the same class of thing negoResolve's
+   "nobody rules on their own ask" rule exists to prevent, in the other
+   direction. */
+function negoWithdraw(c, id, opts = {}){
+  negoInit(c);
+  const ch = negoChangeById(c, id);
+  if (!ch) return null;
+  if (ch.status !== 'rejected'){
+    if (window.toast) toast('Only a refused ask can be withdrawn', 'err');
+    return null;
+  }
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (side !== ch.authorSide){
+    if (window.toast) toast('Only the side that asked for this can withdraw it', 'err');
+    return null;
+  }
+  if (ch.withdrawn) return ch;                    // idempotent; pressing twice is not two events
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  ch.withdrawn = { by: who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()) };
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `#${ch.id} withdrawn by ${who} — “${ch.summary}” was refused and the side that asked for it has`
+    + ` accepted the refusal; the point is no longer outstanding between the parties`);
+  c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
+  return ch;
+}
+/* Put a withdrawn ask back on the table. The counterpart to the verb above, for
+   the same reason every other decision on this screen is reversible: a control
+   that cannot be undone is one people are afraid to press. */
+function negoUnwithdraw(c, id, opts = {}){
+  const ch = negoChangeById(c, id);
+  if (!ch || !ch.withdrawn) return null;
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (side !== ch.authorSide) return null;
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  ch.withdrawn = null;
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `#${ch.id} put back on the table by ${who} — the withdrawal was undone and the refused ask is outstanding again`);
+  return ch;
 }
 
 /* ---------- talking about a change ----------
@@ -864,6 +927,118 @@ function negoReadyToSign(c){
   const p = negoProgress(c);
   return p.total > 0 && p.pending === 0;
 }
+/* ---------- are the parties actually aligned? ----------
+   What gates "Ready to sign", and a stricter question than negoReadyToSign
+   above. That one asks whether every change has AN ANSWER, which is the right
+   question for "is this round finished". This one asks whether the answers
+   amount to AGREEMENT, which is the only honest basis for telling someone a
+   contract is ready to be signed.
+
+   The two differ on exactly one case, and it is the case that matters: a
+   refused ask. It has an answer, so the round is finished; it is not agreement,
+   so the deal is not. It stops being outstanding when the side that asked for
+   it withdraws it — see negoWithdraw.
+
+     pending                       → outstanding: nobody has answered
+     rejected, not withdrawn       → contested: answered, and the answer was no
+     rejected, withdrawn           → settled: the asker let it go
+     accepted                      → settled: it is in the wording
+
+   A contract with no changes at all is aligned. There is nothing to disagree
+   about, and a first-draft contract sent out clean is the commonest signing
+   case there is — refusing to call that aligned would gate the button on a
+   negotiation that never happened.
+
+   A READ of the change set, never a stored flag, for the same reason
+   negoReadyToSign is: a flag could disagree with the changes it claims to
+   summarise, and on this button that disagreement is an invitation to sign
+   something nobody had finished arguing about. */
+function negoAlignment(c){
+  /* Reads c.changes DIRECTLY rather than through negoChanges, which calls
+     negoInit and would create a negotiation record — and stamp clause ids into
+     the document — on any contract merely asked the question. The dashboard
+     asks it of every contract in the portfolio, most of them loaded as
+     summaries with their bodies stripped, and a read must not write. */
+  const live = (Array.isArray(c && c.changes) ? c.changes : []).filter(x => x && x.status !== 'superseded');
+  const pending = live.filter(x => x.status === 'pending');
+  const contested = live.filter(x => x.status === 'rejected' && !x.withdrawn);
+  return { aligned: !pending.length && !contested.length,
+    total: live.length, pending, contested,
+    outstanding: pending.concat(contested) };
+}
+/* What is stopping this, in words, for the disabled button to say. Never
+   "not ready yet": a control that refuses without saying why teaches nothing,
+   and the reader is the one person who can clear it. */
+function negoAlignmentWhy(c, side){
+  const a = negoAlignment(c);
+  if (a.aligned) return '';
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const bits = [];
+  if (a.pending.length)
+    bits.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'} still waiting on a decision`);
+  if (a.contested.length){
+    const mine = a.contested.filter(x => x.authorSide === me).length;
+    const theirs = a.contested.length - mine;
+    if (mine) bits.push(`${mine} of your asks refused — withdraw ${mine === 1 ? 'it' : 'them'} or keep negotiating`);
+    if (theirs) bits.push(`${theirs} refused ask${theirs === 1 ? '' : 's'} the other side has not withdrawn`);
+  }
+  return bits.join(' · ');
+}
+
+/* ---------- signalling readiness ----------
+   A SIGNAL, NEVER AN INFERENCE. The old rule read the change set and decided
+   for the reader that they were ready — resolve the last change and the link
+   silently became a signature request. Nobody said they were ready; the
+   arithmetic said it for them.
+
+   So readiness is a thing a person does, recorded with who did it, when, and
+   which side they were on. The gate above decides whether they MAY press it;
+   pressing it is still theirs. It changes no wording, opens no round and signs
+   nothing — it tells the other side the deal is done being argued about, and
+   the other side is the one who issues the signing link. */
+function negoSignalReady(c, opts = {}){
+  negoInit(c);
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const a = negoAlignment(c);
+  if (!a.aligned){
+    if (window.toast) toast('Not everything is settled yet — ' + negoAlignmentWhy(c, side), 'err');
+    return null;
+  }
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name)
+    || (side === 'counterparty' ? (c.counterparty || 'The counterparty') : 'This workspace'));
+  const n = c.negotiation;
+  n.ready = (n.ready && typeof n.ready === 'object') ? n.ready : {};
+  const sig = { by: who, side, at: opts.at || (window.nowISO ? window.nowISO() : new Date().toISOString()),
+    email: opts.email || null, round: n.round || 1,
+    changes: a.total, accepted: negoChanges(c).filter(x => x.status === 'accepted').length,
+    withdrawn: negoChanges(c).filter(x => x.withdrawn).length };
+  n.ready[side] = sig;
+  if (window.logAudit) logAudit(c, 'Ready to sign',
+    `${who} signalled that ${side === 'counterparty' ? 'the counterparty' : 'this workspace'} is ready to sign`
+    + ` — round ${sig.round}, ${sig.changes} change${sig.changes === 1 ? '' : 's'} settled`
+    + `${sig.accepted ? ` (${sig.accepted} adopted into the wording)` : ''}`
+    + `${sig.withdrawn ? `, ${sig.withdrawn} ask${sig.withdrawn === 1 ? '' : 's'} withdrawn` : ''}`
+    + '. Nothing has been signed — a signing link has still to be issued.');
+  c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
+  return sig;
+}
+/* Who has signalled, read back. `null` rather than a made-up default, so a
+   caller cannot mistake "nobody has said so" for "they said no".
+
+   `stale` is COMPUTED, never stored. A readiness signal describes a change set
+   at a moment: everything settled, nothing contested. Propose a new ask after
+   it, reopen a decided one, or refuse something afresh, and the signal is still
+   a true record of what was said and no longer a true description of where the
+   deal stands. Deleting it would erase the fact that it was given; leaving it
+   unqualified would have the owner issue a signing link for a contract that had
+   gone back into negotiation. So it is kept, and marked. */
+const negoReadySignal = (c, side) => {
+  const n = (c && c.negotiation && c.negotiation.ready) || null;
+  if (!n) return null;
+  const sig = n[side === 'counterparty' ? 'counterparty' : 'owner'] || null;
+  if (!sig) return null;
+  return { ...sig, stale: !negoAlignment(c).aligned };
+};
 /* Points the counterparty raised that were refused, and are therefore still
    live between the parties. A rejected change that simply vanishes from the
    document reads as agreement, and it is not.
@@ -884,6 +1059,10 @@ function negoOpenPoints(c){
   const out = [];
   for (const x of negoAllChanges(c)){
     if (x.status !== 'rejected' || x.authorSide !== 'counterparty') continue;
+    /* A withdrawn ask is not an open point. They asked, we said no, and they
+       accepted that — listing it as still live between the parties would
+       contradict the acknowledgement they gave. */
+    if (x.withdrawn) continue;
     const want = norm(x.newText), had = norm(x.oldText);
     if (want && live.includes(want)) continue;      // they got it in the end
     if (had && !live.includes(had)) continue;       // the clause has moved on since
@@ -1373,9 +1552,10 @@ if (typeof window !== 'undefined') Object.assign(window, {
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
-  negoResolve, negoResolveAll,
+  negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw,
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
+  negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionByKey, negoIsLivePair, negoCompareVersions,

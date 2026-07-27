@@ -2334,3 +2334,231 @@ modules ever claim the same name again.
 **Where the tests stand:** 825 automated tests passing (770 before this round),
 and 52 of 52 real-browser checks — including measuring the counterparty's page
 against your own, pane by pane.
+
+---
+
+# Round: the negotiation room — the verbs, the send, and the way out
+
+Written for someone who is not reading the code.
+
+## What you reported, and what was actually wrong
+
+### The two rows of buttons
+
+You were right that it read as a duplicate, and it was worse than one. The two
+rows were doing different jobs at different scales, and nothing on the screen
+said so. The buttons beside each change answer **that change**. The buttons
+along the top answer **the whole deal**.
+
+Among the top ones was **"Accept wording"** — which accepted the entire
+document. Press it with changes still on the table and it filed an acceptance
+that answered nobody's specific ask. It is gone. **"Approve & sign"** signed
+nothing; it opened a panel. It now says **"Ready to sign"**, which is what it
+did. And **"Send N decisions"** moved down into the change list, next to the
+decisions it sends.
+
+The counterparty's top bar now has two buttons, both about the whole deal:
+**Ready to sign** and **Decline**.
+
+### "Send to Young" did nothing — there were four reasons
+
+Any one of them would have been enough. All four were real, and all four are
+fixed.
+
+1. **It was the wrong button.** It was the owner's *share* button, shown by
+   mistake on their side too. Pressing it tried to create a new share link,
+   which a counterparty cannot do for someone else's contract.
+2. **The right button couldn't have worked either.** Sending requires their
+   name. The name box lived on the page *underneath* the full-screen room —
+   unreachable once the room became the page they land on. So every send failed
+   its own first check against a box nobody could see. **Their name is now
+   asked for in the room**, filled in from whoever you addressed the link to.
+3. **The server was rejecting it.** Its list of allowed replies never included
+   "decisions". Every batch of per-change answers ever sent came back as an
+   error the page never showed.
+4. **And it was posting the message in the wrong wrapper**, so even with the
+   third fixed the server would not have recognised it. Two faults in one line,
+   the second hidden behind the first.
+
+### Half the room's buttons weren't connected to anything
+
+Found while walking the journey, not from your report. Their page was quietly
+building **two copies** of the negotiation — the room you see, and a hidden one
+behind it. Because both copies use the same names for their parts, every button
+in the room was connected to the hidden copy instead. **Accept All**,
+**Reject All**, the reply boxes on each change, folding the change list away —
+none of them did anything when pressed.
+
+That is now fixed, and the hidden duplicate is no longer part of the page.
+
+### The way out
+
+`← Doc` is a "go back to where you came from" link. For you that's true — the
+room sits on top of your workspace. For them there is nothing behind it: the
+room **is** the page you sent them. Pressing it left them staring at an empty
+screen, and the Escape key did the same thing by accident.
+
+Both are gone on their side. **This reverses something I told you last round**
+("leaving the room lands on their page and does not snap shut again"). That was
+true when the room was a mode they opened; it stopped being true when the room
+became the page. The test that asserted it is rewritten to assert the opposite —
+not quietly deleted.
+
+They keep a way back in one case, and it's the right one: if they arrive on a
+*signing* link and press "Review what changed", that genuinely is a detour from
+a page that still exists.
+
+## Ready to sign
+
+### It is signalled, never guessed
+
+Before, the software counted the outstanding changes and decided for them. Once
+the last change was resolved — **even if it was resolved by refusing it** — the
+link they'd been negotiating in quietly turned into a request for their
+signature. Nobody had said the deal was done; arithmetic said it for them.
+
+The same guess turned a clean first draft sent out for negotiation into a
+signing request, so someone invited to negotiate had nowhere to propose
+anything.
+
+Now the link says what it is for when you create it. **A negotiation link is the
+room, always** — resolved or not — until you issue a signing link. And readiness
+is a thing a person does.
+
+### The button is gated, and says why it's shut
+
+Green only when the parties are genuinely aligned: nothing waiting on a
+decision, and nothing refused that is still being argued about. Until then it
+sits there **visible, plainly not pressable, with a line beside it naming what
+is outstanding** — "3 changes still waiting on a decision", or "1 of your asks
+refused — withdraw it or keep negotiating". A button that vanishes teaches
+nothing.
+
+Measured in a real browser: the label stays fully legible when disabled (not
+faded to grey), it keeps the same size when it opens, and the explanation is on
+screen rather than hidden in a tooltip.
+
+### One press, one call
+
+Pressing **Ready to sign** sends their decisions **and** their readiness in a
+single message. "Did I remember to press Send?" is no longer a way to lose a
+round.
+
+### The deadlock, and the call I made about it
+
+This is the judgement call I flagged, and I built it.
+
+If refusing an ask counted as settling it, the button would go green over a live
+disagreement. If only acceptance counted, a single refusal would block signing
+**forever** and neither side could get out — worse than the bug the gate fixes.
+
+So there is a new small verb: **"Withdraw this ask"**, on a refused change,
+available only to whoever made it. It means "you said no, and I'm letting it
+go". The refusal stays on the record — nothing is erased — the point simply
+stops standing between you. It can be undone.
+
+Without it the gate would have been a trap. With it, either side can always
+clear their own half.
+
+## What reaches you when they signal
+
+Three places, as asked:
+
+1. **In the negotiation room**, at the top, with an **Issue a signing link**
+   button on it.
+2. **On the Docs page**, in the status band above the document where the
+   "Changes returned" strip lives, so someone who has stopped opening the room
+   still sees it.
+3. **On the dashboard**, in the "waiting on you" card, counted and named.
+
+All three say, in those words, **"Nothing is signed yet."** It's recorded in the
+audit trail the same way, and you get an email.
+
+**If something is reopened afterwards** — a new ask filed, a change put back to
+pending — the signal is marked as no longer describing where the deal stands,
+and the "issue a signing link" button withdraws itself. It isn't deleted: they
+did say it, and that stays true.
+
+## Signing arrives on a new link
+
+You issue it. The old negotiation link is retired the moment you do — it still
+**opens**, because they're entitled to see what they were sent, but it can no
+longer be answered, and it tells them a signing link was issued and when.
+
+This rides the mechanism already there for retiring old links, with one honest
+addition: previously a link was only retired when the *wording* changed, and at
+this exact moment the wording is identical — that's the whole point, you've
+agreed on it. So a signing link now retires the negotiation links it replaces,
+including the standing "one link for the whole negotiation" kind.
+
+**No signing was built.** The signing link opens the panel that already existed,
+exactly as you photographed it, including "Propose edits (redline)".
+
+## Six more things found by walking the journey
+
+None of these were in your report. They were found by walking the whole thing
+from step 1, twelve times.
+
+- **Decisions appeared to un-answer themselves the moment they were sent.** The
+  room redraws from the copy of the contract it was sent, which was made before
+  they answered — so every card snapped back to "waiting for a decision" a
+  second after they'd pressed Send. They now stay answered and are marked
+  **sent**.
+- **Comments typed on a change reached nobody.** They were written onto a
+  throwaway copy of the contract and discarded on the next redraw. They now go
+  down the same channel the discussion panel uses.
+- **Declining asked for a reason it gave them no way to give.** Same trap as the
+  name — the box was on the page underneath. It asks in the room now, and
+  cancelling sends nothing.
+- **Answering never handed the turn back to you.** Your banner went on saying
+  "Waiting on Nordfrakt" over a contract Nordfrakt had already replied to.
+- **Comparing two versions emptied their whole top bar**, taking the name
+  they'd typed with it.
+- **Your own "Ready to sign — every change is resolved" banner** appeared when
+  one of their asks had been *refused*, claiming "nothing is outstanding
+  between the parties". It wasn't.
+
+## Tests
+
+- **New:** `f51` — the full journey in both directions, 83 tests. Owner
+  proposes → they land on the room → decide individually and in bulk → the
+  gate refuses and explains → they settle → one press sends everything → it
+  lands on your record and in all three surfaces → you issue a signing link →
+  the old one goes quiet. Then in reverse, and the mirror. Plus refresh
+  mid-journey, reopening after sending, a contract with no changes, Decline at
+  every stage, a spent link, a failed send, and the single-rejection deadlock.
+  It runs the real server for the wire.
+- **Rewritten, not worked around:**
+  - `f49` — three tests. "Leaving the room lands on their page" became "there is
+    no way out, because there is nowhere to go" and "Escape does not empty the
+    window under them". "Every change resolved opens the signing view" became
+    "a negotiation link stays the room, resolved or not". A test was added for
+    old links created before this change, which still open the way they did.
+  - `f38` — the counterparty's verbs, now two instead of four, plus their name
+    field.
+  - `f37` — the "same screen" claim, and the message envelope it had been
+    asserting in the broken shape.
+  - `f36` — "Ready to sign appears when every change has an answer" became
+    "…when every change is **agreed**", with the refusal-and-withdrawal case.
+- **Browser measurements:** 69 checks, up from 52. New ones measure that there
+  is no exit and no other route off the page, that Escape really doesn't close
+  it, that the name field is real and filled in, that the disabled button is
+  legible and its explanation is on screen, that it keeps its size and name when
+  it opens, and that the send sits inside the change list and not in the top bar.
+
+**Where things stand: 915 automated tests passing** (825 before this round),
+**69 of 69 real-browser checks**. Twelve full walks of the journey; the last two
+found nothing new.
+
+## Still open
+
+- Signing itself is not built — the signing link opens the panel that already
+  existed.
+- The mobile/WhatsApp counterparty portal is untouched, as you asked.
+- The hidden second copy of the negotiation still exists on their page. It can
+  no longer be reached and no longer steals the room's buttons, but it is still
+  there, because it is what proves the two sides see the same screen. Removing
+  it properly means finding another way to prove that, which is its own job.
+- The dashboard's readiness list is tested through the two pieces it is built
+  from rather than by starting the whole dashboard, which needs the entire
+  application around it.

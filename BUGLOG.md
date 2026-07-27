@@ -3702,3 +3702,289 @@ Removed.
 The figure recorded above (806 / 52) was taken before f50 and the collision
 guard. Final for this round: **825 tests / 170 suites / 0 fail**, Chromium
 **52/52**.
+
+---
+
+# Round: the negotiation room's verbs, the send that did nothing, and the way out
+
+Reported with four screenshots of the counterparty's own screen. What follows is
+one entry per gap, in the order the journey hits them. Every one was found by
+reading the code behind the report or by walking the whole journey afterwards —
+twelve walks in all, each one restarting from step 1.
+
+## 1. Two rows of verbs, at two different scopes, rendered as equals
+
+**Where:** `js/views/negotiation.js`, `negoRoomActionsHtml`.
+
+The change index carried `Accept` / `Reject` / `Discuss` / `Undo` per card and
+`Accept All` / `Reject All` above them. Those act on **one change at a time**.
+The top bar carried four more — `Send N decisions`, `Accept wording`, `Decline`,
+`Approve & sign` — and those are answers about **the whole deal**. Nothing on
+the screen distinguished the two scopes.
+
+Worse than a duplicate:
+
+- **`Accept wording`** was a whole-document acceptance inherited from the
+  portal's respond panel. Pressed with changes still pending it filed an
+  acceptance on nobody's behalf — an answer to everyone's ask that answered
+  none of them. **Removed.**
+- **`Approve & sign`** signed nothing. It closed the room and routed to a panel.
+  **Renamed to `Ready to sign`,** which is what it always did.
+- **`Send N decisions`** is the postbox for per-change answers, so it **moved
+  into the change index**, under the bulk pair, beside the decisions it carries.
+
+What is left in the top bar is the pair with no per-change equivalent: say the
+deal is settled, or end it.
+
+## 2. "Send to <the owner>" did nothing — four independent reasons
+
+Each of these alone was enough to make the button inert. All four were real.
+
+**2a. It was the wrong button.** `#nego-send` lives in the turn banner and was
+rendered on *both* sides, wired on both sides to `openShareModal` — the owner's
+route, which mints a share link. A counterparty holding a link cannot mint links
+to somebody else's contract. Removed from their side entirely, rather than
+disabled: it was never theirs.
+
+**2b. The right button could not have worked either.** `portalRespond` opens
+with `if(!name) toast('Enter your full name')`, reading `#pt-name` — an input on
+the page *underneath* the full-window room. Once the room became the landing
+that box was unreachable, so every send failed its own first line against a
+field nobody could see or fill. The name is now collected **in the room**,
+prefilled from the share's recipient.
+
+**2c. The server rejected the action.** `/api/shares/:token/respond` validated
+against `['sign','accept','changes','decline']`. The portal had been posting
+`action:'decisions'` for a whole release. Every batch of per-change answers ever
+sent came back **400 Invalid response**.
+
+**2d. And it was posting the wrong envelope.** That one call sent
+`{ response: … }`; the server reads `req.body.kind` directly, as it does for
+every other action. So even with the whitelist fixed it would have seen a body
+with no `kind`. Two bugs in one line, the second hidden behind the first — and
+`f37` was asserting `sent.response.kind`, agreeing with the page instead of with
+the wire. That test is corrected and now asserts the shape the server parses.
+
+## 3. Half the room's controls were wired to a hidden copy of itself
+
+**Where:** `wireNegotiationTab`, `wireNegoLayout`, `openNegotiationRoom`,
+`negoFocus`.
+
+The counterparty's page mounted the component **twice**: the room over the
+window, and an embedded copy underneath it. Every wiring looked its element up
+with `document.getElementById`, which returns the *first* match in the document
+— always the hidden one. So on their page the room's `Accept All`, `Reject All`,
+the index fold, the drawer, the export and every per-change reply box had **no
+handlers at all**. `negoFocus` lit up clauses in the copy while the screen they
+were reading did not move.
+
+Fixed by scoping every lookup to the mount being wired. Written as
+`[id="…"]` rather than `#id`: a `#id` selector is answered from the document's
+id map, finds the first element with that id and then reports `null` because it
+is not inside the subtree — trading one wrong element for none, which is not an
+improvement. The helper is `negoPick`.
+
+**And then the duplicate itself went.** On a negotiation link the card in the
+page column was pure scenery — behind a fixed full-window overlay, but still in
+the document: a second "open the room" button and a second send a keyboard could
+tab to. Only the empty hidden hosts survive, because `f37` diffs the two sides
+through `#pt-nego` and that proof is worth keeping.
+
+## 4. No way out, and none wanted
+
+`← Doc` is a breadcrumb: it says there is a workspace behind this room and you
+came from it. True for the owner. For the counterparty there is no Doc page and
+nothing underneath — pressing it left them on an empty shell, and `Esc` did the
+same by accident.
+
+Removed on their side, along with the Esc route. **This reverses f49's assertion
+from the previous round** — *"leaving the room lands on their page and does not
+snap shut again"* — which was true while the room was a mode entered from a
+portal page and stopped being true when the room became the landing. That test
+is rewritten to assert the opposite, not worked around.
+
+The exit is gated on `negoRoomHasExit(opts)`, not on side, for one honest
+reason: a counterparty who reaches the room from a *signing* link by pressing
+"Review what changed" **has** entered a mode from a page that still exists, and
+must be able to get back.
+
+**Found by Chromium, not jsdom:** the Escape listener is a document-level
+singleton. Guarding it at registration time was not enough — one installed for a
+room with an exit went on answering Escape for every room opened afterwards, and
+closed the counterparty's. The test is now made inside the handler against the
+room that is open now.
+
+## 5. Readiness was inferred from arithmetic
+
+`portalNegoPhase` counted outstanding changes and decided the reader was ready.
+Resolve the last change — **even by refusing it** — and the room they had been
+negotiating in silently became a request for their signature, with nobody having
+said the deal was done. The same reading turned a first-draft contract sent out
+clean into a signing request, so a counterparty invited to negotiate one had
+nowhere to propose anything.
+
+The link now carries its **purpose**, set by the sender:
+
+    'negotiate' → the room, every time, however much is outstanding
+    'sign'      → the clean document and the respond panel
+
+Readiness is **signalled** by a person, recorded with who, when and which side,
+and reaches the owner in three places. A link created before purposes existed
+still opens on exactly the screen it opened on yesterday — the old reading
+survives as the fallback and nowhere else.
+
+## 6. The judgement call: "Withdraw this ask"
+
+**This is scope nobody asked for, and it is recorded as a judgement.**
+
+Gating `Ready to sign` on the parties being aligned deadlocks on a single
+refusal. If "aligned" meant only "nothing pending", a refusal would count as
+settled and the button would go green over a live disagreement. If it meant
+"everything accepted", one refusal would block signature forever and neither
+party could get out — worse than the bug the gate fixes.
+
+So a rejected change is settled when **the side that asked** accepts the refusal
+and takes the ask off the table. That verb is `negoWithdraw`. It is an
+acknowledgement, not a second rejection: the change keeps its status, author,
+fingerprint and reply, and the record reads "proposed, refused, and the proposer
+let it go". Only the proposer may press it — a side that could withdraw the
+*other* side's ask could clear every objection to its own wording and then
+declare the deal aligned.
+
+It is reversible, it travels in the share payload (or the reader's copy would
+refuse over a point we had already let go), and a withdrawn ask stops being an
+open point.
+
+## 7. The owner's own "Ready to sign" banner claimed too much
+
+`negoReadyHtml` was gated on `negoReadyToSign` — "every change has an answer" —
+and a refusal is an answer. With one of their asks turned down the banner
+appeared and said **"Nothing is outstanding between the parties"**, which was
+not true. Re-gated on alignment, and it now accounts for withdrawals rather than
+counting them silently as agreement. `f36`'s test is rewritten.
+
+## 8. Decisions appeared to revert the moment they were sent
+
+The room repaints after a send, and it repaints from the **share payload** — a
+snapshot taken before the decisions existed. Clearing the held decisions without
+remembering them put every card back to `pending`, with Accept and Reject on it,
+a second after the reader had answered and sent. The one impression this whole
+round exists to remove.
+
+Sent decisions are now remembered on the page and marked `sent`. A sent decision
+is not theirs to **undo** — it is filed with the other party, and returning it to
+"pending" here would leave the two sides holding different answers. Changing
+their mind is still allowed; that is a new decision and it travels.
+
+## 9. Comments typed in the room reached nobody
+
+`negoPostComment` writes onto the contract record the screen is reading. On the
+owner's screen that record *is* the contract. On the counterparty's it is a copy
+assembled from the share payload, `persist:false`, thrown away on the next
+paint. So every per-change reply they typed went nowhere — and the room is now
+the only page they have.
+
+Comments ride the `/messages` route that already exists for exactly this: it
+changes no wording, opens no round and does not close the link.
+
+## 10. Declining asked for a reason the room could not supply
+
+Same trap as the name: `portalRespond` requires a comment before filing a
+decline, and read it from `#pt-comment` on the page underneath. The requirement
+is right; what was missing was anywhere to satisfy it. The room asks, with a
+confirm-style prompt, and a cancelled prompt sends nothing.
+
+While fixing it: the call was `promptDialog(...)` bare. `js/core.js` declares
+that as a lexical function, so the bare call resolves to that binding and can
+never be substituted — the same trap `negoResolve` documents for `canEdit`.
+Reached through `window` now.
+
+## 11. Answering never handed the turn back
+
+The turn moved to the counterparty when the owner sent the round. Nothing moved
+it back when they answered, so the owner's banner went on reading "Waiting on
+Nordfrakt Logistik AB" over a contract Nordfrakt had already replied to — the
+exact untruth the turn model exists to prevent, in the one direction nobody had
+walked. `applyResponse` now hands back through `negoHandOver`, the same code the
+owner's own send uses.
+
+## 12. Comparing two versions emptied the counterparty's whole top bar
+
+`canAct` is false while the panes show two old versions, which is right for the
+bulk verbs — nothing on that screen is a live proposal. It was being used to
+gate the whole bar, so entering compare mode removed `Decline`, removed the
+explanation, and removed the **name field**, taking whatever they had typed into
+it. Ending a deal has no precondition, and who you are does not depend on which
+version you are reading. Rendered on `!readonly`; disabled on `comparing`.
+
+## 13. A refused readiness claim would be retried forever
+
+The gate is enforced on both sides of the wire — a response is a public POST and
+the page that sent it is not ours. But `applyResponse` returned `false` for a
+claim the change set did not support, and the poller re-fetches and re-applies
+any response that reports unhandled, every cycle. A claim that can never succeed
+would loop.
+
+Now: the decisions and withdrawals that arrived *with* the claim are kept (they
+are true), the readiness is refused, the trail records exactly that, and the
+response reports handled if anything landed.
+
+## Smaller things, fixed on the way
+
+- **The room's rerender discarded the caller's own.** `openNegotiationRoom`
+  always rebuilt with the captured `opts`, so `pendingDecisions` stayed frozen
+  at whatever it was when the room first opened — the send that appears once
+  there is something to send never appeared. The caller's repaint wins now.
+- **The name field was wiped on every repaint.** Each Accept rebuilds the room;
+  rebuilding the field from the share's recipient undid a name typed a moment
+  earlier. The live box is read first.
+- **The name field was prefilled with the company.** It fell back to
+  `opts.by`, which falls back to the counterparty *organisation* — filing
+  "Nordfrakt Logistik AB" as the person who answered, silently, because the box
+  would look already-filled. An empty box asks the question; a wrong one answers
+  it.
+- **A read-only room explained nothing.** Three different facts — superseded,
+  already answered, no channel back — all rendered as an absence of buttons.
+  Each says which now.
+- **`negoAlignment` wrote to contracts it was asked about.** It read through
+  `negoChanges`, which calls `negoInit` and creates a negotiation record — and
+  stamps clause ids into the document. The dashboard asks the question of every
+  contract in the portfolio, most loaded as summaries with their bodies
+  stripped. A read must not write.
+- **A signing link opened durable by default.** The dialog's own words say a
+  one-shot link is "the right choice for a final signature, where one copy gets
+  exactly one response". A default that contradicts the sentence beside it is
+  worse than no default.
+- **The invitation email described the wrong screen.** A negotiation link's mail
+  told its recipient to "approve & sign, propose changes, or decline" — a panel
+  they will not see. It now describes the room.
+
+## Known limitations, carried forward
+
+- **Signing is not built.** Image 4 is the portal's existing respond panel; this
+  round routes to it. The owner's side keeps the existing "Send to Docs tab for
+  signature" stub.
+- **The mobile/WhatsApp counterparty portal is untouched**, as instructed.
+- **The embedded copy of the negotiation still mounts, hidden**, on the
+  counterparty's page. It is what `f37` diffs the two sides against, and losing
+  it would lose the proof that neither side is looking at a lesser screen. It is
+  no longer keyboard-reachable and no longer steals the room's wiring, but two
+  elements do still share several ids in that document. Removing the duplication
+  properly means giving `f37` another way to prove parity, which is its own
+  piece of work.
+- **`renderDashboard` is not booted in jsdom.** The dashboard needs the whole
+  application shell — metrics, risk scoring, the family model,
+  localStorage-backed KPI preferences. The readiness surface is split into
+  `readyToSignItems` and `readyToSignRowsHtml`, and those are driven directly;
+  the two questions worth asking (which contracts, and what does it say) do not
+  need the shell.
+- **The owner's share dialog itself is not driven end-to-end in jsdom** for the
+  signing-link case. What is asserted is that both entry points exist and that
+  `buildSharePayload` carries the purpose they pass; the dialog's own rendering
+  is measured in the Chromium pass.
+
+## Where the tests stand
+
+**915 automated tests / 181 suites / 0 failures** (825 before this round), and
+**69 of 69 Chromium checks** (52 before). Twelve full walks of the journey; the
+last two found nothing new.

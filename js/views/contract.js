@@ -1952,7 +1952,25 @@ function openNegotiationOwnerRoom(c){
     onSaveDraft(){ persist(c); toast('Draft saved'); },
     /* The second argument carries onSent/handOver when the room's turn banner
        is what opened this — the turn moves only if a share really goes out. */
-    onShareLink(x, o){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c, o||{}); },
+    onShareLink(x, o){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c, { purpose:'negotiate', ...(o||{}) }); },
+    /* THE OWNER ISSUES THE SIGNING LINK, and it is a new link — never the old
+       one changing character underneath the reader. The counterparty signalled;
+       this is the answer to that signal.
+
+       Same share dialog, so the recipient, the channel, the expiry and the
+       record of what went out are the ones every other share uses. What is
+       different is the purpose it carries, and that purpose is what supersedes
+       every negotiation link on this contract the moment the new one exists. */
+    onIssueSigningLink(){
+      closeNegotiationRoom();
+      renderWorkspace();
+      openShareModal(c, { purpose:'sign',
+        onSent(){
+          logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
+          persist(c);
+          renderWorkspace();
+        } });
+    },
     /* The transition point, and nothing past it. It closes the round so the
        agreed wording becomes the baseline, then puts the reader on the Docs
        tab where signing lives. No signing logic is built here, by design. */
@@ -2147,6 +2165,39 @@ function returnedChangesStrip(c){
       @media (prefers-reduced-motion:reduce){ #changes-strip .changes-pip{animation:none} }
     </style>`;
 }
+/* THE COUNTERPARTY HAS SAID THEY ARE READY, on the Docs page.
+
+   The second of the three places this reaches the owner, and the one that
+   matters most: a readiness signal that lived only inside the negotiation room
+   would be found by opening the room, which is precisely the screen someone
+   stops opening once the arguing is over.
+
+   It sits with the returned-changes strip, in the contract's status band rather
+   than on the paper, so it cannot be scrolled past. Its verb is the owner's:
+   the deal does not advance by itself, and the wording says both that nothing
+   is signed and what the next act is. */
+function readyToSignStrip(c){
+  const sig=window.negoReadySignal?negoReadySignal(c,'counterparty'):null;
+  if(!sig) return '';
+  if(c.status==='Signed'||c.status==='Declined') return '';
+  const when=window.fmtDT?fmtDT(sig.at):String(sig.at||'');
+  const bits=[];
+  if(sig.changes) bits.push(`${sig.changes} change${sig.changes===1?'':'s'} settled`);
+  if(sig.accepted) bits.push(`${sig.accepted} adopted into the wording`);
+  if(sig.withdrawn) bits.push(`${sig.withdrawn} ask${sig.withdrawn===1?'':'s'} withdrawn`);
+  /* A signal the change set has since moved past stays on the strip and stops
+     inviting the next step. Hiding it would lose the fact that they said it;
+     leaving the button on it would have the owner issue a signing link for a
+     contract that has gone back into negotiation. */
+  const stale=!!sig.stale;
+  return `
+    <div id="ready-strip" data-stale="${stale?'1':'0'}" style="flex:none;display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:9px 16px;background:${stale?'#fdf6e7':'#eef7f1'};border-top:1px solid ${stale?'#e0c48a':'#a8cbb8'};border-bottom:1px solid ${stale?'#e0c48a':'#a8cbb8'}">
+      <span style="flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:${stale?'#b8862b':'#1e6b4d'};color:#fff;border-radius:999px;padding:3px 10px">Ready to sign</span>
+      <span style="font-size:12.5px;color:${stale?'#7d5a14':'#14503a'};min-width:0"><b>${esc(sig.by||c.counterparty||'The counterparty')}</b> signalled they are ready to sign — ${esc(when)}${bits.length?` · ${esc(bits.join(', '))}`:''}. <b>Nothing is signed yet.</b>${stale?' Something has been reopened since, so this no longer describes where the deal stands.':''}</span>
+      <span style="flex:1"></span>
+      ${canEdit()&&!stale?`<button id="ready-issue" style="flex:none;font:inherit;font-size:12px;font-weight:600;border:1px solid #1e6b4d;background:#1e6b4d;color:#fff;border-radius:5px;padding:6px 13px;cursor:pointer">Issue a signing link</button>`:''}
+    </div>`;
+}
 /* The strip's one action: open the redline if there is one, otherwise take the
    reader to the round itself rather than leaving the button doing nothing. */
 function wireChangesStrip(c){
@@ -2156,6 +2207,15 @@ function wireChangesStrip(c){
     if(redline && window.reviewProposedRound) return reviewProposedRound(c, redline.n);
     _docTopTab='screening'; applyDocTabs();
     document.getElementById('nego-section')?.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  document.getElementById('ready-issue')?.addEventListener('click',()=>{
+    /* The same act as the room's button, and deliberately the same code path —
+       two ways to reach one thing, not two things that could drift. */
+    openShareModal(c,{ purpose:'sign',
+      onSent(){
+        logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
+        persist(c); renderWorkspace();
+      } });
   });
 }
 function renderWorkspace(){
@@ -2234,6 +2294,7 @@ function renderWorkspace(){
       <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
+    ${readyToSignStrip(c)}
     ${returnedChangesStrip(c)}
 
     <!-- ============ WORKSPACE TABS: Docs · Negotiation ============
