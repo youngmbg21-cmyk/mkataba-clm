@@ -12,6 +12,7 @@ import './advice.js';
 import './metadata.js';
 import './versioning.js';
 import './discuss.js';    // the light channel: talking about a point, not redrafting it
+import './negotiation.js'; // the fingerprinted change model every intake path converges on
 import './wordflow.js';
 import './obligations.js';
 import './playbook.js';

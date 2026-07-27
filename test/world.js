@@ -39,6 +39,7 @@ const MODULES = [
   'js/docxwrite.js',
   'js/versioning.js',
   'js/discuss.js',
+  'js/negotiation.js',
   'js/wordflow.js',
 ];
 /* js/views/contract.js is loaded ONLY on request (buildWorld({contractView:true})).
