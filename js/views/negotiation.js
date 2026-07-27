@@ -269,16 +269,27 @@ function negoStyleHtml(){
   .nego-id{font-family:var(--n-font-mono);font-size:10px;font-weight:700;
     background:var(--n-badge-bg);color:var(--n-slate-soft);border:1.5px solid var(--n-slate-soft);
     border-radius:99px;padding:1px 8px}
-  /* The clause tools sit in the RIGHT margin, opposite the fingerprint badge
-     in the left one, so neither ever covers the other and the text column keeps
-     its measure. They appear on hover or focus — a document with six sets of
-     buttons permanently on it reads as a form, not as a contract. */
-  .nego-tools{position:absolute;left:calc(100% + 6px);top:8px;display:flex;flex-direction:column;gap:3px;
-    opacity:0;transition:opacity .12s ease;z-index:2}
-  .nego-clause:hover .nego-tools,.nego-clause:focus-within .nego-tools{opacity:1}
-  .nego-tool{font-size:10px;font-weight:700;border:1px solid var(--n-line);background:#fff;
-    color:var(--n-slate-soft);border-radius:5px;padding:2px 7px;white-space:nowrap;cursor:pointer;font-family:inherit}
-  .nego-tool:hover{background:var(--n-badge-bg);border-color:var(--n-slate-soft)}
+  /* The clause tools. They were in the margin, revealed on hover — which put
+     them outside the pane, so the pane clipped them, and made them invisible
+     until you happened to point at the right paragraph. They are now the ONLY
+     way to propose anything (the whole-document editor is gone), so hiding
+     them hid the feature.
+
+     Inside the clause block, top right, always drawn, in the room's own slate.
+     Nothing can clip them because nothing extends past the clause any more. */
+  .nego-tools{position:absolute;right:10px;top:8px;display:flex;gap:4px;z-index:3}
+  .nego-tool{font-size:10.5px;font-weight:700;border:1px solid var(--n-slate);
+    background:var(--n-slate);color:#fff;border-radius:5px;padding:3px 9px;white-space:nowrap;
+    cursor:pointer;font-family:inherit;letter-spacing:.01em;
+    box-shadow:0 1px 2px rgba(38,55,74,.18);transition:filter .12s ease}
+  .nego-tool:hover,.nego-tool:focus-visible{filter:brightness(1.18)}
+  .nego-tool.danger{background:var(--n-del-fg);border-color:var(--n-del-fg)}
+  /* The heading needs room for them, or a long clause title runs underneath. */
+  .nego-clause h2{padding-right:210px}
+  @media (max-width:900px){
+    .nego-tools{position:static;margin-bottom:6px}
+    .nego-clause h2{padding-right:0}
+  }
   .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:#fff}
   .nego-editing:focus{outline:2px solid var(--n-focus)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
@@ -286,37 +297,14 @@ function negoStyleHtml(){
     border:1.5px solid transparent;font-family:inherit;cursor:pointer}
   .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
   .nego-edit-bar .b-cancel{background:#fff;border-color:var(--n-line);color:var(--n-ink-soft)}
-  /* The Copilot dock. Inside the room, because the room is a full-window mode
-     and the application's own Copilot panel lives in the shell underneath it —
-     opening that one from here would slide a panel in behind the page you are
-     looking at. The BRAIN is the same (copilotAsk in js/ai.js); only the
-     surface is local. */
-  #nego-copilot-dock{position:absolute;top:0;right:0;bottom:0;width:min(92vw,380px);z-index:8;
-    display:none;flex-direction:column;background:var(--n-paper);border-left:1px solid var(--n-line);
-    box-shadow:var(--n-shadow-pop)}
-  #nego-copilot-dock.open{display:flex}
-  .nego-cop-head{flex:none;display:flex;align-items:center;gap:8px;padding:11px 14px;
-    border-bottom:1px solid var(--n-line);background:#fff}
-  .nego-cop-head h3{font-size:12.5px;font-weight:800;margin:0}
-  .nego-cop-brain{font-size:10px;font-weight:700;border-radius:99px;padding:1px 8px;white-space:nowrap}
-  .nego-cop-brain.live{background:var(--n-ins-bg);color:var(--n-ins-fg)}
-  .nego-cop-brain.off{background:#fdf3e3;color:#9a6a1f}
-  .nego-cop-x{margin-left:auto;border:0;background:none;font:inherit;font-size:16px;line-height:1;
-    color:var(--n-ink-soft);cursor:pointer;padding:2px 4px}
-  .nego-cop-feed{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
-  .nego-cop-msg{font-size:12px;line-height:1.55;border-radius:9px;padding:8px 11px;max-width:100%}
-  .nego-cop-msg.me{background:var(--n-slate);color:#fff;align-self:flex-end;border-radius:9px 9px 0 9px}
-  .nego-cop-msg.it{background:var(--n-badge-bg);color:var(--n-ink);border-radius:9px 9px 9px 0}
-  .nego-cop-msg.note{background:#fdf3e3;color:#7d5a14;font-size:11.5px}
-  .nego-cop-hit{border:1px solid var(--n-line);border-radius:7px;padding:7px 9px;background:#fff;cursor:pointer;
-    font-size:11.5px;line-height:1.5;text-align:left;width:100%;font-family:inherit;color:var(--n-ink)}
-  .nego-cop-hit:hover{border-color:var(--n-slate-soft);background:var(--n-badge-bg)}
-  .nego-cop-hit b{display:block;font-size:11px;color:var(--n-slate-soft);margin-bottom:2px}
-  .nego-cop-ask{flex:none;display:flex;gap:6px;padding:10px 12px;border-top:1px solid var(--n-line);background:#fff}
-  .nego-cop-ask input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:6px;padding:7px 10px;
-    font:inherit;font-size:12px;color:var(--n-ink);background:var(--n-paper)}
-  .nego-cop-ask button{border:0;background:var(--n-slate);color:#fff;border-radius:6px;padding:0 13px;
-    font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  /* The room sits above the application shell, and the shell is where HaTi's
+     Copilot panel lives — which is why Ask Copilot could not simply open it.
+     Raising the real panel over the room is the whole fix: it stays the app's
+     own panel, with its own markup, styles and behaviour, so it looks and works
+     in here exactly as it does everywhere else. A lookalike built for this one
+     screen would have been a second thing to keep in step. */
+  body.nego-room-open #ai-scrim{z-index:65}
+  body.nego-room-open #ai-panel{z-index:70}
   .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     border-radius:5px;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
@@ -486,7 +474,7 @@ function negoDocHtml(c, opts){
   const tools = cl => editable ? `<div class="nego-tools">
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}" title="Edit this clause">Edit</button>
       <button class="nego-tool" data-nego-add-after="${_ne(cl.clauseId)}" title="Add a clause after this one">Add clause</button>
-      <button class="nego-tool" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
+      <button class="nego-tool danger" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
     </div>` : '';
 
   const clauseBlock = (cl, ch, domPrefix) => {
@@ -742,7 +730,6 @@ function negoHeadHtml(c, opts){
         <button id="nego-all-rej" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px;border-color:#b0453c;color:#b0453c">Reject all</button>` : ''}
       ${side === 'owner' ? `<button id="nego-export" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px"
         title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}"${p.pending ? ' disabled' : ''}>Export clean PDF</button>` : ''}
-      ${canAct ? `<button id="nego-propose" class="ui-btn" style="flex:none;font-size:11.5px;padding:5px 11px">Propose edits</button>` : ''}
     </div>
     ${ready ? negoReadyHtml(c, opts) : ''}`;
 }
@@ -769,40 +756,6 @@ function negoReadyHtml(c, opts){
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
         : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
-}
-
-/* ---------- Ask Copilot, scoped to this negotiation ----------
-   One box, two capabilities, and it is deliberately explicit about which of
-   them is running:
-
-     SEARCH always works. It reads the clauses and change records already in
-     memory — no key, no network — so "where does it say ninety days" is
-     answerable offline. Every result is a button that jumps to the clause.
-
-     ANSWERS need an Anthropic key. Where there is one, the question also goes
-     to copilotAsk() in js/ai.js — the same engine the rest of the app uses,
-     reused rather than reimplemented — with this negotiation as its context.
-     Where there is not, the dock says so plainly instead of appearing broken.
-
-   It advises; it does not edit. Nothing in here writes to the document. */
-function negoCopilotHtml(c, opts){
-  const brain = window.copilotBrainInfo ? copilotBrainInfo() : { live: false, label: 'Search only', hint: '' };
-  return `<aside id="nego-copilot-dock" aria-label="Ask Copilot about this contract">
-    <div class="nego-cop-head">
-      <h3>✦ Ask Copilot</h3>
-      <span class="nego-cop-brain ${brain.live ? 'live' : 'off'}" title="${_ne(brain.hint)}">${_ne(brain.live ? 'Copilot live' : 'Search only')}</span>
-      <button class="nego-cop-x" id="nego-cop-close" aria-label="Close Copilot">×</button>
-    </div>
-    <div class="nego-cop-feed" id="nego-cop-feed">
-      <div class="nego-cop-msg it">Ask about this contract — I can find wording, tell you what is on the table this round, and help you word a change.${
-        brain.live ? '' : ' <b>No Copilot key is set on this browser</b>, so I can search the document but cannot answer in prose yet. Add a key in Team &amp; Settings → Copilot engine.'}</div>
-    </div>
-    <form class="nego-cop-ask" id="nego-cop-form">
-      <input id="nego-cop-input" type="text" autocomplete="off"
-        placeholder="e.g. where does it say ninety days" aria-label="Ask about this contract"/>
-      <button type="submit">Ask</button>
-    </form>
-  </aside>`;
 }
 
 /* ---------- 2.4: whose turn it is ----------
@@ -917,7 +870,6 @@ function negoRoomActionsHtml(c, opts){
     const n = (opts.pendingDecisions || 0);
     return `
       ${n ? `<button class="nego-tbtn acc" id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>` : ''}
-      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-propose">Propose edits</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-accept">Accept wording</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
       ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}
@@ -927,7 +879,6 @@ function negoRoomActionsHtml(c, opts){
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
     <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
     <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
-    ${canAct ? `<button class="nego-tbtn ghost" id="nego-propose">Propose edits</button>` : ''}
     <button class="nego-tbtn acc" id="nego-all-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
     <button class="nego-tbtn rej" id="nego-all-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
     <button class="nego-tbtn ghost" id="nego-export"${p.pending ? ' disabled' : ''}
@@ -962,7 +913,6 @@ function negoRoomHtml(c, opts = {}){
     <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
-      ${negoCopilotHtml(c, opts)}
     </div>
     ${negoStatusHtml(c, opts)}
   </div>`;
@@ -1047,6 +997,10 @@ function wireNegoLayout(opts = {}){
    puts the shell back exactly as it was. Both are idempotent, because a mode
    you can enter twice is a mode you can get stuck in. */
 let _negoRoomOpen = false;
+let _negoRoomC = null;
+/* Which contract the room is showing, so js/ai.js can tell Copilot what is on
+   the screen without the room having to reach into the panel. */
+const negoRoomContract = () => (_negoRoomOpen ? _negoRoomC : null);
 let _negoEscHandler = null;
 function negoRoomHost(){
   let host = document.getElementById('nego-room-root');
@@ -1063,6 +1017,8 @@ function openNegotiationRoom(c, opts = {}){
   const shell = document.getElementById('app-shell');
   if (shell && !_negoRoomOpen){ shell.dataset.negoHidden = '1'; shell.classList.add('hidden'); }
   _negoRoomOpen = true;
+  _negoRoomC = c;
+  document.body.classList.add('nego-room-open');
   host.innerHTML = negoRoomHtml(c, opts);
   const rerender = () => openNegotiationRoom(c, opts);
   wireNegotiationTab(c, { ...opts, hostId: 'nego-room-root', rerender });
@@ -1079,7 +1035,7 @@ function openNegotiationRoom(c, opts = {}){
   /* The counterparty's verbs. Each one hands back to the page that owns it —
      the room renders them, it does not implement signing or declining. */
   for (const [id, hook] of [['nego-cp-sign', 'onSign'], ['nego-cp-accept', 'onAcceptWording'],
-    ['nego-cp-decline', 'onDecline'], ['nego-cp-propose', 'onPropose'],
+    ['nego-cp-decline', 'onDecline'],
     ['nego-send-decisions', 'onSendDecisions']]){
     document.getElementById(id)?.addEventListener('click', () => {
       if (typeof opts[hook] === 'function') opts[hook](c);
@@ -1102,6 +1058,8 @@ function closeNegotiationRoom(opts = {}){
   const shell = document.getElementById('app-shell');
   if (shell && shell.dataset.negoHidden){ delete shell.dataset.negoHidden; shell.classList.remove('hidden'); }
   _negoRoomOpen = false;
+  _negoRoomC = null;
+  document.body.classList.remove('nego-room-open');
   if (_negoEscHandler){ document.removeEventListener('keydown', _negoEscHandler); _negoEscHandler = null; }
   if (opts && typeof opts.onExit === 'function') opts.onExit();
 }
@@ -1203,92 +1161,19 @@ function wireNegotiationTab(c, opts = {}){
     again();
   };
 
-  /* ---------- Ask Copilot ---------- */
-  const dock = host.querySelector('#nego-copilot-dock');
+  /* ---------- Ask Copilot ----------
+     Opens the application's OWN Copilot, unchanged. The room only has to get
+     out of its way (the body class above lifts it over this screen) and tell it
+     which negotiation is being looked at — aiChatContext() picks that up from
+     negoRoomContract(). */
   const copBtn = host.querySelector('#nego-copilot');
-  if (copBtn && dock){
-    const feed = host.querySelector('#nego-cop-feed');
-    const input = host.querySelector('#nego-cop-input');
-    const say = (cls, html) => {
-      const el = document.createElement('div');
-      el.className = 'nego-cop-msg ' + cls;
-      el.innerHTML = html;
-      feed.appendChild(el);
-      feed.scrollTop = feed.scrollHeight;
-      return el;
-    };
-    copBtn.addEventListener('click', () => {
-      const open = dock.classList.toggle('open');
-      if (open && input && input.focus) input.focus();
-    });
-    host.querySelector('#nego-cop-close')?.addEventListener('click', () => dock.classList.remove('open'));
-
-    const form = host.querySelector('#nego-cop-form');
-    if (form) form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const q = String(input.value || '').trim();
-      if (!q) return;
-      input.value = '';
-      say('me', _ne(q));
-
-      /* Search first, always. It costs nothing, needs no key, and it is what
-         most questions about a contract actually are. */
-      const hits = window.negoSearch ? negoSearch(c, q) : [];
-      if (hits.length){
-        const wrap = say('it', `Found <b>${hits.length}</b> place${hits.length === 1 ? '' : 's'} in this contract:`);
-        for (const h of hits.slice(0, 8)){
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'nego-cop-hit';
-          b.style.marginTop = '6px';
-          b.innerHTML = `<b>${_ne(h.label)}${h.more ? ` · +${h.more} more here` : ''}</b>${_ne(h.snippet || '')}`;
-          /* Every result is a way to GET THERE. A search that tells you the
-             clause exists and leaves you to scroll for it has done half a job. */
-          b.addEventListener('click', () => {
-            dock.classList.remove('open');
-            if (h.changeId) negoFocus(c, h.changeId, 'card');
-            else {
-              const el = document.getElementById('nw-' + negoDomId(h.clauseId));
-              if (el){ el.classList.add('flash'); if (el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
-            }
-          });
-          wrap.appendChild(b);
-        }
-      } else {
-        say('it', 'Nothing in this contract matches that wording.');
-      }
-
-      /* Then the model, if there is one to ask. */
-      if (!window.copilotAsk || !window.copilotAvailable || !copilotAvailable()){
-        say('note', 'Answers in prose need a Copilot key — add one in Team &amp; Settings → Copilot engine. '
-          + 'Search works without it.');
-        return;
-      }
-      const thinking = say('it', 'Thinking…');
-      try {
-        const res = await copilotAsk(
-          [{ role: 'user', content: q }],
-          window.negoCopilotContext ? negoCopilotContext(c) : {});
-        const answer = (res && (res.answer || res.text)) || '';
-        thinking.innerHTML = answer
-          ? (window.aiFmt ? aiFmt(answer) : _ne(answer))
-          : 'No answer came back.';
-        /* Said once, on the first answer: this reads the document, it does not
-           change it. A suggestion becomes a change only when a person applies
-           it, and then it is filed in their name like any other edit. */
-        if (!dock.dataset.advised){
-          dock.dataset.advised = '1';
-          say('note', 'Copilot reads this contract — it never edits it. To act on a suggestion, '
-            + 'use <b>Edit</b> on the clause and it will be filed as a tracked change in your name.');
-        }
-      } catch (err){
-        thinking.className = 'nego-cop-msg note';
-        thinking.textContent = err && err.needsKey
-          ? 'No Copilot key is set, so I cannot answer in prose. Search still works.'
-          : `Copilot could not answer: ${err && err.message ? err.message : 'unknown error'}`;
-      }
-    });
-  }
+  if (copBtn) copBtn.addEventListener('click', () => {
+    if (typeof window.openAI !== 'function'){
+      if (window.toast) toast('Copilot is not available on this page', 'err');
+      return;
+    }
+    openAI();
+  });
 
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {
@@ -1383,7 +1268,19 @@ function wireNegotiationTab(c, opts = {}){
   host.querySelectorAll('[data-nego-card]').forEach(card => {
     const id = card.getAttribute('data-nego-card');
     card.addEventListener('click', () => negoFocus(c, id, 'card'));
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); negoFocus(c, id, 'card'); } });
+    /* ONLY when the card itself is focused. The card behaves like a button, so
+       Enter and Space select it — but the discuss thread's reply field lives
+       INSIDE the card, and this handler used to cancel every space typed into
+       it. You could write words and not put spaces between them.
+
+       A container that acts like a button must never claim keys that were
+       aimed at a field within it. */
+    card.addEventListener('keydown', e => {
+      if (e.target !== card) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      negoFocus(c, id, 'card');
+    });
   });
   host.querySelectorAll('.nego-clause[data-change]').forEach(n => n.addEventListener('click', () =>
     negoFocus(c, n.getAttribute('data-change'), 'clause')));
@@ -1461,10 +1358,6 @@ function wireNegotiationTab(c, opts = {}){
     if (window.exportContractPdf) exportContractPdf(c);
     else if (window.toast) toast('Export is unavailable on this page', 'err');
   });
-  document.getElementById('nego-propose')?.addEventListener('click', () => {
-    if (opts.onPropose) opts.onPropose(c);
-    else if (window.toast) toast('Proposing edits is not available on this screen', 'err');
-  });
   /* The hand-off. It closes the round — making the agreed wording the baseline
      — and moves the reader to the tab that owns signing. It does NOT sign, and
      deliberately builds none of that flow. */
@@ -1485,5 +1378,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
-  openNegotiationRoom, closeNegotiationRoom, negoRoomIsOpen,
+  openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

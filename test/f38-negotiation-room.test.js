@@ -178,13 +178,21 @@ describe('the top bar, and the way out', () => {
       assert.ok(r.$('#' + id), 'missing top-bar action: ' + id);
     assert.equal(r.$('#nego-export').textContent.trim(), 'Export Clean PDF');
     // and a way to put wording forward, which the prototype's bar has no control for
-    assert.ok(r.$('#nego-propose'), 'the owner must be able to propose from the room');
+    /* "Propose edits" is GONE, deliberately. It opened a modal holding the
+       whole document in one box; a clause is now edited where it is read, with
+       the Edit button on the clause itself. Two routes to one outcome is how
+       they drift apart — and the whole-document route is the one that could not
+       keep a heading or a list. */
+    assert.equal(r.$('#nego-propose'), null,
+      'the whole-document proposal modal is retired');
+    assert.ok(r.$$('.nego-pane.working .nego-tools [data-nego-edit]').length,
+      'proposing happens on the clause instead, and every clause offers it');
   });
 
   test('the counterparty gets his verbs in the same slot', async () => {
     const r = await room({ side: 'counterparty' });
     const slot = r.$('.nego-top-actions');
-    for (const id of ['nego-cp-sign', 'nego-cp-accept', 'nego-cp-decline', 'nego-cp-propose'])
+    for (const id of ['nego-cp-sign', 'nego-cp-accept', 'nego-cp-decline'])
       assert.ok(slot.querySelector('#' + id), 'missing counterparty action: ' + id);
     assert.equal(r.$('#nego-save-draft'), null, 'and not the owner\'s');
     assert.equal(r.$('#nego-share-link'), null);

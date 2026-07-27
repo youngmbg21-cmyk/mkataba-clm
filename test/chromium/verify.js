@@ -228,65 +228,75 @@ const check = (name, pass, detail) => {
     /Fingerprints: \d+ verified/.test(reverify.strip || '') && reverify.pill === 'ok',
     `${reverify.strip} · pill ${reverify.pill}`);
 
-  /* ---------- the clause tools ---------- */
-  await page.hover('.nego-room .nego-pane.working .nego-clause');
-  await page.waitForTimeout(200);
+  /* ---------- the clause tools ----------
+     They used to be revealed on hover, in the right margin, where the pane
+     clipped them — invisible until pointed at, and then half off-screen. They
+     are the only way to propose anything now, so they are always drawn, inside
+     the clause, in the room's slate. */
   const tools = await page.evaluate(() => {
     const c = document.querySelector('.nego-room .nego-pane.working .nego-clause');
     const t = c.querySelector('.nego-tools');
     if (!t) return null;
-    const r = t.getBoundingClientRect(), b = c.querySelector('p').getBoundingClientRect();
-    return { opacity: getComputedStyle(t).opacity, left: Math.round(r.x), textRight: Math.round(b.right),
-      buttons: Array.from(t.querySelectorAll('button')).map(x => x.textContent.trim()) };
+    const r = t.getBoundingClientRect();
+    const pane = c.closest('.nego-pane').getBoundingClientRect();
+    const btn = t.querySelector('button');
+    const br = btn.getBoundingClientRect();
+    const cs = getComputedStyle(btn);
+    return { opacity: getComputedStyle(t).opacity,
+      inPane: r.left >= pane.left - 1 && r.right <= pane.right + 1,
+      visibleArea: Math.round(br.width) * Math.round(br.height),
+      bg: cs.backgroundColor, fg: cs.color,
+      buttons: Array.from(t.querySelectorAll('button')).map(x => x.textContent.trim()),
+      hoveredAnything: false };
   });
-  check('the clause tools appear on hover, in the opposite margin',
-    tools && Number(tools.opacity) === 1 && tools.left >= tools.textRight,
-    tools ? `opacity ${tools.opacity}, left ${tools.left}px ≥ text right ${tools.textRight}px, [${tools.buttons.join(', ')}]` : 'missing');
+  check('the clause tools are drawn without hovering anything',
+    tools && Number(tools.opacity) === 1, tools ? `opacity ${tools.opacity}` : 'missing');
+  check('and sit INSIDE the pane, where nothing can clip them',
+    tools && tools.inPane, tools ? `inPane ${tools.inPane}` : 'missing');
+  check('each one has real clickable area and a dark fill',
+    tools && tools.visibleArea > 400 && /rgb\(51, 71, 92\)|rgb\(176, 69, 60\)/.test(tools.bg)
+      && /rgb\(255, 255, 255\)/.test(tools.fg),
+    tools ? `${tools.visibleArea}px², bg ${tools.bg}, fg ${tools.fg}, [${tools.buttons.join(', ')}]` : 'missing');
   await page.screenshot({ path: path.join(OUT, '04-clause-tools.png') });
 
   /* ---------- the two features added after the first Chromium pass ---------- */
 
-  /* Ask Copilot. The dock has to be INSIDE the room: the application's own
-     Copilot panel lives in the shell, which the full-window room covers, so a
-     dock that opened there would slide in behind the page. Measured, because
-     that is exactly the kind of thing a rule-level test cannot see. */
-  const cop = await page.evaluate(() => {
+  /* Ask Copilot. It opens HaTi's OWN panel — the same element every other
+     screen uses — so the check is that the real panel becomes visible and ends
+     up ABOVE the room rather than behind it, which is why it could not simply
+     be opened before. Hit-tested, not read off a stylesheet. */
+  const cop = await page.evaluate(async () => {
     const btn = document.querySelector('.nego-room #nego-copilot');
-    const dock = document.querySelector('.nego-room #nego-copilot-dock');
-    if (!btn || !dock) return { btn: !!btn, dock: !!dock };
-    const beforeVisible = getComputedStyle(dock).display !== 'none';
+    const panel = document.getElementById('ai-panel');
+    if (!btn || !panel) return { btn: !!btn, panel: !!panel };
+    const before = panel.className;
     btn.click();
-    const r = dock.getBoundingClientRect();
+    /* The panel slides in over 300ms (transform, not display), so measuring
+       immediately measures it mid-flight, still off the right edge. */
+    await new Promise(r => setTimeout(r, 450));
+    const r = panel.getBoundingClientRect();
     const room = document.querySelector('.nego-room').getBoundingClientRect();
-    return { btn: true, dock: true, beforeVisible,
-      afterVisible: getComputedStyle(dock).display !== 'none',
-      w: Math.round(r.width), h: Math.round(r.height),
-      insideRoom: r.right <= Math.ceil(room.right) + 1 && r.top >= Math.floor(room.top) - 1,
-      onTop: document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2))
-        ?.closest('#nego-copilot-dock') !== null,
-      brain: (dock.querySelector('.nego-cop-brain') || {}).textContent };
+    const zPanel = Number(getComputedStyle(panel).zIndex) || 0;
+    const zRoom = Number(getComputedStyle(document.querySelector('.nego-room')).zIndex) || 0;
+    const hit = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + 40));
+    return { btn: true, panel: true,
+      opened: panel.className !== before || panel.classList.contains('open'),
+      isRealPanel: panel.id === 'ai-panel' && !document.querySelector('#nego-copilot-dock'),
+      zPanel, zRoom, above: zPanel > zRoom,
+      onScreen: r.right <= window.innerWidth + 1 && r.width > 100,
+      onTop: !!(hit && hit.closest('#ai-panel')),
+      bodyMarked: document.body.classList.contains('nego-room-open') };
   });
-  check('the room carries an Ask Copilot button', cop.btn);
-  check('its dock starts hidden and opens on the button',
-    cop.dock && cop.beforeVisible === false && cop.afterVisible === true,
-    `before ${cop.beforeVisible}, after ${cop.afterVisible}`);
-  check('the dock is inside the room and on top of it, not behind',
-    cop.insideRoom && cop.onTop, `${cop.w}×${cop.h}, insideRoom ${cop.insideRoom}, hit-testable ${cop.onTop}`);
-  check('it says which mode it is in rather than looking broken',
-    /Search only|Copilot live/.test(cop.brain || ''), cop.brain);
-
-  const search = await page.evaluate(async () => {
-    const form = document.querySelector('.nego-room #nego-cop-form');
-    document.querySelector('.nego-room #nego-cop-input').value = 'ninety';
-    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    await new Promise(r => setTimeout(r, 30));
-    const feed = document.querySelector('.nego-room #nego-cop-feed');
-    return { text: feed.textContent.replace(/\s+/g, ' ').trim().slice(0, 160),
-      hits: feed.querySelectorAll('.nego-cop-hit').length };
-  });
-  check('search runs with no Copilot key and returns clickable results',
-    search.hits > 0, `${search.hits} result(s) — ${JSON.stringify(search.text.slice(0, 90))}`);
+  check('Ask Copilot opens the application’s own panel, not a room-local clone',
+    cop.isRealPanel && cop.opened, `opened ${cop.opened}, no dock ${cop.isRealPanel}`);
+  check('the room lifts that panel above itself',
+    cop.above && cop.bodyMarked, `panel z ${cop.zPanel} > room z ${cop.zRoom}, body marked ${cop.bodyMarked}`);
+  check('the panel slides fully onto the screen',
+    cop.onScreen, `right edge vs viewport — onScreen ${cop.onScreen}`);
+  check('and the panel is what receives a click, not the page behind it',
+    cop.onTop, `hit-test ${cop.onTop}`);
   await page.screenshot({ path: path.join(OUT, '05-copilot.png') });
+  await page.evaluate(() => document.getElementById('ai-close')?.click());
 
   /* Share: the summary step. */
   const share = await page.evaluate(async () => {

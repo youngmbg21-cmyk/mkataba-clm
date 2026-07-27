@@ -27,15 +27,30 @@
 <div id="nego-tab"></div>
 <div id="modal-root"></div>
 
-<!-- The hosts js/ai.js wires itself to at load. The application shell supplies
-     these in index.html; the harness supplies them so ai.js loads cleanly and
-     the room's Copilot dock can be measured against the REAL copilotBrainInfo
-     rather than against its absence. -->
-<div id="ai-scrim"></div>
-<div id="ai-panel"><div id="ai-feed"></div><div id="ai-suggest"></div>
-  <input id="ai-input"/><button id="ai-send"></button><button id="ai-close"></button>
-  <button id="ai-min"></button><button id="ai-clear"></button><button id="ai-expand"></button>
-  <span id="ai-brain-sub"></span><span id="ai-badge"></span></div>
+<!-- The application shell's own Copilot panel and stylesheet, lifted OUT OF
+     index.html at load rather than copied here.
+
+     Copied markup would drift from the markup that ships, and this harness
+     exists to check the room against the real thing. It has to happen before
+     js/ai.js runs, because ai.js wires itself to #ai-send, #ai-close and
+     friends the moment it loads — so the request is synchronous. That is a
+     deliberate choice in a test harness and nowhere else. -->
+<script>
+(function(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '/index.html', false);
+  xhr.send(null);
+  var doc = new DOMParser().parseFromString(xhr.responseText, 'text/html');
+  Array.prototype.forEach.call(doc.querySelectorAll('style'), function(st){
+    var el = document.createElement('style'); el.textContent = st.textContent;
+    document.head.appendChild(el);
+  });
+  ['ai-scrim', 'ai-panel'].forEach(function(id){
+    var node = doc.getElementById(id);
+    if (node) document.body.appendChild(document.importNode(node, true));
+  });
+})();
+</script>
 
 <script>
 /* The application shell, stood in for. Everything below this line that matters
@@ -139,28 +154,7 @@ const ASKS = {
     "<p>Either party may terminate this Agreement for convenience by giving the other party not less than thirty (30) days' written notice. Termination shall not affect fees accrued for services already rendered.</p>"],
 };
 
-/* The application's own stylesheet, lifted out of index.html at load.
-
-   It is not duplicated here on purpose. index.html carries it inline, and a
-   copy in this harness would drift from it — at which point the screenshots
-   would be proving a stylesheet nobody ships. Anything rendered by the app
-   rather than by the negotiation component (the share dialog, the readiness
-   panel, the icons) needs those tokens and utility classes to look like it
-   looks in production. */
-async function loadAppStyles(){
-  try{
-    const html = await (await fetch('/index.html')).text();
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    for (const st of doc.querySelectorAll('style')){
-      const el = document.createElement('style');
-      el.textContent = st.textContent;
-      document.head.appendChild(el);
-    }
-  }catch(e){ console.warn('app styles unavailable:', e.message); }
-}
-
 window.READY = (async () => {
-  await loadAppStyles();
   const c = { id:'MK-191', name:'Warehousing and Logistics Services Agreement',
     counterparty:'Nordfrakt Logistik AB', template:'WH', status:'Under Review',
     folder:'dist', fields:{}, metadata:{}, audit:[], rounds:[], versions:[],

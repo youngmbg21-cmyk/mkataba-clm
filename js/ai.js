@@ -780,6 +780,17 @@ function aiChatMessages(){
 function aiChatContext(){
   const ctx={ view: state.view||'' };
   if(state.activeId){ const c=getContract(state.activeId); if(c){ ctx.activeContractId=c.id; ctx.activeContractName=c.name; } }
+  /* The negotiation room is a full-window mode over the workspace, so
+     `state.view` does not describe what is actually on the screen. When it is
+     open, Copilot is told what the reader is reading: the clauses, the changes
+     on the table this round, and whose turn it is. Same panel, same behaviour —
+     it simply knows where it is. */
+  if(typeof negoRoomContract==='function'){
+    const rc=negoRoomContract();
+    if(rc && typeof negoCopilotContext==='function'){
+      try{ ctx.negotiation=negoCopilotContext(rc); ctx.view='negotiation-room'; }catch(e){}
+    }
+  }
   return ctx;
 }
 
