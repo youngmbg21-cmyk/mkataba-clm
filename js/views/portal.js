@@ -424,7 +424,7 @@ function openPortalVersionCompare(p){
    round trip, which reads as nothing having happened and invites a second and
    third press on a contract response. */
 const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-decline',
-  'pt-redline-submit','pt-word-send','pc-accept','pc-counter','pc-decline'];
+  'pt-redline-submit','pt-word-send','pc-accept','pc-counter','pc-decline','pt-nego-send'];
 function portalActionButtons(){
   return PORTAL_ACTIONS.map(id=>document.getElementById(id)).filter(Boolean);
 }
@@ -765,6 +765,103 @@ function portalProposedText(c){
   return portalClauseText(units, PORTAL_CLAUSE_EDITS);
 }
 
+/* ---- the negotiation, as the counterparty sees it --------------------------
+   THE SAME COMPONENT the owner uses (js/views/negotiation.js), rendered with
+   side:'counterparty'. Not a portal-shaped imitation of it — the same file, the
+   same three panes, the same fingerprints, the same margin badges.
+
+   Before this, the two sides read screens built from different code: the owner
+   reviewed a redline in reviewProposedRound's modal while the counterparty was
+   handed the document as clauses to retype. Both were reasonable screens and
+   neither could be checked against the other, so "we are both looking at the
+   same thing" was a claim rather than a property. Now it is a property, and
+   f37 asserts it by diffing what the two sides render.
+
+   Decisions taken here are held on this page until the reader sends them. There
+   is no per-change write endpoint and inventing one would mean a public,
+   no-login URL that mutates a contract on every click; the response route that
+   already carries a redline carries the decisions too, as `negoDecisions`. */
+let PORTAL_NEGO_DECISIONS = {};
+function portalNegoContract(p){
+  /* A contract-shaped record for the component to read. The changes and the
+     baseline come from the payload, so this page cannot show a fingerprint the
+     owner's copy does not have. */
+  const src = (p && p.contract) || {};
+  const c = migrateContract({ ...src, status:'Under Review',
+    folder: src.folder || (TEMPLATES[src.template]||{}).folder || 'corp' });
+  c.changes = Array.isArray(src.changes) ? src.changes.map(x=>({ ...x, thread:(x.thread||[]).slice() })) : [];
+  c.negotiation = { round:(src.negotiation&&src.negotiation.round)||1,
+    baselineText:(src.negotiation&&src.negotiation.baselineText)||portalCurrentText()||docPlainText(c)||'',
+    seq:c.changes.length };
+  // a decision taken on this page but not yet sent is shown as taken
+  for(const ch of c.changes){
+    const d=PORTAL_NEGO_DECISIONS[ch.id];
+    if(d) ch.status=d.status, ch.reply=d.reply||ch.reply||null;
+  }
+  return c;
+}
+function portalNegoHtml(p){
+  const src=(p&&p.contract)||{};
+  if(!Array.isArray(src.changes) || !src.changes.length) return '';
+  return `
+    <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
+      box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:flex-start;gap:11px;flex-wrap:wrap">
+        <span style="flex:1;min-width:200px">
+          <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
+          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
+        </span>
+      </div>
+      <div id="pt-nego" style="height:min(78vh,860px);padding:12px"></div>
+      <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
+    </div>`;
+}
+function portalNegoFootHtml(p){
+  const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
+  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
+  if(!live) return `<span style="font-size:11.5px;color:var(--color-neutral-600)">This copy is read-only — decisions have to be sent from the current link.</span>`;
+  return `
+    <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'#7d5a14':'var(--color-neutral-600)'}">
+      ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
+        :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
+    </span>
+    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
+}
+function wirePortalNego(c, p){
+  if(!window.renderNegotiationTab) return;
+  if(!document.getElementById('pt-nego')) return;
+  const who=fval('pt-name') || (PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName) || c.counterparty || 'The counterparty';
+  renderNegotiationTab(c, {
+    hostId:'pt-nego',
+    side:'counterparty',
+    readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
+    by:who, author:who,
+    /* There is nothing here to save. This page holds a COPY of somebody else's
+       contract, assembled from the share payload; persisting it would write that
+       copy into whatever storage the page can reach — and on a no-login origin
+       reaching for localStorage throws outright, which silently killed the
+       click handler before this was set. Decisions live in
+       PORTAL_NEGO_DECISIONS until they are sent. */
+    persist:false,
+    /* A decision here is recorded locally and remembered, so it survives the
+       component's own re-render and can be sent as a batch. */
+    onChange(rec){
+      for(const ch of (rec.changes||[]))
+        if(ch.status!=='pending' && ch.authorSide==='owner')
+          PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
+        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+      const foot=document.getElementById('pt-nego-foot');
+      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+    },
+    onPropose(){ document.getElementById('pt-redline')?.click(); },
+  });
+  const foot=document.getElementById('pt-nego-foot');
+  if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+}
+function wirePortalNegoFoot(c, p){
+  document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
+}
+
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
     try{
@@ -825,6 +922,7 @@ function renderSharePortal(p, opts={}){
         ${portalRevisedBanner()}
         ${portalRoundBanner(c,p)}
         ${portalCompareBar()}
+        ${portalNegoHtml(p)}
         ${portalOpenPointsHtml(c,p)}
         ${portalDiscussHtml(c,p)}
         ${portalThreadHtml(c,p)}
@@ -892,6 +990,8 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   wireportalWord(c, p);
   wirePortalDiscuss(c, p);
+  // the shared Negotiation component, rendered for this side
+  wirePortalNego(portalNegoContract(p), p);
   if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
@@ -940,6 +1040,30 @@ function renderSharePortal(p, opts={}){
 async function portalRespond(p, action){
   const name=fval('pt-name'), title=fval('pt-title'), email=fval('pt-email'), comment=fval('pt-comment');
   if(!name){ toast('Enter your full name','err'); return; }
+  /* Decisions on the other side's fingerprinted changes. This is not a change
+     request and not an acceptance of the whole document — it is an answer to
+     each specific ask, which is the unit the Negotiation tab works in. It rides
+     the same response route as everything else, so the server, the import path
+     and every existing test see the shape they already saw. */
+  if(action==='decisions'){
+    const decisions=Object.keys(PORTAL_NEGO_DECISIONS)
+      .map(id=>({ id, status:PORTAL_NEGO_DECISIONS[id].status, reply:PORTAL_NEGO_DECISIONS[id].reply||null }));
+    if(!decisions.length){ toast('Nothing to send — decide a change first','err'); return; }
+    const res={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'decisions',
+      name, title, email, comment, negoDecisions:decisions, at:nowISO() };
+    if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
+    portalSetBusy('pt-nego-send','Sending…');
+    try{
+      await api('shares/'+PORTAL_OPTS.token+'/respond','POST',{ response:res });
+      PORTAL_NEGO_DECISIONS={};
+      portalSetDone('pt-nego-send',`${decisions.length} decision${decisions.length===1?'':'s'} sent`);
+      toast(`${decisions.length} decision${decisions.length===1?'':'s'} sent to ${p.org||'the sender'}`);
+    }catch(e){
+      portalSetIdle();
+      toast(e.message||'Could not send your decisions','err');
+    }
+    return;
+  }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
   if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
   if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
@@ -1201,4 +1325,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

@@ -548,7 +548,7 @@ function wireNegotiationTab(c, opts = {}){
     const ch = negoResolve(c, id, status, { side, by: opts.by, ...(extra || {}) });
     if (!ch) return;
     _negoActive = id;
-    if (window.persist) persist(c);
+    if (opts.persist !== false && window.persist) persist(c);
     if (window.toast){
       if (status === 'accepted') toast(`#${id} accepted — merged into the clean text · ${negoShortHash(ch.hash)} filed to the audit trail`);
       else if (status === 'rejected') toast(`#${id} rejected — the clause reverts to the baseline and the ask travels back as an open point`);
@@ -608,7 +608,7 @@ function wireNegotiationTab(c, opts = {}){
       negoPostComment(c, id, text, { side, author: opts.author });
       _negoThreads[id] = true;
       _negoActive = id;
-      if (window.persist) persist(c);
+      if (opts.persist !== false && window.persist) persist(c);
       if (window.toast) toast(`Comment posted on #${id} — the contract is unchanged and no round was opened`);
       again();
       const back = document.getElementById('nego-ti-' + id);
@@ -625,7 +625,7 @@ function wireNegotiationTab(c, opts = {}){
   const bulk = status => {
     const done = negoResolveAll(c, status, { side, by: opts.by });
     if (!done.length){ if (window.toast) toast('Nothing pending — every change is already resolved'); return; }
-    if (window.persist) persist(c);
+    if (opts.persist !== false && window.persist) persist(c);
     if (window.toast) toast(status === 'accepted'
       ? `${done.length} change${done.length === 1 ? '' : 's'} accepted — the redlines are merged into the clean text`
       : `${done.length} change${done.length === 1 ? '' : 's'} rejected — those clauses revert to the baseline`);

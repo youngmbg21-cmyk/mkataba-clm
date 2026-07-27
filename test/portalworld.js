@@ -31,12 +31,16 @@ const MODULES = [
   'js/docxwrite.js',
   'js/versioning.js',
   'js/discuss.js',
+  'js/negotiation.js',
   'js/wordflow.js',
   'js/core.js',
   // the real document renderer: the portal shows the contract through
   // docBody()/readOnlyDocHtml(), so stubbing it would mean asserting on my
   // rendering rather than the product's
   'js/views/contract.js',
+  // the shared Negotiation component: the counterparty's page renders the SAME
+  // file the owner's tab does, so it has to be on this stage too
+  'js/views/negotiation.js',
   'js/views/portal.js',
 ];
 

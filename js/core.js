@@ -1441,9 +1441,32 @@ function buildSharePayload(c, docHash, who){
       : undefined,
     resolution: r.resolution ? { decision:r.resolution.decision, at:r.resolution.at,
       comment:r.resolution.comment||null } : null }));
+  /* The fingerprinted change set, whole. Nothing is trimmed out of it, and that
+     is a decision rather than an oversight: the counterparty wrote half of these
+     changes, and the other half are rulings ON their asks. A reader who can see
+     three of four fingerprints cannot tell a change that was refused from one
+     that was never looked at — which is the ambiguity this model exists to
+     remove. The fingerprint travels in full so they can quote it back.
+
+     The one thing that stays behind is the internal name of whoever ruled: the
+     organisation speaks, exactly as it does for shareRounds above. */
+  const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
+    .filter(x => x.status !== 'superseded')
+    .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
+      oldText:x.oldText, newText:x.newText, hash:x.hash, status:x.status,
+      author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
+      summary:x.summary, note:x.note||null, reply:x.reply||null,
+      resolvedAt:x.resolvedAt||null,
+      thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text })):[] }));
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
+      /* The negotiation, as the other side must see it: the same fingerprints,
+         the same statuses and the same baseline the owner's tab is reading. Two
+         screens built from one payload cannot disagree about what was agreed. */
+      changes: shareChanges.length ? shareChanges : undefined,
+      negotiation: c.negotiation ? { round:c.negotiation.round||1,
+        baselineText:c.negotiation.baselineText||'' } : undefined,
       upload:isUpload(c)?shareUpload(c.upload):undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
       rounds:shareRounds.length?shareRounds:undefined,
@@ -1975,6 +1998,34 @@ async function applyResponse(c, r, opts={}){
       text:r.comment||'Accepted the current wording. Not yet signed.', ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
     toast(`${r.name} accepted the wording — ready for signature`);
+  } else if(r.action==='decisions'){
+    /* Answers to individual fingerprinted changes we proposed. Applied through
+       negoResolve, so the wording is rebuilt from the accepted set by the same
+       code the owner's own decisions run through — there is no second path into
+       the document, and therefore no second set of rules about what enters it.
+
+       A decision only ever lands on a change WE proposed. Their own asks are
+       not theirs to rule on: that would let one side mark its own wording
+       adopted and tell the other it was agreed. */
+    const list=Array.isArray(r.negoDecisions)?r.negoDecisions.slice(0,200):[];
+    const done=[];
+    for(const d of list){
+      const ch=window.negoChangeById?negoChangeById(c,String(d.id||'')):null;
+      if(!ch || ch.authorSide!=='owner') continue;
+      if(d.status!=='accepted' && d.status!=='rejected') continue;
+      if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:who,
+        reply:d.reply||null })) done.push({ id:ch.id, status:d.status });
+    }
+    if(!done.length){
+      if(!opts.background) toast('That response carried no decisions this contract recognises','err');
+      return false;
+    }
+    const acc=done.filter(x=>x.status==='accepted').length;
+    c.comments.push({ author:r.name, role:'Counterparty — Decisions on proposed changes', side:'external',
+      text:r.comment||`${acc} of ${done.length} proposed changes accepted (${done.map(x=>'#'+x.id).join(', ')}).`,
+      ts:fmtDT(r.at) });
+    logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
+    toast(`${r.name} answered ${done.length} change${done.length===1?'':'s'} — ${acc} accepted`);
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
@@ -1990,6 +2041,26 @@ async function applyResponse(c, r, opts={}){
       clauseNotes: Array.isArray(r.clauseNotes)&&r.clauseNotes.length ? r.clauseNotes.slice(0,60) : null,
       status:'open', resolution:null });
     logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value KES ${Number(r.proposedValue).toLocaleString('en-KE')})`:''}`);
+    /* The same redline, ALSO filed as fingerprinted changes so it can be worked
+       clause by clause in the Negotiation tab. The round record above is
+       untouched and still carries the whole-document pair — every existing
+       review path, test and export reads exactly what it read before, and this
+       is additive rather than a replacement. Where the two disagree the round is
+       the wire format and the changes are the working set. */
+    if(hasRedline && window.negoFileProposal){
+      try{
+        const base=r.baseText||docPlainText(c);
+        negoInit(c);
+        if(!(c.negotiation.baselineText||'').trim()) c.negotiation.baselineText=base;
+        const notes={};
+        for(const n of (Array.isArray(r.clauseNotes)?r.clauseNotes:[])){
+          const cl=(window.negoClausesOf?negoClausesOf(String(n.after||'')):[])[0];
+          if(cl&&n.note) notes[cl.id]=String(n.note).slice(0,600);
+        }
+        await negoFileProposal(c, r.proposedText, { side:'counterparty', author:who,
+          baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
+      }catch(e){ /* the round is filed either way — the fingerprints are the bonus, not the record */ }
+    }
     toast(`${r.name} requested changes — review in Negotiation`);
   } else if(r.action==='decline'){
     c.status='Declined';
