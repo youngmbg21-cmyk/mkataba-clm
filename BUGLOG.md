@@ -2808,3 +2808,102 @@ twice consecutively on a clean clone.** 513 baseline tests unchanged and still
 passing, 112 new. No rollback was required, and
 `checkpoint-pre-negotiation-tab` still marks the pre-session state if one is
 ever wanted.
+
+---
+
+## U-001 — 2026-07-27, post-merge. The tab was unstyled after any repaint.
+
+Reported from the running app with a screenshot: the Negotiation tab rendered as
+a flat wall of text — "Baseline v0read-only reference", the whole document in one
+column, no panes, no badges, no index.
+
+The markup was intact; only the CSS was missing. `negoStyleHtml()` emitted a
+`<style>` block **inside the host element**, guarded by a module-level
+`_negoStyled` flag so it was written only once. Both halves were wrong together:
+
+- every render does `host.innerHTML = negoTabHtml(...)`, which destroys the
+  stylesheet along with everything else;
+- the flag then refused to put it back.
+
+So the tab was styled the first time it was opened and unstyled from the second
+render onward — switching to Docs and back, deciding a change, or any
+`renderWorkspace()` repaint. Reproduced in four lines:
+
+```
+render 1 — stylesheet present: true
+render 2 — stylesheet present: false
+   .nego-work still in markup: true
+```
+
+Fixed with `negoEnsureStyle()`, which appends the stylesheet to `<head>` and
+returns early if `#nego-style` already exists. It now survives every `innerHTML`
+assignment in the document and nothing has to remember anything; `_negoStyled` is
+gone.
+
+**Why the tests missed it, which is the more useful half.** Every existing
+assertion on the stylesheet ran immediately after the *first* render — the one
+case that worked. `f36` now has five tests that re-render first: after a second
+`renderNegotiationTab`, after accept / reject / discuss, that it lives in
+`<head>`, that re-adding never yields two copies, and that the markup carries no
+`<style>` of its own any more.
+
+## U-002 — 2026-07-27. Fingerprint badges were clipped to "G-001".
+
+Found by rendering the real component in Chromium against the app's own tokens
+and looking at it, rather than by a test.
+
+`.nego-badge` is `position:absolute; right:calc(100% + 6px)`, which puts it
+outside its clause's box — that is the margin anchoring the design is built on.
+But the clause box starts at the document's own padding, so the badge landed
+outside the pane's content box and was clipped by the pane's `overflow`.
+`#CHG-001` read as `G-001`, and worse once accepted, because the ✓ makes it wider.
+
+`prototype.html` has the same latent problem. It escapes it only because its
+document never reaches its own `max-width` at the viewport it was drawn for.
+
+Fixed by reserving the space — `.nego-pane.working .nego-doc{padding-left:100px}`
+— rather than moving the badge inboard, which would have thrown away the margin
+anchoring. Below 900px the gutter costs more than it is worth, so the badge
+becomes `position:static` and sits above its clause instead: still attached to
+the right clause, still the same fingerprint, no longer in a margin there is no
+room for.
+
+## U-003 — 2026-07-27. The change index was pushed off the side of the screen.
+
+Same Chromium session, at an 860px viewport: the index pane overflowed the
+viewport and its cards were cut off mid-word.
+
+Two missing declarations, both the same mistake in different places:
+
+- `#nego-root` is a flex *item* of `#nego-tab`. Flex items stretch on the cross
+  axis but size to **content** on the main axis, so a root holding a 720px
+  document simply grew wider than its parent. It needs `flex:1; width:100%;
+  min-width:0`.
+- `.nego-work` is a grid whose columns hold documents, and a grid will not shrink
+  below its content's intrinsic width without `min-width:0` — the exact
+  counterpart of the `min-height:0` that was already there.
+
+## Note — how U-002 and U-003 were verified, and what the suite can and cannot do.
+
+jsdom has no layout engine: `getBoundingClientRect` returns zeros, so **no test
+in this suite can measure a pixel**. Neither of these two bugs was findable here,
+and saying otherwise would be the kind of claim `CHECKLIST.md` exists to avoid.
+
+They were found and fixed against real Chromium (pre-installed at
+`/opt/pw-browsers/chromium`), rendering `js/views/negotiation.js` with the design
+tokens extracted from `index.html`, measuring each badge's position against its
+pane's box at 1600px and 860px, and screenshotting all three states. After the
+fix every badge sits inside its pane at both widths.
+
+What the suite now carries is **rule-level** assertions — that the gutter rule,
+the `min-width:0`, the `position:static` fallback and the root's flex
+declarations are present. Those cannot prove the layout is right; they stop the
+rules being deleted again. Closing the gap properly means a browser-driven visual
+test in `npm test`, which would add Playwright as a dependency and change how the
+suite runs. Not done unilaterally — flagged as the honest next step.
+
+## Result of this pass
+
+Three defects, all visual, none of them reachable by the existing suite. Suite
+now **633/633**, up from 630 by the eight new regression tests. `js/views/negotiation.js`
+is the only source file touched.

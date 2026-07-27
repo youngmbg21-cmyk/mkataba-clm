@@ -39,7 +39,6 @@
    about the agreement, and it must never reach storage or the share payload. */
 let _negoActive = null;
 let _negoThreads = {};
-let _negoStyled = false;
 
 const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
 
@@ -55,11 +54,33 @@ const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>
 const negoDomId = id => String(id == null ? '' : id).replace(/[^A-Za-z0-9_-]+/g, '_');
 
 /* ---------- the stylesheet ----------
-   Emitted once, on first render. A <style> block is the established way to do
-   this here (portalRevisedBanner does it for its keyframes): the tri-pane needs
-   real CSS — margin-anchored absolute positioning, media queries and a keyframe
-   — and inline styles cannot express any of the three. Every colour is a HaTi
-   token, so the tab cannot drift from the rest of the product. */
+   A <style> block is the established way to do this here (portalRevisedBanner
+   does it for its keyframes): the tri-pane needs real CSS — margin-anchored
+   absolute positioning, media queries and a keyframe — and inline styles cannot
+   express any of the three. Every colour is a HaTi token, so the tab cannot
+   drift from the rest of the product.
+
+   It goes in <head>, and that is the whole point rather than a detail. This
+   markup used to carry its own <style> inside the host element, guarded by a
+   "already emitted?" flag so it appeared once. Both halves of that were wrong
+   together: every re-render replaces the host's innerHTML and takes the
+   stylesheet with it, and the flag then refused to put it back. So the tab was
+   styled the first time it was opened and unstyled after any repaint —
+   switching to Docs and back, deciding a change, or any renderWorkspace() call.
+
+   In <head> it survives every innerHTML replacement in the document, and
+   re-adding is a no-op because the id is checked first. Nothing has to remember
+   anything. */
+function negoEnsureStyle(){
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('nego-style')) return;
+  const head = document.head || document.getElementsByTagName('head')[0] || document.body;
+  if (!head) return;
+  const holder = document.createElement('div');
+  holder.innerHTML = negoStyleHtml();
+  const style = holder.querySelector('style');
+  if (style) head.appendChild(style);
+}
 function negoStyleHtml(){
   return `
 <style id="nego-style">
@@ -74,7 +95,10 @@ function negoStyleHtml(){
   .nego-resolved.nego-faded{background:transparent}
 
   /* The workbench: baseline · working · index. */
-  .nego-work{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1.15fr 335px;gap:0;background:var(--color-bg);
+  /* min-width:0 matters as much as min-height:0 here: a grid whose columns hold
+     a document will otherwise refuse to shrink below its content's intrinsic
+     width and push the change index off the side of the screen. */
+  .nego-work{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:1fr 1.15fr 335px;gap:0;background:var(--color-bg);
     border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);overflow:hidden}
   .nego-pane{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--color-divider)}
   .nego-pane:last-child{border-right:none}
@@ -106,6 +130,16 @@ function negoStyleHtml(){
     0%{box-shadow:0 0 0 2px var(--color-accent-700),0 0 0 8px rgba(65,97,128,.18)}
     100%{box-shadow:0 0 0 2px var(--color-accent-700),0 0 0 0 rgba(65,97,128,0)}
   }
+
+  /* The working pane keeps a GUTTER, because a margin-anchored badge needs
+     somewhere to be. The badge is positioned outside its clause's box, so with
+     the document's ordinary padding it lands outside the pane's content box too
+     and is clipped by the pane's own overflow — "#CHG-001" arrives as "G-001".
+     The prototype has the same latent problem; it only escapes it because its
+     document never reaches its own max-width at the viewport it was drawn for.
+     Reserving the space is the fix, rather than moving the badge inboard and
+     losing the margin anchoring that makes the design readable. */
+  .nego-pane.working .nego-doc{padding-left:100px}
 
   /* The fingerprint pill, anchored in the document margin. */
   .nego-badge{position:absolute;right:calc(100% + 6px);top:10px;
@@ -192,6 +226,14 @@ function negoStyleHtml(){
   @media (max-width:1120px){
     .nego-work{grid-template-columns:1fr 320px}
     .nego-pane.baseline{display:none}
+  }
+  /* Below this the gutter costs more than it is worth: the document column gets
+     too narrow to read. The badge stops being margin-anchored and sits above its
+     clause instead — still attached to the right clause, still the same
+     fingerprint, just no longer in a margin there is no room for. */
+  @media (max-width:900px){
+    .nego-pane.working .nego-doc{padding-left:36px}
+    .nego-badge{position:static;display:inline-block;margin:0 0 6px}
   }
   @media (max-width:760px){
     .nego-work{grid-template-columns:1fr;position:relative}
@@ -448,8 +490,7 @@ function negoTabHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
   negoInit(c);
-  return `${_negoStyled ? '' : negoStyleHtml()}
-  <div id="nego-root" style="display:flex;flex-direction:column;gap:10px;height:100%;min-height:0">
+  return `<div id="nego-root" style="display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;flex:1;width:100%;min-width:0">
     ${negoHeadHtml(c, opts)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column">
       <div class="nego-work">
@@ -494,8 +535,8 @@ function negoTabHtml(c, opts = {}){
 function renderNegotiationTab(c, opts = {}){
   const host = document.getElementById(opts.hostId || 'nego-tab');
   if (!host) return;
+  negoEnsureStyle();                 // in <head>, so a repaint cannot strip it
   host.innerHTML = negoTabHtml(c, opts);
-  _negoStyled = true;
   wireNegotiationTab(c, opts);
   // soften the wash on freshly accepted wording, the way the prototype does
   const fade = () => host.querySelectorAll('[data-fade]').forEach(n => n.classList.add('nego-faded'));
@@ -663,5 +704,5 @@ function wireNegotiationTab(c, opts = {}){
 function negoResetView(){ _negoActive = null; _negoThreads = {}; }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  negoStyleHtml, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
+  negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId });

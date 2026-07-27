@@ -519,6 +519,57 @@ describe('the one transition out', () => {
   });
 });
 
+describe('the stylesheet survives a repaint', () => {
+  /* The tab shipped unstyled after any repaint. The <style> block lived INSIDE
+     the host element and a one-shot flag stopped it being written twice, so the
+     first render was styled and every render after it — switching to Docs and
+     back, deciding a change, any renderWorkspace() call — replaced innerHTML and
+     threw the stylesheet away. It lives in <head> now.
+
+     The old tests all read the stylesheet immediately after the FIRST render,
+     which is exactly the one case that worked. These re-render first. */
+  test('it is still there after a second render', async () => {
+    const m = await mounted();
+    assert.ok(m.doc.getElementById('nego-style'), 'first render');
+    m.win.renderNegotiationTab(m.c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau' });
+    assert.ok(m.doc.getElementById('nego-style'),
+      'a repaint must not take the stylesheet with it');
+  });
+
+  test('it is still there after a decision re-renders the tab', async () => {
+    const m = await mounted();
+    m.click(`[data-nego-accept="${m.filed[0].id}"]`);
+    assert.ok(m.doc.getElementById('nego-style'), 'after accept');
+    await m.reject(m.filed[1].id);
+    assert.ok(m.doc.getElementById('nego-style'), 'after reject');
+    m.click(`[data-nego-discuss="${m.filed[2].id}"]`);
+    assert.ok(m.doc.getElementById('nego-style'), 'after opening a thread');
+  });
+
+  test('it lives in <head>, out of reach of the host being rebuilt', async () => {
+    const m = await mounted();
+    const style = m.doc.getElementById('nego-style');
+    assert.ok(m.doc.head.contains(style),
+      'inside the host it would be destroyed by the next innerHTML assignment');
+    // and the host really is rebuilt wholesale on every render
+    m.host().innerHTML = '';
+    assert.ok(m.doc.getElementById('nego-style'), 'emptying the host leaves it standing');
+  });
+
+  test('re-adding is a no-op — never two copies', async () => {
+    const m = await mounted();
+    for (let i = 0; i < 4; i++) m.win.negoEnsureStyle();
+    m.win.renderNegotiationTab(m.c, { hostId: 'nego-tab', side: 'owner' });
+    assert.equal(m.$$('#nego-style').length, 1, 'exactly one stylesheet');
+  });
+
+  test('the markup carries no <style> of its own any more', async () => {
+    const m = await mounted();
+    assert.ok(!/<style/i.test(m.html()),
+      'a stylesheet inside the host is the bug this test exists for');
+  });
+});
+
 describe('the tab is built on HaTi\'s design system, not the prototype\'s tokens', () => {
   test('the stylesheet uses HaTi tokens, not the prototype\'s bespoke ramp', async () => {
     const m = await mounted();
@@ -547,6 +598,35 @@ describe('the tab is built on HaTi\'s design system, not the prototype\'s tokens
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /@media \(prefers-reduced-motion:reduce\)/);
     assert.match(css, /animation:none/);
+  });
+
+  /* These four are rule-level assertions, and deliberately so: jsdom has no
+     layout engine, so getBoundingClientRect is all zeros and nothing here can
+     measure a pixel. Each rule below was verified for real in Chromium against
+     the app's own tokens (see BUGLOG U-002/U-003) — what these tests do is stop
+     the rule being deleted again. */
+  test('the working pane reserves a gutter, so a margin-anchored badge is not clipped', async () => {
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.match(css, /\.nego-pane\.working \.nego-doc\{padding-left:100px\}/,
+      'without the gutter the badge lands outside the pane and reads as "G-001"');
+    // and below the gutter's worth of width it stops being margin-anchored
+    assert.match(css, /@media \(max-width:900px\)\{[\s\S]*?\.nego-badge\{position:static/);
+  });
+
+  test('the grid may shrink below its content, so the index cannot be pushed off-screen', async () => {
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.match(css, /\.nego-work\{flex:1;min-height:0;min-width:0;display:grid/,
+      'a grid holding a document will not shrink without min-width:0');
+  });
+
+  test('the root fills its flex parent rather than sizing to its content', async () => {
+    const m = await mounted();
+    const root = m.doc.getElementById('nego-root');
+    assert.match(root.getAttribute('style'), /flex:1/);
+    assert.match(root.getAttribute('style'), /width:100%/);
+    assert.match(root.getAttribute('style'), /min-width:0/);
   });
 
   test('the responsive rules drop the baseline pane before the index', async () => {
