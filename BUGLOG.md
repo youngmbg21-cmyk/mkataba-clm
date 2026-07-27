@@ -2544,3 +2544,267 @@ tests, 434 pass, 0 fail (19.7 s).
 
 All eight review items are DONE, including both phases of item 4. Nothing from
 the review is outstanding.
+
+---
+
+# Session — the Negotiation tab (native in-app negotiation)
+
+Branch `claude/new-session-mrv304`. Checkpoint `checkpoint-pre-negotiation-tab`
+(= `301707f`). Running log, in the order things happened. **No rollback was
+needed this session**; the checkpoint tag was never used.
+
+## N-001 — 2026-07-27, Phase 0. The suite does not run on a fresh clone.
+
+`npm test` failed at the first `before()` hook with:
+
+```
+Cannot read properties of undefined (reading 'stop')
+```
+
+which is the `after()` hook dereferencing an `h` that `before()` never assigned.
+The real cause was two frames further up: `Error: Cannot find module 'express'`.
+`node_modules` is not committed (correctly) and had not been installed.
+
+Not a code defect. Worth writing down because the *presented* error points at
+`test/helpers.js:22` and says nothing about dependencies, which is a minute lost
+every time somebody clones this repo. `npm install` fixes it; the baseline was
+then **513/513 green in 27 s**.
+
+Left alone deliberately: making `after()` guard `h` would hide the real failure
+behind a passing teardown.
+
+## D1 — 2026-07-27, Phase 0. "Vanilla ES modules" needs one qualification.
+
+The brief says vanilla ES modules, no build step, and that is accurate:
+`index.html` loads exactly one script, `js/app.js`, which is 38 side-effecting
+`import './x.js'` statements. But the modules do not `export` anything — each
+ends with `Object.assign(window, {...})`, because ES-module scope means a
+top-level `function foo(){}` is invisible to the next file.
+
+Two rules the new modules follow, both already true of every existing one:
+
+- anything another file needs goes in the closing `Object.assign(window, …)`;
+- **no `import`/`export` statements in the file**, because `test/world.js`
+  evaluates the same file as a raw script with `vm.runInContext`. A
+  `module.exports` guarded by `typeof module !== 'undefined'` is the established
+  way to also expose pure helpers to `require()` (see `js/docx.js`).
+
+Recorded as a deviation only because the phrasing could reasonably be read as
+"use `export`", and doing so would break the test harness.
+
+## D2 — 2026-07-27, Phase 0. `docxExtract` is in `js/docx.js`, not `js/wordflow.js`.
+
+The brief locates the Word extractor in `js/wordflow.js`. It is
+`docxExtract()` in **`js/docx.js`**; `js/wordflow.js` owns the round-trip *flow*
+(out, back, filed as a round) and `extractWordText()` in `js/views/contract.js`
+is the thin wrapper over the extractor. No behaviour change — noted so the
+reuse claim in `INVENTORY.md` points at the right file.
+
+## D3 — 2026-07-27, Phase 0. Prototype tokens vs. HaTi's design system.
+
+Per the brief, HaTi's real tokens win and the deviation is recorded. Full table
+in `INVENTORY.md` §2.4. The substantive ones:
+
+| Prototype | HaTi | Why HaTi wins |
+|---|---|---|
+| `--font-doc: Georgia, Times` (serif) | `--font-doc: "Google Sans Flex"` | The document surface's contrast ratios are documented in `index.html` (17.25:1 on `#fbfbfc`). A second document typeface in one product is worse than a different one. |
+| `--font-ui`, `--font-mono` (system stacks) | `--font-body`, `--font-mono` (IBM Plex) | One type system. |
+| `--canvas: #f2f4f7` (cool grey) | `--color-bg: #f4f3f0` (warm) | The whole app is warm-neutral; a cool pane reads as a foreign screen. |
+| `--slate` ramp `#33475c / #456a8f / #26374a` | `--color-accent-800 / -700 / -900` | HaTi already has this ramp. |
+| `--del-fg: #b0453c` for struck-out wording | `#8f322b` (from `diffHtml`) | **This one matters.** `diffHtml()` in `js/versioning.js` already renders deletions at `#8f322b`. Using the prototype's value would mean the same rejected wording looked different in the Negotiation tab and in the version-compare modal — two redlines that could drift. `#b0453c` is kept where the repo already uses it: destructive controls. |
+| `--ins-fg: #1e6b4d` | `#1e6b4d` | No conflict; identical. |
+| `--r-sm/md/lg 6/10/14px`, bespoke shadows | `--radius-*`, `--shadow-*` | One scale. |
+
+**Structural deviations**, because the prototype is a standalone page and this is
+a tab inside a workspace:
+
+- The prototype's `header.topbar` (brand, breadcrumbs, avatar) is page chrome the
+  workspace already provides. Only its contract-specific actions — Accept All,
+  Reject All, the gated export, Propose edits — moved into the tab. Two headers
+  on one screen would be worse than following the prototype literally.
+- The prototype's viewport-fixed `footer.statusbar` becomes an in-tab strip; the
+  workspace owns the bottom of the window.
+- The prototype's `Doc` breadcrumb chip is the workspace tab row. The new tab
+  joins it (`Docs` | `Negotiation`) rather than replacing a breadcrumb.
+
+Asserted by `f36` — "the stylesheet uses HaTi tokens, not the prototype's
+bespoke ramp" and "the insertion green matches diffHtml, so the two redlines
+cannot drift".
+
+## D4 — 2026-07-27, Phase 0. There is no tab literally called "Docs".
+
+The brief says to attach the Negotiation tab beside the existing "Docs" tab. The
+contract workspace has no tab by that name: it has a two-column body (document
+left, panel right) and the panel carries `Draft & Review` | `Signing`
+(`topTabBtn`, `_docTopTab`, `applyDocTabs` in `js/views/contract.js`).
+
+Read as intended — "the existing document workspace" — and implemented as a new
+**workspace-level** pair, `Docs` | `Negotiation`, above the split. It could not
+have gone in the right-hand panel: that panel is a third of the screen and the
+three-pane redline needs the full width. The hand-off button is named "Send to
+Docs tab for signature" to match the brief's vocabulary, and the tab is
+labelled `Docs`, so the name the brief uses now exists in the product.
+
+## Decision — 2026-07-27, Phase 0. Custom templates already exist; scope does not expand.
+
+The brief asked me to check rather than assume whether a custom/user template
+feature exists, and to confirm a minimal version before building one. **It
+already exists in full** and no template work was needed:
+`state.settings.customTemplates`, persisted through
+`api('settings/templates','PUT')`, with CRUD, versioning and bulk creation in
+`js/views/library.js` (1,346 lines) — `openCreateTemplateModal`,
+`openUploadTemplateModal`, `saveContractAsTemplate`, `duplicateBuiltinTemplate`,
+`openTemplateVersions`, `createFromCustomTemplate`, `openBulkCreateModal`.
+`templateFields()` in `js/templatefields.js` is already a single accessor over
+built-in and custom templates alike — built-ins were retrofitted with a live
+`fields` getter specifically so the two are indistinguishable to callers.
+
+So Phase 1's second intake path is a shape, not a feature: the same body
+carrying `templateId` instead of a built-in key.
+
+## Decision — 2026-07-27, Phase 1. A change is not a round, and rounds stay.
+
+`js/versioning.js` already models a proposal as a round: one whole-document text
+pair whose divergences `diffBlocks()` segments into positional ids `b0`, `b1`…
+That is the right unit for "review what came back" and it is untouched.
+
+It is the wrong unit for a negotiation you can point at. `b0` in round 3 is a
+different passage from `b0` in round 2, so nothing about a block is quotable,
+addressable or hashable across rounds. The new `changes[]` model sits **beside**
+the rounds rather than replacing them: a counterparty redline is filed as a
+round (unchanged wire format, so every existing review path, export and test
+reads what it always read) **and** as fingerprinted changes. Where the two
+disagree, the round is the wire format and the changes are the working set.
+
+## B-001 — 2026-07-27, Phase 2. A clause id is not a DOM id.
+
+`#nw-clause:2.` is not a selector, it is a parse error: `:` and `.` are CSS
+combinators, so `querySelector` **throws** rather than returning null.
+`getElementById` does not care, which is why the first version worked — and
+would have left a trap for the next person to reach for a selector.
+
+Fixed by slugging element ids (`negoDomId`) while the real clause key travels in
+`data-clause`, where an attribute selector can match it safely.
+
+## B-002 — 2026-07-27, Phase 3. The portal called `persist()`.
+
+The counterparty's page holds a **copy** of somebody else's contract, assembled
+from the share payload. The shared component called `window.persist(c)` after a
+decision, which on a no-login opaque origin throws
+`SecurityError: localStorage is not available for opaque origins` — killing the
+click handler silently. Erik pressed Accept and nothing happened, with no error
+visible to him.
+
+Fixed by rendering the portal's copy with `persist:false`. Decisions live in
+`PORTAL_NEGO_DECISIONS` until they are sent. Found by writing
+`f37` — "his decisions are held on the page until he sends them".
+
+## Decision — 2026-07-27, Phase 3. No per-change write endpoint.
+
+The obvious way to make Erik's decisions stick would be a `PUT` per change on
+the share token. Rejected: that is a public, no-login URL that mutates a
+contract on every click. Decisions ride the response route that already carries
+a redline, as `negoDecisions`, and `applyResponse` runs them through
+`negoResolve` — so there is no second path into the document and therefore no
+second set of rules about what is allowed to enter it.
+
+`applyResponse` also refuses a decision on the sender's **own** ask, so "nobody
+rules on their own proposal" is enforced on the record and not only in the UI
+(`f37` — "he cannot rule on his own ask even by posting a response directly").
+
+## Deliberate deviation — 2026-07-27, Phase 3. What "replace the textarea" became.
+
+The brief says to replace the portal's single-textarea redline view with the
+shared component. Two surfaces existed there, not one: a per-clause editor
+(already the primary path, added in an earlier session) and a whole-document
+textarea behind "Edit the whole document instead".
+
+What was done: the shared Negotiation component is now the counterparty's **view
+of the negotiation** — every fingerprint, every status, accept/reject/discuss on
+our proposals. The clause editor and its textarea escape hatch remain as the
+**authoring** surface behind "Propose edits", because that is what feeds the
+established wire format that ~40 existing tests and the whole owner-side review
+path depend on. Replacing the authoring surface as well would have been a
+rewrite of the response protocol, which the "do not destroy the working
+platform" rule forbids. Recorded here rather than quietly done.
+
+## B-003 — 2026-07-27, Phase 4. The permission gate ignored its own subject.
+
+`negoResolve` guarded with a bare `canEdit()`. `js/core.js` declares
+`const canEdit = () => …` — a **lexical** binding, not a property of the global
+object. Under ES modules a bare `canEdit()` in another file resolves to
+`window.canEdit` (the property `Object.assign` created) and the two are the same
+function. In one shared script scope — which is what `vm.runInContext` gives the
+test stages — the lexical `const` shadows the property, so the bare call
+resolved past every substitution of `window.canEdit` and the check silently
+ignored its own subject.
+
+Symptom: every decision in the six-round scenario returned null with
+"Viewers cannot decide changes", on a stage where `canEdit()` had been set to
+return true.
+
+Fixed by reading the permission through `window.canEdit` explicitly, and by
+normalising **every** global this module reads — `nowISO`, `currentUser`,
+`todayStr`, `isUpload`, `emailOff` — to the same `window.` form. Uniformity is
+the point: the mixed style was the bug.
+
+## B-004 — 2026-07-27, Phase 4. Uploaded Word contracts lost their formatting on the first accepted change.
+
+The worst defect this session, and it only showed up at six rounds' distance.
+
+Intake lifted extracted Word text with `textToRich()`, which splits on **blank
+lines**. Extracted Word text has none — `docxExtract` emits one line per
+paragraph — so an entire contract became a single `<p>` with `<br>` between the
+clauses.
+
+That reads correctly through `richToText()`, which is why it looked fine. But
+`_lineUnits()` in `richFromTextEdit` maps every one of those lines to the **same
+`<p>` node**, so rewriting one clause rewrote the whole paragraph and took the
+other clauses with it. The verification at the end of `richFromTextEdit` caught
+the damage and refused — exactly as designed — and `negoCommitText` fell back to
+plain text. So the failure mode was not corrupted text; it was an uploaded
+contract silently losing its headings and clause numbering on the first accepted
+change, with the record correctly saying so and nobody reading it.
+
+Fixed with `negoRichFromLines()`: one Word paragraph → one block, which is what
+a Word paragraph is. The first heading line becomes `<h1>` (the title), later
+ones `<h2>`, decided by `docLineKind()` — the same function the clause
+segmentation uses, so the two cannot disagree about what is a term and what is a
+label. `textToRich()` is untouched; it is still right for its own job (a
+plain-text body opened in the rich editor).
+
+Caught by `scenario3` — "six rounds — uploaded Word file", asserting
+`docFormat(c.format) === 'rich'` after round 6.
+
+## B-005 — 2026-07-27, Phase 4. Open points vanished when a round closed.
+
+`negoOpenPoints` read only `c.changes` — the round in flight. `negoAdvanceRound`
+archives a round's changes onto the record and clears that array, so every
+earlier refusal disappeared from the list at the moment the round closed. A
+rejected change that simply vanishes reads as agreement, which is the precise
+failure the list exists to prevent, arriving through the back door.
+
+Fixed by reading `negoAllChanges(c)` and applying the two ways a point stops
+being open — the reasoning `openPointsFor()` in `js/versioning.js` already
+worked out and which is deliberately not re-derived: they got the wording
+anyway, or the passage it was measured against is gone.
+
+The second case is the interesting one and `scenario3` pins it: Erik asks for 30
+days' notice and EUR 250,000, is refused both, and the parties later settle on 45
+days and EUR 500,000 per event. He got neither thing he asked for and both points
+are spent, because the clauses they were measured against no longer exist.
+
+## Note — 2026-07-27, Phase 5. PDF export has no direct test, and did not before.
+
+`js/pdfrich.js` is unmodified and has no direct automated test — that was true at
+the baseline too, and this session did not close the gap. `CHECKLIST.md` records
+the line as unmodified-and-non-interfering rather than as test-covered, because
+claiming otherwise would be exactly the thing the honesty rule forbids.
+
+## Result
+
+Six defects and one environment trap found; all six fixed. **625/625 green,
+twice consecutively on a clean clone.** 513 baseline tests unchanged and still
+passing, 112 new. No rollback was required, and
+`checkpoint-pre-negotiation-tab` still marks the pre-session state if one is
+ever wanted.

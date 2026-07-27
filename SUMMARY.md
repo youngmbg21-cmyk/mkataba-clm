@@ -1655,3 +1655,202 @@ specific change takes priority over a general one for the round.
 | Clean run 2 | **434 checks, 434 passed, 0 failed** (19.7 s) |
 
 Nothing from the review is outstanding.
+
+---
+
+# The Negotiation tab — what changed, in plain English
+
+*Written for someone who does not read code. Nothing below is a claim about what
+the software should do; every statement about behaviour is backed by an automated
+test whose name is given, and the test names are listed in `CHECKLIST.md`.*
+
+## The problem this fixes
+
+Until now, HaTi could track a negotiation properly only while the other side
+also worked inside HaTi. The moment a Word file was involved, tracking fell
+apart: you emailed a document out, something came back, and somebody had to work
+out by eye what had actually changed.
+
+## What is true now
+
+**However a contract gets into HaTi, everything after that happens inside
+HaTi.** There are three ways in — one of your standard templates, one of your
+own custom templates, or a Word file you upload — and once the wording is in,
+all three behave identically. Word is needed exactly once, to read a file's
+wording in. It is never again the way a change is tracked.
+
+Proven by `scenario3.test.js`, which runs a complete six-round negotiation three
+times over, once per route, and then checks that all three end up with a
+**word-for-word identical contract**. Three separate tests passing would not
+have caught one route quietly drifting; comparing them to each other does.
+
+## What the Negotiation tab looks like
+
+The contract workspace now has two tabs across the top: **Docs** (everything
+that was there before) and **Negotiation** (new). Switching between them loses
+nothing — not a comment you were half-way through typing, not the change you had
+selected.
+
+The Negotiation tab shows three columns side by side:
+
+1. **Baseline** — the wording both sides agreed they are arguing about, read-only.
+2. **Working** — the same document with the proposed changes drawn over it:
+   wording that would go is struck through in red, wording that would arrive is
+   underlined in green.
+3. **Change Index** — one card per proposed change.
+
+Every change has its own **fingerprint** — a label like `#CHG-012` sitting in
+the margin of the document, next to the clause it belongs to — and its own
+**SHA-256 digest**, a 64-character code that identifies that exact change and
+nothing else. You can read a fingerprint out over the phone. It does not change
+when the change is accepted, rejected or reopened, so it can still be used to
+verify what was agreed months later.
+
+Clicking a fingerprint, a clause, or a card highlights the same clause in **all
+three columns at once** and scrolls them into line, so you never have to hold the
+old wording in your head while reading the new one.
+
+## What you can do with a change
+
+- **Accept** — that clause's new wording goes into the contract. The audit trail
+  records who accepted it, **who proposed it**, and the fingerprint.
+- **Reject** — the clause stays exactly as the baseline reads it, and you are
+  asked why. Your reason travels back to the other side, and the ask stays
+  visible to both of you as a point still open between you. It does not silently
+  disappear, because a change that vanishes reads like agreement, and it is not.
+- **Discuss** — a short conversation attached to that one change. This is the
+  important one: **posting a comment changes nothing.** No new version, no new
+  round, no movement in the document. Asking "would you take 45 days?" used to
+  mean opening a formal round; now it means typing a sentence.
+
+There are also **Accept All** and **Reject All**, a progress bar, and a status
+strip along the bottom showing whether email is set up, whether the other side
+has opened the link, which round you are on, and how many changes are resolved.
+
+### One rule worth knowing
+
+**A change nobody has decided is not in the contract.** Silence never adopts
+anything. The document is rebuilt from the changes that were actually accepted,
+which means rejecting everything gives you back the original wording exactly,
+character for character. This is the property that makes it safe to run on a
+legal document at all, and it is tested directly
+(`f35` — "rejecting everything reproduces the baseline EXACTLY").
+
+**And nobody rules on their own request.** You can discuss your own proposal or
+withdraw it by proposing something else, but you cannot mark your own wording
+"accepted" and tell the other side it was agreed. This is enforced on the
+server-side record, not just hidden in the buttons
+(`f37` — "he cannot rule on his own ask even by posting a response directly").
+
+## What the counterparty sees
+
+**The same screen.** Not a simplified version, not a read-only preview — the
+identical component, rendered from the same information: same clauses, same
+fingerprints, same digests, same statuses.
+
+That claim is tested the only way worth testing it: `f37` renders **both**
+screens and compares them element by element. A test that only looked at the
+counterparty's page could have passed while the two sides slowly drifted apart.
+
+They still get in by **clicking a link. No account, no password, no login** —
+unchanged. Each counterparty has one durable link per contract that always shows
+the current state, so round six uses the same URL as round one.
+
+They can accept or reject the changes *you* proposed, and discuss any change.
+Their decisions are held on their page until they press send, which is
+deliberate: their link is a public URL, and a public URL that changed your
+contract on every click would be a bad idea.
+
+When you accept a change, it shows as accepted on their side, with the wording
+moved. When you reject one, they see the baseline kept **and your reason**.
+
+## What is deliberately NOT built
+
+**The signing flow.** This was out of scope on purpose, and it stayed out.
+
+When every change on the table has an answer, a green banner appears — *"Ready to
+sign — every change is resolved"* — with one button: **"Send to Docs tab for
+signature."** That button closes the round, makes the agreed wording the new
+baseline, and moves you to the Docs tab, where signing already lives. It signs
+nothing, seals nothing and executes nothing.
+
+`scenario3` presses that button and then checks that the contract's status,
+signatures, execution record and seal are all still untouched. The hand-off is
+reachable and clearly named; the thing it hands off to is the existing signing
+flow, unchanged.
+
+**The mobile/WhatsApp counterparty portal** was also out of scope and was not
+touched.
+
+## Did anything else break?
+
+No — and here is the evidence rather than the assurance.
+
+The full test suite was run on a **fresh clone**, twice in a row:
+
+| | Result |
+|---|---|
+| Before this work | **513 tests, all passing** |
+| After, run 1 | **625 tests, all passing** |
+| After, run 2 | **625 tests, all passing** |
+
+Those 625 are the original 513 plus 112 new ones. **No existing test was changed
+to make it pass.** The only edits to existing test files were adding the two new
+modules to the setup lists.
+
+Six source files were touched, and the change was almost entirely additive:
+**1,693 lines added, 5 removed** — and all 5 removals are the single-line lists
+at the bottom of a file that say which functions other files can use.
+
+Which means these files were **not modified at all**: the drafting wizard, the
+templates, the custom-template library, the PDF exporter, the Word exporter and
+reader, the signature and sealing code, the version-comparison code, and the
+discussion module.
+
+Named confirmations, each with its proving test, are in `CHECKLIST.md`:
+wizard drafting and all 12 templates, custom templates, Word export, OTP
+signing, the seal, the evidence pack, version compare, the Docs tab, and the
+append-only audit trail.
+
+**One honest caveat.** PDF export has **no direct automated test** — and it did
+not before this work either. That gap is pre-existing and this session did not
+close it. What can be shown is that the PDF code was not modified, and that the
+new tab's export button is disabled until every change is resolved and otherwise
+just calls the existing exporter. `CHECKLIST.md` records that line as
+"unmodified and non-interfering", not as "tested", because saying otherwise
+would be the one thing worth never doing here.
+
+## Six real bugs were found by building this
+
+Written up in full in `BUGLOG.md`. The one worth repeating:
+
+**Uploaded Word contracts were losing their formatting the first time you
+accepted a change.** The intake step was turning a whole Word contract into a
+single paragraph with line breaks inside it. It *read* correctly, which is why it
+looked fine — but editing one clause of a single giant paragraph rewrites the
+whole paragraph. The safety check that exists for exactly this reason caught the
+damage and correctly fell back to plain text, so no wording was ever corrupted;
+what was lost was the headings and clause numbering, silently, on the first
+accepted change. Now each Word paragraph becomes its own block, which is what a
+Word paragraph is.
+
+That bug was invisible in a one-round test. It took a six-round negotiation to
+surface it, which is the argument for `scenario3` existing at all.
+
+The other five: open points disappearing when a round closed; a permission check
+that ignored its own setting; the counterparty's Accept button failing silently
+on the no-login page; clause identifiers that broke as HTML identifiers; and a
+misleading error on a fresh clone with no dependencies installed. All six fixed.
+
+## Where things live
+
+| File | What it is |
+|---|---|
+| `js/negotiation.js` | the change model — fingerprints, digests, accept/reject/discuss, the three-route intake normaliser |
+| `js/views/negotiation.js` | the three-column screen, rendered for whichever side is looking |
+| `js/views/contract.js` | the `Docs` \| `Negotiation` tab row and the owner's side of the shared screen |
+| `js/views/portal.js` | the counterparty's side of the same shared screen |
+| `js/core.js` | carries the change set to the counterparty; applies their decisions |
+| `INVENTORY.md` | what already existed vs. what was built new |
+| `CHECKLIST.md` | every capability, with PASS/FAIL and the test that proves it |
+| `BUGLOG.md` | the six bugs, the design decisions, and the deviations from the prototype |
