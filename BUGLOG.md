@@ -3518,3 +3518,187 @@ the live pair so a stale comparison cannot follow you to the next contract.
 covering: the space bar typed for real, tools drawn without hover and inside
 the pane, the version selectors opening on the live pair, comparison mode
 refusing decisions, and the exit restoring the live round.
+
+---
+
+# Follow-up 3: Copilot's blindness, editing out of Docs, and the counterparty's page
+**2026-07-27, late** · branch `claude/new-session-7glnhu`
+
+## B-015 — Copilot could not answer about the contracts, and was right to say so
+
+Reported with a screenshot: asked "how many additions have i added?", Copilot
+replied *"I don't have a tool to track edits or versions within HaTi itself —
+that would be a feature of the platform's audit log or document history, which
+I can't access."*
+
+**It was not refusing. It was blind.** `copilotDetail()` (server) and
+`_localDetail()` (browser-direct) returned metadata, scan findings and body
+text — and nothing whatsoever about changes, rounds, versions or authorship.
+The honest answer to a question it had no data for is exactly the one it gave,
+and the guardrail was never the problem: the system prompt has said *"not a
+lawyer… do not give legal advice"* since long before this session.
+
+**Fix: data.** A `negotiation` block now travels with every fetched contract —
+round, turn, rounds closed, counts by status, readyToSign, every change with
+its id, clause, type, proposer, side, summary, decider, decision time and any
+reason given, plus the version list. Bounded at 60 changes newest-first with
+`changesOmitted` stated, so a truncated list can never read as a complete one.
+
+**TWO ENGINES, ONE ANSWER.** `copilotNegotiation()` in server/server.js and
+`negoCopilotRecord()` in js/negotiation.js. Two implementations because the
+server process loads none of the browser modules and the BYOK path never
+reaches the server. If they described a negotiation differently, an answer
+would depend on which brain happened to be configured — so f47 pins both field
+sets, reading the server's source and checking each key. Crude, and it is the
+only thing standing between the two and a silent divergence.
+
+**The limit, restated and made visible.** Both prompts now say GUIDANCE, NOT
+LEGAL ADVICE in the same terms: explain what a contract says, what changed and
+what is unusual; do not say what the law requires, what a clause would mean in
+court, whether to sign, or whether to accept a particular change. On a
+negotiation it may note that a change is one-sided or unresolved — it may not
+recommend a decision. And the limit is now stated to the READER in the panel's
+opening message, not only to the model in a prompt they cannot see.
+
+## Editing left the Docs page
+
+`ws-edit` removed. That page reads, checks and signs.
+
+The clause library moved to the negotiation room's top bar (`#nego-insert-lib`,
+owner only — the playbook is our negotiating position and the counterparty
+never sees it). `pb-insert` removed from the Docs playbook panel.
+
+**The important half is the model, not the button.** `applyClauseRedline()` used
+to append the clause onto `c.redlineText` — the document simply grew, with
+nothing to review and nothing to accept. It now files a tracked `insertClause`
+change with a fingerprint, a hash and a place in the chain. That fixes BOTH
+callers at once — the library picker and the playbook review's "apply this
+wording" — because the destination changed rather than each button.
+
+## B-016 — the counterparty was sent a lobby, not a document
+
+Their link opened on a card holding a preview of the negotiation squeezed into
+a third of the width, behind a button marked "Open the negotiation room".
+
+The room now opens as the page, on first paint, whenever changes are
+outstanding. Measured in Chromium against the owner's own numbers: panes
+**exactly** 503 / 590 / 335 wide on both sides (height differs by 9px, which is
+one banner, and the two sides carry different banners legitimately).
+
+Withheld from their side, each for a stated reason: **Ask Copilot** (reads our
+whole portfolio and our playbook), **Save Draft** (our draft state), **Share
+Link** (a counterparty who can re-share has published our contract), **Insert
+clause** (our library is our position), the **workspace breadcrumb and template
+code** (our filing structure), **"Email: Not Configured"** (our server's setup)
+and **"Last seen"** (us watching them — showing a reader a log of their own
+visits is both odd and none of their business).
+
+**One I nearly got wrong.** My first comment claimed they also lose the index's
+bulk Accept All / Reject All. They keep them, and the comment was corrected
+rather than the code: those buttons act on OUR asks, and "I agree to all of it"
+is a real answer. Withholding the button withholds nothing but their time, and
+a lesser screen for the other side is the thing this room exists not to be.
+f49 now pins that they DO get them.
+
+## B-017 — the signing view
+
+When every change is resolved, or none was ever proposed, three panes of a
+settled change index is a diff of nothing. `portalNegoPhase()` reads the record
+and picks the screen:
+
+| state | screen |
+|---|---|
+| changes pending | the negotiation room, as the page |
+| all resolved | Ready to sign, with "Review what changed" back into the room |
+| nothing proposed | Ready to sign, saying no changes were proposed |
+| superseded / responded | reading only — history is not signable |
+
+The banner accounts for what was settled ("All 3 changes have been resolved — 2
+adopted into the wording, 1 not taken") rather than asking someone to sign on
+trust.
+
+**Caught by an existing test, and the test was right.** f37 asserts `#pt-nego`
+is absent for a contract with no changes — "an empty negotiation is not a panel
+worth showing". My first signing view emitted a hidden `#pt-nego` host anyway.
+The host exists only so the room has somewhere to render when they press
+"Review what changed", and a contract with nothing to review needs neither. The
+code was fixed, not the assertion.
+
+## N-005 — a break that a passing-looking check let through
+
+Prompt text written inside a template literal contained the words `negotiation`
+and `changesOmitted` **in backticks**, which closed the literal. server.js
+stopped booting; it surfaced as `server exited` inside a `before()` hook in
+regression.test.js rather than as anything resembling a syntax error. js/ai.js
+had the identical break and **nothing noticed at all**, because test/world.js
+evaluates only the modules it loads.
+
+Worse, my own pre-check (`new Function(source)`) reported "parses ok" on the
+broken file. `node --check` is the real parser and says so immediately.
+
+**f48** now runs `node --check` over every .js in js/, js/views/, server/ and
+test/, and separately checks that index.html's `<script src>` list and
+js/app.js's import list point at files that exist. Verified against the real
+break shape by dropping a file with unbalanced backticks into js/ — it names
+the file and the error.
+
+A second, smaller lesson: I had three `npm test` runs going concurrently while
+bisecting, which made the suite look like it was hanging. It was contention.
+
+## Regression
+
+**806 tests / 167 suites / 0 fail** (was 770). Chromium **52/52** (was 41),
+now additionally measuring the counterparty's panes against the owner's,
+their missing owner-only controls, their breadcrumb and their status strip.
+
+## N-006 — two modules, one name on `window`
+
+Found while writing f50, and it had been sitting there quietly.
+
+`js/clausemodel.js` exported `clauseById(html, id)` → a clause of a document.
+`js/playbook.js` exports `clauseById(id)` → an entry of the clause library. Both
+land on `window`. Every file is its own ES module scope (index.html loads
+js/app.js as `type="module"`), so nothing breaks at load — the LATER import
+simply wins the name, and a caller of the loser gets a function with a different
+signature and no complaint from anyone.
+
+It surfaced only because test/world.js evaluates the modules flat, in one vm
+scope, where the second declaration is a hard `SyntaxError: Identifier
+'clauseById' has already been declared`. The harness being cruder than the
+browser is what caught it.
+
+Renamed to `clauseFindById`. `f48` now walks every `Object.assign(window, {...})`
+in js/ and fails on any name claimed twice. It immediately turned up
+`approvalState` and `approveContract` as well — and those are **not** a bug:
+approvals.js's rule chain deliberately supersedes core.js's legacy
+spend-threshold gate, and core.js reads the winner back through
+`((window.approvalState)||approvalState)(c)` so its label matches what the sign
+panel enforces. They are allow-listed with that reason written down, and the
+allow-list is itself asserted to still be doubled — an entry cannot outlive the
+decision it describes.
+
+## The gap I had left in my own coverage
+
+The BUGLOG entry above ("Editing left the Docs page") described work that had
+**no named test**. The commit removed `ws-edit`, moved the clause library to the
+negotiation bar and changed `applyClauseRedline` from an edit into a tracked
+change — and the only assertion touching any of it was f49's owner-only control
+list.
+
+By this session's own rule that is not DONE. `f50` now covers it: the Docs page
+emits no Edit button and nothing is wired to the editor; the editor is kept but
+unreachable; Compare / PDF / Share / Import survive; the library is on the
+owner's top bar and not the counterparty's; and — the half that matters — a
+library pick files a pending `insertClause` change with a fingerprint and a
+verifying chain, leaves the document untouched until it is accepted, restores
+nothing on reject, and says "proposed" in the audit rather than "edited".
+
+Writing it also turned up one piece of dead wiring: `ws-edit`'s click listener
+was still there behind a `?.`, harmless today and an invitation tomorrow.
+Removed.
+
+## Regression, corrected
+
+The figure recorded above (806 / 52) was taken before f50 and the collision
+guard. Final for this round: **825 tests / 170 suites / 0 fail**, Chromium
+**52/52**.

@@ -2434,7 +2434,8 @@ function renderWorkspace(){
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
   document.getElementById('ws-import')?.addEventListener('click',()=>openImportModal(c));
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
-  document.getElementById('ws-edit')?.addEventListener('click',()=>openEditDocModal(c));
+  // No ws-edit wiring: the button is gone, and leaving the listener behind is
+  // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));

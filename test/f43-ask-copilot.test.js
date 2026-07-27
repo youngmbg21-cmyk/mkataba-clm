@@ -54,13 +54,16 @@ async function mounted(side = 'owner'){
 }
 
 describe('the button opens the application’s own Copilot', () => {
-  test('it is in the top bar, on both sides of the room', async () => {
-    for (const side of ['owner', 'counterparty']){
-      const m = await mounted(side);
-      const btn = m.$('#nego-copilot');
-      assert.ok(btn, `${side}: the button must be in the top bar`);
-      assert.match(btn.textContent, /Ask Copilot/);
-    }
+  test('it is in the OWNER\'s top bar, and not the counterparty\'s', async () => {
+    const owner = await mounted('owner');
+    assert.ok(owner.$('#nego-copilot'), 'the owner gets it');
+    assert.match(owner.$('#nego-copilot').textContent, /Ask Copilot/);
+
+    /* Copilot reads our whole portfolio and our playbook. It is our tool, and
+       the counterparty's link is not the place to hand it over. */
+    const theirs = await mounted('counterparty');
+    assert.equal(theirs.$('#nego-copilot'), null,
+      'Copilot must not appear on the counterparty’s side of the room');
   });
 
   test('clicking it calls openAI — the real panel, not a room-local clone', async () => {

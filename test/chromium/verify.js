@@ -417,6 +417,74 @@ const check = (name, pass, detail) => {
   check('Back to the live round restores the working screen',
     back.bar === false && back.lv === 'baseline', `banner ${back.bar}, left ${back.lv}`);
 
+  /* ---------- the counterparty's page ----------
+     Rendered in the same browser, from a payload the product really built, so
+     the claim "it looks and feels exactly like the negotiation page" is
+     measured rather than asserted. The owner's numbers were taken above; these
+     are compared against them. */
+  const theirs = await page.evaluate(async () => {
+    const c = window.CONTRACT;
+    const payload = buildSharePayload(c, 'dochash-chromium',
+      { org: 'Wanjiru Catering Ltd', sharedBy: 'Wanjiru Kamau' });
+    document.getElementById('nego-room-root').innerHTML = '';
+    document.body.classList.remove('nego-room-open');
+    window.PORTAL_OPTS = { payload, token: 'tok', superseded: false, responded: false };
+    window.openNegotiationRoom(portalNegoContract(payload), {
+      side: 'counterparty', by: 'Erik Lindqvist', author: 'Erik Lindqvist',
+      org: 'Wanjiru Catering Ltd', persist: false });
+    await new Promise(r => setTimeout(r, 200));
+    const room = document.querySelector('.nego-room');
+    if (!room) return { room: false };
+    const panes = ['baseline', 'working', 'index'].map(k => {
+      const el = room.querySelector('.nego-pane.' + k);
+      const r = el.getBoundingClientRect();
+      return { k, w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x) };
+    });
+    const has = id => !!room.querySelector('#' + id);
+    return { room: true, panes,
+      dividers: room.querySelectorAll('.nego-rz').length,
+      badges: room.querySelectorAll('.nego-pane.working .nego-badge').length,
+      cards: room.querySelectorAll('.nego-card').length,
+      tools: room.querySelectorAll('.nego-pane.working .nego-tools').length,
+      ownerOnly: ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'].filter(has),
+      theirVerbs: ['nego-cp-sign', 'nego-cp-accept', 'nego-cp-decline'].filter(has),
+      crumbs: room.querySelector('.nego-crumbs').textContent.replace(/\s+/g, ' ').trim(),
+      strip: room.querySelector('#nego-status').textContent.replace(/\s+/g, ' ').trim(),
+      bodyScrollW: document.body.scrollWidth, innerW: window.innerWidth };
+  });
+
+  check('the counterparty lands on the full-window room', theirs.room);
+  /* WIDTH is the claim: the counterparty used to get a preview squeezed into a
+     card, so "the same screen" is about how much of it they get. Height is
+     allowed to differ by a banner's worth — the two sides carry different
+     banners above the panes, legitimately, and asserting them equal would be
+     asserting the two sides say the same thing to each other. */
+  check('their panes are exactly as wide as the owner’s, not a preview column',
+    theirs.room && theirs.panes.every((p, i) => p.w === layout.panes[i].w),
+    theirs.room ? theirs.panes.map((p, i) => `${p.k} ${p.w} vs ${layout.panes[i].w}`).join(', ') : 'no room');
+  check('and as tall, to within one banner',
+    theirs.room && theirs.panes.every((p, i) => Math.abs(p.h - layout.panes[i].h) <= 40),
+    theirs.room ? theirs.panes.map((p, i) => `${p.k} ${p.h} vs ${layout.panes[i].h}`).join(', ') : 'no room');
+  check('and the same two draggable dividers', theirs.dividers === 2, `${theirs.dividers} dividers`);
+  check('the fingerprints and their cards are on their screen',
+    theirs.badges === 4 && theirs.cards === 4, `${theirs.badges} badges, ${theirs.cards} cards`);
+  check('they can propose — every clause carries its tools',
+    theirs.tools === 6, `${theirs.tools} clauses with tools`);
+  check('none of the owner-only controls reach their screen',
+    theirs.ownerOnly && theirs.ownerOnly.length === 0,
+    (theirs.ownerOnly || []).join(', ') || 'none');
+  check('their own verbs are in the slot the owner uses for Save Draft',
+    theirs.theirVerbs && theirs.theirVerbs.length === 3, (theirs.theirVerbs || []).join(', '));
+  check('our filing structure is not on their breadcrumb',
+    !/Contract Workspace/.test(theirs.crumbs || '') && !/\bWH\b/.test(theirs.crumbs || ''),
+    theirs.crumbs);
+  check('our mail config and our watching of them are not on their strip',
+    !/Email:/.test(theirs.strip || '') && !/Last seen/.test(theirs.strip || ''),
+    theirs.strip);
+  check('their page does not scroll sideways either',
+    theirs.bodyScrollW <= theirs.innerW, `${theirs.bodyScrollW} ≤ ${theirs.innerW}`);
+  await page.screenshot({ path: path.join(OUT, '09-counterparty.png') });
+
   await browser.close();
   srv.close();
 

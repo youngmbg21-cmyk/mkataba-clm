@@ -830,8 +830,42 @@ function portalNegoContract(p){
   }
   return c;
 }
+/* WHICH SCREEN IS THIS LINK?
+
+   Two, and the contract decides — not a button.
+
+     NEGOTIATING — changes are on the table and undecided. The link IS the
+     negotiation room: the same three panes, spacing and navigation the owner
+     is looking at, opened as the page rather than hidden behind "Open the
+     negotiation room". A counterparty who has to find a button to reach the
+     thing they were sent has been sent a lobby, not a document.
+
+     SIGNING — every change is resolved, or none was ever proposed. Then the
+     room is the wrong screen: there is nothing left to redline, and what they
+     need is the clean document and the signing panel. Showing three panes of
+     an empty change index at that point is asking someone to read a diff of
+     nothing.
+
+   Read from the record, so it cannot claim a state the changes do not support.
+   `superseded` and `responded` copies stay on the reading view either way —
+   they are history, and history is not signable. */
+function portalNegoPhase(p){
+  const src=(p&&p.contract)||{};
+  const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
+  const pending=changes.filter(x=>x.status==='pending').length;
+  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded) return { phase:'read', changes:changes.length, pending };
+  if(!changes.length) return { phase:'sign', changes:0, pending:0, reason:'nothing-proposed' };
+  if(!pending) return { phase:'sign', changes:changes.length, pending:0, reason:'all-resolved' };
+  return { phase:'negotiate', changes:changes.length, pending };
+}
+
 function portalNegoHtml(p){
   const src=(p&&p.contract)||{};
+  /* The sign branch comes FIRST, before the no-changes early return — a
+     contract nobody proposed anything on is the commonest signing link there
+     is, and returning '' for it would leave the reader with a document and no
+     word about why they were sent it. */
+  if(portalNegoPhase(p).phase==='sign') return portalAgreedHtml(p);
   if(!Array.isArray(src.changes) || !src.changes.length) return '';
   return `
     <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
@@ -842,11 +876,45 @@ function portalNegoHtml(p){
           <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
         <button id="pt-nego-open" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:9px 15px">Open the negotiation room</button>
+        ${''/* kept as the way BACK in after leaving the room, which opens on load */}
       </div>
       <div id="pt-nego" style="height:min(78vh,860px);padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
     </div>`;
 }
+/* The banner that replaces the negotiation once there is nothing to negotiate.
+
+   It says what was settled and how, because "ready to sign" with no account of
+   what happened is a request to sign on trust. Everything it states is counted
+   from the change records the link was sent with. */
+function portalAgreedHtml(p){
+  const src=(p&&p.contract)||{};
+  const ph=portalNegoPhase(p);
+  const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
+  const acc=changes.filter(x=>x.status==='accepted').length;
+  const rej=changes.filter(x=>x.status==='rejected').length;
+  const org=esc((p&&p.org)||'the sender');
+  const line=ph.reason==='nothing-proposed'
+    ? `No changes were proposed on this contract — ${org} has sent it to you as it stands.`
+    : `All ${changes.length} change${changes.length===1?'':'s'} on this contract ${changes.length===1?'has':'have'} been resolved`
+      + `${acc?` — ${acc} adopted into the wording`:''}${rej?`, ${rej} not taken`:''}. Nothing is outstanding between you.`;
+  return `
+    <div id="pt-agreed" style="border:1px solid #a8cbb8;background:#eef7f1;border-left:4px solid #1e6b4d;border-radius:8px;
+      padding:14px 18px;margin:0 0 18px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+      <span style="flex:1;min-width:220px;line-height:1.5">
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:#14503a">Ready to sign</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${line} Read the wording below, then sign or respond on the right.</span>
+      </span>
+      ${changes.length?`<button id="pt-nego-open" class="ui-btn" style="flex:none;font-size:12px;padding:7px 14px">Review what changed</button>`:''}
+    </div>
+    ${''/* The hosts exist only so the room has somewhere to render when they
+           press "Review what changed". A contract nobody proposed anything on
+           has nothing to review, so it gets neither — an empty negotiation is
+           not a panel worth showing, hidden or otherwise. */}
+    ${changes.length?`<div id="pt-nego" class="hidden"></div><div id="pt-nego-foot" class="hidden"></div>`:''}`;
+}
+
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
@@ -889,7 +957,26 @@ function wirePortalNego(c, p){
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
   document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalNegoRoom(c,p));
+
+  /* THE LINK OPENS ON THE NEGOTIATION.
+
+     It used to open on a card with a preview squeezed into it and a button
+     marked "Open the negotiation room". That made the thing they were sent
+     something they had to go and find, in a panel a third of the size the
+     owner reads it at. While changes are outstanding the room IS the page.
+
+     Once, on the first paint. Leaving the room drops them onto the page
+     underneath — the banners, the name field, the signing route — and it must
+     not snap shut behind them again. */
+  if(!_ptRoomOpened && portalNegoPhase(p).phase==='negotiate' && window.openNegotiationRoom){
+    _ptRoomOpened=true;
+    openPortalNegoRoom(c,p);
+  }
 }
+/* Whether the room has already been offered on this page load. A page-level
+   latch rather than a room-level one, because the room legitimately re-renders
+   itself many times and re-opening on each would trap the reader inside it. */
+let _ptRoomOpened=false;
 function wirePortalNegoFoot(c, p){
   document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
 }

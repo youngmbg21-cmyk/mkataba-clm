@@ -406,3 +406,76 @@ proposed, so nothing in that mode offers a decision — no badges, no card verbs
 no bulk verbs, and the index reports the comparison rather than the round.
 Offering Accept on a difference nobody put forward would invent a decision,
 which is the same class of failure as a Verified pill that verified nothing.
+
+---
+
+# Follow-up 3: Copilot's blindness, editing out of Docs, the counterparty's page
+**2026-07-27, late** · branch `claude/new-session-7glnhu`
+
+## Added
+
+- `js/negotiation.js` — `negoCopilotRecord(c)`: the negotiation as a Copilot can
+  read it. Round, turn, rounds closed, counts by status, `readyToSign`, the
+  version list, and every change with its id, clause, type, proposer, side,
+  summary, decider, decision time, reason, current wording and proposed
+  wording. Capped at `NEGO_COPILOT_CAP = 60`, newest first, with
+  `changesOmitted` stated so a truncated list can never read as a whole one.
+- `server/server.js` — `copilotNegotiation(c)`, the server-side twin of the
+  above. Two engines exist because the server process loads none of the browser
+  modules and the BYOK path never reaches the server at all.
+- `js/views/portal.js` — `portalNegoPhase(p)` (which screen the link is),
+  `portalAgreedHtml(p)` (the settled-changes account above the signing panel),
+  and the first-paint latch that opens the room as the page.
+- `test/f50-library-moved-docs-read-only.test.js` and the `playbook: true`
+  option in `test/world.js`, so playbook.js and negotiation.js can stand on the
+  same floor.
+
+## Changed
+
+- `js/ai.js` — `_localDetail` attaches the negotiation record; the panel's
+  opening message states the limit to the reader, not only to the model.
+- `server/server.js` — the `get_contract` description advertises the record, so
+  the model knows to ask; both prompts carry GUIDANCE, NOT LEGAL ADVICE in the
+  same words.
+- `js/views/contract.js` — `ws-edit` removed from the workspace header, and its
+  listener removed with it. `openEditDocModal` is kept and still exported;
+  removing a screen is not the same as deleting code.
+- `js/playbook.js` — `applyClauseRedline` is now async and files a tracked
+  `insertClause` change instead of appending to `c.redlineText`. The Docs
+  playbook panel no longer offers an insert control.
+- `js/views/negotiation.js` — `#nego-insert-lib` on the owner's top bar; the
+  counterparty exclusions in `negoRoomActionsHtml`, `negoStatusHtml` and the
+  breadcrumb; the counterparty's own verbs in the slot the owner uses for Save
+  Draft.
+- `js/clausemodel.js` — `clauseById` renamed `clauseFindById`. See below.
+
+## Two collisions, one of them silent for a while
+
+`js/clausemodel.js` exported `clauseById(html, id)` → a clause of a document.
+`js/playbook.js` exports `clauseById(id)` → an entry of the clause library. Both
+land on `window`; every file is its own ES module scope, so nothing breaks at
+load — the later import simply wins the name, and a caller of the loser gets a
+different signature with no complaint from anyone. Nothing called the loser,
+which is exactly why it would have been found the hard way.
+
+Renamed, and `f48` now walks every `Object.assign(window, {...})` in js/ and
+fails on any name claimed twice. It immediately turned up `approvalState` and
+`approveContract` — but those are a *deliberate* override (approvals.js's rule
+chain supersedes core.js's legacy spend-threshold gate, and core.js reads the
+winner back through `((window.approvalState)||approvalState)(c)`), so they are
+allow-listed with that reason. The allow-list is itself asserted to still be
+doubled, so an entry cannot outlive the decision it describes.
+
+## The rule this round added
+
+**A library pick is an ask, not an edit.** Preferred wording used to appear in
+the document because someone pressed a button; there was nothing to review and
+nothing to accept. It now files a tracked change with a fingerprint, a hash and
+a place in the chain, and the document does not move until somebody decides.
+Fixing the destination rather than each button fixed the playbook review's
+"apply this wording" in the same move.
+
+Its corollary is the other half of the round: **there is now one way to change a
+contract.** The Docs page reads, checks and signs. Two ways to change a contract
+is how the two drift apart, and it was the untracked one that could not keep a
+heading.

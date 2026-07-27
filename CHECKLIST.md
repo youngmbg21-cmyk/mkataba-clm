@@ -400,3 +400,84 @@ full-window room).
 | `test/f45-send-to-counterparty.test.js` | 10 | Send through the share route; turn moves only on success |
 | `test/f46-version-compare.test.js` | 17 | version selectors, the comparison mode and its one rule |
 | `test/f43-ask-copilot.test.js` | 10 | **rewritten** — the real panel, its stacking, its context |
+
+---
+
+# Follow-up 3: Copilot's blindness, editing out of Docs, the counterparty's page
+**2026-07-27, late**
+
+| # | Capability | Status | Proving test |
+|---|---|---|---|
+| B-015 | a fetched contract carries what happened to it | **PASS** | `f47` "a fetched contract carries what happened to it" |
+| B-015 | it answers the reported question — "how many additions?" | **PASS** | `f47` "the record answers \"how many additions have I added?\"" |
+| B-015 | every change says who asked, what for, and what was decided | **PASS** | `f47` "every change says who asked, what for, and what was decided" |
+| B-015 | archived rounds are in the record, not only the live one | **PASS** | `f47` "archived rounds are in the record, not just the live one" |
+| B-015 | the list is capped newest-first and SAYS it capped | **PASS** | `f47` "newest first, capped, and it says when it capped" |
+| B-015 | no negotiation → says so rather than inventing one | **PASS** | `f47` "a contract with no negotiation says so rather than inventing one" |
+| B-015 | the version history travels too | **PASS** | `f47` "the version history travels too" |
+| B-015 | **reading the record changes nothing** | **PASS** | `f47` "the record is a READ — asking for it changes nothing" |
+| B-015 | the BYOK path is handed the same thing | **PASS** | `f47` "the browser-direct engine is handed the same thing"; "_localDetail attaches the negotiation record" |
+| B-015 | both tool descriptions tell the model the data is there | **PASS** | `f47` "both tool descriptions tell the model the data is there" |
+| B-015 | **server and browser describe a negotiation identically** | **PASS** | `f47` "the server and the browser describe a negotiation identically" |
+| Guidance | guidance, not legal advice — in both engines, same terms | **PASS** | `f47` "guidance, not legal advice"; "both engines are told the limit, in the same terms" |
+| Guidance | neither engine may recommend accepting or rejecting | **PASS** | `f47` "neither engine may recommend accepting or rejecting a change" |
+| Guidance | the limit is stated to the READER, not only to the model | **PASS** | `f47` "the limit is stated to the USER too, not only to the model" |
+| Guidance | the pre-existing guardrails are still in place | **PASS** | `f47` "the standing rules that predate this session are still in place" |
+| Docs | the Docs page emits no Edit button at all | **PASS** | `f50` "the workspace header emits no Edit button at all" |
+| Docs | nothing on that page is wired to the document editor | **PASS** | `f50` "and nothing on that page is wired to the document editor" |
+| Docs | the editor is unreachable, **not destroyed** | **PASS** | `f50` "the editor itself is not destroyed, only unreachable from Docs" |
+| Docs | Compare / PDF / Share / Import all survive | **PASS** | `f50` "the page keeps everything it is FOR" |
+| Docs | the playbook panel no longer inserts wording from there | **PASS** | `f50` "and the playbook panel no longer inserts wording from there" |
+| Library | Insert clause is on the negotiation top bar | **PASS** | `f50` "the owner has it, in the top bar, where it was asked for" |
+| Library | the counterparty does not get it | **PASS** | `f50` "the counterparty does not — the playbook is our position"; `f49` owner-only list |
+| Library | pressing it opens the library, not nothing | **PASS** | `f50` "pressing it opens the library rather than doing nothing" |
+| Library | **a library pick is a tracked change, not an edit** | **PASS** | `f50` "it files a tracked change, and returns it" |
+| Library | it carries a fingerprint and the chain still verifies | **PASS** | `f50` "the change carries a fingerprint and a place in the chain" |
+| Library | the document does not move until somebody accepts | **PASS** | `f50` "the document does not change until somebody accepts it"; "accepting it is what puts the wording in" |
+| Library | rejecting leaves the contract exactly as it was | **PASS** | `f50` "rejecting it leaves the contract exactly as it was" |
+| Library | the audit says *proposed*, not *edited* | **PASS** | `f50` "the audit says it was proposed, not that the document was edited" |
+| Library | the playbook review's "apply this wording" is fixed too | **PASS** | `f50` "the playbook review's \"apply this wording\" gets the same treatment" |
+| B-016 | the link opens on the room, unprompted | **PASS** | `f49` "the room opens as the page, without anyone pressing anything" |
+| B-016 | it is the same component at the same size | **PASS** | `f49` "it is the same component the owner reads, at the same size"; Chromium "panes 503/590/335 vs 503/590/335" |
+| B-016 | every fingerprint and its wording is on their screen | **PASS** | `f49` "every fingerprint and its wording is on their screen" |
+| B-016 | they can decide, discuss and propose | **PASS** | `f49` "they can decide our asks, and discuss them"; "and propose their own" |
+| B-016 | the owner-only controls do not reach them | **PASS** | `f49` "none of the owner-only controls reach their screen"; Chromium "none" |
+| B-016 | **but the bulk verbs DO** — they act on OUR asks | **PASS** | `f49` "but they DO get the bulk verbs — those act on OUR asks" |
+| B-016 | our filing structure is off their breadcrumb | **PASS** | `f49` "our filing structure is not on their breadcrumb"; Chromium |
+| B-016 | our mail config and our watching of them are off their strip | **PASS** | `f49` "the status strip drops our ops config and our watching of them" |
+| B-016 | the owner still has every one of those | **PASS** | `f49` "the owner still has every one of those" |
+| B-016 | leaving the room lands on their page, and stays there | **PASS** | `f49` "leaving the room lands on their page and does not snap shut again" |
+| B-017 | the phase is read from the record, not from a button | **PASS** | `f49` "the phase is read from the changes, not from a button" |
+| B-017 | nothing proposed → the signing view | **PASS** | `f49` "a contract with no changes at all opens on the signing view" |
+| B-017 | everything resolved → the signing view | **PASS** | `f49` "every change resolved also opens on the signing view" |
+| B-017 | it accounts for what was settled, rather than asking for trust | **PASS** | `f49` "it accounts for what was settled rather than asking them to sign on trust" |
+| B-017 | nothing proposed says exactly that, and offers no empty history | **PASS** | `f49` "a contract nobody proposed anything on says exactly that" |
+| B-017 | the history stays reachable when there IS one | **PASS** | `f49` "the history stays reachable when there IS one" |
+| B-017 | the signing verbs are on the page | **PASS** | `f49` "the signing verbs are on the page" |
+| B-017 | **a spent link can neither negotiate nor sign** | **PASS** | `f49` "a superseded copy opens on neither the room nor a sign prompt" |
+| N-005 | every .js source actually parses | **PASS** | `f48` "every .js source parses" |
+| N-005 | index.html and app.js point at files that exist | **PASS** | `f48` "index.html loads only files that exist"; "app.js imports only modules that exist" |
+| N-006 | no two modules claim the same name on window | **PASS** | `f48` "no two modules claim the same name on window" |
+
+## Regression
+
+| Run | Result |
+|---|---|
+| before this round | 770 tests, 0 fail |
+| after | **825 tests, 170 suites, 0 fail** |
+| Chromium | **52/52** (was 41/41) |
+
+## Test files added
+
+| File | Tests | Covers |
+|---|---|---|
+| `test/f47-copilot-knows-contracts.test.js` | 14 | the negotiation record both engines send, and the guidance limit |
+| `test/f48-sources-parse.test.js` | 4 | `node --check` over the tree; the window-namespace collision guard |
+| `test/f49-counterparty-page.test.js` | 19 | the counterparty's page, its exclusions, and the signing phase |
+| `test/f50-library-moved-docs-read-only.test.js` | 18 | the library on the negotiation bar; Docs reads/checks/signs only |
+
+## Not covered, and said so
+
+- **PDF export** — unmodified this round and non-interfering. It has never had a
+  direct test and still does not. Recorded as unmodified, never as covered.
+- **The mobile/WhatsApp portal** — untouched, per the brief.

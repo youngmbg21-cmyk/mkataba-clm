@@ -67,3 +67,54 @@ test('f48 — app.js imports only modules that exist', () => {
     if (!fs.existsSync(path.join(ROOT, 'js', m[1]))) missing.push(m[1]);
   assert.deepEqual(missing, [], 'js/app.js imports modules that are not there');
 });
+
+/* Found while writing f50, and it had been sitting there quietly.
+
+   js/clausemodel.js exported clauseById(html, id) → a clause of a document.
+   js/playbook.js exported clauseById(id) → an entry of the clause library.
+   Both land on window. Every module is its own ES module scope, so nothing
+   breaks at load; the LATER import simply wins the name, and a caller of the
+   loser gets a function with a different signature and no complaint from
+   anyone. Nothing called the loser today — which is precisely why this would
+   have been found the hard way.
+
+   One name, one meaning, across the whole window namespace — unless the
+   shadowing is deliberate and written down, which is what KNOWN_OVERRIDES is
+   for. It carries exactly the two the codebase already declares in prose:
+   js/approvals.js replaces core.js's legacy spend-threshold approval gate with
+   the rule chain, and core.js itself reads the winner back through
+   `((window.approvalState)||approvalState)(c)` so its label matches what the
+   sign panel enforces. An override with a reason is a decision; an override
+   without one is this bug. */
+const KNOWN_OVERRIDES = {
+  approvalState: 'js/approvals.js deliberately replaces core.js\'s legacy gate; '
+    + 'core.js reads it back via window (see approvalLabel)',
+  approveContract: 'same pair — the rule chain supersedes the threshold check',
+};
+test('f48 — no two modules claim the same name on window', () => {
+  const clash = new Map();                       // name → the files that export it
+  for (const rel of sources()){
+    if (!rel.startsWith('js/')) continue;        // window is the browser's namespace
+    const s = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    for (const m of s.matchAll(/Object\.assign\(\s*window\s*,\s*\{([\s\S]*?)\}\s*\)/g)){
+      for (const raw of m[1].split(',')){
+        const name = raw.split(':')[0].replace(/\/\/.*$/gm, '').trim();
+        if (!/^[A-Za-z_$][\w$]*$/.test(name)) continue;
+        if (!clash.has(name)) clash.set(name, []);
+        if (!clash.get(name).includes(rel)) clash.get(name).push(rel);
+      }
+    }
+  }
+  const doubled = Array.from(clash.entries())
+    .filter(([name, files]) => files.length > 1 && !KNOWN_OVERRIDES[name])
+    .map(([name, files]) => `${name} — ${files.join(' and ')}`);
+  /* And the allow-list may not rot: a name listed there must still be doubled,
+     or the entry is describing a decision nobody is making any more. */
+  for (const name of Object.keys(KNOWN_OVERRIDES))
+    assert.ok((clash.get(name) || []).length > 1,
+      `${name} is allow-listed as a deliberate override but is no longer doubled — `
+      + 'delete the entry rather than leaving a note about something that stopped happening');
+  assert.deepEqual(doubled, [],
+    'two modules export the same name to window; whichever app.js imports last '
+    + 'wins silently:\n' + doubled.join('\n'));
+});

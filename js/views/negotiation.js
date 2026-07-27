@@ -780,8 +780,13 @@ function negoCompareBannerHtml(cmp){
    strip that agreed with them only by coincidence would be worse than none. */
 function negoStatusHtml(c, opts){
   const p = negoProgress(c);
-  const seen = (window.counterpartySeenState ? counterpartySeenState(c, opts.shares || []) : null);
-  const off = !!(window.emailOff && window.emailOff());
+  const theirs = (opts.side === 'counterparty');
+  /* Two segments are ours and not theirs. "Email: Not Configured" is our
+     server's setup, and "Last seen" is us watching THEM — showing a reader a
+     record of their own opening times is both odd and none of their business.
+     The negotiation facts stay on both sides. */
+  const seen = (!theirs && window.counterpartySeenState ? counterpartySeenState(c, opts.shares || []) : null);
+  const off = !theirs && !!(window.emailOff && window.emailOff());
   const seenLine = seen
     ? (seen.kind === 'responded' ? 'Counterparty: responded'
       : seen.kind === 'opened' ? 'Last seen: opened the current wording'
@@ -789,8 +794,8 @@ function negoStatusHtml(c, opts){
     : 'Last seen: not shared yet';
   return `
     <div class="nego-status" id="nego-status">
-      <div class="seg"><span class="dot ${off ? 'warn' : 'ok'}"></span>Email: ${off ? 'Not Configured' : 'Configured'}${off ? ' <span style="opacity:.65">(Sharing limits apply)</span>' : ''}</div>
-      <div class="seg"><span class="dot ${seen && seen.kind !== 'unopened' ? 'ok' : 'warn'}"></span>${_ne(seenLine)}</div>
+      ${theirs ? '' : `<div class="seg"><span class="dot ${off ? 'warn' : 'ok'}"></span>Email: ${off ? 'Not Configured' : 'Configured'}${off ? ' <span style="opacity:.65">(Sharing limits apply)</span>' : ''}</div>`}
+      ${theirs ? '' : `<div class="seg"><span class="dot ${seen && seen.kind !== 'unopened' ? 'ok' : 'warn'}"></span>${_ne(seenLine)}</div>`}
       <div class="seg">Negotiation: Round ${p.total ? negoRound(c) : negoRound(c)}</div>
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
       ${negoIntegritySeg(c)}
@@ -985,14 +990,28 @@ function negoRoomActionsHtml(c, opts){
   if (side === 'counterparty'){
     /* The counterparty's actions occupy the slot the owner uses for Save Draft
        and Share Link. Same room, same place on the screen, the verbs each side
-       actually has. */
+       actually has.
+
+       WHAT THEY DELIBERATELY DO NOT GET, and why:
+         · Ask Copilot — it reads our whole portfolio and our playbook.
+         · Save Draft — our draft state, meaningless outside the workspace.
+         · Share Link — distribution stays with the owner; a counterparty who
+           can re-share has published our contract onward.
+         · Insert clause — our clause library IS our negotiating position.
+
+       WHAT THEY DO GET that might look surprising: the index's Accept All and
+       Reject All. Those act on OUR asks, and "I agree to all of it" is a real
+       and common answer — withholding the button would not withhold the
+       decision, only make them press Accept six times to say the same thing.
+       A lesser screen for the other side is the thing this room exists not to
+       be. Everything needed to read, judge, propose and answer is here. */
     const n = (opts.pendingDecisions || 0);
     return `
       ${n ? `<button class="nego-tbtn acc" id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-accept">Accept wording</button>` : ''}
       ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
       ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}
-      <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>`;
+`;
   }
   return `
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
@@ -1013,7 +1032,11 @@ function negoRoomHtml(c, opts = {}){
   const org = String(opts.org || (window.FIRST_PARTY || 'HaTi'));
   const who = String(opts.author || (window.currentUser && window.currentUser()?.name) || '');
   const initials = who.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'HT';
-  const path = `${c.id || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
+  /* The owner reads a workspace path; the counterparty reads a contract. Our
+     template code and internal naming are filing structure, not theirs. */
+  const path = side === 'counterparty'
+    ? `${c.name || c.id || 'Contract'}${c.id ? ' · ' + c.id : ''}`
+    : `${c.id || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
   const statusChip = String(c.status || 'Draft');
   return `<div class="nego-room" id="nego-room" role="region" aria-label="Negotiation room">
     <header class="nego-topbar">
@@ -1023,7 +1046,7 @@ function negoRoomHtml(c, opts = {}){
           <span aria-hidden="true">←</span> Doc
         </button>
         <span class="sep" aria-hidden="true">›</span>
-        <span class="path">Contract Workspace ${_ne(path)}</span>
+        <span class="path">${side === 'counterparty' ? '' : 'Contract Workspace '}${_ne(path)}</span>
         <span class="draft-chip">${_ne(statusChip)}</span>
       </nav>
       <div class="nego-top-actions">

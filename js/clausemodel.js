@@ -239,7 +239,11 @@ function clauseStampIds(html){
 /* The clauses of a contract's working body, with ids guaranteed present.
    Reading and stamping are separate on purpose — this is the read. */
 function clauseList(html){ return clauseSegment(html); }
-const clauseById = (html, id) => clauseSegment(html).find(cl => cl.clauseId === id) || null;
+/* clauseFindById, not clauseById: js/playbook.js already exports a clauseById
+   that takes a LIBRARY id and returns a library entry. Both land on window, and
+   whichever module app.js imports last silently wins the name. Nothing called
+   the loser today, which is exactly why it would have been found the hard way. */
+const clauseFindById = (html, id) => clauseSegment(html).find(cl => cl.clauseId === id) || null;
 
 /* ---------- editing the document, by id ----------
    The operations accept/reject need, all of them anchored on the clause id and
@@ -336,6 +340,6 @@ function clauseInsert(html, afterId, clause){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel,
-  clauseSegment, clauseStampIds, clauseList, clauseById,
+  clauseSegment, clauseStampIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
 });

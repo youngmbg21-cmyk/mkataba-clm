@@ -56,6 +56,11 @@ const CONTRACT_VIEW = 'js/views/contract.js';
    the whole workspace screen (buildWorld({negotiationView:true})), which is
    what the interaction tests do. */
 const NEGOTIATION_VIEW = 'js/views/negotiation.js';
+/* The clause library and playbook engine (buildWorld({playbook:true})). Loaded
+   on request because applyClauseRedline no longer edits the document — it files
+   a tracked insertClause change — so proving that needs playbook.js and
+   negotiation.js standing on the same floor. */
+const PLAYBOOK = 'js/playbook.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -245,6 +250,7 @@ function buildWorld(opts = {}) {
   const files = [...MODULES];
   if (opts.negotiationView) files.push(NEGOTIATION_VIEW);
   if (opts.contractView) files.push(CONTRACT_VIEW);
+  if (opts.playbook) files.push(PLAYBOOK);
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

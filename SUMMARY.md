@@ -2226,3 +2226,111 @@ to test "open a contract and change nothing". That test exists now.
 **Where the tests stand:** 770 automated tests passing (741 before this round),
 and 41 of 41 real-browser checks — including typing the space bar for real and
 clicking into the comparison mode and back out.
+
+---
+
+# Follow-up 3: your five reports, in plain English
+
+## 1. The counterparty's link now IS the negotiation page
+
+Before: the link opened on a card with a squeezed-up preview of the negotiation
+behind a button marked "Open the negotiation room". They were sent a lobby, not
+a document.
+
+Now the link opens straight onto the same three-pane page you read — measured in
+a real browser, their panes are **exactly** the same width as yours (503, 590
+and 335 pixels), with the same draggable dividers, the same clause tools, the
+same discussion, and the same Accept / Decline on every change. They can propose
+their own wording too, because that is the entire point of sending them a link.
+
+**What they deliberately don't get, and why:**
+
+| Withheld | Because |
+|---|---|
+| Ask Copilot | it reads our whole portfolio and our playbook |
+| Save Draft | our draft state means nothing outside our workspace |
+| Share Link | a counterparty who can re-share has published our contract |
+| Insert clause | our clause library **is** our negotiating position |
+| the workspace breadcrumb, template code, folder | our filing, not their contract |
+| "Email: Not Configured" | our server's setup |
+| "Last seen" | that is us watching *them*; none of their business |
+
+One I nearly got wrong: I first assumed they should also lose "Accept all" /
+"Reject all". They keep them. Those buttons act on **our** asks, and "I agree to
+all of it" is a real answer — withholding the button withholds nothing but their
+time.
+
+## 2. When everything is agreed, the link is the signature
+
+Three panes of a settled change list is a diff of nothing. So the contract
+decides which screen the link is, not a button:
+
+- **changes still outstanding** → the negotiation room, as the page
+- **everything resolved** → Ready to sign, with "Review what changed" to look back
+- **nothing was ever proposed** → Ready to sign, saying exactly that
+- **a superseded or already-answered link** → reading only; history is not signable
+
+And it accounts for what happened rather than asking anyone to sign on trust:
+*"All 3 changes have been resolved — 2 adopted into the wording, 1 not taken."*
+
+## 3. Copilot can now answer questions about your contracts
+
+You asked it "how many additions have I added?" and it said it had no way to
+track edits or versions in HaTi.
+
+**It was not refusing. It was blind.** The tool that fetches a contract handed
+it the metadata, the scan findings and the body text — and nothing at all about
+changes, rounds, versions or who proposed what. The honest answer to a question
+it had no data for is exactly the one it gave.
+
+So the fix was data, not wording. Every contract Copilot fetches now carries the
+negotiation with it: which round, whose turn, how many changes are pending,
+accepted and rejected, and for each one who asked, what for, what was decided,
+by whom, when, and any reason they gave — plus the version history. (Bounded at
+60 changes, newest first, and it says when it has trimmed, so a shortened list
+can never read as a complete one.)
+
+**Guidance, not legal advice — and now it says so to you.** It will explain what
+a contract says, what changed, what is unusual, and it may point out that a
+change is one-sided or still unresolved. It will not tell you what the law
+requires, what a clause would mean in court, whether to sign, or whether to
+accept a particular change. That limit was already in the instructions the model
+receives; it is now also in the first line you read when you open the panel.
+
+## 4. "Insert clause from library" moved to the negotiations page
+
+It is in the top bar of the negotiation room, on your side only — the playbook
+is our negotiating position, so the counterparty never sees it.
+
+**The important half is not the button, it's where it goes.** Inserting
+preferred wording used to append it to the document: the contract simply grew,
+with nothing to review and nothing to accept. It now files a tracked change with
+a fingerprint, a hash and its place in the chain, exactly like any other ask —
+and the document doesn't move until someone accepts it. That also fixed the
+playbook review's "apply this wording" button, because the destination changed
+rather than each button.
+
+## 5. No more editing on the Docs page
+
+Docs reads, checks and signs. The Edit button is gone, and so is its wiring —
+leaving the listener behind is how a removed feature comes back by accident.
+Compare, PDF, Share, Import, the scan, the checks and the signing all stay
+exactly as they were. The editor code itself is kept, just unreachable from that
+page: removing a screen is not the same as deleting code.
+
+The reason is one sentence: **there were two ways to change a contract**, and
+only one of them tracked anything. Two ways is how the two drift apart, and it
+was the untracked one that couldn't keep a heading.
+
+## Something found along the way
+
+Two different modules were both publishing a function called `clauseById` — one
+meaning "find this clause in this document", the other "find this entry in the
+clause library". They quietly overwrote each other depending on load order.
+Nothing was calling the losing one yet, which is precisely why it would have
+been found the hard way. Renamed, and there is now a test that fails if any two
+modules ever claim the same name again.
+
+**Where the tests stand:** 825 automated tests passing (770 before this round),
+and 52 of 52 real-browser checks — including measuring the counterparty's page
+against your own, pane by pane.
