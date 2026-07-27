@@ -612,15 +612,21 @@ function aiPush(role,payload){
   ai.history.push({role,...payload,...(blocks?{blocks}:{})});
 }
 
+/* NO SUGGESTED QUESTIONS.
+
+   The panel used to open with three rotating chips — "How many drafts do I
+   have?", "Find contracts with Naivas" — put there by the product, not by the
+   reader. They are the assistant asking questions on the user's behalf, and
+   the answers to them were never the reason anyone opened the panel. The
+   greeting says what it can do; what to ask is the reader's to decide.
+
+   Kept as a no-op rather than deleted at every call site, so the two render
+   paths do not have to know it went. */
 function renderAISuggest(){
   const el=document.getElementById('ai-suggest');
-  // Keep the launch pad light: 3 chips only (rotating through the pool), so
-  // suggestions prompt without swallowing a third of the panel.
-  const start=Math.abs(new Date().getDate())%AI_SUGGESTIONS.length;
-  const picks=[0,1,2].map(i=>AI_SUGGESTIONS[(start+i)%AI_SUGGESTIONS.length]);
-  el.innerHTML=picks.map(q=>`<button data-sug="${q}" class="text-[11px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition">${q}</button>`).join('');
-  el.querySelectorAll('[data-sug]').forEach(b=>b.addEventListener('click',()=>{ document.getElementById('ai-input').value=b.getAttribute('data-sug'); aiSubmit(); }));
+  if(el) el.innerHTML='';
 }
+
 function renderAIFeed(typing=false){
   const feed=document.getElementById('ai-feed');
   feed.innerHTML=ai.history.map(m=>{

@@ -1660,7 +1660,7 @@ function uploadedTextForPrint(c){
         Contract text${c.redlineText?' (working text)':''}
       </div>
       ${body}
-      <p class="doc-muted" style="font-size:9px;margin-top:10px;line-height:1.5;">Text extracted from <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document, identified by the fingerprint above.</p>
+      <p class="doc-muted" style="font-size:9px;margin-top:10px;line-height:1.5;">Text extracted from <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document.</p>
     </div>`;
 }
 /* THE EXECUTION BLOCK, FOR PRINT.
@@ -1679,9 +1679,24 @@ function uploadedTextForPrint(c){
    because the print sheet does not carry the application's stylesheet — the
    page's own block is built from utility classes that print as unstyled text.
    The wording and the values are the page's; only the styling is restated. */
+/* DID HATI TAKE THIS SIGNATURE?
+
+   The only question that decides whether a printed page carries HaTi's marks.
+   A contract executed on paper, or in somebody else's system, and then filed
+   here was not signed by us and is not ours to stamp — printing it must give
+   back what was filed and nothing more. Adding a seal, a fingerprint or an
+   audit trail to a document somebody else executed is HaTi asserting a part in
+   an act it had no part in.
+
+   Same for a document merely uploaded and never signed here: there is no
+   execution to attest, so there is nothing to attest to. */
+const printIsHatiExecuted = c =>
+  String(c.status||'')==='Signed' && !isExternallyExecuted(c)
+  && (Array.isArray(c.signatures) ? c.signatures.length > 0 : false);
+
 function printExecutionBlock(c){
-  if(String(c.status||'')!=='Signed') return '';
-  const external=isExternallyExecuted(c);
+  if(!printIsHatiExecuted(c)) return '';
+  const external=false;
   const u=c.upload||{};
   const hash=external?(u.fileHash||'—'):((c.hash&&c.hash!=='PRE-SEEDED')?c.hash:'—');
   const sigs=Array.isArray(c.signatures)?c.signatures:[];
@@ -1735,8 +1750,16 @@ function printExecutionBlock(c){
 
 function exportPDF(c){
   let bodyHtml;
-  if(isUpload(c)){
-    // The original file is a separate attachment; print a signing certificate.
+  if(isUpload(c) && !printIsHatiExecuted(c)){
+    /* A document that came in from outside and was not signed here prints as
+       the wording it arrived with, and nothing else. The certificate card that
+       used to head it — file name, size, value, status, fingerprint — is HaTi's
+       filing metadata, and stapling it to somebody else's executed contract
+       makes the print a HaTi artefact rather than a copy of the agreement. */
+    bodyHtml=uploadedTextForPrint(c);
+  } else if(isUpload(c)){
+    // Signed HERE, on an uploaded base: the original file is a separate
+    // attachment, so the print is the certificate for the signature we took.
     const u=c.upload||{};
     bodyHtml=`
       <div style="border:1px solid #d4d4d7;border-radius:10px;padding:16px;margin-bottom:16px;">
@@ -1775,6 +1798,10 @@ function exportPDF(c){
      fingerprint on the page twice — which on a document about provenance reads
      like two different seals. */
   const execBlock=printExecutionBlock(c);
+  /* Whether this page may carry HaTi's marks at all. Everything below the
+     document — the seal box, the audit trail — is HaTi describing its own part
+     in the contract, and on a document we did not execute we had none. */
+  const marks=printIsHatiExecuted(c);
   const audit=(c.audit||[]).map(e=>`
     <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
@@ -1791,8 +1818,8 @@ function exportPDF(c){
       </div>
       <div class="doc-surface">${bodyHtml}</div>
       ${execBlock}
-      ${(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
@@ -1818,4 +1845,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{printExecutionBlock,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

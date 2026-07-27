@@ -2246,6 +2246,38 @@ function wireChangesStrip(c){
       } });
   });
 }
+/* ---- the header, folded away ----
+   Collapsing keeps what tells you WHERE YOU ARE — the contract's name, its
+   status, the way back — and folds what you use to ACT on it. The two are
+   different jobs, and only one of them is wanted while you are reading.
+
+   The Copilot button stays out too: it is the one action you reach for while
+   reading rather than while deciding.
+
+   Per user, not per contract: someone who reads more than they act wants it
+   folded on every contract they open, and being asked again on each one is the
+   friction this removes. */
+const WS_FOLD_KEY = () => { const u=(typeof currentUser==='function')&&currentUser();
+  return 'hati.v1.wsChrome.'+((u&&u.id)||'anon'); };
+const wsChromeFolded = () => { try{ return !!lsGet(WS_FOLD_KEY()); }catch(_){ return false; } };
+function applyWsCollapse(){
+  const on=wsChromeFolded();
+  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':''; });
+  const btn=document.getElementById('ws-collapse');
+  if(btn){
+    btn.setAttribute('aria-expanded', on?'false':'true');
+    btn.title=on?'Show the toolbar again':'Collapse this bar and give the contract more room';
+    btn.innerHTML=icon(on?'plus':'minus','w-3.5 h-3.5');
+  }
+}
+function wireWsCollapse(c){
+  applyWsCollapse();
+  document.getElementById('ws-collapse')?.addEventListener('click',()=>{
+    try{ lsSet(WS_FOLD_KEY(), !wsChromeFolded()); }catch(_){}
+    applyWsCollapse();
+  });
+}
+
 function renderWorkspace(){
   const c=getContract(state.activeId);
   const content=document.getElementById('content');
@@ -2303,7 +2335,7 @@ function renderWorkspace(){
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+        <div data-ws-fold="actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
           <!-- Edit is GONE from this page. The Docs page reads, checks and signs;
                wording changes happen in the negotiation, where every one of them
                is a tracked change with a fingerprint someone has to decide. Two
@@ -2313,14 +2345,26 @@ function renderWorkspace(){
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
-          <button id="ws-ask-ai" title="Ask Copilot about this contract" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('sparkle','w-3.5 h-3.5')} Ask AI</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
           ${window.downloadContractDocx?`<button id="ws-word" title="Download as a Word .docx — for a counterparty who negotiates in Word" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Word</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
+        </div>
+        ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
+              status strip and a tab row before one line of the contract is
+              visible — right while you are deciding what to do, in the way once
+              you are reading. Collapsing folds the actions away and keeps what
+              tells you where you are: the name, the status, the way back.
+
+              These two sit OUTSIDE the row that folds. A control that hides
+              itself cannot be pressed again, and Ask Copilot is the one action
+              people reach for while reading rather than while deciding. */}
+        <div style="display:flex;gap:6px;align-items:center;flex:none">
           <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
+          <button id="ws-collapse" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none"
+            title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
         </div>
       </div>
-      <div id="ws-actionbar" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
+      <div id="ws-actionbar" data-ws-fold="strip" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
     ${readyToSignStrip(c)}
@@ -2517,7 +2561,12 @@ function renderWorkspace(){
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
-  document.getElementById('ws-ai')?.addEventListener('click',()=>openAI(`Summarize ${c.id}`));
+  /* ONE Ask-Copilot button on this page, pre-filled from the contract in front
+     of you. There were briefly two — a plain "Ask AI" beside the PDF button and
+     this one — which is a duplicate surface for one assistant. */
+  wireWsCollapse(c);
+  document.getElementById('ws-ai')?.addEventListener('click',()=>
+    openAI(`What should I be watching in ${c.name} (${c.id})? Key dates, obligations and anything unusual.`));
   window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
@@ -2527,13 +2576,6 @@ function renderWorkspace(){
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
   // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
-  /* ASK-AI FROM THE CONTRACT ITSELF, pre-filled. The panel already knows which
-     contract is open — this supplies the question, which is the part people
-     stall on. */
-  document.getElementById('ws-ask-ai')?.addEventListener('click',()=>{
-    if(typeof openAI!=='function'){ toast('Copilot is not available on this page','err'); return; }
-    openAI(`What should I be watching in ${c.name}? Key dates, obligations and anything unusual.`);
-  });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));
   setActiveNav('workspace');
@@ -3038,5 +3080,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,openNegoProposeModal});

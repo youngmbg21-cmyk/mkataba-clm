@@ -1,0 +1,194 @@
+/* f54 — four reports, and the rule under the first one
+   ============================================================
+   1. HATI'S MARKS BELONG ONLY ON WHAT HATI EXECUTED. A contract signed on
+      paper, or in somebody else's system, and then filed here was not signed by
+      us. Printing it must give back what was filed — adding a seal, a
+      fingerprint or an audit trail to somebody else's executed contract is HaTi
+      asserting a part in an act it had no part in. I built the print block last
+      round and got this wrong: it rendered an "ON FILE / MIGRATED" variant for
+      exactly the documents that should carry nothing.
+
+   2. THE PANEL ASKED QUESTIONS ON THE READER'S BEHALF. Three rotating chips,
+      put there by the product. What to ask is the reader's to decide.
+
+   3. "ADD A CLAUSE" IS GONE. Proposing a clause the contract does not have is a
+      real act, but it was two blank prompt boxes with no sight of the document.
+
+   4. THE DOC PAGE FOLDS. Nine actions, a status strip and a tab row before one
+      line of the contract — right while deciding, in the way while reading. */
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const { buildWorld } = require('./world');
+const { buildPortal } = require('./portalworld');
+const F = require('./clausefixtures.js');
+
+function contract(over = {}){
+  return { id: 'MK-189', name: 'Warehousing Services Agreement',
+    counterparty: 'Juno Limited', template: 'WH', status: 'Under Review',
+    folder: 'proc', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+    signatures: [], comments: [], redlineText: F.protoRich(), format: 'rich', ...over };
+}
+
+/* ============================================================
+   1 — whose signature was it?
+   ============================================================ */
+describe('a printed contract carries HaTi marks only where HaTi signed it', () => {
+  function printed(over){
+    const p = buildPortal();
+    p.win.print = () => {}; p.win.persist = () => {}; p.win.renderAuditSection = () => {};
+    const c = p.win.migrateContract(contract(over));
+    p.win.exportPDF(c);
+    const root = p.win.document.getElementById('print-root');
+    return { win: p.win, c, html: root.innerHTML, text: root.textContent.replace(/\s+/g, ' ') };
+  }
+  const SIGNED_HERE = { status:'Signed', signedAt:'27 Jul 2026, 16:30',
+    hash:'1c71d57e9298790d100811f4108f3e2332562ad17e24401c2509fe7ef660cebb',
+    execution:{ textHash:'abc123' },
+    audit:[{ at:'2026-07-27T16:30:00Z', user:'Young Mbagaya', action:'Signed', detail:'Executed' }],
+    signatures:[{ party:'first', name:'Young Mbagaya', email:'y@m.com', form:'type', at:'2026-07-27T16:30:00Z' }] };
+  /* A migrated record: signed elsewhere, filed here. hash === 'MIGRATED' is the
+     app's own marker for it. */
+  const MIGRATED = { ...SIGNED_HERE, hash:'MIGRATED', signatures:[],
+    migration:{ executedOutside:true, importedBy:'Young Mbagaya' },
+    source:'upload', redlineText:null, format:'text',
+    upload:{ fileName:'36C25520Q0076-013.pdf', fileHash:'f976e519',
+      extractedText:'AGREEMENT\nClause 1 · Scope\nThe supplier shall deliver.' } };
+
+  test('signed in HaTi — the seal, the signatures and the trail all print', () => {
+    const r = printed(SIGNED_HERE);
+    assert.match(r.text, /Executed & Sealed/);
+    assert.match(r.text, /Young Mbagaya/);
+    assert.match(r.text, /Audit trail/);
+  });
+
+  test('executed OUTSIDE HaTi — no seal roundel, no execution block', () => {
+    const r = printed(MIGRATED);
+    assert.ok(!/Executed & Sealed/.test(r.text), 'we did not execute it');
+    assert.ok(!/Executed outside HaTi/.test(r.text),
+      'nor may we stamp it with our account of somebody else\'s signing');
+    assert.ok(!/ON FILE|MIGRATED/.test(r.text), 'and no roundel of our own');
+  });
+
+  test('and no fingerprint, no audit trail — nothing of ours added at all', () => {
+    const r = printed(MIGRATED);
+    assert.ok(!/DOCUMENT SEAL|FILE FINGERPRINT/i.test(r.text), 'got: ' + r.text.slice(0, 300));
+    assert.ok(!/Audit trail/.test(r.text), 'our record of handling it is not part of their contract');
+  });
+
+  test('what does print is the wording it was filed with', () => {
+    const r = printed(MIGRATED);
+    assert.match(r.text, /The supplier shall deliver/);
+  });
+
+  test('an uploaded document nobody signed prints as the document', () => {
+    const r = printed({ source:'upload', redlineText:null, format:'text',
+      upload:{ fileName:'x.pdf', fileHash:'aa',
+        extractedText:'AGREEMENT\nClause 1 · Scope\nThe supplier shall deliver.' } });
+    assert.match(r.text, /The supplier shall deliver/);
+    assert.ok(!/File fingerprint|signing certificate/i.test(r.text),
+      'the certificate card is HaTi filing metadata, not part of their agreement');
+    assert.ok(!/Executed & Sealed/.test(r.text));
+  });
+
+  test('the rule is one predicate, so nothing can disagree with it', () => {
+    const w = buildPortal().win;
+    assert.equal(w.printIsHatiExecuted(w.migrateContract(contract(SIGNED_HERE))), true);
+    assert.equal(w.printIsHatiExecuted(w.migrateContract(contract(MIGRATED))), false);
+    assert.equal(w.printIsHatiExecuted(w.migrateContract(contract())), false, 'unsigned');
+    assert.equal(w.printIsHatiExecuted(w.migrateContract(contract({ status:'Signed' }))), false,
+      'signed with no signature on record is not a signature we took');
+  });
+});
+
+/* ============================================================
+   2 — the panel does not ask questions for you
+   ============================================================ */
+describe('Copilot opens without prompting', () => {
+  test('no suggestion chips are rendered', () => {
+    const { win } = buildWorld({});
+    const el = win.document.createElement('div');
+    el.id = 'ai-suggest';
+    win.document.body.appendChild(el);
+    if (typeof win.renderAISuggest !== 'function') return;   // ai.js not on this stage
+    win.renderAISuggest();
+    assert.equal(el.innerHTML.trim(), '', 'what to ask is the reader\'s to decide');
+  });
+});
+
+/* ============================================================
+   3 — Add a clause is gone
+   ============================================================ */
+describe('the clause tools are Edit and Delete', () => {
+  async function room(){
+    const { win } = buildWorld({ negotiationView: true });
+    const c = contract();
+    win.negoInit(c);
+    win.openNegotiationRoom(c, { side:'owner', by:'Wanjiru Kamau', persist:false });
+    return win.document;
+  }
+  test('no trigger, and no dialog behind it', async () => {
+    const d = await room();
+    assert.equal(d.querySelector('[data-nego-add-after]'), null);
+    assert.ok(!/Add a clause/.test(d.body.innerHTML));
+  });
+  test('but editing and deleting a clause both survive', async () => {
+    const d = await room();
+    assert.ok(d.querySelector('[data-nego-edit]'), 'wording is still proposable');
+    assert.ok(d.querySelector('[data-nego-del]'));
+  });
+});
+
+/* ============================================================
+   4 — the Doc page folds
+   ============================================================ */
+describe('the contract header collapses', () => {
+  function page(){
+    const { win } = buildWorld({ contractView: true });
+    /* core.js is not on this stage, and lsGet/lsSet live there. Stood in for,
+       exactly as world.js stands in for persist() — what is under test is what
+       applyWsCollapse DECIDES, not where the choice is kept. */
+    let store = {};
+    win.lsGet = k => store[k];
+    win.lsSet = (k, v) => { store[k] = v; };
+    const doc = win.document;
+    doc.body.innerHTML = `
+      <div data-ws-fold="actions"><button id="x">Share</button></div>
+      <div style="display:flex;gap:6px"><button id="ws-ai">Ask Copilot</button>
+        <button id="ws-collapse" aria-expanded="true"></button></div>
+      <div id="ws-actionbar" data-ws-fold="strip">Drafting</div>`;
+    return { win, doc };
+  }
+  test('folding hides the action rows and leaves the rest', () => {
+    const { win, doc } = page();
+    win.lsSet(win.WS_FOLD_KEY(), true);
+    win.applyWsCollapse();
+    for (const el of doc.querySelectorAll('[data-ws-fold]'))
+      assert.equal(el.style.display, 'none');
+    assert.notEqual(doc.getElementById('ws-ai').style.display, 'none',
+      'the one action you use while READING stays');
+  });
+
+  test('the control that folds it is not inside what it folds', () => {
+    const { doc } = page();
+    const btn = doc.getElementById('ws-collapse');
+    assert.equal(btn.closest('[data-ws-fold]'), null,
+      'a control that hides itself cannot be pressed again');
+  });
+
+  test('unfolding puts everything back, and the button says which way it goes', () => {
+    const { win, doc } = page();
+    win.lsSet(win.WS_FOLD_KEY(), true); win.applyWsCollapse();
+    assert.equal(doc.getElementById('ws-collapse').getAttribute('aria-expanded'), 'false');
+    win.lsSet(win.WS_FOLD_KEY(), false); win.applyWsCollapse();
+    for (const el of doc.querySelectorAll('[data-ws-fold]'))
+      assert.notEqual(el.style.display, 'none');
+    assert.equal(doc.getElementById('ws-collapse').getAttribute('aria-expanded'), 'true');
+  });
+
+  test('the choice is remembered per user, not per contract', () => {
+    const { win } = buildWorld({ contractView: true });
+    assert.match(win.WS_FOLD_KEY(), /^hati\.v1\.wsChrome\./);
+    assert.ok(!/MK-/.test(win.WS_FOLD_KEY()),
+      'someone who reads more than they act wants it folded on every contract');
+  });
+});

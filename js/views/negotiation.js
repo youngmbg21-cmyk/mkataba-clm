@@ -543,7 +543,13 @@ function negoDocHtml(c, opts){
   const editable = !baseline && !opts.readonly && opts.canEdit !== false;
   const tools = cl => editable ? `<div class="nego-tools">
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}" title="Edit this clause">Edit</button>
-      <button class="nego-tool" data-nego-add-after="${_ne(cl.clauseId)}" title="Add a clause after this one">Add clause</button>
+      ${''/* "Add clause" is gone. Proposing a clause the contract does not
+             have yet is a real act, but it was done through two blank prompt
+             boxes — a heading, then a body, typed into a modal with no sight of
+             the document around it — which is not how anybody drafts a clause.
+             Removed rather than left as a control nobody could use well.
+             Wording still enters through the template, through an edit, or as a
+             redline from the other side. */}
       <button class="nego-tool danger" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
     </div>` : '';
 
@@ -1877,32 +1883,6 @@ function wireNegotiationTab(c, opts = {}){
     }
     fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by }),
       ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
-  }));
-
-  host.querySelectorAll('[data-nego-add-after]').forEach(b => b.addEventListener('click', async e => {
-    e.stopPropagation();
-    const afterId = b.getAttribute('data-nego-add-after');
-    let heading = '';
-    if (window.promptDialog){
-      heading = await promptDialog({ title: 'Add a clause',
-        message: 'It is inserted after the clause you clicked, and travels to the other side as a proposal.',
-        label: 'Clause heading', placeholder: 'e.g. Clause 7 · Force Majeure',
-        confirmLabel: 'Add clause' });
-      if (heading == null) return;
-    }
-    let body = '';
-    if (window.promptDialog){
-      body = await promptDialog({ title: 'The clause wording',
-        message: 'What the new clause says.', label: 'Wording',
-        placeholder: 'Neither party shall be liable for failure to perform caused by…',
-        confirmLabel: 'Add clause' });
-      if (body == null) return;
-    }
-    if (!String(body).trim()){ if (window.toast) toast('A new clause needs wording', 'err'); return; }
-    fileAndRepaint(() => negoInsertClause(c, afterId,
-      { headingText: String(heading || '').trim(), bodyHtml: `<p>${_ne(String(body).trim())}</p>` },
-      { side, author: opts.by }),
-      ch => `#${ch.id} filed — new clause proposed`);
   }));
 
   host.querySelectorAll('[data-badge]').forEach(b => b.addEventListener('click', e => {

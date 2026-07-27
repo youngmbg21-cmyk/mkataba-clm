@@ -4125,3 +4125,107 @@ Uploaded and externally-executed contracts get the right variant.
 tests and gained absence tests, f52 is new with 28), and **72 of 72 Chromium
 checks** (69 before — three new ones measure that exactly one notice is raised,
 that it is laid out as a banner, and that it does not overlap the documents).
+
+---
+
+# Round: whose marks, whose questions, and giving the document room
+
+## 1. HaTi was stamping contracts it did not execute
+
+**Where:** `js/views/portal.js`, `printExecutionBlock` — code I wrote last round.
+
+I built the print block to render for any `status === 'Signed'` contract and then
+pick an "ON FILE / MIGRATED" variant for externally-executed ones. That variant
+should never have existed. A contract signed on paper, or in somebody else's
+system, and then filed here **was not signed by us**, and printing it must give
+back what was filed. A seal, a fingerprint or an audit trail added to somebody
+else's executed contract is HaTi asserting a part in an act it had no part in.
+
+The rule is now one predicate, `printIsHatiExecuted(c)`: signed, not externally
+executed, and carrying at least one signature HaTi actually took. Everything
+below the document — the execution block, the bare seal box, the audit trail —
+is gated on it. An uploaded document nobody signed here also prints as the
+wording it arrived with: the certificate card that used to head it (file name,
+size, value, status, fingerprint) is HaTi's filing metadata, and stapling it to
+someone else's contract makes the print a HaTi artefact rather than a copy of
+the agreement.
+
+**Found while fixing:** the upload print footer said the original file was
+"identified by the fingerprint above" — with the fingerprint no longer printed,
+that sentence pointed at nothing.
+
+## 2. The Copilot asked questions on the reader's behalf
+
+Three rotating chips under the greeting, from `AI_SUGGESTIONS`. Removed. The
+greeting says what the assistant can do; what to ask is the reader's to decide.
+`renderAISuggest` is kept as a no-op so both render paths don't have to know.
+
+**The Ask-AI triggers I added last round are a different thing** and stay —
+those are a person choosing to ask, pre-filled from what they are looking at.
+
+**But one of them was a duplicate and is gone.** I added an "Ask AI" button
+beside PDF on the contract page; there was already an "Ask Copilot" button two
+places along. Two buttons, one assistant. The pre-filled question moved onto
+the existing one.
+
+## 3. "Add a clause" removed
+
+Proposing a clause the contract does not have yet is a real act, but it was done
+through two blank prompt boxes — a heading, then a body, typed into a modal with
+no sight of the document around it. That is not how anybody drafts a clause, and
+a control nobody can use well is worse than its absence. Wording still enters
+through the template, through an edit, or as a redline from the other side.
+`f44`'s tool-list test is rewritten to two tools, and asserts the dialog is gone
+rather than merely the button.
+
+## 4. The version list — HALF DONE, and the half I did not ship is recorded here
+
+Two separate problems sit behind images 3 and 5.
+
+**The comparison itself was broken, and that is fixed.** `negoCompareVersions`
+matched a clause to its earlier self **only by the durable clause id stamped
+into the document**. Ids are stamped when the negotiation starts, so anything
+captured before that — a template being applied, the first share — has an
+unstamped body. Matching on id alone then found *nothing* in common and reported
+two nearly-identical documents as a complete replacement: every clause Removed,
+every clause Added. That is not a diff, it is a failure to compare, and it read
+as if the contract had been rewritten. Where the id sets do not intersect it now
+falls back to what a reader would use — the clause heading, then position.
+
+**The list itself I did not change, and here is why.** The stated rule was
+"original vs v1, then the versions that came from updates to the contracts". I
+implemented it by dropping snapshots whose label is bookkeeping — `#CHG-001
+accepted`, `Round 1 — sent to …`, `Shared for review` — and `f46` immediately
+failed, correctly: in the fixture the *only* snapshot recording an accepted
+change is the one labelled with the change id, because `captureVersion`
+deduplicates and the round-close that follows it has identical text. Filtering
+by label therefore deletes real document versions.
+
+The deeper finding: every stored version already differs in wording from the one
+before it — `captureVersion` refuses a no-change capture. So there are no
+"versions that came from nothing". What is actually wrong is that a snapshot is
+**labelled by the event that happened to trigger it** rather than by what
+changed, which is why "v1 · Shared for review" looks like noise when it is in
+fact the first real version. Fixing that means changing what versions are named
+and when they are taken, which is a model change and not a filter. Reverted,
+recorded, and put back to the user rather than guessed at.
+
+## 5. The Doc page header folds
+
+Nine actions, a status strip and a tab row before one line of the contract is
+visible: right while you are deciding what to do, in the way once you are
+reading. Collapsing folds the action rows and keeps what tells you where you are
+— the name, the status, the way back.
+
+**The control that folds it sits OUTSIDE what it folds**, along with Ask
+Copilot. A control that hides itself cannot be pressed again; and Ask Copilot is
+the one action people reach for while reading rather than while deciding. Both
+are asserted.
+
+Remembered per user, not per contract: someone who reads more than they act
+wants it folded on every contract they open.
+
+## Where the tests stand
+
+**979 automated tests / 0 failures** (966 before this round; `f54` is new with
+13, `f44` and `f49` rewritten), and **72 of 72 Chromium checks**.

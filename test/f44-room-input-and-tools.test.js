@@ -119,7 +119,13 @@ describe('the discussion box accepts a space', () => {
 });
 
 describe('the clause tools are visible without hunting for them', () => {
-  test('every clause carries all three, always rendered', async () => {
+  /* TWO, not three. "Add clause" is gone: proposing a clause the contract does
+     not have yet is a real act, but it was done through two blank prompt boxes
+     — a heading, then a body, typed into a modal with no sight of the document
+     around it. That is not how anybody drafts a clause, and a control nobody
+     can use well is worse than its absence. Wording still enters through the
+     template, through an edit, or as a redline from the other side. */
+  test('every clause carries both tools, always rendered', async () => {
     const m = await mounted();
     const clauses = m.$$('#nego-room .nego-pane.working .nego-clause');
     assert.equal(clauses.length, 6);
@@ -127,8 +133,14 @@ describe('the clause tools are visible without hunting for them', () => {
       const tools = cl.querySelector('.nego-tools');
       assert.ok(tools, 'every clause in the working pane must carry its tools');
       const labels = Array.from(tools.querySelectorAll('button')).map(b => b.textContent.trim());
-      assert.deepEqual(Array.from(labels), ['Edit', 'Add clause', 'Delete']);
+      assert.deepEqual(Array.from(labels), ['Edit', 'Delete']);
     }
+  });
+
+  test('and nothing is left wired to the clause-adding modal', async () => {
+    const m = await mounted();
+    assert.equal(m.$('[data-nego-add-after]'), null, 'the trigger is gone');
+    assert.ok(!/Add a clause/.test(m.win.document.body.innerHTML), 'and so is the dialog');
   });
 
   test('they are not hover-only — no rule hides them until hover', async () => {

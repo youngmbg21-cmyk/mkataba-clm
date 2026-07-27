@@ -1271,7 +1271,41 @@ function negoCompareVersions(c, leftKey, rightKey){
   const seg = html => (window.clauseSegment ? clauseSegment(html || '') : []);
   const L = seg(left.body), R = seg(right.body);
   const byId = list => { const m = new Map(); for (const cl of list) if (cl.clauseId) m.set(cl.clauseId, cl); return m; };
-  const lMap = byId(L), rMap = byId(R);
+  let lMap = byId(L), rMap = byId(R);
+
+  /* MATCHING TWO SNAPSHOTS THAT DO NOT SHARE CLAUSE IDS.
+
+     A clause is normally matched to its earlier self by the durable id stamped
+     into the document. Older snapshots have none: an id is stamped when the
+     negotiation starts, so anything captured before that — the template being
+     applied, the first share — carries an unstamped body. Matching on id alone
+     then found NOTHING in common and reported the two versions as a complete
+     replacement: every clause Removed, every clause Added, on two documents
+     that differ by one sentence. That is not a diff, it is a failure to
+     compare, and it looked like the contract had been rewritten.
+
+     Where the ids do not meet, fall back to what a reader would use: the
+     clause's heading, and failing that its position. Both sides get a synthetic
+     key so the rest of this function is unchanged — it still matches by key,
+     the key is simply derived rather than stored. */
+  const overlap = [...rMap.keys()].filter(k => lMap.has(k)).length;
+  if (!overlap && (L.length || R.length)){
+    const norml = cl => String(negoClauseLabel(cl) || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const keyed = list => {
+      const used = new Map();
+      return list.map((cl, i) => {
+        const h = norml(cl);
+        const base = h ? 'h:' + h : 'p:' + i;
+        const n = (used.get(base) || 0) + 1;
+        used.set(base, n);
+        return { ...cl, clauseId: n > 1 ? `${base}#${n}` : base };
+      });
+    };
+    const L2 = keyed(L), R2 = keyed(R);
+    L.length = 0; L.push(...L2);
+    R.length = 0; R.push(...R2);
+    lMap = byId(L); rMap = byId(R);
+  }
   const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
 
   const rows = [];

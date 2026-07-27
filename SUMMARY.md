@@ -2814,3 +2814,93 @@ fences, json fences whose body is a chart spec, and bare spec-shaped JSON.
 - `cycleTime` reads the audit trail, which is the only place stage timing is
   recorded. Contracts whose trail doesn't carry both ends are left out rather
   than guessed at; if none do, the chart says there's no data.
+
+---
+
+# Round: whose marks, whose questions, and room to read
+
+## Image 1 — seals only on contracts HaTi signed
+
+You're right, and I got this wrong when I built the print block last round.
+
+A contract signed on paper or in another system and then filed here **was not
+signed by us**. Printing it now gives back what was filed and nothing else — no
+seal, no fingerprint, no audit trail, no "Executed outside HaTi" panel. Adding
+any of that is HaTi claiming a part in someone else's signing.
+
+There's now a single rule the whole print obeys: *did HaTi take this signature?*
+Signed here → the full seal and signatures. Anything else → the document alone.
+
+That covers plain uploads too. An uploaded document nobody signed here used to
+print with a HaTi certificate card on top — file name, size, value, fingerprint.
+That's our filing information, not part of their agreement. Gone.
+
+## Image 2 — no more suggested questions
+
+The three chips under the greeting are removed. The greeting stays.
+
+The **Ask Copilot** buttons on the dashboard and contract page stay — those are
+you choosing to ask, with the question pre-filled from what you're looking at.
+But I found I'd left **two** AI buttons on the contract page (an "Ask AI" I added
+next to PDF, and the "Ask Copilot" that was already there). One assistant, one
+button — merged.
+
+## Images 3 & 5 — one half fixed, one half handed back
+
+**Fixed: the comparison was genuinely broken.** When you compared two versions it
+showed *every* clause as Removed and *every* clause as Added — which isn't a
+difference, it's a failure to compare. The cause: HaTi matches a clause to its
+earlier self by a hidden identity stamped into the document when a negotiation
+starts. Versions captured *before* that have no such identity, so nothing
+matched, and two nearly-identical documents looked completely rewritten. It now
+falls back to matching on the clause heading, then position.
+
+**Not fixed, deliberately: the list itself.** I built your rule — keep the
+original and the real updates, drop the bookkeeping — and the tests caught it
+deleting real versions. Here's why, plainly:
+
+HaTi takes a snapshot whenever the wording changes, and **labels it with
+whatever event triggered it.** When you accept a change, the snapshot that
+records the new wording is called *"#CHG-001 accepted — Clause 4"*. When you
+edit and then share, the first snapshot after the edit gets called *"Shared for
+review"*. So the entries that look like noise are often the actual versions,
+just badly named.
+
+Filtering them out throws away real history. The real fix is to change **when
+snapshots are taken and what they're named**, which is a change to the version
+model rather than a filter on a dropdown — and I didn't want to make that call
+on your behalf. Written up in `BUGLOG.md`. Tell me the shape you want and I'll
+build it.
+
+## Image 4 — "Add a clause" deleted
+
+I made the case and you didn't buy it, which is fair: it asked you to draft a
+clause into two blank boxes with no sight of the document around it. Nobody
+drafts that way. Gone, and the test rewritten to assert its absence.
+
+Wording still enters three ways: the template, editing a clause, or a redline
+from the other side.
+
+## Image 6 — the header folds away
+
+A collapse button at the right of the top bar. Pressing it folds the row of
+actions and the status strip, leaving the contract's name, its status and the
+way back — so the document gets the space.
+
+Two details worth knowing:
+
+- **The collapse button isn't inside the part that collapses.** Neither is Ask
+  Copilot. A button that hides itself can't be pressed again, and Copilot is the
+  one thing you reach for while reading rather than while deciding.
+- **It's remembered per user, not per contract.** If you read more than you act,
+  it stays folded on every contract you open.
+
+## Tests
+
+979 passing (966 before), 72 of 72 browser checks. New file `f54` covers all
+four; `f44` and `f49` rewritten where "Add a clause" was asserted.
+
+## Still open
+
+The version-list naming question above — that's the one thing from these five I
+handed back rather than guessed at.

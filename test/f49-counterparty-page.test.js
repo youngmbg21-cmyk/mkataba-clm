@@ -138,7 +138,6 @@ describe('while there is something to negotiate, the link is the room', () => {
     const v = theirPage(c);
     assert.ok(v.$$('#nego-room .nego-pane.working [data-nego-edit]').length,
       'proposing wording is the whole point of sending them the link');
-    assert.ok(v.$$('#nego-room [data-nego-add-after]').length);
     assert.ok(v.$$('#nego-room [data-nego-del]').length);
   });
 
