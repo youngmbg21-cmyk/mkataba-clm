@@ -2995,3 +2995,252 @@ anything treating whitespace as a boundary sees one enormous group.
 rewrite — plus the invariant that context-plus-deletion reconstructs the old
 wording exactly and context-plus-insertion the new, so nothing is invented or
 lost by the coalescing.
+
+---
+---
+
+# Session: rebuild clause tracking on the real clause model
+**2026-07-27** · branch `claude/new-session-7glnhu` · checkpoint tag `checkpoint-pre-real-redline`
+
+The negotiation room's UI shell was right and is kept. Its clause foundation was
+wrong, and that is what this session replaced. Everything below is timestamped
+to this session and appended; nothing earlier was edited.
+
+---
+
+## Phase 0 — the before-evidence, measured
+
+### D5 — clause identity was fake, and worse than the brief estimated
+
+Ran **prototype.html's own six-clause contract** through the then-current
+`negoClausesOf()`. The brief predicted 8 fragments on its 3-clause sample. On
+the real six-clause document the answer was **fourteen**:
+
+```
+COUNT: 14   (the prototype says 6)
+{"id":"clause:#0", "num":"","title":"","kind":"text","text":"Warehousing and Logistics Services Agreement…"}
+{"id":"clause:#1", "num":"","title":"","kind":"text","text":"Between Wanjiru Catering Ltd (Nairobi, Kenya) and Nordfrakt …"}
+{"id":"clause:#2", "num":"","title":"","kind":"text","text":"Clause 1 · Scope of Services…"}
+{"id":"clause:#3", "num":"","title":"","kind":"text","text":"The Provider shall receive, store, handle, and dispatch the …"}
+{"id":"clause:#4", "num":"","title":"","kind":"text","text":"Clause 4 · Payment Terms…"}
+{"id":"clause:#5", "num":"","title":"","kind":"text","text":"All invoices are payable within thirty (30) days from the da…"}
+… (14 in total)
+```
+
+Three distinct failures, each fatal alone:
+
+1. **Every heading became a clause body.** "Clause 4 · Payment Terms" contains
+   lowercase, so `docLineKind()`'s all-caps test rejected it and it was filed as
+   a negotiable term. The document's *labels* became things you could redline.
+2. **Every title and number was empty.** `negoClauseLabel()` therefore fell back
+   to the clause's own first 60 characters, so the change index named clauses by
+   quoting them at you.
+3. **Every id was a line index** (`clause:#3`). Insert one clause above clause 4
+   and every change filed against clause 4 now points at clause 5's wording.
+
+The rich document already carried `<h2>` elements saying exactly where each
+clause began. The flattening threw that structure away and then guessed at it.
+
+Reproduction script: `test/f40-clause-model.test.js` asserts the corrected
+behaviour on the same input; the raw before-output above was produced by running
+`negoClausesOf(richToText(protoRich()))` on the pre-checkpoint tree.
+
+### Baseline
+Full suite at the checkpoint: **664 tests / 146 suites / 0 fail**, 35.5s.
+Tag `checkpoint-pre-real-redline` cut before any change.
+
+---
+
+## Phase 3 — the diff engine, before and after
+
+Measured on a 2,000-word clause (~4,000 whitespace tokens per side) with ten
+amendments spread through it — a delivery schedule, the kind a real contract
+carries.
+
+| | time | memory |
+|---|---|---|
+| `wordDiff()` (LCS table, js/versioning.js) | **199.8 ms** | **61.0 MiB** (3999 × 3999 Uint32 cells) |
+| `redlineOps()` (Myers O(ND), js/redline.js) | **3.7 ms** | no table |
+
+**54× faster and the allocation is gone.** The brief quoted 481ms for the old
+path; this machine is faster than the one that measured it, and the ratio is the
+number that matters. The memory figure is the more serious of the two: 61 MiB
+for *one clause* means a document with six schedules cannot be diffed on a
+phone.
+
+The cost difference is structural, not a micro-optimisation. The LCS table's
+cost depends on LENGTH; Myers' depends on EDIT DISTANCE, and a schedule with ten
+amended lines has a tiny one.
+
+Worst case is bounded too: a 2,000-word clause rewritten wholesale takes 12.8 ms
+because the search gives up at a budget (`REDLINE_MAX_D = 600`) and the passage
+is rendered as one deletion plus one insertion.
+
+**That budget is not a performance hack bolted on the side — it IS the U-006
+readability rule.** Past a certain edit distance the two texts are not one text
+with changes in it, and any token-level alignment is the interleaved confetti
+U-006 was raised about. The old code detected shredding *after* the fact
+(`_negoShredded`) and swapped in a different diff; here one mechanism produces
+both properties. `js/versioning.js`'s own `wordDiff()` and the version-compare
+modal are untouched.
+
+---
+
+## Defects found and fixed while doing the work
+
+### B-006 — the share payload sent the baseline's text shadow, not the document
+`buildSharePayload()` carried `negotiation.baselineText` only. The counterparty's
+page therefore re-segmented the document from its text projection and minted
+**fresh clause ids**, so every fingerprint the owner had filed pointed at a
+clause that did not exist on the other side's screen. Caught by f37's
+"identical on both sides" assertion the moment clause ids became real.
+Fixed: the payload carries `baselineBody` (which holds the ids), the stored
+`ops`, `hashV`, `prevChangeHash` and `seq`; `portalNegoContract()` restores them
+instead of rebuilding.
+
+### B-007 — `sha256()` fell back to a 32-bit rolling hash without saying so
+`crypto.subtle` exists only in a **secure context**. A share link opened over
+plain `http://` — a hotel captive portal, an office proxy, exactly where a
+counterparty opens one — has no `subtle`, and `js/core.js` then returned a
+32-bit rolling hash repeated eight times to look the right length. Nothing
+recorded that this had happened.
+
+This is squarely in scope: a "Verified" pill sitting on top of a trivially
+collidable digest is worse than no pill. The fallback stays (a thrown exception
+mid-save is worse than a weak fingerprint) but it is now **recorded**:
+`sha256IsReal()` reports it, and `verifyChangeChain()` returns
+`reason:'weak-digest'` rather than `ok:true` — "two weak digests agree" is not
+evidence about a legal document. Test: f35 "a chain built on a weak digest is
+reported unverifiable, never verified".
+
+Found because `test/portalworld.js` boots `js/core.js` while `test/world.js`
+supplies its own Node-crypto `sha256`, so the two stages disagreed about a hash
+over byte-identical input. Both stages now redefine `window.crypto` from Node's
+webcrypto — `Object.defineProperty`, because jsdom exposes `window.crypto` as a
+read-only accessor and a plain assignment silently does nothing.
+
+### B-008 — the whole-document text route still flattened clause markup
+A proposal arriving as TEXT (a returned `.docx`, a pasted redraft) was lifted to
+`<p>` blocks per line and used as the change's `bodyHtml` directly, so accepting
+it replaced an `<ol start="3">` with a flat paragraph. This is the B-004 failure
+class re-entering through a different door. Fixed: a text-derived proposal is
+merged back into the baseline clause's own markup via `richFromTextEdit()`
+(`negoBodyFromText()`), which verifies its own output and falls back per clause
+rather than per document. Test: f37 "the formatted document is negotiated clause
+by clause on both sides".
+
+### B-009 — synchronised highlighting never worked in the room
+Found in the Chromium pass, not in jsdom. `negoFocus()` looked up
+`document.getElementById('nego-root')` and returned early if absent. The
+embedded tab mounts `#nego-root`; the **full-window room mounts `.nego-room` and
+has no `#nego-root` at all** — so clicking a change card in the mode the
+component mostly runs in lit up nothing. The markup was correct in both modes,
+which is exactly why 25 rule-level tests were happy with it. Fixed by falling
+back to `#nego-room`. This is the single clearest argument for the Chromium
+requirement in the brief.
+
+### N-002 — `file://` aborts `js/core.js` partway through
+The first Chromium harness opened the page as a `file://` URL. On an opaque
+origin Chromium throws on the first `localStorage` access, which aborts
+`js/core.js` mid-evaluation and leaves every `const` after that point
+permanently in the temporal dead zone — surfacing as
+`Cannot access 'currentUser' before initialization` from an unrelated function.
+Not a product defect; the harness now serves over `http://127.0.0.1`.
+
+---
+
+## Decisions recorded rather than asked
+
+**D6 — clause TITLES are not negotiable wording in v1.** The brief settles the
+hash input as `contractRef | clauseId | changeType | oldText | newText | author
+| createdAt | prevChangeHash`, and states that `num` and `title` are
+presentation recomputed on render. Taken literally that leaves a hole: a title
+edit would be untracked, and a counterparty renaming "Liability Cap" to
+"Liability" would be a silent document change.
+
+Rather than deviate from the settled canonical string, the *edit path* is
+scoped: inline editing edits a clause's BODY. A clause's heading changes only by
+`insertClause`/`deleteClause`, both of which are tracked, hashed and decided
+normally. `clauseReplaceHeading()` exists for renumbering, which is presentation
+and deliberately produces no change record. There is therefore no untracked edit
+path — the hole is closed by removing the door, not by widening the hash.
+Tracking title edits as their own op is the obvious v2.
+
+**D7 — the chain has two kinds of link, and that is deliberate.** §1.4 says
+`prevChangeHash` chains in creation order; §1.5 says a revision chains onto the
+previous revision's hash. Those are different predecessors whenever anything was
+created in between, which in practice is always. Implemented as both: a NEW
+change chains onto the contract's chain head, a REVISION chains onto that
+change's own previous hash. `seq` is stamped on every issuance either way, so
+creation order survives independently, and `verifyChangeChain()` rebuilds both
+expectations from stored content — a reordered or removed issuance shows up as a
+broken link rather than passing quietly.
+
+**D8 — scenario3's fixture is ALL-CAPS headed, and it has to be.** The fixture
+rule asks for prototype-shaped headings ("Clause 4 · Payment Terms"). A mixed-
+case heading cannot survive `.docx` extraction: extraction yields lines, and the
+only heading signal left in a line is that it shouts. So the one fixture that
+must be produced **identically by all three intake paths** uses ALL-CAPS
+numbered headings, and keeps every other property the rule asks for —
+non-contiguous numbering 1/4/5/6/9/12, multi-sentence bodies, two
+multi-paragraph bodies. The mixed-case style is covered against the rich paths
+in f35 and f40, and the headingless document in f40.
+
+**D9 — "one version per closed round" is asserted as coverage, not as a count.**
+`captureVersion()` deduplicates: a snapshot whose text and canonical form match
+the previous one is the same version. Closing a round straight after the last
+decision legitimately adds no record. Asserting the count went up would be
+asserting version *spam*, so scenario3 asserts instead that the wording as it
+stood at each round close is on the version list and can be compared against.
+
+---
+
+## Chromium verification — measured, not asserted
+
+`node test/chromium/verify.js` · Chromium at `/opt/pw-browsers/chromium` ·
+viewport 1440×900, deviceScaleFactor 2 · **21/21 checks passed** ·
+screenshots in `test/chromium/shots/` (gitignored; regenerate with the script).
+
+Rendered with prototype.html's own six-clause contract (clauses 1, 4, 5, 6, 9,
+12) and Erik's four asks.
+
+| what | measured |
+|---|---|
+| clauses in each pane | 6 working, 6 baseline |
+| clause titles | `Clause 1 · Scope of Services` … `Clause 12 · Governing Law and Disputes` |
+| numbering read from the headings | `1,4,5,6,9,12` |
+| badges | 4 — one per **changed** clause; clauses 1 and 12 clean |
+| a rewritten clause (clause 6) | **1** `.nego-del` + **1** `.nego-ins`, not interleaved |
+| deletion run | `"the full replacement value of the affected goods."` |
+| insertion run | `"EUR 250,000 in the aggregate per contract year."` |
+| a small edit (clause 4) | `["thirty (30) days from the date of issue (Net-30)."]` → `["forty-five (45) days from the date of issue (Net-45)."]`, untouched sentences plain |
+| badge vs text column | badge right edge **624px**, text column left edge **642px** → genuinely in the margin |
+| three panes | baseline **503×765 @0**, working **590×765 @509**, index **335×765 @1105** |
+| horizontal scroll | `scrollWidth 1440 ≤ innerWidth 1440` — none |
+| sync highlight on card click | baseline 1, working 1, card 1, badge 1 |
+| Verified pill | `Verified` with `data-verify="ok"` — after the chain was walked, not before |
+| status strip | `Fingerprints: 4 verified` |
+| clause tools on hover | opacity 1, left **1046px** ≥ text right **1028px** — opposite margin, `[Edit, Add clause, Delete]` |
+
+The first run was 19/21. Both failures were real: B-009 above, and a
+`/favicon.ico` 404 requested by the browser itself, which is now excluded by
+name rather than by loosening the check.
+
+---
+
+## Regression
+
+| run | result |
+|---|---|
+| baseline at checkpoint | 664 tests / 146 suites / 0 fail |
+| clean checkout, fresh `npm install`, run 1 | **701 / 147 / 0 fail** |
+| clean checkout, run 2 | **701 / 147 / 0 fail** (39.0 s) |
+
+Test count moved 664 → 701. The old `f35` and `scenario3` were rewritten rather
+than extended — their fixtures had been shaped to fit the implementation, which
+is the failure the fixture rule exists to prevent — so this is not 664 + 37 new.
+
+**PDF export has no direct automated test and never did.** It is recorded here
+as **unmodified and non-interfering**: nothing in this session touched
+`js/pdfrich.js`, and it reads the document body through the same accessors it
+always did. It is NOT recorded as covered.

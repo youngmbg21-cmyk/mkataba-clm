@@ -275,3 +275,70 @@ One environment finding, not a code defect: `node_modules` was absent on a fresh
 clone, so the suite failed at `before()` with `Cannot find module 'express'` —
 which surfaces as a misleading `Cannot read properties of undefined (reading
 'stop')` in the `after()` hook. `npm install` fixes it. Logged as BUGLOG N-001.
+
+---
+---
+
+# Session: rebuild clause tracking on the real clause model
+**2026-07-27** · branch `claude/new-session-7glnhu`
+
+## What existed, and what was rebuilt
+
+| Area | Before | Now |
+|---|---|---|
+| **What a clause is** | `negoClausesOf(text)` — flatten the rich document to text, split on newlines, re-infer headings with an all-caps test | `js/clausemodel.js` — read from the DOM: a heading (H1–H4) plus every block until the next heading of the same or higher rank |
+| **Clause identity** | `clause:#N`, a line index | `data-clause-id="cl_8f2k9q"`, opaque, written into the document at intake, never changed |
+| **num / title** | never populated — both empty on every clause | parsed from the heading for display, recomputed on every render, never stored, never hashed |
+| **The redline** | re-diffed at render time, twice per repaint | computed once, **stored on the record as ops**, rendered from storage |
+| **The diff** | `wordDiff()` LCS table, O(n·m) time and memory | `js/redline.js` Myers O(ND) with a budget; `versioning.js`'s own `wordDiff` untouched |
+| **The hash** | SHA-256 over one change, unchained | chained: `hashV:2`, `prevChangeHash`, `seq` on every issuance |
+| **"Verified" pill** | rendered unconditionally | reads `verifyChangeChain()`; says `Checking…` until the chain is walked, names the first broken link if it fails |
+| **Accepting a change** | `negoResolvedText()` → `richFromTextEdit()` — a plain-text round trip | `clauseReplaceBody()` on the rich DOM, by clause id |
+| **Editing** | a whole-document `<textarea>` in a modal | inline per-clause editing in the working pane, through the rich engine; add-clause and delete-clause beside it |
+| **Change types** | `modify` / `insert` / `delete`, inserts appended to the end | `modify` / `insertClause` / `deleteClause`, insertions placed where they were proposed |
+| **Re-editing a pending change** | superseded with a NEW `#CHG` id | updated in place — same id, new ops, hash chained onto the previous revision, prior wordings recoverable |
+| **The negotiation room UI** | — | **kept unchanged in shell and visual language**, re-pointed at the new model |
+
+## Why the old clause model was wrong
+
+The Phase-0 evidence is in BUGLOG under **D5**, in full. In summary: the
+prototype's own six-clause contract came back as **fourteen** clauses. Every
+heading was filed as a clause *body* (because "Clause 4 · Payment Terms"
+contains lowercase and failed the all-caps test), every title and number was
+empty, and every id was a line index that an insert above it would silently
+re-point.
+
+The deeper point is not that the heuristic was badly tuned. It is that the
+information was already there and was thrown away: the rich document carried
+`<h2>` elements saying exactly where each clause began, the flattening discarded
+them, and the heuristic then tried to reconstruct from the text what the markup
+had stated outright.
+
+## Files added
+
+| File | What it is |
+|---|---|
+| `js/clausemodel.js` | what a clause IS — segmentation from the DOM, durable ids, and the by-id document edits accept/reject need |
+| `js/redline.js` | the negotiation's diff: Myers O(ND) → storable ops, with reconstruction invariants |
+| `test/clausefixtures.js` | prototype-shaped fixtures — mixed-case headings, non-contiguous numbering, multi-paragraph bodies, an all-caps variant, a headingless document |
+| `test/f39-redline-engine.test.js` | the diff's behavioural contract, as table tests (17) |
+| `test/f40-clause-model.test.js` | the clause model and the `data-clause-id` allowlist change (23) |
+| `test/chromium/room.html` | the room mounted on the product's own modules, for the browser pass |
+| `test/chromium/verify.js` | 21 measured checks in real Chromium, with screenshots |
+
+## Files changed
+
+- `js/negotiation.js` — the change record, the chain, filing, resolution, migration, the turn model. The room's UI contract is unchanged.
+- `js/views/negotiation.js` — renders from the clause model and the stored ops; adds clause tools, the turn banner and the real Verified pill.
+- `js/richdoc.js` — **its first-ever change**: `RICH_ATTRS` admits exactly `data-clause-id`, on clause-opening blocks only, validated against the opaque shape this repo issues.
+- `js/core.js` — the share payload carries `baselineBody`/ops/chain fields; `sha256IsReal()` records a degraded digest.
+- `js/views/portal.js` — restores `baselineBody` so both sides read the same clause identities.
+- `test/world.js`, `test/portalworld.js` — register the two new modules; redefine `window.crypto` so the stages run on a real SHA-256.
+
+## Rewritten rather than extended
+
+`test/f35-change-model.test.js` and `test/scenario3.test.js`. Their fixtures had
+been shaped to fit the old implementation — single-sentence clauses, contiguous
+numbering, all-caps headings — which is precisely how a model that returns
+fourteen fragments for a six-clause contract passes 664 tests. Both now run on
+prototype-shaped fixtures.

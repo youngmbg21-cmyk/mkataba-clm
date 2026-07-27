@@ -171,3 +171,138 @@ was added to both stages, and `buildWorld` gained an opt-in
 | `test/f36-negotiation-tab.test.js` | 47 | the three-pane tab driven by real clicks on real elements |
 | `test/f37-both-sides-one-screen.test.js` | 26 | one component, both sides — asserted by diffing the two rendered screens |
 | `test/scenario3.test.js` | 4 | a 6-round two-party negotiation, run once per intake path, plus a convergence check |
+
+---
+---
+
+# Session: rebuild clause tracking on the real clause model
+**2026-07-27** · branch `claude/new-session-7glnhu` · checkpoint `checkpoint-pre-real-redline`
+
+DONE below means **a named automated test proves it**. One row is marked
+explicitly as not covered, because it never was.
+
+## Regression baseline
+
+| Run | Result |
+|---|---|
+| baseline at checkpoint (`35e7eed`) | **664 tests, 664 pass, 0 fail** (146 suites, 35.5 s) |
+| clean checkout, fresh `npm install`, run 1 | **701 tests, 701 pass, 0 fail** (147 suites) |
+| clean checkout, run 2 | **701 tests, 701 pass, 0 fail** (147 suites, 39.0 s) |
+
+## Phase 1 — the record
+
+| # | Capability | Status | Proving test |
+|---|---|---|---|
+| 1.1 | the prototype's 6 clauses segment as exactly 6, with correct titles and nums | **PASS** | `f40` "the prototype's six clauses segment as exactly six" |
+| 1.1 | a heading is never filed as a clause body | **PASS** | `f40` "a heading is never filed as a clause body" |
+| 1.1 | a multi-paragraph body is ONE clause | **PASS** | `f40` "a multi-paragraph body is ONE clause with one body" |
+| 1.1 | the document title and meta line are chrome, not clauses | **PASS** | `f40` "the document title and the meta line are chrome, not clauses" |
+| 1.1 | an ALL-CAPS numbered document yields the same six clauses | **PASS** | `f40` "an ALL-CAPS numbered document yields the same six clauses" |
+| 1.1 | a headingless document does not degrade to zero clauses | **PASS** | `f40` "a headingless document does not degrade to zero clauses" |
+| 1.1 | num and title are presentation, recomputed on render | **PASS** | `f40` "renumbering the whole contract moves no id" |
+| 1.2 | durable opaque clause ids, stamped once at intake | **PASS** | `f40` "stamping assigns one opaque id per clause, and only to clauses"; `f35` "clause ids are stamped into the document on first open, once" |
+| 1.2 | insert a clause above a changed clause, renumber — the change still anchors | **PASS** | `f35` "inserting a clause above a changed one re-points nothing"; `f40` "inserting a clause above a clause re-points nothing" |
+| 1.2 | sanitize round-trip preserves `data-clause-id` and admits nothing else | **PASS** | `f40` "data-clause-id survives a sanitize round trip"; "no other data-* or event attribute is admitted with it"; "a malformed clause id is dropped rather than stored" |
+| 1.3 | ops stored on the record and rendered from storage | **PASS** | `f35` "the ops on the record reproduce both wordings exactly" |
+| 1.3 | render-from-storage survives a diff-implementation swap | **PASS** | `f35` "the rendered redline survives the diff implementation being swapped out" |
+| 1.3 | ops are deterministic — same input, identical output, asserted twice | **PASS** | `f39` "the ops are deterministic — same input, identical output, twice" |
+| 1.4 | a 5-change chain builds and each hash verifies from stored content | **PASS** | `f35` "a five-change chain builds and every hash verifies from stored content" |
+| 1.4 | a decision or an undo never moves a hash | **PASS** | `f35` "a decision, an undo and a comment never move a hash" |
+| 1.5 | one open change per clause, updated in place, same `#CHG` id | **PASS** | `f35` "re-editing a pending change keeps its id and chains a new hash" |
+| 1.5 | every prior wording recoverable from the chain | **PASS** | `f35` "every prior wording stays recoverable from the chain" |
+| 1.5 | a comment is stamped with the hash current when it was written | **PASS** | `f35` "a comment is stamped with the wording it was written against" |
+| 1.6 | reject-everything equals the baseline at `canonicalRich` | **PASS** | `f35` "rejecting everything reproduces the baseline by canonicalRich" |
+| 1.6 | accepting replaces clause body in place, no text round trip | **PASS** | `f35` "accepting replaces the clause body in place and keeps the rest untouched"; "a multi-paragraph clause keeps both paragraphs through accept" |
+| 1.6 | accepted `deleteClause` removes the clause, id retired | **PASS** | `f35` "an accepted deletion removes the clause; the wording stays until then" |
+| 1.6 | accepted `insertClause` lands where proposed, not appended | **PASS** | `f35` "an accepted insertion lands where it was proposed, not appended" |
+| 1.7 | migration re-keys mid-negotiation changes onto clause ids | **PASS** | `f35` "a contract mid-negotiation is re-keyed onto durable clause ids" |
+| 1.7 | an unmatchable change is flagged needs-review, never dropped | **PASS** | `f35` "a change that matches no clause is FLAGGED, never dropped" |
+| 1.7 | a contract with nothing pending migrates cleanly | **PASS** | `f35` "a contract with nothing pending migrates cleanly" |
+| — | the three intake paths produce one identical normalized shape | **PASS** | `f35` "every path yields a rich document with real clauses and no changes yet" |
+
+## Phase 2 — the controls
+
+| # | Capability | Status | Proving test |
+|---|---|---|---|
+| 2.1 | inline clause editing through the rich engine, not a textarea | **PASS** | `f35` "the same ask against any path files the same kind of change" (list structure intact); Chromium check "the clause tools appear on hover" |
+| 2.1 | a no-op save produces NO record | **PASS** | `f35` "a no-op save files no record at all" |
+| 2.2 | add clause → `insertClause`, placed where proposed | **PASS** | `f35` "an accepted insertion lands where it was proposed, not appended" |
+| 2.2 | delete clause → `deleteClause`; text not removed until accepted | **PASS** | `f35` "an accepted deletion removes the clause; the wording stays until then" |
+| 2.3 | `verifyChangeChain()` recomputes every hash down the chain | **PASS** | `f35` "a five-change chain builds and every hash verifies…" |
+| 2.3 | a mutated stored `oldText` names exactly that change | **PASS** | `f35` "altering a stored oldText makes the chain name exactly that change" |
+| 2.3 | the pill says Verified only when verification passes | **PASS** | `f36` "id, twin status pills, summary, clause, author and the full hash"; Chromium check "the Verified pill says Verified…" |
+| 2.3 | a weak digest is reported unverifiable, never verified | **PASS** | `f35` "a chain built on a weak digest is reported unverifiable, never verified" |
+| 2.4 | turn model on the existing share/response routes, no new endpoints | **PASS** | `f35` "a hand-over flips the turn, snapshots a version and names the mover" |
+| 2.4 | a turn banner both sides read | **PASS** | `f35` "the banner says whose move it is, from the record" |
+| 2.4 | every turn close snapshots a version | **PASS** | `f35` "a hand-over flips the turn, snapshots a version and names the mover" |
+| 2.5 | the proposer's own summary is used verbatim | **PASS** | `f35` "the proposer's own line is used verbatim when they write one" |
+| 2.5 | with no summary the mechanical quoted diff stands in | **PASS** | `f35` "with no summary the mechanical diff stands in, quoting the ops" |
+
+## Phase 3 — the diff engine
+
+| Capability | Status | Proving test |
+|---|---|---|
+| multiple separated edit regions in one clause | **PASS** | `f39` "multiple separated edit regions in one clause are all found" |
+| a full rewrite degrades to ONE del-run + ONE ins-run | **PASS** | `f39` "a full rewrite degrades to ONE deletion and ONE insertion" |
+| punctuation-only and case-only edits detected | **PASS** | `f39` "punctuation-only and case-only edits are detected" |
+| a no-op yields empty | **PASS** | `f39` "a no-op yields no change runs at all" |
+| leading/trailing-whitespace edits | **PASS** | `f39` "leading and trailing whitespace edits survive the round trip" |
+| unicode — one Swahili and one Swedish sentence | **PASS** | `f39` "unicode survives — Swahili and Swedish" |
+| a 2,000-word clause diffs under 200ms | **PASS** (3.7 ms, was 199.8 ms) | `f39` "a 2,000-word clause diffs well under 200ms" |
+| ops reconstruct both texts exactly | **PASS** | `f39` `roundTrips()`, asserted on every case |
+| `versioning.js`'s own `wordDiff` and the compare modal untouched | **PASS** | `f21` (22 tests) and `f22` (14 tests) unchanged and green |
+
+## Phase 4 — two-party six-round negotiation
+
+| Capability | Status | Proving test |
+|---|---|---|
+| six rounds per intake path, counterparty edits 3 + inserts 1 + deletes 1 | **PASS** | `scenario3` "&lt;path&gt;: six rounds, one document" ×3 |
+| owner accepts some / rejects some / discusses one; a comment opens no round | **PASS** | same, round-1 block |
+| a pending change revised in place, prior revision recoverable | **PASS** | same, revision block |
+| `verifyChangeChain` passes over the whole six-round history | **PASS** | same, `v.ok === true`, ≥11 issuances |
+| a version snapshot per closed round | **PASS** | same, `closeRound()` |
+| the audit trail attributes every change to the correct party | **PASS** | same, audit block |
+| formatting survives at `canonicalRich` level | **PASS** | same, "formatting and clause identity survived" block |
+| the three intake paths converge byte-identically, asserted against each other | **PASS** | `scenario3` "the three intake paths converge on one identical document" |
+| Ready to sign reached | **PASS** | same, `negoReadyToSign(c) === true` |
+
+**Stretch (mapping real `w:ins`/`w:del` from a returned .docx to ops): NOT
+BUILT.** Recorded as out of scope for this session. The diff fallback is what
+runs; `js/docx.js`'s existing tracked-change counting is unchanged.
+
+## Phase 5 — the platform still works
+
+Each row is a capability the brief requires to still pass, with the test that
+proves it. All were green on both clean runs.
+
+| Capability | Status | Proving test |
+|---|---|---|
+| wizard + all built-in templates | **PASS** | `f32-document-reads-as-a-contract` (12) — a drafted contract renders from the template and its fields |
+| custom templates | **PASS** | `f35` "the normaliser reports the right path for each of the three"; `scenario3` custom-template path |
+| Docs view / workspace | **PASS** | `f13-counterparty-parity` (20), `f25-counterparty-page` (18) |
+| Word export | **PASS** | `f15-docx-export` (15), `f30-redlined-export` (14) |
+| Word import / round trip | **PASS** | `f9-word-roundtrip` (15), `f16-word-return-any-contract` (14), `scenario1` (15) |
+| OTP signing | **PASS** | `regression.test.js` (share OTP route), `f23-signing-without-email` (11), `f8-signing-capacity` (19) |
+| seal / canonical hash | **PASS** | `regression.test.js` "seal MK-A1…"; `f22-formatting-survives` (14) |
+| evidence pack | **PASS** | `f5-signature-provenance` (6) — IP and device in the evidence pack |
+| version compare | **PASS** | `f21-change-blocks` (22) — `diffBlocks`/`wordDiff` and per-block decisions |
+| discussion | **PASS** | `f31-discussion` (32), `f20-round-thread` (18), `f29-clause-comments` (15) |
+| e-signing / paper execution | **PASS** | `f28-paper-signature` (14), `f5` (6) |
+| **PDF export** | **NOT COVERED — and never was** | no direct test exists. Recorded as **unmodified and non-interfering**: nothing this session touched `js/pdfrich.js`. |
+
+## Chromium verification
+
+`node test/chromium/verify.js` — **21/21 checks passed**, measurements and
+screenshot inventory in BUGLOG under "Chromium verification". One real defect
+found and fixed by it (B-009: synchronised highlighting never worked in the
+full-window room).
+
+## Test files added or rewritten
+
+| File | Tests | Covers |
+|---|---|---|
+| `test/f39-redline-engine.test.js` | 17 | **new** — the diff's behavioural contract, as table tests |
+| `test/f40-clause-model.test.js` | 23 | **new** — the clause model and the `data-clause-id` allowlist change |
+| `test/f35-change-model.test.js` | 32 | **rewritten** — the change record on prototype-shaped fixtures |
+| `test/scenario3.test.js` | 4 | **rewritten** — six rounds × three intake paths, asserted against each other |
+| `test/clausefixtures.js` | — | **new** — the prototype-shaped fixtures the rule requires |

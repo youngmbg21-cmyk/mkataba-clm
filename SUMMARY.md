@@ -1854,3 +1854,217 @@ misleading error on a fresh clone with no dependencies installed. All six fixed.
 | `INVENTORY.md` | what already existed vs. what was built new |
 | `CHECKLIST.md` | every capability, with PASS/FAIL and the test that proves it |
 | `BUGLOG.md` | the six bugs, the design decisions, and the deviations from the prototype |
+
+---
+---
+
+# Session: what a clause is now, and what the fingerprints actually prove
+**27 July 2026** · plain English, no code
+
+## The problem in one paragraph
+
+The negotiation screen looked right and was built on sand. Underneath, the
+software did not really know what a clause was. It took the contract, threw away
+its formatting to get flat text, and then tried to guess where each clause began
+by looking for lines that were WRITTEN ALL IN CAPITALS. Run the sample contract
+from the design mock-up through it — six clauses — and it came back with
+**fourteen**. Every clause heading ("Clause 4 · Payment Terms") had lowercase
+letters in it, so it failed the capitals test and got filed as a *term of the
+contract* rather than as the label on one. No clause had a title. No clause had
+a number. And each one was identified by which line it happened to sit on.
+
+That last point is the dangerous one. If a clause is "the thing on line 12", then
+adding a new clause higher up the page moves everything down a line — and every
+comment, every proposed change and every audit entry that pointed at line 12 now
+quietly points at a *different clause*. Nothing would break. Nothing would show
+an error. The record would just start describing the wrong paragraph.
+
+## What a clause is now, and why its identity survives editing
+
+A clause is now read from the document's actual structure: a heading, plus
+everything underneath it until the next heading of the same or higher level. No
+guessing. A heading is a heading because it *is* a heading, not because it
+shouted.
+
+When a contract first enters the system — however it arrived, whether from a
+built-in template, a template the customer wrote themselves, or a Word file
+somebody uploaded — every clause is stamped with a short, meaningless code like
+`cl_8f2k9q`, written invisibly into the document itself. That code is assigned
+once and never changes.
+
+**The clause number and title are now treated as decoration.** They are read off
+the heading fresh every time the screen is drawn, and they are never used to
+identify anything. This is the whole point. A lawyer can renumber a draft from
+1, 4, 5, 6, 9, 12 into 1, 2, 3, 4, 5, 6; they can insert three new clauses at the
+top; they can retitle a clause — and every change, comment and audit entry stays
+attached to exactly the clause it was always about, because none of them were
+ever pointing at a number or a position.
+
+One more consequence worth stating: a clause with three paragraphs is now **one
+clause** — one badge in the margin, one Accept button, one decision. Previously
+it was three separate things to decide, which is not how anyone reads a contract.
+
+## What the fingerprints and the chain actually prove
+
+Each proposed change gets a fingerprint — a `#CHG-012` label and a SHA-256 hash,
+which is a long code computed from the change's contents. Change one character of
+the wording and the code comes out completely different.
+
+Two things are new here.
+
+**First, the fingerprints are now linked in a chain.** Each one records the
+fingerprint of the change filed before it. So they are not a pile of independent
+stamps; they are a sequence. Removing a change from the middle, or reordering
+them, breaks the links visibly rather than silently.
+
+**Second — and this is the one that matters — the "Verified" badge now actually
+verifies something.** In the design mock-up, and in the software until this
+session, that badge was simply *printed on every card*, always, regardless of
+anything. It checked nothing. It was decoration that read as a guarantee, which
+is worse than having no badge at all.
+
+It now does real work: it recalculates every fingerprint in the entire history
+from the wording as it is stored right now, and checks each link against the one
+before it. If everything matches, it says **Verified**. If someone has altered
+stored wording after the fact, it says **Integrity check failed** and *names the
+first change that does not match*. Until the check has finished running it says
+"Checking…" — it never claims to have verified something it has not yet looked
+at.
+
+**What this does and does not prove.** It proves that the wording on the record
+today is the wording that was filed, and that the history has not been reordered
+or had entries removed. It is a tamper-*evidence* mechanism, not a tamper-*proof*
+one: someone with full write access to the database could recompute the whole
+chain to match altered text. It is the same kind of assurance a numbered,
+initialled page gives on paper — it makes quiet alteration detectable, not
+impossible.
+
+One related thing was found and fixed along the way. Web browsers only provide
+proper cryptography on secure (`https`) connections. On a plain `http` page —
+a hotel wifi login page, an office proxy, which is exactly where a counterparty
+is likely to open a link — the software had been quietly falling back to a much
+weaker code that merely *looked* the right length, and saying nothing about it.
+A "Verified" badge sitting on top of that would have been a straightforwardly
+false statement. It now detects this and says the chain cannot be verified here,
+and to open the page over `https`.
+
+## How editing a clause creates a tracked change
+
+Previously, "proposing changes" meant opening a pop-up box containing the entire
+contract as plain text and editing it there. Formatting, numbering and tables did
+not survive the trip.
+
+Now you hover over a clause in the working pane and get three small buttons in
+the margin: **Edit**, **Add clause**, **Delete**. Editing a clause edits *that
+clause*, in place, keeping its formatting. When you save:
+
+- If you changed nothing, **nothing is recorded**. No empty fingerprint.
+- If you changed something, the system compares your version against the wording
+  the round started from, works out exactly what moved, and files one tracked
+  change against that clause.
+
+The comparison is done **once**, at that moment, and the result is **stored**.
+This matters more than it sounds. Previously the marked-up view was recalculated
+every time the screen was drawn — and the comparison method was changed once
+mid-project, which meant the same change could genuinely look different on
+different days. What was reviewed was not provably what was decided on. Now the
+mark-up is a picture of the record, not a fresh calculation.
+
+**Deleting a clause does not delete anything.** It strikes the clause through and
+proposes the deletion. Every word stays on the page until the other side accepts
+it. **Adding a clause** puts it exactly where you asked for it — after the clause
+you clicked — rather than tacking it onto the end of the contract, which is what
+the old system did because a line number gave it nowhere better to point.
+
+If you edit the same clause twice before the other side has answered, that is
+treated as *changing your mind about one ask*, not as two asks. The change keeps
+its `#CHG` number and gets a new fingerprint chained onto the old one — so the
+previous wording is still recoverable, and a comment written against the earlier
+version can be shown as such rather than presented as if it were about today's
+words. But once the other side has *decided* something, a new wording is a
+**counter-proposal**, and it gets a fresh number in the next round. Folding it
+into a change they already agreed to would be rewriting what they agreed to.
+
+## How rounds pass between the two parties
+
+Both sides see the same three-panel screen: the original on the left, the
+proposed version with mark-up in the middle, the list of changes on the right.
+Not a lesser version for the counterparty — literally the same screen, built from
+the same record.
+
+A banner at the top says whose move it is: *"Your turn — 3 changes to review"* or
+*"Waiting on Nordfrakt — sent 2h ago"*. When you press **Send**, the turn passes
+and a snapshot of the document is filed so the version history stays complete.
+
+Two rules are enforced in the engine itself, not just hidden in the interface:
+
+1. **Silence rejects.** A change nobody has answered is *not* in the contract.
+   The working document is rebuilt from the set of changes that were explicitly
+   accepted, so rejecting everything reproduces the original exactly. The
+   opposite default — a clause drifting into an agreement because nobody looked
+   at it — cannot be undone once signed.
+2. **Nobody rules on their own proposal.** The side that wrote a change cannot
+   accept it. This is checked in the engine, so no future screen can accidentally
+   route around it.
+
+Accepting a change now edits the document's real structure directly, by clause
+code. It no longer converts the whole contract to plain text and back — which was
+the mechanism behind an earlier bug where formatting was lost the first time a
+change was accepted on an uploaded contract. That failure mode is not guarded
+against; it has been removed, because the step that caused it no longer exists.
+
+## What is deliberately not built
+
+- **Signing and finalising.** Untouched. When everything is agreed the screen
+  says "Ready to sign" and hands off to the existing Docs tab. No signing logic
+  went anywhere near this work.
+- **The mobile / WhatsApp portal.** Untouched, as instructed.
+- **Reading Word's own tracked changes** directly from a returned `.docx` file.
+  This was listed as an optional stretch. It was not built. Returned files are
+  still compared the existing way, which works; this would just be more direct.
+- **Editing a clause's heading as a tracked change.** Renumbering and retitling
+  are treated as presentation. A clause's *wording* is what is tracked. There is
+  no way to edit a heading without it being visible, so nothing changes silently
+  — but a proper "the title changed" record is honest future work, and it is
+  written up in the technical log rather than left implied.
+- **Live updates between the two browsers.** There are no websockets. The page
+  loads current state when opened and there is a "refresh" indicator. That was
+  the stated scope for this version.
+
+## What the two clean runs actually showed
+
+The full automated test suite was run twice in a row on a completely fresh copy
+of the code, with dependencies reinstalled from scratch:
+
+- **Run 1: 701 tests, 701 passed, 0 failed.**
+- **Run 2: 701 tests, 701 passed, 0 failed.**
+
+The starting point before this session's work was 664 passing. The number is not
+664 + 37, because two existing test files were **rewritten rather than added to**
+— and the reason is worth being blunt about. Those files had 664 tests passing
+against a clause model that returns fourteen fragments for a six-clause
+contract. They passed because their test documents had been written to suit what
+the code could handle: one sentence per clause, tidy consecutive numbering,
+headings in capitals. The tests were shaped to fit the implementation. The new
+test documents are shaped like the real design mock-up instead — mixed-case
+headings, gaps in the numbering (1, 4, 5, 6, 9, 12), multi-paragraph clauses,
+plus an all-capitals variant and a document with no headings at all.
+
+Separately, because automated tests here run in a simulated browser with no
+ability to actually lay a page out, the screen was also rendered in a real
+Chromium browser and measured: **21 out of 21 checks passed**. That pass found
+one genuine bug the 25 existing simulated tests could not: clicking a change in
+the full-screen negotiation view was supposed to highlight the matching clause in
+all three panels, and it had never done so. The markup was correct, so the
+simulated tests were satisfied; only a browser that actually draws the page shows
+that nothing lights up. It is fixed.
+
+**What this does not mean.** It does not mean the system is certainly correct.
+Passing tests show that the specific things we thought to check behave as
+expected on the documents we thought to try. Real contracts are stranger than
+test fixtures — that is precisely the lesson the fourteen-fragment bug taught,
+since it lived happily under a full green suite for an entire previous session.
+What can be said honestly is narrower and still worth something: the specific
+defect has been fixed and is now pinned by tests that would fail if it came back;
+the safety rules are enforced in the engine rather than in the interface; and the
+badge that says "Verified" is now doing the work it claims to be doing.
