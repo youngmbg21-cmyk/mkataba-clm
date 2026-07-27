@@ -574,7 +574,14 @@ function portalOpenPointsHtml(c, p){
      now the only thing it offered was an instruction to open a formal round.
      Answering a sentence with a sentence belongs here, not in a panel further
      down the page behind a dropdown of every clause in the contract. */
-  const canReply=!!PORTAL_OPTS.token && !!window.discussPointReplyHtml;
+  /* NO REPLY BOX HERE ANY MORE. These boxes were wired by wirePortalDiscuss,
+     which went with the discussion panel — leaving a Send button that did
+     nothing, which is the exact fault this product has spent a session
+     removing. The panel was deleted with no replacement, so the reply goes with
+     it and the card is what it says it is: the points still open between the
+     parties, for reading. Proposing wording is still the redline; answering a
+     specific change is still its thread in the negotiation room. */
+  const canReply=false;
   return `
     <div id="pt-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
@@ -642,8 +649,7 @@ function wirePortalDiscuss(c, p){
     if (panel) panel.outerHTML = portalDiscussHtml(c, p);
     const points = document.getElementById('pt-openpoints');
     if (points) points.outerHTML = portalOpenPointsHtml(c, p);
-    wirePortalDiscuss(c, p);
-    if (window.toast) toast('Sent — the contract is unchanged');
+      if (window.toast) toast('Sent — the contract is unchanged');
   };
   wireDiscussPanel({ idp: 'pt-discuss', topics, send: post, onSent: repaint });
   if (window.wireDiscussPoints) wireDiscussPoints({ send: post, onSent: repaint });
@@ -1268,7 +1274,16 @@ function renderSharePortal(p, opts={}){
         ${portalCompareBar()}
         ${portalNegoHtml(p)}
         ${portalOpenPointsHtml(c,p)}
-        ${portalDiscussHtml(c,p)}
+        ${''/* THE "TALK IT THROUGH" PANEL IS GONE, on both sides.
+
+               It was a general message box sitting beside a negotiation whose
+               whole point is that every exchange attaches to a specific
+               fingerprinted change. Two channels for the same conversation is
+               how the two drift apart, and the panel was the one that could not
+               say WHICH clause anybody meant.
+
+               Removed rather than hidden. The message route it used still
+               exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
         ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
@@ -1334,7 +1349,6 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   wireportalWord(c, p);
-  wirePortalDiscuss(c, p);
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
   if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
@@ -1649,6 +1663,76 @@ function uploadedTextForPrint(c){
       <p class="doc-muted" style="font-size:9px;margin-top:10px;line-height:1.5;">Text extracted from <strong>${u.fileName||'the uploaded file'}</strong>${c.redlineText?' and edited in HaTi':''}. Signatures, stamps and page layout are not reproduced — the stored original file remains the authoritative document, identified by the fingerprint above.</p>
     </div>`;
 }
+/* THE EXECUTION BLOCK, FOR PRINT.
+
+   A signed contract's page carries the seal roundel, who signed and how, the
+   sealed text fingerprint and the document seal. The printed copy carried none
+   of it: exportPDF took its body from docBody(), which only folds the block in
+   when `c.status === 'Signed' && c.execution.html` — a frozen body captured at
+   signing. A contract signed without one, or an uploaded document (whose body
+   is the file, not HTML), printed with the wording, a lone SHA-256 box and an
+   audit trail: no signatures, no "Executed & Sealed", nothing to show it had
+   been executed at all. The one page that most needs to prove it was signed was
+   the one that did not.
+
+   Rendered here explicitly rather than hoped for, and written in INLINE styles
+   because the print sheet does not carry the application's stylesheet — the
+   page's own block is built from utility classes that print as unstyled text.
+   The wording and the values are the page's; only the styling is restated. */
+function printExecutionBlock(c){
+  if(String(c.status||'')!=='Signed') return '';
+  const external=isExternallyExecuted(c);
+  const u=c.upload||{};
+  const hash=external?(u.fileHash||'—'):((c.hash&&c.hash!=='PRE-SEEDED')?c.hash:'—');
+  const sigs=Array.isArray(c.signatures)?c.signatures:[];
+  const partyLabel=s=>s.party==='counterparty'?'Counterparty':s.party==='first'?'First party':(s.role||'Signer');
+  const cap=s=>(window.signatureCapacity?signatureCapacity(s):'')||'';
+  const cell=s=>`
+    <td style="vertical-align:top;padding:0 10px 10px 0;width:50%;">
+      <div style="border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
+        <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">${esc(partyLabel(s))}</div>
+        ${s.image?`<img src="${s.image}" alt="" style="height:38px;max-width:190px;object-fit:contain;display:block;margin:2px 0 5px;"/>`:''}
+        <div style="font-weight:600;font-size:12px;">${esc(s.name||'—')}${cap(s)?', '+esc(cap(s)):''}</div>
+        <div style="font-size:9.5px;color:#666;line-height:1.5;">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div>
+      </div>
+    </td>`;
+  const rows=[];
+  for(let i=0;i<sigs.length;i+=2) rows.push(`<tr>${cell(sigs[i])}${sigs[i+1]?cell(sigs[i+1]):'<td></td>'}</tr>`);
+  const sigTable=sigs.length
+    ? `<table style="width:100%;border-collapse:collapse;margin-top:10px;">${rows.join('')}</table>`
+    : `<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;font-size:11px;color:#666;">${c.signatory?('Signed by '+esc(c.signatory)):'Signatories not recorded'}</div>`;
+  return `
+    <div style="margin-top:26px;page-break-inside:avoid;border:1px solid ${external?'#8fa8c2':'#a8cbb8'};border-radius:12px;padding:16px 18px;background:${external?'#f2f6fa':'#f2f8f4'};">
+      <table style="width:100%;border-collapse:collapse;"><tr>
+        <td style="width:70px;vertical-align:top;">
+          <svg width="62" height="62" viewBox="0 0 96 96" aria-hidden="true">
+            <circle cx="48" cy="48" r="46" fill="#fff"/>
+            <circle cx="48" cy="48" r="46" fill="none" stroke="${external?'#5980a6':'#086B54'}" stroke-width="2"/>
+            <circle cx="48" cy="48" r="38" fill="${external?'rgba(89,128,166,.10)':'rgba(8,107,84,.10)'}" stroke="${external?'#8fa8c2':'#C79A3E'}" stroke-width="1.5"/>
+            <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
+            <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
+          </svg>
+        </td>
+        <td style="vertical-align:top;">
+          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
+          <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
+            ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
+            : 'Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).'}</div>
+          ${external?'':sigTable}
+          ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
+            <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
+          </div>`:''}
+          <div style="margin-top:10px;border-radius:8px;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
+            <div style="font-size:9.5px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
+          </div>
+        </td>
+      </tr></table>
+    </div>`;
+}
+
 function exportPDF(c){
   let bodyHtml;
   if(isUpload(c)){
@@ -1671,7 +1755,13 @@ function exportPDF(c){
       ${uploadedTextForPrint(c)}`;
   } else {
     const holder=document.createElement('div');
+    /* docBody folds the page's own execution block into a frozen body. That
+       block is built from the application's utility classes, which the print
+       sheet does not carry, so it prints as a heap of unstyled text — and the
+       print-styled block below would then be the second copy. Take the wording
+       only, and let printExecutionBlock render the execution once, properly. */
     holder.innerHTML=docBody(c);
+    holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
@@ -1680,6 +1770,11 @@ function exportPDF(c){
     });
     bodyHtml=holder.innerHTML;
   }
+  /* Built once, and it decides whether the bare seal box below is needed: the
+     execution block already carries the seal, and printing both put the same
+     fingerprint on the page twice — which on a document about provenance reads
+     like two different seals. */
+  const execBlock=printExecutionBlock(c);
   const audit=(c.audit||[]).map(e=>`
     <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
@@ -1695,7 +1790,8 @@ function exportPDF(c){
         <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       <div class="doc-surface">${bodyHtml}</div>
-      ${c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${execBlock}
+      ${(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
       ${audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
@@ -1722,4 +1818,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{printExecutionBlock,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

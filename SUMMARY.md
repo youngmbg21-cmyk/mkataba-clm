@@ -2562,3 +2562,124 @@ found nothing new.
 - The dashboard's readiness list is tested through the two pieces it is built
   from rather than by starting the whole dashboard, which needs the entire
   application around it.
+
+---
+
+# Round: the stacked banners, the flattened contract, the panel, and the missing seal
+
+## Image 1 — too many notices, and two of them untrue
+
+The room was showing every notice it had, stacked. They aren't separate notices;
+they're one question — *where does this stand?* — and it has one answer at a
+time. It now shows exactly one, and which one depends on where the deal actually
+is: executed, declined, comparing old versions, somebody has signalled,
+everything settled, or whose turn it is.
+
+Your screenshot showed something worse than clutter. That contract was
+**signed**, and it still said *"Your turn — propose changes or send it back"*
+over a banner offering to *"issue a signing link"* for a deal that was already
+done. A signed or declined contract now says so, once, and says nothing else.
+
+Also fixed: it read *"Young Mbagaya signalled Young Mbagaya is ready to sign"*.
+That was my wording and it was wrong — the person signing and the party they
+sign for are usually the same name, and repeating it turns a fact into a
+stutter.
+
+## Image 2 — the contract lost its structure
+
+I reproduced this with a real sample PDF rather than guessing, and there were
+**two** faults pulling in opposite directions.
+
+When HaTi can't read a PDF's internal structure it falls back to scraping the
+raw text out. That fallback was throwing away **every line break** — so the
+whole agreement arrived as one continuous string, and the part of the system
+that rebuilds a document works by looking at line breaks. It found none, and
+made the entire contract into a single paragraph: recitals, clause headings and
+the page footers all run together. That is your screenshot exactly, including
+`PAGE 1 OF 4` sitting in the middle of a sentence.
+
+The *good* path had the reverse problem. It gave one paragraph per **line of the
+page**, so a sentence that wrapped three times became three paragraphs, and
+`1. Services` became ordinary body text instead of a heading you can navigate by.
+
+Both are fixed, and the underlying approach changed: **structure is no longer
+taken from the line breaks at all.** It's read from what the contract itself
+uses to say what its parts are — the numbering, the bullet marks, the
+capitalisation. Line breaks are treated as what they are: wherever the page
+happened to end.
+
+So now: numbered clauses come back as headings and keep their numbers (the
+number is how you cite it), bullets come back as bullets, wrapped sentences
+rejoin into one paragraph, and page footers are dropped.
+
+Nothing is invented and nothing is reworded — every word comes out in the same
+order, and all that changes is which block it sits in. There's a test that
+checks precisely that.
+
+**One bug I found while fixing it:** `under the Companies Act, 2015. RECITALS`
+was being read as *clause 2015*, which invented a clause and filed the recitals
+underneath it. Clause numbers are capped at three digits now.
+
+**What I can't fully recover:** for contracts already stored through the broken
+fallback, the information was destroyed at the door. The rebuild gets the
+numbering, the bullets and the paragraphs back; on my test sample it still glues
+the document's title to the first sentence. New uploads don't go through that
+path any more.
+
+## Image 3 — the discussion panel is gone
+
+Removed from both your Docs page and the counterparty's page, with no
+replacement, as you chose.
+
+One thing that nearly went wrong: the "open points" card on their page had a
+small reply box on each point, wired up by the same code that ran the panel.
+Deleting the panel would have left a **Send button that did nothing** — the
+exact fault we've spent this session removing. Those boxes are gone too, and the
+card is now for reading.
+
+As flagged before you decided: a comment a counterparty sends still reaches you
+as a counted, quoted row on your dashboard, but there's no longer a thread to
+read in full or a box to reply in.
+
+## Images 4 & 5 — the printed contract had no seal
+
+The print was building the document from the same code the Docs page uses, and
+that code only includes the "Executed & Sealed" block when the contract has a
+frozen copy of itself saved at signing. Yours didn't. So it printed the wording,
+one orphaned SHA-256 box and an audit trail — no signatures, no seal panel, no
+sealed-text fingerprint. The one page that most needs to prove a contract was
+signed was the page that didn't.
+
+The print now renders that block itself, so it doesn't depend on the frozen copy
+existing. It carries the seal roundel, who signed and how and when, the sealed
+text fingerprint and the document seal — laid out to match the Docs page.
+
+Two details worth knowing: the block is styled inline, because the print sheet
+doesn't load the app's stylesheet (which is why it would have printed as
+unstyled text otherwise); and the fingerprint now appears **once**. It was going
+to appear twice, and two copies of one seal on a document about provenance read
+like two different seals.
+
+Uploaded and externally-signed contracts get the right version of the block.
+
+## Tests
+
+- **New:** `f52`, 28 tests — one notice at a time (including a signed and a
+  declined contract), the document structure rebuild in both directions, nothing
+  left pressable after the panel removal, and the printed seal.
+- **Rewritten:** `f31`'s page tests now assert the panel is **absent** and record
+  what was given up, rather than being deleted quietly. Its server tests stay,
+  because that route still carries the per-change threads in the room.
+- **Browser:** 72 checks, up from 69 — three new ones measure that exactly one
+  notice is raised, that it's laid out as a full-width banner, and that it sits
+  above the documents rather than over them.
+
+**Where things stand: 933 automated tests passing, 72 of 72 real-browser
+checks.** Both suites run clean twice.
+
+## Still open
+
+- One thing in your screenshot I couldn't chase: the breadcrumb read
+  `MK-196 · WH (Draft)` next to a **SIGNED** chip. The chip is correct and comes
+  from the contract's status; the "(Draft)" is inside the contract's own name or
+  template text. I'd need to see the record to say which.

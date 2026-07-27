@@ -417,6 +417,30 @@ const check = (name, pass, detail) => {
   check('Back to the live round restores the working screen',
     back.bar === false && back.lv === 'baseline', `banner ${back.bar}, left ${back.lv}`);
 
+  /* ---------- ONE NOTICE AT A TIME ----------
+     jsdom can count the elements. Only a browser can say the survivor is laid
+     out where a notice belongs — full width, above the panes, not overlapping
+     the documents it sits over. */
+  const notices = await page.evaluate(() => {
+    const room = document.querySelector('.nego-room');
+    const ids = ['nego-ready-signal', 'nego-ready', 'nego-turn', 'nego-closed'];
+    const on = ids.filter(id => room.querySelector('[id="' + id + '"]'));
+    const el = on.length ? room.querySelector('[id="' + on[0] + '"]') : null;
+    const r = el ? el.getBoundingClientRect() : null;
+    const panes = room.querySelector('.nego-pane.baseline').getBoundingClientRect();
+    return { on, w: r ? Math.round(r.width) : 0, h: r ? Math.round(r.height) : 0,
+      bottom: r ? Math.round(r.bottom) : 0, panesTop: Math.round(panes.top),
+      roomW: Math.round(room.getBoundingClientRect().width) };
+  });
+  check('exactly one notice is raised in the room', notices.on.length === 1,
+    notices.on.join(', ') || 'none');
+  check('and it is laid out as a banner, not squeezed in beside something',
+    notices.w > notices.roomW * 0.8 && notices.h >= 20,
+    `${notices.w}×${notices.h} in a ${notices.roomW}px room`);
+  check('it sits above the documents rather than over them',
+    notices.bottom <= notices.panesTop + 1,
+    `notice ends ${notices.bottom}, panes start ${notices.panesTop}`);
+
   /* ---------- the counterparty's page ----------
      Rendered in the same browser, from a payload the product really built, so
      the claim "it looks and feels exactly like the negotiation page" is

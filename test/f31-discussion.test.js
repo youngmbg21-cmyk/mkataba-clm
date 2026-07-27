@@ -150,105 +150,68 @@ describe('F31 — the server carries a conversation that is not a round', () => 
     const res = await h.client('nobody').raw('/api/contracts/' + CID + '/messages');
     assert.ok(res.status === 401 || res.status === 403 || res.status === 404, 'got ' + res.status);
   });
-});
 
-describe('F31 — the counterparty page offers the light channel', () => {
-  let p, html;
-  before(() => {
-    p = buildPortal();
-    const c = supplyContract({
-      rounds: [{ n: 1, at: '2026-07-20T09:00:00Z', by: 'Erik Lindqvist', status: 'closed',
-        baseText: 'Payment shall be made within thirty (30) days of a valid invoice.',
-        proposedText: 'Payment shall be made within sixty (60) days of a valid invoice.',
-        blockDecisions: [{ id: 'b0', decision: 'reject', before: 'thirty (30)', after: 'sixty (60)',
-          note: 'Net-60 is our standard.', reply: 'Net-30 stands, or a 2% price increase.' }],
-        resolution: { decision: 'rejected', at: '2026-07-21T09:00:00Z',
-          comment: 'Net-30 stands, or a 2% price increase.' } }],
-    });
-    html = p.open(sharePayloadFor(p, c), { messages: [] });
-  });
-
-  test('there is somewhere to reply that is not the redline editor', () => {
-    assert.ok(p.has('pt-discuss-panel'), 'the counterparty page must offer a discussion panel');
-    assert.ok(p.has('pt-discuss-body'), 'with a box to write in');
-    assert.ok(p.has('pt-discuss-send'), 'and a way to send it');
-    assert.match(html, /no formal round needed/i);
-  });
-
-  test('the still-open point is one of the things that can be replied to', () => {
-    const sel = p.win.document.getElementById('pt-discuss-topic');
-    const values = [...sel.options].map(o => o.value);
-    assert.ok(values.includes('general'), 'the contract as a whole is always a topic');
-    assert.ok(values.some(v => v.startsWith('point:')),
-      'the point they were refused on must be repliable — got ' + JSON.stringify(values));
-    assert.ok(values.some(v => v.startsWith('clause:')),
-      'a clause must be askable about — got ' + JSON.stringify(values));
-    const labels = [...sel.options].map(o => o.textContent).join(' | ');
-    assert.match(labels, /sixty \(60\)/, 'the open point is named by what was asked for');
-  });
-
-  test('sending posts a message, not a response', async () => {
-    p.setValue('pt-name', 'Erik Lindqvist');
-    const sel = p.win.document.getElementById('pt-discuss-topic');
-    sel.value = [...sel.options].map(o => o.value).find(v => v.startsWith('point:'));
-    p.setValue('pt-discuss-body', 'Would you take Net-45?');
-    await p.click('pt-discuss-send');
-    const call = p.log.sent[p.log.sent.length - 1];
-    assert.ok(call, 'nothing was sent');
-    assert.match(call.pathname, /\/messages$/,
-      'a question must not travel down the /respond route that closes a link');
-    assert.equal(call.body.body, 'Would you take Net-45?');
-    assert.equal(call.body.author, 'Erik Lindqvist');
-    assert.match(call.body.topic, /^point:/);
-    assert.match(call.body.topicLabel, /sixty \(60\)/, 'the reader sees what they are replying to');
-  });
-
-  test('an unnamed reader is asked for a name rather than sending anonymously', async () => {
-    const q = buildPortal();
-    q.open(sharePayloadFor(q, supplyContract()), { messages: [] });
-    q.setValue('pt-discuss-body', 'Who is signing this?');
-    await q.click('pt-discuss-send');
-    assert.equal(q.log.sent.length, 0, 'nothing may be sent without a name on it');
-    assert.match(q.toastText(), /name/i);
-  });
-
-  test('both halves of the conversation are shown, each attributed', () => {
-    const q = buildPortal();
-    const out = q.open(sharePayloadFor(q, supplyContract()), { messages: [
-      { id: 1, side: 'counterparty', author: 'Erik Lindqvist', topic: 'clause:5.',
-        topicLabel: '5. Payment…', body: 'Would you take Net-45?', at: '2026-07-22T09:00:00Z' },
-      { id: 2, side: 'owner', author: 'Wanjiru Kamau', topic: 'clause:5.',
-        topicLabel: '5. Payment…', body: 'Net-45 works.', at: '2026-07-22T10:00:00Z' },
-    ] });
-    assert.match(out, /Would you take Net-45\?/);
-    assert.match(out, /Net-45 works\./);
-    assert.match(out, /Erik Lindqvist/);
-    assert.match(out, /Wanjiru Kamau/);
-    assert.match(out, /2 messages/);
-  });
-
-  test('answering does not have to wait for a formal round to be opened', () => {
-    // the light channel sits with the open points, above the document — not
-    // buried inside the redline editor it exists to avoid
-    const q = buildPortal();
-    const out = q.open(sharePayloadFor(q, supplyContract()), { messages: [] });
-    assert.ok(out.indexOf('pt-discuss-panel') < out.indexOf('portal-redline'),
-      'the way to say something must come before the way to redraft something');
-  });
-
-  test('a link with no channel back says so instead of offering a dead box', () => {
-    const q = buildPortal();
-    // a static share: payload in the URL, no token, nothing to post to
-    q.win.renderSharePortal(sharePayloadFor(q, supplyContract()), { share: {} });
-    assert.ok(q.has('pt-discuss-panel'));
-    assert.ok(!q.has('pt-discuss-send'), 'a box that cannot deliver must not be offered');
-    assert.match(q.html(), /no channel back for messages/);
+  /* The route is NOT removed. It is what the negotiation room's per-change
+     threads ride, and what the dashboard's "questions waiting for you" counts.
+     Deleting it would have taken a working channel down with the panel that
+     used to read it. Last in this block on purpose: it posts a message, and the
+     tests above count them. */
+  test('the route survives the panel it used to feed', async () => {
+    const r = await W.admin.raw('/api/shares/' + token + '/messages', { method: 'POST',
+      body: { author: 'Erik Lindqvist', topic: 'change:CHG-001',
+        topicLabel: 'Change #CHG-001', body: 'Would you take Net-45?' } });
+    assert.equal(r.status, 200, 'a per-change comment must still reach the owner');
+    assert.ok((r.json.messages || []).some(m => /Net-45/.test(m.body)));
   });
 });
 
-/* The owner reads and writes the SAME component the counterparty does — one
-   conversation, rendered from one module, or the two ends of a negotiation
-   quietly diverge into two different accounts of what was said. */
+/* ============================================================
+   THE PANEL IS GONE — and these tests say so rather than being deleted
+   ============================================================
+   "Talk it through" was a general message box beside a negotiation whose whole
+   premise is that every exchange attaches to a specific fingerprinted change.
+   Two channels for one conversation is how the two drift apart, and this was
+   the one that could not say WHICH clause anybody meant.
+
+   Removed from both surfaces on instruction, with no replacement panel. What
+   that costs is written down here rather than discovered later: the message
+   ROUTE survives and still carries the per-change threads in the negotiation
+   room, and an incoming message is still counted and quoted on the owner's
+   dashboard — but there is no longer a panel in which to read a thread in full
+   or type a reply to one. The tests that asserted those two abilities are
+   replaced by tests that assert they are gone, so nobody re-adds the panel by
+   accident and nobody believes the ability is still there. */
+describe('F31 — the general discussion panel is removed from both sides', () => {
+  const theirPage = () => {
+    const p = buildPortal();
+    const html = p.open(sharePayloadFor(p, supplyContract()), { token: 'tok', messages: [] });
+    return { p, html, text: p.win.document.body.textContent.replace(/\s+/g, ' ') };
+  };
+
+  test('the counterparty page carries no general message box', () => {
+    const v = theirPage();
+    assert.equal(v.p.has('pt-discuss-panel'), false, 'no panel');
+    assert.equal(v.p.has('pt-discuss-send'), false, 'and nothing to press');
+    assert.equal(v.p.has('pt-discuss-body'), false, 'and nowhere to type');
+    assert.ok(!/Talk it through/.test(v.text), 'nor the invitation to use one');
+  });
+
+  test('the document and the respond panel are untouched by its removal', () => {
+    const v = theirPage();
+    assert.ok(v.p.has('pt-doc'), 'the contract still reads');
+    assert.ok(v.p.has('pt-name'), 'and can still be responded to');
+  });
+
+  test('the owner\'s workspace has no discussion host to render into', () => {
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    assert.ok(!/id="discuss-section"/.test(src), 'the host is out of the workspace markup');
+    assert.ok(!/\brenderDiscussSection\(c\); loadDiscussion\(c\);/.test(src),
+      'and nothing calls it on render');
+  });
+
+});
+
 describe('F31 — the owner’s half of the same conversation', () => {
   const { JSDOM } = require('jsdom');
   const fs = require('node:fs');
@@ -369,104 +332,3 @@ describe('F31 — the owner’s half of the same conversation', () => {
    exists to avoid. Using the light route meant scrolling away from the thing
    being answered and finding it again in a dropdown of every clause in the
    contract, whose default was the wrong one. Half the feature had landed. */
-describe('F31 — answering on the point itself', () => {
-  const REFUSED = {
-    n: 1, at: '2026-07-20T09:00:00Z', by: 'Erik Lindqvist', status: 'closed',
-    baseText: 'Payment shall be made within thirty (30) days of a valid invoice.',
-    proposedText: 'Payment shall be made within sixty (60) days of a valid invoice.',
-    blockDecisions: [{ id: 'b0', decision: 'reject', before: 'thirty (30)', after: 'sixty (60)',
-      note: 'Net-60 is our standard.', reply: 'Net-30 stands, or a 2% price increase.' }],
-    resolution: { decision: 'rejected', at: '2026-07-21T09:00:00Z' },
-  };
-  const stage = (messages = []) => {
-    const q = buildPortal();
-    q.open(sharePayloadFor(q, supplyContract({ rounds: [REFUSED] })), { messages });
-    const html = q.html();
-    return { q, html,
-      card: html.slice(html.indexOf('id="pt-openpoints"'), html.indexOf('id="pt-discuss-panel"')) };
-  };
-
-  test('the card carrying the disagreement can be answered in place', () => {
-    const { card } = stage();
-    assert.match(card, /data-point-body/, 'a reply box must sit on the point itself');
-    assert.match(card, /data-point-send/);
-  });
-
-  test('it no longer sends the reader to the formal route to say one sentence', () => {
-    const { card } = stage();
-    assert.ok(!/press <b>Propose edits<\/b> if you want to come back/.test(card),
-      'the instruction that made this the worst friction must be gone');
-    assert.match(card, /Answer (it|them) right here/,
-      'and it must say that answering changes nothing in the contract');
-  });
-
-  test('sending from the point files it against that point, not "the contract generally"', async () => {
-    const { q } = stage();
-    q.setValue('pt-name', 'Erik Lindqvist');
-    q.win.document.querySelector('[data-point-body="pt-op-0"]').value = 'Would you take Net-45?';
-    q.win.document.querySelector('[data-point-send="pt-op-0"]')
-      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-    await new Promise(r => setImmediate(r));
-
-    const call = q.log.sent[q.log.sent.length - 1];
-    assert.ok(call, 'nothing was sent');
-    assert.match(call.pathname, /\/messages$/, 'still a message, never a round');
-    assert.equal(call.body.topic, 'point:r1.b0',
-      'the point being read is the point being answered — no dropdown to get wrong');
-    assert.match(call.body.topicLabel, /sixty \(60\)/);
-    assert.equal(call.body.body, 'Would you take Net-45?');
-  });
-
-  test('the reply appears on the point AND in the thread — one conversation', async () => {
-    const { q } = stage();
-    q.setValue('pt-name', 'Erik Lindqvist');
-    q.win.document.querySelector('[data-point-body="pt-op-0"]').value = 'Would you take Net-45?';
-    q.win.document.querySelector('[data-point-send="pt-op-0"]')
-      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
-    for (let i = 0; i < 10; i++) await Promise.resolve();
-    await new Promise(r => setImmediate(r));
-
-    const after = q.html();
-    const card = after.slice(after.indexOf('id="pt-openpoints"'), after.indexOf('id="pt-discuss-panel"'));
-    const panel = after.slice(after.indexOf('id="pt-discuss-panel"'));
-    assert.match(card, /Would you take Net-45\?/, 'it must show where it was written');
-    assert.match(panel, /Would you take Net-45\?/,
-      'two surfaces telling different stories about one conversation is two conversations');
-  });
-
-  test('an earlier exchange on the point is shown on the point', () => {
-    const { card } = stage([
-      { id: 1, side: 'counterparty', author: 'Erik Lindqvist', topic: 'point:r1.b0',
-        body: 'Would you take Net-45?', at: '2026-07-22T09:00:00Z' },
-      { id: 2, side: 'owner', author: 'Wanjiru Kamau', topic: 'point:r1.b0',
-        body: 'Net-45 works if delivery goes weekly.', at: '2026-07-22T10:00:00Z' },
-      { id: 3, side: 'counterparty', author: 'Erik Lindqvist', topic: 'general',
-        body: 'Unrelated question.', at: '2026-07-22T11:00:00Z' },
-    ]);
-    assert.match(card, /Would you take Net-45\?/);
-    assert.match(card, /Net-45 works if delivery goes weekly\./);
-    assert.ok(!/Unrelated question/.test(card),
-      'a point shows its own conversation, not everything ever said');
-  });
-
-  test('an empty reply is refused before it reaches the wire', async () => {
-    const { q } = stage();
-    q.setValue('pt-name', 'Erik Lindqvist');
-    q.win.document.querySelector('[data-point-send="pt-op-0"]')
-      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
-    for (let i = 0; i < 8; i++) await Promise.resolve();
-    assert.equal(q.log.sent.length, 0);
-    assert.match(q.toastText(), /reply/i);
-  });
-
-  test('a link with no channel back offers no box it cannot deliver from', () => {
-    const q = buildPortal();
-    q.win.renderSharePortal(sharePayloadFor(q, supplyContract({ rounds: [REFUSED] })), { share: {} });
-    const html = q.html();
-    const card = html.slice(html.indexOf('id="pt-openpoints"'), html.indexOf('id="pt-discuss-panel"'));
-    assert.ok(!/data-point-send/.test(card));
-    assert.match(card, /Press <b>Propose edits<\/b>/,
-      'with no way to send a message, the formal route is the honest instruction');
-  });
-});

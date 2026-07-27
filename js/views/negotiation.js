@@ -181,6 +181,16 @@ function negoStyleHtml(){
   .nego-readysig.stale{border-color:#e0c48a;border-left-color:#b8862b;background:#fdf6e7}
   .nego-readysig.stale .tick{background:#b8862b}
   .nego-readysig.stale .body{color:#7d5a14}
+  .nego-closed{display:flex;align-items:flex-start;gap:11px;margin:10px 14px 0;border-radius:6px;
+    padding:10px 14px;border:1px solid var(--n-line);background:var(--n-badge-bg);
+    border-left:4px solid var(--n-slate)}
+  .nego-closed[data-state="signed"]{border-color:#a8cbb8;border-left-color:var(--n-accept);background:#eef7f1}
+  .nego-closed[data-state="declined"]{border-color:#e3c4bf;border-left-color:var(--n-reject);background:#f9ecea}
+  .nego-closed .tick{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+    background:var(--n-slate);color:#fff;font-size:11px;font-weight:800}
+  .nego-closed[data-state="signed"] .tick{background:var(--n-accept)}
+  .nego-closed[data-state="declined"] .tick{background:var(--n-reject)}
+  .nego-closed .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--n-ink)}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
     border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
@@ -952,6 +962,54 @@ function negoReadyHtml(c, opts){
     </div>`;
 }
 
+/* ---------- ONE BANNER AT A TIME ----------
+   Four of these could be on the screen at once: the readiness signal, "every
+   change is resolved", whose turn it is, and the comparison bar. They were
+   rendered unconditionally, one after another, so a contract could carry a
+   stack of notices that between them said three different things about where it
+   stood — and on an EXECUTED contract two of them were simply false, still
+   inviting the reader to propose changes and to issue a signing link for a deal
+   that had already been signed.
+
+   They are not four notices. They are one question — where does this stand? —
+   with one answer at a time, and the answers have a natural order because each
+   supersedes the one below it:
+
+     executed        the deal is done; nothing about turns or readiness applies
+     declined        likewise, in the other direction
+     comparing       you are reading history, not the live round
+     signalled       somebody has said they are ready; the next act is named
+     aligned         everything is settled but nobody has said so yet
+     otherwise       whose move it is
+
+   The compare bar is left to render on its own because it is a MODE with its
+   own way out, not a notice — but while it is up the rest are suppressed, since
+   they describe a round you are not currently looking at. */
+function negoRoomBannerHtml(c, opts = {}, ready){
+  const comparing = !negoIsLivePair(negoComparePair().left, negoComparePair().right);
+  if (comparing) return '';
+  const status = String(c.status || '');
+  if (status === 'Signed' || status === 'Declined') return negoClosedBannerHtml(c, opts);
+  const signal = negoReadySignalHtml(c, opts);
+  if (signal) return signal;
+  if (ready) return negoReadyHtml(c, opts);
+  return `<div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>`;
+}
+/* An executed or declined contract is not a negotiation. Saying so once, in the
+   slot the turn banner used, is the whole of it — the alternative was a signed
+   contract telling its owner it was their turn to propose changes. */
+function negoClosedBannerHtml(c, opts = {}){
+  const signed = String(c.status || '') === 'Signed';
+  const when = c.signedAt || (c.negotiation && c.negotiation.turnAt) || '';
+  return `<div class="nego-closed" id="nego-closed" data-state="${signed ? 'signed' : 'declined'}" role="status">
+    <span class="tick" aria-hidden="true">${signed ? '✓' : '✕'}</span>
+    <span class="body"><b>${signed ? 'This contract is executed and sealed.' : 'This contract was declined.'}</b>
+      ${signed
+        ? `The wording is final and read-only${when ? ` — ${_ne(String(when))}` : ''}. Record an amendment if it has to change.`
+        : 'The negotiation is closed. Nothing here can be proposed or decided.'}</span>
+  </div>`;
+}
+
 /* ---------- somebody has said they are ready ----------
    The first of the three places the owner meets this: in the room, at the top,
    where the negotiation they were reading is.
@@ -974,8 +1032,11 @@ function negoReadySignalHtml(c, opts = {}){
   const when = at => (at && window.fmtDT ? fmtDT(at) : String(at || ''));
   const rows = [];
   if (theirs) rows.push(`<span class="row" data-ready="them"><b>${_ne(theirs.by)}</b> signalled
-    ${me === 'owner' ? `${_ne(c.counterparty || 'the counterparty')} is` : 'they are'}
-    ready to sign — ${_ne(when(theirs.at))}. <b>Nothing is signed yet.</b>
+    ${''/* "they are", never the organisation's name again. It read "Young
+           Mbagaya signalled Young Mbagaya is ready to sign" — the signer and
+           the party they sign for are usually the same words, and repeating
+           them turns a fact into a stutter. */}
+    they are ready to sign — ${_ne(when(theirs.at))}. <b>Nothing is signed yet.</b>
     ${theirs.stale
       ? 'Something has been reopened since, so this no longer describes where the deal stands — settle it and the signal counts again.'
       : me === 'owner'
@@ -1328,9 +1389,7 @@ function negoRoomHtml(c, opts = {}){
         <div class="nego-avatar" title="${_ne(who || org)}">${_ne(initials)}</div>
       </div>
     </header>
-    ${negoReadySignalHtml(c, opts)}
-    ${ready ? negoReadyHtml(c, opts) : ''}
-    <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
+    ${negoRoomBannerHtml(c, opts, ready)}
     ${negoCompareBarHtml(c)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
@@ -2000,6 +2059,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
+  negoRoomBannerHtml, negoClosedBannerHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

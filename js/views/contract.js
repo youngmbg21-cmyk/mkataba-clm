@@ -629,6 +629,30 @@ function pdfStringsFrom(content){
   }
   return res.join('');
 }
+/* THE LAST-RESORT SCRAPE, and it used to destroy the document.
+
+   This runs when the structured parse finds nothing — an unusual encoding, a
+   content stream it cannot walk, a generator it has not met. It pulls the
+   literal strings out of the drawing operators, which is crude but recoverable:
+   the strings still arrive in reading order, and `pdfStringsFrom` already turns
+   a PDF `\n` escape into a real newline.
+
+   The last line then threw all of that away:
+
+       out.join(' ').replace(/\s+/g,' ')
+
+   Every line break in the contract collapsed into a space, so the whole
+   agreement arrived as ONE run-on string — and everything downstream that
+   rebuilds structure works by splitting on newlines, so it rebuilt a single
+   paragraph containing the entire document, page footers and all. A reader got
+   "…NOW, THEREFORE, IT IS HEREBY AGREED as follows: PAGE 1 OF 4: DEFINITIONS,
+   SCOPE &…" as one block of prose, with no clause numbering left to follow.
+
+   Newlines are structure. They survive, runs of blanks are normalised rather
+   than obliterated, and each stream is a paragraph boundary because that is
+   what a page break is here. What CANNOT be recovered from this path — real
+   headings, list nesting — is rebuilt afterwards by docRichFromText, which
+   reads the wording itself. */
 async function pdfFlatText(bin){
   const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
   while((m=re.exec(bin))){
@@ -637,7 +661,11 @@ async function pdfFlatText(bin){
     const text=inf?pdfLatin(inf):m[1];
     if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
   }
-  return out.join(' ').replace(/\s+/g,' ').trim();
+  return out.join('\n\n')
+    .replace(/[ \t]+/g,' ')          // runs of spaces, not runs of lines
+    .replace(/[ \t]*\n[ \t]*/g,'\n')
+    .replace(/\n{3,}/g,'\n\n')
+    .trim();
 }
 
 async function extractPdfText(buf){
@@ -2371,7 +2399,7 @@ function renderWorkspace(){
             </div>
           </section>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
-          <div id="discuss-section" class="empty:hidden"></div>
+          ${''/* the general discussion panel is removed — see js/views/portal.js */}
           <div id="engagement-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="nego-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="versions-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
@@ -2469,7 +2497,7 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Docs by default; the choice persists per contract
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderDiscussSection(c); loadDiscussion(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
+  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom

@@ -146,5 +146,186 @@ function docClausePrefix(line){
   return m?m[2]:'';
 }
 
-if(typeof window!=='undefined') Object.assign(window,{docxExtract,docxXmlToText,docLineKind,docClausePrefix});
-if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix};
+/* ============================================================
+   REBUILDING A DOCUMENT'S STRUCTURE FROM ITS WORDING
+   ============================================================
+   A contract must never arrive as a wall of prose. Its numbering and its
+   bullets are how a reader finds clause 7 and how a negotiation cites it — lose
+   them and the document is still all there and no longer usable.
+
+   Two intake faults made exactly that happen, in opposite directions:
+
+     · The PDF fallback scrape collapsed every newline into a space, so the
+       whole agreement arrived as one line and became ONE paragraph — recitals,
+       clause headings and page footers run together.
+     · The structured PDF path is the other extreme: it emits one line per
+       VISUAL line, and the old builder made a paragraph out of each, so a
+       sentence that wrapped three times became three paragraphs and "1.
+       Services" became body text rather than a heading.
+
+   So structure is not taken from the line breaks. It is READ FROM THE WORDING —
+   the numbering, the bullet marks, the capitalisation a contract already uses
+   to say what its own parts are — and the line breaks are treated as what they
+   are: where the page happened to end, which is not information about the
+   agreement.
+
+   Nothing is invented. Every character of the text comes out the other side in
+   the same order; what changes is which block it sits in. */
+
+/* Page furniture: what the page printed about itself, not what the parties
+   agreed. Dropped, because "PAGE 1 OF 4" wedged between a recital and a clause
+   heading is noise a reader has to step over on every read. */
+const DOC_FURNITURE = /^(?:page\s+\d+\s*(?:of\s+\d+)?\s*[:.]?|\d+\s*\/\s*\d+|[-–—]\s*\d+\s*[-–—]|\d{1,3})$/i;
+/* A bullet, in any of the marks a contract actually uses. */
+const DOC_BULLET = /^\s*(?:[•●▪◦‣·]|\(?[a-z]\)|\([ivxlcdm]+\)|[-–—]\s)\s*/i;
+/* A numbered clause opener: "3.", "7.1.4", "12)" — the anchor a citation uses. */
+/* Capped at three digits on purpose. A clause number is small; a four-digit
+   number followed by a full stop is a YEAR — "under the Companies Act, 2015." —
+   and reading it as a clause opener invented a clause called "2015" and hung
+   the recitals under it. */
+const DOC_NUMBERED = /^\s*(\d{1,3}(?:\.\d+)*)[.)]\s+\S/;
+
+/* Has this text lost its line structure entirely? Asked before anything is
+   rebuilt, because the repair for a run-on blob (break it apart) is the exact
+   opposite of the repair for over-broken lines (join them), and applying either
+   to the wrong input makes things worse. */
+function docTextIsRunOn(text){
+  const t = String(text == null ? '' : text);
+  if (!t.trim()) return false;
+  const lines = t.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return false;
+  const longest = lines.reduce((n, l) => Math.max(n, l.length), 0);
+  // one enormous line, or a handful of them, each far longer than any typeset
+  // line would be: nothing here came from a layout
+  return longest > 400 && (t.length / lines.length) > 300;
+}
+
+/* Break a run-on blob at the marks the document itself provides. Conservative
+   on purpose — it runs ONLY on text that has no line structure at all, where
+   any break is an improvement on none, and it only ever breaks BEFORE a marker
+   that a contract uses to start a new part. */
+function docBreakRunOn(text){
+  return String(text == null ? '' : text)
+    // page furniture, onto its own line so it can be dropped
+    .replace(/\s+(PAGE\s+\d+\s+OF\s+\d+\s*[:.]?)\s*/gi, '\n$1\n')
+    // the landmarks every agreement shares
+    .replace(/\s+(RECITALS?\s*[:.])/gi, '\n\n$1\n')
+    .replace(/\s+(NOW,?\s+THEREFORE[^.]*?as follows\s*[:.])/gi, '\n\n$1\n')
+    .replace(/\s+(IT IS HEREBY AGREED\s*[:.])/gi, '\n$1\n')
+    // a bullet mark mid-flow starts a new item
+    .replace(/\s+([•●▪◦‣])\s*/g, '\n$1 ')
+    // a numbered clause opener followed by a capital starts a new clause
+    // three digits at most, and never straight after a comma: "Companies Act,
+    // 2015. RECITALS" is a year ending a sentence, not clause 2015
+    .replace(/([^,\d])\s+(\d{1,3}(?:\.\d+)*[.)])\s+(?=[A-Z“"])/g, '$1\n$2 ')
+    // an ALL-CAPS run of two or more words ending in a colon is a heading
+    .replace(/\s+((?:[A-Z][A-Z&'’-]+\s+){1,7}[A-Z][A-Z&'’-]+\s*:)\s*/g, '\n\n$1\n')
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+/* Was this line cut off by the edge of the page, or did it end?
+
+   The question the whole join rests on, and it is asked conservatively: a line
+   only continues the one above it when there is POSITIVE evidence of a wrap —
+   it starts in lower case, or the line above stopped on a comma, a dash or an
+   open bracket. A missed join leaves two paragraphs where there should be one,
+   which is untidy; a wrong join welds a heading or a reference line onto the
+   sentence after it, which changes how the document reads. */
+const docLineWraps = (prev, next) =>
+  /^[a-z(]/.test(String(next || '')) || /[,;:(\[“‘—–-]\s*$/.test(String(prev || ''));
+
+/* The document, as blocks. Returns an array of
+   { kind:'h1'|'h2'|'li'|'oli'|'p', text, num } so both the rich builder and any
+   other renderer read one description of the structure rather than each
+   deriving its own and disagreeing. */
+function docBlocksFromText(text){
+  let src = String(text == null ? '' : text);
+  if (docTextIsRunOn(src)) src = docBreakRunOn(src);
+  const raw = src.split(/\r?\n/).map(l => l.replace(/\s+$/, ''));
+  const blocks = [];
+  let seenTitle = false;
+  let open = null;                       // the paragraph or item being built
+  const close = () => { if (open && open.text.trim()) blocks.push(open); open = null; };
+  for (const line of raw){
+    const t = line.trim();
+    if (!t){ close(); continue; }
+    if (DOC_FURNITURE.test(t)){ close(); continue; }
+
+    const kind = docLineKind(t);
+    const numbered = DOC_NUMBERED.exec(t);
+    const bulleted = !numbered && DOC_BULLET.test(t) && /[A-Za-z]/.test(t.replace(DOC_BULLET, ''));
+
+    if (kind === 'heading'){
+      close();
+      blocks.push({ kind: seenTitle ? 'h2' : 'h1', text: t });
+      seenTitle = true;
+      continue;
+    }
+    if (bulleted){
+      close();
+      open = { kind: 'li', text: t.replace(DOC_BULLET, '').trim() };
+      continue;
+    }
+    if (numbered){
+      close();
+      const body = t.slice(numbered[0].length - 1).trim();
+      /* A short numbered line with no sentence in it is a clause TITLE —
+         "4. Payment Terms" — and a reader navigates by those. A long one is the
+         clause itself. Both keep their number: it is the citation. */
+      if (body.length <= 60 && !/[.;]/.test(body)){
+        blocks.push({ kind: 'h2', text: t });
+        seenTitle = true;
+      } else {
+        open = { kind: 'oli', text: body, num: numbered[1] };
+      }
+      continue;
+    }
+    /* An ordinary line. It CONTINUES the block above when that block was cut
+       off mid-sentence, or when this line starts in lower case — which is what
+       a wrapped line looks like. Otherwise it starts a paragraph of its own. */
+    if (open && docLineWraps(open.text, t)){
+      open.text += ' ' + t;
+      continue;
+    }
+    close();
+    open = { kind: 'p', text: t };
+  }
+  close();
+  return blocks;
+}
+
+/* The blocks as rich HTML — the format the whole negotiation model reads.
+   Consecutive items are gathered into one list so the numbering is a list's
+   numbering rather than characters that happen to look like one. */
+function docRichFromText(text){
+  const e = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const blocks = docBlocksFromText(text);
+  const out = [];
+  let list = null;                        // { tag:'ol'|'ul', items:[], start }
+  const flush = () => {
+    if (!list) return;
+    const start = list.tag === 'ol' && list.start > 1 ? ` start="${list.start}"` : '';
+    out.push(`<${list.tag}${start}>${list.items.map(x => `<li>${e(x)}</li>`).join('')}</${list.tag}>`);
+    list = null;
+  };
+  for (const b of blocks){
+    if (b.kind === 'li' || b.kind === 'oli'){
+      const tag = b.kind === 'li' ? 'ul' : 'ol';
+      if (!list || list.tag !== tag){
+        flush();
+        list = { tag, items: [], start: b.num ? parseInt(b.num, 10) || 1 : 1 };
+      }
+      list.items.push(b.text);
+      continue;
+    }
+    flush();
+    out.push(`<${b.kind}>${e(b.text)}</${b.kind}>`);
+  }
+  flush();
+  return out.join('');
+}
+
+if(typeof window!=='undefined') Object.assign(window,{docxExtract,docxXmlToText,docLineKind,docClausePrefix,
+  docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_NUMBERED});
+if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix,
+  docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps};

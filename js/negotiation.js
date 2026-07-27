@@ -1439,7 +1439,21 @@ function negoIntakePath(c){
 
    The first heading line is the document's title (<h1>); later ones are section
    headings (<h2>). docLineKind() decides which lines are headings. */
+/* STRUCTURE COMES FROM THE WORDING, NOT FROM THE LINE BREAKS.
+
+   This used to emit one <p> per line of the source text, which is only correct
+   if every line of the source is a paragraph. Neither intake path produces
+   that. The structured PDF reader emits one line per VISUAL line, so a sentence
+   that wrapped three times became three paragraphs and "1. Services" became
+   body text; the fallback scrape emitted no line breaks at all, so the entire
+   agreement became a single paragraph with its page footers inside it.
+
+   docRichFromText reads the numbering, the bullet marks and the capitalisation
+   the contract already uses to say what its own parts are, and treats the line
+   breaks as what they are — where the page happened to end. Kept as a named
+   function because the whole intake path calls it by this name. */
 function negoRichFromLines(text){
+  if (window.docRichFromText) return docRichFromText(text);
   const e = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   let seenTitle = false;
   return String(text == null ? '' : text).split('\n').map(line => {

@@ -3988,3 +3988,140 @@ response reports handled if anything landed.
 **915 automated tests / 181 suites / 0 failures** (825 before this round), and
 **69 of 69 Chromium checks** (52 before). Twelve full walks of the journey; the
 last two found nothing new.
+
+---
+
+# Round: stacked notices, a document flattened, a panel removed, a seal that never printed
+
+Five reports from four screenshots.
+
+## 1. The room stacked its notices, and two of them were false
+
+**Where:** `js/views/negotiation.js`, `negoRoomHtml`.
+
+Four notices rendered unconditionally, one under another: the readiness signal,
+"every change is resolved", whose turn it is, and the comparison bar. They are
+not four notices — they are one question, *where does this stand?*, and it has
+one answer at a time.
+
+On the reported screen the contract was **SIGNED**, and it still said
+*"Your turn — propose changes or send it back"* above a banner offering to
+*"Issue a signing link to take it forward"*. `negoReadySignalHtml` never checked
+the contract's status; the Docs-page strip did, so the two surfaces disagreed
+about a signed contract.
+
+`negoRoomBannerHtml` now picks one, in the order each supersedes the one below:
+
+    executed / declined → nothing about turns or readiness applies
+    comparing versions  → you are reading history, not the live round
+    signalled           → somebody has said they are ready; the next act is named
+    aligned             → everything settled, nobody has said so yet
+    otherwise           → whose move it is
+
+**Also fixed:** the notice read *"Young Mbagaya signalled Young Mbagaya is ready
+to sign"*. My wording, and wrong even when the two names differ — the signer and
+the party they sign for are usually the same words.
+
+## 2. A contract arrived as a wall of prose — two faults, in opposite directions
+
+**Root cause, confirmed by running a real sample PDF through the real intake
+rather than reading and guessing.**
+
+**2a. The fallback scrape destroyed every line break.** `pdfFlatText` in
+`js/views/contract.js` runs when the structured parse finds nothing, and ended:
+
+    out.join(' ').replace(/\s+/g,' ')
+
+Every newline collapsed into a space, so the whole agreement arrived as **one
+line**. Everything downstream rebuilds structure by splitting on newlines, so it
+built a single paragraph containing the entire contract — recitals, clause
+headings and page footers run together, *"…IT IS HEREBY AGREED as follows: PAGE
+1 OF 4: DEFINITIONS, SCOPE &…"*. That is the reported screen exactly.
+
+**2b. The structured path shredded paragraphs.** `negoRichFromLines` emitted one
+`<p>` per line of the source, which is only correct if every line of the source
+is a paragraph. The structured PDF reader emits one line per **visual** line, so
+a sentence that wrapped three times became three paragraphs and `1. Services`
+became body text rather than a heading a reader can navigate by.
+
+**The fix, in two parts.** `pdfFlatText` keeps its newlines. And structure is no
+longer taken from the line breaks at all: `docRichFromText` (js/docx.js) reads
+the numbering, the bullet marks and the capitalisation the contract already uses
+to say what its own parts are, and treats line breaks as what they are — where
+the page happened to end.
+
+- wrapped lines join into one paragraph, but only on **positive** evidence of a
+  wrap (the next line starts lower-case, or the previous stopped on a comma or
+  dash). A missed join is untidy; a wrong join welds a heading onto the sentence
+  after it.
+- numbered clause titles become headings; longer numbered clauses become list
+  items that keep their number, because the number is the citation.
+- bullets in any of the marks a contract uses become list items.
+- page furniture ("PAGE 1 OF 4", bare page numbers) is dropped.
+- a run-on blob is detected and broken at the document's own landmarks first.
+
+**One bug found while testing the repair:** `Companies Act, 2015. RECITALS` was
+read as clause 2015, inventing a clause and hanging the recitals under it.
+Clause numbers are capped at three digits and never follow a comma.
+
+Nothing is invented and nothing is edited: every character comes out in the same
+order, and what changes is which block it sits in. That is asserted.
+
+## 3. The discussion panel is removed, on instruction
+
+"Talk it through" was a general message box beside a negotiation whose whole
+premise is that every exchange attaches to a fingerprinted change. Two channels
+for one conversation is how the two drift apart, and this was the one that could
+not say which clause anybody meant.
+
+Removed from **both** surfaces with no replacement, as instructed after the cost
+was put to the user. The message ROUTE survives — it carries the per-change
+threads in the room and feeds the dashboard's "questions waiting for you" — but
+there is no longer a panel in which to read a thread in full or reply to one.
+`f31`'s page tests are rewritten to assert the absence and record the loss,
+rather than being deleted.
+
+**And the thing that removal nearly left behind:** the open-points card on the
+counterparty's page carried a reply box per point, wired by the same function
+that wired the panel. Deleting the panel without deleting those would have left
+a Send button that did nothing — the exact fault this product has spent a
+session removing. The card is now read-only, and a test says so.
+
+## 4. Printing a signed contract lost its seal
+
+`exportPDF` took its body from `docBody()`, which folds the execution block in
+only when `c.status === 'Signed' && c.execution.html` — a frozen body captured
+at signing. Anything else printed the wording, a lone `SHA-256 DOCUMENT SEAL`
+box and an audit trail: **no signatures, no "Executed & Sealed", no sealed text
+fingerprint**. The page that most needs to prove it was signed was the one that
+did not.
+
+`printExecutionBlock` renders it explicitly, in **inline styles** — the print
+sheet does not carry the application's stylesheet, so the page's own block (built
+from utility classes) prints as unstyled text. The frozen body's copy is stripped
+before printing so the fingerprint appears **once**: two copies of one seal on a
+document about provenance read like two different seals.
+
+Uploaded and externally-executed contracts get the right variant.
+
+## Known limitations, carried forward
+
+- **A run-on blob cannot be fully recovered.** The extractor destroyed the
+  information; the rebuild is a salvage. It restores numbering, bullets and
+  paragraph boundaries, and on the sample it still glues the document title to
+  the first sentence. The extractor itself is fixed, so new uploads do not take
+  that path — the rebuild is the safety net for what is already stored.
+- **The counterparty's per-change comments have a thin reader.** They still
+  reach the owner's dashboard as counted, quoted rows; there is no longer a
+  thread view or a reply box for them on that side. Accepted deliberately.
+- **The breadcrumb in the reported screenshot read "MK-196 · WH (Draft)" beside
+  a SIGNED chip.** The chip is right and is read from `c.status`; the "(Draft)"
+  is inside the contract's own template or name text. Not chased — it needs the
+  record to say which.
+
+## Where the tests stand
+
+**933 automated tests / 0 failures** (915 before this round; f31 lost its panel
+tests and gained absence tests, f52 is new with 28), and **72 of 72 Chromium
+checks** (69 before — three new ones measure that exactly one notice is raised,
+that it is laid out as a banner, and that it does not overlap the documents).
