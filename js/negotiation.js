@@ -975,6 +975,60 @@ function negoCopilotContext(c){
   };
 }
 
+/* The negotiation record, reduced to what an ANSWER can be built from.
+
+   This is the twin of copilotNegotiation() in server/server.js. There are two
+   because the server is a standalone Node process that loads none of these
+   modules, and the browser-direct (BYOK) Copilot never reaches the server at
+   all — so both engines have to be able to describe a negotiation, and they
+   have to describe it the SAME way or an answer would depend on which brain
+   happened to be configured. f47 asserts the two field sets match exactly;
+   that test is the thing keeping them honest.
+
+   Every field is a READ of what the parties actually did. Nothing here is an
+   opinion about the contract: Copilot reports the record and the judgement
+   stays with the reader. */
+const NEGO_COPILOT_CAP = 60;
+function negoCopilotRecord(c){
+  const n = c && c.negotiation;
+  const live = Array.isArray(c && c.changes) ? c.changes.filter(x => x && x.status !== 'superseded') : [];
+  const rounds = (n && Array.isArray(n.rounds)) ? n.rounds : [];
+  const archived = rounds.reduce((acc, r) =>
+    acc.concat((r.changes || []).map(x => ({ ...x, roundN: r.n }))), []);
+  const all = archived.concat(live);
+  if (!n && !all.length) return { active: false, changes: [] };
+
+  const clip = (v, k) => { const t = String(v || ''); return t.length > k ? t.slice(0, k) + '…' : t; };
+  const one = x => ({
+    id: x.id, round: x.roundN || null, clause: x.clauseLabel || x.clauseId || '',
+    type: x.changeType || x.type || 'modify', status: x.status || 'pending',
+    proposedBy: x.author || '', side: x.authorSide || '',
+    summary: clip(x.summary, 200),
+    decidedBy: x.resolvedBy || null, decidedAt: x.resolvedAt || null,
+    reasonGiven: clip(x.reply || x.note || '', 300) || null,
+    currentWording: clip(x.oldText, 600), proposedWording: clip(x.newText, 600),
+  });
+  const byStatus = k => all.filter(x => (x.status || 'pending') === k).length;
+  const versions = Array.isArray(c.versions) ? c.versions : [];
+  return {
+    active: true,
+    round: (n && n.round) || 1,
+    turn: (n && n.turn) || 'owner',
+    roundsClosed: rounds.length,
+    totalChanges: all.length,
+    pending: byStatus('pending'), accepted: byStatus('accepted'), rejected: byStatus('rejected'),
+    readyToSign: all.length > 0 && byStatus('pending') === 0,
+    /* Newest first, so a cap drops the oldest rather than the freshest — and
+       the count of what was dropped travels, so a truncated list can never be
+       mistaken for a complete one. */
+    changes: all.slice(-NEGO_COPILOT_CAP).reverse().map(one),
+    changesOmitted: Math.max(0, all.length - NEGO_COPILOT_CAP),
+    versionCount: versions.length,
+    versions: versions.slice(-20).reverse().map(v => ({ n: v.n, at: v.at || null,
+      by: v.by || '', label: clip(v.label, 120) })),
+  };
+}
+
 /* ---------- looking at any two versions ----------
    The two panes were fixed: this round's baseline on the left, this round's
    working copy on the right. That is the right default and it is not the only
@@ -1323,6 +1377,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
+  negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionByKey, negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,

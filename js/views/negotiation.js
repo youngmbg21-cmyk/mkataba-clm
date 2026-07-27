@@ -998,6 +998,7 @@ function negoRoomActionsHtml(c, opts){
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
     <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
     <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
+    ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="Insert preferred wording from your clause library — filed as a tracked change, not an edit">+ Insert clause</button>` : ''}
     <button class="nego-tbtn acc" id="nego-all-acc"${p.pending && canAct ? '' : ' disabled'}
       title="${comparing ? 'Not while you are comparing versions' : ''}">Accept All</button>
     <button class="nego-tbtn rej" id="nego-all-rej"${p.pending && canAct ? '' : ' disabled'}
@@ -1328,6 +1329,33 @@ function wireNegotiationTab(c, opts = {}){
       if (e.key !== 'Enter' && e.key !== ' ') return;
       e.preventDefault(); go();
     });
+  });
+
+  /* The clause library, moved here from the Docs page. It is OUR preferred
+     wording — the counterparty never sees the playbook, which is why the
+     button is only on the owner's bar. Picking one files a tracked change
+     through applyClauseRedline, so library wording is proposed and decided like
+     anything else rather than appearing in the document unannounced. */
+  host.querySelector('#nego-insert-lib')?.addEventListener('click', async () => {
+    if (typeof window.openClausePicker !== 'function'){
+      if (window.toast) toast('The clause library is not available on this page', 'err');
+      return;
+    }
+    openClausePicker(c, { onPick: async cl => {
+      const after = _negoActive
+        ? (negoChangeById(c, _negoActive) || {}).clauseId
+        : null;
+      const ch = await negoInsertClause(c, after || null,
+        { headingText: cl.name, bodyHtml: window.textToRich ? textToRich(cl.preferred) : `<p>${_ne(cl.preferred)}</p>` },
+        { side, author: opts.by,
+          summary: `Preferred wording inserted from the playbook — ${cl.name}` });
+      if (!ch){ if (window.toast) toast('That clause could not be inserted', 'err'); return; }
+      _negoActive = ch.id;
+      if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+      if (opts.persist !== false && window.persist) persist(c);
+      if (window.toast) toast(`#${ch.id} filed — “${cl.name}” proposed from the library`);
+      again();
+    } });
   });
 
   const copBtn = host.querySelector('#nego-copilot');

@@ -2216,7 +2216,11 @@ function renderWorkspace(){
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
-          ${(canEdit()&&!locked&&!(window.wordReviewOut&&wordReviewOut(c)))?`<button id="ws-edit" title="Edit the document wording — changes are versioned" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('pencil','w-3.5 h-3.5')} Edit</button>`:''}
+          <!-- Edit is GONE from this page. The Docs page reads, checks and signs;
+               wording changes happen in the negotiation, where every one of them
+               is a tracked change with a fingerprint someone has to decide. Two
+               ways to change a contract is how the two drift apart, and the
+               whole-document editor was the one that could not keep a heading. -->
           ${canEdit()?`<button id="ws-share" title="Share with counterparty" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('share','w-3.5 h-3.5')} Share</button>
           <button id="ws-import" title="Import counterparty response" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('upload','w-3.5 h-3.5')} Import</button>
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}

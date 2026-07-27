@@ -182,7 +182,6 @@ function renderPlaybookSection(c){
       </div>`:''}
       ${editable?`<div class="flex flex-wrap gap-2 mt-3">
         <button id="pb-run" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('scan','w-3 h-3')} ${r?'Re-run':'Run'} playbook review</button>
-        <button id="pb-insert" class="flex items-center gap-1.5 rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50 transition">${icon('plus','w-3 h-3')} Insert clause</button>
       </div>`:''}
     </div>`;
   host.querySelectorAll('[data-pb-jump]').forEach(b=>b.addEventListener('click',()=>{
@@ -196,10 +195,9 @@ function renderPlaybookSection(c){
     if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
     renderPlaybookSection(c); renderSignButton&&renderSignButton(c);
   });
-  document.getElementById('pb-insert')?.addEventListener('click',()=>openClausePicker(c));
   host.querySelectorAll('[data-pb-apply]').forEach(b=>b.addEventListener('click',()=>{
     const v=r.verdicts[Number(b.getAttribute('data-pb-apply'))];
-    applyClauseRedline(c, v.redline, v.category);
+    applyClauseRedline(c, v.redline, v.category);   // files a tracked change; see above
   }));
 }
 /* Insert a preferred clause as a redline addition (uses E2 redline text).
@@ -220,30 +218,42 @@ function renderPlaybookSection(c){
 function clauseInsertNote(where){
   return where==='end' ? 'appended to the end of the document' : String(where||'');
 }
-function applyClauseRedline(c, clauseText, label){
-  if(!clauseText) return;
+async function applyClauseRedline(c, clauseText, label){
+  if(!clauseText) return null;
   const name=String(label||'Clause').trim();
-  const where='end';
   const u=(window.currentUser?currentUser():null);
-  if(window.isRich && isRich(c.format) && c.redlineText){
-    // a formatted document keeps its formatting — the clause joins it as a new
-    // titled section rather than flattening the whole contract to plain text
-    const head=String(name).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
-    c.redlineText = sanitizeRich(c.redlineText + `<h3>${head}</h3>` + textToRich(clauseText));
-  } else {
-    const base = (window.docPlainText?docPlainText(c):'') || '';
-    c.redlineText = (base? base+'\n\n' : '') + name.toUpperCase() + '\n\n' + clauseText;
+
+  /* PREFERRED WORDING IS A PROPOSAL, NOT AN EDIT.
+
+     This used to append the clause straight onto c.redlineText — the document
+     simply grew, with nothing to review and nothing to accept. That was the
+     same untracked editing the negotiation model replaced everywhere else, and
+     it was reachable from the Docs page, which is now for reading, checking and
+     signing only.
+
+     So it files a tracked insertClause change instead: it gets a fingerprint, a
+     hash, a place in the chain and an Accept/Reject like any other ask. Both
+     callers benefit — the clause library and the playbook review's "apply this
+     wording" — because the destination changed, not each button. */
+  if(window.negoInsertClause && window.negoInit){
+    negoInit(c);
+    const clauses=(window.negoClauseList?negoClauseList(c):[]);
+    const after=clauses.length?clauses[clauses.length-1].clauseId:null;
+    const ch=await negoInsertClause(c, after,
+      { headingText:name, bodyHtml:(window.textToRich?textToRich(clauseText):`<p>${String(clauseText)}</p>`) },
+      { side:'owner', author:(u&&u.name)||'This workspace',
+        summary:`Preferred wording inserted from the playbook — ${name}` });
+    if(ch){
+      c.clauseInserts=(c.clauseInserts||[]).concat([{ name, where:'end', at:nowISO(),
+        by:(u&&u.name)||'System', changeId:ch.id }]);
+      logAudit(c,'Playbook',`Preferred wording (${name}) proposed as ${'#'+ch.id} — it is a tracked change awaiting a decision, not an edit to the document`);
+      persist(c); renderWorkspace();
+      toast(`“${name}” proposed as ${'#'+ch.id} — review it in the negotiation`);
+    }
+    return ch;
   }
-  // where it went, on the record — so the workspace can point at it later and
-  // the audit trail is specific rather than merely true
-  c.clauseInserts = (c.clauseInserts||[]).concat([{
-    name, where, at:nowISO(), by:(u&&u.name)||'System' }]);
-  if(window.captureVersion) captureVersion(c, `Inserted preferred wording: ${name}`);
-  logAudit(c,'Playbook',`Inserted preferred wording (${name}) as a redline — ${clauseInsertNote(where)}, as a new section titled “${name}”`);
-  persist(c); renderWorkspace();
-  toast(`“${name}” added to the end of the document — showing you where`);
-  // let the workspace paint, then take the reader to it
-  setTimeout(()=>jumpToInsertedClause(name), 60);
+  if(window.toast) toast('The negotiation model is unavailable on this page','err');
+  return null;
 }
 
 /* Scroll the document to an inserted clause and flash it.
@@ -346,7 +356,7 @@ function jumpToInsertedClause(name){
   return false;
 }
 
-function openClausePicker(c){
+function openClausePicker(c, opts){
   const lib=clauseLibrary();
   openModal(`
     <div class="p-6">
@@ -363,7 +373,8 @@ function openClausePicker(c){
       <div class="flex justify-end mt-4"><button id="cp-close" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Close</button></div>
     </div>`);
   document.getElementById('cp-close').addEventListener('click',closeModal);
-  document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); applyClauseRedline(c, cl.preferred, cl.name); }));
+  const onPick=(opts&&typeof opts.onPick==='function')?opts.onPick:(cl=>applyClauseRedline(c, cl.preferred, cl.name));
+  document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); onPick(cl); }));
 }
 
 Object.assign(window,{DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,playbookReviewHeuristic,runPlaybookReview,deviationSummary,renderPlaybookSection,applyClauseRedline,openClausePicker,jumpToInsertedClause,clauseInsertNote,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
