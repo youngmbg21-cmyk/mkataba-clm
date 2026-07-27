@@ -481,3 +481,18 @@ full-window room).
 - **PDF export** — unmodified this round and non-interfering. It has never had a
   direct test and still does not. Recorded as unmodified, never as covered.
 - **The mobile/WhatsApp portal** — untouched, per the brief.
+
+## Verification runs — Follow-up 3
+
+Clean clone of `claude/new-session-7glnhu` at `da82dd6`, fresh `npm install`:
+
+| Run | Result |
+|---|---|
+| `npm test` (1st) | 825 tests / 170 suites / **0 fail** |
+| `npm test` (2nd, consecutive) | 825 tests / 170 suites / **0 fail** |
+| `npm run test:browser` | **52/52** checks passed |
+
+The browser run failed on the first attempt at a clean checkout —
+`playwright-core` was installed in the working tree and declared in no
+manifest, so `npm install` did not bring it. Declared, and the run above is
+after that fix. Doing the clean-checkout run is what found it.
