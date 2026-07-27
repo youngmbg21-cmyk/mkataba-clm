@@ -2907,3 +2907,91 @@ suite runs. Not done unilaterally — flagged as the honest next step.
 Three defects, all visual, none of them reachable by the existing suite. Suite
 now **633/633**, up from 630 by the eight new regression tests. `js/views/negotiation.js`
 is the only source file touched.
+
+---
+
+## D3 — SUPERSEDED, 2026-07-27. The prototype's look wins after all.
+
+D3 above recorded swapping the prototype's tokens for HaTi's, on the brief's
+instruction to match the live design system "where they genuinely conflict".
+That reading was too broad and the decision is **reversed** at the user's
+direction, having seen both.
+
+The negotiation is a distinct focused mode, and it looks like one:
+Georgia on paper for the documents, the slate `#33475c` bar, the cool
+`#f2f4f7` canvas, the prototype's `--ins`/`--del` ramp. HaTi's tokens no longer
+appear anywhere in the component, in the stylesheet or in its inline styles.
+
+What makes that safe is scoping, and it is asserted rather than asserted-to:
+the tokens are declared on `.nego-room, #nego-root` and never on `:root`, and
+`f36` walks **every selector in the sheet** and fails if one of them is not
+namespaced to the component. A `:root` block here would restyle the whole
+product from inside one screen.
+
+## U-004 — 2026-07-27. The tab was a panel; it needed to be a room.
+
+Reported with a screenshot: the two documents were too small to read. The cause
+was structural rather than a bug. The negotiation rendered as a tab **inside**
+the contract workspace, below the workspace header, the action bar, the
+returned-changes strip and a tab row — so three panes shared whatever height was
+left, and the two documents about half the width between them. Putting a
+baseline and a working copy side by side and then making both unreadable defeats
+the entire point of the layout.
+
+It is a full-window mode now:
+
+- `openNegotiationRoom()` mounts it over the viewport and hides the app shell,
+  recording on the shell that **it** was the one who hid it, so closing cannot
+  reveal something the room did not conceal.
+- The `Doc ›` breadcrumb is the way out, because it already reads as where you
+  came from; `Esc` does the same, and the handler is taken down on exit so a
+  stray key cannot re-fire it.
+- Both entry and exit are idempotent. A mode you can enter twice is a mode you
+  can get stuck in.
+
+Measured in Chromium at 1600px: the room fills the window, the shell is hidden,
+panes are 576 / 677 / 335 and the document column is **777px tall** against the
+few hundred it had as a tab.
+
+## U-005 — 2026-07-27. Sliders in both gaps, and a foldable index.
+
+`--nego-f` (the baseline's share of the document space) and `--nego-c` (the
+index's width) drive the grid; the drag writes them straight onto the element
+rather than through a re-render, so a drag does not rebuild two documents on
+every pointer move. Both are clamped — 20–80% and 240–560px — so no pane can be
+dragged out of existence, and both are remembered per browser under
+`hati.v1.negoLayout`, the same way the Docs page already remembers its divider.
+Double-click resets. Folding the index hands its whole width to the documents
+and leaves a "Show index (n)" control.
+
+Verified in Chromium: default 576/677/335, dragged to 777/476/335, folded to
+733/861. No overflow and no badge clipping at 1600 or 1024.
+
+## U-006 — 2026-07-27. The redline was correct and unreadable.
+
+Visible in the very first room screenshot. A longest-common-subsequence diff
+latches onto whatever words two versions happen to share, so a **rewritten**
+clause came out interleaved:
+
+> the EUR full 250,000 replacement in value the of aggregate the per affected
+> contract goods. year.
+
+Every token was in the right box and the passage could not be read. Note this is
+not new — `wordDiff` has always done this and the existing compare modal has the
+same behaviour — but the room puts it at the centre of the screen.
+
+`negoDiffHtml` now measures whether a diff is *shredded*: six or more separate
+change runs and more than 45% of the clause rewritten. Above that it falls back
+to the prototype's own `runDiff` — common prefix, common suffix, one deletion
+and one insertion between, cut on whitespace so no word is ever split. Below it,
+LCS keeps its precision, because striking a whole sentence to change two words
+would be the opposite mistake.
+
+The first attempt at the test for this counted contiguous *groups* rather than
+runs, and never fired: a rewrite's runs are separated by single spaces, so
+anything treating whitespace as a boundary sees one enormous group.
+
+`f36` pins both ends — word-level for a two-word edit, one clean pair for a
+rewrite — plus the invariant that context-plus-deletion reconstructs the old
+wording exactly and context-plus-insertion the new, so nothing is invented or
+lost by the coalescing.

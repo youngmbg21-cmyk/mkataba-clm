@@ -120,6 +120,68 @@ describe('the three panes render, and they render the same clauses', () => {
   });
 });
 
+describe('the redline stays readable when a clause is rewritten', () => {
+  /* A longest-common-subsequence diff is always correct and is not always
+     readable. Rewrite a clause and LCS latches onto whatever words the two
+     versions happen to share — "the", "of", "value" — and interleaves them, so
+     the passage is in the right boxes and cannot be read. */
+  const strip = html => html
+    .replace(/<span class="nego-ins">/g, '[+').replace(/<span class="nego-del">/g, '[-')
+    .replace(/<\/span>/g, ']');
+
+  test('a small edit is marked word by word', async () => {
+    const m = await mounted();
+    const out = strip(m.win.negoDiffHtml(
+      'All invoices are payable within thirty (30) days from the date of issue.',
+      'All invoices are payable within forty-five (45) days from the date of issue.'));
+    assert.match(out, /^All invoices are payable within \[-thirty\]\[\+forty-five\] \[-\(30\)\]\[\+\(45\)\] days from the date of issue\.$/,
+      'precision is the right answer for a two-word change');
+  });
+
+  test('a rewritten clause becomes one deletion and one insertion', async () => {
+    const m = await mounted();
+    const out = strip(m.win.negoDiffHtml(
+      'The Supplier’s aggregate liability shall not exceed the full replacement value of the affected goods.',
+      'The Supplier’s aggregate liability shall not exceed EUR 250,000 in the aggregate per contract year.'));
+    assert.match(out, /\[-the full replacement value of the affected goods\.\]/,
+      'what goes, read as one passage');
+    assert.match(out, /\[\+EUR 250,000 in the aggregate per contract year\.\]/,
+      'and what arrives, read as one passage');
+    assert.ok(!/\[-the\]\[\+EUR\]/.test(out), 'not shredded word against word');
+    assert.match(out, /^The Supplier’s aggregate liability shall not exceed /,
+      'the untouched opening is still untouched');
+  });
+
+  test('every word still ends up in exactly one box', async () => {
+    const m = await mounted();
+    const before = 'The cap shall not exceed the full replacement value of the affected goods.';
+    const after = 'The cap shall not exceed EUR 250,000 in the aggregate per contract year.';
+    const html = m.win.negoDiffHtml(before, after);
+    const dels = [...html.matchAll(/<span class="nego-del">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
+    const inss = [...html.matchAll(/<span class="nego-ins">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
+    const eq = html.replace(/<span class="nego-(ins|del)">[^<]*<\/span>/g, '').trim();
+    // nothing invented, nothing lost: context + deletions reconstructs the old
+    assert.equal((eq + ' ' + dels).replace(/\s+/g, ' ').trim(), before.replace(/\s+/g, ' ').trim());
+    assert.equal((eq + ' ' + inss).replace(/\s+/g, ' ').trim(), after.replace(/\s+/g, ' ').trim());
+  });
+
+  test('the coalesced form cuts on whitespace and reconstructs both texts', async () => {
+    const m = await mounted();
+    const before = 'payable within thirty (30) days of invoice';
+    const after = 'payable within forty-five (45) days of a valid invoice';
+    const d = m.win.negoRunDiff(before, after);
+
+    // the two cuts fall between words, never inside one
+    assert.ok(d.prefix === '' || /\s$/.test(d.prefix), `prefix must end on whitespace: "${d.prefix}"`);
+    assert.ok(d.suffix === '' || /^\s/.test(d.suffix), `suffix must start on whitespace: "${d.suffix}"`);
+
+    // and the three pieces really are the two documents
+    const join = mid => (d.prefix + mid + d.suffix).replace(/\s+/g, ' ').trim();
+    assert.equal(join(d.del), before, 'context plus the deletion is the old wording');
+    assert.equal(join(d.ins), after, 'context plus the insertion is the new wording');
+  });
+});
+
 describe('fingerprint badges anchor in the margin', () => {
   test('one badge per pending change, in the working pane only', async () => {
     const m = await mounted();
@@ -570,27 +632,55 @@ describe('the stylesheet survives a repaint', () => {
   });
 });
 
-describe('the tab is built on HaTi\'s design system, not the prototype\'s tokens', () => {
-  test('the stylesheet uses HaTi tokens, not the prototype\'s bespoke ramp', async () => {
+describe('the room wears the prototype\'s visual language, and keeps it to itself', () => {
+  /* This block used to assert the opposite — that HaTi's tokens had replaced the
+     prototype's. That reading of the brief was overturned: the negotiation is a
+     distinct focused mode and looks like one. What must still hold, and is the
+     real safety property, is that NONE of it escapes the room. */
+  test('the prototype\'s own tokens are there', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.match(css, /var\(--color-accent-800\)/, 'HaTi\'s slate');
-    assert.match(css, /var\(--font-doc\)/, 'HaTi\'s document typeface');
-    assert.match(css, /var\(--color-bg\)/, 'HaTi\'s warm canvas');
-    assert.ok(!/#33475c/.test(css), 'the prototype\'s --slate must not be hard-coded');
-    assert.ok(!/Georgia/.test(css), 'the prototype\'s serif must not override --font-doc');
-    assert.ok(!/#f2f4f7/.test(css), 'the prototype\'s cool canvas must not override --color-bg');
+    assert.match(css, /--n-slate:#33475c/, 'the prototype\'s slate');
+    assert.match(css, /--n-canvas:#f2f4f7/, 'the prototype\'s cool canvas');
+    assert.match(css, /--n-font-doc:Georgia/, 'the prototype\'s serif document face');
+    assert.match(css, /--n-ins-bg:#e4f1ea/);
+    assert.match(css, /--n-del-fg:#b0453c/);
   });
 
-  test('the insertion green matches diffHtml, so the two redlines cannot drift', async () => {
+  test('they are declared on the room, never on :root', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    const compare = m.win.diffHtml('a thirty b', 'a forty-five b');
-    assert.match(css, /\.nego-ins\{background:#d9eae0;color:#1e6b4d/);
-    assert.match(compare, /#d9eae0/);
-    assert.match(compare, /#1e6b4d/);
-    assert.match(css, /\.nego-del\{background:#f1dcd8;color:#8f322b/);
-    assert.match(compare, /#8f322b/);
+    assert.match(css, /\.nego-room, #nego-root\{\s*--n-slate:#33475c/,
+      'the token block must be scoped to the room and the embedded root');
+    assert.ok(!/:root\s*\{/.test(css),
+      'a :root block here would restyle the whole product from inside a component');
+    // and nothing in the sheet reaches outside the component's own namespace
+    const selectors = css.replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('}').map(b => b.split('{')[0].trim()).filter(Boolean)
+      .flatMap(sel => sel.split(',').map(x => x.trim()))
+      .filter(sel => sel && !sel.startsWith('@') && !/^\d/.test(sel));
+    for (const sel of selectors)
+      assert.ok(/nego|^from$|^to$/.test(sel),
+        `every selector must be namespaced to the component — found "${sel}"`);
+  });
+
+  test('the room does not borrow the app\'s tokens either', async () => {
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.ok(!/var\(--color-/.test(css),
+      'a room styled half from each palette reads as neither');
+    assert.ok(!/var\(--font-(heading|body|mono)\)/.test(css));
+    // including the markup the component generates
+    assert.ok(!/var\(--color-/.test(m.html()),
+      'inline styles must use the room\'s ramp too');
+  });
+
+  test('the prototype\'s redline values, exactly', async () => {
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.match(css, /\.nego-del\{background:var\(--n-del-bg\);color:var\(--n-del-fg\)/);
+    assert.match(css, /\.nego-ins\{background:var\(--n-ins-bg\);color:var\(--n-ins-fg\)/);
+    assert.match(css, /--n-ins-fg:#1e6b4d/, 'the insertion green is the same in both designs');
   });
 
   test('reduced motion is honoured', async () => {
@@ -600,17 +690,11 @@ describe('the tab is built on HaTi\'s design system, not the prototype\'s tokens
     assert.match(css, /animation:none/);
   });
 
-  /* These four are rule-level assertions, and deliberately so: jsdom has no
-     layout engine, so getBoundingClientRect is all zeros and nothing here can
-     measure a pixel. Each rule below was verified for real in Chromium against
-     the app's own tokens (see BUGLOG U-002/U-003) — what these tests do is stop
-     the rule being deleted again. */
   test('the working pane reserves a gutter, so a margin-anchored badge is not clipped', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /\.nego-pane\.working \.nego-doc\{padding-left:100px\}/,
       'without the gutter the badge lands outside the pane and reads as "G-001"');
-    // and below the gutter's worth of width it stops being margin-anchored
     assert.match(css, /@media \(max-width:900px\)\{[\s\S]*?\.nego-badge\{position:static/);
   });
 
@@ -621,18 +705,19 @@ describe('the tab is built on HaTi\'s design system, not the prototype\'s tokens
       'a grid holding a document will not shrink without min-width:0');
   });
 
-  test('the root fills its flex parent rather than sizing to its content', async () => {
+  test('the embedded root fills its flex parent rather than sizing to its content', async () => {
     const m = await mounted();
-    const root = m.doc.getElementById('nego-root');
-    assert.match(root.getAttribute('style'), /flex:1/);
-    assert.match(root.getAttribute('style'), /width:100%/);
-    assert.match(root.getAttribute('style'), /min-width:0/);
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.match(css, /#nego-root\{[^}]*flex:1/);
+    assert.match(css, /#nego-root\{[^}]*width:100%/);
+    assert.match(css, /#nego-root\{[^}]*min-width:0/);
   });
 
   test('the responsive rules drop the baseline pane before the index', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.match(css, /@media \(max-width:1120px\)\{[^}]*\}\s*\.nego-pane\.baseline\{display:none\}/);
+    assert.match(css, /@media \(max-width:1120px\)\{[\s\S]*?\.nego-pane\.baseline,\.nego-rz-a\{display:none\}/,
+      'the reference goes before the working copy or the decisions');
     assert.match(css, /@media \(max-width:760px\)/);
     assert.match(css, /\.nego-pane\.index\.open\{transform:translateX\(0\)\}/);
   });

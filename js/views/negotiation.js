@@ -24,15 +24,27 @@
 //                      wherever it appears
 //   js/core.js         emailOff / counterpartySeenState for the status strip
 //
+// A ROOM, NOT A PANEL
+//
+// The negotiation owns the whole viewport. It was first built as a tab inside
+// the contract workspace, below the workspace header, the action bar and a tab
+// row — which left the two documents sharing about half the width and too
+// short to read, defeating the point of putting them side by side at all.
+// Entering is a mode change: the app shell is hidden, the room takes the
+// window, and the "Doc ›" breadcrumb is the way back out (so is Esc).
+//
 // DESIGN
 //
-// Layout, interaction and visual design follow prototype.html. Where the
-// prototype's own tokens conflicted with HaTi's live design system, HaTi's win
-// and the deviation is recorded in BUGLOG.md — the full table is in
-// INVENTORY.md §2.4. In short: IBM Plex over Georgia/system-ui, the warm
-// --color-bg over the prototype's cool #f2f4f7, --color-accent-* over the
-// bespoke --slate ramp, and diffHtml's #8f322b for struck-out wording so an
-// accepted change looks the same in this tab as in the version-compare modal.
+// The room adopts prototype.html's own visual language, not HaTi's: Georgia on
+// paper for the documents, the slate #33475c bar, the cool #f2f4f7 canvas. That
+// reverses an earlier reading of the brief, which took "match HaTi's real
+// tokens where they genuinely conflict" as licence to restyle the whole screen
+// — see BUGLOG D3, rewritten to record the decision.
+//
+// The tokens are declared on `.nego-room` and `#nego-root`, never on `:root`,
+// and that scoping is the entire safety argument: inside the negotiation
+// everything reads as the prototype draws it, and not one rule reaches the rest
+// of the product.
 
 /* Which change is in focus, and which threads are open. Module-level rather
    than on the contract: this is where the reader is looking, not something
@@ -84,136 +96,226 @@ function negoEnsureStyle(){
 function negoStyleHtml(){
   return `
 <style id="nego-style">
-  /* Redline runs. The insertion green is #1e6b4d in both the prototype and
-     HaTi's diffHtml, so there is nothing to reconcile. The deletion red is
-     diffHtml's #8f322b rather than the prototype's #b0453c, so struck-out
-     wording reads identically in this tab and in the compare modal; #b0453c
-     stays where the repo already uses it, on destructive controls. */
-  .nego-ins{background:#d9eae0;color:#1e6b4d;border-bottom:2px solid #1e6b4d;border-radius:3px;padding:0 3px;font-weight:600}
-  .nego-del{background:#f1dcd8;color:#8f322b;text-decoration:line-through;text-decoration-color:#8f322b;text-decoration-thickness:1.5px;border-radius:3px;padding:0 3px}
-  .nego-resolved{background:#d9eae0;border-radius:3px;padding:0 3px;transition:background 1.2s ease}
-  .nego-resolved.nego-faded{background:transparent}
+  /* ---- the prototype's own tokens, SCOPED ----
+     prototype.html declares these on :root. Here they are declared on the room
+     and on the embedded root instead, which is the whole difference between
+     adopting a look and imposing one: inside the negotiation everything reads
+     exactly as the prototype draws it, and not one rule escapes to the rest of
+     HaTi. Prefixed --n-* so a generic name like --line can never be confused
+     with a token belonging to the app around it. */
+  .nego-room, #nego-root{
+    --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
+    --n-badge-bg:#eef2f6;
+    --n-ins-bg:#e4f1ea; --n-ins-fg:#1e6b4d;
+    --n-del-bg:#f9ecea; --n-del-fg:#b0453c;
+    --n-paper:#ffffff; --n-canvas:#f2f4f7; --n-line:#e3e8ee;
+    --n-ink:#2b3440; --n-ink-soft:#66707d;
+    --n-accept:#1e6b4d; --n-reject:#b0453c; --n-focus:#456a8f;
+    --n-font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --n-font-doc:Georgia,"Times New Roman",Times,serif;
+    --n-font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --n-r-sm:6px; --n-r-md:10px; --n-r-lg:14px;
+    --n-shadow-card:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07);
+    --n-shadow-pop:0 8px 30px rgba(38,55,74,.18);
+  }
+  .nego-room *, #nego-root *{box-sizing:border-box}
+  .nego-room button:focus-visible, #nego-root button:focus-visible,
+  .nego-room [tabindex]:focus-visible, #nego-root [tabindex]:focus-visible{
+    outline:2px solid var(--n-focus);outline-offset:2px}
 
-  /* The workbench: baseline · working · index. */
-  /* min-width:0 matters as much as min-height:0 here: a grid whose columns hold
-     a document will otherwise refuse to shrink below its content's intrinsic
-     width and push the change index off the side of the screen. */
-  .nego-work{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:1fr 1.15fr 335px;gap:0;background:var(--color-bg);
-    border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);overflow:hidden}
-  .nego-pane{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:1px solid var(--color-divider)}
-  .nego-pane:last-child{border-right:none}
+  /* ---- the room ----
+     A mode, not a panel. It owns the viewport so both documents are read at
+     full height, which is the entire reason it exists. */
+  .nego-room{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;overflow:hidden;
+    background:var(--n-canvas);color:var(--n-ink);
+    font-family:var(--n-font-ui);font-size:14px;line-height:1.55}
+
+  .nego-topbar{background:var(--n-slate);color:#fff;display:flex;align-items:center;gap:16px;
+    padding:0 18px;height:52px;flex:0 0 auto}
+  .nego-brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:.2px;flex:none}
+  .nego-brand .mark{width:26px;height:26px;border-radius:7px;
+    background:linear-gradient(135deg,#4d6d8f,#33475c 65%);border:1px solid rgba(255,255,255,.25);
+    display:grid;place-items:center;font-size:12px;font-weight:800}
+  .nego-brand small{font-weight:400;opacity:.75;font-size:11.5px;margin-left:2px}
+  .nego-crumbs{display:flex;align-items:center;gap:8px;font-size:12.5px;color:rgba(255,255,255,.82);min-width:0}
+  /* The way out. The prototype's "Doc" breadcrumb chip IS the exit, because it
+     already reads as where you came from — a second control saying the same
+     thing would be furniture. Esc does it too. */
+  .nego-exit{display:inline-flex;align-items:center;gap:6px;flex:none;
+    background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);color:#fff;
+    border-radius:6px;padding:4px 11px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;
+    transition:background .12s ease}
+  .nego-exit:hover{background:rgba(255,255,255,.26)}
+  .nego-crumbs .sep{opacity:.45;flex:none}
+  .nego-crumbs .path{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .nego-crumbs .draft-chip{flex:none;border:1px solid rgba(255,255,255,.35);border-radius:99px;
+    padding:1px 8px;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:#dfe7ef}
+  .nego-top-actions{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+  .nego-tbtn{border-radius:7px;padding:6px 13px;font:inherit;font-size:12.5px;font-weight:600;
+    border:1px solid transparent;cursor:pointer;transition:filter .12s ease,transform .12s ease}
+  .nego-tbtn:active{transform:translateY(1px)}
+  .nego-tbtn.ghost{background:transparent;color:#e6ecf2;border-color:rgba(255,255,255,.28)}
+  .nego-tbtn.ghost:hover{background:rgba(255,255,255,.1)}
+  .nego-tbtn.acc{background:var(--n-accept);color:#fff}
+  .nego-tbtn.rej{background:var(--n-reject);color:#fff}
+  .nego-tbtn.acc:hover,.nego-tbtn.rej:hover{filter:brightness(1.08)}
+  .nego-tbtn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .nego-avatar{width:28px;height:28px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg,#c98f5f,#8a5a3b);border:2px solid rgba(255,255,255,.5);
+    display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff}
+
+  /* ---- the workbench ----
+     Two documents and an index, with a draggable divider in each gap. The
+     column widths are driven by --nego-f (the baseline's share of the document
+     space) and --nego-c (the index), both of which the drag writes and
+     localStorage remembers. min-width:0 on the grid matters as much as
+     min-height:0: a grid whose columns hold a document will not otherwise
+     shrink below its content and pushes the index off the screen. */
+  .nego-work{flex:1;min-height:0;min-width:0;display:grid;background:var(--n-canvas);
+    --nego-f:.46; --nego-c:335px;
+    grid-template-columns:
+      calc((100% - var(--nego-c) - 12px) * var(--nego-f)) 6px
+      calc((100% - var(--nego-c) - 12px) * (1 - var(--nego-f))) 6px
+      var(--nego-c)}
+  /* Folded away, the index gives its whole width to the documents. */
+  .nego-work.idx-off{grid-template-columns:
+    calc((100% - 6px) * var(--nego-f)) 6px calc((100% - 6px) * (1 - var(--nego-f)))}
+  .nego-work.idx-off .nego-pane.index,.nego-work.idx-off .nego-rz-b{display:none}
+
+  .nego-rz{position:relative;background:var(--n-line);cursor:col-resize;
+    display:flex;align-items:center;justify-content:center;touch-action:none;user-select:none}
+  .nego-rz::before{content:"";width:2px;height:60px;border-radius:99px;background:#c4cfdb;transition:background .15s ease}
+  .nego-rz:hover::before,.nego-rz[data-drag]::before{background:var(--n-slate-soft)}
+  .nego-rz[data-drag]{background:#dbe3ec}
+
+  .nego-pane{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--n-canvas)}
   .nego-pane-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 16px;
-    background:var(--color-surface);border-bottom:1px solid var(--color-divider);
-    font-size:12.5px;font-weight:700;color:var(--color-neutral-900)}
-  .nego-ver{font-family:var(--font-mono);font-size:10.5px;font-weight:600;background:var(--color-accent-100);
-    color:var(--color-accent-700);border:1px solid var(--color-accent-300);border-radius:5px;padding:1px 7px}
-  .nego-sub{font-weight:500;color:var(--color-neutral-600);font-size:11.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .nego-scroll{flex:1;overflow-y:auto;padding:22px 20px 60px;scroll-behavior:smooth}
+    background:var(--n-paper);border-bottom:1px solid var(--n-line);
+    font-size:12.5px;font-weight:700;color:var(--n-ink)}
+  .nego-ver{font-family:var(--n-font-mono);font-size:10.5px;font-weight:600;
+    background:var(--n-badge-bg);color:var(--n-slate-soft);
+    border:1px solid #d6e0ea;border-radius:5px;padding:1px 7px;flex:none}
+  .nego-sub{font-weight:500;color:var(--n-ink-soft);font-size:11.5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nego-fold{margin-left:auto;flex:none;border:1px solid #d6e0ea;background:var(--n-badge-bg);
+    color:var(--n-slate-soft);border-radius:5px;padding:2px 8px;font:inherit;font-size:10.5px;
+    font-weight:700;cursor:pointer}
+  .nego-fold:hover{background:#e3eaf2}
+  .nego-scroll{flex:1;overflow-y:auto;padding:22px 20px 90px;scroll-behavior:smooth}
 
-  /* The document surface. --font-doc is HaTi's own document face, and its
-     contrast ratios against #fbfbfc are the ones documented in index.html.
-     The prototype nominated a serif stack instead; adopting it would put a
-     second document typeface in one product, so the token wins. */
-  .nego-doc{background:#fbfbfc;border:1px solid var(--color-divider);border-radius:4px;box-shadow:var(--shadow-md);
-    padding:30px 36px 40px;max-width:720px;margin:0 auto;
-    font-family:var(--font-doc);font-size:14px;line-height:1.85;color:var(--color-doc-text)}
-  .nego-doc h1{font-size:17px;text-align:center;margin:0 0 6px;line-height:1.35;font-family:var(--font-heading);font-weight:600}
-  .nego-doc .nego-meta{text-align:center;font-family:var(--font-body);font-size:11px;color:var(--color-doc-muted);
-    margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--color-doc-rule)}
-  .nego-clause{position:relative;margin-bottom:18px;padding:10px 12px;border-radius:5px;
+  /* ---- the document ----
+     Serif, on paper, at the prototype's measure: a contract should read like a
+     contract and not like the application around it. */
+  .nego-doc{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--n-r-md);
+    box-shadow:var(--n-shadow-card);padding:34px 38px 44px;max-width:720px;margin:0 auto;
+    font-family:var(--n-font-doc);font-size:14.5px;line-height:1.72;color:#222a33}
+  .nego-doc h1{font-size:19px;text-align:center;margin:0 0 6px;letter-spacing:.2px;line-height:1.35;
+    font-family:var(--n-font-doc);font-weight:700}
+  .nego-doc .nego-meta{text-align:center;font-family:var(--n-font-ui);font-size:11px;
+    color:var(--n-ink-soft);margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--n-line)}
+  .nego-clause{position:relative;margin-bottom:22px;padding:10px 12px;border-radius:8px;
     transition:background .25s ease,box-shadow .25s ease}
-  .nego-clause h2{font-size:13.5px;margin:0 0 5px;font-family:var(--font-heading);font-weight:600}
+  .nego-clause h2{font-size:14.5px;margin:0 0 5px;font-family:var(--n-font-doc);font-weight:700}
   .nego-clause p{margin:0}
-  .nego-clause.is-active{background:var(--color-accent-100);box-shadow:0 0 0 2px var(--color-accent-700)}
+  .nego-clause.is-active{background:#f3f7fb;box-shadow:0 0 0 2px var(--n-slate-soft)}
   .nego-clause.flash{animation:negoFlash 1.4s ease 1}
   @keyframes negoFlash{
-    0%{box-shadow:0 0 0 2px var(--color-accent-700),0 0 0 8px rgba(65,97,128,.18)}
-    100%{box-shadow:0 0 0 2px var(--color-accent-700),0 0 0 0 rgba(65,97,128,0)}
+    0%{box-shadow:0 0 0 2px var(--n-slate-soft),0 0 0 8px rgba(69,106,143,.18)}
+    100%{box-shadow:0 0 0 2px var(--n-slate-soft),0 0 0 0 rgba(69,106,143,0)}
   }
 
-  /* The working pane keeps a GUTTER, because a margin-anchored badge needs
-     somewhere to be. The badge is positioned outside its clause's box, so with
-     the document's ordinary padding it lands outside the pane's content box too
-     and is clipped by the pane's own overflow — "#CHG-001" arrives as "G-001".
-     The prototype has the same latent problem; it only escapes it because its
-     document never reaches its own max-width at the viewport it was drawn for.
-     Reserving the space is the fix, rather than moving the badge inboard and
-     losing the margin anchoring that makes the design readable. */
-  .nego-pane.working .nego-doc{padding-left:100px}
+  /* Redline runs, at the prototype's values. */
+  .nego-del{background:var(--n-del-bg);color:var(--n-del-fg);text-decoration:line-through;
+    text-decoration-color:var(--n-del-fg);text-decoration-thickness:1.5px;border-radius:3px;padding:0 3px}
+  .nego-ins{background:var(--n-ins-bg);color:var(--n-ins-fg);border-bottom:2px solid var(--n-ins-fg);
+    border-radius:3px;padding:0 3px;font-weight:600}
+  .nego-resolved{background:var(--n-ins-bg);border-radius:3px;padding:0 3px;transition:background 1.2s ease}
+  .nego-resolved.nego-faded{background:transparent}
 
-  /* The fingerprint pill, anchored in the document margin. */
+  /* The working pane keeps a GUTTER, because a margin-anchored badge needs
+     somewhere to be. Without it the badge lands outside the pane's content box
+     and the pane's overflow clips it — "#CHG-012" arrives as "G-012". */
+  .nego-pane.working .nego-doc{padding-left:100px}
   .nego-badge{position:absolute;right:calc(100% + 6px);top:10px;
-    font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:.2px;
-    background:var(--color-accent-100);color:var(--color-accent-700);
-    border:1.5px solid var(--color-accent-700);border-radius:999px;padding:2px 8px;
+    font-family:var(--n-font-mono);font-size:10px;font-weight:700;letter-spacing:.2px;
+    background:var(--n-badge-bg);color:var(--n-slate-soft);
+    border:1.5px solid var(--n-slate-soft);border-radius:99px;padding:2px 8px;
     white-space:nowrap;user-select:none;cursor:pointer;
     transition:transform .15s ease,box-shadow .15s ease,background .2s ease,color .2s ease,border-color .2s ease}
-  .nego-badge:hover{transform:scale(1.06);box-shadow:var(--shadow-sm)}
-  .nego-badge.is-active{background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff}
-  .nego-badge.is-accepted{background:#d9eae0;border-color:#1e6b4d;color:#1e6b4d}
-  .nego-badge.is-rejected{background:#f1dcd8;border-color:#8f322b;color:#8f322b}
-  .nego-note{display:inline-block;font-family:var(--font-body);font-size:10.5px;font-weight:700;
+  .nego-badge:hover{transform:scale(1.06);box-shadow:var(--n-shadow-card)}
+  .nego-badge.is-active{background:var(--n-slate);border-color:var(--n-slate);color:#fff}
+  .nego-badge.is-accepted{background:var(--n-ins-bg);border-color:var(--n-ins-fg);color:var(--n-ins-fg)}
+  .nego-badge.is-rejected{background:var(--n-del-bg);border-color:var(--n-del-fg);color:var(--n-del-fg)}
+  .nego-note{display:inline-block;font-family:var(--n-font-ui);font-size:10.5px;font-weight:700;
     border-radius:5px;padding:1px 7px;margin-left:8px;vertical-align:1px;letter-spacing:.3px}
-  .nego-note.ok{background:#d9eae0;color:#1e6b4d}
-  .nego-note.no{background:#f1dcd8;color:#8f322b}
+  .nego-note.ok{background:var(--n-ins-bg);color:var(--n-ins-fg)}
+  .nego-note.no{background:var(--n-del-bg);color:var(--n-del-fg)}
 
-  /* The change index. */
-  .nego-index{background:var(--color-bg)}
-  .nego-index-head{flex:none;padding:12px 16px 10px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)}
-  .nego-count{font-family:var(--font-mono);font-size:10.5px;font-weight:700;background:var(--color-accent-800);color:#fff;border-radius:999px;padding:1px 8px}
-  .nego-track{height:5px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;margin-bottom:7px}
-  .nego-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--color-accent-700),#1e6b4d);transition:width .4s ease}
-  .nego-index-scroll{flex:1;overflow-y:auto;padding:12px 12px 60px}
-  .nego-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);
-    padding:12px 13px;margin-bottom:11px;cursor:pointer;
+  /* ---- the change index ---- */
+  .nego-pane.index{background:#fafbfc}
+  .nego-index-head{flex:none;padding:12px 16px 10px;background:var(--n-paper);border-bottom:1px solid var(--n-line)}
+  .nego-count{font-family:var(--n-font-mono);font-size:10.5px;font-weight:700;
+    background:var(--n-slate);color:#fff;border-radius:99px;padding:1px 8px}
+  .nego-track{height:5px;background:#e6ebf1;border-radius:99px;overflow:hidden;margin-bottom:7px}
+  .nego-fill{height:100%;border-radius:99px;
+    background:linear-gradient(90deg,var(--n-slate-soft),var(--n-accept));transition:width .4s ease}
+  .nego-index-scroll{flex:1;overflow-y:auto;padding:12px 12px 90px}
+  .nego-card{background:var(--n-paper);border:1px solid var(--n-line);border-radius:var(--n-r-md);
+    box-shadow:var(--n-shadow-card);padding:12px 13px;margin-bottom:11px;cursor:pointer;
     transition:box-shadow .2s ease,border-color .2s ease,transform .2s ease}
-  .nego-card:hover{border-color:var(--color-accent-400)}
-  .nego-card.is-active{border-color:var(--color-accent-700);box-shadow:0 0 0 2px rgba(65,97,128,.25),var(--shadow-md);transform:translateY(-1px)}
-  .nego-id{font-family:var(--font-mono);font-size:10px;font-weight:700;background:var(--color-accent-100);
-    color:var(--color-accent-700);border:1.5px solid var(--color-accent-700);border-radius:999px;padding:1px 8px}
-  .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border-radius:5px;padding:2px 7px}
-  .nego-st.pending{background:#fbf4e3;color:#7d5a14}
-  .nego-st.accepted{background:#d9eae0;color:#1e6b4d}
-  .nego-st.rejected{background:#f1dcd8;color:#8f322b}
-  .nego-st.verified{background:var(--color-accent-100);color:var(--color-accent-700)}
-  .nego-hash{font-family:var(--font-mono);font-size:9.5px;color:var(--color-accent-700);background:var(--color-accent-100);
-    border:1px solid var(--color-accent-300);border-radius:5px;padding:4px 7px;margin-bottom:9px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nego-card:hover{border-color:#c9d5e1}
+  .nego-card.is-active{border-color:var(--n-slate-soft);
+    box-shadow:0 0 0 2px rgba(69,106,143,.25),var(--n-shadow-pop);transform:translateY(-1px)}
+  .nego-id{font-family:var(--n-font-mono);font-size:10px;font-weight:700;
+    background:var(--n-badge-bg);color:var(--n-slate-soft);border:1.5px solid var(--n-slate-soft);
+    border-radius:99px;padding:1px 8px}
+  .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
+    border-radius:5px;padding:2px 7px}
+  .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
+  .nego-st.accepted{background:var(--n-ins-bg);color:var(--n-ins-fg)}
+  .nego-st.rejected{background:var(--n-del-bg);color:var(--n-del-fg)}
+  .nego-st.verified{background:var(--n-badge-bg);color:var(--n-slate-soft)}
+  .nego-hash{font-family:var(--n-font-mono);font-size:9.5px;color:var(--n-slate-soft);
+    background:var(--n-badge-bg);border:1px solid #dde5ee;border-radius:5px;padding:4px 7px;
+    margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nego-acts{display:flex;gap:6px}
-  .nego-acts button{flex:1;border-radius:5px;padding:6px 0;font:inherit;font-size:11.5px;font-weight:700;
-    border:1.5px solid transparent;background:var(--color-surface);cursor:pointer;transition:all .12s ease}
-  .nego-acts .b-acc{border-color:#1e6b4d;color:#1e6b4d}
-  .nego-acts .b-acc:hover{background:#1e6b4d;color:#fff}
-  .nego-acts .b-rej{border-color:#b0453c;color:#b0453c}
-  .nego-acts .b-rej:hover{background:#b0453c;color:#fff}
-  .nego-acts .b-dis{border-color:var(--color-divider);color:var(--color-accent-700)}
-  .nego-acts .b-dis:hover{background:var(--color-accent-100)}
-  .nego-acts .b-dis.has-thread{border-color:var(--color-accent-700)}
-  .nego-acts .b-undo{border-color:var(--color-divider);color:var(--color-neutral-600);flex:0 0 auto;padding:6px 12px}
-  .nego-acts .b-undo:hover{background:var(--color-neutral-100)}
+  .nego-acts button{flex:1;border-radius:6px;padding:6px 0;font:inherit;font-size:11.5px;font-weight:700;
+    border:1.5px solid transparent;background:var(--n-paper);cursor:pointer;transition:all .12s ease}
+  .nego-acts .b-acc{border-color:var(--n-accept);color:var(--n-accept)}
+  .nego-acts .b-acc:hover{background:var(--n-accept);color:#fff}
+  .nego-acts .b-rej{border-color:var(--n-reject);color:var(--n-reject)}
+  .nego-acts .b-rej:hover{background:var(--n-reject);color:#fff}
+  .nego-acts .b-dis{border-color:#c9d5e1;color:var(--n-slate-soft)}
+  .nego-acts .b-dis:hover{background:var(--n-badge-bg)}
+  .nego-acts .b-dis.has-thread{border-color:var(--n-slate-soft)}
+  .nego-acts .b-undo{border-color:#c9d5e1;color:var(--n-ink-soft);flex:0 0 auto;padding:6px 12px}
+  .nego-acts .b-undo:hover{background:#f2f4f7}
   .nego-bulk{display:flex;gap:8px;margin-top:10px}
-  .nego-bulk button{flex:1;border:0;border-radius:5px;padding:7px 0;font:inherit;font-size:12px;font-weight:700;color:#fff;cursor:pointer;transition:filter .12s ease}
-  .nego-bulk .b-acc{background:#1e6b4d}
-  .nego-bulk .b-rej{background:#b0453c}
+  .nego-bulk button{flex:1;border:0;border-radius:7px;padding:7px 0;font:inherit;font-size:12px;
+    font-weight:700;color:#fff;cursor:pointer;transition:filter .12s ease}
+  .nego-bulk .b-acc{background:var(--n-accept)}
+  .nego-bulk .b-rej{background:var(--n-reject)}
   .nego-bulk button:hover{filter:brightness(1.08)}
   .nego-bulk button:disabled{opacity:.45;cursor:not-allowed;filter:none}
 
-  /* Threads on a fingerprint. */
-  .nego-thread{margin-top:10px;border-top:1px dashed var(--color-divider);padding-top:10px;display:none}
+  /* ---- threads on a fingerprint ---- */
+  .nego-thread{margin-top:10px;border-top:1px dashed var(--n-line);padding-top:10px;display:none}
   .nego-thread.open{display:block}
-  .nego-tlabel{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:7px}
+  .nego-tlabel{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--n-ink-soft);margin-bottom:7px}
   .nego-compose{display:flex;gap:6px;margin-top:8px}
-  .nego-compose input{flex:1;min-width:0;border:1px solid var(--color-divider);border-radius:5px;padding:6px 9px;
-    font:inherit;font-size:11.5px;background:var(--color-surface);outline:none}
-  .nego-compose button{background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:0 12px;
+  .nego-compose input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:6px;
+    padding:6px 9px;font:inherit;font-size:11.5px;background:var(--n-paper);outline:none}
+  .nego-compose input:focus{outline:2px solid var(--n-focus);outline-offset:1px;border-color:transparent}
+  .nego-compose button{background:var(--n-slate);color:#fff;border:0;border-radius:6px;padding:0 12px;
     font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
   .nego-compose button:hover{filter:brightness(1.12)}
 
-  /* The status strip. In the prototype this is a viewport-fixed footer; here it
-     is an in-tab strip, because the workspace owns the bottom of the window. */
-  .nego-status{flex:none;display:flex;align-items:center;gap:0;background:var(--color-accent-900);color:#c6d2de;
-    font-size:11px;padding:0 14px;height:30px;border-radius:0 0 6px 6px;overflow-x:auto}
-  .nego-status .seg{display:flex;align-items:center;gap:6px;padding:0 14px;border-right:1px solid rgba(255,255,255,.12);white-space:nowrap}
+  /* ---- the status bar ---- */
+  .nego-status{flex:none;display:flex;align-items:center;gap:0;background:var(--n-slate-deep);
+    color:#c6d2de;font-size:11px;padding:0 16px;height:30px;overflow-x:auto}
+  .nego-status .seg{display:flex;align-items:center;gap:6px;padding:0 14px;
+    border-right:1px solid rgba(255,255,255,.12);white-space:nowrap}
   .nego-status .seg:first-child{padding-left:0}
   .nego-status .seg:last-of-type{border-right:none}
   .nego-status .dot{width:7px;height:7px;border-radius:50%;flex:none}
@@ -221,34 +323,47 @@ function negoStyleHtml(){
   .nego-status .dot.ok{background:#4caf7d}
   .nego-status .spacer{margin-left:auto}
 
-  /* Responsive, per the prototype: the baseline pane is the first thing to go,
-     then the index becomes a drawer. */
+  /* ---- embedded mode ----
+     The same panes without the room's chrome, for anywhere that mounts the
+     component inside an existing page. */
+  #nego-root{display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;
+    flex:1;width:100%;min-width:0;background:var(--n-canvas);
+    font-family:var(--n-font-ui);color:var(--n-ink)}
+  #nego-root .nego-work{border:1px solid var(--n-line);border-radius:var(--n-r-md);overflow:hidden}
+
+  /* ---- responsive ----
+     The baseline pane is the first thing to go, then the index becomes a
+     drawer — the prototype's order, and the right one: the working copy and
+     the decisions matter more than the reference. */
   @media (max-width:1120px){
-    .nego-work{grid-template-columns:1fr 320px}
-    .nego-pane.baseline{display:none}
+    .nego-work{grid-template-columns:
+      calc(100% - var(--nego-c) - 6px) 6px var(--nego-c)}
+    .nego-work.idx-off{grid-template-columns:100%}
+    .nego-pane.baseline,.nego-rz-a{display:none}
   }
-  /* Below this the gutter costs more than it is worth: the document column gets
-     too narrow to read. The badge stops being margin-anchored and sits above its
-     clause instead — still attached to the right clause, still the same
-     fingerprint, just no longer in a margin there is no room for. */
+  /* Below the gutter's worth of width the badge stops being margin-anchored and
+     sits above its clause instead: same fingerprint, no longer in a margin
+     there is no room for. */
   @media (max-width:900px){
-    .nego-pane.working .nego-doc{padding-left:36px}
+    .nego-pane.working .nego-doc{padding-left:38px}
     .nego-badge{position:static;display:inline-block;margin:0 0 6px}
   }
   @media (max-width:760px){
-    .nego-work{grid-template-columns:1fr;position:relative}
+    .nego-work{grid-template-columns:100%;position:relative}
+    .nego-rz{display:none}
     .nego-pane.index{position:absolute;right:0;top:0;bottom:0;width:min(88vw,335px);z-index:6;
-      box-shadow:var(--shadow-lg);transform:translateX(105%);transition:transform .25s ease;background:var(--color-bg)}
+      box-shadow:var(--n-shadow-pop);transform:translateX(105%);transition:transform .25s ease}
     .nego-pane.index.open{transform:translateX(0)}
     #nego-drawer{display:grid !important}
+    .nego-crumbs .path{display:none}
   }
   #nego-drawer{display:none;position:absolute;right:14px;bottom:44px;z-index:7;width:46px;height:46px;
-    border-radius:50%;place-items:center;background:var(--color-accent-800);color:#fff;border:0;
-    font:inherit;font-size:11px;font-weight:800;box-shadow:var(--shadow-lg);cursor:pointer}
+    border-radius:50%;place-items:center;background:var(--n-slate);color:#fff;border:0;
+    font:inherit;font-size:11px;font-weight:800;box-shadow:var(--n-shadow-pop);cursor:pointer}
 
   @media (prefers-reduced-motion:reduce){
     .nego-scroll,.nego-index-scroll{scroll-behavior:auto}
-    #nego-root *{transition:none !important;animation:none !important}
+    .nego-room *,#nego-root *{transition:none !important;animation:none !important}
   }
 </style>`;
 }
@@ -332,7 +447,7 @@ function negoDocHtml(c, opts){
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
-    ${body || `<p style="color:var(--color-doc-muted)">This contract has no wording yet.</p>`}
+    ${body || `<p style="color:var(--n-ink-soft)">This contract has no wording yet.</p>`}
     ${inserts}
   </article>`;
 }
@@ -343,8 +458,8 @@ function negoCardsHtml(c, opts){
   const canAct = opts.readonly ? false : true;
   const changes = negoChanges(c).filter(x => x.status !== 'superseded');
   if (!changes.length) return `
-    <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--color-neutral-600)">
-      <b style="display:block;color:var(--color-neutral-800);margin-bottom:4px">No changes on the table.</b>
+    <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
+      <b style="display:block;color:var(--n-ink);margin-bottom:4px">No changes on the table.</b>
       ${side === 'counterparty'
         ? 'Nothing has been proposed for this round yet. Propose wording and each change you make becomes a fingerprint on this list.'
         : 'Nothing has been proposed for this round yet. When the counterparty proposes wording, each change arrives here with its own fingerprint.'}
@@ -368,7 +483,7 @@ function negoCardsHtml(c, opts){
         ${n ? (ch.thread || []).map(m => (window.discussBubbleHtml
             ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
             : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')
-          : `<div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}
+          : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}
         ${canAct ? `<div class="nego-compose">
           <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
           <button data-nego-send="${_ne(ch.id)}">Send</button>
@@ -395,12 +510,12 @@ function negoCardsHtml(c, opts){
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
         </div>
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
-        <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
-        <div style="font-size:11px;color:var(--color-neutral-600);margin-bottom:7px">Author: <b style="color:var(--color-neutral-900);font-weight:600">${_ne(ch.author)}</b>${mine ? ' <span style="font-style:italic">(your side)</span>' : ''}</div>
-        ${ch.note ? `<div style="border-left:2px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
-          <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-accent-800)">Why they asked</span>
-          <span style="font-size:11.5px;line-height:1.5;color:var(--color-neutral-800)">${_ne(ch.note)}</span></div>` : ''}
-        ${ch.reply ? `<div style="border-left:2px solid var(--color-divider);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--color-neutral-800)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
+        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
+        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b>${mine ? ' <span style="font-style:italic">(your side)</span>' : ''}</div>
+        ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
+          <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
+          <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
+        ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
         ${acts}${thread}
       </div>`;
@@ -427,7 +542,7 @@ function negoStatusHtml(c, opts){
       <div class="seg">Negotiation: Round ${p.total ? negoRound(c) : negoRound(c)}</div>
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
       <span class="spacer"></span>
-      <span class="seg" style="font-family:var(--font-mono);font-size:9.5px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
+      <span class="seg" style="font-family:var(--n-font-mono);font-size:9.5px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
     </div>`;
 }
 
@@ -442,10 +557,10 @@ function negoHeadHtml(c, opts){
   const side = opts.side || 'owner';
   return `
     <div style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;
-      background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm)">
-      <span style="font-size:12.5px;font-weight:700;color:var(--color-neutral-900)">Negotiation</span>
+      background:var(--n-paper);border:1px solid var(--n-line);border-radius:6px;box-shadow:var(--shadow-sm)">
+      <span style="font-size:12.5px;font-weight:700;color:var(--n-ink)">Negotiation</span>
       <span class="nego-ver">Round ${negoRound(c)}</span>
-      <span style="font-size:11.5px;color:var(--color-neutral-600);min-width:0;flex:1">
+      <span style="font-size:11.5px;color:var(--n-ink-soft);min-width:0;flex:1">
         ${p.total
           ? `${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved — every change carries its own fingerprint.`
           : 'No changes on the table yet. Propose wording and each change becomes a fingerprint on this list.'}
@@ -476,57 +591,283 @@ function negoReadyHtml(c, opts){
       <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
       <span style="flex:1;min-width:200px;line-height:1.45">
         <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">Ready to sign — every change is resolved</span>
-        <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}. Nothing is outstanding between the parties.</span>
+        <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}. Nothing is outstanding between the parties.</span>
       </span>
       ${side === 'owner'
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
-        : `<span style="flex:none;font-size:11.5px;color:var(--color-neutral-700)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
+        : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
 }
 
 /* ---------- the whole tab ---------- */
-function negoTabHtml(c, opts = {}){
-  const side = opts.side || 'owner';
+/* ---------- the workbench ----------
+   The three panes and the two dividers between them, shared by the room and by
+   the embedded mode so there is exactly one of these to get right. Labels are
+   the prototype's own words. */
+function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
-  negoInit(c);
-  return `<div id="nego-root" style="display:flex;flex-direction:column;gap:10px;height:100%;min-height:0;flex:1;width:100%;min-width:0">
-    ${negoHeadHtml(c, opts)}
-    <div style="flex:1;min-height:0;display:flex;flex-direction:column">
-      <div class="nego-work">
+  const L = negoLayout();
+  return `<div class="nego-work${L.idxOff ? ' idx-off' : ''}" id="nego-work"
+      style="--nego-f:${L.f};--nego-c:${L.c}px">
 
-        <section class="nego-pane baseline" aria-label="Baseline wording, read-only">
-          <div class="nego-pane-head">Baseline <span class="nego-ver">v${Math.max(0, negoRound(c) - 1)}</span><span class="nego-sub">read-only reference</span></div>
-          <div class="nego-scroll" id="nego-scroll-base">${negoDocHtml(c, { ...opts, baseline: true })}</div>
-        </section>
+    <section class="nego-pane baseline" aria-label="Original baseline, read-only">
+      <div class="nego-pane-head">Original Baseline <span class="nego-ver">v${Math.max(0, negoRound(c) - 1)}</span><span class="nego-sub">read-only reference</span></div>
+      <div class="nego-scroll" id="nego-scroll-base">${negoDocHtml(c, { ...opts, baseline: true })}</div>
+    </section>
 
-        <section class="nego-pane working" aria-label="Working wording with the proposed redline">
-          <div class="nego-pane-head">Working <span class="nego-ver">v${negoRound(c)}</span><span class="nego-sub">— proposed redline · fingerprints anchor in the margin</span></div>
-          <div class="nego-scroll" id="nego-scroll-work">${negoDocHtml(c, { ...opts, baseline: false })}</div>
-        </section>
+    <div class="nego-rz nego-rz-a" id="nego-rz-a" role="separator" aria-orientation="vertical"
+      aria-label="Drag to resize the baseline and working panes · double-click to reset"
+      title="Drag to resize · double-click to reset"></div>
 
-        <aside class="nego-pane index" id="nego-index" aria-label="Fingerprinted change index">
-          <div class="nego-index-head">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px">
-              <h3 style="font-size:12.5px;font-weight:800;margin:0">Fingerprinted Change Index</h3>
-              <span class="nego-count" id="nego-count">${p.pending || p.total}</span>
-            </div>
-            <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
-            <div style="font-size:11px;color:var(--color-neutral-600)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
-            ${canAct ? `<div class="nego-bulk">
-              <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
-              <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
-            </div>` : ''}
-          </div>
-          <div class="nego-index-scroll" id="nego-cards">${negoCardsHtml(c, opts)}</div>
-        </aside>
+    <section class="nego-pane working" aria-label="Working version with the proposed redline">
+      <div class="nego-pane-head">Working Version <span class="nego-ver">v${negoRound(c)}</span><span class="nego-sub">— Proposed Redline · fingerprints anchor in the margin</span></div>
+      <div class="nego-scroll" id="nego-scroll-work">${negoDocHtml(c, { ...opts, baseline: false })}</div>
+    </section>
 
-        <button id="nego-drawer" aria-label="Toggle the change index">CHG</button>
+    <div class="nego-rz nego-rz-b" id="nego-rz-b" role="separator" aria-orientation="vertical"
+      aria-label="Drag to resize the change index · double-click to reset"
+      title="Drag to resize · double-click to reset"></div>
+
+    <aside class="nego-pane index" id="nego-index" aria-label="Fingerprinted change index">
+      <div class="nego-index-head">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+          <h3 style="font-size:12.5px;font-weight:800;margin:0;flex:1;min-width:0">Fingerprinted Change Index</h3>
+          <span class="nego-count" id="nego-count">${p.pending || p.total}</span>
+          <button class="nego-fold" id="nego-fold" title="Fold the index away and give its width to the documents">Hide</button>
+        </div>
+        <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
+        <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+        ${canAct ? `<div class="nego-bulk">
+          <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
+          <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
+        </div>` : ''}
       </div>
+      <div class="nego-index-scroll" id="nego-cards">${negoCardsHtml(c, opts)}</div>
+    </aside>
+
+    <button id="nego-drawer" aria-label="Toggle the change index">CHG</button>
+  </div>
+  ${L.idxOff ? `<button class="nego-fold" id="nego-unfold"
+      style="position:absolute;right:14px;top:64px;z-index:8"
+      title="Bring the change index back">Show index (${p.pending || p.total})</button>` : ''}`;
+}
+
+/* Embedded mode: the panes with the summary strip above and the status strip
+   below, mounted inside somebody else's page. Kept because it is a smaller
+   thing to reason about than the room, and every pane-level test drives it. */
+function negoTabHtml(c, opts = {}){
+  negoInit(c);
+  return `<div id="nego-root">
+    ${negoHeadHtml(c, opts)}
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
+      ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
     </div>
   </div>`;
 }
+
+/* ---------- the room ----------
+   prototype.html's own chrome: brand, breadcrumb, the contract's actions, the
+   workbench, the status bar. The one addition is the way out, and it is the
+   breadcrumb rather than a new button — "Doc ›" already reads as where you came
+   from, so making it the exit says the same thing with one control instead of
+   two. */
+function negoRoomActionsHtml(c, opts){
+  const side = opts.side || 'owner';
+  const p = negoProgress(c);
+  const canAct = !opts.readonly;
+  if (side === 'counterparty'){
+    /* The counterparty's actions occupy the slot the owner uses for Save Draft
+       and Share Link. Same room, same place on the screen, the verbs each side
+       actually has. */
+    const n = (opts.pendingDecisions || 0);
+    return `
+      ${n ? `<button class="nego-tbtn acc" id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>` : ''}
+      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-propose">Propose edits</button>` : ''}
+      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-accept">Accept wording</button>` : ''}
+      ${canAct ? `<button class="nego-tbtn ghost" id="nego-cp-decline">Decline</button>` : ''}
+      ${canAct ? `<button class="nego-tbtn acc" id="nego-cp-sign">Approve &amp; sign</button>` : ''}`;
+  }
+  return `
+    <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
+    <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
+    ${canAct ? `<button class="nego-tbtn ghost" id="nego-propose">Propose edits</button>` : ''}
+    <button class="nego-tbtn acc" id="nego-all-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
+    <button class="nego-tbtn rej" id="nego-all-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
+    <button class="nego-tbtn ghost" id="nego-export"${p.pending ? ' disabled' : ''}
+      title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}">Export Clean PDF</button>`;
+}
+function negoRoomHtml(c, opts = {}){
+  negoInit(c);
+  const side = opts.side || 'owner';
+  const ready = negoReadyToSign(c);
+  const org = String(opts.org || (window.FIRST_PARTY || 'HaTi'));
+  const who = String(opts.author || (window.currentUser && window.currentUser()?.name) || '');
+  const initials = who.split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'HT';
+  const path = `${c.id || ''}${c.template ? ' · ' + c.template : ''}${c.name ? ' · ' + c.name : ''}`;
+  const statusChip = String(c.status || 'Draft');
+  return `<div class="nego-room" id="nego-room" role="region" aria-label="Negotiation room">
+    <header class="nego-topbar">
+      <div class="nego-brand"><span class="mark">Ha</span>HaTi <small>Contract Lifecycle Management</small></div>
+      <nav class="nego-crumbs" aria-label="Workspace breadcrumbs">
+        <button class="nego-exit" id="nego-exit" title="Leave the negotiation room and go back to the Doc page (Esc)">
+          <span aria-hidden="true">←</span> Doc
+        </button>
+        <span class="sep" aria-hidden="true">›</span>
+        <span class="path">Contract Workspace ${_ne(path)}</span>
+        <span class="draft-chip">${_ne(statusChip)}</span>
+      </nav>
+      <div class="nego-top-actions">
+        ${negoRoomActionsHtml(c, opts)}
+        <div class="nego-avatar" title="${_ne(who || org)}">${_ne(initials)}</div>
+      </div>
+    </header>
+    ${ready ? negoReadyHtml(c, opts) : ''}
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
+      ${negoPanesHtml(c, opts)}
+    </div>
+    ${negoStatusHtml(c, opts)}
+  </div>`;
+}
+
+/* ---------- the layout, and remembering it ----------
+   `f` is the baseline's share of the document space, `c` the index's width in
+   pixels, `idxOff` whether the index is folded away. Persisted per browser like
+   the Docs page's own divider (hati.v1.docLeftFrac), so a reader who prefers a
+   wide baseline keeps it. */
+const NEGO_LAYOUT_KEY = 'hati.v1.negoLayout';
+const NEGO_F_MIN = 0.2, NEGO_F_MAX = 0.8, NEGO_F0 = 0.46;
+const NEGO_C_MIN = 240, NEGO_C_MAX = 560, NEGO_C0 = 335;
+let _negoLayout = null;
+function negoLayout(){
+  if (_negoLayout) return _negoLayout;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(NEGO_LAYOUT_KEY)); } catch (e) {}
+  _negoLayout = {
+    f: (saved && Number.isFinite(saved.f)) ? Math.min(NEGO_F_MAX, Math.max(NEGO_F_MIN, saved.f)) : NEGO_F0,
+    c: (saved && Number.isFinite(saved.c)) ? Math.min(NEGO_C_MAX, Math.max(NEGO_C_MIN, saved.c)) : NEGO_C0,
+    idxOff: !!(saved && saved.idxOff),
+  };
+  return _negoLayout;
+}
+function negoSetLayout(patch){
+  const L = negoLayout();
+  if (patch.f != null) L.f = Math.min(NEGO_F_MAX, Math.max(NEGO_F_MIN, patch.f));
+  if (patch.c != null) L.c = Math.min(NEGO_C_MAX, Math.max(NEGO_C_MIN, patch.c));
+  if (patch.idxOff != null) L.idxOff = !!patch.idxOff;
+  try { localStorage.setItem(NEGO_LAYOUT_KEY, JSON.stringify(L)); } catch (e) {}
+  const work = document.getElementById('nego-work');
+  if (work){
+    work.style.setProperty('--nego-f', String(L.f));
+    work.style.setProperty('--nego-c', L.c + 'px');
+    work.classList.toggle('idx-off', L.idxOff);
+  }
+  return L;
+}
+/* The dividers. Applied to the live element rather than through a re-render, so
+   a drag is smooth and does not rebuild two documents on every pointer move. */
+function wireNegoLayout(opts = {}){
+  const work = document.getElementById('nego-work');
+  if (!work) return;
+  const drag = (rz, onDelta, onReset) => {
+    if (!rz) return;
+    let startX = 0, start = null;
+    const move = e => { onDelta(e.clientX - startX, start, work.getBoundingClientRect()); };
+    const up = () => {
+      delete rz.dataset.drag;
+      document.body.style.cursor = ''; document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    rz.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      rz.dataset.drag = '1';
+      startX = e.clientX; start = { ...negoLayout() };
+      document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', up);
+    });
+    rz.addEventListener('dblclick', onReset);
+  };
+  drag(document.getElementById('nego-rz-a'),
+    (dx, start, box) => {
+      const docs = Math.max(1, box.width - negoLayout().c - 12);
+      negoSetLayout({ f: start.f + dx / docs });
+    },
+    () => negoSetLayout({ f: NEGO_F0 }));
+  drag(document.getElementById('nego-rz-b'),
+    (dx, start) => negoSetLayout({ c: start.c - dx }),   // drag left widens the index
+    () => negoSetLayout({ c: NEGO_C0 }));
+
+  const refold = () => { if (opts.rerender) opts.rerender(); };
+  document.getElementById('nego-fold')?.addEventListener('click', () => { negoSetLayout({ idxOff: true }); refold(); });
+  document.getElementById('nego-unfold')?.addEventListener('click', () => { negoSetLayout({ idxOff: false }); refold(); });
+}
+
+/* ---------- entering and leaving ----------
+   Entering hides the app shell and mounts the room over the window; leaving
+   puts the shell back exactly as it was. Both are idempotent, because a mode
+   you can enter twice is a mode you can get stuck in. */
+let _negoRoomOpen = false;
+let _negoEscHandler = null;
+function negoRoomHost(){
+  let host = document.getElementById('nego-room-root');
+  if (!host){
+    host = document.createElement('div');
+    host.id = 'nego-room-root';
+    document.body.appendChild(host);
+  }
+  return host;
+}
+function openNegotiationRoom(c, opts = {}){
+  negoEnsureStyle();
+  const host = negoRoomHost();
+  const shell = document.getElementById('app-shell');
+  if (shell && !_negoRoomOpen){ shell.dataset.negoHidden = '1'; shell.classList.add('hidden'); }
+  _negoRoomOpen = true;
+  host.innerHTML = negoRoomHtml(c, opts);
+  const rerender = () => openNegotiationRoom(c, opts);
+  wireNegotiationTab(c, { ...opts, hostId: 'nego-room-root', rerender });
+  wireNegoLayout({ rerender });
+  document.getElementById('nego-exit')?.addEventListener('click', () => closeNegotiationRoom(opts));
+  document.getElementById('nego-save-draft')?.addEventListener('click', () => {
+    if (opts.onSaveDraft) opts.onSaveDraft(c);
+    else if (window.toast) toast('Saving is not available on this screen', 'err');
+  });
+  document.getElementById('nego-share-link')?.addEventListener('click', () => {
+    if (opts.onShareLink) opts.onShareLink(c);
+    else if (window.toast) toast('Sharing is not available on this screen', 'err');
+  });
+  /* The counterparty's verbs. Each one hands back to the page that owns it —
+     the room renders them, it does not implement signing or declining. */
+  for (const [id, hook] of [['nego-cp-sign', 'onSign'], ['nego-cp-accept', 'onAcceptWording'],
+    ['nego-cp-decline', 'onDecline'], ['nego-cp-propose', 'onPropose'],
+    ['nego-send-decisions', 'onSendDecisions']]){
+    document.getElementById(id)?.addEventListener('click', () => {
+      if (typeof opts[hook] === 'function') opts[hook](c);
+      else if (window.toast) toast('That action is not available on this screen', 'err');
+    });
+  }
+  if (!_negoEscHandler){
+    _negoEscHandler = e => { if (e.key === 'Escape' && _negoRoomOpen) closeNegotiationRoom(opts); };
+    document.addEventListener('keydown', _negoEscHandler);
+  }
+  const fade = () => host.querySelectorAll('[data-fade]').forEach(n => n.classList.add('nego-faded'));
+  if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(fade, 900));
+  else setTimeout(fade, 900);
+  return host;
+}
+function closeNegotiationRoom(opts = {}){
+  const host = document.getElementById('nego-room-root');
+  if (host) host.innerHTML = '';
+  const shell = document.getElementById('app-shell');
+  if (shell && shell.dataset.negoHidden){ delete shell.dataset.negoHidden; shell.classList.remove('hidden'); }
+  _negoRoomOpen = false;
+  if (_negoEscHandler){ document.removeEventListener('keydown', _negoEscHandler); _negoEscHandler = null; }
+  if (opts && typeof opts.onExit === 'function') opts.onExit();
+}
+const negoRoomIsOpen = () => _negoRoomOpen;
 
 /* ---------- rendering + wiring ----------
    One render path, called after every state change, so the three panes can
@@ -581,9 +922,13 @@ function wireNegotiationTab(c, opts = {}){
   const side = opts.side || 'owner';
   const host = document.getElementById(opts.hostId || 'nego-tab');
   if (!host) return;
+  /* Repaint whatever is actually mounted. In the room that is the room —
+     re-rendering the embedded tab instead would quietly replace a full-window
+     mode with a panel. */
   const again = () => {
     if (opts.onChange) opts.onChange(c);
-    renderNegotiationTab(c, opts);
+    if (typeof opts.rerender === 'function') opts.rerender();
+    else renderNegotiationTab(c, opts);
   };
   const decide = (id, status, extra) => {
     const ch = negoResolve(c, id, status, { side, by: opts.by, ...(extra || {}) });
@@ -705,4 +1050,7 @@ function negoResetView(){ _negoActive = null; _negoThreads = {}; }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
-  negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId });
+  negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
+  negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
+  openNegotiationRoom, closeNegotiationRoom, negoRoomIsOpen,
+  NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

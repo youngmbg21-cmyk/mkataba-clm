@@ -546,9 +546,64 @@ function negoAllChanges(c){
    one place. wordDiff() does the segmentation — the same function the existing
    version-compare modal uses — so an accepted change looks identical in the new
    tab and in the old compare view, and neither can drift from the other. */
+/* Is this diff SHREDDED? A longest-common-subsequence diff is always correct and
+   is not always readable. When a clause has been substantially rewritten, LCS
+   latches onto whatever stray words the two versions happen to share — "the",
+   "of", "value" — and interleaves them, so
+
+     the full replacement value of the affected goods
+       → EUR 250,000 in the aggregate per contract year
+
+   renders as "the EUR full 250,000 replacement in value the of aggregate the
+   per affected contract goods. year." Every token is in the right box and the
+   passage cannot be read.
+
+   prototype.html's own runDiff does not have this problem, because it only ever
+   finds the common prefix and suffix and treats everything between as one
+   deletion and one insertion. That is worse for a small edit — it would strike
+   out a whole sentence to change two words — and better for a rewrite. So use
+   each where it wins: LCS by default, prefix/suffix once the result is more
+   interruption than text. */
+function _negoShredded(parts){
+  let runs = 0, changed = 0, total = 0;
+  for (const p of parts){
+    const words = p.text.trim() ? p.text.trim().split(/\s+/).length : 0;
+    total += words;
+    if (p.t === 'eq') continue;
+    runs++;                       // each del or add run is one interruption
+    changed += words;
+  }
+  if (!total) return false;
+  /* Six interruptions and nearly half the clause rewritten. Counting RUNS
+     rather than contiguous groups is the point: a rewrite's runs are separated
+     by single spaces, so anything that treats whitespace as a boundary sees one
+     enormous group and never fires. */
+  return runs >= 6 && (changed / total) > 0.45;
+}
+/* The prototype's segmentation: common prefix, common suffix, one block between.
+   Backed off to word boundaries so a word is never cut in half. */
+function negoRunDiff(oldText, newText){
+  const a = String(oldText == null ? '' : oldText), b = String(newText == null ? '' : newText);
+  let p = 0;
+  const max = Math.min(a.length, b.length);
+  while (p < max && a[p] === b[p]) p++;
+  while (p > 0 && a[p - 1] !== ' ') p--;
+  let sa = a.length, sb = b.length;
+  while (sa > p && sb > p && a[sa - 1] === b[sb - 1]){ sa--; sb--; }
+  while (sa < a.length && a[sa] !== ' ' && sa > p){ sa++; sb++; }
+  return { prefix: b.slice(0, p), del: a.slice(p, sa).trim(), ins: b.slice(p, sb).trim(), suffix: b.slice(sb) };
+}
 function negoDiffHtml(oldText, newText){
   const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
   const parts = window.wordDiff ? wordDiff(oldText, newText) : [{ t: 'eq', text: newText }];
+  if (_negoShredded(parts)){
+    const d = negoRunDiff(oldText, newText);
+    return e(d.prefix)
+      + (d.del ? `<span class="nego-del">${e(d.del)}</span>` : '')
+      + (d.del && d.ins ? ' ' : '')
+      + (d.ins ? `<span class="nego-ins">${e(d.ins)}</span>` : '')
+      + e(d.suffix);
+  }
   return parts.map(p => p.t === 'eq' ? e(p.text)
     : p.t === 'add' ? `<span class="nego-ins">${e(p.text)}</span>`
     : `<span class="nego-del">${e(p.text)}</span>`).join('');
@@ -645,7 +700,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNextId, negoHashInput, negoHash, negoShortHash, negoSummarise,
   negoFileProposal, negoResolvedText, negoCommitText, negoResolve, negoResolveAll,
   negoPostComment, negoTopicFor, negoProgress, negoReadyToSign, negoOpenPoints,
-  negoAdvanceRound, negoAllChanges, negoDiffHtml,
+  negoAdvanceRound, negoAllChanges, negoDiffHtml, negoRunDiff,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   negoClausesOf, negoSummarise, negoHashInput, negoShortHash };

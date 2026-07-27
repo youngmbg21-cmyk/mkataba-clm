@@ -1909,10 +1909,21 @@ function applyWsTabs(c){
   });
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')===_wsTab;
     b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
-  // The redline is only rendered once the reader asks for it: it is a whole
-  // second document view, and building it for every workspace open would cost
-  // every contract that is not being negotiated.
-  if(_wsTab==='negotiation' && window.renderNegotiationTab) renderNegotiationOwnerTab(c);
+  /* The Negotiation tab is a DOOR, not a pane. Pressing it enters the room —
+     a full-window mode with its own chrome — because three panes squeezed under
+     the workspace header left both documents too small to read, which defeated
+     the point of putting them side by side. The tab snaps back to Docs so that
+     leaving the room lands on a workspace showing the document, not on a tab
+     pointing at a room that is no longer open. */
+  if(_wsTab==='negotiation'){
+    _wsTab='docs';
+    document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')==='docs';
+      b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
+    document.querySelectorAll('[data-ws-pane]').forEach(p=>{
+      p.style.display=(p.getAttribute('data-ws-pane')==='docs')?(p.id==='doc-grid'?'grid':'flex'):'none'; });
+    if(window.openNegotiationRoom) openNegotiationOwnerRoom(c);
+    else toast('The negotiation room is unavailable on this page','err');
+  }
 }
 function wireWsTabs(c){
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>b.addEventListener('click',()=>{
@@ -1923,17 +1934,23 @@ function wireWsTabs(c){
    owner lives here — who they are, what pressing "Propose edits" does, where
    the hand-off goes — so js/views/negotiation.js stays the same code for both
    parties. */
-function renderNegotiationOwnerTab(c){
-  if(!window.renderNegotiationTab) return;
-  renderNegotiationTab(c, {
-    hostId:'nego-tab',
+function openNegotiationOwnerRoom(c){
+  if(!window.openNegotiationRoom) return;
+  openNegotiationRoom(c, {
     side:'owner',
+    org:window.FIRST_PARTY,
     readonly:!canEdit()||c.status==='Signed',
     by:currentUser()?.name,
     author:currentUser()?.name,
     shares:(window.cachedShares?cachedShares(c):[]),
-    onChange(){ const t=document.getElementById('nego-tab-count'); if(t) t.remove(); renderAuditSection(c); renderVersionsSection(c); },
+    onChange(){ persist(c); },
     onPropose(){ openNegoProposeModal(c); },
+    /* Leaving puts the workspace back the way it was, and repaints it — a
+       decision taken in the room has to be visible on the Docs page the reader
+       lands on. */
+    onExit(){ renderWorkspace(); },
+    onSaveDraft(){ persist(c); toast('Draft saved'); },
+    onShareLink(){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c); },
     /* The transition point, and nothing past it. It closes the round so the
        agreed wording becomes the baseline, then puts the reader on the Docs
        tab where signing lives. No signing logic is built here, by design. */
@@ -1942,6 +1959,7 @@ function renderNegotiationOwnerTab(c){
       logAudit(c,'Negotiation','Negotiation complete — every change resolved; the agreed wording was carried to the Docs tab for signature');
       persist(c);
       _wsTab='docs'; _docTopTab='signing';
+      closeNegotiationRoom();
       renderWorkspace();
       toast('Agreed wording carried to the Docs tab — sign it there when you are ready');
     },
@@ -2917,4 +2935,4 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{openWordExportModal,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,renderNegotiationOwnerTab,openNegoProposeModal});
+  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,openNegoProposeModal});

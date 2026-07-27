@@ -811,6 +811,7 @@ function portalNegoHtml(p){
           <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
           <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
+        <button id="pt-nego-open" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:9px 15px">Open the negotiation room</button>
       </div>
       <div id="pt-nego" style="height:min(78vh,860px);padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
@@ -857,9 +858,52 @@ function wirePortalNego(c, p){
   });
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+  document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalNegoRoom(c,p));
 }
 function wirePortalNegoFoot(c, p){
   document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
+}
+/* The counterparty's door into the room — the SAME full-window mode the owner
+   enters, rendered with side:'counterparty'. His verbs (sign, accept the
+   wording, propose, decline, send decisions) occupy the slot the owner uses for
+   Save Draft and Share Link, so neither side is looking at a lesser screen.
+
+   The room is a door rather than the landing page on purpose: his page also
+   carries the name field, the signing route and the banners telling him what
+   moved since he last looked, and dropping him straight into a full-window mode
+   would put those behind him before he had read them. Leaving the room returns
+   him to exactly that page. */
+function openPortalNegoRoom(c, p){
+  if(!window.openNegotiationRoom){ toast('The negotiation room is unavailable on this page','err'); return; }
+  const who=fval('pt-name') || (PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName) || c.counterparty || 'The counterparty';
+  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
+  const reopen=()=>openPortalNegoRoom(portalNegoContract(p), p);
+  openNegotiationRoom(c, {
+    side:'counterparty',
+    readonly:!live,
+    persist:false,
+    by:who, author:who,
+    org:(p&&p.org)||'',
+    pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
+    onChange(rec){
+      for(const ch of (rec.changes||[]))
+        if(ch.status!=='pending' && ch.authorSide==='owner')
+          PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
+        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+    },
+    rerender:reopen,
+    onSendDecisions(){ portalRespond(p,'decisions'); },
+    onSign(){ closeNegotiationRoom(); portalRespond(p,'sign'); },
+    onAcceptWording(){ closeNegotiationRoom(); portalRespond(p,'accept'); },
+    onDecline(){ closeNegotiationRoom(); portalRespond(p,'decline'); },
+    onPropose(){ closeNegotiationRoom(); document.getElementById('pt-redline')?.click(); },
+    onExit(){
+      // his page repaints so a decision taken in the room shows on the card too
+      const foot=document.getElementById('pt-nego-foot');
+      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+      wirePortalNego(portalNegoContract(p), p);
+    },
+  });
 }
 
 async function portalEntry(encoded){
@@ -1325,4 +1369,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
