@@ -2931,6 +2931,38 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   res.json({ ok: true, message: m, messages: contractMessages(s.contract_id) });
 });
 
+/* Every point where the counterparty spoke last, across the whole portfolio.
+   A message channel nobody watches is slower than the formal round it replaced:
+   a round at least raises an amber strip on the owner's screen, while a question
+   sat on the one contract page it belonged to. The email that would have told
+   her is the setting most workspaces have not configured — so the count has to
+   reach her somewhere she already looks, with or without email. */
+app.get('/api/messages/waiting', auth, (req, res) => {
+  const scope = folderScopeFor(req.user);
+  // the last message in each conversation, and only those the other side ended
+  const rows = db.prepare(
+    `SELECT m.contract_id AS contractId, m.author, m.topic, m.topic_label AS topicLabel,
+            m.body, m.at, c.name AS contractName, c.counterparty
+       FROM share_messages m
+       JOIN (SELECT contract_id, topic, MAX(id) AS id FROM share_messages GROUP BY contract_id, topic) last
+         ON last.id = m.id
+       LEFT JOIN contracts c ON c.id = m.contract_id
+      WHERE m.side = 'counterparty'
+      ORDER BY m.at DESC`).all();
+  const byContract = new Map();
+  for (const r of rows) {
+    if (!idInScope(scope, r.contractId)) continue;      // their portfolio, not the whole table
+    if (!r.contractName) continue;                      // contract deleted since
+    const hit = byContract.get(r.contractId);
+    if (hit) { hit.count++; continue; }                 // rows are newest-first, so the first wins
+    byContract.set(r.contractId, { contractId: r.contractId, name: r.contractName,
+      counterparty: r.counterparty || null, count: 1,
+      latest: { author: r.author, topicLabel: r.topicLabel, body: r.body, at: r.at } });
+  }
+  const items = [...byContract.values()];
+  res.json({ total: items.reduce((n, x) => n + x.count, 0), items });
+});
+
 app.get('/api/contracts/:id/messages', auth, (req, res) => {
   if (!idInScope(folderScopeFor(req.user), req.params.id)) return res.status(404).json({ error: 'Contract not found' });
   res.json({ messages: contractMessages(req.params.id) });

@@ -292,11 +292,30 @@ function renderDashboard(){
   // ---- Decisions due: one collapsible card merging renewal decisions with the
   // shares out for counterparty review — a compact summary that expands on click,
   // so the dashboard stays tight instead of two full-height stacked cards. ----
-  const ddCount=decisions.length+(hasShares?shItems.length:0);
+  const ddCount=decisions.length+(hasShares?shItems.length:0)+(((state.waitingQuestions||{}).total)||0);
   const ddTone=(needAttn||decisions.some(x=>x.d<=30))?'#b8862b':'var(--color-accent)';
   const chevron=`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
   const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span><b>${decisions.length}</b> renewal decision${decisions.length===1?'':'s'} <span style="color:var(--color-neutral-500)">· 90d</span></span>`;
   const shareStat=hasShares?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#eceae6;color:#5d5d60">•</span><b>${shItems.length}</b> out with counterparties</span>`:'';
+  /* Questions the other side asked and nobody answered. These arrive through
+     the light channel, which changes no document state — so without a count
+     here the only two ways to learn of one are an email (the setting most
+     workspaces have not configured) and opening that one contract. */
+  const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
+  const wqTotal=(state.waitingQuestions&&state.waitingQuestions.total)||0;
+  const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span><b>${wqTotal}</b> question${wqTotal===1?'':'s'} waiting for you</span>`:'';
+  const questionRows=wq.length?`
+    <div style="margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7d5a14;margin-bottom:5px">Questions waiting for you</div>
+      ${wq.slice(0,6).map(q=>`
+        <button data-sel="${esc(q.contractId)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+          <span style="flex:1;min-width:0">
+            <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(q.name)}</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((q.latest&&q.latest.author)||q.counterparty||'They')}: “${esc((q.latest&&q.latest.body)||'')}”</span>
+          </span>
+          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;flex:none">${q.count>1?q.count+' open':'reply'}</span>
+        </button>`).join('')}
+    </div>`:'';
   const decisionsSection=`
     <style>
       .dd-card{background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid ${ddTone};box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden}
@@ -341,7 +360,7 @@ function renderDashboard(){
           ${ddCount?`<span class="dd-count">${ddCount}</span>`:''}
           <span class="dd-chev">${chevron}</span>
         </span>
-        <span class="dd-stats">${renewalStat}${shareStat}</span>
+        <span class="dd-stats">${renewalStat}${questionStat}${shareStat}</span>
       </summary>
       <div class="dd-detail">
         <div class="dd-col">
@@ -351,7 +370,8 @@ function renderDashboard(){
           ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
         </div>
         <div class="dd-col dd-col-r">
-          <div class="dd-eyebrow" style="margin-top:6px">Waiting longest · in review${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
+          ${questionRows}
+          <div class="dd-eyebrow"${questionRows?'':' style="margin-top:6px"'}>Waiting longest · in review${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
           ${waitDdRows}
         </div>
       </div>

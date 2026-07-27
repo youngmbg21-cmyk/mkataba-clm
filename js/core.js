@@ -241,6 +241,15 @@ const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
   return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-left:8px;vertical-align:middle;flex:none"></span>`; };
+/* A question the counterparty asked and nobody answered. It changes no document
+   state, so without a mark here a contract carrying one looks identical in the
+   list to a contract with nothing outstanding. */
+const questionCount = cid => {
+  const w=state.waitingQuestions&&Array.isArray(state.waitingQuestions.items)?state.waitingQuestions.items:[];
+  const hit=w.find(x=>x.contractId===cid);
+  return hit?hit.count:0; };
+const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
+  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-left:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
@@ -780,7 +789,7 @@ function startApp(){
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); refreshShareOverview(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshAiUsage,30000);
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
   repairMigratedSignatories();
 }
@@ -1872,6 +1881,19 @@ async function refreshShareOverview(){
   }catch(e){ /* transient — next refresh retries */ }
 }
 
+/* Questions the counterparty asked that nobody has answered. Loaded beside the
+   share overview because it answers the same question the dashboard exists to
+   answer — what is waiting on me? — and because a channel nobody watches is
+   slower than the formal round it replaced. */
+async function refreshWaitingQuestions(){
+  if(!API_MODE()) return;
+  try{
+    const r=await api('messages/waiting');
+    state.waitingQuestions=r;
+    if(state.view==='dashboard') renderDashboard();
+  }catch(e){ /* transient — next refresh retries */ }
+}
+
 function openImportModal(c){
   openModal(`
     <div style="padding:22px 24px;">
@@ -1992,4 +2014,4 @@ async function pollPendingResponses(){
   }catch(e){ /* transient network issues — next poll retries */ }
 }
 
-Object.assign(window,{DEFAULT_APPROVAL,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{DEFAULT_APPROVAL,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
