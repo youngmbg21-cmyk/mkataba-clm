@@ -72,6 +72,7 @@
 <h3 style="margin-top:0">How I did this review</h3>
 <p>I read the real files in the repo — the negotiation room, the contract page, the sharing code, the server routes and the counterparty portal — and then walked two imaginary people through a full negotiation, clicking only the buttons that genuinely exist.</p>
 <p>Where a feature is missing, I say it is missing. I have not invented anything. Every claim below points at a file so you can check it.</p>
+<p><b>What reading the code cannot tell me.</b> Some things live on the server as settings, not in the code — the email account is the main one. From the repository I can only see <i>whether the code checks for a setting</i>, never whether your server has it. Where that matters I say so, rather than guessing. This workspace <b>does</b> have working email; that has been tested with a real message to a real inbox.</p>
 <p><b>Out of scope on purpose:</b> the mobile / WhatsApp counterparty experience. You have deliberately parked that, so nothing here asks for it.</p>
 </div>
 
@@ -106,7 +107,7 @@
 <div class="meta">
 <b>What she wants:</b> get the contract in front of Erik.<br/>
 <b>Where it happens:</b> <code>js/views/contract.js</code> (the share button) → <code>openShareModal</code> in <code>js/core.js</code> → <code>POST /api/shares</code> in <code>server/server.js</code>.<br/>
-<b>Steps:</b> 10.
+<b>Steps:</b> 7 on a workspace with email connected, which is what this one is.
 </div>
 <ol class="steps">
 <li>Open the contract.</li>
@@ -115,12 +116,11 @@
 <li>Type Erik's name.</li>
 <li>Type Erik's email.</li>
 <li>Decide whether the link should be durable or one-shot (a checkbox she does not understand).</li>
-<li>Create the link.</li>
-<li>Read the warning that email is not configured.</li>
-<li>Copy the link by hand.</li>
-<li>Paste it into her own Gmail and write the covering note herself.</li>
+<li>Create the link. HaTi sends it. This part works.</li>
 </ol>
-<div class="hurt"><b>Exact point of confusion:</b> step 8. HaTi ships with no mail provider connected. The code says so plainly — <code>EMAIL_SETUP_LINE</code> at <code>js/core.js:136</code> warns that "review links, update notices and signing codes all have to be copied out by hand, and any signature taken here is recorded as not independently verified." Wanjiru has just spent seven steps in a tool whose main job was to send something, and it cannot send it. Worse, the durable-versus-one-shot checkbox at step 6 has no plain-English explanation of what she loses by picking wrong.</div>
+<div class="good"><b>What works:</b> the send itself. With a mail account configured, the link goes out on its own and Wanjiru never touches copy-and-paste. Seven steps to get a contract in front of someone is reasonable.</div>
+<div class="hurt"><b>Exact point of confusion:</b> step 6. The durable-versus-one-shot checkbox is the only decision on this screen with consequences, and it is the one with no explanation. Durable means the link keeps showing the latest version as she edits; one-shot means it works once and dies. Picking wrong either leaves a live link open longer than she meant, or kills Erik's access halfway through a negotiation. She has no way to know which she is choosing.</div>
+<div class="hurt"><b>Only on a brand-new workspace:</b> until an admin connects a mail account, nothing can be delivered — links, update notices and signing codes all have to be copied out by hand. There is an amber banner on the home page and a warning in this dialog, so the app does say so. The gap is that it is a banner you can ignore forever rather than a step in getting started, and the most serious consequence is not shown where it lands. See item 5 in the list at the end.</div>
 </div>
 
 <figure>
@@ -149,11 +149,10 @@
   <text class="lbl-s" x="60" y="158">Durable link (keeps updating)</text>
   <rect class="btn" x="38" y="176" width="120" height="28" rx="5"/>
   <text class="lbl" x="56" y="195">Create link</text>
-  <text class="lbl-r" x="38" y="230">Email is not set up.</text>
-  <text class="lbl-r" x="38" y="248">Copy this link and send it yourself.</text>
-  <ellipse class="redpen" cx="150" cy="238" rx="128" ry="26"/>
-  <ellipse class="redpen" cx="140" cy="152" rx="112" ry="17"/>
-  <text class="lbl-r" x="272" y="152">?</text>
+  <text class="lbl-r" x="38" y="232">Durable? One-shot? What breaks</text>
+  <text class="lbl-r" x="38" y="250">if I tick the wrong one?</text>
+  <ellipse class="redpen" cx="140" cy="152" rx="112" ry="19"/>
+  <text class="lbl-r" x="266" y="157">?</text>
   <path class="redpen" d="M410 150 l40 0 m-10 -8 l10 8 l-10 8"/>
   <text class="hd" x="480" y="20">AFTER</text>
   <rect class="pen" x="480" y="32" width="380" height="236" rx="7"/>
@@ -169,10 +168,10 @@
   <text class="lbl-s" x="520" y="172">(off = one look only, then it dies)</text>
   <rect class="btnG" x="498" y="188" width="180" height="30" rx="5"/>
   <text class="lbl-g" x="516" y="208">Send to Erik by email</text>
-  <text class="lbl-g" x="498" y="242">Mail is connected. HaTi sends it,</text>
-  <text class="lbl-g" x="498" y="258">and signatures count as verified.</text>
+  <text class="lbl-g" x="498" y="242">One sentence under the box removes</text>
+  <text class="lbl-g" x="498" y="258">the only guess on this screen.</text>
 </svg>
-<figcaption>Round 1 — the tool asks her to do the one job she came for. Connect mail during setup and the dead end disappears.</figcaption>
+<figcaption>Round 1 — the send works. The one unexplained decision is the checkbox, so explain it in the words a caterer would use.</figcaption>
 </figure>
 
 <!-- ROUND 2 -->
@@ -504,20 +503,20 @@
 <h2>The verdict</h2>
 
 <div class="score">
-<div class="n">6 / 10</div>
-<p>Strong bones, rough edges. The negotiation model underneath is better than most commercial CLM tools — tracked changes with reasons, fingerprints, a withdraw verb, a hard block on signing while people still disagree. What lets it down is the plumbing at the edges: sending, arriving, and signing. A user meets those three things first, and they are the three weakest moments in the product.</p>
+<div class="n">7 / 10</div>
+<p>Strong bones, rough edges. The negotiation model underneath is better than most commercial CLM tools — tracked changes, fingerprints, a withdraw verb, a hard block on signing while people still disagree. Sending works. What lets it down is that the software knows things it never says out loud: which button updates which link, who has to sign first, why a button is greyed out. Every remaining problem in this review is a sentence that should be on the screen and is not.</p>
 </div>
 
 <h3>The single worst friction point</h3>
 <div class="hurt" style="font-size:16px">
-<b>Everything depends on email, and email is off by default.</b><br/><br/>
-HaTi's whole flow assumes a link reaches the other person. With no mail provider connected, every link has to be copied out by hand, every update notice never arrives, every signing code has to be read out over the phone — and the code itself records the resulting signature as <i>not independently verified</i> (<code>js/core.js:136</code>). That is not a small configuration detail. It quietly downgrades the legal weight of the thing the product exists to produce, and the person doing the signing is never really told.
+<b>The signing order is a rule in the code that never appears on the screen.</b><br/><br/>
+<code>internalAllSigned</code> (<code>js/approvals.js:103</code>) means your side must sign before the other side's signing link goes live. Nothing anywhere tells Wanjiru that. So she does the natural thing — sends Erik the signing link first — and it does not let him sign. He emails her. She has no idea why, because from where she is standing the software simply did not work. This happens at the worst possible moment: after they have finally agreed, when the only thing left is to close. It costs a phone call, and it costs confidence.<br/><br/>
+The rule itself is right. Only its silence is wrong. Three numbered steps on the signing panel would end it — and the sketch for Round 6 above shows exactly that.
 </div>
 
 <h3>Would a Kenyan SME owner keep using it?</h3>
-<p><b>With email connected: yes.</b> Wanjiru would keep using HaTi, because the alternative is a WhatsApp thread and three files called <i>contract-final-FINAL2.docx</i>. The negotiation room genuinely solves her problem — she can see every ask in one list, decide each one, and prove afterwards what was agreed. That is worth the learning curve.</p>
-<p><b>With email off: no.</b> She would give up in the first session. She came to send a contract, the tool told her to send it herself, and at that point it is a filing cabinet with extra steps. She has a business to run.</p>
-<p>The honest summary: HaTi is one good setup screen and three small labels away from being something she would recommend to other caterers.</p>
+<p><b>Yes.</b> Wanjiru would keep using HaTi, because the alternative is a WhatsApp thread and three files called <i>contract-final-FINAL2.docx</i>. The negotiation room genuinely solves her problem — she can see every ask in one list, decide each one, and prove afterwards what was agreed. That is worth the learning curve, and the learning curve is not steep.</p>
+<p>What she would not do is <b>recommend</b> it yet. The moments that would make her hesitate are all small and all fixable: the failed first signing attempt, the two send buttons, retyping a paragraph because there is no way back to an old version. None of those are reasons to leave. All of them are reasons to say "it's good, but…" — and for a business that grows on word of mouth between caterers, that gap between <i>uses it</i> and <i>recommends it</i> is the whole game.</p>
 
 <h2>Eight things to fix, in order</h2>
 
@@ -527,49 +526,50 @@ HaTi's whole flow assumes a link reaches the other person. With no mail provider
 </thead>
 <tbody>
 <tr>
-  <td><b>1. Put email setup in first-run</b></td>
-  <td>Nothing works properly without it, and today nobody is asked. Make connecting mail part of getting started, and show the "signatures will not be independently verified" warning in plain words <i>before</i> the first signature, not after.</td>
-  <td class="size s-med">Medium</td>
+  <td><b>1. Show the signing order</b></td>
+  <td>Your side must sign before the other side's link goes live. That rule is in the code and nowhere on the screen, so the first signing attempt fails for a reason nobody can see — at the exact moment the deal is meant to close. Three numbered steps on the signing panel fixes it.</td>
+  <td class="size s-small">Small</td>
 </tr>
 <tr>
-  <td><b>2. Attach the reason to the decision</b></td>
+  <td><b>2. One send button</b></td>
+  <td>Two buttons, two behaviours, no explanation. One refreshes the link the other side already has; the other mints a new one and orphans the old. Pick the wrong one and they are reading a stale draft in a tab nobody knows is open. Show one action and one sentence about what it does to their link.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>3. Attach the reason to the decision</b></td>
   <td>A rejection with no reason attached is the biggest cause of a follow-up phone call. The text is already being typed — it just needs to land on the change instead of in a side thread.</td>
   <td class="size s-small">Small</td>
 </tr>
 <tr>
-  <td><b>3. One send button</b></td>
-  <td>Two buttons, two behaviours, no explanation. The wrong one leaves the other side reading a stale draft. Show one action and one sentence about what it does to the existing link.</td>
+  <td><b>4. Say what the sharing checkbox does</b></td>
+  <td>Durable versus one-shot is the only consequential decision on the share screen and the only one with no explanation. Two plain sentences under the box — "keeps showing your latest version" versus "works once, then dies" — remove the guess.</td>
   <td class="size s-small">Small</td>
 </tr>
 <tr>
-  <td><b>4. Show the signing order</b></td>
-  <td>Your side must sign before the other side's link goes live. That rule is in the code and nowhere on the screen, so the first signing attempt fails for a reason nobody can see. Three numbered steps fixes it.</td>
-  <td class="size s-small">Small</td>
-</tr>
-<tr>
-  <td><b>5. Tell the counterparty what they are here for</b></td>
-  <td>The share already carries its purpose. Turn it into one green sentence at the top of the portal — "comments wanted" or "ready for your signature" — and stop asking for a name they already proved with a code.</td>
-  <td class="size s-small">Small</td>
-</tr>
-<tr>
-  <td><b>6. Add restore-to-version</b></td>
-  <td>You can look at any past version and compare it, but you cannot go back to one. Retyping a paragraph from three rounds ago is exactly the manual work this product is meant to remove.</td>
+  <td><b>5. Warn about unverified signatures where they happen</b></td>
+  <td>Until a workspace connects a mail account, signatures are recorded as <i>not independently verified</i>, because the code that proves the signer owns their address cannot be sent. The home page banner says this; the signing screen does not. Put it in front of whoever is about to sign, and make connecting mail part of getting started rather than a banner you can ignore forever. Does not affect this workspace — mail is connected here.</td>
   <td class="size s-med">Medium</td>
 </tr>
 <tr>
-  <td><b>7. Show link status on the contract</b></td>
-  <td>Nowhere does it say who currently holds a live link, when they last opened it, or that a link was retired when signing began. The owner is guessing about the one thing she most needs to know.</td>
+  <td><b>6. Tell the counterparty what they are here for</b></td>
+  <td>The share already carries its purpose. Turn it into one sentence at the top of the portal — "comments wanted" or "ready for your signature" — and stop asking for a name they already proved with a code.</td>
+  <td class="size s-small">Small</td>
+</tr>
+<tr>
+  <td><b>7. Add restore-to-version</b></td>
+  <td>You can look at any past version and compare it, but you cannot go back to one. Retyping a paragraph from three rounds ago is exactly the manual work this product exists to remove.</td>
   <td class="size s-med">Medium</td>
 </tr>
 <tr>
-  <td><b>8. Turn dead ends into next steps</b></td>
-  <td>When "Ready to sign" is greyed out, the room says what is blocking it but never what to do. A first-time user reads that as a broken button. One suggested action — talk to them, or withdraw your ask — changes the whole feel.</td>
-  <td class="size s-small">Small</td>
+  <td><b>8. Show link status on the contract</b></td>
+  <td>Nowhere does it say who currently holds a live link, when they last opened it, or that a link was retired when signing began. The owner is guessing about the one thing she most needs to know. This is also what makes item 2 dangerous.</td>
+  <td class="size s-med">Medium</td>
 </tr>
 </tbody>
 </table>
 
-<p class="note">Nothing above requires new infrastructure. Six of the eight are labels, ordering and copy on screens that already exist; two are small features. None of them touch the mobile / WhatsApp counterparty portal.</p>
+<p class="note">Nothing above requires new infrastructure. Five of the eight are labels, ordering and wording on screens that already exist; three are small features. None of them touch the mobile / WhatsApp counterparty portal.</p>
+<p class="note">One smaller thing did not make the eight, and it is worth doing when you are next in that file: when "Ready to sign" is greyed out because the two sides still disagree, the room says what is blocking it but never what to do about it. One suggested next step — talk to them, or withdraw your ask — would stop a first-time user reading a correct refusal as a broken button.</p>
 
 </div>
 </body>
