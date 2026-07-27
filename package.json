@@ -5,7 +5,8 @@
   "main": "server/server.js",
   "scripts": {
     "start": "node server/server.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "test:browser": "node test/chromium/verify.js"
   },
   "engines": {
     "node": ">=22.5"
@@ -14,6 +15,7 @@
     "express": "^4.19.0"
   },
   "devDependencies": {
-    "jsdom": "^29.1.1"
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.62.0"
   }
 }
