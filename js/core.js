@@ -1374,6 +1374,50 @@ const shareMessageText=(c,link,msg,expiresAt)=>
   +`\n\nOpen it here — review, sign, request changes or decline, no account needed:\n${link}`
   +(expiresAt?`\n\nThis link expires on ${String(expiresAt).slice(0,10)}.`:'');
 
+/* ---------- step 1 of Share: what am I actually sending? ----------
+   Share used to open straight onto the send form, which asked someone to
+   dispatch a contract to another company without once showing them what had
+   changed since it last went out. Six rounds in, nobody can hold that in their
+   head.
+
+   So the dialog now opens on the answer, and Next goes to the form. The list is
+   quoted from the change records (negoChangeSummary) and never composed — the
+   sender can edit it, because a covering note is theirs to write, but the
+   fingerprints and clause names it starts from are the record's. */
+function shareSummaryStepHtml(c){
+  const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
+  const rows = s && s.lines.length ? s.lines.map(x=>`
+    <li style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--color-divider)">
+      <span style="flex:none;font-family:var(--font-mono);font-size:10px;font-weight:700;border:1.5px solid var(--color-accent);
+        color:var(--color-accent);border-radius:99px;padding:1px 7px;margin-top:1px">#${esc(x.id)}</span>
+      <span style="flex:1;min-width:0">
+        <span style="display:block;font-size:12.5px;font-weight:600;color:var(--color-text);line-height:1.45">${esc(x.summary||x.kind)}</span>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
+      </span>
+      <span style="flex:none;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:4px;padding:2px 6px;margin-top:1px;
+        background:${x.status==='accepted'?'#e4f1ea':x.status==='rejected'?'#f9ecea':'#fdf3e3'};
+        color:${x.status==='accepted'?'#1e6b4d':x.status==='rejected'?'#b0453c':'#9a6a1f'}">${esc(x.status)}</span>
+    </li>`).join('') : '';
+  const FLD='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:8px 10px;font-size:12px;font-family:var(--font-body);color:var(--color-text);outline:none;line-height:1.5;';
+  return `
+    <div id="share-step-1">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
+        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What you are sending</h2></div>
+      <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">
+        ${s&&s.lines.length
+          ? `Round ${s.total?esc(String(s.round)):''} — ${s.lines.length} change${s.lines.length===1?'':'s'} on the table${s.pending?`, ${s.pending} still awaiting a decision`:''}. ${esc(c.counterparty||'The counterparty')} sees this summary alongside the link.`
+          : `No changes have been proposed on this contract yet, so ${esc(c.counterparty||'the counterparty')} will receive the document as it currently stands.`}</p>
+      ${s&&s.lines.length?`<ul style="list-style:none;margin:0 0 14px;padding:0;max-height:230px;overflow-y:auto;border:1px solid var(--color-divider);border-radius:5px;padding:2px 11px">${rows}</ul>`
+        :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
+      <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently</span>
+        <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="share-close-1" class="ui-btn">Close</button>
+        <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
+      </div>
+    </div>`;
+}
+
 /* The warning block at the top of the share modal. Naming what is missing is
    the whole point — "this contract is incomplete" is not actionable, "no value
    is set and the document still says [SUPPLIER CORPORATE NAME]" is. */
@@ -1668,6 +1712,8 @@ async function openShareModal(c){
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   openModal(`
     <div style="padding:22px 24px;">
+      ${shareSummaryStepHtml(c)}
+      <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">Send ${esc(c.counterparty||'the counterparty')} a secure review link — they can review, sign, request changes or decline, <strong>no account needed</strong>. ${server?'Each recipient gets their own tracked link; the outcome arrives on this contract automatically and lands in your email.':'Their response comes back as a code you import below the document.'}</p>
@@ -1705,10 +1751,23 @@ async function openShareModal(c){
       </div>
       <div id="sh-result" style="margin-top:12px;"></div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+        <button id="share-back" class="ui-btn">← Back</button>
         <button id="share-close" class="ui-btn">Close</button>
         <button id="share-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">Send by email</span></button>
       </div>
+      </div>
     </div>`);
+  /* Both steps are built once and toggled, rather than re-rendered. The send
+     form wires a dozen listeners to elements it looks up by id; rebuilding it
+     on Next would mean wiring them all a second time, and the first one to be
+     forgotten would be a silent dead control. */
+  const step = n => {
+    document.getElementById('share-step-1').classList.toggle('hidden', n!==1);
+    document.getElementById('share-step-2').classList.toggle('hidden', n!==2);
+  };
+  document.getElementById('share-close-1').addEventListener('click',closeModal);
+  document.getElementById('share-next').addEventListener('click',()=>step(2));
+  document.getElementById('share-back').addEventListener('click',()=>step(1));
   const setCh=k=>{ ch=k;
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
       b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
@@ -1736,7 +1795,14 @@ async function openShareModal(c){
   });
 
   document.getElementById('share-send').addEventListener('click',async()=>{
-    const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone'), msg=fval('sh-msg');
+    const name=fval('sh-name'), email=fval('sh-email'), phone=fval('sh-phone');
+    /* The summary the sender approved on step 1 travels with the link: into the
+       message body, and onto the payload so the landing page still shows it to
+       someone who opens the link a week later. */
+    const summary=fval('sh-summary').trim();
+    const note=fval('sh-msg').trim();
+    const msg=[summary,note].filter(Boolean).join('\n\n');
+    payloadObj.contract.changeSummary=summary||null;
     if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
     // A share cannot be recalled, so an incomplete contract needs an explicit

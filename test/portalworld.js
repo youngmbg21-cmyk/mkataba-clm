@@ -62,9 +62,20 @@ const STUB_FOLDERS = {
 };
 
 function buildPortal(opts = {}) {
+  /* No `url` by default, which puts this stage on an OPAQUE ORIGIN where
+     localStorage throws — deliberate, because that is the counterparty's own
+     situation and several tests exercise the save path around it.
+
+     A test that needs the OWNER side of the app (openShareModal, say) has to
+     have a signed-in user, and js/core.js reads the session out of
+     localStorage. It cannot be faked by assigning window.currentUser: core.js
+     declares that as a lexical `const`, so its own internal callers resolve to
+     that binding and never see a replacement — the same trap negoResolve
+     documents for canEdit. So such a test asks for a real origin instead. */
   const dom = new JSDOM(
     `<!doctype html><html><body>${HOST_IDS.map(id => `<div id="${id}"></div>`).join('')}</body></html>`,
-    { runScripts: 'outside-only', pretendToBeVisual: true });
+    { runScripts: 'outside-only', pretendToBeVisual: true,
+      ...(opts.url ? { url: opts.url } : {}) });
   const win = dom.window;
 
   win.DecompressionStream = globalThis.DecompressionStream;

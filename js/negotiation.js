@@ -894,6 +894,48 @@ function negoOpenPoints(c){
   return out;
 }
 
+/* ---------- what changed, as a summary a person can read ----------
+   What the Share dialog puts in front of the sender before it sends anything,
+   and what travels to the counterparty alongside the link.
+
+   Every line is QUOTED FROM THE RECORD, never composed. A change's summary is
+   either the sentence the proposer typed or the mechanical "what goes → what
+   arrives" built from its stored ops — the same text the change index shows.
+   Machine-written prose about a legal change ("liability was relaxed") is the
+   one thing this must not produce, because a reader would act on it.
+
+   Only changes still on the table are listed. A decided change is history, and
+   history is what the version list is for. */
+function negoChangeSummary(c){
+  negoInit(c);
+  const live = negoChanges(c).filter(x => x.status !== 'superseded');
+  const label = ch => ch.clauseLabel || ch.clauseId || 'this contract';
+  const kind = ch => ch.changeType === 'insertClause' ? 'New clause'
+    : ch.changeType === 'deleteClause' ? 'Deletion' : 'Amended';
+  const lines = live.map(ch => ({
+    id: ch.id, status: ch.status, changeType: ch.changeType,
+    clause: label(ch), kind: kind(ch), summary: ch.summary || '',
+    author: ch.author, mine: ch.authorSide === 'owner',
+    text: `#${ch.id} · ${label(ch)} — ${ch.summary || kind(ch)}`,
+  }));
+  const pending = lines.filter(x => x.status === 'pending').length;
+  const accepted = lines.filter(x => x.status === 'accepted').length;
+  const rejected = lines.filter(x => x.status === 'rejected').length;
+  return {
+    round: negoRound(c),
+    total: lines.length, pending, accepted, rejected,
+    lines,
+    /* The plain-text form that goes into an email body. Built here rather than
+       at the send site so the dialog and the message cannot disagree about what
+       was said to have changed. */
+    text: lines.length
+      ? `Round ${negoRound(c)} — ${lines.length} change${lines.length === 1 ? '' : 's'} on the table`
+        + `${pending ? `, ${pending} awaiting a decision` : ''}:\n`
+        + lines.map(x => `  • ${x.text}`).join('\n')
+      : `Round ${negoRound(c)} — no changes have been proposed yet. The document is as it stands.`,
+  };
+}
+
 /* ---------- the turn model ----------
    Whose move it is. Built on the existing share/response routes — no new
    endpoints, no websockets — because a public no-login URL that mutates a
@@ -1143,7 +1185,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll,
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoTurn, negoHandOver, negoTurnBanner,
+  negoChangeSummary, negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });
