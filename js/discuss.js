@@ -140,6 +140,67 @@ function discussPanelHtml(opts){
       ${composer}
     </div>`;
 }
+/* ---- answering where the argument is ----
+   The panel above is the general channel, and on its own it was not enough. A
+   reader meets a disagreement in the "Still open between us" card — "Net-30
+   stands, or a 2% price increase" — and that card had no way to answer it: its
+   instruction was to press Propose edits, the six-step formal route this whole
+   module exists to avoid. Using the light route meant scrolling away from the
+   thing being answered and finding it again in a dropdown of every clause in
+   the contract, whose default was the wrong one.
+
+   This is the same conversation as the panel — same store, same topics — put
+   where the sentence is actually read. Both sides embed it in their own card,
+   so neither has to rebuild what a still-open point looks like. */
+function discussPointReplyHtml(topic, messages, opts){
+  const { idp, mine, placeholder, disabled, disabledNote } = opts || {};
+  const e = window.esc || (s => String(s == null ? '' : s));
+  const on = (messages || []).filter(m => (m.topic || DISCUSS_GENERAL) === topic);
+  const last = on[on.length - 1];
+  const theirTurn = last && last.side !== mine;
+  const thread = on.length ? `
+    <div style="display:flex;flex-direction:column;gap:6px;margin:8px 0 0">
+      ${on.map(m => discussBubbleHtml(m, mine)).join('')}
+    </div>` : '';
+  if (disabled) return thread + (disabledNote ? `
+    <div style="margin-top:7px;font-size:11px;color:var(--color-neutral-600)">${e(disabledNote)}</div>` : '');
+  return `${thread}
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
+      <input data-point-body="${e(idp)}" type="text" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
+        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"/>
+      <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">Send</button>
+    </div>
+    <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
+    ${on.length && !theirTurn ? `<div style="margin-top:5px;font-size:10.5px;color:var(--color-neutral-500)">Sent — waiting on them.</div>` : ''}`;
+}
+/* Wire every point card on the page at once. `send` is the same function the
+   general composer uses, so a reply from here and a reply from there are the
+   same kind of thing and land in the same thread. */
+function wireDiscussPoints(opts){
+  const { send, onSent } = opts || {};
+  document.querySelectorAll('[data-point-send]').forEach(btn => {
+    const idp = btn.getAttribute('data-point-send');
+    btn.addEventListener('click', async () => {
+      const input = document.querySelector(`[data-point-body="${idp}"]`);
+      const out = document.querySelector(`[data-point-out="${idp}"]`);
+      const body = String(input && input.value || '').trim();
+      if (!body){ if (window.toast) toast('Write your reply first', 'err'); return; }
+      const restore = btn.innerHTML;
+      btn.disabled = true; btn.innerHTML = 'Sending…';
+      try {
+        const res = await send(btn.getAttribute('data-point-topic') || idp,
+          btn.getAttribute('data-point-label') || '', body);
+        if (input) input.value = '';
+        if (onSent) onSent(res);
+      } catch (e){
+        if (out) out.innerHTML = `<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:7px 10px;font-size:11px;line-height:1.5;color:#8f322b"><b>Not sent.</b> ${(window.esc ? esc(e.message) : e.message) || 'Something went wrong.'} Your reply is still in the box.</div>`;
+        if (window.toast) toast(e.message || 'Could not send that reply', 'err');
+      }
+      btn.disabled = false; btn.innerHTML = restore;
+    });
+  });
+}
+
 /* Wire the composer. `send(topic, topicLabel, body)` does the posting and
    returns the refreshed message list; everything else here is the same on both
    sides, which is why it lives in one place. */
@@ -171,4 +232,5 @@ function wireDiscussPanel(opts){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   DISCUSS_GENERAL, discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
-  discussUnansweredBy, discussBubbleHtml, discussPanelHtml, wireDiscussPanel, discussTrim });
+  discussUnansweredBy, discussBubbleHtml, discussPanelHtml, wireDiscussPanel, discussTrim,
+  discussPointReplyHtml, wireDiscussPoints });

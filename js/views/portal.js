@@ -564,6 +564,12 @@ function portalOpenPointsHtml(c, p){
   const pts=(c&&c.openPoints)||[];
   if(!pts.length) return '';
   const org=esc((p&&p.org)||'The other side');
+  /* A reply box on the point itself. This card carries the disagreement — it is
+     where the reader meets "Net-30 stands, or a 2% price increase" — and until
+     now the only thing it offered was an instruction to open a formal round.
+     Answering a sentence with a sentence belongs here, not in a panel further
+     down the page behind a dropdown of every clause in the contract. */
+  const canReply=!!PORTAL_OPTS.token && !!window.discussPointReplyHtml;
   return `
     <div id="pt-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
@@ -571,9 +577,9 @@ function portalOpenPointsHtml(c, p){
         <span style="font-size:13px;font-weight:600;color:#7d5a14">Still open between us</span>
         <span style="margin-left:auto;font-size:10.5px;color:#7d5a14;font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
       </div>
-      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract — press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.</p>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">${org} did not adopt ${pts.length===1?'this change':'these changes'}. The wording below is unchanged in the contract. ${canReply?`Answer ${pts.length===1?'it':'them'} right here — that changes nothing in the contract — or press <b>Propose edits</b> when you have new wording to put forward.`:`Press <b>Propose edits</b> if you want to come back on ${pts.length===1?'it':'them'}.`}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
-        ${pts.map(pt=>`
+        ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
             ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
@@ -581,6 +587,10 @@ function portalOpenPointsHtml(c, p){
               <div style="color:#8f322b">${esc(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>You said:</b> ${esc(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>Their reply:</b> ${esc(pt.reason)}</div>`:''}
+            ${canReply?discussPointReplyHtml('point:'+pt.id, PORTAL_OPTS.messages||[], {
+              idp:'pt-op-'+i, mine:'counterparty',
+              label:'Still open — '+discussTrim(pt.after||pt.before,60),
+              placeholder:'e.g. Would you take Net-45?' }):''}
           </div>`).join('')}
       </div>
     </div>`;
@@ -613,20 +623,25 @@ function portalDiscussHtml(c, p){
 function wirePortalDiscuss(c, p){
   if (!window.wireDiscussPanel || !PORTAL_OPTS.token) return;
   const topics = portalDiscussTopics(c);
-  wireDiscussPanel({
-    idp: 'pt-discuss', topics,
-    send: async (topic, topicLabel, body) => {
-      const author = fval('pt-name') || (PORTAL_OPTS.share && PORTAL_OPTS.share.recipientName) || '';
-      if (!author) throw new Error('Enter your full name in the panel on the right first.');
-      return api('shares/' + PORTAL_OPTS.token + '/messages', 'POST', { author, topic, topicLabel, body });
-    },
-    onSent: res => {
-      PORTAL_OPTS.messages = (res && res.messages) || PORTAL_OPTS.messages || [];
-      const host = document.getElementById('pt-discuss-panel');
-      if (host){ host.outerHTML = portalDiscussHtml(c, p); wirePortalDiscuss(c, p); }
-      if (window.toast) toast('Message sent — the contract is unchanged');
-    },
-  });
+  const post = async (topic, topicLabel, body) => {
+    const author = fval('pt-name') || (PORTAL_OPTS.share && PORTAL_OPTS.share.recipientName) || '';
+    if (!author) throw new Error('Enter your full name in the panel on the right first.');
+    return api('shares/' + PORTAL_OPTS.token + '/messages', 'POST', { author, topic, topicLabel, body });
+  };
+  /* Both surfaces repaint together: a reply sent on an open point has to appear
+     in the general thread too, or the two would tell different stories about
+     the same conversation. */
+  const repaint = res => {
+    PORTAL_OPTS.messages = (res && res.messages) || PORTAL_OPTS.messages || [];
+    const panel = document.getElementById('pt-discuss-panel');
+    if (panel) panel.outerHTML = portalDiscussHtml(c, p);
+    const points = document.getElementById('pt-openpoints');
+    if (points) points.outerHTML = portalOpenPointsHtml(c, p);
+    wirePortalDiscuss(c, p);
+    if (window.toast) toast('Sent — the contract is unchanged');
+  };
+  wireDiscussPanel({ idp: 'pt-discuss', topics, send: post, onSent: repaint });
+  if (window.wireDiscussPoints) wireDiscussPoints({ send: post, onSent: repaint });
 }
 
 /* ---- editing a clause at a time (item 4, phase 1) ----

@@ -1178,28 +1178,66 @@ function openEditDocModal(c){
    The mirror of the panel on the counterparty's page, reading and writing the
    same thread. Rendered even when empty and nothing has been shared yet, so the
    channel is discoverable before it is needed rather than after. */
+/* The points the counterparty raised that we did not adopt. The counterparty's
+   page has shown these since the second review; the owner's side never has, so
+   the one list that says what is actually still being argued about existed at
+   only one end of the negotiation. Each carries the same reply strip her
+   counterparty gets, so a sentence can be answered with a sentence from either
+   side of the deal. */
+function discussPointsSectionHtml(c){
+  const pts=(window.openPointsFor?openPointsFor(c):[])||[];
+  if(!pts.length || !window.discussPointReplyHtml) return '';
+  const e=x=>String(x==null?'':x).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const who=e(c.counterparty||'the counterparty');
+  return `
+    <div id="ws-openpoints" style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:8px;padding:14px 18px;margin:0 0 14px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+        <span style="flex:none;color:#b8862b;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+        <span style="font-size:13px;font-weight:600;color:#7d5a14">Still open between you</span>
+        <span style="margin-left:auto;font-size:10.5px;color:#7d5a14;font-family:var(--font-mono)">${pts.length} point${pts.length===1?'':'s'}</span>
+      </div>
+      <p style="margin:0 0 10px;font-size:11.5px;line-height:1.55;color:#7d5a14">Changes ${who} asked for that were not adopted. The contract reads as it did; answering here changes nothing in it.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${pts.map((pt,i)=>`
+          <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:6px;padding:9px 12px;font-size:12px;line-height:1.6">
+            ${pt.before?`<div><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Contract says</span>
+              <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">They asked for</span>
+              <div style="color:#8f322b">${e(pt.after)}</div></div>`:''}
+            ${pt.ask?`<div style="margin-top:5px;font-size:11.5px;color:var(--color-neutral-700)"><b>They said:</b> ${e(pt.ask)}</div>`:''}
+            ${pt.reason?`<div style="margin-top:4px;font-size:11.5px;color:var(--color-neutral-700)"><b>You replied:</b> ${e(pt.reason)}</div>`:''}
+            ${discussPointReplyHtml('point:'+pt.id, c._messages||[], {
+              idp:'ws-op-'+i, mine:'owner',
+              label:'Still open — '+discussTrim(pt.after||pt.before,60),
+              placeholder:'e.g. Net-45 works if delivery goes weekly.',
+              disabled:!canEdit(), disabledNote:'Viewers can read this but cannot reply.' })}
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
 function renderDiscussSection(c){
   const host=document.getElementById('discuss-section'); if(!host) return;
   if(!window.discussPanelHtml || !API_MODE()){ host.innerHTML=''; return; }
   const topics=window.discussTopics?discussTopics(c, window.docPlainText?docPlainText(c):''):[];
-  host.innerHTML=discussPanelHtml({
+  host.innerHTML=discussPointsSectionHtml(c)+discussPanelHtml({
     messages:c._messages||[], topics, mine:'owner', idp:'ws-discuss',
     title:`Talk it through with ${c.counterparty||'the counterparty'}`,
     blurb:'Answer a question or raise one without opening a formal round. This sends a message only — the wording of the contract is untouched, and nothing here needs reviewing or deciding.',
     disabled:!canEdit(), disabledNote:'Viewers can read this conversation but cannot post to it.',
   });
   if(!canEdit()) return;
-  wireDiscussPanel({ idp:'ws-discuss', topics,
-    send:(topic,topicLabel,body)=>api('contracts/'+c.id+'/messages','POST',{topic,topicLabel,body}),
-    onSent:res=>{
-      c._messages=(res&&res.messages)||c._messages||[];
-      renderDiscussSection(c);
-      // whether it actually reached them is the sort of thing this product says
-      // out loud rather than leaving to be discovered
-      toast(res&&res.emailSent ? `Message sent to ${res.to}`
-        : res&&res.to ? `Saved — but the email to ${res.to} could not be sent. They will see it when they open their link.`
-        : 'Saved — they will see it when they open their link');
-    } });
+  const post=(topic,topicLabel,body)=>api('contracts/'+c.id+'/messages','POST',{topic,topicLabel,body});
+  const after=res=>{
+    c._messages=(res&&res.messages)||c._messages||[];
+    renderDiscussSection(c);
+    // whether it actually reached them is the sort of thing this product says
+    // out loud rather than leaving to be discovered
+    toast(res&&res.emailSent ? `Message sent to ${res.to}`
+      : res&&res.to ? `Saved — but the email to ${res.to} could not be sent. They will see it when they open their link.`
+      : 'Saved — they will see it when they open their link');
+  };
+  wireDiscussPanel({ idp:'ws-discuss', topics, send:post, onSent:after });
+  if(window.wireDiscussPoints) wireDiscussPoints({ send:post, onSent:after });
 }
 async function loadDiscussion(c){
   if(!API_MODE()||!window.discussPanelHtml) return;
@@ -2713,4 +2751,4 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,renderDiscussSection,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});
+Object.assign(window,{openWordExportModal,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction});

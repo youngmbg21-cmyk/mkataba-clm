@@ -357,3 +357,116 @@ describe('F31 — the owner’s half of the same conversation', () => {
     assert.match(s.doc.getElementById('host').innerHTML, /cannot post to it/);
   });
 });
+
+/* ============================================================
+   The reply, where the argument actually is
+   ============================================================
+   The fourth review's finding against the feature above: the channel was real
+   and correctly built, and it was in the wrong place. A reader meets the
+   disagreement in the "Still open between us" card — "Net-30 stands, or a 2%
+   price increase" — and that card offered no way to answer it. Its instruction
+   was to press Propose edits: the six-step formal route this whole feature
+   exists to avoid. Using the light route meant scrolling away from the thing
+   being answered and finding it again in a dropdown of every clause in the
+   contract, whose default was the wrong one. Half the feature had landed. */
+describe('F31 — answering on the point itself', () => {
+  const REFUSED = {
+    n: 1, at: '2026-07-20T09:00:00Z', by: 'Erik Lindqvist', status: 'closed',
+    baseText: 'Payment shall be made within thirty (30) days of a valid invoice.',
+    proposedText: 'Payment shall be made within sixty (60) days of a valid invoice.',
+    blockDecisions: [{ id: 'b0', decision: 'reject', before: 'thirty (30)', after: 'sixty (60)',
+      note: 'Net-60 is our standard.', reply: 'Net-30 stands, or a 2% price increase.' }],
+    resolution: { decision: 'rejected', at: '2026-07-21T09:00:00Z' },
+  };
+  const stage = (messages = []) => {
+    const q = buildPortal();
+    q.open(sharePayloadFor(q, supplyContract({ rounds: [REFUSED] })), { messages });
+    const html = q.html();
+    return { q, html,
+      card: html.slice(html.indexOf('id="pt-openpoints"'), html.indexOf('id="pt-discuss-panel"')) };
+  };
+
+  test('the card carrying the disagreement can be answered in place', () => {
+    const { card } = stage();
+    assert.match(card, /data-point-body/, 'a reply box must sit on the point itself');
+    assert.match(card, /data-point-send/);
+  });
+
+  test('it no longer sends the reader to the formal route to say one sentence', () => {
+    const { card } = stage();
+    assert.ok(!/press <b>Propose edits<\/b> if you want to come back/.test(card),
+      'the instruction that made this the worst friction must be gone');
+    assert.match(card, /Answer (it|them) right here/,
+      'and it must say that answering changes nothing in the contract');
+  });
+
+  test('sending from the point files it against that point, not "the contract generally"', async () => {
+    const { q } = stage();
+    q.setValue('pt-name', 'Erik Lindqvist');
+    q.win.document.querySelector('[data-point-body="pt-op-0"]').value = 'Would you take Net-45?';
+    q.win.document.querySelector('[data-point-send="pt-op-0"]')
+      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await new Promise(r => setImmediate(r));
+
+    const call = q.log.sent[q.log.sent.length - 1];
+    assert.ok(call, 'nothing was sent');
+    assert.match(call.pathname, /\/messages$/, 'still a message, never a round');
+    assert.equal(call.body.topic, 'point:r1.b0',
+      'the point being read is the point being answered — no dropdown to get wrong');
+    assert.match(call.body.topicLabel, /sixty \(60\)/);
+    assert.equal(call.body.body, 'Would you take Net-45?');
+  });
+
+  test('the reply appears on the point AND in the thread — one conversation', async () => {
+    const { q } = stage();
+    q.setValue('pt-name', 'Erik Lindqvist');
+    q.win.document.querySelector('[data-point-body="pt-op-0"]').value = 'Would you take Net-45?';
+    q.win.document.querySelector('[data-point-send="pt-op-0"]')
+      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    await new Promise(r => setImmediate(r));
+
+    const after = q.html();
+    const card = after.slice(after.indexOf('id="pt-openpoints"'), after.indexOf('id="pt-discuss-panel"'));
+    const panel = after.slice(after.indexOf('id="pt-discuss-panel"'));
+    assert.match(card, /Would you take Net-45\?/, 'it must show where it was written');
+    assert.match(panel, /Would you take Net-45\?/,
+      'two surfaces telling different stories about one conversation is two conversations');
+  });
+
+  test('an earlier exchange on the point is shown on the point', () => {
+    const { card } = stage([
+      { id: 1, side: 'counterparty', author: 'Erik Lindqvist', topic: 'point:r1.b0',
+        body: 'Would you take Net-45?', at: '2026-07-22T09:00:00Z' },
+      { id: 2, side: 'owner', author: 'Wanjiru Kamau', topic: 'point:r1.b0',
+        body: 'Net-45 works if delivery goes weekly.', at: '2026-07-22T10:00:00Z' },
+      { id: 3, side: 'counterparty', author: 'Erik Lindqvist', topic: 'general',
+        body: 'Unrelated question.', at: '2026-07-22T11:00:00Z' },
+    ]);
+    assert.match(card, /Would you take Net-45\?/);
+    assert.match(card, /Net-45 works if delivery goes weekly\./);
+    assert.ok(!/Unrelated question/.test(card),
+      'a point shows its own conversation, not everything ever said');
+  });
+
+  test('an empty reply is refused before it reaches the wire', async () => {
+    const { q } = stage();
+    q.setValue('pt-name', 'Erik Lindqvist');
+    q.win.document.querySelector('[data-point-send="pt-op-0"]')
+      .dispatchEvent(new q.win.Event('click', { bubbles: true }));
+    for (let i = 0; i < 8; i++) await Promise.resolve();
+    assert.equal(q.log.sent.length, 0);
+    assert.match(q.toastText(), /reply/i);
+  });
+
+  test('a link with no channel back offers no box it cannot deliver from', () => {
+    const q = buildPortal();
+    q.win.renderSharePortal(sharePayloadFor(q, supplyContract({ rounds: [REFUSED] })), { share: {} });
+    const html = q.html();
+    const card = html.slice(html.indexOf('id="pt-openpoints"'), html.indexOf('id="pt-discuss-panel"'));
+    assert.ok(!/data-point-send/.test(card));
+    assert.match(card, /Press <b>Propose edits<\/b>/,
+      'with no way to send a message, the formal route is the honest instruction');
+  });
+});
