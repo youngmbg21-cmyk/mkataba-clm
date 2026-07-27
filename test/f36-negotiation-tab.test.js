@@ -129,13 +129,21 @@ describe('the redline stays readable when a clause is rewritten', () => {
     .replace(/<span class="nego-ins">/g, '[+').replace(/<span class="nego-del">/g, '[-')
     .replace(/<\/span>/g, ']');
 
-  test('a small edit is marked word by word', async () => {
+  test('a small edit marks only the words that moved, as one decision', async () => {
     const m = await mounted();
     const out = strip(m.win.negoDiffHtml(
       'All invoices are payable within thirty (30) days from the date of issue.',
       'All invoices are payable within forty-five (45) days from the date of issue.'));
-    assert.match(out, /^All invoices are payable within \[-thirty\]\[\+forty-five\] \[-\(30\)\]\[\+\(45\)\] days from the date of issue\.$/,
-      'precision is the right answer for a two-word change');
+    /* "thirty (30)" is ONE run, not two. The space between "thirty" and "(30)"
+       is unchanged text, so a word-level diff splits the edit in half — and
+       presented as two independent decisions a reviewer could take
+       "forty-five" while refusing "(45)" and end up with "forty-five (30)
+       days", wording neither party ever proposed. js/versioning.js worked this
+       out first in _diffSegments; the engine now applies it rather than
+       leaving it to each renderer. */
+    assert.match(out, /^All invoices are payable within \[-thirty \(30\)\]\[\+forty-five \(45\)\] days from the date of issue\.$/,
+      'the two halves of one edit are one deletion and one insertion');
+    assert.ok(!/\[-\(30\)\]/.test(out), 'the parenthesised figure is not a decision of its own');
   });
 
   test('a rewritten clause becomes one deletion and one insertion', async () => {
@@ -165,20 +173,23 @@ describe('the redline stays readable when a clause is rewritten', () => {
     assert.equal((eq + ' ' + inss).replace(/\s+/g, ' ').trim(), after.replace(/\s+/g, ' ').trim());
   });
 
-  test('the coalesced form cuts on whitespace and reconstructs both texts', async () => {
+  test('the ops cut on word boundaries and reconstruct both texts exactly', async () => {
     const m = await mounted();
     const before = 'payable within thirty (30) days of invoice';
     const after = 'payable within forty-five (45) days of a valid invoice';
-    const d = m.win.negoRunDiff(before, after);
+    const ops = m.win.redlineOps(before, after);
 
-    // the two cuts fall between words, never inside one
-    assert.ok(d.prefix === '' || /\s$/.test(d.prefix), `prefix must end on whitespace: "${d.prefix}"`);
-    assert.ok(d.suffix === '' || /^\s/.test(d.suffix), `suffix must start on whitespace: "${d.suffix}"`);
+    /* Every cut falls between tokens, so a word is never split in half — the
+       property the old prefix/suffix runDiff had to back off to a space to
+       achieve, and which token-level diffing has by construction. */
+    for (const o of ops)
+      assert.ok(/^\S/.test(o.text) || /^\s/.test(o.text),
+        `a run must start on a token boundary: ${JSON.stringify(o.text)}`);
 
-    // and the three pieces really are the two documents
-    const join = mid => (d.prefix + mid + d.suffix).replace(/\s+/g, ' ').trim();
-    assert.equal(join(d.del), before, 'context plus the deletion is the old wording');
-    assert.equal(join(d.ins), after, 'context plus the insertion is the new wording');
+    // and the runs really are the two documents, byte for byte — not merely
+    // equal after whitespace normalisation, which is what "exactly" costs
+    assert.equal(m.win.redlineOldText(ops), before, 'keep + del is the old wording');
+    assert.equal(m.win.redlineNewText(ops), after, 'keep + ins is the new wording');
   });
 });
 
@@ -218,8 +229,21 @@ describe('the change index card carries what a reader needs to decide', () => {
     const card = m.$(`#nego-card-${m.filed[0].id}`);
     assert.ok(card, 'the card must exist');
     assert.match(card.querySelector('.nego-id').textContent, /^#CHG-001$/);
-    const pills = Array.from(card.querySelectorAll('.nego-st')).map(n => n.textContent.trim());
-    assert.deepEqual([...pills], ['Verified', 'pending'], 'Verified always, then the live status');
+    /* The first paint claims NOTHING. Verification hashes the whole chain, so
+       it cannot run inside a synchronous render, and a pill that said
+       "Verified" before anything had been checked would be the very fakery
+       this pill was fixed for — briefly, but no less falsely. */
+    const first = Array.from(card.querySelectorAll('.nego-st')).map(n => n.textContent.trim());
+    assert.deepEqual([...first], ['Checking…', 'pending'],
+      'before the chain is walked the pill claims nothing');
+
+    await m.win.negoRefreshVerification(m.c);
+    m.win.renderNegotiationTab(m.c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau' });
+    const after = m.$(`#nego-card-${m.filed[0].id}`);
+    const pills = Array.from(after.querySelectorAll('.nego-st')).map(n => n.textContent.trim());
+    assert.deepEqual([...pills], ['Verified', 'pending'],
+      'and says Verified only once every hash has been recomputed and matched');
+    assert.equal(after.querySelector('[data-verify]').getAttribute('data-verify'), 'ok');
     assert.match(card.textContent, /Author:/);
     assert.match(card.textContent, /Erik Lindqvist · Nordfrakt Logistik AB/);
     // the abbreviated hash is shown; the full one is on the element

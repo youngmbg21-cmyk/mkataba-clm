@@ -35,6 +35,8 @@ const ROOT = path.join(__dirname, '..');
 /* The modules a negotiation actually runs through, in js/app.js order. */
 const MODULES = [
   'js/richdoc.js',
+  'js/redline.js',
+  'js/clausemodel.js',
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',
@@ -73,6 +75,14 @@ function buildWorld(opts = {}) {
   win.CompressionStream = globalThis.CompressionStream;
   win.Response = globalThis.Response;
   win.Blob = globalThis.Blob;
+  /* A real WebCrypto, because js/core.js's sha256() falls back to a weak
+     32-bit substitute when crypto.subtle is missing — and a stage that ran the
+     hash chain on the substitute would be testing the fallback rather than the
+     product. */
+  // jsdom defines window.crypto as a read-only accessor, so it is REDEFINED
+  // rather than assigned; a plain assignment silently does nothing and the
+  // modules then run on core.js's weak fallback digest.
+  Object.defineProperty(win, 'crypto', { value: globalThis.crypto, configurable: true, writable: true });
   win.TextEncoder = globalThis.TextEncoder;
   win.TextDecoder = globalThis.TextDecoder;
   win.Uint8Array = globalThis.Uint8Array;

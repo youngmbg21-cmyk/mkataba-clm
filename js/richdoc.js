@@ -22,8 +22,33 @@
 const RICH_TAGS = new Set(['P','BR','H1','H2','H3','H4','STRONG','EM','U','S',
   'UL','OL','LI','TABLE','THEAD','TBODY','TR','TH','TD','BLOCKQUOTE','PRE','SPAN']);
 /* Attributes permitted, per tag. Nothing else survives — no style, no id, no
-   class outside the one below, no data-*, no on*, no href, no colspan. */
-const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class']) };
+   class outside the one below, no on*, no href, no colspan, and no data-*
+   beyond the single one below.
+
+   `data-clause-id` on a heading is the ONE exception, and it is here because a
+   clause's identity has to live in the document rather than beside it. A
+   negotiation files a change against a clause; if the clause is identified by
+   its position or its number, inserting a clause above it re-points every
+   change filed against it, silently. So the id is written onto the heading at
+   intake, once, and never changed — which means it must survive the sanitiser,
+   which runs on save AND again on render.
+
+   It is admitted narrowly: on the block that OPENS a clause, and only for
+   values matching the opaque shape this repo generates (see clauseNewId in
+   js/clausemodel.js). That block is a heading in a structured contract and a
+   paragraph in a flat one — an uploaded document with no headings at all still
+   has clauses, and they still have to be addressable. It is never admitted on
+   an inline element or a table cell, which open nothing. The value
+   is never interpreted as markup, a URL or a selector — it is compared for
+   equality and nothing else — but it is still validated on the way in, because
+   an allowlist that admits an arbitrary attacker-chosen string into stored
+   markup is a smaller allowlist than it looks. */
+const RICH_CLAUSE_ATTR = 'data-clause-id';
+const RICH_CLAUSE_ID_RE = /^cl_[a-z0-9]{4,24}$/;
+const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class']),
+  H1:new Set([RICH_CLAUSE_ATTR]), H2:new Set([RICH_CLAUSE_ATTR]),
+  H3:new Set([RICH_CLAUSE_ATTR]), H4:new Set([RICH_CLAUSE_ATTR]),
+  P:new Set([RICH_CLAUSE_ATTR]) };
 /* The single allowlisted span class: HaTi's own field-placeholder marker. */
 const RICH_FIELD_CLASS = 'hati-field';
 /* Removed with their contents — these carry no document meaning and every one
@@ -142,6 +167,11 @@ function _stripAttrs(el){
     if(el.tagName==='SPAN' && name==='class'){
       // exactly one class is permitted, and only that one
       if(String(attr.value||'').trim()!==RICH_FIELD_CLASS) el.removeAttribute(attr.name);
+      continue;
+    }
+    if(name===RICH_CLAUSE_ATTR){
+      // only the opaque shape this repo issues; anything else is dropped
+      if(!RICH_CLAUSE_ID_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
       continue;
     }
     if(el.tagName==='OL' && name==='start'){
@@ -617,6 +647,7 @@ function textToRich(text){
 }
 
 Object.assign(window,{RICH_TAGS,RICH_ATTRS,RICH_FIELD_CLASS,RICH_DROP,RICH_MAP,RICH_BLOCKS,RICH_BLOCKISH,
+  RICH_CLAUSE_ATTR,RICH_CLAUSE_ID_RE,
   RICH_FORMAT,TEXT_FORMAT,RICH_PLACEHOLDER_RE,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich});

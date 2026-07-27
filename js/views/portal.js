@@ -790,9 +790,18 @@ function portalNegoContract(p){
   const c = migrateContract({ ...src, status:'Under Review',
     folder: src.folder || (TEMPLATES[src.template]||{}).folder || 'corp' });
   c.changes = Array.isArray(src.changes) ? src.changes.map(x=>({ ...x, thread:(x.thread||[]).slice() })) : [];
-  c.negotiation = { round:(src.negotiation&&src.negotiation.round)||1,
-    baselineText:(src.negotiation&&src.negotiation.baselineText)||portalCurrentText()||docPlainText(c)||'',
-    seq:c.changes.length };
+  /* baselineBody carries the durable clause ids the changes are anchored on.
+     Rebuilding it from the text projection instead would re-segment the
+     document and mint FRESH ids on this page, and every fingerprint the owner
+     filed would then name a clause that does not exist here. */
+  const sn = src.negotiation || {};
+  c.negotiation = { round:sn.round||1,
+    turn:sn.turn||'owner', turnAt:sn.turnAt||null,
+    baselineBody:sn.baselineBody||'',
+    baselineText:sn.baselineText||portalCurrentText()||docPlainText(c)||'',
+    chainHead:sn.chainHead||null, chainSeq:sn.chainSeq||0,
+    hashV:sn.hashV||null,
+    seq:sn.seq||c.changes.length };
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     const d=PORTAL_NEGO_DECISIONS[ch.id];

@@ -5,6 +5,8 @@ import './templates.js';
 import './core.js';
 import './docx.js';
 import './richdoc.js';
+import './clausemodel.js'; // what a clause IS: read from the DOM, identified by a durable id
+import './redline.js';   // the negotiation's diff: Myers ops, stored and rendered from storage
 import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';

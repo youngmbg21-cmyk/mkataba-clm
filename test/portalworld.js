@@ -27,6 +27,8 @@ const ROOT = path.join(__dirname, '..');
    see — must be the real one, not a copy kept in a test. */
 const MODULES = [
   'js/richdoc.js',
+  'js/clausemodel.js',
+  'js/redline.js',
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',
@@ -68,6 +70,14 @@ function buildPortal(opts = {}) {
   win.DecompressionStream = globalThis.DecompressionStream;
   win.Response = globalThis.Response;
   win.Blob = globalThis.Blob;
+  /* A real WebCrypto, because js/core.js's sha256() falls back to a weak
+     32-bit substitute when crypto.subtle is missing — and a stage that ran the
+     hash chain on the substitute would be testing the fallback rather than the
+     product. */
+  // jsdom defines window.crypto as a read-only accessor, so it is REDEFINED
+  // rather than assigned; a plain assignment silently does nothing and the
+  // modules then run on core.js's weak fallback digest.
+  Object.defineProperty(win, 'crypto', { value: globalThis.crypto, configurable: true, writable: true });
   win.TextEncoder = globalThis.TextEncoder;
   win.TextDecoder = globalThis.TextDecoder;
   win.console = console;

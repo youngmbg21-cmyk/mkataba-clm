@@ -19,148 +19,208 @@
 // b0 in round 3 is a different passage from b0 in round 2, so nothing about a
 // block is quotable, addressable or hashable across rounds.
 //
-// A CHANGE is one clause's worth of divergence with a STABLE identity:
+// A CHANGE is one CLAUSE's worth of divergence with a stable identity, anchored
+// on a durable clause id that lives in the document itself (js/clausemodel.js).
 //
-//   { id, clauseId, type, oldText, newText, hash, status,
-//     author, authorSide, createdAt, summary, roundN, thread[] }
+// WHAT CHANGED IN THIS MODULE, AND WHY
 //
-// `id` is a fingerprint (#CHG-012) allocated once and never reused. `hash` is a
-// SHA-256 over the change's substance, so a change can be named out loud, filed
-// to the audit trail, quoted in an email and verified later. `thread` is the
-// light channel from js/discuss.js attached to that one fingerprint — a comment
-// on a change opens no round and moves no document state.
+// Four defects, each recorded in BUGLOG with its before-evidence:
+//
+//   1. Clause identity was fake. Clauses were found by flattening the rich
+//      document to text and re-inferring headings with an all-caps heuristic;
+//      the prototype's own six-clause contract came back as FOURTEEN nameless
+//      fragments with line-index ids. Identity now comes from the DOM and is
+//      ASSIGNED, not derived — see js/clausemodel.js.
+//   2. Redlines were re-diffed at render time, so the same change could render
+//      differently on different days. The ops are computed once, STORED on the
+//      record, and rendered from storage — see js/redline.js.
+//   3. The hash covered a change but nothing chained one change to the next.
+//      Every hash issuance now carries prevChangeHash and verifyChangeChain()
+//      recomputes the whole history from stored content.
+//   4. Accepting a change round-tripped the document through plain text
+//      (negoResolvedText → richFromTextEdit), which is the mechanism behind the
+//      B-004 formatting-loss bug. Acceptance now edits the rich DOM by clause
+//      id. There is no lossy step left to guard against.
 //
 // TWO RULES OUTRANK EVERY FEATURE HERE
 //
 //   1. Silence rejects. A change nobody decided is NOT in the document. The
 //      opposite default — a clause quietly entering an agreement because
-//      nobody looked at it — is unrecoverable once signed. This is the same
-//      rule applyBlockDecisions() enforces, and it is enforced the same way:
-//      negoResolvedText() builds the document FROM the accepted set, rather
-//      than mutating a document and hoping the mutations were right.
+//      nobody looked at it — is unrecoverable once signed. So the working
+//      document is BUILT from the accepted set rather than mutated in place,
+//      and rejecting everything reproduces the baseline exactly. That is now
+//      asserted at the canonicalRich level, not merely on a text projection.
 //
-//   2. The wording is verified, never trusted. Merging back into a formatted
-//      document goes through richFromTextEdit(), which checks its own output's
-//      text projection against what was agreed and refuses rather than guess.
+//   2. Nobody rules on their own ask. Enforced in the model, not in the UI, so
+//      no new caller can route around it.
 
-/* ---------- clause segmentation ----------
-   A clause needs an id that survives a renumbering-free round, because a
-   change filed in round 2 must still point at the same clause in round 5.
+/* ---------- clause reading ----------
+   The negotiation reads clauses from js/clausemodel.js and nowhere else. There
+   is deliberately no second segmentation in this file: the old one existed
+   because the model could not read the document it was given, and having two
+   answers to "what is a clause" is how a change comes to be filed against a
+   passage nobody is looking at. */
+const negoClauseLabel = cl => (window.clauseLabel ? clauseLabel(cl) : '');
 
-   The line is the unit, and that is not a choice made here: richToText() emits
-   exactly one line per block — a heading, a paragraph, a numbered item — and
-   reconstructs ordered-list numbering while doing it, so a clause number is
-   literal text in the projection. js/discuss.js already keys its conversation
-   topics off that fact, with the reasoning spelled out there: a clause NUMBER
-   is stable across rounds where a line INDEX shifts the moment a clause is
-   inserted above it.
-
-   So this reuses discussClauseKey() verbatim rather than inventing a second
-   key. The payoff is direct: a comment about clause 5 and a change to clause 5
-   carry the same topic id, so the two surfaces are talking about one thing. */
-function negoClauseKey(line, i){
-  return window.discussClauseKey ? discussClauseKey(line, i) : ('clause:#' + i);
+/* The rich body a negotiation runs on. A contract that is already rich is used
+   as it stands; a plain-text one is lifted to the same shape so that every
+   intake path converges here — which is what makes the three paths produce one
+   normalised document rather than three that merely look alike. */
+function negoBodyOf(c){
+  if (window.isRich && isRich(c.format) && c.redlineText) return c.redlineText;
+  const text = (window.docPlainText ? docPlainText(c) : '') || '';
+  return text.trim() ? negoRichFromLines(text) : '';
 }
-/* The clauses of a text, in document order. Headings are carried as the TITLE
-   of the clauses beneath them rather than as clauses of their own: a heading is
-   not a term and cannot be negotiated, and docLineKind() already tells the two
-   apart ("1. TERM" is a heading, "1. This Agreement runs for…" is a clause,
-   because the first has no lowercase letters).
-
-   Duplicate keys are suffixed rather than dropped. A malformed document really
-   can number two clauses the same, and losing one of them here would lose it
-   from the negotiation — the one failure this whole model exists to prevent. */
-function negoClausesOf(text){
-  const lines = String(text == null ? '' : text).split('\n');
-  const out = [];
-  const seen = new Map();
-  let title = '';
-  for (let i = 0; i < lines.length; i++){
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const kind = window.docLineKind ? docLineKind(line) : 'text';
-    if (kind === 'heading'){ title = line.trim(); continue; }
-    let id = negoClauseKey(line, i);
-    if (seen.has(id)){                        // two clauses numbered the same
-      const n = seen.get(id) + 1;
-      seen.set(id, n);
-      id = id + '~' + n;
-    } else seen.set(id, 1);
-    out.push({ id, num: (window.docClausePrefix ? docClausePrefix(line) : '') || '',
-      title, text: line.trim(), lineIndex: i, kind });
-  }
-  return out;
+/* The clauses of the round's baseline — what this round's proposals are
+   measured against. */
+function negoClauseList(c){
+  negoInit(c);
+  return window.clauseSegment ? clauseSegment(c.negotiation.baselineBody || '') : [];
 }
-/* The clauses of a contract's CURRENT working wording. */
-const negoClauses = c => negoClausesOf(window.docPlainText ? docPlainText(c) : '');
-/* A clause's display heading, the way the prototype's document pane labels it:
-   "Clause 4 · Payment Terms" where both halves are known, the heading alone
-   where the clause carries no number, and the number alone where there is no
-   heading above it. Never invented: a clause with neither reads as its own
-   opening words, which is what a lawyer would call it anyway. */
-function negoClauseLabel(cl){
-  if (!cl) return '';
-  const num = String(cl.num || '').replace(/[.)]$/, '');
-  const head = String(cl.title || '').trim();
-  if (num && head) return `Clause ${num} · ${head.replace(/^\d+(?:\.\d+)*[.)]?\s+/, '')}`;
-  if (num) return `Clause ${num}`;
-  if (head) return head;
-  return (window.discussTrim ? discussTrim(cl.text, 60) : String(cl.text || '').slice(0, 60));
-}
+const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === id) || null;
+/* The clauses of the contract's CURRENT working wording. */
+const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : []);
 
 /* ---------- the negotiation record ----------
    c.negotiation holds the BASELINE for the round in flight: the wording both
    sides are measuring this round's proposals against. It is a snapshot of the
-   words, not a pointer to a version, for the same reason recordWordSent() keeps
-   one — a version can be superseded, but what the parties were arguing about
-   cannot un-happen. */
+   document, not a pointer to a version, for the same reason recordWordSent()
+   keeps one — a version can be superseded, but what the parties were arguing
+   about cannot un-happen.
+
+   The baseline is kept as RICH HTML with clause ids stamped in, so a change can
+   be applied to it by id without the document ever passing through plain text.
+   baselineText is kept alongside it as the text projection, because the round
+   model, the seal and search all read text and none of them should have to
+   learn about clauses. */
 function negoInit(c, opts = {}){
   c.changes = Array.isArray(c.changes) ? c.changes : [];
   if (!c.negotiation || opts.reset){
-    const text = (window.docPlainText ? docPlainText(c) : '') || '';
+    const body = negoStampContract(c);
     c.negotiation = {
-      baselineText: text,
+      baselineBody: body,
+      baselineText: (window.richToText ? richToText(body) : ''),
       baselineFormat: (window.docFormat ? docFormat(c.format) : 'text'),
-      baselineBody: (c.redlineText != null ? c.redlineText : null),
       round: 1,
+      turn: 'owner',
       startedAt: (window.nowISO ? window.nowISO() : new Date().toISOString()),
       seq: 0,
+      chainHead: null,
+      chainSeq: 0,
+      hashV: 2,
     };
   }
-  if (typeof c.negotiation.seq !== 'number') c.negotiation.seq = 0;
-  if (typeof c.negotiation.round !== 'number') c.negotiation.round = 1;
-  return c.negotiation;
+  const n = c.negotiation;
+  if (typeof n.seq !== 'number') n.seq = 0;
+  if (typeof n.round !== 'number') n.round = 1;
+  if (typeof n.chainSeq !== 'number') n.chainSeq = 0;
+  if (n.chainHead === undefined) n.chainHead = null;
+  if (!n.baselineBody) n.baselineBody = negoStampContract(c);
+  if (n.baselineText == null) n.baselineText = (window.richToText ? richToText(n.baselineBody) : '');
+  return n;
 }
+/* Stamp durable clause ids into the contract's own body, once, and keep them.
+   Writing them back into c.redlineText is the point: the id has to live in the
+   document, or it is just another lookaside table that can fall out of step
+   with the thing it describes. Idempotent — a second call stamps nothing. */
+function negoStampContract(c){
+  const body = negoBodyOf(c);
+  if (!body.trim()) return '';
+  if (!window.clauseStampIds) return body;
+  const { html, stamped } = clauseStampIds(body);
+  if (stamped && window.isRich && isRich(c.format) && c.redlineText != null) c.redlineText = html;
+  return html;
+}
+
 const negoBaseText = c => (negoInit(c).baselineText || '');
+const negoBaseBody = c => (negoInit(c).baselineBody || '');
 const negoRound = c => negoInit(c).round;
 const negoChanges = c => { negoInit(c); return c.changes; };
 const negoChangeById = (c, id) => negoChanges(c).find(x => x.id === id) || null;
 const negoPending = c => negoChanges(c).filter(x => x.status === 'pending');
 const negoOpenChanges = c => negoPending(c);
 
-/* A fingerprint id, allocated once per change and never reused — not even after
-   a change is deleted, because a fingerprint that comes back meaning something
-   else is worse than no fingerprint. Three digits to match #CHG-012. */
+/* A fingerprint id, allocated once per change and never reused — not even
+   after a change is deleted, because a fingerprint that comes back meaning
+   something else is worse than no fingerprint. Three digits, as #CHG-012.
+
+   The id names the SLOT; the hash names the CONTENT. Revising a pending change
+   keeps the id and issues a new hash, so a precise citation is id@hash. */
 function negoNextId(c){
   const n = ++negoInit(c).seq;
   return 'CHG-' + String(n).padStart(3, '0');
 }
 
-/* ---------- the hash ----------
-   What a fingerprint attests to: this clause, this kind of change, these exact
-   words before and after, proposed by this party at this moment. Anything
-   outside that list is deliberately excluded — a change's hash must not move
-   when it is accepted, discussed or re-read, or it could not be used to verify
-   the thing it names. Prefixed 0x and rendered in full on the record. */
-function negoHashInput(ch){
-  return [ 'hati-change-v1', ch.clauseId || '', ch.type || '',
-    String(ch.oldText || '').replace(/\s+/g, ' ').trim(),
-    String(ch.newText || '').replace(/\s+/g, ' ').trim(),
-    ch.author || '', ch.createdAt || '' ].join('\n');
+/* ---------- the hash chain ----------
+   What a fingerprint attests to: this contract, this clause, this kind of
+   change, these exact words before and after, proposed by this party at this
+   moment, following THIS predecessor.
+
+   The canonical string is settled here and stamped `hashV: 2` on every record,
+   so a future change to it is detectable rather than a silent verification
+   failure. Its fields, in order:
+
+     contractRef | clauseId | changeType | oldText | newText
+                 | author | createdAt | prevChangeHash
+
+   Two deliberate exclusions. STATUS is not in it — a change's hash must not
+   move when it is accepted, rejected, discussed or reopened, or it could not be
+   used to verify the thing it names, and "a decision never moves a hash" is an
+   invariant this session inherited and has to keep. NUMBER and TITLE are not in
+   it either, because they are presentation: renumbering a contract must not
+   invalidate its history.
+
+   Whitespace is NOT normalised. The old v1 input collapsed runs of whitespace
+   before hashing, which meant a whitespace-only edit hashed identically to no
+   edit at all. The ops carry whitespace exactly (js/redline.js), so the hash
+   does too.
+
+   prevChangeHash chains each ISSUANCE to the one before it in CREATION order —
+   never status order. A revision of a pending change is an issuance like any
+   other, so a revised change's new hash chains onto its own prior wording, and
+   every earlier wording stays recoverable from the chain. */
+const NEGO_HASH_V = 2;
+function negoHashInput(contractRef, iss){
+  return ['hati-change-v2',
+    String(contractRef == null ? '' : contractRef),
+    String(iss.clauseId || ''),
+    String(iss.changeType || ''),
+    String(iss.oldText == null ? '' : iss.oldText),
+    String(iss.newText == null ? '' : iss.newText),
+    String(iss.author || ''),
+    String(iss.createdAt || ''),
+    String(iss.prevChangeHash || ''),
+  ].join('\n');
 }
-async function negoHash(ch){
-  const hex = await sha256(negoHashInput(ch));
-  return '0x' + hex;
+async function negoHash(contractRef, iss){
+  return '0x' + await sha256(negoHashInput(contractRef, iss));
+}
+/* Take the next link in the chain. The ONLY place a hash is issued, so the
+   chain cannot acquire an unlinked member.
+
+   TWO KINDS OF LINK, and the difference is the point:
+
+     · a NEW change chains onto the contract's chain head — the hash issued
+       most recently, whatever change it belonged to. That is what puts every
+       change in one verifiable creation order.
+     · a REVISION of a pending change chains onto THAT CHANGE'S own previous
+       hash, not onto the head. A revision is a new wording of an existing ask,
+       so its predecessor is the wording it replaced — which is what makes
+       "recover this change as it stood two revisions ago" a walk rather than a
+       search, and what makes a citation id@hash precise.
+
+   `seq` is stamped on every issuance either way, so creation order survives
+   independently of which link was taken, and verifyChangeChain can rebuild
+   both expectations from stored content alone. */
+async function negoIssue(c, iss, opts = {}){
+  const n = negoInit(c);
+  negoInvalidateVerification(c);
+  iss.prevChangeHash = (opts.revisionOf !== undefined ? opts.revisionOf : n.chainHead) || null;
+  iss.seq = ++n.chainSeq;
+  iss.hashV = NEGO_HASH_V;
+  iss.hash = await negoHash(c.id, iss);
+  n.chainHead = iss.hash;
+  return iss;
 }
 /* The abbreviated form the change index shows. The full hash always travels on
    the record and in the title attribute — this is display only. */
@@ -169,168 +229,469 @@ const negoShortHash = h => {
   return s.length > 20 ? s.slice(0, 10) + '…' + s.slice(-6) : s;
 };
 
-/* ---------- summarising a change ----------
-   The prototype carries a hand-written line ("Payment terms extended from
-   Net-30 to Net-45"). Prose that good cannot be generated honestly, so this
-   states the fact instead: what goes, what arrives. diffBlocks() supplies the
-   passages, which means the summary quotes the SAME fragments the reviewer sees
-   highlighted in the document — it can never describe a change that is not
-   there. An `opts.summary` from a caller who knows better always wins. */
-function negoSummarise(type, oldText, newText){
-  const trim = (s, n) => window.discussTrim ? discussTrim(s, n) : String(s || '').slice(0, n);
-  if (type === 'insert') return 'New clause added — ' + trim(newText, 70);
-  if (type === 'delete') return 'Clause deleted — ' + trim(oldText, 70);
-  const blocks = (window.diffBlocks ? diffBlocks(oldText, newText) : []);
-  if (!blocks.length) return 'Wording changed — ' + trim(newText, 70);
-  const parts = blocks.slice(0, 2).map(b => {
-    const before = trim(b.before, 34), after = trim(b.after, 34);
-    if (before && after) return `“${before}” → “${after}”`;
-    if (after) return `added “${after}”`;
-    return `removed “${before}”`;
-  });
-  return parts.join('; ') + (blocks.length > 2 ? ` (+${blocks.length - 2} more)` : '');
+/* Every hash issuance this negotiation has ever made, in creation order:
+   current wordings, prior revisions of them, and everything archived onto a
+   closed round. What verifyChangeChain walks. */
+function negoIssuances(c){
+  negoInit(c);
+  const out = [];
+  const take = ch => {
+    for (const r of (ch.revisions || [])) out.push({ ...r, id: ch.id, revision: true });
+    out.push({ ...ch, revisions: undefined });
+  };
+  for (const r of (c.negotiation.rounds || [])) for (const ch of (r.changes || [])) take(ch);
+  for (const ch of c.changes) take(ch);
+  return out.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+}
+/* ---------- verification ----------
+   Recompute every hash from STORED content and check that each links to the one
+   before it. This is what makes the prototype's "Verified" pill mean something:
+   it rendered unconditionally there, which is the exact fakery the prototype is
+   criticised for.
+
+   Reports the FIRST broken link by name rather than a bare false, because
+   "something in this history does not verify" is not an actionable statement
+   about a legal document. */
+async function verifyChangeChain(c){
+  negoInit(c);
+  const list = negoIssuances(c);
+  let prev = null;                       // the hash issued immediately before, in creation order
+  const lastOf = new Map();              // and the previous hash of each change's own history
+  for (const iss of list){
+    if (iss.hashV !== NEGO_HASH_V)
+      return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
+        reason: 'unknown-hash-version',
+        detail: `#${iss.id} was written under hash format v${iss.hashV || 1}; this build verifies v${NEGO_HASH_V}` };
+    /* A revision must follow its own previous wording; anything else must
+       follow whatever was issued immediately before it. Rebuilt here from the
+       stored records rather than trusted, so a reordered or removed issuance
+       shows up as a broken link rather than passing quietly. */
+    const isRevision = lastOf.has(iss.id);
+    const expectPrev = isRevision ? lastOf.get(iss.id) : prev;
+    if ((iss.prevChangeHash || null) !== expectPrev)
+      return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
+        reason: 'broken-link',
+        detail: isRevision
+          ? `#${iss.id} does not follow its own previous wording — a revision is missing from the record`
+          : `#${iss.id} does not follow the change before it — the chain was reordered or a link is missing` };
+    const expect = await negoHash(c.id, iss);
+    if (expect !== iss.hash)
+      return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
+        reason: 'content-altered',
+        detail: `#${iss.id} does not match its own fingerprint — the stored wording has been altered since it was filed` };
+    prev = iss.hash;
+    lastOf.set(iss.id, iss.hash);
+  }
+  /* Every hash recomputed and every link matched — but on WHAT digest? If
+     crypto.subtle was unavailable this whole chain was built and checked with a
+     32-bit rolling hash, and "these two weak digests agree" is not evidence
+     that the wording is unaltered. Reported as unverifiable, not as verified. */
+  if (window.sha256IsReal && !sha256IsReal())
+    return { ok: false, checked: list.length, failedAt: null, seq: null,
+      reason: 'weak-digest',
+      detail: 'This browser has no SHA-256 available (crypto.subtle needs a secure context), '
+        + 'so these fingerprints were computed with a weak substitute and cannot be verified. '
+        + 'Open this page over https to check the chain.' };
+  return { ok: true, checked: list.length, failedAt: null, reason: null,
+    detail: list.length ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints`
+      : 'nothing filed yet' };
 }
 
-/* ---------- the normaliser: a proposal becomes changes ----------
-   Every route a proposal can arrive by ends here, and this is the ONLY place
-   that turns wording into change records:
+/* The verification the "Verified" pill reads.
+   verifyChangeChain is async — it hashes — and rendering is not, so the result
+   is computed once and cached on the record for the render to read. The cache
+   is a TRANSIENT: it is never persisted and never trusted across a change, so a
+   stale pass cannot outlive the content it was about. negoRefreshVerification
+   is called whenever the change set moves. */
+const negoVerifyCached = c => (c && c._chainVerify) || null;
+async function negoRefreshVerification(c){
+  const v = await verifyChangeChain(c);
+  try { Object.defineProperty(c, '_chainVerify', { value: v, writable: true, enumerable: false, configurable: true }); }
+  catch (_) { c._chainVerify = v; }
+  return v;
+}
+const negoInvalidateVerification = c => { if (c) c._chainVerify = null; };
 
-     · the counterparty's redline in the Negotiation tab
-     · a returned .docx, read by docxExtract (js/docx.js) — Word's one job
-     · wording received outside HaTi and filed under their name
-     · the owner's own proposals back at them
+/* ---------- summarising a change ----------
+   The prototype carries a hand-written line ("Payment terms extended from
+   Net-30 to Net-45"), and 2.5 says the proposer writes one. Where they do, it
+   is used verbatim and never touched.
 
-   The comparison is per clause, keyed on the stable clause id, which gives all
-   three kinds honestly: a clause in both texts whose wording differs is a
-   MODIFY; one only in the proposal is an INSERT; one only in the baseline is a
-   DELETE. A counterparty who renumbers the whole document produces deletes and
-   inserts rather than a silent mismatch, which is the truthful reading of what
-   they did.
+   Where they skip it, the MECHANICAL diff stands in: what goes, what arrives,
+   quoted from the stored ops so the summary quotes the same fragments the
+   reviewer sees highlighted. Prose describing a legal change is never
+   generated — a machine-invented "liability was relaxed" on a clause that
+   tightened it is worse than no summary at all. */
+function negoSummariseOps(changeType, ops, oldText, newText){
+  const trim = (s, n) => {
+    const t = String(s || '').replace(/\s+/g, ' ').trim();
+    return t.length > n ? t.slice(0, n - 1) + '…' : t;
+  };
+  if (changeType === 'insertClause') return 'New clause added — ' + trim(newText, 70);
+  if (changeType === 'deleteClause') return 'Clause deleted — ' + trim(oldText, 70);
+  const regions = [];
+  let cur = null;
+  for (const op of (ops || [])){
+    if (op.op === 'keep'){ if (cur){ regions.push(cur); cur = null; } continue; }
+    cur = cur || { before: '', after: '' };
+    if (op.op === 'del') cur.before += op.text; else cur.after += op.text;
+  }
+  if (cur) regions.push(cur);
+  if (!regions.length) return 'Wording changed — ' + trim(newText, 70);
+  const parts = regions.slice(0, 2).map(r => {
+    const b = trim(r.before, 34), a = trim(r.after, 34);
+    if (b && a) return `“${b}” → “${a}”`;
+    if (a) return `added “${a}”`;
+    return `removed “${b}”`;
+  });
+  return parts.join('; ') + (regions.length > 2 ? ` (+${regions.length - 2} more)` : '');
+}
 
-   Nothing enters the document here. Filing a proposal only records what was
-   proposed; the wording moves when a change is ACCEPTED, and not before. */
-async function negoFileProposal(c, proposedText, opts = {}){
+/* ---------- filing a change ----------
+   ONE function files every change, whichever surface produced it: inline
+   editing in the working pane, a returned .docx read by docxExtract, wording
+   received outside HaTi and filed under their name, or the owner's own
+   proposals. Nothing enters the document here — filing records what was
+   PROPOSED, and the wording moves only when a change is accepted.
+
+   1.5, the update-in-place rule: a clause carries at most ONE pending change
+   per side per round. Re-editing it re-diffs against the round baseline and
+   UPDATES the record — same #CHG id, new ops, new hash chained onto the
+   previous revision's hash — so every prior wording stays recoverable from the
+   chain. Two live proposals on one clause would make "accept both" mean
+   nothing coherent, and the second is plainly the one they mean.
+
+   The one case that is NOT a revision: a new wording arriving after the other
+   side has already DECIDED. That is not a correction of an outstanding ask, it
+   is a counter-proposal to a settled point, and it gets a new id in the next
+   round. Quietly folding it into the decided change would rewrite what the
+   other side agreed to. */
+async function negoFileChange(c, draft, opts = {}){
   negoInit(c);
-  const base = String(opts.baseText != null ? opts.baseText : negoBaseText(c));
-  const next = String(proposedText == null ? '' : proposedText);
-  if (!next.trim()) return [];
-
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
     ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
     : (c.counterparty || 'The counterparty'))).trim();
-  const createdAt = opts.at || (window.nowISO ? window.nowISO() : new Date().toISOString());
+  const at = opts.at || (window.nowISO ? window.nowISO() : new Date().toISOString());
   const roundN = opts.roundN != null ? opts.roundN : negoRound(c);
 
-  const baseClauses = negoClausesOf(base);
-  const nextClauses = negoClausesOf(next);
-  const byId = list => { const m = new Map(); for (const cl of list) m.set(cl.id, cl); return m; };
-  const bMap = byId(baseClauses), nMap = byId(nextClauses);
-  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const oldText = String(draft.oldText == null ? '' : draft.oldText);
+  const newText = String(draft.newText == null ? '' : draft.newText);
+  const ops = (draft.changeType === 'modify' && window.redlineOps)
+    ? redlineOps(oldText, newText)
+    : draft.changeType === 'insertClause' ? [{ op: 'ins', text: newText }]
+    : [{ op: 'del', text: oldText }];
 
-  const drafts = [];
-  for (const cl of nextClauses){
-    const was = bMap.get(cl.id);
-    if (!was){ drafts.push({ clauseId: cl.id, type: 'insert', oldText: '', newText: cl.text, clause: cl }); continue; }
-    if (norm(was.text) !== norm(cl.text))
-      drafts.push({ clauseId: cl.id, type: 'modify', oldText: was.text, newText: cl.text, clause: cl });
-  }
-  for (const cl of baseClauses){
-    if (!nMap.has(cl.id))
-      drafts.push({ clauseId: cl.id, type: 'delete', oldText: cl.text, newText: '', clause: cl });
-  }
-  if (!drafts.length) return [];
+  /* A no-op produces NO record. Saving a clause you looked at and did not
+     change must not file a fingerprint against it — an index full of empty
+     changes is an index nobody reads. */
+  if (draft.changeType === 'modify' && window.redlineIsNoop && redlineIsNoop(ops)) return null;
 
-  const filed = [];
-  for (const d of drafts){
-    /* A clause already carrying an undecided change from this same side is
-       REPLACED, not duplicated. Two live proposals on one clause would make
-       "accept both" mean nothing coherent, and the second proposal is plainly
-       the one they mean. The superseded fingerprint is retired with its thread
-       intact so the conversation survives the revision. */
-    const live = negoChanges(c).find(x => x.clauseId === d.clauseId
-      && x.status === 'pending' && x.authorSide === side);
-    const ch = {
-      id: negoNextId(c),
-      clauseId: d.clauseId,
-      type: d.type,
-      oldText: d.oldText,
-      newText: d.newText,
-      hash: null,
-      status: 'pending',
-      author, authorSide: side,
-      createdAt,
-      roundN,
-      clauseLabel: negoClauseLabel(d.clause),
-      summary: String(opts.summary || '').trim() || negoSummarise(d.type, d.oldText, d.newText),
-      note: (opts.notes && opts.notes[d.clauseId]) || null,
-      thread: live ? (live.thread || []) : [],
-      supersedes: live ? live.id : null,
-    };
-    ch.hash = await negoHash(ch);
-    if (live){
-      live.status = 'superseded';
-      live.supersededBy = ch.id;
-      live.thread = [];                       // the conversation moves with the change
-    }
-    c.changes.push(ch);
-    filed.push(ch);
+  const live = c.changes.find(x => x.clauseId === draft.clauseId
+    && x.status === 'pending' && x.authorSide === side && x.roundN === roundN);
+
+  if (live){
+    /* A revision: same slot, new content, new link in the chain. The previous
+       wording is pushed onto revisions[] with its hash intact, which is what
+       makes "recover the wording as it stood two revisions ago" a read rather
+       than an archaeology exercise. */
+    live.revisions = Array.isArray(live.revisions) ? live.revisions : [];
+    live.revisions.push({ seq: live.seq, hash: live.hash, hashV: live.hashV,
+      prevChangeHash: live.prevChangeHash, clauseId: live.clauseId, changeType: live.changeType,
+      oldText: live.oldText, newText: live.newText, author: live.author,
+      createdAt: live.createdAt, ops: live.ops, bodyHtml: live.bodyHtml,
+      summary: live.summary });
+    live.changeType = draft.changeType;
+    live.oldText = oldText;
+    live.newText = newText;
+    live.bodyHtml = draft.bodyHtml != null ? draft.bodyHtml : live.bodyHtml;
+    live.headingText = draft.headingText != null ? draft.headingText : live.headingText;
+    live.ops = ops;
+    live.createdAt = at;
+    live.updatedAt = at;
+    live.summary = String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText);
+    await negoIssue(c, live, { revisionOf: live.revisions[live.revisions.length - 1].hash });
+    if (window.logAudit) logAudit(c, 'Negotiation',
+      `#${live.id} revised by ${author} — “${live.summary}” on ${live.clauseLabel || live.clauseId};` +
+      ` revision ${live.revisions.length + 1}, fingerprint ${live.hash},` +
+      ` chained onto ${negoShortHash(live.prevChangeHash)} — the previous wording remains on the record`);
+    return live;
   }
 
-  if (window.logAudit) logAudit(c, 'Negotiation',
-    `${filed.length} change${filed.length === 1 ? '' : 's'} proposed by ${author}` +
-    ` in round ${roundN} — ${filed.map(x => '#' + x.id).join(', ')}` +
+  const cl = negoClauseById(c, draft.clauseId);
+  const ch = {
+    id: negoNextId(c),
+    clauseId: draft.clauseId,
+    changeType: draft.changeType,
+    oldText, newText,
+    bodyHtml: draft.bodyHtml || null,
+    headingText: draft.headingText || null,
+    afterClauseId: draft.afterClauseId || null,
+    ops,
+    hash: null, hashV: NEGO_HASH_V, prevChangeHash: null, seq: 0,
+    revisions: [],
+    status: 'pending',
+    author, authorSide: side,
+    createdAt: at, updatedAt: at,
+    roundN,
+    clauseLabel: draft.clauseLabel || negoClauseLabel(cl) || null,
+    summary: String(opts.summary || '').trim() || negoSummariseOps(draft.changeType, ops, oldText, newText),
+    note: opts.note || null,
+    thread: [],
+    needsReview: !!draft.needsReview,
+    needsReviewWhy: draft.needsReviewWhy || null,
+  };
+  await negoIssue(c, ch);
+  c.changes.push(ch);
+  if (window.logAudit && !opts.quiet) logAudit(c, 'Negotiation',
+    `#${ch.id} proposed by ${author} in round ${roundN} — “${ch.summary}”` +
+    ` on ${ch.clauseLabel || ch.clauseId} · fingerprint ${ch.hash}` +
     `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
     `${opts.via ? ` · received via ${opts.via}` : ''}`);
+  return ch;
+}
+
+/* ---------- the three change types, as callable edits ---------- */
+
+/* An edit to one clause's body, arriving as RICH content from the editor. The
+   comparison is against the ROUND BASELINE, not against the working document,
+   so re-editing a clause twice in one turn produces one change measuring the
+   whole distance travelled rather than two measuring halves of it. */
+async function negoEditClause(c, clauseId, newBodyHtml, opts = {}){
+  negoInit(c);
+  const cl = negoClauseById(c, clauseId);
+  if (!cl) return null;
+  const body = window.sanitizeRich ? sanitizeRich(newBodyHtml) : String(newBodyHtml || '');
+  const newText = window.richToText ? richToText(body) : '';
+  return negoFileChange(c, { clauseId, changeType: 'modify',
+    oldText: cl.text, newText, bodyHtml: body, clauseLabel: negoClauseLabel(cl) }, opts);
+}
+/* A new clause, placed where it was proposed. `afterClauseId` is the clause it
+   follows — null puts it at the top. The id is minted at FILING time and
+   written into the document when the change is accepted, so a change and the
+   clause it creates are the same clause from the first moment either exists. */
+async function negoInsertClause(c, afterClauseId, clause, opts = {}){
+  negoInit(c);
+  const taken = new Set(negoClauseList(c).map(x => x.clauseId).filter(Boolean));
+  for (const x of negoChanges(c)) if (x.clauseId) taken.add(x.clauseId);
+  const clauseId = window.clauseNewId ? clauseNewId(taken) : ('cl_' + Date.now().toString(36));
+  const body = window.sanitizeRich ? sanitizeRich(clause.bodyHtml || '') : String(clause.bodyHtml || '');
+  const newText = window.richToText ? richToText(body) : '';
+  const headingText = String(clause.headingText || '').trim();
+  return negoFileChange(c, { clauseId, changeType: 'insertClause',
+    oldText: '', newText, bodyHtml: body, headingText, afterClauseId: afterClauseId || null,
+    clauseLabel: headingText ? negoClauseLabel(clauseParseHeading(headingText)) : 'New clause' }, opts);
+}
+/* A proposed deletion. The wording is NOT removed here and is not removed when
+   the change is filed — it is struck through in the working pane and stays in
+   the document until someone accepts the deletion. */
+async function negoDeleteClause(c, clauseId, opts = {}){
+  negoInit(c);
+  const cl = negoClauseById(c, clauseId);
+  if (!cl) return null;
+  return negoFileChange(c, { clauseId, changeType: 'deleteClause',
+    oldText: cl.text, newText: '', clauseLabel: negoClauseLabel(cl) }, opts);
+}
+
+/* ---------- a whole proposed document becomes changes ----------
+   The route a returned .docx and a pasted redraft arrive by. The comparison is
+   per clause, keyed on the durable clause id, which gives all three kinds
+   honestly: a clause in both whose wording differs is a modify; one only in the
+   proposal is an insertClause; one only in the baseline is a deleteClause.
+
+   Matching by id first and by POSITION second is the part worth stating. A
+   document that has been through Word has no clause ids on it — Word does not
+   carry our attributes — so the returned text is aligned to the baseline
+   clause by clause in document order, and a clause whose wording moved is
+   still recognised as the same clause. That is the honest reading of what a
+   counterparty who edited our file actually did. */
+async function negoFileProposal(c, proposedText, opts = {}){
+  negoInit(c);
+  const next = String(proposedText == null ? '' : proposedText);
+  if (!next.trim()) return [];
+  /* Did the proposal arrive as a DOCUMENT or as a text projection? A returned
+     .docx and a pasted redraft arrive as text, and text has no list structure
+     in it — so a proposal lifted from text must be merged back into the
+     baseline clause's own markup rather than used as-is, or accepting it would
+     replace an <ol start="3"> with a flat <p> and silently lose the document's
+     numbering. That is the B-004 failure class, and this is where it would
+     otherwise re-enter through the whole-document route. */
+  const fromText = !/<[a-z]/i.test(next);
+  const proposedBody = fromText ? negoRichFromLines(next) : next;
+  const baseClauses = negoClauseList(c);
+  const nextClauses = window.clauseSegment ? clauseSegment(proposedBody) : [];
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+
+  const byId = new Map();
+  for (const cl of nextClauses) if (cl.clauseId) byId.set(cl.clauseId, cl);
+  /* Clauses the returned document could not be matched to by id, in order —
+     the Word case. */
+  const loose = nextClauses.filter(cl => !cl.clauseId || !baseClauses.some(b => b.clauseId === cl.clauseId));
+  const usedLoose = new Set();
+
+  const filed = [];
+  const matchedBase = new Set();
+  for (let i = 0; i < baseClauses.length; i++){
+    const was = baseClauses[i];
+    let now = byId.get(was.clauseId) || null;
+    if (!now){
+      /* fall back to position among the unmatched, which is how a Word round
+         trip has to be read: same slot, possibly reworded */
+      const cand = loose[i] !== undefined && !usedLoose.has(i) ? loose[i] : null;
+      if (cand){ now = cand; usedLoose.add(i); }
+    }
+    if (!now) continue;
+    matchedBase.add(was.clauseId);
+    if (norm(was.text) === norm(now.text)) continue;
+    const ch = await negoFileChange(c, { clauseId: was.clauseId, changeType: 'modify',
+      oldText: was.text, newText: now.text,
+      bodyHtml: fromText ? negoBodyFromText(was.bodyHtml, now.text) : now.bodyHtml,
+      clauseLabel: negoClauseLabel(was) },
+      { ...opts, note: negoNoteFor(opts.notes, now.text, was.clauseId) || opts.note || null, quiet: true });
+    if (ch) filed.push(ch);
+  }
+  for (let i = 0; i < loose.length; i++){
+    if (usedLoose.has(i)) continue;
+    const cl = loose[i];
+    if (!cl.text.trim()) continue;
+    const after = baseClauses[Math.min(i, baseClauses.length) - 1] || null;
+    const ch = await negoInsertClause(c, after ? after.clauseId : null,
+      { headingText: cl.headingText, bodyHtml: cl.bodyHtml }, { ...opts, quiet: true });
+    if (ch) filed.push(ch);
+  }
+  for (const was of baseClauses){
+    if (matchedBase.has(was.clauseId)) continue;
+    const ch = await negoDeleteClause(c, was.clauseId, { ...opts, quiet: true });
+    if (ch) filed.push(ch);
+  }
+
+  if (filed.length && window.logAudit){
+    const side = opts.side === 'owner' ? 'owner' : 'counterparty';
+    const author = String(opts.author || (side === 'owner'
+      ? ((window.currentUser && window.currentUser()?.name) || 'This workspace')
+      : (c.counterparty || 'The counterparty'))).trim();
+    logAudit(c, 'Negotiation',
+      `${filed.length} change${filed.length === 1 ? '' : 's'} proposed by ${author}` +
+      ` in round ${negoRound(c)} — ${filed.map(x => '#' + x.id).join(', ')}` +
+      `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
+      `${opts.via ? ` · received via ${opts.via}` : ''}`);
+  }
   return filed;
 }
 
-/* ---------- the working document ----------
-   negoResolvedText BUILDS the wording from the accepted set. It does not mutate
-   a document and hope: rejecting every change reproduces the baseline exactly,
-   which is the property that makes any of this safe to run on a legal
-   instrument, and it is asserted directly in the tests.
-
-   A PENDING change is not in the text. It is drawn as a redline over the text
-   (negoRedlineHtml, below) so the reviewer sees what is being asked for, but
-   the words on the page are still the baseline's until someone says yes. */
-function negoResolvedText(c){
-  negoInit(c);
-  const base = negoBaseText(c);
-  const accepted = negoChanges(c).filter(x => x.status === 'accepted');
-  if (!accepted.length) return base;
-  const byClause = new Map();
-  for (const ch of accepted) byClause.set(ch.clauseId, ch);
-
-  const lines = base.split('\n');
-  const clauses = negoClausesOf(base);
-  const lineToClause = new Map();
-  for (const cl of clauses) lineToClause.set(cl.lineIndex, cl);
-
-  const out = [];
-  for (let i = 0; i < lines.length; i++){
-    const cl = lineToClause.get(i);
-    if (!cl){ out.push(lines[i]); continue; }         // headings and blanks pass through
-    const ch = byClause.get(cl.id);
-    if (!ch){ out.push(lines[i]); continue; }
-    if (ch.type === 'delete') continue;               // accepted deletion: the clause goes
-    out.push(ch.newText);
-    byClause.delete(cl.id);
+/* The reason a counterparty gave for ONE clause, matched to the change filed
+   for that clause. Keyed on the wording they annotated — a reply composed
+   against a text projection carries no clause ids — with the clause id accepted
+   too, for callers that do have one. Substring matching is allowed in one
+   direction only: a note written about a whole clause still belongs to it when
+   the clause is one line of a longer block. */
+function negoNoteFor(notes, text, clauseId){
+  if (!notes) return null;
+  if (clauseId && notes[clauseId]) return notes[clauseId];
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const want = norm(text);
+  if (!want) return null;
+  if (notes[want]) return notes[want];
+  for (const k of Object.keys(notes)){
+    const kk = norm(k);
+    if (kk && (want.includes(kk) || kk.includes(want))) return notes[k];
   }
-  /* Accepted INSERTs name a clause the baseline never had, so there is no line
-     to replace — they are appended in fingerprint order. Appending rather than
-     guessing a position is deliberate: putting a new clause somewhere it was
-     not asked to go would be inventing document structure. */
-  for (const ch of accepted) if (byClause.has(ch.clauseId) && ch.type === 'insert') out.push(ch.newText);
-  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  return null;
 }
 
-/* Write the resolved wording into the contract body, keeping the document
-   FORMATTED wherever that can be verified. This is the same contract that
-   acceptProposedRound() honours and it is honoured the same way: if
-   richFromTextEdit() cannot verify that the rebuilt document says exactly what
-   was agreed, the merge is abandoned for plain text AND the record says so,
-   rather than leaving a 'rich' marker on a body that is not one. */
+/* Put edited TEXT back into a clause's own markup.
+   richFromTextEdit() maps the new lines onto the existing block structure and
+   VERIFIES its own output's text projection against what was asked for; it
+   returns null rather than guess. Where it can do the job, the clause keeps its
+   list, its numbering and its inline marks. Where it cannot, the clause falls
+   back to paragraphs — and only that clause, not the document. */
+function negoBodyFromText(oldBodyHtml, newText){
+  if (window.richFromTextEdit && oldBodyHtml){
+    const merged = richFromTextEdit(oldBodyHtml, newText);
+    if (merged) return merged;
+  }
+  return String(newText || '').split('\n').filter(l => l.trim())
+    .map(l => `<p>${_negoEsc(l.trim())}</p>`).join('');
+}
+
+/* ---------- the working document ----------
+   negoResolvedBody BUILDS the document from the accepted set. It does not
+   mutate a document and hope: rejecting every change reproduces the baseline
+   exactly, and because this works on the rich DOM that equality holds at the
+   canonicalRich level rather than only on a text projection.
+
+   A PENDING change is not in the document. It is drawn as a redline over it
+   (from the STORED ops) so the reviewer sees what is being asked for, but the
+   words are still the baseline's until someone says yes.
+
+   Order is deliberate. Modifications first, then insertions, then deletions:
+   an insertion anchored on a clause that is also being deleted still lands in
+   the position it was proposed for, rather than falling off the end of the
+   document because its anchor evaporated. */
+function negoResolvedBody(c){
+  negoInit(c);
+  let body = negoBaseBody(c);
+  if (!window.clauseReplaceBody) return body;
+  const accepted = negoChanges(c).filter(x => x.status === 'accepted')
+    .slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
+
+  for (const ch of accepted){
+    if (ch.changeType !== 'modify') continue;
+    const next = clauseReplaceBody(body, ch.clauseId, ch.bodyHtml || `<p>${_negoEsc(ch.newText)}</p>`);
+    if (next != null) body = next;
+  }
+  for (const ch of accepted){
+    if (ch.changeType !== 'insertClause') continue;
+    const has = clauseSegment(body).some(cl => cl.clauseId === ch.clauseId);
+    if (has) continue;
+    let out = clauseInsert(body, ch.afterClauseId, { clauseId: ch.clauseId,
+      headingText: ch.headingText || '', bodyHtml: ch.bodyHtml || `<p>${_negoEsc(ch.newText)}</p>` });
+    if (!out){
+      /* The clause it was to follow is gone — accepted for deletion in an
+         earlier round, most likely. It goes to the end of the document and the
+         record says so, rather than being dropped for want of an anchor. */
+      const last = clauseSegment(body).slice(-1)[0];
+      out = clauseInsert(body, last ? last.clauseId : null, { clauseId: ch.clauseId,
+        headingText: ch.headingText || '', bodyHtml: ch.bodyHtml || `<p>${_negoEsc(ch.newText)}</p>` });
+    }
+    if (out) body = out.html;
+  }
+  for (const ch of accepted){
+    if (ch.changeType !== 'deleteClause') continue;
+    const next = clauseRemove(body, ch.clauseId);
+    if (next != null) body = next;
+  }
+  return body;
+}
+const _negoEsc = s => String(s == null ? '' : s).replace(/[&<>]/g,
+  ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+/* The text projection of the resolved document. Kept because the round model,
+   the seal, search and the Copilot all read text — but it is now a READ of the
+   rich document rather than the medium the document travels through. */
+const negoResolvedText = c => (window.richToText ? richToText(negoResolvedBody(c)) : '');
+
+/* Write the resolved document back into the contract.
+   THIS IS 1.6, AND IT IS THE POINT. A rich contract is written as rich: the
+   clause's body blocks were replaced in place, by id, on the DOM. There is no
+   text round trip, so richFromTextEdit is never called, so the B-004
+   formatting-loss failure class cannot occur — it is retired rather than
+   guarded against. A plain-text contract is written as text, exactly as
+   before. */
+function negoCommitBody(c, body){
+  const wasRich = !!(window.isRich && isRich(c.format) && c.redlineText != null);
+  const text = window.richToText ? richToText(body) : '';
+  if (wasRich){
+    c.redlineText = window.sanitizeRich ? sanitizeRich(body) : body;
+  } else {
+    c.redlineText = text;
+  }
+  if (c.upload && window.isUpload && window.isUpload(c)){
+    c.upload.extractedText = text;
+    c.upload.textChars = text.length;
+  }
+  return { flattened: false, text };
+}
+/* Kept for callers that still speak text (js/wordflow.js, the round model). */
 function negoCommitText(c, text){
   const wasRich = !!(window.isRich && isRich(c.format) && c.redlineText);
   let flattened = false;
@@ -342,9 +703,6 @@ function negoCommitText(c, text){
     c.redlineText = text;
     if (wasRich){ c.format = window.TEXT_FORMAT || 'text'; flattened = true; }
   }
-  /* An uploaded document's extracted text IS its reading view, so it follows
-     the adopted wording — otherwise search, the Copilot review and the reading
-     pane would all keep describing wording the parties have moved past. */
   if (c.upload && window.isUpload && window.isUpload(c)){
     c.upload.extractedText = text;
     c.upload.textChars = text.length;
@@ -353,11 +711,11 @@ function negoCommitText(c, text){
 }
 
 /* ---------- deciding a change ----------
-   Accept merges that one clause into the clean text. Reject leaves the clause
-   at the baseline and the ask becomes an open point. Reopen puts it back to
-   pending. All three are reversible and all three are recorded with the RIGHT
-   author: the person deciding is not the person who proposed, and an audit
-   trail that conflated them would be the record lying. */
+   Accept merges that one clause into the document. Reject leaves the clause at
+   the baseline and the ask becomes an open point. Reopen puts it back to
+   pending. All three are reversible, all three are recorded with the RIGHT
+   author — the person deciding is not the person who proposed — and none of
+   them moves a hash. */
 function negoResolve(c, id, status, opts = {}){
   negoInit(c);
   const ch = negoChangeById(c, id);
@@ -367,14 +725,16 @@ function negoResolve(c, id, status, opts = {}){
      js/core.js declares `const canEdit = …`, which is a LEXICAL binding rather
      than a property of the global object — so a bare `canEdit()` here resolves
      to that binding and cannot be substituted, while `window.canEdit` is the
-     name every other module reaches this function by. Under ES modules the two
-     are the same function; in a single shared script scope they are not, and the
-     difference is a permission check that silently ignores its own subject.
-     A decision taken by a named side is always someone acting AS that side —
-     the counterparty holds no workspace role at all — so the role gate applies
-     only to an unattributed call from inside the workspace. */
+     name every other module reaches this function by. */
   if (!opts.side && typeof window.canEdit === 'function' && !window.canEdit()){
     if (window.toast) toast('Viewers cannot decide changes', 'err');
+    return null;
+  }
+  /* NOBODY RULES ON THEIR OWN ASK. Enforced here, in the model, and not only in
+     the UI — a side that could accept its own proposal could adopt wording the
+     other party never saw. */
+  if (opts.side && opts.side === ch.authorSide && status !== 'pending'){
+    if (window.toast) toast('You cannot decide your own proposal', 'err');
     return null;
   }
   if (c.status === 'Signed' || (window.wordDoorClosed && wordDoorClosed(c))){
@@ -385,13 +745,13 @@ function negoResolve(c, id, status, opts = {}){
   const prev = ch.status;
   if (prev === status) return ch;
 
+  negoInvalidateVerification(c);
   ch.status = status;
   ch.resolvedBy = status === 'pending' ? null : who;
   ch.resolvedAt = status === 'pending' ? null : (window.nowISO ? window.nowISO() : new Date().toISOString());
   ch.reply = String(opts.reply || ch.reply || '').slice(0, 2000) || null;
 
-  const text = negoResolvedText(c);
-  const { flattened } = negoCommitText(c, text);
+  negoCommitBody(c, negoResolvedBody(c));
 
   const verb = status === 'accepted' ? 'accepted' : status === 'rejected' ? 'rejected' : 'reopened';
   if (window.logAudit) logAudit(c, 'Negotiation',
@@ -399,8 +759,7 @@ function negoResolve(c, id, status, opts = {}){
     ` proposed by ${ch.author}` +
     `${status === 'accepted' ? ` · merged into the clean text · fingerprint ${ch.hash}` : ''}` +
     `${status === 'rejected' ? ' · the clause stays at the baseline and the ask travels back as an open point' : ''}` +
-    `${status === 'pending' ? ` (was ${prev})` : ''}` +
-    `${flattened ? ' · the merge could not be placed back into the formatted document, so it is now plain text' : ''}`);
+    `${status === 'pending' ? ` (was ${prev})` : ''}`);
   if (window.captureVersion && status !== 'pending')
     captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who);
   c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
@@ -419,8 +778,13 @@ function negoResolveAll(c, status, opts = {}){
 /* ---------- talking about a change ----------
    The light channel, attached to one fingerprint. It opens no round, captures
    no version and moves no wording — the same guarantee js/discuss.js makes for
-   a clause, made for a change. That guarantee is asserted directly in the
-   tests, because it is the whole reason this exists. */
+   a clause, made for a change.
+
+   Each comment is stamped with the hash CURRENT WHEN IT WAS WRITTEN. A thread
+   outlives the wording it is about: revise a pending change and yesterday's
+   objection may be about text that no longer exists. Stamping lets the thread
+   say so ("written against an earlier revision") instead of silently
+   presenting an old argument as if it were about today's words. */
 function negoPostComment(c, id, text, opts = {}){
   const ch = negoChangeById(c, id);
   if (!ch) return null;
@@ -432,15 +796,16 @@ function negoPostComment(c, id, text, opts = {}){
     : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
   ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
   const msg = { who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
-    text: body.slice(0, 2000) };
+    text: body.slice(0, 2000), atHash: ch.hash || null };
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Comment posted on #${ch.id} by ${who} — the contract is unchanged and no round was opened`);
   return msg;
 }
-/* The topic key a change's thread shares with js/discuss.js, so a conversation
-   about clause 5 and a conversation about the change to clause 5 are the same
-   conversation rather than two that never meet. */
+/* Is this comment about wording that has since been revised? A read, never a
+   stored flag, so it cannot disagree with the change it describes. */
+const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash && msg.atHash !== ch.hash);
+/* The topic key a change's thread shares with js/discuss.js. */
 const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
 
 /* ---------- progress, and the one transition out ---------- */
@@ -451,11 +816,11 @@ function negoProgress(c){
   return { total, done, pending: total - done,
     pct: total ? Math.round((done / total) * 100) : 0 };
 }
-/* Ready to sign means every change on the table has an answer, from both
-   sides, and there is at least one thing that was actually negotiated. It is a
-   READ of the change set, never a stored flag — a flag could disagree with the
-   changes it claims to summarise, and on this screen that disagreement would be
-   an invitation to sign something nobody had finished arguing about. */
+/* Ready to sign means every change on the table has an answer and there is at
+   least one thing that was actually negotiated. It is a READ of the change set,
+   never a stored flag — a flag could disagree with the changes it claims to
+   summarise, and on this screen that disagreement would be an invitation to
+   sign something nobody had finished arguing about. */
 function negoReadyToSign(c){
   const p = negoProgress(c);
   return p.total > 0 && p.pending === 0;
@@ -465,26 +830,15 @@ function negoReadyToSign(c){
    document reads as agreement, and it is not.
 
    Two things this has to get right, and openPointsFor() in js/versioning.js
-   already worked both of them out for the round model — the reasoning is the
-   same here and is deliberately not re-derived:
+   already worked both out for the round model — the reasoning is the same here
+   and is deliberately not re-derived:
 
      · It spans EVERY round, not the one in flight. A refusal in round 1 is
-       still a refusal in round 5, and negoAdvanceRound archives the round's
-       changes onto the record — so reading only the live set would quietly
-       drop every earlier disagreement at the moment the round closed. That is
-       exactly the failure the list exists to prevent, arriving through the
-       back door.
-
-     · A point stops being open in TWO ways, because a list that keeps showing
-       settled items is a list people learn to ignore:
-         — the wording they asked for is in the document anyway. It may have
-           arrived by another route; either way they got it.
-         — the wording it was measured AGAINST is gone. The clause has been
-           renegotiated since, so neither side's original text stands and the
-           old ask is about a passage that no longer exists. (Erik asks for
-           EUR 250,000, is refused, and the parties later settle on EUR 500,000
-           per event: he did not get what he asked for, but the point is spent,
-           not outstanding.) */
+       still a refusal in round 5.
+     · A point stops being open in TWO ways: the wording they asked for is in
+       the document anyway (they got it, by whatever route), or the wording it
+       was measured AGAINST is gone (the clause has been renegotiated since, so
+       the old ask is about a passage that no longer exists). */
 function negoOpenPoints(c){
   const live = String((window.docPlainText ? docPlainText(c) : '') || '').replace(/\s+/g, ' ');
   const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
@@ -501,10 +855,47 @@ function negoOpenPoints(c){
   return out;
 }
 
+/* ---------- the turn model ----------
+   Whose move it is. Built on the existing share/response routes — no new
+   endpoints, no websockets — because a public no-login URL that mutates a
+   contract per click must not exist. */
+function negoTurn(c){ return negoInit(c).turn === 'counterparty' ? 'counterparty' : 'owner'; }
+function negoHandOver(c, opts = {}){
+  const n = negoInit(c);
+  const to = opts.to === 'owner' ? 'owner' : 'counterparty';
+  if (n.turn === to) return null;
+  n.turn = to;
+  n.turnAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
+  const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  /* Every turn close snapshots a version, so version compare keeps working and
+     the history reads as a sequence of hand-offs rather than a pile of edits. */
+  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by);
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
+  return { turn: to, at: n.turnAt };
+}
+/* The banner both sides read. A READ of the change set and the turn, so it can
+   never claim a state the record does not support. */
+function negoTurnBanner(c, side){
+  negoInit(c);
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const turn = negoTurn(c);
+  const other = me === 'owner' ? (c.counterparty || 'the counterparty') : ((window.FIRST_PARTY) || 'the owner');
+  const mine = negoPending(c).filter(x => x.authorSide !== me).length;
+  if (turn === me)
+    return { mine: true, text: mine
+      ? `Your turn — ${mine} change${mine === 1 ? '' : 's'} to review`
+      : 'Your turn — propose changes or send it back' };
+  const sent = c.negotiation.turnAt || null;
+  return { mine: false, sentAt: sent, text: `Waiting on ${other}${sent ? '' : ''}` };
+}
+
 /* ---------- advancing the round ----------
-   The resolved wording becomes the baseline the NEXT round is measured against,
-   and the decided changes are archived onto the round record so the history
-   reads as a sequence of decisions rather than one ever-growing pile. */
+   The resolved wording becomes the baseline the NEXT round is measured
+   against, and the decided changes are archived onto the round record so the
+   history reads as a sequence of decisions rather than one ever-growing pile.
+   The archived records keep their hashes and their revisions, which is what
+   lets verifyChangeChain walk a six-round history. */
 function negoAdvanceRound(c, opts = {}){
   negoInit(c);
   const p = negoProgress(c);
@@ -514,17 +905,18 @@ function negoAdvanceRound(c, opts = {}){
   const n = c.negotiation.round;
   c.negotiation.rounds = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
   c.negotiation.rounds.push({ n, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
+    baselineBody: c.negotiation.baselineBody,
     baselineText: c.negotiation.baselineText,
-    changes: decided.map(x => ({ id: x.id, clauseId: x.clauseId, type: x.type,
-      oldText: x.oldText, newText: x.newText, hash: x.hash, status: x.status,
-      author: x.author, authorSide: x.authorSide, summary: x.summary,
-      resolvedBy: x.resolvedBy, resolvedAt: x.resolvedAt,
-      thread: (x.thread || []).slice() })) });
-  c.negotiation.baselineText = negoResolvedText(c);
+    changes: decided.map(x => ({ ...x, thread: (x.thread || []).slice(),
+      revisions: (x.revisions || []).slice() })) });
+  const body = negoResolvedBody(c);
+  c.negotiation.baselineBody = body;
+  c.negotiation.baselineText = (window.richToText ? richToText(body) : '');
   c.negotiation.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
-  c.negotiation.baselineBody = (c.redlineText != null ? c.redlineText : null);
   c.negotiation.round = n + 1;
   c.changes = [];                             // the archived set lives on the round
+  if (window.captureVersion) captureVersion(c, `Round ${n} closed`, opts.by
+    || (window.currentUser && window.currentUser()?.name) || 'System');
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
@@ -540,73 +932,32 @@ function negoAllChanges(c){
   out.push(...negoChanges(c).filter(x => x.status !== 'superseded'));
   return out;
 }
+/* A change's wording as it stood at a given hash — the prior revisions being
+   recoverable is what makes update-in-place safe. */
+function negoRevisionAt(c, id, hash){
+  const ch = negoAllChanges(c).find(x => x.id === id);
+  if (!ch) return null;
+  if (ch.hash === hash) return { ...ch, current: true };
+  const r = (ch.revisions || []).find(x => x.hash === hash);
+  return r ? { ...r, id, current: false } : null;
+}
 
 /* ---------- the redline, as HTML ----------
-   Classed spans, not inline styles, so the colours come from HaTi's tokens in
-   one place. wordDiff() does the segmentation — the same function the existing
-   version-compare modal uses — so an accepted change looks identical in the new
-   tab and in the old compare view, and neither can drift from the other. */
-/* Is this diff SHREDDED? A longest-common-subsequence diff is always correct and
-   is not always readable. When a clause has been substantially rewritten, LCS
-   latches onto whatever stray words the two versions happen to share — "the",
-   "of", "value" — and interleaves them, so
-
-     the full replacement value of the affected goods
-       → EUR 250,000 in the aggregate per contract year
-
-   renders as "the EUR full 250,000 replacement in value the of aggregate the
-   per affected contract goods. year." Every token is in the right box and the
-   passage cannot be read.
-
-   prototype.html's own runDiff does not have this problem, because it only ever
-   finds the common prefix and suffix and treats everything between as one
-   deletion and one insertion. That is worse for a small edit — it would strike
-   out a whole sentence to change two words — and better for a rewrite. So use
-   each where it wins: LCS by default, prefix/suffix once the result is more
-   interruption than text. */
-function _negoShredded(parts){
-  let runs = 0, changed = 0, total = 0;
-  for (const p of parts){
-    const words = p.text.trim() ? p.text.trim().split(/\s+/).length : 0;
-    total += words;
-    if (p.t === 'eq') continue;
-    runs++;                       // each del or add run is one interruption
-    changed += words;
-  }
-  if (!total) return false;
-  /* Six interruptions and nearly half the clause rewritten. Counting RUNS
-     rather than contiguous groups is the point: a rewrite's runs are separated
-     by single spaces, so anything that treats whitespace as a boundary sees one
-     enormous group and never fires. */
-  return runs >= 6 && (changed / total) > 0.45;
+   RENDERED FROM THE STORED OPS. Never re-diffed. What a reviewer sees is a
+   picture of the record, so what was reviewed is provably what was decided on
+   — the property that was missing when the diff algorithm changed mid-session
+   and the same change started rendering differently on different days. */
+function negoChangeHtml(ch, opts = {}){
+  if (!ch) return '';
+  if (Array.isArray(ch.ops) && ch.ops.length && window.redlineOpsHtml)
+    return redlineOpsHtml(ch.ops, opts);
+  const e = window.esc || _negoEsc;
+  return e(ch.newText || '');
 }
-/* The prototype's segmentation: common prefix, common suffix, one block between.
-   Backed off to word boundaries so a word is never cut in half. */
-function negoRunDiff(oldText, newText){
-  const a = String(oldText == null ? '' : oldText), b = String(newText == null ? '' : newText);
-  let p = 0;
-  const max = Math.min(a.length, b.length);
-  while (p < max && a[p] === b[p]) p++;
-  while (p > 0 && a[p - 1] !== ' ') p--;
-  let sa = a.length, sb = b.length;
-  while (sa > p && sb > p && a[sa - 1] === b[sb - 1]){ sa--; sb--; }
-  while (sa < a.length && a[sa] !== ' ' && sa > p){ sa++; sb++; }
-  return { prefix: b.slice(0, p), del: a.slice(p, sa).trim(), ins: b.slice(p, sb).trim(), suffix: b.slice(sb) };
-}
+/* Kept for callers that hold two strings and no record (the compare surfaces).
+   New code files a change and renders its ops. */
 function negoDiffHtml(oldText, newText){
-  const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
-  const parts = window.wordDiff ? wordDiff(oldText, newText) : [{ t: 'eq', text: newText }];
-  if (_negoShredded(parts)){
-    const d = negoRunDiff(oldText, newText);
-    return e(d.prefix)
-      + (d.del ? `<span class="nego-del">${e(d.del)}</span>` : '')
-      + (d.del && d.ins ? ' ' : '')
-      + (d.ins ? `<span class="nego-ins">${e(d.ins)}</span>` : '')
-      + e(d.suffix);
-  }
-  return parts.map(p => p.t === 'eq' ? e(p.text)
-    : p.t === 'add' ? `<span class="nego-ins">${e(p.text)}</span>`
-    : `<span class="nego-del">${e(p.text)}</span>`).join('');
+  return window.redlineOps ? redlineOpsHtml(redlineOps(oldText, newText)) : _negoEsc(newText);
 }
 
 /* ---------- intake normalisation ----------
@@ -618,13 +969,6 @@ function negoDiffHtml(oldText, newText){
      2. custom/user template — state.settings.customTemplates, js/views/library.js
      3. uploaded Word file — docxExtract() in js/docx.js, the one and only place
         Word's format matters from here on
-
-   Paths 1 and 2 are already indistinguishable to callers: templateFields() in
-   js/templatefields.js is a single accessor over built-in and custom templates
-   alike, and both write the same c.redlineText/c.format pair. Path 3 arrives as
-   extracted plain text and is lifted to the same rich-document shape by
-   textToRich(), so a Word contract is negotiated as a document rather than as a
-   wall of prose.
 
    Returns a descriptor of the normalised document. It does NOT invent wording:
    a contract with no body yet is reported as such rather than given one. */
@@ -638,21 +982,12 @@ function negoIntakePath(c){
 /* Extracted Word text → a rich document, ONE BLOCK PER LINE.
    docxExtract emits one line per Word paragraph, and a Word paragraph is a
    block, so this mapping is a faithful reading rather than a guess. It is also
-   the only mapping that survives being negotiated.
-
-   textToRich() is the general-purpose lift and it is the wrong tool here: it
-   splits on BLANK lines, and extracted Word text has none, so a whole contract
-   became a single <p> with <br> between the clauses. richToText's projection of
-   that still reads correctly — which is why it looked fine — but
-   richFromTextEdit's _lineUnits maps every one of those lines to the SAME <p>
-   node, so rewriting one line rewrote the paragraph and took the other clauses
-   with it. The verification caught the damage and fell back to plain text, so an
-   uploaded contract quietly lost its formatting on the first accepted change.
+   the only mapping that survives being negotiated: textToRich() splits on BLANK
+   lines, and extracted Word text has none, so a whole contract became a single
+   <p> and rewriting one line took the other clauses with it.
 
    The first heading line is the document's title (<h1>); later ones are section
-   headings (<h2>). docLineKind() decides which lines are headings — the same
-   function the clause segmentation uses, so the two cannot disagree about what
-   is a term and what is a label. */
+   headings (<h2>). docLineKind() decides which lines are headings. */
 function negoRichFromLines(text){
   const e = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   let seenTitle = false;
@@ -669,8 +1004,7 @@ function negoNormalizeDocument(c, opts = {}){
   const path = negoIntakePath(c);
   /* An uploaded document's wording lives in upload.extractedText until someone
      edits it. Lifting it into the rich model here — once, at intake — is what
-     lets it be negotiated clause by clause like anything else, and it is the
-     one and only place Word's format matters from now on. */
+     lets it be negotiated clause by clause like anything else. */
   if (path === 'upload' && c.redlineText == null){
     const text = (c.upload && c.upload.extractedText) || '';
     if (text.trim()){
@@ -678,29 +1012,101 @@ function negoNormalizeDocument(c, opts = {}){
       c.format = window.RICH_FORMAT || 'rich';
     }
   }
-  const text = (window.docPlainText ? docPlainText(c) : '') || '';
   negoInit(c, opts);
+  negoMigrate(c);
+  const body = negoBodyOf(c);
+  const text = (window.docPlainText ? docPlainText(c) : '') || '';
   return {
     path,
     format: (window.docFormat ? docFormat(c.format) : 'text'),
     rich: !!(window.isRich && isRich(c.format)),
     text,
-    body: (c.redlineText != null ? c.redlineText : null),
-    clauses: negoClausesOf(text),
+    body,
+    clauses: negoClauses(c),
     changes: negoChanges(c),
     round: negoRound(c),
+    turn: negoTurn(c),
     baselineText: negoBaseText(c),
+    baselineBody: negoBaseBody(c),
     empty: !text.trim(),
   };
 }
 
+/* ---------- migration ----------
+   Contracts that predate this model carry changes keyed to line strings
+   (`clause:#3`) rather than to clause ids. Their clause ids are stamped on
+   first open by negoInit; this re-keys the changes.
+
+   Each old change is matched by its `oldText` against the clause bodies of the
+   baseline. Anything that matches is re-anchored and carries on. Anything that
+   does NOT match is flagged `needsReview` and left visible — never silently
+   dropped, because a dropped change is an ask that quietly stops being asked,
+   which is the one failure this whole model exists to prevent.
+
+   A contract with nothing pending migrates with nothing to do. */
+function negoMigrate(c){
+  negoInit(c);
+  const changes = c.changes || [];
+  if (!changes.length) return { migrated: 0, flagged: 0, already: true };
+  const stale = changes.filter(x => !x.hashV || x.hashV < NEGO_HASH_V
+    || !/^cl_/.test(String(x.clauseId || '')));
+  if (!stale.length) return { migrated: 0, flagged: 0, already: true };
+
+  const clauses = negoClauseList(c);
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const byText = new Map();
+  for (const cl of clauses) byText.set(norm(cl.text), cl);
+
+  let migrated = 0, flagged = 0;
+  for (const x of stale){
+    const want = norm(x.oldText || x.newText);
+    let cl = byText.get(want) || null;
+    if (!cl && want) cl = clauses.find(k => norm(k.text).includes(want) || want.includes(norm(k.text))) || null;
+    /* The change record shape moves too: type → changeType, and the ops it
+       never had are computed once, here, from the wording it does have. */
+    if (!x.changeType) x.changeType = x.type === 'insert' ? 'insertClause'
+      : x.type === 'delete' ? 'deleteClause' : 'modify';
+    if (!Array.isArray(x.ops) || !x.ops.length)
+      x.ops = x.changeType === 'modify' && window.redlineOps
+        ? redlineOps(x.oldText || '', x.newText || '')
+        : x.changeType === 'insertClause' ? [{ op: 'ins', text: x.newText || '' }]
+        : [{ op: 'del', text: x.oldText || '' }];
+    if (cl){
+      x.clauseId = cl.clauseId;
+      x.clauseLabel = x.clauseLabel || negoClauseLabel(cl);
+      x.needsReview = false;
+      migrated++;
+    } else {
+      /* Kept, shown, and marked. The wording is still on the record; what is
+         lost is only the certainty about WHICH clause it belongs to, and that
+         is exactly what a human is being asked to restore. */
+      x.needsReview = true;
+      x.needsReviewWhy = 'This change was filed before clauses had durable ids, and its original '
+        + 'wording no longer matches any clause in the document. It has been kept for review — '
+        + 'confirm which clause it belongs to before deciding it.';
+      flagged++;
+    }
+  }
+  if (window.logAudit && (migrated || flagged)) logAudit(c, 'Negotiation',
+    `Clause identity migrated — ${migrated} change${migrated === 1 ? '' : 's'} re-anchored to durable clause ids`
+    + (flagged ? `; ${flagged} could not be matched and ${flagged === 1 ? 'is' : 'are'} flagged for review (none dropped)` : ''));
+  return { migrated, flagged, already: false };
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
-  negoClauseKey, negoClausesOf, negoClauses, negoClauseLabel,
-  negoInit, negoBaseText, negoRound, negoChanges, negoChangeById, negoPending, negoOpenChanges,
-  negoNextId, negoHashInput, negoHash, negoShortHash, negoSummarise,
-  negoFileProposal, negoResolvedText, negoCommitText, negoResolve, negoResolveAll,
-  negoPostComment, negoTopicFor, negoProgress, negoReadyToSign, negoOpenPoints,
-  negoAdvanceRound, negoAllChanges, negoDiffHtml, negoRunDiff,
-  negoIntakePath, negoNormalizeDocument, negoRichFromLines });
+  negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
+  negoInit, negoStampContract, negoBaseText, negoBaseBody, negoRound,
+  negoChanges, negoChangeById, negoPending, negoOpenChanges,
+  negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
+  verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
+  negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
+  negoNoteFor, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
+  negoResolve, negoResolveAll,
+  negoPostComment, negoCommentIsStale, negoTopicFor,
+  negoProgress, negoReadyToSign, negoOpenPoints,
+  negoTurn, negoHandOver, negoTurnBanner,
+  negoAdvanceRound, negoAllChanges, negoRevisionAt,
+  negoChangeHtml, negoDiffHtml,
+  negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
-  negoClausesOf, negoSummarise, negoHashInput, negoShortHash };
+  negoHashInput, negoShortHash };

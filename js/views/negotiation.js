@@ -269,6 +269,23 @@ function negoStyleHtml(){
   .nego-id{font-family:var(--n-font-mono);font-size:10px;font-weight:700;
     background:var(--n-badge-bg);color:var(--n-slate-soft);border:1.5px solid var(--n-slate-soft);
     border-radius:99px;padding:1px 8px}
+  /* The clause tools sit in the RIGHT margin, opposite the fingerprint badge
+     in the left one, so neither ever covers the other and the text column keeps
+     its measure. They appear on hover or focus — a document with six sets of
+     buttons permanently on it reads as a form, not as a contract. */
+  .nego-tools{position:absolute;left:calc(100% + 6px);top:8px;display:flex;flex-direction:column;gap:3px;
+    opacity:0;transition:opacity .12s ease;z-index:2}
+  .nego-clause:hover .nego-tools,.nego-clause:focus-within .nego-tools{opacity:1}
+  .nego-tool{font-size:10px;font-weight:700;border:1px solid var(--n-line);background:#fff;
+    color:var(--n-slate-soft);border-radius:5px;padding:2px 7px;white-space:nowrap;cursor:pointer;font-family:inherit}
+  .nego-tool:hover{background:var(--n-badge-bg);border-color:var(--n-slate-soft)}
+  .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:#fff}
+  .nego-editing:focus{outline:2px solid var(--n-focus)}
+  .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
+  .nego-edit-bar button{font-size:11px;font-weight:700;border-radius:5px;padding:4px 10px;
+    border:1.5px solid transparent;font-family:inherit;cursor:pointer}
+  .nego-edit-bar .b-save{background:var(--n-accept);color:#fff}
+  .nego-edit-bar .b-cancel{background:#fff;border-color:var(--n-line);color:var(--n-ink-soft)}
   .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     border-radius:5px;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
@@ -380,13 +397,28 @@ function negoStyleHtml(){
    A rejected clause reading exactly as the baseline reads is the point: it is
    the visible half of "silence rejects". */
 function negoDocHtml(c, opts){
-  const side = opts.side || 'owner';
   const baseline = !!opts.baseline;
-  const base = negoBaseText(c);
-  const clauses = negoClausesOf(base);
+  const clauses = negoClauseList(c);
   const changes = negoChanges(c).filter(x => x.status !== 'superseded');
   const byClause = new Map();
-  for (const ch of changes) byClause.set(ch.clauseId, ch);
+  for (const ch of changes) if (ch.changeType !== 'insertClause') byClause.set(ch.clauseId, ch);
+  /* Insertions are drawn WHERE THEY WERE PROPOSED — after the clause they name
+     — rather than swept to the end of the document. The old model appended
+     them because a line-index id gave it nowhere else to point; a durable id
+     names the anchor, so the new clause reads in the place it is meant to
+     occupy. An insertion with no surviving anchor falls to the end, and only
+     then. */
+  const insertsAfter = new Map();
+  const orphanInserts = [];
+  for (const ch of changes){
+    if (ch.changeType !== 'insertClause') continue;
+    const anchor = ch.afterClauseId && clauses.some(cl => cl.clauseId === ch.afterClauseId)
+      ? ch.afterClauseId : null;
+    if (anchor){
+      if (!insertsAfter.has(anchor)) insertsAfter.set(anchor, []);
+      insertsAfter.get(anchor).push(ch);
+    } else orphanInserts.push(ch);
+  }
 
   const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
     || c.name || 'Contract';
@@ -394,61 +426,105 @@ function negoDocHtml(c, opts){
     c.id, baseline ? 'Baseline · the wording this round is measured against'
       : `Round ${negoRound(c)} · proposed redline`].filter(Boolean).join(' · ');
 
-  const body = clauses.map(cl => {
-    const ch = byClause.get(cl.id);
+  /* Every clause carries its own heading, rebuilt from num and title on this
+     render. The label is never stored and never hashed, so renumbering the
+     contract changes what is printed here and nothing else. */
+  const head = cl => {
     const label = negoClauseLabel(cl);
+    return label ? _ne(label) : '';
+  };
+  /* The redline comes from the change's STORED ops, never from a diff run now.
+     Two renders of one record are identical by construction, which is what
+     makes "what was reviewed is what was decided on" a property rather than a
+     hope. */
+  const redline = ch => window.negoChangeHtml ? negoChangeHtml(ch) : _ne(ch.newText || '');
+  const resolvedHtml = ch => (Array.isArray(ch.ops) && ch.ops.length)
+    ? ch.ops.filter(o => o.op !== 'del').map(o => o.op === 'ins'
+        ? `<span class="nego-resolved" data-fade>${_ne(o.text)}</span>` : _ne(o.text)).join('')
+    : `<span class="nego-resolved" data-fade>${_ne(ch.newText)}</span>`;
+
+  /* 2.1/2.2 — the working pane is EDITABLE, and it edits the rich document
+     rather than a textarea over a text projection. Each clause carries its own
+     controls, so a change is filed against the clause the writer was actually
+     looking at; the old "propose" flow handed them the whole document in one
+     box and then tried to work out afterwards which clause they had meant.
+
+     Read-only panes get none of this: the baseline is a reference and the
+     other side's turn is not yours to edit. */
+  const editable = !baseline && !opts.readonly && opts.canEdit !== false;
+  const tools = cl => editable ? `<div class="nego-tools">
+      <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}" title="Edit this clause">Edit</button>
+      <button class="nego-tool" data-nego-add-after="${_ne(cl.clauseId)}" title="Add a clause after this one">Add clause</button>
+      <button class="nego-tool" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
+    </div>` : '';
+
+  const clauseBlock = (cl, ch, domPrefix) => {
     if (baseline || !ch)
-      return `<div class="nego-clause" id="${baseline ? 'nb' : 'nw'}-${negoDomId(cl.id)}" data-clause="${_ne(cl.id)}">
-        ${label ? `<h2>${_ne(label)}</h2>` : ''}<p>${_ne(cl.text)}</p></div>`;
+      return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
+        ${tools(cl)}${head(cl) ? `<h2>${head(cl)}</h2>` : ''}<p>${_ne(cl.text)}</p></div>`;
 
     let inner, badgeCls = '', badgeSuffix = '', note = '';
     if (ch.status === 'pending'){
-      inner = ch.type === 'insert' ? `<span class="nego-ins">${_ne(ch.newText)}</span>`
-        : ch.type === 'delete' ? `<span class="nego-del">${_ne(ch.oldText)}</span>`
-        : negoDiffHtml(ch.oldText, ch.newText);
+      /* A proposed DELETION strikes the clause through whole and leaves every
+         word of it on the page. The text is not removed until the deletion is
+         accepted — a document that quietly loses a clause while someone is
+         still deciding about it is the failure this rule exists to prevent. */
+      inner = ch.changeType === 'deleteClause'
+        ? `<span class="nego-del">${_ne(cl.text)}</span>`
+        : redline(ch);
     } else if (ch.status === 'accepted'){
-      inner = ch.type === 'delete'
-        ? `<span class="nego-del">${_ne(ch.oldText)}</span>`
-        : `<span class="nego-resolved" data-fade>${_ne(ch.newText)}</span>`;
+      inner = ch.changeType === 'deleteClause'
+        ? `<span class="nego-del">${_ne(cl.text)}</span>`
+        : resolvedHtml(ch);
       badgeCls = 'is-accepted'; badgeSuffix = ' ✓';
-      note = `<span class="nego-note ok">Accepted</span>`;
+      note = ch.changeType === 'deleteClause'
+        ? `<span class="nego-note ok">Accepted — clause removed</span>`
+        : `<span class="nego-note ok">Accepted</span>`;
     } else {
       inner = _ne(cl.text);                          // the baseline, verbatim
       badgeCls = 'is-rejected'; badgeSuffix = ' ✕';
       note = `<span class="nego-note no">Rejected — baseline kept</span>`;
     }
     const active = _negoActive === ch.id;
-    return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(cl.id)}" data-clause="${_ne(cl.id)}" data-change="${_ne(ch.id)}">
-      <button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
-        data-badge="${_ne(ch.id)}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${label ? `<h2>${_ne(label)}${note}</h2>` : note}<p>${inner}</p></div>`;
-  }).join('');
+    const flag = ch.needsReview
+      ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">Needs review</span>` : '';
+    return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
+      ${tools(cl)}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
+        data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
+      ${head(cl) ? `<h2>${head(cl)}${note}${flag}</h2>` : (note + flag)}<p>${inner}</p></div>`;
+  };
 
-  /* An INSERT names a clause the baseline never had, so it has no row to sit in
-     and is shown after the document rather than wedged into it. Guessing a
-     position would be inventing structure neither party wrote. */
-  const inserts = baseline ? '' : changes.filter(ch => ch.type === 'insert' && !clauses.some(cl => cl.id === ch.clauseId))
-    .map(ch => {
-      const active = _negoActive === ch.id;
-      const cls = ch.status === 'accepted' ? 'is-accepted' : ch.status === 'rejected' ? 'is-rejected' : (active ? 'is-active' : '');
-      const sfx = ch.status === 'accepted' ? ' ✓' : ch.status === 'rejected' ? ' ✕' : '';
-      const inner = ch.status === 'rejected'
-        ? `<span class="nego-del">${_ne(ch.newText)}</span>`
-        : ch.status === 'accepted' ? `<span class="nego-resolved" data-fade>${_ne(ch.newText)}</span>`
-        : `<span class="nego-ins">${_ne(ch.newText)}</span>`;
-      const note = ch.status === 'accepted' ? `<span class="nego-note ok">Accepted</span>`
-        : ch.status === 'rejected' ? `<span class="nego-note no">Rejected — not added</span>` : '';
-      return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
-        <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}"
-          aria-label="New clause ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${sfx}</button>
-        <h2>${_ne(ch.clauseLabel || 'New clause')}${note}</h2><p>${inner}</p></div>`;
-    }).join('');
+  const insertBlock = ch => {
+    const active = _negoActive === ch.id;
+    const cls = ch.status === 'accepted' ? 'is-accepted' : ch.status === 'rejected' ? 'is-rejected' : (active ? 'is-active' : '');
+    const sfx = ch.status === 'accepted' ? ' ✓' : ch.status === 'rejected' ? ' ✕' : '';
+    const inner = ch.status === 'rejected'
+      ? `<span class="nego-del">${_ne(ch.newText)}</span>`
+      : ch.status === 'accepted' ? resolvedHtml(ch)
+      : `<span class="nego-ins">${_ne(ch.newText)}</span>`;
+    const note = ch.status === 'accepted' ? `<span class="nego-note ok">Accepted — clause added</span>`
+      : ch.status === 'rejected' ? `<span class="nego-note no">Rejected — not added</span>` : '';
+    const label = ch.headingText || ch.clauseLabel || 'New clause';
+    return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
+      <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}"
+        aria-label="New clause ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${sfx}</button>
+      <h2>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
+  };
+
+  const prefix = baseline ? 'nb' : 'nw';
+  const body = clauses.map(cl => {
+    const own = clauseBlock(cl, byClause.get(cl.clauseId), prefix);
+    if (baseline) return own;
+    const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
+    return own + after;
+  }).join('');
+  const tail = baseline ? '' : orphanInserts.map(insertBlock).join('');
 
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
     ${body || `<p style="color:var(--n-ink-soft)">This contract has no wording yet.</p>`}
-    ${inserts}
+    ${tail}
   </article>`;
 }
 
@@ -506,7 +582,7 @@ function negoCardsHtml(c, opts){
            role="button" tabindex="0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-id">#${_ne(ch.id)}</span>
-          <span class="nego-st verified" title="Fingerprinted with a SHA-256 digest over this change's substance">Verified</span>
+          ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
         </div>
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
@@ -520,6 +596,31 @@ function negoCardsHtml(c, opts){
         ${acts}${thread}
       </div>`;
   }).join('');
+}
+
+/* ---------- the "Verified" pill ----------
+   The prototype renders this unconditionally, and so did this component until
+   now — which is the exact fakery the prototype is criticised for. A pill that
+   always says Verified verifies nothing; worse, it teaches a reader that the
+   word is decoration.
+
+   It now reads verifyChangeChain(), which recomputes every hash in the history
+   from STORED content and checks each link against the one before it. Three
+   states, and only one of them is reassuring:
+
+     ok            → Verified, with the number of records checked
+     failed        → Integrity check failed, NAMING the first broken change
+     not yet run   → Checking…, which claims nothing
+
+   A change that is itself the broken link is called out on its own card, so a
+   reader looking at that change sees the problem where the problem is. */
+function negoVerifyPill(c, ch){
+  const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
+  if (!v) return `<span class="nego-st verified" title="Recomputing this change's fingerprint from the stored wording">Checking…</span>`;
+  if (v.ok) return `<span class="nego-st verified" data-verify="ok" title="${_ne(v.detail)}">Verified</span>`;
+  const isThis = ch && v.failedAt === ch.id;
+  return `<span class="nego-st rejected" data-verify="${isThis ? 'failed-here' : 'failed'}" title="${_ne(v.detail)}">${
+    isThis ? 'Integrity check failed' : 'Chain unverified'}</span>`;
 }
 
 /* ---------- the status strip ----------
@@ -541,9 +642,20 @@ function negoStatusHtml(c, opts){
       <div class="seg"><span class="dot ${seen && seen.kind !== 'unopened' ? 'ok' : 'warn'}"></span>${_ne(seenLine)}</div>
       <div class="seg">Negotiation: Round ${p.total ? negoRound(c) : negoRound(c)}</div>
       <div class="seg" id="nego-resolved">Resolved: ${p.done} / ${p.total}</div>
+      ${negoIntegritySeg(c)}
       <span class="spacer"></span>
       <span class="seg" style="font-family:var(--n-font-mono);font-size:9.5px;opacity:.6">${_ne(String(opts.side === 'counterparty' ? 'counterparty view' : 'owner view'))} · fingerprinted redline</span>
     </div>`;
+}
+
+/* The whole history in one line, on the strip both sides read. Named, not a
+   tick: "Integrity check failed" that does not say WHICH change failed is not
+   an actionable statement about a legal document. */
+function negoIntegritySeg(c){
+  const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
+  if (!v) return `<div class="seg" id="nego-integrity"><span class="dot warn"></span>Fingerprints: checking…</div>`;
+  if (v.ok) return `<div class="seg" id="nego-integrity"><span class="dot ok"></span>Fingerprints: ${v.checked} verified</div>`;
+  return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot warn"></span>Integrity check failed — first broken link ${_ne('#' + (v.failedAt || 'unknown'))}</div>`;
 }
 
 /* ---------- the header strip ----------
@@ -597,6 +709,32 @@ function negoReadyHtml(c, opts){
         ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
         : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
+}
+
+/* ---------- 2.4: whose turn it is ----------
+   Both sides read the same banner, built from the same record. A negotiation
+   where neither party can tell whether they are waiting or being waited on is
+   how a fortnight goes past with the document sitting in someone's inbox.
+
+   Every field is a READ — the turn, the pending count, the time it was sent —
+   so the banner can never claim a state the change set does not support. */
+function negoTurnBannerHtml(c, opts){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const b = window.negoTurnBanner ? negoTurnBanner(c, side) : null;
+  if (!b) return '';
+  const sent = c.negotiation && c.negotiation.turnAt;
+  const when = sent && window.fmtDT ? fmtDT(sent) : null;
+  const mine = b.mine;
+  return `<div class="nego-turn" id="nego-turn" data-turn="${mine ? 'mine' : 'theirs'}"
+      style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:6px;padding:9px 14px;
+      border:1px solid ${mine ? '#a8cbb8' : 'var(--n-line)'};background:${mine ? '#eef7f1' : 'var(--n-badge-bg)'};
+      border-left:4px solid ${mine ? 'var(--n-accept)' : 'var(--n-slate-soft)'}">
+    <span style="flex:1;min-width:200px;font-size:12.5px;font-weight:600;color:${mine ? '#14503a' : 'var(--n-ink)'}">
+      ${_ne(b.text)}${!mine && when ? ` <span style="font-weight:400;color:var(--n-ink-soft)">— sent ${_ne(when)}</span>` : ''}</span>
+    ${mine && !opts.readonly
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 13px">Send to ${_ne(side === 'owner' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'the owner'))}</button>`
+      : ''}
+  </div>`;
 }
 
 /* ---------- the whole tab ---------- */
@@ -660,6 +798,7 @@ function negoTabHtml(c, opts = {}){
   negoInit(c);
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
+    ${negoTurnBannerHtml(c, opts)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
@@ -879,6 +1018,24 @@ function renderNegotiationTab(c, opts = {}){
   negoEnsureStyle();                 // in <head>, so a repaint cannot strip it
   host.innerHTML = negoTabHtml(c, opts);
   wireNegotiationTab(c, opts);
+  /* Verification hashes, so it cannot run inside a synchronous render. The
+     first paint therefore claims nothing — "Checking…" — and this repaints the
+     two places that report it once the chain has actually been walked. Showing
+     "Verified" first and correcting it later would be the same lie the pill is
+     being fixed for, briefly. */
+  if (window.negoRefreshVerification && !window.negoVerifyCached(c)){
+    negoRefreshVerification(c).then(() => {
+      const still = document.getElementById(opts.hostId || 'nego-tab');
+      if (!still || still !== host) return;
+      const strip = host.querySelector('#nego-status');
+      if (strip) strip.outerHTML = negoStatusHtml(c, opts);
+      host.querySelectorAll('[data-nego-card]').forEach(card => {
+        const ch = negoChangeById(c, card.getAttribute('data-nego-card'));
+        const pill = card.querySelector('.nego-st');
+        if (ch && pill) pill.outerHTML = negoVerifyPill(c, ch);
+      });
+    }).catch(() => {});
+  }
   // soften the wash on freshly accepted wording, the way the prototype does
   const fade = () => host.querySelectorAll('[data-fade]').forEach(n => n.classList.add('nego-faded'));
   if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => setTimeout(fade, 900));
@@ -942,6 +1099,107 @@ function wireNegotiationTab(c, opts = {}){
     }
     again();
   };
+
+  /* ---------- 2.1/2.2: editing a clause, adding one, deleting one ----------
+     Every one of these files (or updates) a change through the model and then
+     repaints. Nothing here writes to the document: a proposal is a proposal
+     until the other side decides it, on this surface exactly as on every
+     other. */
+  const fileAndRepaint = async (fn, msg) => {
+    const ch = await fn();
+    if (!ch){ if (window.toast) toast('Nothing changed — no fingerprint was filed'); return; }
+    _negoActive = ch.id;
+    if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+    if (opts.persist !== false && window.persist) persist(c);
+    if (window.toast) toast(msg(ch));
+    again();
+  };
+
+  const send = host.querySelector('#nego-send');
+  if (send) send.addEventListener('click', () => {
+    /* Handing over rides the EXISTING share/response routes. There is no new
+       endpoint here and there deliberately never will be: a public no-login URL
+       that mutates a contract per click must not exist. */
+    const to = side === 'owner' ? 'counterparty' : 'owner';
+    if (!negoHandOver(c, { to, by: opts.by })) return;
+    if (opts.persist !== false && window.persist) persist(c);
+    if (window.toast) toast(`Sent — it is now ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}'s turn`);
+    again();
+  });
+
+  host.querySelectorAll('[data-nego-edit]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const clauseId = b.getAttribute('data-nego-edit');
+    const block = host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`);
+    if (!block || block.querySelector('.nego-edit-bar')) return;
+    const body = block.querySelector('p');
+    if (!body) return;
+    /* The clause is edited as the RICH content it is, in place. The old flow
+       put the whole document into a <textarea>, which is why headings,
+       numbering and tables did not survive being proposed on. */
+    const cl = negoClauseById(c, clauseId);
+    if (!cl) return;
+    const holder = document.createElement('div');
+    holder.className = 'nego-editing';
+    holder.setAttribute('contenteditable', 'true');
+    holder.setAttribute('data-nego-editor', clauseId);
+    holder.innerHTML = cl.bodyHtml || `<p>${_ne(cl.text)}</p>`;
+    body.replaceWith(holder);
+    const bar = document.createElement('div');
+    bar.className = 'nego-edit-bar';
+    bar.innerHTML = `<button class="b-save" data-nego-save="${_ne(clauseId)}">Save change</button>`
+      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">Cancel</button>`;
+    holder.after(bar);
+    if (holder.focus) holder.focus();
+    bar.querySelector('[data-nego-cancel]').addEventListener('click', ev => { ev.stopPropagation(); again(); });
+    bar.querySelector('[data-nego-save]').addEventListener('click', ev => {
+      ev.stopPropagation();
+      fileAndRepaint(() => negoEditClause(c, clauseId, holder.innerHTML, { side, author: opts.by }),
+        ch => `#${ch.id} filed — ${ch.summary}`);
+    });
+  }));
+
+  host.querySelectorAll('[data-nego-del]').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    const clauseId = b.getAttribute('data-nego-del');
+    const cl = negoClauseById(c, clauseId);
+    if (!cl) return;
+    if (window.confirmDialog){
+      const ok = await confirmDialog({ title: 'Propose deleting this clause?',
+        message: `“${negoClauseLabel(cl)}” would be struck through for the other side to decide. `
+          + 'The wording stays in the document until they accept the deletion.',
+        confirmLabel: 'Propose deletion' });
+      if (!ok) return;
+    }
+    fileAndRepaint(() => negoDeleteClause(c, clauseId, { side, author: opts.by }),
+      ch => `#${ch.id} filed — deletion proposed, the wording stays until it is accepted`);
+  }));
+
+  host.querySelectorAll('[data-nego-add-after]').forEach(b => b.addEventListener('click', async e => {
+    e.stopPropagation();
+    const afterId = b.getAttribute('data-nego-add-after');
+    let heading = '';
+    if (window.promptDialog){
+      heading = await promptDialog({ title: 'Add a clause',
+        message: 'It is inserted after the clause you clicked, and travels to the other side as a proposal.',
+        label: 'Clause heading', placeholder: 'e.g. Clause 7 · Force Majeure',
+        confirmLabel: 'Add clause' });
+      if (heading == null) return;
+    }
+    let body = '';
+    if (window.promptDialog){
+      body = await promptDialog({ title: 'The clause wording',
+        message: 'What the new clause says.', label: 'Wording',
+        placeholder: 'Neither party shall be liable for failure to perform caused by…',
+        confirmLabel: 'Add clause' });
+      if (body == null) return;
+    }
+    if (!String(body).trim()){ if (window.toast) toast('A new clause needs wording', 'err'); return; }
+    fileAndRepaint(() => negoInsertClause(c, afterId,
+      { headingText: String(heading || '').trim(), bodyHtml: `<p>${_ne(String(body).trim())}</p>` },
+      { side, author: opts.by }),
+      ch => `#${ch.id} filed — new clause proposed`);
+  }));
 
   host.querySelectorAll('[data-badge]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();

@@ -237,7 +237,14 @@ describe('an action by one side shows up on the other', () => {
     v = counterpartyView(o.c);
     const card = v.$(`#nego-card-${ch.id}`);
     assert.match(card.textContent, /accepted/);
-    assert.match(card.textContent, /Verified/);
+    /* The pill is a READ of verifyChangeChain, so it has to be walked before
+       it can say anything. Erik's page verifies the chain he was sent — the
+       same records, the same hashes — and reaches the same answer Wanjiru's
+       does, which is the point of sending the chain rather than a summary. */
+    const verdict = await v.p.win.verifyChangeChain(v.p.win.portalNegoContract
+      ? v.p.win.portalNegoContract(v.payload) : o.c);
+    assert.ok(verdict.ok, `the chain Erik received must verify: ${verdict.detail}`);
+    await v.p.win.negoRefreshVerification(o.c);
     assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✓/);
     assert.match(v.$('#pt-nego').textContent, /forty-five \(45\) days/,
       'the agreed wording is on his page too');
@@ -429,7 +436,7 @@ describe('a counterparty redline arrives as fingerprints as well as a round', ()
     // and the same redline is workable clause by clause
     const changes = win.negoChanges(c);
     assert.equal(changes.length, 1);
-    assert.equal(changes[0].type, 'modify');
+    assert.equal(changes[0].changeType, 'modify');
     assert.equal(changes[0].authorSide, 'counterparty');
     assert.match(changes[0].author, /Erik Lindqvist, Legal Counsel/);
     assert.match(changes[0].newText, /sixty \(60\) days/);
@@ -495,8 +502,16 @@ describe('a rich contract survives the trip to the counterparty and back', () =>
     // the working pane shows it as a redline, so the words arrive in runs
     assert.match(v.$('.nego-pane.working').textContent, /forty-five/);
     assert.match(v.$('.nego-pane.working').textContent, /\(45\)/);
-    assert.match(v.$(`#nego-card-${filed[0].id}`).textContent, /Clause 3 · PAYMENT/,
-      'the ol start="3" numbering reaches his screen too, heading and all');
+    /* The clause is the <h2>2. PAYMENT</h2> heading plus the list under it, so
+       it is labelled from its own heading — "Clause 2 · PAYMENT". The old model
+       read the <li> LINE as the clause and labelled it "Clause 3" from the
+       list's start="3", which named a list item rather than a term. The
+       numbering itself still has to reach his screen, and it does: it is in the
+       document pane, which is where a reader looks for it. */
+    assert.match(v.$(`#nego-card-${filed[0].id}`).textContent, /Clause 2 · PAYMENT/,
+      'the clause is labelled from its own heading, not from a list item number');
+    assert.match(v.$('.nego-pane.working').textContent, /3\.\s*Payment shall be made/,
+      'the ol start="3" numbering reaches his screen too');
 
     win.document.querySelector(`[data-nego-accept="${filed[0].id}"]`).click();
     assert.equal(win.docFormat(c.format), 'rich', 'and the document is still formatted');

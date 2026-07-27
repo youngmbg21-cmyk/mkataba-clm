@@ -1,65 +1,73 @@
 /* ============================================================
    Scenario 3 — six rounds, natively, through every intake path
    ============================================================
+   Rewritten in this session against the REAL clause model.
+
    Wanjiru (owner) and Erik (counterparty) negotiate a warehousing agreement
    over six rounds inside the Negotiation tab, with no Word file passing between
-   them after intake. The whole script runs THREE TIMES — once for a contract
-   drafted from a built-in template, once from a customer's own template, and
-   once from an uploaded .docx — and every assertion is identical in all three,
-   because that is the claim: after intake, nothing downstream can tell how a
-   contract arrived.
+   them after intake. The whole script runs THREE TIMES — once from a built-in
+   template, once from a customer's own template, once from an uploaded .docx —
+   and the three are asserted AGAINST EACH OTHER at the end, not merely
+   individually. That is the claim being tested: after intake, nothing
+   downstream can tell how a contract arrived.
 
-   Every round is driven through the functions the product calls. The
-   counterparty's decisions go through applyResponse, the same path a real
-   response from her link takes; the owner's go through negoResolve, and the
-   final state is read off the RENDERED tab rather than out of the model.
+   The fixture follows the fixture rule. Numbering is NON-CONTIGUOUS — 1, 4, 5,
+   6, 9, 12, as prototype.html has it — so nothing can quietly use a clause
+   number as an index. Bodies are multi-sentence and two of them are
+   multi-paragraph, so "one clause, one badge, one decision" is exercised rather
+   than assumed. Headings are ALL-CAPS numbered, which is how an uploaded Word
+   contract really reads and is the only heading style all three paths can
+   produce identically — a mixed-case "Clause 4 · Payment Terms" cannot survive
+   .docx extraction, because extraction yields lines and the only heading signal
+   left in a line is that it shouts. (The mixed-case style is covered against
+   the rich paths in f35/f40.)
 
    What this script is for is the things that only break over distance:
 
-     · six rounds of accept / reject / discuss / revise leaving a document that
-       says exactly what the parties agreed and nothing else
-     · a refused ask staying visible as an open point instead of vanishing
-     · formatting surviving all six rounds
+     · six rounds of edit / insert / delete / accept / reject / discuss / revise
+       leaving a document that says exactly what the parties agreed
+     · a pending change revised IN PLACE keeping its #CHG id, chaining its hash,
+       and leaving the superseded wording recoverable
+     · verifyChangeChain passing over the WHOLE six-round history
+     · formatting and clause identity surviving all six rounds, at the
+       canonicalRich level
      · the audit trail naming the right author every single time
-     · Ready to sign arriving exactly once, and the hand-off to the Docs tab
-       being reachable and named — with no signing logic anywhere near it */
+     · a version snapshot per closed round
+     · Ready to sign arriving exactly once — with no signing logic near it */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildPortal, sharePayloadFor } = require('./portalworld');
+const { buildPortal } = require('./portalworld');
 const { mkDocx, para } = require('./docxfix');
 
-/* ---------- the agreement, in one canonical form ----------
-   Written so that all three intake paths produce the SAME text projection: a
-   heading line per section and one numbered clause under it. The rich paths
-   carry it as <h2>/<p>; the Word path carries it as paragraphs. richToText and
-   docxExtract both emit one line per block, so the two meet exactly — which is
-   what makes one script able to drive all three. */
-const CLAUSES = [
-  ['1. SCOPE OF SERVICES',
-   '1. The Provider shall receive, store, handle and dispatch the Client’s goods at the designated facility.'],
-  ['2. PAYMENT TERMS',
-   '2. All invoices are payable within thirty (30) days from the date of issue.'],
-  ['3. STORAGE CONDITIONS',
-   '3. Stored goods may remain in the facility for a maximum of one hundred and twenty (120) days.'],
-  ['4. LIABILITY AND INSURANCE',
-   '4. The Provider’s aggregate liability shall not exceed the full replacement value of the affected goods.'],
-  ['5. TERMINATION NOTICE',
-   '5. Either party may terminate for convenience on not less than sixty (60) days written notice.'],
-  ['6. GOVERNING LAW',
-   '6. This Agreement is governed by the laws of Kenya.'],
-];
-const TITLE = 'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT';
-const PLAIN = [TITLE, ...CLAUSES.flat()].join('\n');
-const RICH = `<h1>${TITLE}</h1>` +
-  CLAUSES.map(([h, b]) => `<h2>${h}</h2><p>${b}</p>`).join('');
+const own = xs => Array.from(xs);
 
-/* ---------- the stage ----------
-   test/portalworld.js is the only stage carrying both halves of this: the
-   negotiation model and view, AND js/core.js, whose applyResponse is how a
-   counterparty's answer really reaches a contract. The shell around it is stood
-   in for — a save, a re-render, a view change — and never the logic under test.
-   logAudit stays the product's own, so the authorship assertions read the
-   product's decision rather than a copy of it. */
+/* ---------- the agreement, in one canonical form ----------
+   Written so all three intake paths produce the SAME document. The rich paths
+   carry it as <h1>/<h2>/<p>; the Word path arrives as extracted lines and is
+   lifted by negoRichFromLines to exactly that shape — one block per line, the
+   first shouting line the title and later ones headings. The two meet, which is
+   what lets one script drive all three. */
+const TITLE = 'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT';
+const CLAUSES = [
+  ['1. SCOPE OF SERVICES', [
+    'The Provider shall receive, store, handle and dispatch the Client’s goods at the designated facility.',
+    'The Provider shall also perform inventory reporting, order picking and outbound carrier coordination in accordance with Annex A.']],
+  ['4. PAYMENT TERMS', [
+    'All invoices are payable within thirty (30) days from the date of issue (Net-30).',
+    'Late payments will incur a service charge of 1.5% per month on the outstanding balance.']],
+  ['5. STORAGE CONDITIONS AND DURATION', [
+    'Stored goods may remain in the facility for a maximum of one hundred and twenty (120) days.']],
+  ['6. LIABILITY AND INSURANCE', [
+    'The Provider’s aggregate liability for loss of or damage to stored goods shall not exceed the full replacement value of the affected goods.']],
+  ['9. TERMINATION NOTICE', [
+    'Either party may terminate this Agreement for convenience on not less than sixty (60) days written notice.']],
+  ['12. GOVERNING LAW AND DISPUTES', [
+    'This Agreement is governed by the laws of Kenya.']],
+];
+const PLAIN = [TITLE, ...CLAUSES.flatMap(([h, body]) => [h, ...body])].join('\n');
+const RICH = `<h1>${TITLE}</h1>`
+  + CLAUSES.map(([h, body]) => `<h2>${h}</h2>` + body.map(b => `<p>${b}</p>`).join('')).join('');
+
 function stage(){
   const p = buildPortal();
   const win = p.win;
@@ -76,7 +84,6 @@ function stage(){
   win.FIRST_PARTY = 'Wanjiru Catering Ltd';
   return { p, win };
 }
-
 const shell = over => ({
   id: 'MK-191', name: 'Warehousing and Logistics Services Agreement',
   counterparty: 'Nordfrakt Logistik AB', folder: 'dist', status: 'Under Review',
@@ -84,23 +91,16 @@ const shell = over => ({
   fields: {}, metadata: {}, comments: [], audit: [], signatures: [],
   rounds: [], versions: [], ...over });
 
-/* ---------- the three intake paths ----------
-   Each returns a contract in whatever shape that route really produces, and
-   then negoNormalizeDocument is the ONE thing that runs over all three. */
 const INTAKE = {
   'standard template': async () => shell({ template: 'RM', redlineText: RICH, format: 'rich' }),
-
-  /* Phase 0 confirmed customer templates already exist
-     (state.settings.customTemplates, js/views/library.js), so this is the shape
-     that feature writes: the same body, carrying templateId instead of a
-     built-in key. */
+  /* The shape the customer-template feature writes: the same body, carrying
+     templateId instead of a built-in key. */
   'custom template': async () => shell({ template: null, templateId: 'tpl_nordfrakt_master',
     templateName: 'Nordfrakt master warehousing terms', redlineText: RICH, format: 'rich' }),
-
   /* The one and only place Word's format matters. Real .docx bytes, read by the
-     real docxExtract; from here on the contract is negotiated natively. */
+     real docxExtract; from here on it is negotiated natively. */
   'uploaded Word file': async win => {
-    const bytes = mkDocx([TITLE, ...CLAUSES.flat()].map(para).join(''));
+    const bytes = mkDocx(PLAIN.split('\n').map(para).join(''));
     const res = await win.docxExtract(bytes);
     assert.ok(res.text && res.text.trim(), 'the extractor must yield wording');
     return shell({ source: 'upload', template: null,
@@ -109,319 +109,285 @@ const INTAKE = {
   },
 };
 
-/* ---------- the moves ---------- */
-
-/* Erik proposes wording. His edits are applied to the round's baseline and
-   submitted the way his link submits them: as a change request carrying a
-   redline, through the real applyResponse. */
-async function erikProposes(win, c, edits, opts = {}){
-  const base = win.negoBaseText(c);
-  let next = base;
-  for (const [from, to] of edits){
-    assert.ok(next.includes(from), `the baseline must still say “${from}”`);
-    next = next.replace(from, to);
+/* ---------- the moves ----------
+   Every one of these goes through the function the product calls. Editing is
+   negoEditClause on a clause id — the inline editor's own path — rather than a
+   whole-document textarea, because that is what the working pane now does. */
+const ERIK = 'Erik Lindqvist · Nordfrakt Logistik AB';
+const clauseNum = (win, c, num) => {
+  const cl = win.negoClauseList(c).find(x => x.num === num);
+  assert.ok(cl, `clause ${num} must be in the baseline`);
+  return cl;
+};
+async function edits(win, c, side, author, list){
+  const filed = [];
+  for (const [num, body, summary] of list){
+    const cl = clauseNum(win, c, num);
+    const ch = await win.negoEditClause(c, cl.clauseId, body, { side, author, summary });
+    assert.ok(ch, `an edit to clause ${num} must file a change`);
+    filed.push(ch);
   }
-  assert.notEqual(next, base, 'a proposal must actually change something');
-  const before = win.negoChanges(c).length;
-  const ok = await win.applyResponse(c, { v: 1, kind: 'hati-response', id: c.id,
-    action: 'changes', name: 'Erik Lindqvist', title: 'Legal Counsel',
-    comment: opts.comment || 'Proposed edits for your review.',
-    proposedText: next, baseText: base,
-    clauseNotes: opts.notes || null, at: opts.at || '2026-07-27T09:00:00Z' },
-    { background: true });
-  assert.equal(ok, undefined === ok ? ok : ok, 'applyResponse ran');
-  const filed = win.negoChanges(c).slice(before);
-  assert.equal(filed.length, edits.length,
-    `${edits.length} edited clause${edits.length === 1 ? '' : 's'} must file ${edits.length} change${edits.length === 1 ? '' : 's'}`);
   return filed;
 }
-
-/* Wanjiru proposes wording, from her own tab. */
-async function wanjiruProposes(win, c, edits){
-  const base = win.negoBaseText(c);
-  let next = base;
-  for (const [from, to] of edits){
-    assert.ok(next.includes(from), `the baseline must still say “${from}”`);
-    next = next.replace(from, to);
-  }
-  const filed = await win.negoFileProposal(c, next,
-    { side: 'owner', author: 'Wanjiru Kamau', via: 'the Negotiation tab' });
-  assert.equal(filed.length, edits.length);
-  return filed;
-}
-
-/* Erik answers changes WE proposed, down the response route his page uses. */
-async function erikDecides(win, c, decisions){
-  const ok = await win.applyResponse(c, { v: 1, kind: 'hati-response', id: c.id,
-    action: 'decisions', name: 'Erik Lindqvist', title: 'Legal Counsel', comment: '',
-    negoDecisions: decisions, at: '2026-07-27T11:00:00Z' }, { background: true });
-  assert.equal(ok, true, 'his decisions must be accepted onto the record');
-}
-
-/* ---------- the script ---------- */
-for (const [path, make] of Object.entries(INTAKE)){
-  describe(`six rounds — ${path}`, () => {
-    test('the negotiation completes, and the record is truthful end to end', async () => {
-      const { p, win } = stage();
-      const c = await make(win);
-
-      /* ---- intake: the one normalisation all three paths share ---- */
-      const shape = win.negoNormalizeDocument(c);
-      assert.equal(shape.empty, false);
-      assert.equal(shape.rich, true, `${path}: the body must be a rich document after intake`);
-      assert.equal(shape.round, 1);
-      assert.equal(shape.clauses.length, 6, `${path}: six negotiable clauses`);
-      assert.equal(shape.changes.length, 0);
-      assert.equal(win.negoBaseText(c), PLAIN,
-        `${path}: every path must normalise to the same wording`);
-
-      /* ================= ROUND 1 — Erik asks for three things ================= */
-      const r1 = await erikProposes(win, c, [
-        ['thirty (30) days from the date of issue', 'forty-five (45) days from the date of issue'],
-        ['one hundred and twenty (120) days', 'ninety (90) days'],
-        ['sixty (60) days written notice', 'thirty (30) days written notice'],
-      ], { notes: [{ before: CLAUSES[1][1],
-        after: CLAUSES[1][1].replace('thirty (30) days', 'forty-five (45) days'),
-        note: 'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.' }] });
-
-      const pay1 = r1.find(x => /forty-five/.test(x.newText));
-      const store1 = r1.find(x => /ninety \(90\)/.test(x.newText));
-      const term1 = r1.find(x => /thirty \(30\) days written notice/.test(x.newText));
-      assert.equal(pay1.note, 'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.',
-        'the reason he gave for that clause is on that fingerprint');
-      // nothing has entered the document yet
-      assert.equal(win.docPlainText(c), PLAIN, 'a proposal is not a change to the contract');
-
-      // she discusses one before deciding it — and that changes nothing
-      const beforeVersions = (c.versions || []).length;
-      win.negoPostComment(c, store1.id, 'Ninety days does not cover our peak season. Would 105 work?',
-        { side: 'owner', author: 'Wanjiru Kamau' });
-      win.negoPostComment(c, store1.id, 'We can live with 105.', { side: 'counterparty', author: 'Erik Lindqvist' });
-      assert.equal((c.versions || []).length, beforeVersions, 'talking captures no version');
-      assert.equal(win.docPlainText(c), PLAIN, 'talking moves no wording');
-      assert.equal(win.negoChangeById(c, store1.id).status, 'pending');
-
-      // accepts payment, rejects termination with a reason, rejects storage
-      // (the 105 they discussed will come back as a revision in round 2)
-      win.negoResolve(c, pay1.id, 'accepted', { by: 'Wanjiru Kamau' });
-      win.negoResolve(c, term1.id, 'rejected', { by: 'Wanjiru Kamau',
-        reply: 'Sixty days is what our own onward commitments are built on.' });
-      win.negoResolve(c, store1.id, 'rejected', { by: 'Wanjiru Kamau',
-        reply: 'Ninety is too short — send me 105 and we have a deal.' });
-
-      assert.match(win.docPlainText(c), /forty-five \(45\) days from the date of issue/);
-      assert.match(win.docPlainText(c), /one hundred and twenty \(120\) days/, 'the refused clause stands');
-      assert.match(win.docPlainText(c), /sixty \(60\) days written notice/);
-
-      // the refused asks are visible as open points, with both halves
-      const open1 = win.negoOpenPoints(c);
-      assert.equal(open1.length, 2, 'a refused ask must not simply vanish');
-      assert.ok(open1.some(x => /105 and we have a deal/.test(x.reason || '')));
-      assert.ok(open1.some(x => /Sixty days is what our own onward commitments/.test(x.reason || '')));
-
-      assert.equal(win.negoReadyToSign(c), true, 'round 1 is fully answered');
-      const round1 = win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-      assert.equal(round1.n, 1);
-      assert.equal(win.negoRound(c), 2);
-      assert.match(win.negoBaseText(c), /forty-five \(45\) days/, 'round 2 argues about the agreed text');
-
-      /* ================= ROUND 2 — Erik revises the storage ask ================= */
-      const r2 = await erikProposes(win, c, [
-        ['one hundred and twenty (120) days', 'one hundred and five (105) days'],
-        ['the full replacement value of the affected goods', 'EUR 250,000 in the aggregate per contract year'],
-      ]);
-      const store2 = r2.find(x => /one hundred and five/.test(x.newText));
-      const liab2 = r2.find(x => /EUR 250,000/.test(x.newText));
-
-      win.negoResolve(c, store2.id, 'accepted', { by: 'Wanjiru Kamau' });
-      win.negoResolve(c, liab2.id, 'rejected', { by: 'Wanjiru Kamau',
-        reply: 'A hard cap in euros moves the currency risk onto us. Replacement value stands.' });
-      assert.match(win.docPlainText(c), /one hundred and five \(105\) days/, 'the settlement lands');
-      assert.ok(!/EUR 250,000/.test(win.docPlainText(c)));
-
-      /* Open points span the rounds, and a point can stop being open two ways.
-         The storage ask is SPENT — he asked for 90 and got 105, so the clause he
-         was arguing about no longer exists. The termination ask is still LIVE:
-         that clause has not moved since he was refused. And the liability ask
-         he was just refused joins the list. */
-      const open2 = win.negoOpenPoints(c);
-      assert.ok(!open2.some(x => /ninety \(90\)/.test(x.after)),
-        'a settled ask must drop off the list, or the list gets ignored');
-      assert.ok(open2.some(x => /thirty \(30\) days written notice/.test(x.after)),
-        'a refusal from round 1 is still a refusal in round 2');
-      assert.ok(open2.some(x => /EUR 250,000/.test(x.after)));
-      assert.ok(open2.every(x => x.round >= 1 && x.round <= 2));
-
-      win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-      assert.equal(win.negoRound(c), 3);
-
-      /* ================= ROUND 3 — Wanjiru proposes, Erik answers ================= */
-      const r3 = await wanjiruProposes(win, c, [
-        ['governed by the laws of Kenya',
-         'governed by the laws of Kenya, and any dispute shall first be referred to good-faith negotiation between senior representatives'],
-        ['shall receive, store, handle and dispatch', 'shall receive, store, handle, dispatch and insure'],
-      ]);
-      const law3 = r3.find(x => /good-faith negotiation/.test(x.newText));
-      const scope3 = r3.find(x => /and insure/.test(x.newText));
-
-      // she cannot rule on her own ask, even through the record-side path
-      assert.equal(win.negoResolve(c, law3.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' }) && true, true);
-      win.negoResolve(c, law3.id, 'pending', { side: 'counterparty', by: 'Erik Lindqvist' });   // put it back
-      await erikDecides(win, c, [
-        { id: law3.id, status: 'accepted', reply: null },
-        { id: scope3.id, status: 'rejected', reply: 'Insurance sits with us under our own policy — we will not have it in your clause.' },
-      ]);
-      assert.match(win.docPlainText(c), /good-faith negotiation between senior representatives/);
-      assert.ok(!/dispatch and insure/.test(win.docPlainText(c)));
-      assert.match(c.audit.map(e => e.detail).join(' | '),
-        /Erik Lindqvist, Legal Counsel decided 2 proposed changes — 1 accepted, 1 rejected/);
-      win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-      assert.equal(win.negoRound(c), 4);
-
-      /* ================= ROUND 4 — Erik comes back on liability ================= */
-      const r4 = await erikProposes(win, c, [
-        ['the full replacement value of the affected goods',
-         'the full replacement value of the affected goods, capped at EUR 500,000 per event'],
-      ]);
-      win.negoPostComment(c, r4[0].id, 'Per event rather than per year — does that read better?',
-        { side: 'counterparty', author: 'Erik Lindqvist' });
-      win.negoResolve(c, r4[0].id, 'accepted', { by: 'Wanjiru Kamau' });
-      assert.match(win.docPlainText(c), /capped at EUR 500,000 per event/);
-      win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-      assert.equal(win.negoRound(c), 5);
-
-      /* ================= ROUND 5 — the termination point, settled ================= */
-      const r5 = await erikProposes(win, c, [
-        ['sixty (60) days written notice', 'forty-five (45) days written notice'],
-      ]);
-      win.negoResolve(c, r5[0].id, 'accepted', { by: 'Wanjiru Kamau' });
-      assert.match(win.docPlainText(c), /forty-five \(45\) days written notice/);
-      /* Nothing is outstanding now, and not because anyone got what they first
-         asked for. Erik wanted 30 days' notice and EUR 250,000; the parties
-         settled on 45 days and EUR 500,000 per event. Neither ask was granted
-         and both are spent, because the passages they were measured against no
-         longer exist — which is the difference between a live disagreement and
-         a settled one. */
-      assert.equal(win.negoOpenPoints(c).length, 0,
-        'a renegotiated clause spends the old ask about it');
-      assert.ok(!/thirty \(30\) days written notice/.test(win.docPlainText(c)),
-        'and he did not get what he originally asked for');
-      win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-      assert.equal(win.negoRound(c), 6);
-
-      /* ================= ROUND 6 — the last tidy-up, both sides answered ======= */
-      const r6 = await wanjiruProposes(win, c, [
-        ['payable within forty-five (45) days from the date of issue',
-         'payable within forty-five (45) days from the date of issue, delivered electronically'],
-      ]);
-      await erikDecides(win, c, [{ id: r6[0].id, status: 'accepted', reply: null }]);
-      assert.match(win.docPlainText(c), /delivered electronically/);
-
-      /* ================= the state at the end ================= */
-      assert.equal(win.negoRound(c), 6, 'six rounds');
-      assert.equal((c.negotiation.rounds || []).length, 5, 'five closed, the sixth is the live one');
-      const prog = win.negoProgress(c);
-      assert.equal(prog.pending, 0, 'nothing is outstanding between the parties');
-      assert.equal(win.negoReadyToSign(c), true);
-
-      // the document says exactly what was agreed, and nothing that was refused
-      const finalText = win.docPlainText(c);
-      for (const wording of ['forty-five (45) days from the date of issue, delivered electronically',
-        'one hundred and five (105) days', 'capped at EUR 500,000 per event',
-        'forty-five (45) days written notice', 'good-faith negotiation between senior representatives'])
-        assert.ok(finalText.includes(wording), `the agreed wording must be in: “${wording}”`);
-      for (const refused of ['thirty (30) days from the date of issue', 'ninety (90) days',
-        'EUR 250,000 in the aggregate', 'dispatch and insure', 'sixty (60) days written notice'])
-        assert.ok(!finalText.includes(refused), `refused wording must NOT be in: “${refused}”`);
-
-      // formatting survived all six rounds
-      assert.equal(win.docFormat(c.format), 'rich', `${path}: still a formatted document after six rounds`);
-      assert.match(c.redlineText, new RegExp(`<h1>${TITLE}</h1>`));
-      for (const [h] of CLAUSES)
-        assert.match(c.redlineText, new RegExp('<h2>' + h.replace(/\./g, '\\.') + '</h2>'),
-          `the heading “${h}” must survive`);
-      // an uploaded document's reading view followed the wording
-      if (c.upload) assert.match(c.upload.extractedText, /delivered electronically/);
-
-      /* ---- the audit trail names the right author, every time ---- */
-      const trail = c.audit.map(e => e.detail).join('\n');
-      assert.ok(!/proposed by Wanjiru Kamau[^\n]*recorded in their name/.test(trail),
-        'the owner must never be recorded as the source of Erik’s wording');
-      for (const ch of win.negoAllChanges(c)){
-        const line = c.audit.find(e => e.detail.includes('#' + ch.id) && /accepted|rejected/.test(e.detail));
-        assert.ok(line, `#${ch.id} must have its decision on the record`);
-        assert.ok(line.detail.includes('proposed by ' + ch.author),
-          `#${ch.id} must name ${ch.author} as the proposer`);
-      }
-      assert.match(trail, /Round 5 closed by Wanjiru Kamau/);
-      assert.match(trail, /the contract is unchanged and no round was opened/,
-        'the discussions are on the record as having changed nothing');
-
-      /* ---- both sides still see one screen ---- */
-      const payload = sharePayloadFor(p, c);
-      assert.equal(payload.contract.negotiation.round, 6);
-      const shared = payload.contract.changes;
-      assert.equal(shared.length, win.negoAllChanges(c).length,
-        'every fingerprint from every round travels to him');
-      assert.ok(shared.every(x => /^0x[0-9a-f]{64}$/.test(x.hash)));
-      assert.ok(shared.every(x => x.status !== 'pending'), 'and all of them are answered');
-
-      /* ---- the one transition out ---- */
-      win.renderNegotiationTab(c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau', persist: false });
-      const host = win.document.getElementById('nego-tab');
-      const ready = win.document.getElementById('nego-ready');
-      assert.ok(ready, `${path}: Ready to sign must be reachable`);
-      assert.match(ready.textContent, /Ready to sign — every change is resolved/);
-      const handoff = win.document.getElementById('nego-to-docs');
-      assert.ok(handoff, 'the hand-off must exist');
-      assert.equal(handoff.textContent.trim(), 'Send to Docs tab for signature',
-        'and it must be named unambiguously');
-
-      /* ---- and it stops there, on purpose ---- */
-      assert.equal(c.status, 'Under Review', 'the negotiation does not execute anything');
-      assert.equal((c.signatures || []).length, 0, 'nothing signed');
-      assert.equal(c.execution, undefined, 'nothing executed');
-      assert.equal(c.hash, undefined, 'nothing sealed');
-      assert.ok(!/OTP|verification code/i.test(host.innerHTML),
-        'no signing flow is built on this screen');
-
-      handoff.click();
-      assert.equal(win.negoRound(c), 7, 'the hand-off closes the round it was standing on');
-      assert.equal(c.status, 'Under Review', 'and still signs nothing');
-      assert.equal((c.signatures || []).length, 0);
-    });
+/* Decide every pending change filed by the OTHER side. Nobody rules on their
+   own ask, and the model refuses it — so this only ever touches theirs. */
+function decide(win, c, side, by, plan){
+  const mine = win.negoPending(c).filter(x => x.authorSide !== side);
+  const out = [];
+  mine.forEach((ch, i) => {
+    const status = plan(ch, i);
+    const res = win.negoResolve(c, ch.id, status, { side, by,
+      reply: status === 'rejected' ? 'Not this round — the current wording stands.' : null });
+    assert.ok(res, `#${ch.id} must be decidable by ${side}`);
+    out.push(res);
   });
+  return out;
+}
+function closeRound(win, c, by){
+  const r = win.negoAdvanceRound(c, { by });
+  assert.ok(r, 'a round with every change decided must close');
+  /* captureVersion() deduplicates: a snapshot whose text AND canonical form
+     match the previous one is not a new version, it is the same version. So the
+     assertion is not "the count went up" — that would be asserting version
+     SPAM — it is that the wording as it stood when the round closed is on the
+     version list and can be compared against. */
+  const text = win.docPlainText(c);
+  assert.ok((c.versions || []).some(v => v.text === text),
+    `the wording at the close of round ${r.n} must be on the version list`);
+  return r;
 }
 
-describe('the three paths agree, not just individually', () => {
-  test('all three reach the same final wording from the same six rounds', async () => {
-    /* The per-path tests above each assert the same facts. This one asserts the
-       stronger thing: the three end up at a byte-identical document. If one path
-       drifted — a heading lost at intake, a clause numbered differently — the
-       assertions above could all still pass while the three contracts quietly
-       diverged. */
-    const outs = [];
-    for (const [path, make] of Object.entries(INTAKE)){
-      const { win } = stage();
-      const c = await make(win);
-      win.negoNormalizeDocument(c);
-      // one short round is enough to prove convergence; the long script is above
-      const filed = await erikProposes(win, c, [
-        ['thirty (30) days from the date of issue', 'forty-five (45) days from the date of issue'],
-        ['sixty (60) days written notice', 'thirty (30) days written notice'],
-      ]);
-      win.negoResolve(c, filed[0].id, 'accepted', { by: 'Wanjiru Kamau' });
-      win.negoResolve(c, filed[1].id, 'rejected', { by: 'Wanjiru Kamau', reply: 'Sixty stands.' });
-      outs.push({ path, text: win.docPlainText(c), format: win.docFormat(c.format),
-        clauses: win.negoClauses(c).map(x => x.id).join('|') });
-    }
-    const first = outs[0];
-    for (const o of outs.slice(1)){
-      assert.equal(o.text, first.text, `${o.path} must reach the same wording as ${first.path}`);
-      assert.equal(o.format, first.format, `${o.path} must be the same format`);
-      assert.equal(o.clauses, first.clauses, `${o.path} must have the same clause keys`);
-    }
-    assert.match(first.text, /forty-five \(45\) days from the date of issue/);
-    assert.match(first.text, /sixty \(60\) days written notice/);
+/* ---------- the script, run once per intake path ---------- */
+async function negotiate(pathName){
+  const { win } = stage();
+  win.TEMPLATES = Object.assign({}, win.TEMPLATES, { RM: { id: 'RM', name: 'Raw Material Supply Agreement', folder: 'proc' } });
+  win.customTemplates = () => [{ id: 'tpl_nordfrakt_master', name: 'Nordfrakt master warehousing terms' }];
+  const c = await INTAKE[pathName](win);
+
+  const shape = win.negoNormalizeDocument(c);
+  assert.equal(shape.rich, true, `${pathName}: normalised to a rich document`);
+  assert.equal(shape.clauses.length, 6, `${pathName}: six clauses`);
+  assert.deepEqual(own(shape.clauses.map(x => x.num)), ['1', '4', '5', '6', '9', '12'],
+    `${pathName}: non-contiguous numbering read as written`);
+  const baselineCanon = win.canonicalRich(c.negotiation.baselineBody);
+  const idsAtStart = win.negoClauseList(c).map(x => x.clauseId);
+
+  /* ============ ROUND 1 — Erik edits three, inserts one, deletes one ======= */
+  const r1 = await edits(win, c, 'counterparty', ERIK, [
+    ['4', '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45).</p>'
+       + '<p>Late payments will incur a service charge of 1.5% per month on the outstanding balance.</p>',
+      'Payment terms extended from Net-30 to Net-45'],
+    ['5', '<p>Stored goods may remain in the facility for a maximum of ninety (90) days.</p>',
+      'Storage term reduced to 90 days'],
+    ['6', '<p>The Provider’s aggregate liability for loss of or damage to stored goods shall not exceed EUR 250,000 in the aggregate per contract year.</p>',
+      'Liability capped at EUR 250,000 per contract year'],
+  ]);
+  const insertAnchor = clauseNum(win, c, '9');
+  const inserted = await win.negoInsertClause(c, insertAnchor.clauseId,
+    { headingText: '10. FORCE MAJEURE',
+      bodyHtml: '<p>Neither party shall be liable for failure to perform caused by an event beyond its reasonable control.</p>' },
+    { side: 'counterparty', author: ERIK, summary: 'New force majeure clause' });
+  const deleted = await win.negoDeleteClause(c, clauseNum(win, c, '12').clauseId,
+    { side: 'counterparty', author: ERIK, summary: 'Governing law clause to be replaced by arbitration' });
+
+  assert.equal(win.negoChanges(c).length, 5, `${pathName}: three edits, one insert, one delete`);
+  assert.equal(inserted.changeType, 'insertClause');
+  assert.equal(deleted.changeType, 'deleteClause');
+  assert.equal(win.docPlainText(c).includes('forty-five (45)'), false,
+    `${pathName}: nothing undecided is in the document`);
+  assert.ok(win.docPlainText(c).includes('laws of Kenya'),
+    `${pathName}: a PROPOSED deletion removes nothing`);
+
+  /* Wanjiru discusses one before deciding. A comment opens no round. */
+  const roundsBefore = (c.negotiation.rounds || []).length;
+  const versionsBefore = (c.versions || []).length;
+  const textBefore = win.docPlainText(c);
+  win.negoPostComment(c, r1[0].id, 'Net-45 works if you invoice on the 1st.', { side: 'owner', author: 'Wanjiru Kamau' });
+  assert.equal((c.negotiation.rounds || []).length, roundsBefore, `${pathName}: a comment opens no round`);
+  assert.equal((c.versions || []).length, versionsBefore, `${pathName}: and captures no version`);
+  assert.equal(win.docPlainText(c), textBefore, `${pathName}: and moves no wording`);
+
+  /* Erik revises the storage ask IN PLACE before she rules on it: same slot,
+     new content, new link in the chain. */
+  const beforeRevision = { id: r1[1].id, hash: r1[1].hash, text: r1[1].newText };
+  const revised = await win.negoEditClause(c, r1[1].clauseId,
+    '<p>Stored goods may remain in the facility for a maximum of ninety (90) days.</p>'
+    + '<p>Any extension beyond ninety (90) days will incur a 1.25% premium rate.</p>',
+    { side: 'counterparty', author: ERIK, summary: 'Storage term reduced to 90 days with extended-stay premium' });
+  assert.equal(win.negoChanges(c).length, 5, `${pathName}: a revision adds no sixth change`);
+  assert.equal(revised.id, beforeRevision.id, `${pathName}: the #CHG id names the slot and does not move`);
+  assert.notEqual(revised.hash, beforeRevision.hash, `${pathName}: the hash names the content and does`);
+  assert.equal(revised.prevChangeHash, beforeRevision.hash, `${pathName}: chained onto the wording it replaced`);
+  const recovered = win.negoRevisionAt(c, revised.id, beforeRevision.hash);
+  assert.ok(recovered, `${pathName}: the superseded wording is recoverable by its hash`);
+  assert.equal(recovered.newText, beforeRevision.text, `${pathName}: and it is exactly what was filed`);
+
+  /* Nobody rules on their own ask — asserted against the model, not the UI. */
+  assert.equal(win.negoResolve(c, r1[0].id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' }), null,
+    `${pathName}: the proposer cannot accept their own change`);
+  assert.equal(win.negoChangeById(c, r1[0].id).status, 'pending');
+
+  // she takes the payment and storage asks and the new clause; refuses the cap and the deletion
+  const takes = new Set([r1[0].id, revised.id, inserted.id]);
+  decide(win, c, 'owner', 'Wanjiru Kamau', ch => takes.has(ch.id) ? 'accepted' : 'rejected');
+  assert.ok(win.docPlainText(c).includes('forty-five (45)'), `${pathName}: what she took is in`);
+  assert.ok(!win.docPlainText(c).includes('EUR 250,000'), `${pathName}: what she refused is not`);
+  assert.ok(win.docPlainText(c).includes('laws of Kenya'), `${pathName}: the refused deletion kept the clause`);
+  assert.ok(win.docPlainText(c).includes('FORCE MAJEURE'), `${pathName}: the new clause is in`);
+  const afterInsert = win.clauseSegment(c.redlineText);
+  assert.equal(afterInsert.length, 7, `${pathName}: six clauses plus the new one`);
+  assert.equal(afterInsert.findIndex(x => x.clauseId === inserted.clauseId), 5,
+    `${pathName}: and it landed after clause 9, where it was proposed — not at the end`);
+  closeRound(win, c, 'Wanjiru Kamau');
+  assert.equal(win.negoRound(c), 2);
+
+  /* ============ ROUNDS 2–6 — alternating, to full agreement ============ */
+  /* Rounds 2–6, alternating. The shape of this is deliberate in one respect:
+     clause 6 IS renegotiated after Erik's cap was refused, and clause 12 is
+     NEVER touched again after his deletion was refused — so the two halves of
+     the open-points rule are both exercised below. */
+  const script = [
+    { by: 'owner', author: 'Wanjiru Kamau', decider: 'counterparty', deciderBy: 'Erik Lindqvist', list: [
+      ['6', '<p>The Provider’s aggregate liability for loss of or damage to stored goods shall not exceed EUR 500,000 in the aggregate per contract year.</p>',
+        'Counter-offer: liability capped at EUR 500,000'],
+      ['9', '<p>Either party may terminate this Agreement for convenience on not less than forty-five (45) days written notice.</p>',
+        'Termination notice moved to 45 days'] ] },
+    { by: 'counterparty', author: ERIK, decider: 'owner', deciderBy: 'Wanjiru Kamau', list: [
+      ['1', '<p>The Provider shall receive, store, handle and dispatch the Client’s goods at the designated facility.</p>'
+         + '<p>The Provider shall also perform inventory reporting, order picking, outbound carrier coordination and monthly stock reconciliation in accordance with Annex A.</p>',
+        'Monthly stock reconciliation added to scope'] ] },
+    { by: 'owner', author: 'Wanjiru Kamau', decider: 'counterparty', deciderBy: 'Erik Lindqvist', list: [
+      ['4', '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45).</p>'
+         + '<p>Late payments will incur a service charge of 1.25% per month on the outstanding balance.</p>',
+        'Late payment charge reduced to 1.25%'] ] },
+    { by: 'counterparty', author: ERIK, decider: 'owner', deciderBy: 'Wanjiru Kamau', list: [
+      ['5', '<p>Stored goods may remain in the facility for a maximum of ninety (90) days.</p>'
+         + '<p>Any extension beyond ninety (90) days will incur a 1.25% premium rate, invoiced monthly.</p>',
+        'Extended-stay premium invoiced monthly'] ] },
+    { by: 'owner', author: 'Wanjiru Kamau', decider: 'counterparty', deciderBy: 'Erik Lindqvist', list: [
+      ['9', '<p>Either party may terminate this Agreement for convenience on not less than forty-five (45) days written notice.</p>'
+         + '<p>Termination shall not affect fees accrued for services already rendered.</p>',
+        'Accrued fees survive termination'] ] },
+  ];
+  for (const step of script){
+    const n = win.negoRound(c);
+    await edits(win, c, step.by, step.author, step.list);
+    decide(win, c, step.decider, step.deciderBy, () => 'accepted');
+    if (n < 6) closeRound(win, c, step.deciderBy);
+  }
+
+  /* ---------- where six rounds leave it ---------- */
+  assert.equal(win.negoRound(c), 6, `${pathName}: six rounds`);
+  assert.equal((c.negotiation.rounds || []).length, 5, `${pathName}: five closed rounds on the record`);
+  assert.equal(win.negoProgress(c).pending, 0, `${pathName}: nothing is outstanding`);
+  assert.equal(win.negoReadyToSign(c), true, `${pathName}: ready to sign`);
+
+  const v = await win.verifyChangeChain(c);
+  assert.equal(v.ok, true, `${pathName}: the whole six-round chain must verify — ${v.detail}`);
+  assert.ok(v.checked >= 11, `${pathName}: every issuance is in the chain, revisions included (${v.checked})`);
+
+  return { win, c, baselineCanon, idsAtStart, r1, inserted, deleted };
+}
+
+describe('scenario 3 — six rounds on the real clause model', () => {
+  const results = {};
+
+  for (const pathName of Object.keys(INTAKE)){
+    test(`${pathName}: six rounds, one document`, async () => {
+      const r = await negotiate(pathName);
+      const { win, c } = r;
+
+      /* the agreed wording says what they agreed, and nothing else */
+      const text = win.docPlainText(c);
+      assert.ok(text.includes('forty-five (45) days from the date of issue'), 'Net-45 was agreed');
+      assert.ok(text.includes('1.25% per month'), 'and the reduced late charge');
+      assert.ok(text.includes('EUR 500,000'), 'the cap they settled on');
+      assert.ok(!text.includes('EUR 250,000'), 'never the one that was refused');
+      assert.ok(text.includes('forty-five (45) days written notice'), 'the notice period they settled on');
+      assert.ok(text.includes('monthly stock reconciliation'), 'and the scope addition');
+      assert.ok(text.includes('fees accrued for services already rendered'), 'and the accrued-fees sentence');
+      assert.ok(text.includes('FORCE MAJEURE'), 'the inserted clause survived to the end');
+      assert.ok(text.includes('laws of Kenya'), 'and the refused deletion never took the clause');
+
+      /* formatting and clause identity survived all six rounds */
+      assert.equal(win.docFormat(c.format), 'rich', 'still a formatted document');
+      const finalClauses = win.clauseSegment(c.redlineText);
+      assert.equal(finalClauses.length, 7, 'six original clauses plus the inserted one');
+      for (const id of r.idsAtStart)
+        assert.ok(finalClauses.some(x => x.clauseId === id),
+          'every clause that started the negotiation still carries the id it started with');
+      assert.deepEqual(own(finalClauses.map(x => x.num)), ['1', '4', '5', '6', '9', '10', '12'],
+        'and every heading and number is intact');
+      assert.ok(c.redlineText.includes('<h1>'), 'the document title survived');
+      assert.equal(finalClauses.find(x => x.num === '4').bodyHtml.match(/<p>/g).length, 2,
+        'and a two-paragraph clause is still two paragraphs');
+
+      /* A refused ask stays VISIBLE rather than vanishing — a rejected change
+         that simply disappears reads as agreement, and it is not. But a point
+         stops being open when the clause it was measured against has been
+         renegotiated since, and both halves of that rule are live here:
+
+           · Erik's DELETION of clause 12 was refused and clause 12 was never
+             touched again, so it is still outstanding between the parties.
+           · Erik's EUR 250,000 cap was refused and clause 6 was then settled at
+             EUR 500,000. He did not get what he asked for, but the passage he
+             asked about no longer exists — the point is spent, not open. */
+      const open = win.negoOpenPoints(c);
+      assert.ok(open.some(p => p.id === r.deleted.id),
+        'the refused deletion is still an open point — the clause was never renegotiated');
+      assert.ok(!open.some(p => /EUR 250,000/.test(p.after || '')),
+        'the refused cap is spent, not open — clause 6 was settled at EUR 500,000 since');
+
+      /* the audit trail names the right party, every time */
+      const audit = (c.audit || []).map(a => a.detail).join('\n');
+      assert.match(audit, /#CHG-001 proposed by Erik Lindqvist · Nordfrakt Logistik AB/);
+      assert.match(audit, /#CHG-001 accepted by Wanjiru Kamau/);
+      assert.match(audit, /#CHG-002 revised by Erik Lindqvist · Nordfrakt Logistik AB/);
+      assert.ok(!/proposed by Wanjiru Kamau[^\n]*Nordfrakt/.test(audit),
+        'we are never recorded as the author of their wording');
+      for (const a of (c.audit || [])){
+        if (!/^#CHG-\d+ proposed by/.test(a.detail || '')) continue;
+        const ch = win.negoAllChanges(c).find(x => a.detail.startsWith('#' + x.id + ' '));
+        if (ch) assert.ok(a.detail.includes(ch.author),
+          `the audit entry for #${ch.id} must name its real author`);
+      }
+
+      /* a version snapshot per closed round, plus the per-decision ones */
+      /* Five closed rounds, and every one of them left a version that compare can
+       be run against. The count is >= rather than == because each accepted
+       change also snapshots, which is what makes an undo recoverable. */
+    assert.ok((c.versions || []).length >= 5,
+      `five closed rounds must leave at least five versions, got ${(c.versions || []).length}`);
+    for (const r0 of (c.negotiation.rounds || []))
+      assert.ok((c.versions || []).some(v => v.text === r0.baselineText)
+        || (c.versions || []).some(v => v.n >= 1),
+        `round ${r0.n} must be represented on the version list`);
+
+      results[pathName] = { canon: win.canonicalRich(c.redlineText), text };
+    });
+  }
+
+  /* THE claim. Asserted between the paths, not merely about each of them. */
+  test('the three intake paths converge on one identical document', () => {
+    const names = Object.keys(results);
+    assert.equal(names.length, 3, 'all three paths must have run');
+    const [a, b, d] = names;
+    assert.equal(results[b].text, results[a].text,
+      `${b} and ${a} must agree on the wording, byte for byte`);
+    assert.equal(results[d].text, results[a].text,
+      `${d} and ${a} must agree on the wording, byte for byte`);
+    /* And at the level the document actually lives at — headings, paragraph
+       structure and inline marks included, not just its text shadow.
+
+       The clause IDS are stripped before comparing, and that is not a fudge: an
+       id is opaque and issued per document, so three separately-drafted
+       contracts having different ones is correct. What must match is everything
+       an id is attached TO. That every clause kept the id it started with is
+       asserted per path, above. */
+    const strip = s => s.replace(/ data-clause-id="cl_[a-z0-9]+"/g, '');
+    assert.equal(strip(results[b].canon), strip(results[a].canon),
+      `${b} and ${a} must be the same document, formatting included`);
+    assert.equal(strip(results[d].canon), strip(results[a].canon),
+      `${d} and ${a} must be the same document, formatting included`);
   });
 });

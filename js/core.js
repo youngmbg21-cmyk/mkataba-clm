@@ -318,14 +318,39 @@ function toast(msg,kind='ok'){
   root.appendChild(el);
   setTimeout(()=>{el.style.transition='opacity .3s, transform .3s';el.style.opacity=0;el.style.transform='translateY(8px)';setTimeout(()=>el.remove(),300);},3200);
 }
+/* SHA-256, with an honest failure mode.
+
+   crypto.subtle exists only in a SECURE CONTEXT. A page served over plain
+   http:// — which is exactly how a counterparty is most likely to open a share
+   link on a hotel wifi captive portal or an office proxy — has no subtle at
+   all, and this function then falls back to a 32-bit rolling hash repeated
+   eight times to look the right length.
+
+   That fallback stays, because a digest that is merely a fingerprint for
+   de-duplication is better than a thrown exception in the middle of a save.
+   What does NOT stay is it being SILENT. A 32-bit rolling hash is not a
+   cryptographic digest: it collides trivially and can be steered. Anything that
+   tells a user their contract is "Verified" has to know which of the two it
+   got, so the degradation is recorded and readable. */
+let _sha256Degraded=false;
+/* False when the real digest is unavailable OR when a call has already had to
+   fall back. Checked BEFORE the first hash as well as after, so a page can say
+   what it is going to do rather than only what it already did. */
+const sha256IsReal = () => {
+  if(_sha256Degraded) return false;
+  try{ return !!(crypto && crypto.subtle && typeof crypto.subtle.digest==='function'); }
+  catch(e){ return false; }
+};
 async function sha256(str){
   try{ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
     return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
-  }catch(e){ let h=0; for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;} return h.toString(16).padStart(8,'0').repeat(8).slice(0,64); }
+  }catch(e){
+    _sha256Degraded=true;
+    let h=0; for(let i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0;} return h.toString(16).padStart(8,'0').repeat(8).slice(0,64); }
 }
 const generatePseudo = seed => { let h=0; for(const ch of seed) h=(h*33+ch.charCodeAt(0))>>>0; return h.toString(16).padStart(60,'0').slice(0,60); };
 
-Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
+Object.assign(window,{STATUS_META,SHARE_META,RISK_PAL,STREAM_SHORT,UPLOAD_MAX,UPLOAD_MAX_API,uploadMax,uploadMaxLabel,uploadTooBigMsg,EXTRACT_MAX_CHARS,approvalLabel,cIcon,cKind,cParty,cPrimary,cSecondary,contractRisk,fmtKES,fmtKESshort,folderContracts,generatePseudo,getContract,isMonetary,isUpload,mk,nextId,ownerInitials,riskBand,riskPal,riskChip,seedComments,sha256,sha256IsReal,shareChip,shareDot,state,statusChip,statusLabel,streamLabel,toast,uid});
 /* ============================================================
    PLATFORM CORE — persistence · auth · audit · sharing · export
    MVP runs fully client-side (localStorage) so it deploys as a
@@ -1453,11 +1478,20 @@ function buildSharePayload(c, docHash, who){
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
     .filter(x => x.status !== 'superseded')
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
-      oldText:x.oldText, newText:x.newText, hash:x.hash, status:x.status,
+      changeType:x.changeType||null, afterClauseId:x.afterClauseId||null,
+      headingText:x.headingText||null, bodyHtml:x.bodyHtml||null,
+      /* The STORED ops travel with the change. The counterparty must read the
+         redline the owner reviewed, not one their browser re-derived — the two
+         could differ the moment either side's diff changes, and then "what was
+         reviewed" and "what was decided on" are two different things. */
+      ops:Array.isArray(x.ops)?x.ops.map(o=>({ op:o.op, text:o.text })):undefined,
+      oldText:x.oldText, newText:x.newText, hash:x.hash, hashV:x.hashV||null,
+      prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
+      needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
       author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
       summary:x.summary, note:x.note||null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
-      thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text })):[] }));
+      thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
@@ -1465,7 +1499,16 @@ function buildSharePayload(c, docHash, who){
          the same statuses and the same baseline the owner's tab is reading. Two
          screens built from one payload cannot disagree about what was agreed. */
       changes: shareChanges.length ? shareChanges : undefined,
+      /* baselineBody, not just baselineText. The body carries the durable
+         clause ids, and a change is anchored on a clause id — so a payload
+         that sent only the text projection would make the other side
+         re-segment the document and mint FRESH ids, and every fingerprint
+         would then point at a clause that does not exist on their screen. */
       negotiation: c.negotiation ? { round:c.negotiation.round||1,
+        turn:c.negotiation.turn||'owner', turnAt:c.negotiation.turnAt||null,
+        chainHead:c.negotiation.chainHead||null, chainSeq:c.negotiation.chainSeq||0,
+        seq:c.negotiation.seq||0, hashV:c.negotiation.hashV||null,
+        baselineBody:c.negotiation.baselineBody||'',
         baselineText:c.negotiation.baselineText||'' } : undefined,
       upload:isUpload(c)?shareUpload(c.upload):undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
@@ -2052,10 +2095,15 @@ async function applyResponse(c, r, opts={}){
         const base=r.baseText||docPlainText(c);
         negoInit(c);
         if(!(c.negotiation.baselineText||'').trim()) c.negotiation.baselineText=base;
+        /* Keyed on the WORDING they annotated, not on a clause id. The
+           counterparty's reply is composed against a text projection and
+           carries no clause ids at all, so the note is matched to the change by
+           the words it was written about — which is the only thing the two
+           records actually share. */
         const notes={};
         for(const n of (Array.isArray(r.clauseNotes)?r.clauseNotes:[])){
-          const cl=(window.negoClausesOf?negoClausesOf(String(n.after||'')):[])[0];
-          if(cl&&n.note) notes[cl.id]=String(n.note).slice(0,600);
+          const key=String(n.after||'').replace(/\s+/g,' ').trim();
+          if(key&&n.note) notes[key]=String(n.note).slice(0,600);
         }
         await negoFileProposal(c, r.proposedText, { side:'counterparty', author:who,
           baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
