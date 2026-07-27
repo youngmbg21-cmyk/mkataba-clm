@@ -277,19 +277,19 @@ function negoStyleHtml(){
 
      Inside the clause block, top right, always drawn, in the room's own slate.
      Nothing can clip them because nothing extends past the clause any more. */
-  .nego-tools{position:absolute;right:10px;top:8px;display:flex;gap:4px;z-index:3}
+  /* Their own row, right-aligned, above the heading — NOT floated over it.
+     Absolute positioning meant reserving horizontal space in the heading, and a
+     463px text column minus 210px of reserved space wrapped "Clause 1 · Scope
+     of Services" onto two lines in BOTH panes, including the one that has no
+     tools at all. A row costs a little height and collides with nothing. */
+  .nego-tools{display:flex;justify-content:flex-end;gap:4px;margin-bottom:7px}
   .nego-tool{font-size:10.5px;font-weight:700;border:1px solid var(--n-slate);
     background:var(--n-slate);color:#fff;border-radius:5px;padding:3px 9px;white-space:nowrap;
     cursor:pointer;font-family:inherit;letter-spacing:.01em;
     box-shadow:0 1px 2px rgba(38,55,74,.18);transition:filter .12s ease}
   .nego-tool:hover,.nego-tool:focus-visible{filter:brightness(1.18)}
   .nego-tool.danger{background:var(--n-del-fg);border-color:var(--n-del-fg)}
-  /* The heading needs room for them, or a long clause title runs underneath. */
-  .nego-clause h2{padding-right:210px}
-  @media (max-width:900px){
-    .nego-tools{position:static;margin-bottom:6px}
-    .nego-clause h2{padding-right:0}
-  }
+
   .nego-editing{outline:2px solid var(--n-focus);outline-offset:2px;background:#fff}
   .nego-editing:focus{outline:2px solid var(--n-focus)}
   .nego-edit-bar{display:flex;gap:6px;margin-top:6px}
@@ -305,6 +305,19 @@ function negoStyleHtml(){
      screen would have been a second thing to keep in step. */
   body.nego-room-open #ai-scrim{z-index:65}
   body.nego-room-open #ai-panel{z-index:70}
+  .nego-vsel{font:inherit;font-size:12px;font-weight:700;color:var(--n-ink);background:var(--n-paper);
+    border:1px solid var(--n-line);border-radius:6px;padding:4px 8px;max-width:min(60%,320px);cursor:pointer}
+  .nego-vsel:hover{border-color:var(--n-slate-soft)}
+  .nego-cmp-bar{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 14px;
+    border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b;border-radius:6px;padding:9px 13px}
+  .nego-cmp-tag{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    background:#b8862b;color:#fff;border-radius:4px;padding:2px 7px}
+  .nego-cmp-txt{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:#7d5a14}
+  /* On an amber banner a ghost button is white-on-cream and unreadable — the
+     way out of a mode has to be the most legible thing in it. */
+  .nego-cmp-exit{flex:none;border:1px solid #7d5a14;background:#7d5a14;color:#fff;border-radius:6px;
+    padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .nego-cmp-exit:hover{filter:brightness(1.15)}
   .nego-st{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;
     border-radius:5px;padding:2px 7px}
   .nego-st.pending{background:#fdf3e3;color:#9a6a1f}
@@ -549,6 +562,30 @@ function negoDocHtml(c, opts){
 
 /* ---------- the change index ---------- */
 function negoCardsHtml(c, opts){
+  const pair = negoComparePair();
+  if (!negoIsLivePair(pair.left, pair.right)){
+    /* Comparison mode. Differences between two old versions are NOT proposals:
+       nobody put them forward and nobody can accept them, so this list has no
+       verbs on it. Showing Accept here would invent a decision. */
+    const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
+    const moved = cmp ? cmp.rows.filter(r => r.state !== 'same') : [];
+    if (!moved.length) return `
+      <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
+        <b style="display:block;color:var(--n-ink);margin-bottom:4px">No differences.</b>
+        ${cmp ? _ne(cmp.summary) : ''}</div>`;
+    return moved.map(r => `
+      <div class="nego-card" data-nego-cmp-row="${_ne(r.clauseId)}" role="button" tabindex="0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
+          <span class="nego-st ${r.state === 'added' ? 'accepted' : r.state === 'removed' ? 'rejected' : 'pending'}">${_ne(r.state)}</span>
+        </div>
+        <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(r.label || r.clauseId)}</div>
+        <div style="font-size:11.5px;line-height:1.55;color:var(--n-ink)">${
+          window.redlineOpsHtml ? redlineOpsHtml(r.ops) : _ne(r.newText)}</div>
+      </div>`).join('');
+  }
+  return negoLiveCardsHtml(c, opts);
+}
+function negoLiveCardsHtml(c, opts){
   const side = opts.side || 'owner';
   const canAct = opts.readonly ? false : true;
   const changes = negoChanges(c).filter(x => x.status !== 'superseded');
@@ -669,6 +706,72 @@ function negoAfterPaint(c, opts, host){
       if (ch && pill) pill.outerHTML = negoVerifyPill(c, ch);
     });
   }).catch(() => {});
+}
+
+/* ---------- the pane selectors ----------
+   The headers used to be labels: "Original Baseline v0", "Working Version v1".
+   They are now the controls that decide what each pane shows, because "what did
+   this say before round 2" was a question the screen could not answer.
+
+   Reading the pair back out of the DOM rather than storing it twice: the select
+   IS the state as far as the user is concerned, and a second copy is a second
+   thing that can be wrong. */
+function negoPaneSelectHtml(c, which, current){
+  const opts = window.negoVersionOptions ? negoVersionOptions(c) : [];
+  return `<select class="nego-vsel" data-nego-vsel="${which}" aria-label="${which === 'left' ? 'Left' : 'Right'} pane version">
+    ${opts.map(o => `<option value="${_ne(o.key)}"${o.key === current ? ' selected' : ''}>${_ne(o.label)}</option>`).join('')}
+  </select>`;
+}
+
+/* A document rendered as a redline against another version.
+   Used only in comparison mode. There are no badges and no decisions here —
+   the differences between two old versions were never proposed to anybody, so
+   there is nothing to accept. */
+function negoCompareDocHtml(c, cmp, whichSide){
+  const rows = cmp.rows;
+  const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
+    || c.name || 'Contract';
+  const v = whichSide === 'left' ? cmp.left : cmp.right;
+  const body = rows.map(r => {
+    /* The LEFT pane shows the old wording plainly; the right shows the redline,
+       so the eye crosses between them the way it does in the live view. */
+    if (whichSide === 'left'){
+      if (r.state === 'added') return '';
+      return `<div class="nego-clause" id="nb-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
+        ${r.label ? `<h2>${_ne(r.label)}</h2>` : ''}<p>${_ne(r.oldText)}</p></div>`;
+    }
+    if (r.state === 'removed')
+      return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
+        ${r.label ? `<h2>${_ne(r.label)}<span class="nego-note no">Removed</span></h2>` : ''}
+        <p><span class="nego-del">${_ne(r.oldText)}</span></p></div>`;
+    const note = r.state === 'added' ? `<span class="nego-note ok">Added</span>` : '';
+    const inner = r.state === 'same' ? _ne(r.newText)
+      : (window.redlineOpsHtml ? redlineOpsHtml(r.ops) : _ne(r.newText));
+    return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
+      ${r.label ? `<h2>${_ne(r.label)}${note}</h2>` : ''}<p>${inner}</p></div>`;
+  }).join('');
+  return `<article class="nego-doc">
+    <h1>${_ne(title)}</h1>
+    <div class="nego-meta">${_ne([c.id, v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
+    ${body || `<p style="color:var(--n-ink-soft)">This version has no wording.</p>`}
+  </article>`;
+}
+
+/* The banner that says you are reading history. It carries the way back,
+   because a mode you can enter and not leave is a trap. */
+/* Shown only when the panes are not the live pair. */
+function negoCompareBarHtml(c){
+  const pair = negoComparePair();
+  if (negoIsLivePair(pair.left, pair.right)) return '';
+  const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
+  return cmp ? negoCompareBannerHtml(cmp) : '';
+}
+function negoCompareBannerHtml(cmp){
+  return `<div class="nego-cmp-bar" id="nego-cmp-bar">
+    <span class="nego-cmp-tag">Comparing versions</span>
+    <span class="nego-cmp-txt">${_ne(cmp.summary)}. This is a read-only look back — these differences were never proposed, so there is nothing here to accept or reject.</span>
+    <button class="nego-cmp-exit" id="nego-cmp-exit">Back to the live round</button>
+  </div>`;
 }
 
 /* ---------- the status strip ----------
@@ -793,12 +896,16 @@ function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
   const L = negoLayout();
+  const pair = negoComparePair();
+  const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
   return `<div class="nego-work${L.idxOff ? ' idx-off' : ''}" id="nego-work"
       style="--nego-f:${L.f};--nego-c:${L.c}px">
 
     <section class="nego-pane baseline" aria-label="Original baseline, read-only">
-      <div class="nego-pane-head">Original Baseline <span class="nego-ver">v${Math.max(0, negoRound(c) - 1)}</span><span class="nego-sub">read-only reference</span></div>
-      <div class="nego-scroll" id="nego-scroll-base">${negoDocHtml(c, { ...opts, baseline: true })}</div>
+      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'left', pair.left)}<span class="nego-sub">read-only reference</span></div>
+      <div class="nego-scroll" id="nego-scroll-base">${cmp && !cmp.live
+        ? negoCompareDocHtml(c, cmp, 'left')
+        : negoDocHtml(c, { ...opts, baseline: true })}</div>
     </section>
 
     <div class="nego-rz nego-rz-a" id="nego-rz-a" role="separator" aria-orientation="vertical"
@@ -806,8 +913,11 @@ function negoPanesHtml(c, opts = {}){
       title="Drag to resize · double-click to reset"></div>
 
     <section class="nego-pane working" aria-label="Working version with the proposed redline">
-      <div class="nego-pane-head">Working Version <span class="nego-ver">v${negoRound(c)}</span><span class="nego-sub">— Proposed Redline · fingerprints anchor in the margin</span></div>
-      <div class="nego-scroll" id="nego-scroll-work">${negoDocHtml(c, { ...opts, baseline: false })}</div>
+      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'right', pair.right)}<span class="nego-sub">${cmp && !cmp.live
+        ? '— read-only comparison' : '— Proposed Redline · fingerprints anchor in the margin'}</span></div>
+      <div class="nego-scroll" id="nego-scroll-work">${cmp && !cmp.live
+        ? negoCompareDocHtml(c, cmp, 'right')
+        : negoDocHtml(c, { ...opts, baseline: false })}</div>
     </section>
 
     <div class="nego-rz nego-rz-b" id="nego-rz-b" role="separator" aria-orientation="vertical"
@@ -818,15 +928,18 @@ function negoPanesHtml(c, opts = {}){
       <div class="nego-index-head">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
           <h3 style="font-size:12.5px;font-weight:800;margin:0;flex:1;min-width:0">Fingerprinted Change Index</h3>
-          <span class="nego-count" id="nego-count">${p.pending || p.total}</span>
+          <span class="nego-count" id="nego-count">${cmp && !cmp.live ? cmp.moved : (p.pending || p.total)}</span>
           <button class="nego-fold" id="nego-fold" title="Fold the index away and give its width to the documents">Hide</button>
         </div>
+        ${cmp && !cmp.live ? `
+        <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">Read-only comparison — the round's own changes are not shown</div>`
+        : `
         <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
         <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
         ${canAct ? `<div class="nego-bulk">
           <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
-        </div>` : ''}
+        </div>` : ''}`}
       </div>
       <div class="nego-index-scroll" id="nego-cards">${negoCardsHtml(c, opts)}</div>
     </aside>
@@ -846,6 +959,7 @@ function negoTabHtml(c, opts = {}){
   return `<div id="nego-root">
     ${negoHeadHtml(c, opts)}
     ${negoTurnBannerHtml(c, opts)}
+    ${negoCompareBarHtml(c)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
@@ -862,7 +976,12 @@ function negoTabHtml(c, opts = {}){
 function negoRoomActionsHtml(c, opts){
   const side = opts.side || 'owner';
   const p = negoProgress(c);
-  const canAct = !opts.readonly;
+  /* While the panes are showing two OLD versions, nothing on this screen is a
+     live proposal — so the bulk verbs are disabled too. Leaving them live would
+     let someone reading history accept the round behind it, which is the
+     "nothing here to accept" rule leaking at the top of the page. */
+  const comparing = !negoIsLivePair(negoComparePair().left, negoComparePair().right);
+  const canAct = !opts.readonly && !comparing;
   if (side === 'counterparty'){
     /* The counterparty's actions occupy the slot the owner uses for Save Draft
        and Share Link. Same room, same place on the screen, the verbs each side
@@ -879,8 +998,10 @@ function negoRoomActionsHtml(c, opts){
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
     <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
     <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
-    <button class="nego-tbtn acc" id="nego-all-acc"${p.pending ? '' : ' disabled'}>Accept All</button>
-    <button class="nego-tbtn rej" id="nego-all-rej"${p.pending ? '' : ' disabled'}>Reject All</button>
+    <button class="nego-tbtn acc" id="nego-all-acc"${p.pending && canAct ? '' : ' disabled'}
+      title="${comparing ? 'Not while you are comparing versions' : ''}">Accept All</button>
+    <button class="nego-tbtn rej" id="nego-all-rej"${p.pending && canAct ? '' : ' disabled'}
+      title="${comparing ? 'Not while you are comparing versions' : ''}">Reject All</button>
     <button class="nego-tbtn ghost" id="nego-export"${p.pending ? ' disabled' : ''}
       title="${p.pending ? 'Pending changes must be resolved first' : 'Export the agreed wording'}">Export Clean PDF</button>`;
 }
@@ -911,6 +1032,7 @@ function negoRoomHtml(c, opts = {}){
     </header>
     ${ready ? negoReadyHtml(c, opts) : ''}
     <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
+    ${negoCompareBarHtml(c)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
     </div>
@@ -996,6 +1118,13 @@ function wireNegoLayout(opts = {}){
    Entering hides the app shell and mounts the room over the window; leaving
    puts the shell back exactly as it was. Both are idempotent, because a mode
    you can enter twice is a mode you can get stuck in. */
+let _negoCmpL = 'baseline';
+let _negoCmpR = 'working';
+const negoComparePair = () => ({ left: _negoCmpL, right: _negoCmpR });
+function negoSetComparePair(left, right){
+  _negoCmpL = left || 'baseline';
+  _negoCmpR = right || 'working';
+}
 let _negoRoomOpen = false;
 let _negoRoomC = null;
 /* Which contract the room is showing, so js/ai.js can tell Copilot what is on
@@ -1029,7 +1158,7 @@ function openNegotiationRoom(c, opts = {}){
     else if (window.toast) toast('Saving is not available on this screen', 'err');
   });
   document.getElementById('nego-share-link')?.addEventListener('click', () => {
-    if (opts.onShareLink) opts.onShareLink(c);
+    if (opts.onShareLink) opts.onShareLink(c, {});
     else if (window.toast) toast('Sharing is not available on this screen', 'err');
   });
   /* The counterparty's verbs. Each one hands back to the page that owns it —
@@ -1166,6 +1295,41 @@ function wireNegotiationTab(c, opts = {}){
      out of its way (the body class above lifts it over this screen) and tell it
      which negotiation is being looked at — aiChatContext() picks that up from
      negoRoomContract(). */
+  /* ---------- the version selectors ----------
+     Changing either one repaints the whole screen, because which versions are
+     shown decides what every pane and the index contain — including whether
+     there is anything to decide at all. */
+  host.querySelectorAll('[data-nego-vsel]').forEach(sel => sel.addEventListener('change', () => {
+    const which = sel.getAttribute('data-nego-vsel');
+    const pair = negoComparePair();
+    negoSetComparePair(which === 'left' ? sel.value : pair.left,
+      which === 'right' ? sel.value : pair.right);
+    _negoActive = null;
+    again();
+  }));
+  host.querySelector('#nego-cmp-exit')?.addEventListener('click', () => {
+    negoSetComparePair('baseline', 'working');
+    _negoActive = null;
+    again();
+  });
+  /* A comparison row scrolls both panes to the clause, which is the only verb
+     this mode has. */
+  host.querySelectorAll('[data-nego-cmp-row]').forEach(row => {
+    const go = () => {
+      const id = row.getAttribute('data-nego-cmp-row');
+      for (const prefix of ['nb-', 'nw-']){
+        const el = document.getElementById(prefix + negoDomId(id));
+        if (el){ el.classList.add('flash'); if (el.scrollIntoView) el.scrollIntoView({ block: 'center' }); }
+      }
+    };
+    row.addEventListener('click', go);
+    row.addEventListener('keydown', e => {
+      if (e.target !== row) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault(); go();
+    });
+  });
+
   const copBtn = host.querySelector('#nego-copilot');
   if (copBtn) copBtn.addEventListener('click', () => {
     if (typeof window.openAI !== 'function'){
@@ -1177,14 +1341,31 @@ function wireNegotiationTab(c, opts = {}){
 
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {
-    /* Handing over rides the EXISTING share/response routes. There is no new
-       endpoint here and there deliberately never will be: a public no-login URL
-       that mutates a contract per click must not exist. */
+    /* "Send to the counterparty" takes the SAME ROUTE as Share Link: the
+       summary of what changed, then the send form. It used to flip the turn
+       and tell nobody — the contract said "waiting on Nordfrakt" while nothing
+       had left the building.
+
+       So the turn moves in the onSent callback and nowhere else. Close the
+       dialog, or fail to send, and it is still your turn — because it is.
+       Handing over rides the existing share/response routes; there is no new
+       endpoint here and deliberately never will be. */
     const to = side === 'owner' ? 'counterparty' : 'owner';
-    if (!negoHandOver(c, { to, by: opts.by })) return;
-    if (opts.persist !== false && window.persist) persist(c);
-    if (window.toast) toast(`Sent — it is now ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}'s turn`);
-    again();
+    const who = to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner';
+    const shareOpts = {
+      handOver: true,
+      onSent: info => {
+        if (!negoHandOver(c, { to, by: opts.by })) return;
+        if (opts.persist !== false && window.persist) persist(c);
+        if (window.toast) toast(info && info.emailSent
+          ? `Sent to ${who} — it is now their turn`
+          : `Link created for ${who} — it is now their turn. Send them the link if it was not emailed.`);
+        again();
+      },
+    };
+    if (typeof opts.onShareLink === 'function') opts.onShareLink(c, shareOpts);
+    else if (typeof window.openShareModal === 'function') openShareModal(c, shareOpts);
+    else if (window.toast) toast('Sharing is not available on this screen', 'err');
   });
 
   host.querySelectorAll('[data-nego-edit]').forEach(b => b.addEventListener('click', e => {
@@ -1372,11 +1553,12 @@ function wireNegotiationTab(c, opts = {}){
 
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
-function negoResetView(){ _negoActive = null; _negoThreads = {}; }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; negoSetComparePair('baseline', 'working'); }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
+  negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

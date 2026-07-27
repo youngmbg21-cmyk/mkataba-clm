@@ -1384,7 +1384,7 @@ const shareMessageText=(c,link,msg,expiresAt)=>
    quoted from the change records (negoChangeSummary) and never composed — the
    sender can edit it, because a covering note is theirs to write, but the
    fingerprints and clause names it starts from are the record's. */
-function shareSummaryStepHtml(c){
+function shareSummaryStepHtml(c, opts={}){
   const s = (typeof negoChangeSummary==='function') ? negoChangeSummary(c) : null;
   const rows = s && s.lines.length ? s.lines.map(x=>`
     <li style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--color-divider)">
@@ -1411,6 +1411,8 @@ function shareSummaryStepHtml(c){
         :`<div style="margin:0 0 14px;border:1px dashed var(--color-divider);border-radius:5px;padding:14px;font-size:12px;color:var(--color-neutral-600);text-align:center">Nothing has been proposed yet — this is a first look at the document.</div>`}
       <label style="display:block"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Summary sent to ${esc(c.counterparty||'them')} — edit if you want to say it differently</span>
         <textarea id="sh-summary" rows="5" style="${FLD}">${esc(s?s.text:'')}</textarea></label>
+      ${opts.handOver?`<div id="share-handover" style="margin-top:12px;border:1px solid #a8cbb8;background:#eef7f1;border-left:3px solid #1e6b4d;border-radius:5px;padding:9px 12px;font-size:11.5px;line-height:1.5;color:#14503a">
+        <b>Sending this closes your turn.</b> Once it goes out, this contract shows as waiting on ${esc(c.counterparty||'them')} until they reply. Nothing moves if you close this without sending.</div>`:''}
       <div style="margin-top:14px;display:flex;align-items:center;gap:8px;justify-content:flex-end;">
         <button id="share-close-1" class="ui-btn">Close</button>
         <button id="share-next" class="ui-btn ui-btn-primary">Next ${icon('arrow-right','w-3.5 h-3.5')}</button>
@@ -1654,7 +1656,17 @@ async function reshareToLastRecipient(c, opts={}){
   return record(r||{}, false);
 }
 
-async function openShareModal(c){
+/* opts.onSent — a callback fired when a share is really created, carrying what
+   actually happened: which channel, whether the email left the building, and
+   the link. The negotiation room uses it to hand the turn over ONLY on a
+   successful send. Marking a contract "waiting on them" when the dialog was
+   closed, or when nothing went out, is the same class of untruth as a
+   "Verified" badge that verified nothing.
+
+   opts.handOver — when set, the dialog says on step 1 that sending closes the
+   sender's turn, because that is a consequence they should see before they
+   press the button rather than discover afterwards. */
+async function openShareModal(c, opts={}){
   // An uploaded document carries its file; that only fits through the server,
   // so static mode points the user at the original instead of a giant URL.
   if(isUpload(c) && !API_MODE()){
@@ -1712,7 +1724,7 @@ async function openShareModal(c){
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   openModal(`
     <div style="padding:22px 24px;">
-      ${shareSummaryStepHtml(c)}
+      ${shareSummaryStepHtml(c, opts)}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
@@ -1844,6 +1856,9 @@ async function openShareModal(c){
       logAudit(c,'Shared',`Sent to ${rcptLabel} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
       persist(c); renderAuditSection(c);
       refreshShareOverview(); renderSharesSection(c);
+      if(typeof opts.onSent==='function')
+        try{ opts.onSent({ channel:ch, recipient:rcptLabel, link:r.link||null,
+          emailSent:!!r.emailSent, emailConfigured:!!r.emailConfigured }); }catch(e){}
     } else {
       // static mode: the whole payload travels in the URL fragment
       const link=location.href.split('#')[0]+'#share='+b64e(payloadObj);
@@ -1856,6 +1871,8 @@ async function openShareModal(c){
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
+      if(typeof opts.onSent==='function')
+        try{ opts.onSent({ channel:ch, recipient:rcptLabel, link, emailSent:false, emailConfigured:false }); }catch(e){}
       persist(c); renderAuditSection(c);
     }
   });

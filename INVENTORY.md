@@ -374,3 +374,35 @@ signature block and a schedule title both do. Two functions now exist for the
 two genuinely different cases: `negoProposedBodyFromText` (there is a baseline;
 map onto it) and `negoRichFromLines` (there is not; infer, and accept that
 inference is what it is).
+
+---
+
+# Follow-up 2: six product reports
+**2026-07-27, evening**
+
+## Changed
+
+- `js/views/negotiation.js` — card keydown narrowed to `e.target === card`
+  (B-012); clause tools on their own row, slate-dark, always visible (B-013);
+  Propose edits removed everywhere; the bespoke Copilot dock deleted and the
+  button now calls `openAI()` with `body.nego-room-open` lifting the app's
+  panel above the room; Send routes through the share dialog with the turn
+  moving only in `onSent` (B-014); pane headers are version selectors and any
+  non-live pair renders the read-only comparison mode.
+- `js/negotiation.js` — `negoVersionOptions/negoVersionByKey/negoIsLivePair/
+  negoCompareVersions` (clause-id-anchored version diff); `negoSearch` removed
+  (its only caller was the deleted dock).
+- `js/ai.js` — `aiChatContext()` merges `negoCopilotContext` when the room is
+  open, so the same panel answers about the negotiation on screen.
+- `js/core.js` — `openShareModal(c, opts)` gains `onSent` + `handOver`.
+- `js/views/contract.js` — `onShareLink` passes the options through.
+- `test/chromium/room.html` — lifts `#ai-panel` and index.html's styles out of
+  index.html itself; no more stub copies to drift.
+
+## The one rule this round added
+
+**A comparison of two old versions is history.** Its differences were never
+proposed, so nothing in that mode offers a decision — no badges, no card verbs,
+no bulk verbs, and the index reports the comparison rather than the round.
+Offering Accept on a difference nobody put forward would invent a decision,
+which is the same class of failure as a Verified pill that verified nothing.

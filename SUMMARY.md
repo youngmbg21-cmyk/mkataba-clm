@@ -2186,3 +2186,43 @@ As before: this means the things we thought to check behave as expected. It
 doesn't mean the system is certainly correct — the phantom-changes bug you
 reported lived happily under a fully green test suite, because nobody had thought
 to test "open a contract and change nothing". That test exists now.
+
+---
+
+# Follow-up 2: your six reports, in plain English
+**27 July 2026, evening**
+
+1. **The space bar works now.** The reply box lives inside a card that also
+   responds to the keyboard, and the card was grabbing every space before the
+   box could use it. The card now only reacts when the card itself is selected.
+   A browser test literally types a sentence and checks the spaces arrived.
+
+2. **Edit / Add clause / Delete are always visible** — dark buttons on their own
+   line above each clause, nothing hidden behind hovering, nothing cut off at
+   the pane edge. (First attempt floated them over the heading and squashed the
+   titles onto two lines; the screenshot caught it, they now sit on their own
+   row.)
+
+3. **The version boxes at the top of each pane are now dropdowns.** Pick any two
+   versions and read them side by side. One honest rule: differences between two
+   old versions were never proposed by anyone, so that view is clearly marked
+   "Comparing versions", offers no Accept/Reject anywhere — cards, top bar or
+   index — and has one obvious button back to the live round.
+
+4. **Ask Copilot is now the real Copilot** — the same panel as everywhere else
+   in HaTi, because it *is* the same panel. It was hidden behind the
+   full-screen negotiation view; the room now lifts it in front and tells it
+   which contract and round you're reading.
+
+5. **Propose edits is gone** from both sides. Editing happens on the clause,
+   where you read it.
+
+6. **"Send to the counterparty" actually sends.** It opens the same two-step
+   dialog as Share Link — summary first, then email/WhatsApp/link — and warns
+   you that sending closes your turn. The turn only changes hands when
+   something really went out. Close the dialog and it's still your turn,
+   because it is. Before this fix the button flipped the turn and told nobody.
+
+**Where the tests stand:** 770 automated tests passing (741 before this round),
+and 41 of 41 real-browser checks — including typing the space bar for real and
+clicking into the comparison mode and back out.

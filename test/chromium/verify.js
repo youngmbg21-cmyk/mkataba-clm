@@ -338,6 +338,85 @@ const check = (name, pass, detail) => {
     JSON.stringify(afterNext));
   await page.screenshot({ path: path.join(OUT, '07-share-send.png') });
 
+  /* ---------- the space bar, pressed for real ----------
+     jsdom can only be told that a synthetic event was not cancelled. A browser
+     actually inserts the character, so this types into the reply field and
+     reads back what landed there. The bug was that spaces vanished. */
+  await page.evaluate(() => {
+    document.getElementById('modal-root').innerHTML = '';
+    const btn = document.querySelector('.nego-room [data-nego-discuss]');
+    if (btn) btn.click();
+  });
+  await page.waitForTimeout(150);
+  const typed = await page.evaluate(async () => {
+    const input = document.querySelector('.nego-room [id^="nego-ti-"]');
+    if (!input) return null;
+    input.focus();
+    return { id: input.id, focused: document.activeElement === input };
+  });
+  if (typed && typed.focused){
+    await page.keyboard.type('Net-45 works for us');
+    const got = await page.evaluate(id => document.getElementById(id).value, typed.id);
+    check('the space bar reaches the discussion box', got === 'Net-45 works for us',
+      JSON.stringify(got));
+  } else {
+    check('the space bar reaches the discussion box', false, 'could not focus the reply field');
+  }
+
+  /* ---------- the version selectors ---------- */
+  const vsel = await page.evaluate(() => {
+    const l = document.querySelector('.nego-room [data-nego-vsel="left"]');
+    const r = document.querySelector('.nego-room [data-nego-vsel="right"]');
+    if (!l || !r) return { l: !!l, r: !!r };
+    const lb = l.getBoundingClientRect(), pane = l.closest('.nego-pane').getBoundingClientRect();
+    return { l: true, r: true, lv: l.value, rv: r.value,
+      options: Array.from(l.options).map(o => o.textContent.trim()),
+      inPane: lb.left >= pane.left - 1 && lb.right <= pane.right + 1,
+      bar: !!document.querySelector('.nego-room #nego-cmp-bar') };
+  });
+  check('each pane header is a version selector', vsel.l && vsel.r,
+    `left=${vsel.lv} right=${vsel.rv}`);
+  check('it opens on the live pair, with no comparison banner',
+    vsel.lv === 'baseline' && vsel.rv === 'working' && vsel.bar === false,
+    `${vsel.lv} / ${vsel.rv}, banner ${vsel.bar}`);
+  check('the selector sits inside its pane', vsel.inPane, `inPane ${vsel.inPane}`);
+  check('and it offers the snapshots as well as the live pair',
+    (vsel.options || []).length >= 3, (vsel.options || []).join(' | '));
+
+  const compared = await page.evaluate(async () => {
+    const l = document.querySelector('.nego-room [data-nego-vsel="left"]');
+    const old = Array.from(l.options).find(o => /^v\d/.test(o.value));
+    if (!old) return { noVersions: true };
+    l.value = old.value;
+    l.dispatchEvent(new Event('change', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 120));
+    const bar = document.querySelector('.nego-room #nego-cmp-bar');
+    return {
+      bar: !!bar, text: bar ? bar.textContent.replace(/\s+/g, ' ').trim().slice(0, 110) : null,
+      accepts: document.querySelectorAll('.nego-room [data-nego-accept]').length,
+      rejects: document.querySelectorAll('.nego-room [data-nego-reject]').length,
+      badges: document.querySelectorAll('.nego-room .nego-badge').length,
+      rows: document.querySelectorAll('.nego-room [data-nego-cmp-row]').length,
+      exit: !!document.querySelector('.nego-room #nego-cmp-exit') };
+  });
+  check('picking an old version enters a comparison and says so',
+    compared.bar && /Comparing versions/.test(compared.text || ''), compared.text);
+  check('a comparison offers no decisions — nobody proposed these differences',
+    compared.accepts === 0 && compared.rejects === 0 && compared.badges === 0,
+    `${compared.accepts} accept, ${compared.rejects} reject, ${compared.badges} badges`);
+  check('and it carries the way back out',
+    compared.exit === true, `exit button ${compared.exit}`);
+  await page.screenshot({ path: path.join(OUT, '08-version-compare.png') });
+
+  const back = await page.evaluate(async () => {
+    document.querySelector('.nego-room #nego-cmp-exit').click();
+    await new Promise(r => setTimeout(r, 120));
+    return { bar: !!document.querySelector('.nego-room #nego-cmp-bar'),
+      lv: document.querySelector('.nego-room [data-nego-vsel="left"]').value };
+  });
+  check('Back to the live round restores the working screen',
+    back.bar === false && back.lv === 'baseline', `banner ${back.bar}, left ${back.lv}`);
+
   await browser.close();
   srv.close();
 

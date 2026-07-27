@@ -1950,7 +1950,9 @@ function openNegotiationOwnerRoom(c){
        lands on. */
     onExit(){ renderWorkspace(); },
     onSaveDraft(){ persist(c); toast('Draft saved'); },
-    onShareLink(){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c); },
+    /* The second argument carries onSent/handOver when the room's turn banner
+       is what opened this — the turn moves only if a share really goes out. */
+    onShareLink(x, o){ closeNegotiationRoom(); renderWorkspace(); openShareModal(c, o||{}); },
     /* The transition point, and nothing past it. It closes the round so the
        agreed wording becomes the baseline, then puts the reader on the Docs
        tab where signing lives. No signing logic is built here, by design. */

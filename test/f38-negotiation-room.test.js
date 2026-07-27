@@ -122,10 +122,19 @@ describe('the room takes the window', () => {
 
   test('the panes carry the prototype\'s own wording', async () => {
     const r = await room();
-    assert.match(r.$('.nego-pane.baseline .nego-pane-head').textContent,
-      /Original Baseline\s*v0\s*read-only reference/);
+    /* The pane headers are now SELECTORS — you can put any two versions side by
+       side — but they still say what the prototype called them, and they open
+       on the live pair. */
+    const left = r.$('.nego-pane.baseline [data-nego-vsel="left"]');
+    const right = r.$('.nego-pane.working [data-nego-vsel="right"]');
+    assert.ok(left && right, 'each pane picks its own version');
+    assert.equal(left.value, 'baseline');
+    assert.equal(right.value, 'working');
+    assert.match(left.options[left.selectedIndex].textContent, /Original Baseline · round 1/);
+    assert.match(right.options[right.selectedIndex].textContent, /Working Version · round 1/);
+    assert.match(r.$('.nego-pane.baseline .nego-pane-head').textContent, /read-only reference/);
     assert.match(r.$('.nego-pane.working .nego-pane-head').textContent,
-      /Working Version\s*v1\s*— Proposed Redline · fingerprints anchor in the margin/);
+      /— Proposed Redline · fingerprints anchor in the margin/);
     assert.match(r.$('.nego-pane.index h3').textContent, /Fingerprinted Change Index/);
   });
 });

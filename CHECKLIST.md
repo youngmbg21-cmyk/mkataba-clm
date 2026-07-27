@@ -358,3 +358,45 @@ full-window room).
 | `test/f41-no-phantom-changes.test.js` | 7 | opening a contract creates no changes |
 | `test/f42-share-summary-step.test.js` | 15 | the Share summary step, and the summary travelling with the link |
 | `test/f43-ask-copilot.test.js` | 18 | search, Copilot context, the dock, and the read-never-edit rule |
+
+---
+
+# Follow-up 2: six product reports
+**2026-07-27, evening**
+
+| # | Capability | Status | Proving test |
+|---|---|---|---|
+| B-012 | a space typed into the reply field is not cancelled | **PASS** | `f44` "a space typed into the reply field is NOT cancelled"; Chromium types it for real |
+| B-012 | Enter in the field posts; the card keeps its own keys | **PASS** | `f44` "Enter in the reply field posts…"; "the card itself still answers to Enter and Space" |
+| B-012 | no field in the room has its keys eaten by a parent | **PASS** | `f44` "no focusable field in the room has its keys eaten by a parent" |
+| B-013 | clause tools always visible, dark, inside the pane | **PASS** | `f44` tools block; Chromium "drawn without hovering", "INSIDE the pane", "dark fill" |
+| — | Propose edits removed from every surface | **PASS** | `f38` "the owner gets the prototype's actions" (asserts absence) |
+| Copilot | the button opens the app's OWN panel | **PASS** | `f43` "clicking it calls openAI"; Chromium "not a room-local clone" |
+| Copilot | no second chat surface exists in the room | **PASS** | `f43` "there is no second chat surface built into the room" |
+| Copilot | the panel stacks above the room, and only while open | **PASS** | `f43` z-order test; Chromium hit-test after slide-in |
+| Copilot | the room tells Copilot what it is showing | **PASS** | `f43` context tests; `aiChatContext` merge |
+| B-014 | Send goes through the share route | **PASS** | `f45` "it opens the share flow rather than flipping the turn on the spot" |
+| B-014 | the turn moves ONLY on a successful send | **PASS** | `f45` "the turn moves only when the share is really created"; "closing the dialog… leaves the turn alone" |
+| B-014 | step 1 warns that sending closes the turn | **PASS** | `f45` "opened from Send, it warns…"; "opened from Share Link, there is no such warning" |
+| Versions | both pane headers are selectors over every snapshot | **PASS** | `f46` options tests; Chromium "each pane header is a version selector" |
+| Versions | non-live pair → read-only comparison, said out loud | **PASS** | `f46` "picking an old version enters a comparison and says so" |
+| Versions | a comparison offers NO decisions, bulk verbs included | **PASS** | `f46` "a comparison offers no decisions at all"; Chromium "0 accept, 0 reject, 0 badges" |
+| Versions | a renumbered clause is followed across versions | **PASS** | `f46` "a renumbered clause is followed, not reported as removed-and-added" |
+| Versions | the way back is one legible button, and reset is clean | **PASS** | `f46` "Back to the live round restores the working screen"; "does not leak into the next contract" |
+
+## Regression
+
+| Run | Result |
+|---|---|
+| before this round | 741 tests, 0 fail |
+| after | **770 tests, 0 fail** |
+| Chromium | **41/41** (was 31/31) |
+
+## Test files added
+
+| File | Tests | Covers |
+|---|---|---|
+| `test/f44-room-input-and-tools.test.js` | 10 | the space bar, and the clause tools' visibility |
+| `test/f45-send-to-counterparty.test.js` | 10 | Send through the share route; turn moves only on success |
+| `test/f46-version-compare.test.js` | 17 | version selectors, the comparison mode and its one rule |
+| `test/f43-ask-copilot.test.js` | 10 | **rewritten** — the real panel, its stacking, its context |

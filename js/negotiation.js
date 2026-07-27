@@ -975,6 +975,104 @@ function negoCopilotContext(c){
   };
 }
 
+/* ---------- looking at any two versions ----------
+   The two panes were fixed: this round's baseline on the left, this round's
+   working copy on the right. That is the right default and it is not the only
+   question people have. "What did this clause say before we conceded it in
+   round 2" is answerable from the version list, and was not reachable.
+
+   Every snapshot the contract carries is offered — the live pair plus every
+   captureVersion() record — and any two can be put side by side.
+
+   ONE RULE governs what happens then, and it is the reason this is not simply
+   a rendering change: a comparison of two OLD versions is HISTORY. The
+   fingerprints on the right belong to the round in flight; the differences
+   between v2 and v5 are not proposals and there is nobody to accept them. So
+   picking anything other than the live pair puts the screen in a read-only
+   comparison, and says so. Offering Accept on a difference nobody proposed
+   would be inventing a decision. */
+function negoVersionOptions(c){
+  negoInit(c);
+  const out = [{
+    key: 'baseline', kind: 'live',
+    /* The prototype's own words for these two panes, kept: "Original Baseline"
+       and "Working Version" are what the screen has always called them, and a
+       dropdown is no reason to rename the thing it selects. */
+    label: `Original Baseline · round ${negoRound(c)}`,
+    sub: 'the wording this round is measured against',
+    body: negoBaseBody(c), text: negoBaseText(c),
+  }, {
+    key: 'working', kind: 'live',
+    label: `Working Version · round ${negoRound(c)}`,
+    sub: 'proposed redline',
+    body: negoResolvedBody(c), text: negoResolvedText(c),
+  }];
+  /* Newest first: the version you want is nearly always a recent one, and a
+     list that makes you scroll past 1 to reach 40 is a list nobody uses. */
+  for (const v of (c.versions || []).slice().reverse()){
+    const body = v.body != null && String(v.body).trim()
+      ? String(v.body)
+      : negoRichFromLines(v.text || '');
+    out.push({ key: 'v' + v.n, kind: 'version', n: v.n,
+      label: `v${v.n} · ${v.label || 'Saved'}`,
+      sub: [v.by, v.at ? String(v.at).slice(0, 10) : null].filter(Boolean).join(' · '),
+      body, text: v.text || '' });
+  }
+  return out;
+}
+const negoVersionByKey = (c, key) => negoVersionOptions(c).find(v => v.key === key) || null;
+/* Is this pair the live negotiation, or a look back at history? */
+const negoIsLivePair = (left, right) =>
+  (left || 'baseline') === 'baseline' && (right || 'working') === 'working';
+
+/* Two versions, compared clause by clause.
+   Clause ids are durable and live in the document, so a clause can be followed
+   across versions even when it has been renumbered or had clauses inserted
+   above it — which is exactly what makes this comparison meaningful rather
+   than a line-by-line guess. A clause present in one side only is reported as
+   added or removed rather than silently skipped. */
+function negoCompareVersions(c, leftKey, rightKey){
+  const left = negoVersionByKey(c, leftKey || 'baseline');
+  const right = negoVersionByKey(c, rightKey || 'working');
+  if (!left || !right) return null;
+  const seg = html => (window.clauseSegment ? clauseSegment(html || '') : []);
+  const L = seg(left.body), R = seg(right.body);
+  const byId = list => { const m = new Map(); for (const cl of list) if (cl.clauseId) m.set(cl.clauseId, cl); return m; };
+  const lMap = byId(L), rMap = byId(R);
+  const norm = s => String(s || '').replace(/\s+/g, ' ').trim();
+
+  const rows = [];
+  const seen = new Set();
+  for (const cl of R){
+    const was = cl.clauseId ? lMap.get(cl.clauseId) : null;
+    if (was) seen.add(cl.clauseId);
+    if (!was){
+      rows.push({ clauseId: cl.clauseId, label: negoClauseLabel(cl), state: 'added',
+        ops: [{ op: 'ins', text: cl.text }], oldText: '', newText: cl.text });
+      continue;
+    }
+    if (norm(was.text) === norm(cl.text)){
+      rows.push({ clauseId: cl.clauseId, label: negoClauseLabel(cl), state: 'same',
+        ops: [{ op: 'keep', text: cl.text }], oldText: was.text, newText: cl.text });
+      continue;
+    }
+    rows.push({ clauseId: cl.clauseId, label: negoClauseLabel(cl), state: 'changed',
+      ops: (window.redlineOps ? redlineOps(was.text, cl.text) : []),
+      oldText: was.text, newText: cl.text });
+  }
+  for (const cl of L){
+    if (!cl.clauseId || seen.has(cl.clauseId)) continue;
+    rows.push({ clauseId: cl.clauseId, label: negoClauseLabel(cl), state: 'removed',
+      ops: [{ op: 'del', text: cl.text }], oldText: cl.text, newText: '' });
+  }
+  const moved = rows.filter(r => r.state !== 'same');
+  return { left, right, rows, moved: moved.length,
+    live: negoIsLivePair(left.key, right.key),
+    summary: moved.length
+      ? `${moved.length} clause${moved.length === 1 ? '' : 's'} differ between ${left.label} and ${right.label}`
+      : `${left.label} and ${right.label} say the same thing` };
+}
+
 /* ---------- the turn model ----------
    Whose move it is. Built on the existing share/response routes — no new
    endpoints, no websockets — because a public no-login URL that mutates a
@@ -1224,7 +1322,9 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoResolve, negoResolveAll,
   negoPostComment, negoCommentIsStale, negoTopicFor,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS, negoTurn, negoHandOver, negoTurnBanner,
+  negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
+  negoVersionOptions, negoVersionByKey, negoIsLivePair, negoCompareVersions,
+  negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

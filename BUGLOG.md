@@ -3398,3 +3398,123 @@ way back) and the room's re-verification after a decision. Screenshots
 
 **741 tests / 154 suites / 0 fail** (was 701 before this follow-up, 664 at the
 session checkpoint).
+
+---
+
+# Follow-up 2: six reports from using the product
+**2026-07-27, evening** · branch `claude/new-session-7glnhu`
+
+## B-012 — the discussion box swallowed the space bar
+
+Reported with a screenshot: you could type words into a change's reply field
+and not put spaces between them. Pressing Space did nothing.
+
+**Mechanism.** The change card is keyboard-focusable — it acts as a button, so
+Enter/Space select it — and its keydown handler called `preventDefault()` on
+Space unconditionally. The reply input sits INSIDE the card, so every space
+typed into the input bubbled up to the card and was cancelled before the
+browser could insert the character.
+
+**Fix.** The rule the handler should always have had: a container that behaves
+like a button answers keys only when IT is the event target, never when the
+focus is in a field inside it (`e.target !== card → return`). `f44` checks the
+reply field, checks every other text field in the room for the same trap, and
+checks the card KEPT its keyboard behaviour — the fix is a narrowing, not a
+removal. The Chromium pass types "Net-45 works for us" with the real keyboard
+and reads the value back.
+
+## B-013 — the clause tools were hiding
+
+Edit / Add clause / Delete appeared on hover only, anchored in the pane margin
+where the pane edge CLIPPED them, in a pale outline. They are the only way to
+propose anything now that the whole-document editor is gone — hiding them hid
+the feature. Now: always drawn, on their own row inside the clause, in the
+room's slate (Delete in the del red).
+
+**First attempt was wrong and the screenshot caught it:** absolute-positioning
+them top-right meant reserving 210px of heading width, which wrapped
+"Clause 1 · Scope of Services" onto two lines in BOTH panes — including the
+baseline pane, which has no tools at all. Moved to a normal flex row; nothing
+is floated over text and nothing reserves space in a pane that doesn't need it.
+
+## B-014 — "Send to the counterparty" sent nothing
+
+The turn banner's Send button flipped the turn, snapshotted a version, wrote an
+audit line — and told nobody. The contract read "Waiting on Nordfrakt — sent 2h
+ago" while no link, no email and no share record existed.
+
+Now it takes the SAME route as Share Link: summary step → send form → real
+share. The rule that makes it honest: **the turn moves only in the `onSent`
+callback** — i.e. only when a share was actually created. Close the dialog, or
+fail to send, and it is still your turn, because it is. Step 1 additionally
+warns "Sending this closes your turn" when opened from this button
+(`opts.handOver`), because that consequence belongs on the screen before the
+press, not after. Both entry points kept: Share Link shares a copy; Send closes
+your turn — same dialog, different consequence, each labelled. `f45` (10).
+
+## Propose edits removed
+
+From the owner's bar, the counterparty's bar and the embedded tab header. It
+opened a modal holding the entire document in one box — the surface B-010's
+phantom changes arrived through, and the one that could not keep a heading or a
+list. A clause is edited where it is read. f38's assertions updated to state
+the new intent: `#nego-propose` must NOT exist, and every clause offers Edit.
+
+## Ask Copilot is now the application's own panel
+
+The bespoke dock built earlier today is deleted — markup, styles, search UI and
+all. It was the wrong call: a lookalike that would drift from the real panel,
+which is precisely the reasoning the user gave when reporting it.
+
+The actual blocker was stacking, not styling: the room is `position:fixed` at
+z-index 60; `#ai-panel` lives in the app shell at z-index 50, so opening it put
+it BEHIND the room. Fix: `body.nego-room-open #ai-panel{z-index:70}` (scrim 65),
+applied only while the room is open, and removed on exit. The button calls
+`openAI()` — the app's own function. Context still travels: `negoRoomContract()`
+tells `aiChatContext()` (js/ai.js) what the room is showing, so Copilot knows
+the clauses, the changes and whose turn it is. `f43` rewritten (10);
+Chromium hit-tests the panel's centre after the 300ms slide-in — measuring
+immediately catches it mid-flight at x=1462, off-screen (that cost one red run).
+
+The Chromium harness now lifts `#ai-panel` and index.html's `<style>` blocks out
+of index.html itself (synchronous XHR, harness-only) instead of keeping stub
+copies — a stub was exactly why the hit-test failed first time (N-004 again).
+
+## Version selectors on both panes (f46)
+
+The pane headers are dropdowns over every snapshot the contract carries — the
+live pair first (still named "Original Baseline" / "Working Version", the
+prototype's own words), then `captureVersion` records newest-first.
+
+**The rule that governs the mode:** a comparison of two OLD versions is
+HISTORY. Its differences were never proposed and there is nobody to accept
+them. So any non-live pair puts the screen in a read-only comparison: an amber
+banner that says so, no badges, no Accept/Reject on cards, bulk verbs disabled
+in the top bar AND removed from the index (first Chromium screenshot showed
+"Accept All" still live over a history view — that is the rule leaking at the
+top of the page), a differences list in the index instead of the round's
+progress, and a solid "Back to the live round" button (the first version was a
+ghost button on an amber banner — white on cream, unreadable; the way out of a
+mode must be the most legible thing in it).
+
+The comparison itself is clause-by-clause on durable clause ids, so a
+renumbered clause is FOLLOWED, not reported as removed-and-added — asserted
+directly (`f46` "a renumbered clause is followed"). `negoResetView()` restores
+the live pair so a stale comparison cannot follow you to the next contract.
+
+## Two assertions I wrote wrong, corrected against the model
+
+- f45 first asserted the counterparty's banner says "2 changes to review" after
+  a hand-over. The model was right and the test wrong: those two pending
+  changes are the counterparty's OWN asks, and nobody rules on their own
+  proposal — the count is of what the READER must answer.
+- f46 first asserted two closed rounds leave ≥4 snapshots. `captureVersion`
+  deduplicates identical documents; the honest expectation is one snapshot per
+  document CHANGE, and the test now says why.
+
+## Regression
+
+**770 tests / 0 fail** (was 741). Chromium **41/41** (was 31), now additionally
+covering: the space bar typed for real, tools drawn without hover and inside
+the pane, the version selectors opening on the live pair, comparison mode
+refusing decisions, and the exit restoring the live round.
