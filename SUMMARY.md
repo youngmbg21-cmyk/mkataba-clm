@@ -2950,3 +2950,104 @@ how versions are taken shouldn't retire the ones you already have.
 but you can't roll a contract back to one. I checked the code before saying so.
 
 **990 tests passing, 72 of 72 browser checks.**
+
+---
+
+# Negotiation loop — Wanjiru & Erik
+
+## In one line
+
+Two people can now negotiate a contract inside HaTi across six rounds without
+anything falling on the floor. Before this loop, three separate things stopped
+them — and one of them was losing a whole round of work in silence.
+
+**Final score: 8 out of 10.** Cycles run: 2 (4/10 → 8/10). I stopped at two
+because the session budget ran out, not because it reached 10. What still
+blocks a 10 is listed at the bottom, plainly.
+
+## What was wrong, in plain words
+
+**1. The very first send was labelled "sign".** Wanjiru presses Share on a fresh
+draft. HaTi decided, on its own and without saying so, that a contract nobody
+had discussed must be one that is ready for signature. Erik opened the link and
+saw a green tick and the words "Ready to sign". Nothing on his screen offered to
+negotiate. The negotiation never started.
+
+**2. Erik could ask for a change, and then had nowhere to send it.** He pressed
+the button on a clause, typed what he wanted, saved it. HaTi recorded it
+properly — numbered it, fingerprinted it, showed it in the list. And there was
+no Send button anywhere on the page. If he closed the tab, the work was gone.
+Wanjiru's app never knew he had asked.
+
+**3. When he did get an answer through, it disappeared.** Erik accepted
+Wanjiru's counter-wording and withdrew the point she had refused. His screen
+said sent. HaTi's server marked it done. Wanjiru's contract showed neither. The
+cause was a race in the code: the answers were written into memory and then a
+screen refresh loaded the older copy back over them a fraction of a second
+before they were saved. Because the server thought the message had been
+delivered, it never sent it again. A whole round, gone, with no error anywhere.
+
+## What changed
+
+- **The Share screen asks what the link is for** — Negotiate or Sign — with one
+  sentence each saying which screen the other side will land on. The default
+  now reads whether the deal is finished, not whether it has started.
+- **The counterparty can send the changes they ask for.** The button in the
+  change list counts them, names them, and posts them. Wanjiru's copy re-files
+  each one itself, so the fingerprint and its place in the chain are minted on
+  the record rather than taken on trust from a public page.
+- **The button is called "Change", not "Edit"**, and the screen says where to
+  press before anything has been proposed.
+- **Answers are saved before anything redraws.** That is the fix for the lost
+  round.
+- **A withdrawal now counts whichever button sends it.** Before, taking a
+  refused point off the table only worked if you pressed "Ready to sign"; press
+  "Send" instead and it was thrown away.
+- **One person, one link.** Sending the next round refreshes the link Erik
+  already has instead of quietly minting a second one and leaving the first
+  live. The screen says so.
+- **One next action, not two.** With changes waiting, the contract page says
+  "Nordfrakt AB is waiting on you — 2 changes to decide" instead of offering an
+  unrelated step.
+- **You can go back to an earlier version.** Restore saves the wording you have
+  now as its own version first, so nothing is lost and the history stays honest.
+  It refuses while a change is still open, and says why.
+- **The version list is no longer empty.** Sending a draft, and handing a turn
+  over, now file a version a person can name and come back to.
+
+## What was verified, and how
+
+Everything above was walked in a real browser against a running server, with two
+pages open — Wanjiru's workspace and Erik's link — clicking the actual controls.
+Not one item was marked fixed on the strength of reading the code.
+
+The full six-round walk now ends with Wanjiru's page showing: *"Ready to sign —
+Erik Lindqvist signalled they are ready to sign · 3 changes settled, 2 adopted
+into the wording, 1 ask withdrawn. Nothing is signed yet. [Issue a signing
+link]"* — and that survives reloading the page.
+
+**990 automated tests, 0 failures.**
+
+## What is still open
+
+- **Signing itself was not driven to a finished, executed contract.** The
+  readiness signal, the "Issue a signing link" route and the signing panel are
+  all present and correct. The signature pad and the one-time-code step were not
+  walked. Round 6 is verified up to the signature and no further. This alone
+  keeps the score off 10.
+- **The counterparty's signing page still offers five overlapping choices** —
+  approve and sign, accept the wording, propose edits, request changes, decline
+  — with nothing saying which is which. Negotiation links now open the room
+  instead, so it is no longer the first thing anyone meets, but it is still a
+  fork with no signpost.
+- **Nothing on the owner's screen updates itself.** An answer appears when she
+  reloads, or up to 45 seconds later. Correct, but late.
+- **Two copies of the negotiation screen exist in the counterparty's page** —
+  one hidden behind the other — which duplicates every internal name the visible
+  one uses. Not visible to a user today. It cost an hour of this session's
+  debugging and it is the kind of thing that causes a silent fault later.
+- **The contract still says "Drafting"** all the way through a negotiation.
+- **Layout was not checked.** This container has no internet access to the
+  stylesheet the app loads from a CDN, so every screen rendered unstyled.
+  Wording, controls and behaviour were testable; spacing and tap targets were
+  not, and nothing here claims they were.

@@ -4282,3 +4282,170 @@ is the flow it should have been exercising.
 version. Versions are for reading and comparing. I checked before saying so.
 
 **990 tests / 0 failures**, 72 of 72 Chromium checks.
+
+---
+
+## Loop: two-party in-app negotiation, Wanjiru & Erik
+
+Run as an improve-and-verify loop against the brief: make the two-party in-app
+negotiation good enough for a Nairobi SME owner with no training to get through
+six rounds and sign. Every finding below was walked in a real Chromium session
+against a running server with two browser pages — Wanjiru's workspace and
+Erik's share link — not read off the source. Nothing here was fixed on the
+strength of reading the code alone.
+
+**Caveat on the environment.** This container cannot reach `cdn.tailwindcss.com`,
+so every screen rendered without its stylesheet. Behaviour, wording, control
+presence and the whole data round-trip were verifiable; visual layout, spacing
+and hit targets were NOT, and nothing in this entry claims otherwise.
+
+### Cycle 1 — score 4/10
+
+Three findings, any one of which stops the scenario dead.
+
+**1. The first share of a negotiation went out as a SIGNING link.**
+`buildSharePayload` (`js/core.js`) fell back to `shareChanges.length ? 'negotiate'
+: 'sign'` when the caller stated no purpose. The Share button in the contract
+toolbar — the button a first-time user actually presses — stated none. A first
+draft has no changes, so the fallback read "nobody has negotiated" as "this is a
+signature request", which is exactly backwards. Verified live: Erik opened the
+link and met a green tick and the words **"Ready to sign — No changes were
+proposed on this contract"** on a draft nobody had discussed, five near-identical
+verbs, and no negotiation room anywhere.
+
+*Fixed.* `defaultSharePurpose(c)` now reads whether the deal is FINISHED rather
+than whether it has started — a contract with no changes is `negotiate`, one
+whose changes are all settled is `sign`. And the dialog no longer guesses in
+private: step 1 carries a two-option picker, **Negotiate** or **Sign**, each with
+a sentence saying which screen the other side lands on. Changing it moves the
+one-shot/standing default with it, because a signing link and a negotiation link
+want opposite answers there.
+
+**2. The counterparty could propose a change and had NO WAY TO SEND IT.**
+The worst defect in the product. Erik presses **Change** on a clause in the
+room, writes what he wants, saves. It is filed as `#CHG-001`, fingerprinted,
+shown as pending, authored by him. The room's buttons are then still exactly
+**Decline** and **Ready to sign**. The postbox in the change index
+(`negoIndexSendHtml`) counted `pendingDecisions` only — answers to the OWNER's
+asks — and `wirePortalNego`'s `onChange` collected only `authorSide==='owner'`.
+Verified live: after two proposals, no send existed anywhere on the screen, and
+Wanjiru's app never heard of them. Close the tab and the work was gone.
+
+*Fixed.* `PORTAL_NEGO_PROPOSED` holds wording the reader asks for, exactly as
+decisions are held; `portalNegoContract` puts it back on every repaint (and
+winds `negotiation.seq` and the hash chain forward with it, or the second ask
+collided with the first and the room told the reader in red that their own chain
+was broken); the postbox counts both and names them; `portalRespond` posts them
+as `negoProposed`; and `applyNegoProposals` on the owner's side RE-FILES each
+one through `negoFileChange` so the id, fingerprint and chain are minted on the
+record copy rather than trusted from a public page. `oldText` is read from our
+clause, never theirs.
+
+**3. And the room never named the act it exists for.** The per-clause control
+said **Edit** — a word a counterparty reads as "not for me", and wrong anyway,
+since it files a tracked change rather than editing anything. The empty change
+index said "Propose wording and each change becomes a fingerprint", which says
+what happens but not where to press.
+
+*Fixed.* The control is **Change**, with a title saying it goes to the other side
+to accept or reject; the empty index names the control and the pane; and the
+working pane's subtitle, on a round with nothing in it, reads "press Change on
+any clause to ask for different wording" instead of describing a redline that is
+not there yet. `f44` updated to assert the new label and why.
+
+Also fixed in this cycle, all found in the same walk:
+
+- **Two send buttons, two behaviours.** The contract page's "Send updated
+  version" refreshed the link Erik already had; Share and the room's "Send to …"
+  minted a SECOND link and left the first live. `openShareModal` now refreshes a
+  standing negotiation link to the same address in place, says so above the
+  result, and logs it honestly. Signing links stay exempt — one signature must
+  bind one copy of one text.
+- **Two competing next actions.** With Erik's changes waiting, the action bar
+  still read "Key terms are set — move it into review" beside a banner saying
+  "Changes returned". `wsNextAction` now answers "somebody is waiting on you"
+  first, and its button borrows the strip's own handler rather than growing a
+  second path to the same screen.
+
+### Cycle 2 — score 8/10
+
+A fresh six-round walk on the fixed code found the fixes holding, and one more
+defect that had been hidden behind them.
+
+**4. THE COUNTERPARTY'S ANSWERS WERE SILENTLY LOST.** Erik withdraws his refused
+ask, accepts Wanjiru's counter-wording, sends, and presses Ready to sign. His
+screen says sent. The server marks the response applied. Wanjiru's contract
+shows the change still pending, the ask still refused, no readiness, and her
+audit trail has no entry — and because the response is marked applied, it is
+never re-delivered. The round is gone.
+
+*Root cause*, found by instrumenting the apply path rather than guessing:
+`applyResponse` ended with `persist(c)`, which only marks the contract dirty and
+sets a 400 ms timer, and then immediately repainted. The repaint reloads the
+contract into the same object, so the SERVER's older copy was assigned over the
+answers that had just been applied, and the timer then saved that older copy
+back. `negoResolve` had returned success; the audit line had been written; both
+were overwritten before either reached disk.
+
+*Fixed.* `applyResponse` now awaits `flushSaves()` before anything repaints, so
+the write happens while the object still holds what arrived. Verified: after the
+fix the same walk ends with `CHG-002` withdrawn, `CHG-003` accepted, the
+readiness recorded, and Wanjiru's page showing **"Ready to sign — Erik Lindqvist
+signalled they are ready to sign … Issue a signing link"**, surviving two
+reloads.
+
+**5. Withdrawals sent with decisions were dropped.** Only the readiness branch
+of `applyResponse` read `negoWithdrawn`. A counterparty who took a refused ask
+off the table and pressed **Send** rather than **Ready** had the withdrawal
+discarded in silence: their screen said the point was settled, ours went on
+reporting a live disagreement, and neither side could see why the deal would not
+move. The loop is now `applyNegoWithdrawals`, called by both branches.
+
+**6. There was no way back to an earlier version.** Confirmed by search and by
+walking the panel: you could read any version and compare it, and then you had
+to retype. `restoreVersion` now exists — it snapshots the current wording FIRST,
+writes the old wording in as a new version on top, and logs both, so the history
+only ever grows and "we went back to Tuesday's draft" is itself on the record.
+It refuses while changes are pending or a round is open, and says why: every
+pending change is anchored to the wording it was proposed against.
+
+**7. And the version list was empty, so restore had nothing to act on.** A
+negotiation conducted entirely through the room produced **0 versions** in the
+panel a person reads — automatic copies are unlisted by design, and the
+hand-over capture only fires on a turn that actually moves. A share now files a
+listed "Sent to <recipient>" version, and a hand-over files a listed one too.
+These are the milestones a person can name afterwards; the per-change copies
+stay unlisted. Verified: v1 "Sent to Erik Lindqvist" → restore → v2 "Before
+going back to v1" and v3 "Restored from v1".
+
+### Verified, and how
+
+Two browser pages against a live server, driven through the real controls:
+share dialog → Erik's room → propose → send → owner's index → accept and reject
+with a reason → counter-propose → send on the same link → withdraw → settle →
+readiness → the owner's signing route. Plus the restore flow end to end. **990
+automated tests, 0 failures.**
+
+### NOT fixed, and why
+
+- **The five verbs on the counterparty's signing page** (Approve & sign / Accept
+  the wording / Propose edits / Request changes / Decline). Unguided, and three
+  of them overlap. Reachable only on a signing link now that negotiation links
+  open the room, so it stopped being the blocker it was — but it is still a fork
+  with no signpost. Left because collapsing it is a change to the signing flow,
+  not to the negotiation, and this loop's brief was the negotiation.
+- **No live signal on the owner's screen.** Answers land on reload or on the
+  45-second poll; nothing on the contract page updates itself when one arrives.
+  Correct data, late. A real fix means a push channel, which is infrastructure.
+- **Two copies of the negotiation component in the counterparty's DOM** — the
+  hidden `#pt-nego` mount plus the room — duplicating every id the room uses.
+  This is the exact hazard the code's own comments describe having fixed once;
+  it cost an hour of this session's debugging before I noticed I was driving the
+  invisible copy. Not user-visible today, so not fixed under time; it should be.
+- **The contract stays at status "Drafting"** through an entire negotiation.
+- **Signing was not driven to an executed contract in the browser.** The
+  readiness signal, the "Issue a signing link" route and the signing panel were
+  all confirmed present and correct; the signature pad and the one-time-code path
+  were not walked. Round 6 is therefore verified up to the signature and no
+  further, and the score reflects that.
+- **Layout was not verified.** No stylesheet in this container.

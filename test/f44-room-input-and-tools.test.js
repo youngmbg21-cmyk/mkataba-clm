@@ -133,7 +133,13 @@ describe('the clause tools are visible without hunting for them', () => {
       const tools = cl.querySelector('.nego-tools');
       assert.ok(tools, 'every clause in the working pane must carry its tools');
       const labels = Array.from(tools.querySelectorAll('button')).map(b => b.textContent.trim());
-      assert.deepEqual(Array.from(labels), ['Edit', 'Delete']);
+      /* "Change", not "Edit". A counterparty cannot edit somebody else's
+         contract and knows it, so a button marked Edit reads as one they are
+         not allowed to press — and the act is not an edit anyway: it files a
+         tracked change for the other side to accept or reject. Someone sent a
+         contract to negotiate was meeting two verbs in this room, Decline and
+         Ready to sign, and nothing named the one act the room exists for. */
+      assert.deepEqual(Array.from(labels), ['Change', 'Delete']);
     }
   });
 

@@ -815,6 +815,22 @@ let PORTAL_READY_SENT = false;
    back from the owner's record as the real status. */
 let PORTAL_NEGO_SENT = {};
 let PORTAL_NEGO_WITHDRAWN_SENT = {};
+/* CHANGES THIS READER HAS ASKED FOR, and the reason they need somewhere to go.
+
+   The room gives the counterparty a Change button on every clause, and pressing
+   it files a real fingerprinted change in their name. It then had NOWHERE TO
+   GO. The postbox in the change index counted decisions only — answers to the
+   owner's asks — so a counterparty who did the one thing the room exists for
+   was left with a change index full of their own work, two buttons reading
+   Decline and Ready to sign, and no send. Close the tab and it was gone. The
+   owner's app never heard of it.
+
+   Held here exactly as decisions are, and posted on the same response call as
+   `negoProposed`. The owner's side re-files each one through negoFileChange, so
+   the fingerprint and the chain are minted on the record copy rather than
+   trusted from a public page. */
+let PORTAL_NEGO_PROPOSED = {};
+let PORTAL_NEGO_PROPOSED_SENT = {};
 /* WHO IS ANSWERING. Read from the room first, because the room is the page the
    counterparty was sent and the field is in it; then from the respond panel,
    which is where it lives on a signing link; then from the address the sender
@@ -882,6 +898,34 @@ function portalNegoContract(p){
        saying they were ready and find no trace of having said it. */
     ready:sn.ready||undefined,
     seq:sn.seq||c.changes.length };
+  /* Changes THIS reader asked for, put back. The payload is a snapshot taken
+     before they existed, so rebuilding from it alone would make a change they
+     filed a moment ago vanish on the room's next repaint. Sent ones stay too:
+     they are answered from the owner's record on the next copy of the link. */
+  for(const [id,src] of [...Object.entries(PORTAL_NEGO_PROPOSED_SENT).map(x=>[x[0],{...x[1],sentByMe:true}]),
+                         ...Object.entries(PORTAL_NEGO_PROPOSED)])
+    if(!c.changes.some(x=>x.id===id)) c.changes.push({ ...src, id });
+  /* THE COUNTER HAS TO CLEAR WHAT IS ALREADY HELD, or the second ask collides
+     with the first. negoNextId mints from negotiation.seq, and seq is rebuilt
+     from the payload on every repaint — so a reader who asked for two changes
+     got CHG-001 twice, the re-injection above saw the id already present, and
+     their second ask silently replaced their first. */
+  const held=c.changes.map(x=>/^CHG-(\d+)$/.exec(String(x.id||'')))
+    .filter(Boolean).map(m=>Number(m[1]));
+  c.negotiation.seq=Math.max(c.negotiation.seq||0, c.changes.length, ...(held.length?held:[0]));
+  /* AND SO DOES THE HASH CHAIN. negoIssue links each new change onto
+     `chainHead` and stamps it with `++chainSeq`, both of which the payload
+     answers for — as it stood before any of these existed. Rebuilding from the
+     payload alone therefore gave a reader's second ask the same seq as their
+     first and a prevChangeHash pointing past it, and the room told them, in
+     red, that their own chain was broken. Wind both forward to the last record
+     actually on this page. */
+  const chain=c.changes.filter(x=>x&&x.hash&&(x.seq||0)>(c.negotiation.chainSeq||0));
+  if(chain.length){
+    const last=chain.reduce((a,b)=>((b.seq||0)>=(a.seq||0)?b:a));
+    c.negotiation.chainHead=last.hash;
+    c.negotiation.chainSeq=last.seq||c.negotiation.chainSeq;
+  }
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
@@ -1136,15 +1180,27 @@ function openPortalNegoRoom(c, p){
     recipientName:fval('nego-cp-name')||(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName)||fval('pt-name')||'',
     org:(p&&p.org)||'',
     pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
+    pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
     /* Already told them, on this page load. The payload cannot say so — it was
        built before they pressed it — so the page remembers, and the button
        reports itself spent rather than inviting a second identical signal. */
     readySignalled:PORTAL_READY_SENT,
     onChange(rec){
-      for(const ch of (rec.changes||[]))
+      for(const ch of (rec.changes||[])){
         if(ch.status!=='pending' && ch.authorSide==='owner')
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
-        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+        else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
+        /* Wording THEY have asked for. Held until they send it — and held by
+           value, because the room rebuilds its contract from the payload and
+           would otherwise drop it on the next repaint. Already-sent ones are
+           left alone: re-holding them would post the same ask twice. */
+        if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
+          PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
+      }
+      /* The postbox lives in the change index and is rendered from these
+         counts, so it has to be repainted when they move. */
+      const foot=document.getElementById('pt-nego-foot');
+      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
     /* An ask of THEIRS that we refused and they have now let go. Held on this
        page beside the decisions and posted in the same call, for the same
@@ -1422,8 +1478,19 @@ async function portalRespond(p, action, extra){
     const decisions=Object.keys(PORTAL_NEGO_DECISIONS)
       .map(id=>({ id, status:PORTAL_NEGO_DECISIONS[id].status, reply:PORTAL_NEGO_DECISIONS[id].reply||null }));
     const withdrawn=Object.keys(PORTAL_NEGO_WITHDRAWN);
-    if(action==='decisions' && !decisions.length && !withdrawn.length){
-      toast('Nothing to send — decide a change first','err'); return; }
+    /* Wording they have asked for, travelling with the decisions. Sent as a
+       DRAFT rather than as a finished change: the owner's copy re-files each
+       one through negoFileChange, so the fingerprint and its place in the chain
+       are minted on the record rather than trusted from a no-login page. */
+    const proposed=Object.keys(PORTAL_NEGO_PROPOSED).map(id=>{
+      const x=PORTAL_NEGO_PROPOSED[id];
+      return { id, clauseId:x.clauseId, changeType:x.changeType||'modify',
+        oldText:x.oldText||'', newText:x.newText||'', bodyHtml:x.bodyHtml||null,
+        headingText:x.headingText||null, afterClauseId:x.afterClauseId||null,
+        clauseLabel:x.clauseLabel||null, note:x.note||null };
+    });
+    if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
+      toast('Nothing to send — ask for a change or decide one first','err'); return; }
     /* READINESS AND THE DECISIONS TRAVEL TOGETHER, in one request.
 
        They used to be two: answer the changes, press Send, then separately say
@@ -1434,7 +1501,8 @@ async function portalRespond(p, action, extra){
        be able to fail on. */
     const res={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action,
       name, title, email, comment, negoDecisions:decisions,
-      negoWithdrawn:withdrawn.length?withdrawn:undefined, at:nowISO() };
+      negoWithdrawn:withdrawn.length?withdrawn:undefined,
+      negoProposed:proposed.length?proposed:undefined, at:nowISO() };
     if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
     /* Whichever control was actually pressed reports back on itself. The send
        lives in the change index on a negotiation link and in the foot of the
@@ -1454,16 +1522,24 @@ async function portalRespond(p, action, extra){
       /* Remembered, not discarded — see PORTAL_NEGO_SENT. */
       for(const d of decisions) PORTAL_NEGO_SENT[d.id]={ status:d.status, reply:d.reply||null };
       for(const id of withdrawn) PORTAL_NEGO_WITHDRAWN_SENT[id]=true;
-      PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={};
+      for(const pr of proposed) PORTAL_NEGO_PROPOSED_SENT[pr.id]={ ...PORTAL_NEGO_PROPOSED[pr.id] };
+      PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
       if(action==='ready') PORTAL_READY_SENT=true;
-      const n=decisions.length;
+      const n=decisions.length, np=proposed.length;
+      /* What actually went, named. "2 decisions sent" was the only sentence
+         this could produce, so a reader who had sent nothing but their own
+         proposed wording was told a number that did not describe it. */
+      const sentBits=[];
+      if(np) sentBits.push(`${np} change${np===1?'':'s'} you asked for`);
+      if(n) sentBits.push(`${n} decision${n===1?'':'s'}`);
+      const sentWhat=sentBits.join(' and ')||'your answer';
       if(action==='ready'){
         portalSetDone(pressed,'Sent — they know you are ready');
         toast(`${p.org||'The sender'} has been told you are ready to sign`
-          +`${n?` — ${n} decision${n===1?'':'s'} sent with it`:''}. Nothing is signed yet; they will send a signing link.`);
+          +`${sentBits.length?` — ${sentWhat} sent with it`:''}. Nothing is signed yet; they will send a signing link.`);
       } else {
-        portalSetDone(pressed,`${n} decision${n===1?'':'s'} sent`);
-        toast(`${n} decision${n===1?'':'s'} sent to ${p.org||'the sender'}`);
+        portalSetDone(pressed,`${sentWhat} sent`);
+        toast(`${sentWhat} sent to ${p.org||'the sender'} — it is now their turn.`);
       }
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the

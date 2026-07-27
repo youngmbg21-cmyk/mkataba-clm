@@ -1819,6 +1819,23 @@ function wsNextAction(c){
   if(!canEdit()) return null;
   const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
   const appr=(window.approvalState?approvalState(c):{ok:true});
+  /* THE OTHER SIDE IS WAITING ON YOU, and that outranks everything below.
+
+     This bar used to answer "what is the next step for a contract at this
+     status", which stops being the right question the moment a counterparty
+     sends something back. A contract whose status is still Draft carried on
+     saying "Key terms are set — move it into review" with a returned-changes
+     banner sitting directly above it saying the opposite. Two primary buttons,
+     two different next steps, one screen. The one that is actually urgent is
+     the one somebody else is waiting on. */
+  const openRds=(c.rounds||[]).filter(r=>r&&r.status==='open').length;
+  const pendingCh=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x&&x.status==='pending'&&x.authorSide==='counterparty').length;
+  if(openRds||pendingCh){
+    const n=openRds||pendingCh;
+    return { label:'Review the changes', ic:'history', kind:'review-changes',
+      guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
+  }
   if(c.status==='Draft'){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
@@ -1851,6 +1868,15 @@ function wireActionBar(c){
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
     if(kind==='evidence'){ downloadEvidence(c); return; }
+    /* Deliberately the same code path as the returned-changes strip's own
+       button: two ways to reach one thing, never two things that can drift. */
+    if(kind==='review-changes'){
+      const strip=document.getElementById('changes-review');
+      if(strip){ strip.click(); return; }
+      /* Changes that arrived as tracked items rather than as a round have no
+         strip to borrow — the room is where they are decided. */
+      openNegotiationOwnerRoom(c); return;
+    }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
     if(kind==='review'){
