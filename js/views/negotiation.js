@@ -863,6 +863,7 @@ function negoRoomHtml(c, opts = {}){
       </div>
     </header>
     ${ready ? negoReadyHtml(c, opts) : ''}
+    <div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
     </div>
@@ -1049,7 +1050,13 @@ function negoFocus(c, id, source){
   _negoActive = id;
   const ch = negoChangeById(c, id);
   if (!ch) return;
-  const root = document.getElementById('nego-root');
+  /* The embedded tab mounts #nego-root; the ROOM mounts .nego-room and has no
+     #nego-root at all — so looking only for the id meant synchronised
+     highlighting silently did nothing in the full-window mode, which is the
+     mode this component mostly runs in. jsdom could not catch it: the markup
+     was right in both, and only a browser that actually applies the class shows
+     that nothing lights up. Found in the Chromium pass, recorded in BUGLOG. */
+  const root = document.getElementById('nego-root') || document.getElementById('nego-room');
   if (!root) return;
 
   root.querySelectorAll('.nego-clause').forEach(n => n.classList.remove('is-active', 'flash'));
