@@ -4817,3 +4817,196 @@ Nothing here touches `richToText`, the diff engine, the fingerprints or the
 change model. Text remains the compared substance; this is what the reader sees.
 
 **1042 tests, 0 failures.** `f57` is new.
+
+---
+
+## Cycle 8 — the second instance of each fault
+
+A platform-wide sweep for the *other* examples of the patterns the last few
+cycles each fixed once. Twelve confirmed, twelve fixed. Every one was reproduced
+by a failing test before a line was changed.
+
+**24. The reminder sweep died on a hand-typed expiry, and said nothing.**
+`server/server.js` · `runReminders()`, the decision-deadline block.
+
+Root cause: exactly f56's fault, on the other side of the wire. The sweep
+computes expiry − noticePeriodDays and called `dd.toISOString()` on the result.
+An expiry of `"30 September 2026"` — the shape a migration, a Copilot extraction
+or a typed sheet produces — makes `new Date(expiry+'T00:00:00')` Invalid, and
+`toISOString()` on an Invalid Date throws `RangeError: Invalid time value`. The
+throw escaped the `for (const c of rows)` loop, so every contract behind the bad
+one was never looked at.
+
+Two consequences, and the second is the expensive one. `POST /api/reminders/run`
+answered a bare 500. And the scheduled sweep runs inside
+`setInterval(() => { try { runReminders(); } catch (e) {} }, 12h)` — an EMPTY
+catch — so one badly typed field on one contract stopped every renewal reminder
+for every contract in the workspace, twice a day, permanently, in silence.
+
+Fix: `dateOnly()` / `isoDay()` mirrored into `server/server.js` from
+js/obligations.js, applied at `ownExp()` — the one place the term is read — and
+at every obligation `due`. The decision-deadline arithmetic is guarded for range
+overflow. The interval's catch now logs `[reminders] sweep failed, no reminders
+went out this cycle: …`.
+
+Tests: `f65 — a malformed expiry does not take the whole sweep down`, and
+`… the contracts after it in the portfolio still get theirs`.
+
+**25. Milestone, decision and obligation reminders skipped in silence.**
+`server/server.js` · `daysTo()` callers.
+
+Root cause: the silent half of #24. `daysTo("30 September 2026")` is NaN, and
+NaN matches no milestone in `[90,60,30].find(m => days === m)` and never equals
+`-1` in the obligation branch. So even before the crash, a hand-typed expiry
+earned no 90/60/30-day warning and a hand-typed obligation date never fired its
+overdue notice. Fixed by the same normalisation.
+
+Tests: `f65 — a hand-typed expiry earns its own milestone rather than being
+skipped`, `… and so does its renewal-decision deadline`, `… an obligation whose
+due date a person typed still goes overdue`.
+
+**26. The decision deadline was a day early east of Greenwich.**
+`server/server.js` · `const ddIso = dd.toISOString().slice(0, 10)`.
+
+Root cause: the same timezone fault f56 called out in the browser. `toISOString`
+converts to UTC first, so midnight local on a Nairobi-hosted server comes back as
+the previous day. `daysTo` reads local, so the two disagreed. Fix: `isoDay(dd)`.
+
+**27. Our decision never reached the counterparty's live link.**
+`js/views/negotiation.js` · `decide()` · `js/views/contract.js` ·
+`openNegotiationOwnerRoom()`.
+
+Root cause: `refreshLiveShareQuietly()` was added so a counterparty's own answers
+stop being replayed at them, and it was wired into exactly one call site —
+`applyResponse`, the path that applies THEIR response. Nothing called it when WE
+answered THEM. The counterparty asks for a change, the owner accepts it, and a
+week later they reload their link to find their own ask marked pending again.
+
+Fix: a new `opts.onDecided(c, ch)` hook on the shared component, called from
+`decide()`, and `onDecided` / `onWithdraw` supplied only by the owner's mount —
+the counterparty has no link to catch up. Deliberately narrow: newly *proposed*
+wording is not pushed down a live link, because what the reader is asked to look
+at changes when somebody sends it, not as a side effect. The catch-up stays
+silent (no email, no new share row, no re-marking as sent, no reset of
+opened-state), and the test asserts it.
+
+Tests: `f64 — accepting their ask catches their link up`, `… rejecting it catches
+the link up as well`, `… withdrawing our own refused ask does too`, `… and the
+catch-up is the silent one — nothing is sent to anybody`.
+
+**28. `effectiveExpiry` handed out whatever was typed.**
+`js/family.js:87` · `ownExpiry`.
+
+Root cause: js/family.js's own header says every consumer of an expiry must come
+through this funnel — and it does; the funnel was the one thing not normalised.
+f56 fixed two consumers (`renewalDecisionDate`, `calendarEvents`) and left the
+source alone. So the Register's expiry cell printed the literal string
+`Invalid Date`; Home's expiring-in-30/60/90 buckets, Reports' twelve-month
+pipeline and `expiring90`, and the "expiring soonest" sort all silently dropped
+the contract, because `daysUntil` was NaN and NaN compares false.
+
+Fix: one line — `ownExpiry` returns `dateOnly(...)`. This also corrects
+`contractRisk`, the Copilot portfolio snapshot, the aichart expiry series and the
+Intelligence graph, all of which read through the same funnel.
+
+Tests: `f66 — the funnel itself normalises`, `… the Register prints the date
+rather than the words "Invalid Date"`, `… Home counts it among the contracts that
+are about to expire`, `… Reports puts its value into the renewal pipeline`,
+`… sorting by expiry puts it where its date says`.
+
+**29. Obligation due dates were never normalised.**
+`js/obligations.js` · `obState()` · `js/views/calendar.js` · `calendarEvents()` ·
+`js/app.js` · `updateSidebarCounts()`.
+
+Root cause: the expiry field was taught that a date can be typed by a human; the
+obligation due date is the same field with a different name and was left as it
+was. `/api/ai/obligations` passes the model's `due` straight through, and the
+tool description asks for ISO while the model regularly answers
+`"31 March 2027"`. Nothing throws, which is why it went unnoticed: the calendar
+grid is keyed by `YYYY-MM-DD` so the event was built, counted and drawn on no
+day at all; `daysUntil` was NaN so it never reached the 60-day agenda, never
+reached the sidebar count, and never became overdue however long ago it was due.
+The sidebar's `(o.due||'').slice(0,10)` made it worse — ten characters of
+`"31 March 2027"` is `"31 March 2"`.
+
+Fix: `obligationDue(o)` — the shared normaliser — used by `obState`, the calendar
+event builder and the sidebar count.
+
+Tests: `f64 — the event keys to a real grid cell`, `… and it appears in the
+sixty-day agenda`, `… a due date that has passed is overdue, however it was
+written`.
+
+**30. `dateOnly` accepted the engine's legacy guess.**
+`js/obligations.js:44` and the server mirror.
+
+Root cause: found while fixing #29, and it was inside the previous cycle's own
+fix. `dateOnly` offered any unrecognised string to `Date.parse`, and outside the
+ISO grammar V8 falls back to a parser that finds a date in almost anything:
+`Date.parse("Phase 2")` is 2001-02-01, `Date.parse("clause 4.2")` is 2001-04-02,
+`Date.parse("TBC 2027")` is 2027-01-01. So an expiry a migration left as a label
+did not come back as "we do not know" — it came back as a confident calendar day,
+and the contract read as long expired, sat in the expiring buckets and drew
+itself on a 2001 calendar.
+
+Fix: only shapes a person writes a date in reach the parser — `D Month YYYY`,
+`Month D, YYYY`, `YYYY/M/D` and the leading-ISO form — with the month token
+checked against a real month list. A `Date` instance is handled explicitly.
+Everything else is null, which every caller already handles.
+
+Tests: `f64 — free text the engine would guess at is refused`, `… the shapes
+people really write are still read`, `… a month that is not a month is a label,
+not a date`.
+
+**31. Copilot counted completed obligations as open.**
+`js/ai.js:882` · `aiPortfolioSnapshot()`.
+
+Root cause: `allObligations().filter(o => !o.done)`. Nothing in this product has
+ever written an obligation with a `done` property — completion is
+`status === 'done'`, which is what `obState()`, the workspace list, the overdue
+count and the calendar all read. So the filter passed every obligation ever
+recorded: a customer who had ticked off nine of ten was told by Copilot that ten
+were open. The overdue line had #29's fault as well, so the one sentence whose
+job is to raise the alarm went quiet on hand-typed dates.
+
+Fix: both lines route through `obState()`.
+
+Tests: `f67 — an obligation that has been completed is not open`, `… all of them
+done means none open, said plainly`, `… an overdue obligation is reported overdue
+however its date was typed`.
+
+**32. The obligations chart drew finished work as outstanding.**
+`js/aichart.js:247` · `obligationsDue()` and `AI_SERIES['obligations.due']`.
+
+Root cause: #31 copied into the chart recipe — `if (o.done) continue;` and
+`String(o.due).slice(0,7)`. The chart is built from live state precisely so the
+model cannot fake it, which means what it miscounts is presented as fact: done
+obligations drawn as open, and the Overdue bar empty on a portfolio with overdue
+obligations in it.
+
+Fix: `_acObState(o)` and `_acDue(o)`, which defer to `obState` / `obligationDue`.
+
+Tests: `f67 — a completed obligation is not drawn as an open one`, `… every
+obligation done means there is nothing to draw, not a full chart`, `… an overdue
+obligation lands in the Overdue bar however its date was typed`, `… and a
+hand-typed future date lands in its own month`.
+
+**33. The sidebar count did not follow the obligation it counts.**
+`js/obligations.js` · `renderObligationsSection()`, `openObligationForm()`,
+`openObligationsReview()`.
+
+Root cause: the Calendar badge ("due in the next sixty days") is recomputed at
+the end of `setView()` — a screen switch. All three writers of that number live
+in the workspace, which is not a screen switch. Complete the last obligation and
+the badge goes on reading 1 until the reader navigates away and back, at which
+point it silently corrects itself.
+
+Fix: `obligationSurfacesChanged()` — updates the sidebar counts and repaints the
+Calendar if that is the open screen — called from all four write paths.
+
+Tests: `f68 — completing one recomputes the badge`, `… reopening one recomputes
+it again`, `… removing one recomputes it too`.
+
+**1151 tests, 0 failures** (1119 before). `f64`, `f65`, `f66`, `f67` and `f68`
+are new; nothing existing was rewritten. The counterparty portal's own code is
+untouched, the diff engine and hash chain are untouched, and no permission or
+scoping check was altered.

@@ -3570,3 +3570,100 @@ that has already gone. And it degrades safely: a browser that will not remember
 — private browsing, a locked-down device, a full quota — behaves exactly as
 before, because every read and write is wrapped. A convenience that cannot
 remember must never be able to take the page down.
+
+---
+
+# Platform bug review — the second instance of each fault
+
+A sweep across the whole product for the *other* examples of the patterns the
+last few cycles each fixed once. The plain-English account is in `REVIEW.md`;
+the per-bug record is `BUGLOG.md` cycle 8. This is the tally.
+
+## Counts
+
+| | |
+|---|---|
+| Found | 12 |
+| Reproduced by a failing test | 12 |
+| Fixed | 12 |
+| Suspected, not reproduced — no code changed | 2 |
+| By design, not a bug | 2 |
+| Flagged as a product decision | 1 |
+
+## Test suite, before and after
+
+| | Tests | Suites | Pass | Fail |
+|---|---|---|---|---|
+| Before (clean checkout, `npm install` then `npm test`) | 1119 | 227 | 1119 | 0 |
+| After | 1151 | 233 | 1151 | 0 |
+
+32 new tests across five new files. No existing test was rewritten, weakened or
+deleted.
+
+- `test/f64-obligation-dates-and-stale-links.test.js` — obligation dates on the
+  calendar and in the agenda; the normaliser refusing free text; the owner's
+  decision reaching the counterparty's live link.
+- `test/f65-server-reminders-survive-bad-dates.test.js` — the server reminder
+  sweep, against a real server.
+- `test/f66-effective-expiry-is-a-date.test.js` — the expiry funnel, and the
+  Register, Home, Reports and sort order that read through it.
+- `test/f67-copilot-counts-obligations.test.js` — the portfolio snapshot and the
+  obligations chart.
+- `test/f68-obligation-counts-refresh.test.js` — the sidebar count following the
+  obligation it counts.
+
+**A note on the baseline.** The first attempt at a baseline run reported
+failures that had nothing to do with any of this: `node_modules` was absent, so
+every jsdom-backed test failed to load. `npm install` first; the numbers above
+are from a clean install.
+
+## What was found, in one line each
+
+1. One hand-typed expiry crashed the server's reminder sweep, and an empty catch
+   turned that into "every renewal reminder in the workspace stops, silently and
+   for good".
+2. Nothing caught the counterparty's live link up when *we* answered *them* —
+   the mirror of a fix already shipped for the other direction.
+3. The one function every screen reads an expiry through was never normalised:
+   `Invalid Date` printed in the Register, and the contract missing from Home's
+   expiring buckets, from the renewal pipeline and from the expiry sort.
+4. Obligation due dates were never normalised: invisible on the calendar,
+   missing from the agenda and the sidebar count, and never overdue.
+5. `dateOnly` handed unrecognised strings to `Date.parse`, which reads "Phase 2"
+   as 1 February 2001 — a confident wrong date where there should have been none.
+6. Copilot's portfolio summary counted completed obligations as open and
+   reported no overdue ones when there were.
+7. The obligations chart made the same two mistakes, drawn as fact.
+8. The sidebar count did not move when an obligation was completed, added or
+   removed.
+9. The server's renewal-decision deadline was a day early on any host east of
+   Greenwich.
+10–12. The silent halves of (1): milestone warnings, decision warnings and
+    obligation-overdue notices all skipped without a word, plus the empty catch
+    itself.
+
+## Judged too risky to fix here — for a supervised session
+
+**Day-first dates from a migration.** `2026/09/30` is read; `30/09/2026` — how a
+Kenyan or British spreadsheet writes it — is not, and becomes "we do not know".
+Reading it means deciding whether `03/04/2026` is 3 April or 4 March. That is a
+product decision about who the migration importer is for, and guessing it inside
+a bug fix would put a wrong date on a contract with nothing to say it was
+guessed. Left as "we do not know", which is at least honest, and raised in
+`REVIEW.md`.
+
+Nothing else was left unfixed. Two suspicions could not be made to fail and were
+therefore not treated as findings, and no code was changed for either: the
+handful of shell steps that run after a failed screen render are outside the
+error net but have no realistic failure on bad contract data, and the in-memory
+share list handed to the negotiation room has no refresh path but no
+demonstrable consequence.
+
+## Boundaries held
+
+The diff engine, the fingerprint/hash chain and the change model are untouched.
+The counterparty portal was read, walked and tested against, and not modified.
+No permission, folder-scope, money-masking or viewer-role check was weakened —
+none was touched at all. The link catch-up added here is the approved silent
+kind: it sends no email, creates no share record, marks nothing as re-sent and
+resets no opened-state, and the test asserts each of those.

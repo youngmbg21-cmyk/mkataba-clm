@@ -2195,6 +2195,11 @@ function wireNegotiationTab(c, opts = {}){
     delete _negoRedeciding[id];   // answered again — the card settles again
     _negoActive = id;
     if (opts.persist !== false && window.persist) persist(c);
+    /* THE OTHER SIDE HAS TO BE ABLE TO SEE THIS, and their copy of the
+       negotiation is not this one. Whoever mounted this component says what
+       that costs on their side — the owner catches up the live link, the
+       counterparty has no link to catch up. See openNegotiationOwnerRoom. */
+    if (typeof opts.onDecided === 'function') opts.onDecided(c, ch);
     if (window.toast){
       if (status === 'accepted') toast(`#${id} accepted — merged into the clean text · ${negoShortHash(ch.hash)} filed to the audit trail`);
       else if (status === 'rejected') toast(`#${id} rejected — the clause reverts to the baseline and the ask travels back as an open point`);

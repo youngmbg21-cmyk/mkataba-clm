@@ -880,8 +880,16 @@ function aiPortfolioSnapshot(){
     .filter(Boolean).join(' · ');
   const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+Number(c.value||0)); return m; },new Map())]
     .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${money(v)}`).join(' · ');
-  const obs=(typeof allObligations==='function')?allObligations().filter(o=>!o.done):[];
-  const overdue=obs.filter(o=>o.due&&dU(o.due)<0);
+  /* THROUGH obState, WHICH IS WHAT COMPLETION MEANS HERE. This read `!o.done`,
+     and nothing in the product has ever written an obligation with a `done`
+     property — the workspace list, the overdue count and the calendar all read
+     `status === 'done'`. So the filter passed every obligation ever recorded,
+     and a customer who had ticked off nine of ten was told by Copilot that ten
+     were open. obligationDue for the same reason F64 exists: a due date typed
+     "31 March 2027" gave daysUntil NaN, and the overdue alarm went quiet. */
+  const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
+  const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];
+  const overdue=obs.filter(o=>_obState(o)==='overdue');
   const lines=live.slice()
     .sort((a,b)=>{ const ea=exp(a),eb=exp(b);
       if(ea&&eb) return String(ea).localeCompare(String(eb));

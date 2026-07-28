@@ -25,7 +25,12 @@ function calendarEvents(){
       const dd=renewalDecisionDate(c);
       if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });
     }
-    (c.obligations||[]).forEach(o=>{ if(o.due) out.push({ date:o.due, type:'obligation', cid:c.id, cname:c.name, note:o.desc, done:o.status==='done' }); });
+    /* Through the same normalisation the expiry goes through. A due date filed
+       as "31 March 2027" — which is what a Copilot scan and a typed migration
+       sheet both produce — built an event, counted it, and then drew it on no
+       day at all, while daysUntil(NaN) kept it out of the agenda as well. */
+    (c.obligations||[]).forEach(o=>{ const od=window.obligationDue?obligationDue(o):o.due;
+      if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc, done:o.status==='done' }); });
   });
   return out;
 }

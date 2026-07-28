@@ -109,7 +109,11 @@ function updateSidebarCounts(){
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
-    calendar: (window.allObligations?allObligations().filter(o=>{ const d=window.daysUntil?daysUntil((o.due||'').slice(0,10)):null; return d!=null&&d>=0&&d<=60; }).length:0),
+    /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
+       2027" produces "31 March 2", which is not a date either — the count
+       simply left out every obligation whose date a person had typed. */
+    calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
+      const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
   };

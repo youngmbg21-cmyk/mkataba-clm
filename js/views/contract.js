@@ -2152,6 +2152,23 @@ function openNegotiationOwnerRoom(c){
     seenScope:c.id,
     shares:(window.cachedShares?cachedShares(c):[]),
     onChange(){ persist(c); },
+    /* AND THEIR LINK IS A PHOTOCOPY — the same fault, walked the other way.
+       refreshLiveShareQuietly was added so a counterparty's own answers stop
+       being replayed to them as undecided, and it was called from exactly one
+       place: the path that applies THEIR response. Nothing called it when WE
+       answered. So the counterparty asked for a change, the owner accepted it,
+       and a week later they reloaded their link and found their own ask back on
+       the table marked "waiting on the other side".
+
+       Only answers to what is already on the table — a decision, or an ask
+       taken back. Wording the owner has newly PROPOSED is deliberately not
+       pushed down a live link: what the reader is being asked to look at
+       changes when somebody decides to send it, not as a side effect.
+
+       Silent, like the original: no email, no new share record, no re-marking
+       the link as sent, no resetting whether they have opened it. */
+    onDecided(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    onWithdraw(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     /* A comment on a fingerprint has to LEAVE THE BUILDING. negoPostComment
        writes it onto our record, which is what the owner's card reads — and
        for a long time was the whole of it, so a question asked here reached

@@ -81,6 +81,46 @@ db.exec(`
 `);
 
 const now = () => new Date().toISOString();
+/* ---- A DATE FIELD IS NOT ALWAYS A DATE, on this side of the wire too ----
+
+   The mirror of dateOnly()/isoDay() in js/obligations.js, and it has to exist
+   here for the same reason it had to exist there: an expiry or an obligation
+   due date can arrive from metadata extraction, a bulk migration or a
+   spreadsheet somebody typed, and then it reads "30 September 2026".
+
+   `new Date("30 September 2026" + "T00:00:00")` is an Invalid Date, and
+   `toISOString()` on one THROWS — which took the whole reminder sweep down.
+   The sweep is called on a twelve-hour timer inside a catch that swallows, so
+   one badly typed field on one contract stopped every renewal reminder for
+   every contract in the workspace, permanently and without a sound.
+
+   Only shapes a person actually writes a date in are offered to the parser:
+   outside the ISO grammar Date.parse falls back to a guesser that reads
+   "Phase 2" as 1 February 2001. Anything else is null — "we do not know", which
+   every caller handles by simply not firing. */
+const DATE_MONTH_RE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+const DATE_SHAPES = [
+  /^(\d{1,2})(?:st|nd|rd|th)?[ .\-]+([A-Za-z]{3,9})\.?,?[ .\-]+(\d{4})$/,   // 30 September 2026
+  /^([A-Za-z]{3,9})\.?[ .\-]+(\d{1,2})(?:st|nd|rd|th)?,?[ .\-]+(\d{4})$/,   // September 30, 2026
+];
+/* The calendar day a Date IS, read where the server stands. toISOString()
+   converts to UTC first, so midnight local on a Nairobi-hosted server came back
+   as the previous day — every decision deadline reported one day early. */
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function dateOnly(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : isoDay(v);
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  if (!/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s)) {
+    const shape = DATE_SHAPES.map(re => re.exec(s)).find(Boolean);
+    if (!shape || !DATE_MONTH_RE.test(shape[1].length > 2 ? shape[1] : shape[2])) return null;
+  }
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : isoDay(d);
+}
 const rid = (n=24) => crypto.randomBytes(n).toString('hex');
 const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 64).toString('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -3569,7 +3609,11 @@ function runReminders() {
   const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
   const parsed = new Map();
   for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
-  const ownExp = (r) => { const f = parsed.get(r.id) || {}; return (f.metadata && f.metadata.expiryDate) || r.expiry || null; };
+  /* Normalised at the one place the term is read, so every comparison, sort
+     and piece of arithmetic below it is working on a real calendar day or on
+     null — see dateOnly(). */
+  const ownExp = (r) => { const f = parsed.get(r.id) || {};
+    return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
   const amendDate = (r) => { const f = parsed.get(r.id) || {};
     return (f.metadata && f.metadata.effectiveDate) || (f.fields && f.fields.effDate) ||
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
@@ -3613,9 +3657,14 @@ function runReminders() {
       const termSetter = (kidsOf.get(c.id) || []).find(k => ownExp(k) === expiry);
       const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : meta;
       const notice = Number(termMeta.noticePeriodDays) || Number(meta.noticePeriodDays) || 0;
-      if (notice > 0) {
-        const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - notice);
-        const ddIso = dd.toISOString().slice(0, 10); const ddDays = daysTo(ddIso);
+      const dd = notice > 0 ? new Date(expiry + 'T00:00:00') : null;
+      if (dd) dd.setDate(dd.getDate() - notice);
+      // arithmetic can still land outside the range a Date can hold
+      if (dd && !isNaN(dd.getTime())) {
+        /* isoDay, not toISOString: the latter converts to UTC first, so on a
+           server standing east of Greenwich — Nairobi, the market this is built
+           for — the decision deadline came out a day early. */
+        const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
         if (dms != null && fire(`${c.id}:${ddIso}:decide:${dms}`,
           `Renewal decision due in ${dms} day${dms === 1 ? '' : 's'}: ${c.name}`,
@@ -3625,18 +3674,29 @@ function runReminders() {
     }
     // 3) obligations newly overdue (fire once per obligation)
     (full.obligations || []).forEach(o => {
-      if (o.status === 'done' || !o.due) return;
-      const od = daysTo(o.due);
-      if (od === -1 && fire(`${c.id}:ob:${o.id || o.due}:overdue`,
+      if (o.status === 'done') return;
+      // through the same normalisation: an obligation due "31 March 2027" gave
+      // daysTo NaN, NaN never equals -1, and the overdue notice was never sent
+      const due = dateOnly(o.due);
+      if (!due) return;
+      const od = daysTo(due);
+      if (od === -1 && fire(`${c.id}:ob:${o.id || due}:overdue`,
         `Obligation overdue: ${c.name}`,
-        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${o.due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
     });
   }
   return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
-setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
+/* Twice daily. The catch is deliberate — a sweep that throws must not take the
+   process with it — but it used to be EMPTY, and that is how one malformed
+   expiry switched every renewal reminder in a workspace off in perfect silence.
+   Whatever stops the sweep now says so where an operator can see it. */
+setInterval(() => {
+  try { runReminders(); }
+  catch (e) { console.warn('[reminders] sweep failed, no reminders went out this cycle:', (e && e.message) || e); }
+}, 12 * 60 * 60 * 1000);
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   // A durable link is never "used up", so marking it applied wholesale would
