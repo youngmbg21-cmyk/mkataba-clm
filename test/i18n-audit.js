@@ -30,6 +30,7 @@ const CONVERTED = [
   'js/views/advice.js',
   'js/views/home.js',
   'js/views/register.js',
+  'js/views/intelligence.js',
 ];
 
 /* Text that looks like a user-visible string to the matcher but is not.
@@ -62,6 +63,17 @@ const NOT_UI = [
   /* An HTML fragment whose only text is punctuation — an ellipsis separator in
      a pager, a lone em-dash. No words to translate. */
   v => /^<[a-z][^>]*>[^<>A-Za-zÅÄÖåäö]*<\/[a-z]+>$/i.test(v),
+  /^<svg[\s\S]*<\/svg>$/i,                        // a whole inline SVG icon
+  /^[MmLlHhVvCcSsQqTtAaZz][MmLlHhVvCcSsQqTtAaZz\d\s,.eE+-]*$/,   // SVG path data, e.g. 'M0,0 L10,5 L0,10 z'
+  /^('[^']+'|"[^"]+"|[\w-]+)(\s*,\s*('[^']+'|"[^"]+"|[\w-]+))+$/,   // a font stack
+  /* A utility class list, including Tailwind arbitrary values —
+     'w-full rounded-xl border-inputln pl-3.5 focus:ring-[3px]'. Every token
+     must look like a utility AND at least one must carry a '-', ':' or '[',
+     which ordinary prose does not. */
+  v => { const toks = v.split(/\s+/);
+    return toks.length > 1
+      && toks.every(tk => /^(\[[^\]]*\]|-?[a-z0-9][\w:./%-]*(\[[^\]]*\])?)$/i.test(tk))
+      && toks.some(tk => /[-:[]/.test(tk)); },
   /^[;\s]*[a-z-]+\s*:\s*[^;]*;/i,                 // a style fragment that opens with ';' or whitespace
   // ---- class lists: all-lowercase words, digits and hyphens, e.g.
   //      "pipe-col scroll-thin", "w-5 h-5", "flex items-center gap-2" ----

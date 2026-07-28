@@ -38,6 +38,7 @@ worth a glance for wrapping.
 
 | Key | English | Swedish | Growth |
 |---|---|---|---|
+| `intel_note_ndas` | NDAs | Sekretessavtal | +250% |
 | `advice_row_rate` | Rate | Timarvode | +125% |
 | `rel_minutes` | {n}m ago | för {n} min sedan | +113% |
 | `rel_hours` | {n}h ago | för {n} tim sedan | +113% |
@@ -46,11 +47,15 @@ worth a glance for wrapping.
 | `reg_renewal_auto` | Auto-renew | Automatisk förnyelse | +100% |
 | `rel_months` | {n}mo ago | för {n} mån sedan | +89% |
 | `home_kpi_reset` | Reset | Återställ | +80% |
+| `intel_note_in_review` | In review | Under granskning | +78% |
 | `home_delta_none_due` | none due | inga förfaller | +75% |
 | `reg_sort_label` | Sort | Sortera | +75% |
+| `intel_group_by` | Group by | Gruppera efter | +75% |
 | `cp_kind_folder` | folder | värdeflöde | +67% |
 | `home_dd_act` | Act | Agera | +67% |
 | `reg_th_stream` | Stream | Värdeflöde | +67% |
+| `intel_note_leases` | Leases | Hyresavtal | +67% |
+| `intel_ask` | Ask | Fråga | +67% |
 | `report_metric_avg_risk` | Avg risk score | Genomsnittlig riskpoäng | +64% |
 | `advice_lbl_note` | Add internal note | Lägg till intern anteckning | +59% |
 | `advice_row_feedback_due` | Feedback due | Återkoppling senast | +58% |
@@ -60,6 +65,7 @@ worth a glance for wrapping.
 | `advice_in_title` | Log an advice request | Registrera ett rådgivningsärende | +52% |
 | `home_kpi_drag` | Drag cards to reorder | Dra korten för att ändra ordning | +52% |
 | `advice_row_estimate` | Estimate | Uppskattning | +50% |
+| `intel_note_closed` | Closed | Avslutade | +50% |
 | `home_ready_stat` | ready to sign | klara för signering | +46% |
 | `reg_type_all` | All streams | Alla värdeflöden | +45% |
 | `cal_note_decide_by` | decide by | beslut senast | +44% |
@@ -74,5 +80,5 @@ worth a glance for wrapping.
 
 ---
 
-**48** of 485 keys exceed the
+**54** of 600 keys exceed the
 threshold; **15** of them are width-constrained.

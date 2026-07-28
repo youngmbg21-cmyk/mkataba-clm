@@ -5,6 +5,9 @@
 /* ============================================================
    VIEW: DEAL MAP  (force-directed graph of the portfolio)
    ============================================================ */
+/* i18n-exempt-begin: these are DEMO SEED relationships, matched against the
+   sample contract NAMES written by js/core.js. They are data, not chrome, and
+   translating either side would break the name match. */
 const REL_SEEDS = [ // name-matched so IDs stay dynamic \u2014 traces the value stream
   { from:'Refined Sugar Supply \u2014 Confectionery Line', to:'Co-Packing \u2014 Powdered Beverages', label:'feeds' },
   { from:'Co-Packing \u2014 Powdered Beverages', to:'Modern Trade Listing & Supply', label:'supplies' },
@@ -14,6 +17,7 @@ const REL_SEEDS = [ // name-matched so IDs stay dynamic \u2014 traces the value 
   { from:'Crude Edible Oil Supply', to:'Tolling Agreement \u2014 Detergent Powder', label:'feeds' },
   { from:'Mutual NDA \u2014 New Product Development', to:'Contract Manufacturing \u2014 Bar Soap', label:'precedes' },
 ];
+/* i18n-exempt-end */
 const STATUS_BAR = {'Draft':'#98989b','Under Review':'#b8862b','Signed':'#2e8763','Declined':'#b0453c'};
 const KIND_TAG = {proc:{t:'PROC',c:'#2E9F80'},mfg:{t:'MFG',c:'#b45309'},dist:{t:'DIST',c:'#0369a1'},sales:{t:'SALES',c:'#b8862b'},mktg:{t:'MKTG',c:'#7c3aed'},corp:{t:'CORP',c:'#2e8763'},party:{t:'PARTY',c:'#2c455d'}};
 
@@ -117,15 +121,15 @@ window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
 const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
-function valueBand(v){ v=Number(v||0); if(!v) return 'Non-monetary'; if(v>=50e6) return '≥ KES 50M'; if(v>=10e6) return 'KES 10–50M'; if(v>=1e6) return 'KES 1–10M'; return '< KES 1M'; }
+function valueBand(v){ v=Number(v||0); if(!v) return t('intel_band_nonmonetary'); if(v>=50e6) return t('intel_band_50m'); if(v>=10e6) return t('intel_band_10_50m'); if(v>=1e6) return t('intel_band_1_10m'); return t('intel_band_lt1m'); }
 function groupLabelOf(c, groupBy, override){
   if(override && override[c.id]) return override[c.id];
   switch(groupBy){
-    case 'counterparty': return c.counterparty||'No counterparty';
+    case 'counterparty': return c.counterparty||t('intel_no_counterparty');
     case 'status': return statusLabel(c.status);
     case 'valueBand': return valueBand(c.value);
     case 'kind': return cKind(c);
-    case 'folder': default: return FOLDERS[c.folder]?.name||'Other';
+    case 'folder': default: return FOLDERS[c.folder]?.name||t('report_folder_other');
   }
 }
 
@@ -142,7 +146,7 @@ function intelActive(){
 }
 function addLens(l){
   intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
-    label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null });
+    label:l.label||t('intel_matches',{n:l.ids.length}), ids:[...l.ids], badges:l.badges||null });
   renderIntelDock();
 }
 
@@ -175,31 +179,31 @@ function graphInterpret(qRaw){
   if(has('expir','renew','lapse','ending',' end ','coming to an end','ends in','end in','end within')){
     const horizon=parseHorizonDays(q)??90;
     vis=cs.filter(c=>c.expiry&&c.status!=='Declined'&&daysUntil(c.expiry)>=0&&daysUntil(c.expiry)<=horizon);
-    note='Expiring ≤ '+(horizon%30===0&&horizon>=30?Math.round(horizon/30)+'mo':horizon+' days');
-    badges={}; vis.forEach(c=>badges[c.id]='ends in '+daysUntil(c.expiry)+'d');
+    note=t('intel_note_expiring',{horizon:(horizon%30===0&&horizon>=30?t('intel_horizon_mo',{n:Math.round(horizon/30)}):t('intel_horizon_days',{n:horizon}))});
+    badges={}; vis.forEach(c=>badges[c.id]=t('intel_badge_ends_in',{n:daysUntil(c.expiry)}));
     action='highlight';
   }
-  else if(has('lease')) { vis=kindHit('lease'); note='Leases'; }
-  else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note='NDAs'; }
-  else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note='Supply agreements'; }
-  else if(has('draft')) { vis=cs.filter(c=>c.status==='Draft'); note='Drafts'; }
-  else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note='In review'; }
-  else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note='Executed'; }
-  else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note='Closed'; }
-  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note='High-value (≥ KES 20M)'; }
-  else if(has('non-monetary','no value')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
+  else if(has('lease')) { vis=kindHit('lease'); note=t('intel_note_leases'); }
+  else if(has('nda','non-disclosure','confidential')) { vis=kindHit('nda','non-disclosure'); note=t('intel_note_ndas'); }
+  else if(has('supply','raw material','packaging')) { vis=kindHit('supply','packaging','raw material'); note=t('intel_note_supply'); }
+  else if(has('draft')) { vis=cs.filter(c=>c.status==='Draft'); note=t('intel_note_drafts'); }
+  else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note=t('intel_note_in_review'); }
+  else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note=t('intel_note_executed'); }
+  else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note=t('intel_note_closed'); }
+  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note=t('intel_note_high_value'); }
+  else if(has('non-monetary','no value')) { vis=cs.filter(c=>!isMonetary(c)); note=t('intel_band_nonmonetary'); }
   else {
     // counterparty name match
     const party=cs.filter(c=>c.counterparty && c.counterparty.toLowerCase().split(/[^a-z0-9]+/).some(w=>w.length>3&&q.includes(w)));
-    if(party.length){ vis=party; note='Counterparty match'; }
+    if(party.length){ vis=party; note=t('intel_note_party'); }
     else { const f=Object.values(FOLDERS).find(f=>{ const kw=f.name.toLowerCase().split(/[^a-z]+/).filter(w=>w.length>4); return kw.some(w=>q.includes(w)); });
       if(f){ vis=cs.filter(c=>c.folder===f.id); note=f.name; } }
   }
   const answer = vis===null
-    ? (groupBy?'Regrouped the graph.':'I could not match that to a filter — try a contract type, status, counterparty or expiry horizon.')
+    ? (groupBy?t('intel_ans_regrouped'):t('intel_ans_nomatch'))
     : (vis.length
-      ? `${vis.length} contract${vis.length===1?'':'s'} match${vis.length===1?'es':''} (${note}). Largest: ${vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name}.`
-      : `No contracts match (${note}).`);
+      ? tn('intel_ans_match',vis.length,{n:vis.length,note,name:vis.slice().sort((a,b)=>Number(b.value||0)-Number(a.value||0))[0].name})
+      : t('intel_ans_none',{note}));
   return { visibleIds: vis&&vis.length?vis.map(c=>c.id):null, groupBy, groups:null, note, action, badges, answer };
 }
 
@@ -233,7 +237,7 @@ async function intelAsk(qRaw){
     else if(IG_QA_RE.test(q) || idHits===1)             await intelChatAsk(q);
     else                                                await intelGraphAsk(q);
   }catch(e){
-    intel.history.push({role:'assistant', text:'Something went wrong: '+igEsc(e.message), err:true});
+    intel.history.push({role:'assistant', text:t('intel_err_generic',{msg:igEsc(e.message)}), err:true});
   }
   intel.busy=false;
   rebuildIntelGraph(); renderIntelDock();
@@ -251,21 +255,21 @@ async function intelGraphAsk(q){
       res=await api('ai/graph','POST',payload);
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key — using the built-in interpreter instead.':'Copilot error: '+igEsc(e.message)+' — using the built-in interpreter instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?t('intel_err_needs_key'):t('intel_err_copilot_fallback',{msg:igEsc(e.message)}))});
     }
   } else if(!API_MODE() && typeof _localAiKey==='function' && _localAiKey() && typeof aiLocalGraph==='function'){
     // local mode with a browser-stored key → browser-direct graph interpreter
     try{ res=await aiLocalGraph(q); }
     catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:'Copilot error: '+igEsc(e.message||String(e))+' — using the built-in interpreter instead.'});
+        text:t('intel_err_copilot_fallback',{msg:igEsc(e.message||String(e))})});
     }
   }
   if(!res) res=graphInterpret(q);           // fallback
   if(res.groupBy){ intel.groupBy=res.groupBy; intel.groups=res.groups||null; }
   if(res.visibleIds && res.visibleIds.length)
-    addLens({ label:res.note||res.visibleIds.length+' matches', ids:res.visibleIds, action:res.action||'filter', badges:res.badges||null });
-  intel.history.push({role:'assistant', text:res.answer||res.note||'Done.', cardIds:(res.visibleIds||[]).slice(0,5)});
+    addLens({ label:res.note||t('intel_matches',{n:res.visibleIds.length}), ids:res.visibleIds, action:res.action||'filter', badges:res.badges||null });
+  intel.history.push({role:'assistant', text:res.answer||res.note||t('intel_done'), cardIds:(res.visibleIds||[]).slice(0,5)});
 }
 
 /* ---- template advisor: stage 1 metadata shortlist, stage 2 clause-level Copilot rank ---- */
@@ -290,7 +294,7 @@ function templateShortlist(q){
 }
 async function intelTemplateAsk(q){
   const shortlist=templateShortlist(q);
-  if(!shortlist.length){ intel.history.push({role:'assistant', text:'There are no contracts to compare yet.'}); return; }
+  if(!shortlist.length){ intel.history.push({role:'assistant', text:t('intel_tpl_none')}); return; }
   if(API_MODE() && state.aiConfigured){
     try{
       await Promise.all(shortlist.map(c=>ensureFull(c).catch(()=>{})));
@@ -299,19 +303,19 @@ async function intelTemplateAsk(q){
       applyTemplateResult(res.ranked, res.answer); return;
     }catch(e){
       intel.history.push({role:'assistant', err:true,
-        text:(/key|configure|401|model/i.test(e.message)?'The Copilot engine needs an API key for template analysis — here is a metadata-only ranking instead.':'Copilot template analysis failed ('+igEsc(e.message)+') — here is a metadata-only ranking instead.')});
+        text:(/key|configure|401|model/i.test(e.message)?t('intel_tpl_needs_key'):t('intel_tpl_failed',{msg:igEsc(e.message)}))});
     }
   }
   // fallback: deterministic metadata ranking, honest about its limits
   const ranked=shortlist.slice(0,3).map(c=>({ id:c.id,
-    reason:[c.status==='Signed'?'executed — battle-tested terms':'closest match on type', cKind(c), c.counterparty?('with '+c.counterparty):null].filter(Boolean).join(' · ') }));
+    reason:[c.status==='Signed'?t('intel_tpl_executed'):t('intel_tpl_closest'), cKind(c), c.counterparty?t('intel_tpl_with',{party:c.counterparty}):null].filter(Boolean).join(' · ') }));
   const top=getContract(ranked[0].id);
-  applyTemplateResult(ranked, `Closest template match on metadata: <b>${top?.name||'—'}</b>.${(API_MODE()&&!state.aiConfigured)||!API_MODE()?' Configure the Copilot engine for a clause-level comparison.':''}`);
+  applyTemplateResult(ranked, t('intel_tpl_metadata',{name:top?.name||t('value_none')})+(((API_MODE()&&!state.aiConfigured)||!API_MODE())?t('intel_tpl_configure'):''));
 }
 function applyTemplateResult(ranked, answer){
   const badges={}; ranked.forEach((r,i)=>badges[r.id]='#'+(i+1));
-  addLens({ label:'Template picks · '+ranked.length, ids:ranked.map(r=>r.id), action:'highlight', badges });
-  intel.history.push({role:'assistant', text:answer||'Ranked the best template candidates.', ranked});
+  addLens({ label:t('intel_tpl_picks',{n:ranked.length}), ids:ranked.map(r=>r.id), action:'highlight', badges });
+  intel.history.push({role:'assistant', text:answer||t('intel_tpl_ranked'), ranked});
 }
 
 /* ---- HaTi Copilot in the Intel dock: node-aware Q&A, comparison & insight ----
@@ -345,10 +349,9 @@ async function intelChatAsk(q){
   if(!(typeof copilotAvailable==='function' && copilotAvailable())){
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);
-      if(cmp){ intel.history.push({role:'assistant', text:'Side-by-side from your live contract data.'+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+      if(cmp){ intel.history.push({role:'assistant', text:t('intel_chat_local_side')+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
-    intel.history.push({role:'assistant', err:true,
-      text:'For free-form questions I need an Anthropic API key (Team &amp; Settings → Copilot engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
+    intel.history.push({role:'assistant', err:true, text:t('intel_chat_no_key')});
     return;
   }
   try{
@@ -358,9 +361,9 @@ async function intelChatAsk(q){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
     if(ids.length>=2 && typeof localCompareData==='function'){
       const cmp=localCompareData(ids);
-      if(cmp){ intel.history.push({role:'assistant', text:'The Copilot engine was unavailable, so here is a side-by-side from your live data instead.', compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
+      if(cmp){ intel.history.push({role:'assistant', text:t('intel_chat_unavailable'), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
-    intel.history.push({role:'assistant', err:true, text:'Copilot error: '+igEsc(e.message||String(e))});
+    intel.history.push({role:'assistant', err:true, text:t('intel_err_copilot',{msg:igEsc(e.message||String(e))})});
   }
 }
 
@@ -388,7 +391,7 @@ async function intelComplianceScan(q){
   rows.sort((a,b)=> (RANK[b.worst]||0)-(RANK[a.worst]||0) || b.findings.length-a.findings.length);
 
   if(!rows.length){
-    intel.history.push({role:'assistant', text:`Good news — a first-pass review of your ${cs.length} live contract${cs.length===1?'':'s'} surfaced no clauses flagged as potentially risky, unlawful or missing. Open any contract and run <b>Copilot review</b> for a deeper per-contract check.`});
+    intel.history.push({role:'assistant', text:tn('intel_comp_clean',cs.length,{n:cs.length})});
     return;
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
@@ -396,20 +399,20 @@ async function intelComplianceScan(q){
     return `<span style="display:inline-flex;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:999px;background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
-  let html=`<b>Contract compliance review.</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
+  let html=tn('intel_comp_head',totalFindings,{rows:rows.length,total:cs.length,n:totalFindings});
   html+=top.map(r=>{
-    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0"><b>${igEsc(f.title)}</b>${f.why?` — ${igEsc(f.why)}`:''}</li>`).join('');
-    const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">+${r.findings.length-3} more</div>`:'';
+    const items=r.findings.slice(0,3).map(f=>`<li style="margin:2px 0">${f.why?t('intel_finding_line',{title:igEsc(f.title),why:igEsc(f.why)}):t('intel_finding_title',{title:igEsc(f.title)})}</li>`).join('');
+    const more=r.findings.length>3?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:1px">${t('intel_comp_more',{n:r.findings.length-3})}</div>`:'';
     return `<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(29,31,32,.08)">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
-        <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:12.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
+        <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="${t('intel_comp_open_title',{name:igEsc(r.c.name)})}" style="font-size:12.5px;font-weight:600;color:var(--color-accent-800);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
         <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(r.c.id)}</span>
       </div>
       <ul style="margin:0;padding-left:16px;font-size:11.5px;color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
   }).join('');
-  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">…and ${rows.length-top.length} more flagged contract${rows.length-top.length===1?'':'s'}. Ask me about any one by name or id for the detail, or open it and run <b>Copilot review</b>.</div>`;
+  if(rows.length>top.length) html+=`<div style="font-size:11px;color:var(--color-neutral-600);margin-top:9px">${tn('intel_comp_rest',rows.length-top.length,{n:rows.length-top.length})}</div>`;
 
   intel.history.push({role:'assistant', text:html});
   igPaintIds(top.map(r=>r.c.id));
@@ -421,11 +424,13 @@ function intelAIExplain(id){
   if(!(typeof copilotAvailable==='function' && copilotAvailable())) return;   // facts card already shown by igExplain
   intel.busy=true; renderIntelDock();
   copilotAsk(
+    // i18n-exempt: a PROMPT to the model, not interface text. server/server.js
+    // appends the language instruction (B7), so the answer comes back translated.
     [{role:'user', content:`Give a brief, risk-focused briefing on contract ${id} (${c.name}) — what it is, its status and value, and the most important thing to watch. 3 sentences max.`}],
     { view:'intel', activeContractId:id, activeContractName:c.name },
   ).then(res=>{ intel.busy=false; intelPushChatResult(res); rebuildIntelGraph(); renderIntelDock(); igPaintIds([id]); })
     .catch(e=>{ intel.busy=false; intel.history.push({role:'assistant', err:true,
-      text:'Couldn’t generate an insight for '+igEsc(c.name)+' — '+igEsc(e.message||String(e))}); renderIntelDock(); });
+      text:t('intel_explain_fail',{name:igEsc(c.name),msg:igEsc(e.message||String(e))})}); renderIntelDock(); });
 }
 
 // Node-driven comparison tray: toggle a contract in/out of the selection.
@@ -441,23 +446,24 @@ function intelToggleCompare(id){
 // it still delivers the deterministic local table, so Compare ALWAYS works.
 async function intelRunCompare(){
   const ids=intel.compareSel.slice();
-  if(ids.length<2){ if(typeof toast==='function') toast('Stage at least 2 contracts — tap "+ Compare" on another node','err'); return; }
+  if(ids.length<2){ if(typeof toast==='function') toast(t('intel_cmp_stage2'),'err'); return; }
   const names=ids.map(id=>getContract(id)?.name||id);
-  intel.history.push({role:'user', text:'Compare '+names.join(', ')});
+  intel.history.push({role:'user', text:t('intel_cmp_user',{names:names.join(', ')})});
   intel.compareSel=[]; intel.busy=true; renderIntelDock();
   const localFallback=(prefix)=>{
     const cmp=(typeof localCompareData==='function')?localCompareData(ids):null;
-    if(cmp) intel.history.push({role:'assistant', text:(prefix||'Side-by-side from your live contract data.')+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids});
-    else intel.history.push({role:'assistant', err:true, text:'Could not build the comparison.'});
+    if(cmp) intel.history.push({role:'assistant', text:(prefix||t('intel_chat_local_side'))+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids});
+    else intel.history.push({role:'assistant', err:true, text:t('intel_cmp_fail')});
   };
   try{
     if(typeof copilotAvailable==='function' && copilotAvailable()){
+      // i18n-exempt: a PROMPT to the model — the language note is appended server-side
       const res=await copilotAsk([{role:'user', content:'Compare these contracts side by side: '+ids.join(', ')+'. Cover value, term/expiry, payment terms, key risks and open findings.'}], { view:'intel' });
       intelPushChatResult(res);
     } else {
-      localFallback('Side-by-side from your live contract data. <span class="text-[11px] text-amber-700">Add an Copilot key in Team &amp; Settings for a clause-level comparison.</span>');
+      localFallback(t('intel_cmp_local_addkey'));
     }
-  }catch(e){ localFallback('The Copilot engine was unavailable ('+igEsc(e.message||'error')+'), so here is a side-by-side from your live data instead.'); }
+  }catch(e){ localFallback(t('intel_cmp_unavailable',{msg:igEsc(e.message||'error')})); }
   intel.busy=false; rebuildIntelGraph(); renderIntelDock(); igPaintIds(ids);
 }
 
@@ -562,7 +568,7 @@ function igPaintIds(ids){
     e.el.setAttribute('marker-end',on?'url(#ig-arrowHi)':'url(#ig-arrow)'); });
 }
 function igFilterToGroup(label){ const ids=state.contracts.filter(c=>groupLabelOf(c,intel.groupBy,intel.groups)===label).map(c=>c.id);
-  addLens({label:'Group: '+label, ids, action:'filter'}); rebuildIntelGraph(); }
+  addLens({label:t('intel_group_prefix',{label}), ids, action:'filter'}); rebuildIntelGraph(); }
 // node click -> explain the contract inside the dock (Open workspace is the secondary action)
 function igExplain(id){
   const c=getContract(id); if(!c) return;
@@ -639,41 +645,38 @@ function updateIntelNote(){
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
-  const gb=({folder:'value stream',counterparty:'customer',status:'status',valueBand:'value',kind:'type',custom:'Copilot grouping'})[intel.groupBy]||intel.groupBy;
-  el.innerHTML = intel.busy ? `<span class="text-brand-700">Thinking…</span>`
-    : `<span class="text-ink/60">Grouped by <b class="text-ink">${gb}</b>${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">· ${act.ids?act.ids.size:0} ${act.action==='filter'?'shown':'highlighted'}</span>`:''}</span>`
-      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">Clear all ✕</button>`:'');
+  const GB_KEY={folder:'intel_gb_folder',counterparty:'intel_gb_counterparty',status:'intel_gb_status',valueBand:'intel_gb_valueBand',kind:'intel_gb_kind',custom:'intel_gb_custom'};
+  const gb=GB_KEY[intel.groupBy]?t(GB_KEY[intel.groupBy]):intel.groupBy;
+  const lensCount=t('intel_lens_count',{n:act.ids?act.ids.size:0,mode:act.action==='filter'?t('intel_shown'):t('intel_highlighted')});
+  el.innerHTML = intel.busy ? `<span class="text-brand-700">${t('intel_thinking')}</span>`
+    : `<span class="text-ink/60">${t('intel_grouped_by',{gb})}${on.length?` · <b class="text-brand-700">${on.map(l=>igEsc(l.label)).join(' ∩ ')}</b> <span class="text-ink/40">${lensCount}</span>`:''}</span>`
+      + ((on.length||intel.groups)?` <button id="ig-clear" class="ml-2 text-[11px] font-600 text-brand-600 hover:text-brand-800">${t('intel_clear_all_x')}</button>`:'');
   document.getElementById('ig-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
 }
 function renderIntelLegend(model){
   const el=document.getElementById('ig-legend'); if(!el) return;
-  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">Status — click to filter</div>`+
-    [['Draft','Drafting'],['Under Review','In Review'],['Signed','Executed'],['Declined','Closed']].map(([k,l])=>
-      `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${l}</button>`).join('');
+  el.innerHTML=`<div class="text-[10px] uppercase tracking-wider text-ink/40 mb-1.5">${t('intel_legend_status')}</div>`+
+    ['Draft','Under Review','Signed','Declined'].map(k=>
+      `<button data-igstatus="${k}" class="flex items-center gap-2 text-[11.5px] text-ink/70 hover:text-ink py-0.5"><span class="h-2.5 w-2.5 rounded-[3px]" style="background:${STATUS_DOT[k]}"></span>${statusLabel(k)}</button>`).join('');
   el.querySelectorAll('[data-igstatus]').forEach(b=>b.addEventListener('click',()=>{ const s=b.getAttribute('data-igstatus');
     addLens({label:statusLabel(s), ids:state.contracts.filter(c=>c.status===s).map(c=>c.id), action:'filter'}); rebuildIntelGraph(); }));
 }
 
-const IG_SUGGESTIONS=[
-  'Which contracts have potentially risky or unlawful clauses?',
-  'Summarize my highest-value contract',
-  'What does MK-101 say about liability?',
-  'Compare my two highest-value contracts',
-  'Which contracts end in the next 6 months?',
-  'Group by customer',
-];
+// resolved at render time so the chips follow the language switch
+const IG_SUGGESTION_KEYS=['intel_sug_1','intel_sug_2','intel_sug_3','intel_sug_4','intel_sug_5','intel_sug_6'];
+const igSuggestions = () => IG_SUGGESTION_KEYS.map(k=>t(k));
 function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
-  const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
+  const groupOpts=[['folder','cp_value_stream'],['counterparty','intel_gopt_customer'],['status','fold_th_status'],['valueBand','fold_th_value'],['kind','fold_th_type']];
   document.getElementById('content').innerHTML = `
   <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
-      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
+      <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${tn('intel_header',state.contracts.length,{n:state.contracts.length.toLocaleString(langLocale('en-KE'))})}</span>
       <span style="flex:1"></span>
-      <label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      <label style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">${t('intel_group_by')}
         <span style="position:relative;display:inline-flex;align-items:center">
           <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:4px;cursor:pointer;outline:none">
-            ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
+            ${groupOpts.map(([k,lk])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${t(lk)}</option>`).join('')}
           </select>
           <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:9px">▼</span>
         </span>
@@ -687,7 +690,7 @@ function renderIntel(){
           <marker id="ig-arrowHi" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5980a6"></path></marker>
         </defs><g id="ig-vp"><g id="ig-links"></g><g id="ig-nodes"></g></g></svg>
         <div id="ig-legend" class="absolute left-4 bottom-4 bg-white border border-line rounded-xl px-3 py-2.5 shadow-[0_6px_22px_-12px_rgba(60,40,10,.3)]"></div>
-        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">Drag nodes · scroll to zoom · click a card to explain</div>
+        <div class="absolute right-4 bottom-4 text-[11px] text-ink/40 bg-white border border-line rounded-lg px-2.5 py-1.5">${t('intel_hint_drag')}</div>
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:#f2f5f9;border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width .28s cubic-bezier(.22,.61,.36,1)"></aside>
     </div>
@@ -753,15 +756,15 @@ function igExplainCard(id){
       <div class="min-w-0"><div class="text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
       <div class="text-[10px] font-mono text-ink/45">${c.id}</div></div>
     </div>
-    ${row('Type',igEsc(cKind(c)))}
-    ${row('Counterparty',igEsc(c.counterparty||'—'))}
-    ${row('Value',isMonetary(c)&&c.value?fmtKESshort(c.value):'Non-monetary')}
-    ${row('Status',statusLabel(c.status))}
-    ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
-    ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
+    ${row(t('fold_th_type'),igEsc(cKind(c)))}
+    ${row(t('intel_row_counterparty'),igEsc(c.counterparty||t('value_none')))}
+    ${row(t('fold_th_value'),isMonetary(c)&&c.value?fmtKESshort(c.value):t('intel_band_nonmonetary'))}
+    ${row(t('fold_th_status'),statusLabel(c.status))}
+    ${row(t('intel_row_expiry'),c.expiry?(d==null?c.expiry:(d>=0?t('intel_expiry_in',{date:c.expiry,n:d}):t('intel_expiry_lapsed',{date:c.expiry}))):t('value_none'))}
+    ${row(t('intel_row_group'),igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
     <div class="mt-2 flex items-center gap-1.5">
-      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">Open workspace →</button>
-      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="Stage this contract for a side-by-side comparison">${intel.compareSel.includes(c.id)?'✓ Comparing':'+ Compare'}</button>
+      <button data-ig-ws="${c.id}" class="flex-1 rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11.5px] font-600 hover:bg-brand-800 transition">${t('intel_open_ws')}</button>
+      <button data-ig-cmp="${c.id}" class="rounded-lg border ${intel.compareSel.includes(c.id)?'border-brand-500 bg-brand-50 text-brand-700':'border-brand-200 text-brand-700 hover:border-brand-400'} px-2.5 py-1.5 text-[11.5px] font-600 transition" title="${t('intel_cmp_title')}">${intel.compareSel.includes(c.id)?t('intel_comparing'):t('intel_add_compare')}</button>
     </div>
   </div>`;
 }
@@ -785,8 +788,8 @@ function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(!intel.dockOpen){
     dock.innerHTML=`
-      <button id="igd-expand" title="Open the intelligence panel" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
-        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">Copilot panel</span>
+      <button id="igd-expand" title="${t('intel_dock_open_title')}" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
+        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">${t('intel_dock_label')}</span>
       </button>`;
     document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;
@@ -800,43 +803,43 @@ function renderIntelDock(){
   dock.innerHTML=`
     <div class="flex items-center gap-2 px-3.5 py-3 border-b border-hair shrink-0">
       <span class="text-gold-500">${icon('sparkle','w-4 h-4')}</span>
-      <span class="font-display font-700 text-[13px] text-ink flex-1">Intelligence panel</span>
-      ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,label:'Basic mode',hint:''};
+      <span class="font-display font-700 text-[13px] text-ink flex-1">${t('intel_panel_title')}</span>
+      ${(()=>{ const b=(typeof copilotBrainInfo==='function')?copilotBrainInfo():{live:false,label:t('intel_basic_mode'),hint:''};
         return b.live
           ?`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600 text-white" style="background:var(--color-accent-800,#2c455d)">✦ ${igEsc(b.label)}</span>`
-          :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:#F0E6CF;color:#8A5E1B">○ Basic mode</span>`; })()}
-      ${intel.history.length?`<button id="igd-history-clear" title="Clear conversation" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
-      <button id="igd-expand" title="${intel.dockWide?'Shrink the panel':'Expand the panel'}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
+          :`<span title="${igEsc(b.hint)}" class="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-600" style="background:#F0E6CF;color:#8A5E1B">○ ${t('intel_basic_mode')}</span>`; })()}
+      ${intel.history.length?`<button id="igd-history-clear" title="${t('intel_clear_convo_title')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-rose-600 hover:bg-brand-50 transition">${icon('trash','w-3.5 h-3.5')}</button>`:''}
+      <button id="igd-expand" title="${intel.dockWide?t('intel_shrink_title'):t('ai_expand_title')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition">${intel.dockWide
         ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 17l5-5-5-5"/><path d="M6 17l5-5-5-5"/></svg>'
         :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>'}</button>
-      <button id="igd-collapse" title="Collapse panel" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
+      <button id="igd-collapse" title="${t('intel_collapse_title')}" class="h-6 w-6 grid place-items-center rounded-lg text-ink/40 hover:text-ink hover:bg-brand-50 transition text-[13px]">›</button>
     </div>
     ${intel.lenses.length?`
     <div class="px-3.5 py-2 border-b border-hair shrink-0 flex flex-wrap items-center gap-1.5">
       ${intel.lenses.map(l=>`
         <span data-lens-hover="${l.id}" class="ig-lens inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-mono cursor-pointer ${l.on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/40'}">
-          <button data-lens-toggle="${l.id}" title="${l.on?'Lens on — click to ignore':'Lens off — click to apply'}">${igEsc(l.label)} · ${l.ids.length}</button>
-          <button data-lens-x="${l.id}" title="Remove lens" class="hover:text-rose-600">✕</button>
+          <button data-lens-toggle="${l.id}" title="${l.on?t('intel_lens_on'):t('intel_lens_off')}">${t('intel_lens_chip',{label:igEsc(l.label),n:l.ids.length})}</button>
+          <button data-lens-x="${l.id}" title="${t('intel_remove_lens')}" class="hover:text-rose-600">✕</button>
         </span>`).join('')}
-      <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">Clear all</button>
+      <button id="igd-clear" class="text-[10.5px] font-600 text-brand-600 hover:text-brand-800 ml-auto">${t('intel_clear_all')}</button>
     </div>`:''}
     <div id="igd-feed" class="flex-1 min-h-0 overflow-y-auto scroll-thin px-3.5 py-3 space-y-3" style="background:transparent">
-      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">Habari! I'm <b class="text-brand-700">HaTi Copilot</b> — a notebook over your whole contract repository. Ask me to <b>summarise</b> or <b>quote</b> any contract verbatim, <b>flag which contracts have potentially risky or unlawful clauses</b>, or compare deals side-by-side. I can also filter, highlight and regroup the map. Answers cite the contracts they come from.</div>`}
+      ${msgs||`<div class="text-[12.5px] text-ink/50 leading-relaxed pt-2">${t('intel_welcome')}</div>`}
       ${typing}
     </div>
     ${!intel.history.length?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
-      ${IG_SUGGESTIONS.slice(0,3).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+      ${igSuggestions().slice(0,3).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
-      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">Comparing <b class="text-brand-900">${intel.compareSel.length}</b>: ${intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')}</span>
-      <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">Clear</button>
-      <button id="igd-cmp-run" class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-500':'bg-brand-600 text-white hover:bg-brand-700'}" title="${intel.compareSel.length<2?'Tap “+ Compare” on one more node first':'Run the side-by-side comparison'}">${intel.compareSel.length<2?'Pick 1 more…':'Compare '+intel.compareSel.length}</button>
+      <span class="text-[11px] text-brand-800/70 flex-1 min-w-0 truncate">${t('intel_comparing_n',{n:intel.compareSel.length,names:intel.compareSel.map(id=>igEsc(getContract(id)?.name||id)).join(', ')})}</span>
+      <button id="igd-cmp-clear" class="text-[10.5px] font-600 text-ink/50 hover:text-ink">${t('reg_clear')}</button>
+      <button id="igd-cmp-run" class="rounded-lg px-2.5 py-1 text-[11px] font-600 transition ${intel.compareSel.length<2?'bg-brand-100 text-brand-500':'bg-brand-600 text-white hover:bg-brand-700'}" title="${intel.compareSel.length<2?t('intel_cmp_hint_more'):t('intel_cmp_hint_run')}">${intel.compareSel.length<2?t('intel_pick_more'):t('intel_cmp_btn',{n:intel.compareSel.length})}</button>
     </div>`:''}
     <div class="p-3 border-t border-hair shrink-0 relative">
-      <input id="igd-input" placeholder="Ask about the portfolio…" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
-      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">Ask</button>
+      <input id="igd-input" placeholder="${t('intel_input_ph')}" class="w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition"/>
+      <button id="igd-go" class="absolute right-[18px] top-1/2 -translate-y-1/2 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-700 transition">${t('intel_ask')}</button>
     </div>`;
   const feed=document.getElementById('igd-feed'); feed.scrollTop=feed.scrollHeight;
   // wiring
@@ -883,7 +886,7 @@ function renderIntelDock(){
   document.getElementById('igd-history-clear')?.addEventListener('click',()=>{
     // cleared immediately — no confirm prompt (lenses are separate and survive)
     intel.history=[]; intel.compareSel=[]; igPaintIds(null); renderIntelDock();
-    if(typeof toast==='function') toast('Conversation deleted');
+    if(typeof toast==='function') toast(t('intel_toast_convo_deleted'));
   });
 }
 
@@ -947,7 +950,7 @@ function openPartyModal(name){
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">
-      <span>Click a contract node to open its workspace</span>
+      <span>${t('intel_click_node')}</span>
       <span class="font-mono">${nodes.length} nodes \u00b7 bounded neighborhood</span>
     </div>
   </div>`;
@@ -956,4 +959,4 @@ function openPartyModal(name){
   modal.querySelectorAll('[data-open]').forEach(el=>el.addEventListener('click',()=>{ closePartyModal(); openWorkspace(el.getAttribute('data-open')); }));
 }
 
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTION_KEYS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igFilterToGroup,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igStartDrag,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
