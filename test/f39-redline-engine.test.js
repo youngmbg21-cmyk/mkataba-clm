@@ -211,8 +211,14 @@ test('f39 — the redline engine', async t => {
     const ops = [{ op: 'keep', text: 'payable within ' }, { op: 'del', text: 'thirty (30)' },
       { op: 'ins', text: 'forty-five (45)' }, { op: 'keep', text: ' days' }];
     const html = win.redlineOpsHtml(ops);
-    assert.ok(html.includes('<span class="nego-del">thirty (30)</span>'));
-    assert.ok(html.includes('<span class="nego-ins">forty-five (45)</span>'));
+    /* ELEMENTS, not styled spans — <ins> and <del> are what HTML has for this,
+       so a redline is announced as inserted and deleted wording rather than as
+       coloured text. The nego-* hooks ride along on the class list, which is
+       what the room's stylesheet and the rest of this suite address. */
+    assert.match(html, /<del class="[^"]*nego-del[^"]*">thirty \(30\)<\/del>/);
+    assert.match(html, /<ins class="[^"]*nego-ins[^"]*">forty-five \(45\)<\/ins>/);
+    assert.match(html, /bg-red-100 text-red-800 line-through/);
+    assert.match(html, /bg-green-100 text-green-800 underline/);
     assert.ok(html.startsWith('payable within '));
   });
 

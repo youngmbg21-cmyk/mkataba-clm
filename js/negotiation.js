@@ -951,11 +951,26 @@ function negoPostComment(c, id, text, opts = {}){
     ? (c.counterparty || 'The counterparty')
     : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
   ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
-  const msg = { who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
+  /* WHO THIS IS FOR, and the default is the safe one.
+
+     'shared' means it also goes out on the discussion channel and the other
+     side reads it. 'internal' means it stays on this record: ch.thread is not
+     in the share payload (buildSharePayload, js/core.js) and never has been, so
+     an internal note reaches nobody by simply not being posted — there is no
+     filter here to get wrong, which is the point.
+
+     Anything that is not exactly 'shared' is internal. A caller that forgets
+     the field, or passes something misspelt, keeps the note at home; the
+     opposite default would publish a colleague's aside to the counterparty. */
+  const visibility = opts.visibility === 'shared' ? 'shared' : 'internal';
+  const msg = { who, side, visibility,
+    at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: ch.hash || null };
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Comment posted on #${ch.id} by ${who} — the contract is unchanged and no round was opened`);
+    `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on #${ch.id} by ${who}`
+    + ` — the contract is unchanged and no round was opened`
+    + (visibility === 'shared' ? '' : '; it stays inside this organisation'));
   return msg;
 }
 /* Is this comment about wording that has since been revised? A read, never a
@@ -1014,7 +1029,11 @@ function negoMergedThread(c, ch, extra){
   const extras = [];
   for (const m of all){
     if (!m || String(m.topic || '') !== topic) continue;
-    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null };
+    /* A message from the discussion channel is SHARED by definition: it
+       travelled. Stamping it here means the badge on a merged thread is right
+       for both stores rather than only for the half written locally. */
+    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null,
+      visibility: 'shared' };
     if (have.has(key(one))) continue;
     have.add(key(one));
     extras.push(one);

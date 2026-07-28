@@ -84,14 +84,42 @@ const discussUnansweredBy = (messages, side) => {
 /* ---------- the shared rendering ----------
    `mine` is which side is reading, so each message is attributed the way that
    reader would say it out loud. */
+/* ---- who can read this ----
+   A message carries a visibility, and the badge is drawn from it wherever the
+   bubble is drawn — this component renders on the owner's screen, in the
+   negotiation room and on the counterparty's portal, and a thread that reported
+   its own privacy differently in three places would be worse than one that
+   never mentioned it.
+
+   ABSENT MEANS SHARED, and only here. Every message written before this field
+   existed did travel to the other side, so reading a missing value as internal
+   would relabel the entire history of every contract as private — a claim that
+   is false and that a reader would reasonably act on. The safe default runs the
+   other way at the WRITE end (js/negotiation.js), which is where a forgotten
+   field could still cause a leak. */
+const DISCUSS_SHARED = 'shared';
+const DISCUSS_INTERNAL = 'internal';
+const discussIsInternal = m => !!m && m.visibility === DISCUSS_INTERNAL;
+function discussVisBadgeHtml(m){
+  const internal = discussIsInternal(m);
+  const pal = internal
+    ? 'background:#f4ecd8;color:#8a6a2a;border:1px solid rgba(138,106,42,.3)'
+    : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+    letter-spacing:.04em;border-radius:999px;padding:2px 7px;white-space:nowrap;${pal}">${
+    internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;
+}
+
 function discussBubbleHtml(m, mine){
   const isMine = m.side === mine;
   const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
   const when = window.fmtDT ? fmtDT(m.at) : String(m.at || '');
+  const internal = discussIsInternal(m);
   return `
     <div style="display:flex;flex-direction:column;gap:2px;align-items:${isMine ? 'flex-end' : 'flex-start'}">
-      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${e(m.author)}${when ? ` · ${when}` : ''}</div>
-      <div style="max-width:92%;border:1px solid ${isMine ? 'var(--color-divider)' : 'var(--color-accent-300)'};background:${isMine ? 'var(--color-bg)' : 'var(--color-accent-100)'};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
+      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e(m.author)}${when ? ` · ${when}` : ''}${
+        internal ? ' ' + discussVisBadgeHtml(m) : ''}</div>
+      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? '#fdfaf1' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
     </div>`;
 }
 /* The whole panel: what has been said, grouped by what it is about, and one
@@ -231,6 +259,7 @@ function wireDiscussPanel(opts){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  DISCUSS_GENERAL, discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
+  DISCUSS_GENERAL, DISCUSS_SHARED, DISCUSS_INTERNAL, discussIsInternal, discussVisBadgeHtml,
+  discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
   discussUnansweredBy, discussBubbleHtml, discussPanelHtml, wireDiscussPanel, discussTrim,
   discussPointReplyHtml, wireDiscussPoints });

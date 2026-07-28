@@ -259,21 +259,286 @@ function redlineStats(ops){
    reviewer sees is a picture of the record, not the output of whatever diff
    implementation happens to be loaded on the day they look. Classed spans, so
    the colours come from HaTi's tokens in one place. */
+/* INS AND DEL ARE ELEMENTS, not styled spans. `<ins>` and `<del>` are what HTML
+   has for exactly this, and the difference is not cosmetic: a screen reader
+   announces them as inserted and deleted wording, and a copy of the document
+   pasted into Word arrives as markup rather than as coloured text. A contract
+   redline read aloud as unmarked prose is a redline that lied.
+
+   The class list carries BOTH a hook of our own and the utility names the
+   workspace spec asks for. `hati-ins` is what our stylesheet targets, so the
+   colours hold whether or not a utility framework is on the page; the utility
+   names ride along so a host that has one styles them natively. Relying on the
+   utility names alone would put the legibility of every redline behind a
+   stylesheet this app loads from a CDN. */
+/* nego-ins/nego-del ride along with the rest. The room's stylesheet and a good
+   deal of the suite address a redline by those names, and an element carrying
+   one more class is a strictly smaller change than a renamed hook: the new
+   semantics arrive without breaking the contract everything else was written
+   against. */
+const REDLINE_INS_CLASS = 'hati-ins nego-ins bg-green-100 text-green-800 underline';
+const REDLINE_DEL_CLASS = 'hati-del nego-del bg-red-100 text-red-800 line-through';
 function redlineOpsHtml(ops, opts = {}){
-  const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g,
-    ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
-  const insCls = opts.insClass || 'nego-ins';
-  const delCls = opts.delClass || 'nego-del';
+  /* Guarded, because this module is also required directly by node tests and a
+     bare `window` there is a ReferenceError rather than a falsy value. */
+  const e = (typeof window !== 'undefined' && window.esc)
+    || (s => String(s == null ? '' : s).replace(/[&<>]/g,
+      ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
+  const insCls = opts.insClass || REDLINE_INS_CLASS;
+  const delCls = opts.delClass || REDLINE_DEL_CLASS;
+  const tagIns = opts.spans ? 'span' : 'ins';
+  const tagDel = opts.spans ? 'span' : 'del';
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
-    : o.op === 'ins' ? `<span class="${insCls}">${e(o.text)}</span>`
-    : `<span class="${delCls}">${e(o.text)}</span>`).join('');
+    : o.op === 'ins' ? `<${tagIns} class="${insCls}">${e(o.text)}</${tagIns}>`
+    : `<${tagDel} class="${delCls}">${e(o.text)}</${tagDel}>`).join('');
+}
+
+/* ============================================================
+   BLOCK-AWARE REDLINE — structure survives the diff
+   ============================================================
+   A clause is not a paragraph. It is a heading, then numbered sub-clauses, then
+   lettered sub-paragraphs, each on its own line with its own indent, and that
+   shape is how a reader finds 7.1(b) and how a citation refers to it.
+
+   Diffing a clause as one string and printing the result inside a single <p>
+   loses all of it: the sub-list arrives as "(a) … (b) … (c) …" run together in
+   one block, and the reader can no longer see where one sub-paragraph ends and
+   the next begins — in the one view where they most need to.
+
+   So the diff runs at two levels. LINES are aligned first, by their own LCS, so
+   an untouched sub-paragraph stays untouched and a new one is a new block
+   rather than a smear across its neighbours. Then each aligned pair is diffed
+   at WORD level by redlineOps, which is where "thirty (30)" → "sixty (60)"
+   becomes two marked words instead of two rewritten paragraphs.
+
+   Nothing is invented and nothing is dropped: every line of both texts comes
+   out the other side, in order. */
+
+const _rlLineKey = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+/* Longest common subsequence over LINES, compared on squeezed text so a line
+   that only had its spacing changed is still the same line. */
+function _rlLineLcs(a, b){
+  const n = a.length, m = b.length;
+  /* Guard rail, same shape as REDLINE_MAX_D on the word diff: an O(n·m) table
+     over a pathological pair is how a browser tab dies. Past the cap the caller
+     falls back to whole-block replacement, which is honest — it says "this
+     changed" without pretending to know exactly where. */
+  if (n * m > 250000) return null;
+  const t = [];
+  for (let i = 0; i <= n; i++) t.push(new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      t[i][j] = _rlLineKey(a[i]) === _rlLineKey(b[j])
+        ? t[i + 1][j + 1] + 1
+        : Math.max(t[i + 1][j], t[i][j + 1]);
+  const out = [];
+  let i = 0, j = 0;
+  while (i < n && j < m){
+    if (_rlLineKey(a[i]) === _rlLineKey(b[j])){ out.push([i, j]); i++; j++; }
+    else if (t[i + 1][j] >= t[i][j + 1]) i++;
+    else j++;
+  }
+  return out;
+}
+/* How close two lines are, 0..1, on shared words. Decides whether a deleted
+   line and an inserted line are really ONE line reworded — the difference
+   between a readable in-place redline and a wall of "all of this went, all of
+   this arrived". */
+function _rlKinship(a, b){
+  const wa = _rlLineKey(a).toLowerCase().split(/\s+/).filter(Boolean);
+  const wb = _rlLineKey(b).toLowerCase().split(/\s+/).filter(Boolean);
+  if (!wa.length || !wb.length) return 0;
+  const bag = new Map();
+  for (const w of wa) bag.set(w, (bag.get(w) || 0) + 1);
+  let hit = 0;
+  for (const w of wb){ const n = bag.get(w) || 0; if (n){ hit++; bag.set(w, n - 1); } }
+  return (2 * hit) / (wa.length + wb.length);
+}
+const RL_KINSHIP_MIN = 0.34;
+
+/* The block plan for a clause. Each entry is one LINE of the result:
+     { kind:'same', text }                 unchanged
+     { kind:'edit', text, before, ops }    same line, wording moved
+     { kind:'ins',  text }                 a line that arrived
+     { kind:'del',  text }                 a line that went
+   Callers render each entry in its own element, which is the whole point. */
+function redlineBlocks(oldText, newText){
+  /* An EMPTY text is no lines, not one empty line. ''.split('\n') returns [''],
+     and that phantom line then paired off against real wording — so proposing
+     a clause where there had been nothing reported the first new line as an
+     edit of emptiness, with a stray deletion wedged between the insertions. */
+  const lines = s => { const t = String(s == null ? '' : s); return t === '' ? [] : t.split('\n'); };
+  const a = lines(oldText);
+  const b = lines(newText);
+  const pairs = _rlLineLcs(a, b);
+  if (!pairs) return null;                        // too large: caller falls back
+  const anchored = new Map(pairs);                // old index → new index
+  const out = [];
+  let i = 0, j = 0;
+  const flush = (dels, inses) => {
+    /* Pair off what went with what arrived, in order, wherever the two lines
+       are recognisably the same line reworded. What is left over on either side
+       is a genuine insertion or deletion. */
+    let x = 0, y = 0;
+    while (x < dels.length && y < inses.length){
+      if (_rlKinship(dels[x], inses[y]) >= RL_KINSHIP_MIN){
+        out.push({ kind: 'edit', text: inses[y], before: dels[x],
+          ops: redlineOps(dels[x], inses[y]) });
+        x++; y++;
+      /* On a tie the DELETION goes first. A reader compares what was there
+         against what is proposed, and printing the replacement above the thing
+         it replaces reverses that reading. */
+      } else if (dels.length - x >= inses.length - y){ out.push({ kind: 'del', text: dels[x++] }); }
+      else { out.push({ kind: 'ins', text: inses[y++] }); }
+    }
+    while (x < dels.length) out.push({ kind: 'del', text: dels[x++] });
+    while (y < inses.length) out.push({ kind: 'ins', text: inses[y++] });
+  };
+  while (i < a.length || j < b.length){
+    if (anchored.has(i) && anchored.get(i) === j){
+      out.push({ kind: 'same', text: b[j] }); i++; j++; continue;
+    }
+    /* Collect up to the NEXT ANCHOR, whatever line it pairs with — not up to an
+       anchor that happens to pair with the line j is sitting on. Stopping only
+       on the exact match swallowed every anchored line between here and there,
+       so a sub-paragraph nobody had touched was reported as edited. */
+    const dels = [], inses = [];
+    while (i < a.length && !anchored.has(i)) dels.push(a[i++]);
+    const stop = anchored.has(i) ? anchored.get(i) : b.length;
+    while (j < stop) inses.push(b[j++]);
+    flush(dels, inses);
+  }
+  return out;
+}
+
+/* What kind of line this is, so it can be drawn as what it is. Reads the
+   classifier in js/docx.js where that module is present — one definition of
+   "this is a heading" for the whole product — and falls back to the same two
+   patterns where it is not (node tests, the portal's lighter stage). */
+function redlineLineKind(line){
+  if (typeof window !== 'undefined' && window.docLineKind) return window.docLineKind(line);
+  const t = String(line == null ? '' : line).trim();
+  if (!t) return 'blank';
+  const letters = t.replace(/[^A-Za-z]/g, '');
+  if (letters.length >= 3 && t.length <= 80 && !/[a-z]/.test(t)
+      && letters.length >= t.replace(/\s/g, '').length * 0.5) return 'heading';
+  if (/^\d+(?:\.\d+)*[.)]?\s+\S/.test(t)) return 'clause';
+  return 'text';
+}
+/* The marker a line opens with — "7.1", "(b)", "•" — and the wording after it.
+   Split so the marker can sit in the hanging indent's gutter and the wording
+   can wrap under itself, which is how a contract is set on paper. */
+const RL_MARKER = /^(\s*)((?:\d{1,3}(?:\.\d+)*[.)]?)|(?:\([a-zA-Z]\))|(?:\([ivxlcdm]+\))|[•●▪◦‣·])\s+/;
+function redlineSplitMarker(line){
+  const s = String(line == null ? '' : line);
+  const m = s.match(RL_MARKER);
+  if (!m) return { indent: '', marker: '', rest: s };
+  return { indent: m[1] || '', marker: m[2], rest: s.slice(m[0].length) };
+}
+
+/* Render a block plan. Every line becomes its own element, carrying its own
+   kind and its own marker, so headings stay headings, numbered clauses keep
+   their numbers in the gutter, and a wrapped sub-paragraph hangs under its own
+   first word instead of under the margin. */
+function redlineBlocksHtml(blocks, opts = {}){
+  const e = (typeof window !== 'undefined' && window.esc) || (s => String(s == null ? '' : s)
+    .replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
+  const insCls = opts.insClass || REDLINE_INS_CLASS;
+  const delCls = opts.delClass || REDLINE_DEL_CLASS;
+  const pre = opts.classPrefix || 'rl';
+  return (blocks || []).map(b => {
+    const kind = redlineLineKind(b.text);
+    if (kind === 'blank') return '';
+    const { marker, rest } = redlineSplitMarker(b.text);
+    const tag = kind === 'heading' ? 'h4' : 'p';
+    const cls = [`${pre}-line`, `${pre}-${kind}`, marker ? `${pre}-hang` : '',
+      b.kind === 'ins' ? `${pre}-line-ins` : b.kind === 'del' ? `${pre}-line-del` : '']
+      .filter(Boolean).join(' ');
+    const gutter = marker ? `<span class="${pre}-marker">${e(marker)}</span>` : '';
+    let inner;
+    if (b.kind === 'edit'){
+      /* The marker is not part of the argument. Diffing it would report "7.1"
+         as deleted and "7.1" as inserted whenever the wording after it moved. */
+      const bm = redlineSplitMarker(b.before);
+      inner = gutter + redlineOpsHtml(redlineOps(bm.rest, rest),
+        { insClass: insCls, delClass: delCls, spans: opts.spans });
+    } else if (b.kind === 'ins'){
+      inner = gutter + `<${opts.spans ? 'span' : 'ins'} class="${insCls}">${e(rest)}</${opts.spans ? 'span' : 'ins'}>`;
+    } else if (b.kind === 'del'){
+      inner = gutter + `<${opts.spans ? 'span' : 'del'} class="${delCls}">${e(rest)}</${opts.spans ? 'span' : 'del'}>`;
+    } else {
+      inner = gutter + e(rest);
+    }
+    return `<${tag} class="${cls}">${inner}</${tag}>`;
+  }).join('');
+}
+/* ---- the same structure, from STORED ops ----
+   The negotiation renders a redline from the ops recorded when the change was
+   filed, never from a diff run at display time: two renders of one record are
+   then identical by construction, which is what makes "what was reviewed is
+   what was decided on" a property rather than a hope.
+
+   So structure cannot come from re-diffing. It comes from regrouping — a
+   newline inside an op's text is a line boundary, and splitting there yields
+   one op list per line without touching a single recorded op. */
+function redlineOpsBlocks(ops){
+  const out = [[]];
+  for (const o of (ops || [])){
+    const parts = String(o.text == null ? '' : o.text).split('\n');
+    for (let k = 0; k < parts.length; k++){
+      if (k) out.push([]);
+      if (parts[k] !== '') out[out.length - 1].push({ op: o.op, text: parts[k] });
+    }
+  }
+  return out;
+}
+/* Render those groups, one block per line.
+
+   The marker is deliberately NOT split out here, unlike the two-text path. It
+   sits inside a recorded op, and cutting it free would mean rewriting the ops
+   this function exists to render verbatim. The hanging indent is done in CSS
+   instead — negative text-indent against matching padding — which produces the
+   same set page without touching the record. */
+function redlineOpsBlocksHtml(ops, opts = {}){
+  const pre = opts.classPrefix || 'rl';
+  return redlineOpsBlocks(ops).map(group => {
+    if (!group.length) return '';
+    const newText = group.filter(o => o.op !== 'del').map(o => o.text).join('');
+    const oldText = group.filter(o => o.op !== 'ins').map(o => o.text).join('');
+    const shown = newText.trim() ? newText : oldText;
+    if (!shown.trim()) return '';
+    const kind = redlineLineKind(shown);
+    const allDel = group.every(o => o.op === 'del');
+    const allIns = group.every(o => o.op === 'ins');
+    const tag = kind === 'heading' ? 'h4' : 'p';
+    const hang = redlineSplitMarker(shown).marker ? `${pre}-hang` : '';
+    const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
+      allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
+      .filter(Boolean).join(' ');
+    return `<${tag} class="${cls}">${redlineOpsHtml(group, opts)}</${tag}>`;
+  }).join('');
+}
+
+/* The whole job in one call: two texts in, structure-preserving redline out.
+   Returns null when the pair is too large to align, so a caller can fall back
+   to whole-block replacement rather than print a wrong picture confidently. */
+function redlineStructuredHtml(oldText, newText, opts){
+  const blocks = redlineBlocks(oldText, newText);
+  return blocks ? redlineBlocksHtml(blocks, opts) : null;
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   redlineTokens, redlineOps, redlineOpsHtml,
   redlineOldText, redlineNewText, redlineIsNoop, redlineStats, REDLINE_MAX_D,
+  REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
+  redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
+  redlineOpsBlocks, redlineOpsBlocksHtml,
+  redlineLineKind, redlineSplitMarker,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
+  redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
+  redlineOpsBlocks, redlineOpsBlocksHtml,
+  redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
 };
