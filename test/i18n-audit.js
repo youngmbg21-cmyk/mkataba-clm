@@ -29,6 +29,7 @@ const CONVERTED = [
   'js/views/reports.js',
   'js/views/advice.js',
   'js/views/home.js',
+  'js/views/register.js',
 ];
 
 /* Text that looks like a user-visible string to the matcher but is not.
@@ -53,6 +54,15 @@ const NOT_UI = [
   /^application\//, /^text\//, /^image\//,       // MIME types
   /^[A-Z]{2,}(-[A-Z0-9]+)?$/,                    // KES, SHA-256, MK-103 style codes
   /^T\d{2}:\d{2}(:\d{2})?$/,                     // ISO time suffix appended to a date, e.g. 'T00:00:00'
+  /* CSS selectors, e.g. '#reg-tbody [data-row]'. Every token must be a
+     selector token AND the whole string must carry at least one structural
+     marker (# . [), so ordinary prose like "Recently updated" cannot match. */
+  v => /[#.\[]/.test(v) && v.split(/\s+/).every(tok =>
+    /^(\[[\w-]+(=.*)?\]?|[#.]?[\w-]+(\[[\w-]+(=.*)?\]?)?)$/.test(tok)),
+  /* An HTML fragment whose only text is punctuation — an ellipsis separator in
+     a pager, a lone em-dash. No words to translate. */
+  v => /^<[a-z][^>]*>[^<>A-Za-zÅÄÖåäö]*<\/[a-z]+>$/i.test(v),
+  /^[;\s]*[a-z-]+\s*:\s*[^;]*;/i,                 // a style fragment that opens with ';' or whitespace
   // ---- class lists: all-lowercase words, digits and hyphens, e.g.
   //      "pipe-col scroll-thin", "w-5 h-5", "flex items-center gap-2" ----
   /^[a-z0-9][a-z0-9/:.\[\]()%-]*( [a-z0-9][a-z0-9/:.\[\]()%-]*)*$/,
@@ -75,7 +85,7 @@ const isUiString = s => {
   if (v.length < 3) return false;
   if (!/[A-Za-zÅÄÖåäö]/.test(v)) return false;          // no letters at all
   if (!/[A-ZÅÄÖ]/.test(v[0]) && !/\s/.test(v)) return false;  // lowercase single word
-  return !NOT_UI.some(re => re.test(v));
+  return !NOT_UI.some(rule => typeof rule === 'function' ? rule(v) : rule.test(v));
 };
 
 function dictionaryKeys() {
