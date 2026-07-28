@@ -1021,6 +1021,7 @@ function openUploadModal(){
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
         ${upField('up-cp','Received from (counterparty)','e.g. Acme Ltd')}
+        ${upField('up-cpemail','Their email (so you can send it back)','them@company.co.ke','email')}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
@@ -1072,6 +1073,8 @@ async function submitUpload(){
   if(!file){ toast('Choose a file to upload','err'); return; }
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
   const cp=fval('up-cp');
+  const cpEmail=fval('up-cpemail');
+  if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
   const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
   const folder=document.getElementById('up-folder').value;
   const vtype=document.getElementById('up-vtype').value;
@@ -1136,7 +1139,7 @@ async function submitUpload(){
     try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
-  const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
+  const c={ id:nextId(), name, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},

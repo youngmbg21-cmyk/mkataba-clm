@@ -1717,8 +1717,11 @@ function lastShareRecipient(shares){
   return { name:s.recipientName||'', email:s.recipientEmail||'', phone:s.recipientPhone||'',
     channel:s.channel||'email', token:s.token||null };
 }
-function shareModalPrefill(shares){
-  const last=lastShareRecipient(shares);
+/* A blank recipient box on a contract whose counterparty we already named is
+   the third time in one sitting the same fact gets asked for. The contract's
+   own address fills it when no link has been sent yet. */
+function shareModalPrefill(shares, c){
+  const last=lastShareRecipient(shares) || (c ? counterpartyContact(c, []) : null);
   if(!last) return { name:'', email:'', phone:'', channel:'email' };
   return { name:last.name, email:last.email, phone:last.phone, channel:last.channel||'email' };
 }
@@ -1865,7 +1868,7 @@ async function openShareModal(c, opts={}){
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
-  const pre=shareModalPrefill(priorShares);
+  const pre=shareModalPrefill(priorShares, c);
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;

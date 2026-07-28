@@ -154,3 +154,80 @@ describe('F77 — and then sending is just sending', () => {
     assert.equal(r.calls.direct, 0);
   });
 });
+
+/* ASKED ONCE, WHERE YOU ARE ALREADY NAMING THEM.
+
+   Walked as a customer walks it: create a contract from a template, go to the
+   negotiation, make a change, press send. The counterparty was asked for THREE
+   TIMES in that one sitting — the wizard took their name, the negotiation strip
+   took their email, and the share dialog asked for both again with empty boxes.
+
+   The templates carry a name and nothing carried an address, so the address was
+   collected at the two later points instead of the obvious first one. */
+const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
+
+/* Whatever the last modal put on the screen. */
+function formOf(files, call){
+  const modals = [];
+  /* A real object, not the catch-all proxy: openWizard lists templates with
+     Object.values(), which a proxy without ownKeys answers as empty. */
+  const TPL = { WH: { id: 'WH', kind: 'Warehousing & Cold-Chain Agreement', name: 'Warehousing',
+    folder: 'proc', valueType: 'standard', ic: 'box', blurb: 'Storage and handling.' } };
+  const sb = loadViews(files, { TEMPLATES: TPL, FOLDERS: STUB_FOLDERS,
+    folderOptionsHtml: () => '<option value="proc">Procurement</option>',
+    uploadMaxLabel: () => '25 MB', uploadTooBigMsg: () => 'too big', EXTRACT_MAX_CHARS: 200000,
+    bindFolderSelect(){}, renderUploadSteps(){}, wireUploadModal(){}, OCR_TEXT_FLOOR: 200,
+    myCreatableTemplates: () => Object.values(TPL),
+    openModal: html => modals.push(String(html)), closeModal(){}, toast(){},
+    canEdit: () => true, currentUser: () => ({ id: 'u', name: 'Wanjiru Kamau', role: 'legal' }),
+    templateFields: () => [{ key: 'counterparty', label: 'Supplier corporate name',
+      maps: 'counterparty', required: true, type: 'text' }],
+    tplMapLabel: () => 'Counterparty', validateField: () => null,
+    applyTemplateValues(){}, nextId: () => 'MK-1', todayStr: () => '28 Jul 2026',
+    nowISO: () => '2026-07-28T00:00:00.000Z', persist(){}, setView(){},
+    renderSideFolders(){}, uploadMax: () => 1e9, isUpload: () => false,
+    state: { contracts: [], settings: {}, view: 'workspace' } });
+  call(sb);
+  return { sb, html: modals[modals.length - 1] || '' };
+}
+
+describe('F77 — the address is asked for once, at the start', () => {
+  test('the wizard offers a place to put it', () => {
+    const { html } = formOf(['js/wizard.js'], sb => sb.openWizard('WH'));
+    assert.match(html, /wz-cpemail/, 'beside the field that names them');
+    assert.match(html, /Their email/);
+  });
+
+  test('the upload form offers one too', () => {
+    const { html } = formOf(['js/views/contract.js'], sb => sb.openUploadModal());
+    assert.match(html, /up-cpemail/,
+      'a received contract has a counterparty to answer just as a drafted one does');
+  });
+
+  test('once the contract carries it, nothing asks again', () => {
+    const sb = loadViews(['js/richdoc.js', 'js/core.js'],
+      { TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });
+    const known = { id: 'MK-KNOWN', counterparty: 'Young Mbagaya',
+      counterpartyEmail: 'young@mkataba.co.ke' };
+    const contact = sb.counterpartyContact(known, []);
+    assert.ok(contact, 'the contract itself answers the question');
+    assert.equal(contact.email, 'young@mkataba.co.ke');
+    assert.equal(sb.shareModalPrefill([], known).email, 'young@mkataba.co.ke',
+      'so even the dialog opens filled in rather than blank');
+    assert.equal(sb.shareModalPrefill([], {}).email, '',
+      'and stays blank where there is genuinely nothing to fill it with');
+  });
+
+  test('and the negotiation strip never appears for such a contract', () => {
+    const w = buildWorld({ negotiationView: true, contractView: true });
+    const known = contract({ id: 'MK-KNOWN', counterpartyEmail: 'young@mkataba.co.ke' });
+    w.win.negoInit(known);
+    w.win.negoResetView();
+    w.win.openNegotiationRoom(known, { side: 'owner', by: 'Wanjiru Kamau', persist: false,
+      contact: { name: 'Young Mbagaya', email: 'young@mkataba.co.ke' },
+      onSetCounterparty(){}, onSendDirect(){} });
+    const host = w.win.document.querySelector('#nego-room') || w.win.document;
+    assert.ok(!host.querySelector('[id="nego-cp-setup"]'),
+      'the strip is a fallback for contracts that have no address, not a step');
+  });
+});
