@@ -141,7 +141,15 @@ function labShareChanges(changes){
       at: x.at, sentAt: x.sentAt || null,
       /* Who ruled stays behind; that they ruled does not. */
       decidedByOrg: x.decidedBy ? x.decidedBy.org : null,
-      decidedAt: x.decidedAt || null
+      decidedAt: x.decidedAt || null,
+      /* Tags are an explicit allow INSIDE an explicit allow. A tag is a note
+         somebody pinned to a change, and most of them are working notes — "do
+         not concede this", "check with Ops" — so the shared ones are named
+         individually and everything else stays home by not being listed. */
+      tags: (x.tags || [])
+        .filter(t => t.visibility === LAB_SHARED)
+        .map(t => ({ id: t.id, text: t.text, at: t.at, org: t.org || null,
+          visibility: LAB_SHARED }))
     }));
 }
 
@@ -213,6 +221,38 @@ function labFileChange(lab, opts){
   lab.changes.push(ch);
   return ch;
 }
+/* ---------- a note pinned to a change ----------
+   Distinct from a thread: a thread is a conversation with turns, a tag is one
+   short label somebody stuck on a change so the next reader sees it. Both
+   carry a visibility and both honour the same wall.
+
+   INTERNAL IS THE DEFAULT, and anything that is not exactly LAB_SHARED is
+   internal. A caller that forgets the field, or misspells it, keeps the note at
+   home; the opposite default would publish a working note to the counterparty. */
+function labTagChange(lab, changeId, text, opts = {}){
+  const ch = (lab.changes || []).find(x => x.id === changeId);
+  const body = String(text == null ? '' : text).trim();
+  if(!ch || !body) return null;
+  ch.tags = Array.isArray(ch.tags) ? ch.tags : [];
+  const tag = {
+    id: 'TG-' + String((lab.nextTag = (lab.nextTag || 0) + 1)).padStart(3, '0'),
+    text: body.slice(0, 400),
+    visibility: opts.visibility === LAB_SHARED ? LAB_SHARED : LAB_INTERNAL,
+    at: nowISO(),
+    author: (opts.author || (window.currentUser && currentUser()?.name) || 'You'),
+    org: opts.org || (window.FIRST_PARTY || 'This workspace')
+  };
+  ch.tags.push(tag);
+  return tag;
+}
+function labUntagChange(lab, changeId, tagId){
+  const ch = (lab.changes || []).find(x => x.id === changeId);
+  if(!ch || !Array.isArray(ch.tags)) return false;
+  const n = ch.tags.length;
+  ch.tags = ch.tags.filter(t => t.id !== tagId);
+  return ch.tags.length !== n;
+}
+
 function labSendChange(lab, id){
   const ch = lab.changes.find(x => x.id === id);
   if(!ch || ch.sent === true || ch.status !== 'pending') return null;
@@ -438,14 +478,17 @@ function labBatchSplit(c, lab, side){
    Defined here rather than borrowed from the negotiation tab: the lab has to
    keep working if that tab is ever removed. */
 const LAB_AI_ACTIONS = [
-  { id:'advantage', label:'🪄 Rephrase for Buyer/Supplier Advantage',
+  { id:'advantage', label:'🛡️ Rephrase for Buyer Advantage',
     ask:'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
   { id:'playbook', label:'⚖️ Align with Corporate Playbook',
     ask:'Rewrite this contract wording so it matches our corporate playbook position. If the playbook has a preferred formulation for this category, use it.' },
-  { id:'risk', label:'🔍 Explain Legal Risk',
-    ask:'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain:true },
-  { id:'shorten', label:'✂️ Shorten Wording',
-    ask:'Rewrite this contract wording more concisely without changing its legal effect. Keep defined terms exactly as they are.' }
+  { id:'shorten', label:'✂️ Shorten & Simplify',
+    ask:'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
+  /* Not an AI action at all, and deliberately in the same menu: the thing a
+     reader most often wants to do with a passage they have just read is say
+     something about it, and making them leave the selection to do that is how
+     a note ends up attached to the wrong clause. */
+  { id:'tag', label:'🏷️ Tag with Internal Note', tag:true }
 ];
 const labKillSel = () => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
 const labKillPop = () => document.querySelectorAll('.lab-aipop').forEach(n => n.remove());
@@ -453,20 +496,32 @@ const labKillPop = () => document.querySelectorAll('.lab-aipop').forEach(n => n.
    clause selected at the bottom of the window does not put its menu off-screen. */
 function labAnchor(rect, w, h){
   const pad = 10;
-  const left = Math.min(Math.max(pad, rect.left), window.innerWidth - w - pad);
-  let top = rect.bottom + 8;
-  if(top + h > window.innerHeight - pad) top = Math.max(pad, rect.top - h - 8);
-  return { left, top };
+  const left = Math.min(Math.max(pad, rect.left + (rect.width / 2) - (w / 2)), window.innerWidth - w - pad);
+  /* ABOVE the selected text, which is where a reader's eye already is and where
+     the menu cannot cover the words the next decision is about. It flips below
+     only when there is genuinely no room above — a clause selected at the very
+     top of the window — rather than as the default. */
+  let top = rect.top - h - 8;
+  if(top < pad) top = Math.min(rect.bottom + 8, window.innerHeight - h - pad);
+  return { left: Math.max(pad, left), top: Math.max(pad, top) };
 }
 
-/* Ask the Copilot for wording, then show what it WOULD change — never change
-   anything. The popover is the whole safety argument for putting a model near a
-   contract: it renders the redline that would be filed against the clause as it
-   currently stands, and Apply is a person's decision. Cancel, Escape and
-   clicking away all leave the document untouched.
+/* Ask the Copilot for wording, then hand it to the person to finish.
 
-   What comes back is treated as WORDING, not instructions and not markup: it is
-   escaped by the redline renderer like any other proposed text. */
+   The model's answer is a DRAFT IN A TEXTAREA, not a verdict. Two reasons, and
+   the second is the one that matters. A model gets contract wording nearly
+   right and wrong in one specific place — a defined term, a cross-reference, a
+   number — and a proposal you can only accept or reject whole forces a person
+   to throw away four good sentences to fix one word. And a redline is signed by
+   whoever files it: making the wording editable before it is filed is what
+   keeps the authorship honest.
+
+   The preview under the box is live. Every keystroke re-renders the redline
+   that WOULD be filed against the clause as it currently stands, so a person is
+   never applying wording they have not seen marked up.
+
+   Nothing moves until Apply Redline. Discard, Escape and clicking away all
+   leave the document untouched. */
 async function labAiPropose(ctx){
   const { c, lab, action, text, clause, rect, side, again } = ctx;
   labKillPop();
@@ -497,6 +552,15 @@ async function labAiPropose(ctx){
     fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
     return;
   }
+  /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and this is checked before
+     a single token is spent. Selecting across already-marked-up text produces a
+     string that exists in no version of the clause, so there is nowhere to put
+     the answer back — and the old fallback for that was to replace the whole
+     clause, which loses wording nobody agreed to lose. */
+  if(!clause.text.includes(text)){
+    fail('That selection spans wording already marked as changed, so a rewrite cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    return;
+  }
   const pbLine = (() => {
     try{
       const v = (((c && c.playbook) || {}).verdicts || []).filter(x => x.status === 'deviation');
@@ -508,9 +572,7 @@ async function labAiPropose(ctx){
     + `The party I act for is ${side === LAB_THEM ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
     + (pbLine ? pbLine + ' ' : '')
     + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
-    + (action.explain
-      ? 'Reply with at most three sentences of risk explanation, then a line containing only ---, then the replacement wording for the selected passage and nothing else.'
-      : 'Reply with the replacement wording for the selected passage and nothing else. No preamble, no quotation marks, no commentary.') }];
+    + 'Reply with the replacement wording for the selected passage and nothing else. No preamble, no quotation marks, no commentary.' }];
   let raw;
   try{
     const res = await copilotAsk(messages, window.buildAssistantContext ? buildAssistantContext() : null);
@@ -521,66 +583,203 @@ async function labAiPropose(ctx){
     fail(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
     return;
   }
-  if(!pop.isConnected) return;                      // closed while it was thinking
+  if(!pop.isConnected) return;                     // closed while it was thinking
   if(!raw.trim()){ fail('The Copilot returned nothing usable. Nothing was changed.'); return; }
-
-  let note = '', replacement = raw.trim();
-  if(action.explain){
-    const parts = replacement.split(/\n---+\n/);
-    if(parts.length > 1){ note = parts[0].trim(); replacement = parts.slice(1).join('\n').trim(); }
-    else { note = replacement; replacement = ''; }
-  }
   /* A model that wrapped its answer in quotes or a fence is answering the
      question; it is not proposing quotation marks into the contract. */
-  replacement = replacement.replace(/^```[a-z]*\s*/i,'').replace(/```\s*$/,'').trim()
+  const suggestion = raw.trim().replace(/^```[a-z]*\s*/i,'').replace(/```\s*$/,'').trim()
     .replace(/^["“]([\s\S]*)["”]$/,'$1').trim();
-
-  /* THE SELECTION HAS TO BE FOUND IN THE CLAUSE, and if it is not, this stops.
-
-     The fallback used to be "replace the whole clause with whatever came back",
-     which is a quiet catastrophe: a person selects five words inside a clause
-     under redline — where the visible text is a mix of kept, inserted and
-     struck-through wording that exists in no single version — the lookup misses,
-     and the entire clause is silently swapped for a sentence. Refusing is the
-     only safe answer, and it is a better one than guessing. */
-  const found = !!replacement && clause.text.includes(text);
-  if(replacement && !found){
-    fail('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
-    return;
-  }
-  const proposed = found ? clause.text.replace(text, replacement) : clause.text;
-  const canApply = found && proposed !== clause.text;
 
   pop.querySelector('.lab-aiwait')?.remove();
   const body = document.createElement('div');
   body.className = 'lab-aibody';
-  body.innerHTML = (note ? `<p style="font-size:12.5px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--color-bg);border-radius:6px;font-family:inherit">${esc(note)}</p>` : '')
-    + (canApply ? labRedlineHtml(clause.text, proposed)
-      : `<p style="font-size:12.5px;color:var(--color-neutral-600);margin:0">No wording change was proposed${note ? ' — the note above is the whole answer' : ''}.</p>`);
+  body.innerHTML = `
+    <label class="lab-ailabel" for="lab-ai-text">Suggested wording — edit it before you apply</label>
+    <textarea id="lab-ai-text" class="lab-aitext" spellcheck="true" rows="4"></textarea>
+    <div class="lab-aisub">Replacing: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
+    <div class="lab-ailabel" style="margin-top:11px">How the clause would read</div>
+    <div class="lab-aipreview" id="lab-ai-preview"></div>`;
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
-  foot.innerHTML = `${canApply ? '<button class="ui-btn ui-btn-primary" data-ai-apply style="font-size:12px">Apply Redline</button>' : ''}
-    <button class="ui-btn" data-ai-cancel style="font-size:12px">Cancel</button>
+  foot.innerHTML = `<button class="ui-btn ui-btn-primary" data-ai-apply style="font-size:12px">Apply Redline</button>
+    <button class="ui-btn" data-ai-discard style="font-size:12px">Discard</button>
     <span style="flex:1"></span>
-    <span style="font-size:10.5px;color:var(--color-neutral-500)">Nothing has changed yet</span>`;
+    <span class="lab-aistate" data-ai-state>Nothing has changed yet</span>`;
   pop.appendChild(foot);
-  place();
-  foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
-  foot.querySelector('[data-ai-apply]')?.addEventListener('click', () => {
+
+  const box = pop.querySelector('#lab-ai-text');
+  const preview = pop.querySelector('#lab-ai-preview');
+  const applyBtn = foot.querySelector('[data-ai-apply]');
+  const proposedFrom = v => {
+    const t = String(v == null ? '' : v).trim();
+    return t ? clause.text.replace(text, t) : clause.text;
+  };
+  const refresh = () => {
+    const proposed = proposedFrom(box.value);
+    const moved = !!box.value.trim() && proposed !== clause.text;
+    preview.innerHTML = moved
+      ? labRedlineHtml(clause.text, proposed)
+      : `<div class="lab-aiempty">${box.value.trim()
+          ? 'That is the wording the clause already has — there is nothing to file.'
+          : 'Write a replacement above to see the redline.'}</div>`;
+    applyBtn.disabled = !moved;
+    place();
+  };
+  box.value = suggestion;
+  box.addEventListener('input', refresh);
+  refresh();
+  box.focus();
+  box.setSelectionRange(box.value.length, box.value.length);
+
+  foot.querySelector('[data-ai-discard]').addEventListener('click', () => pop.remove());
+  applyBtn.addEventListener('click', () => {
+    const proposed = proposedFrom(box.value);
+    if(proposed === clause.text) return;
     /* Filed as an ordinary tracked change — same model, same id series, same
-       card in the list. A suggestion that arrived from a model is not a
-       different KIND of change and must not get a private path into the doc. */
+       card in the list. A suggestion that arrived from a model, and was then
+       edited by a person, is not a different KIND of change. The author line
+       records both hands. */
+    const edited = box.value.trim() !== suggestion;
     const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
       before: clause.text, after: proposed, side,
-      author: `${(window.currentUser && currentUser()?.name) || 'You'} · Copilot (${action.label.replace(/^\S+\s/,'')})` });
+      author: `${(window.currentUser && currentUser()?.name) || 'You'} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
     pop.remove();
     if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
     labPut(c.id, lab);
-    if(window.toast) toast(`${ch.id} filed from the Copilot — it is a draft until you send it`);
+    if(window.toast) toast(`${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
     if(typeof again === 'function') again();
   });
+  place();
 }
 
+/* The floating menu itself, built once and opened from two places: a text
+   selection, and the clause toolbar's AI Assist (where the passage is the whole
+   clause). One builder means the two entry points can never drift into offering
+   different verbs for the same job. */
+function labSelMenu(ctx){
+  const { text, clause, rect, c, lab, side, again } = ctx;
+  labKillSel();
+  const menu = document.createElement('div');
+  menu.className = 'lab-selmenu';
+  menu.setAttribute('role','menu');
+  menu.innerHTML = `<div class="lab-selhead">${ctx.whole ? 'This clause' : 'Selected wording'}</div>
+    <div class="lab-selquote">${esc(text.length > 66 ? text.slice(0,65) + '…' : text)}</div>
+    ${LAB_AI_ACTIONS.map(a => `<button type="button" role="menuitem" data-lab-ai="${a.id}">${esc(a.label)}</button>`).join('')}`;
+  document.body.appendChild(menu);
+  const box = menu.getBoundingClientRect();
+  const at = labAnchor(rect, box.width, box.height);
+  menu.style.left = at.left + 'px'; menu.style.top = at.top + 'px';
+  menu.querySelectorAll('[data-lab-ai]').forEach(btn => btn.addEventListener('mousedown', ev => {
+    /* mousedown, not click: clicking first collapses the selection, and the
+       proposal needs the words that were chosen. */
+    ev.preventDefault(); ev.stopPropagation();
+    const action = LAB_AI_ACTIONS.find(a => a.id === btn.getAttribute('data-lab-ai'));
+    labKillSel();
+    if(!action) return;
+    if(action.tag){
+      const live = (lab.changes || []).find(x => x.clauseId === clause.clauseId && x.status === 'pending');
+      labNoteCompose({ c, lab, changeId: live ? live.id : null, rect, again, quote: text });
+      return;
+    }
+    labAiPropose({ c, lab, action, text, clause, rect, side, again });
+  }));
+  return menu;
+}
+
+/* The note composer, for "🏷️ Tag with Internal Note" and for the clause
+   toolbar's Add Note/Tag. A note needs somewhere to live, and the thing it is
+   about is a CHANGE — so where a clause has no change on it yet, this says so
+   rather than inventing one. Filing an empty change to hang a note on would put
+   a fingerprint in the index that nobody proposed. */
+function labNoteCompose(ctx){
+  const { c, lab, changeId, rect, again, quote } = ctx;
+  labKillPop();
+  const pop = document.createElement('div');
+  pop.className = 'lab-notepop';
+  pop.setAttribute('role','dialog');
+  pop.setAttribute('aria-label','Attach a note');
+  if(!changeId){
+    pop.innerHTML = `<div style="font-size:12.5px;line-height:1.6">
+      There is no change on this clause yet, so there is nothing to pin a note to.
+      Propose a change first — with <b>Direct Edit</b> or an AI action — and the note can go on it.
+      </div><div style="display:flex;justify-content:flex-end"><button class="ui-btn" data-note-x style="font-size:12px">Close</button></div>`;
+  } else {
+    pop.innerHTML = `
+      <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)">Note on ${esc(changeId)}</div>
+      ${quote ? `<div style="font-size:11px;font-style:italic;color:var(--color-neutral-600);line-height:1.5">“${esc(quote.length > 110 ? quote.slice(0,109) + '…' : quote)}”</div>` : ''}
+      <textarea data-note-text placeholder="What should the next reader know?" spellcheck="true"></textarea>
+      <div style="display:flex;gap:0;border:1px solid var(--color-divider);border-radius:5px;overflow:hidden">
+        <button type="button" class="ui-btn" data-note-vis="${LAB_INTERNAL}" aria-pressed="true"
+          style="flex:1;border:0;border-radius:0;font-size:11.5px;background:#f4ecd8;color:${LAB_GOLD};font-weight:600">🔒 Internal</button>
+        <button type="button" class="ui-btn" data-note-vis="${LAB_SHARED}" aria-pressed="false"
+          style="flex:1;border:0;border-left:1px solid var(--color-divider);border-radius:0;font-size:11.5px">🌐 Share</button>
+      </div>
+      <div data-note-hint style="font-size:11px;line-height:1.5;color:${LAB_GOLD}">Stays inside ${esc(window.FIRST_PARTY || 'your organisation')}. It is not in the share payload.</div>
+      <div style="display:flex;gap:7px;justify-content:flex-end">
+        <button class="ui-btn ui-btn-primary" data-note-save style="font-size:12px">Attach note</button>
+        <button class="ui-btn" data-note-x style="font-size:12px">Cancel</button>
+      </div>`;
+  }
+  document.body.appendChild(pop);
+  const b = pop.getBoundingClientRect();
+  const at = labAnchor(rect, b.width, b.height);
+  pop.style.left = at.left + 'px'; pop.style.top = at.top + 'px';
+  pop.querySelector('[data-note-x]').addEventListener('click', () => pop.remove());
+  if(!changeId) return;
+  let vis = LAB_INTERNAL;
+  pop.querySelectorAll('[data-note-vis]').forEach(btn => btn.addEventListener('click', () => {
+    vis = btn.getAttribute('data-note-vis');
+    pop.querySelectorAll('[data-note-vis]').forEach(o => {
+      const on = o === btn;
+      o.setAttribute('aria-pressed', String(on));
+      o.style.background = on ? (vis === LAB_SHARED ? '#e0e7ff' : '#f4ecd8') : '';
+      o.style.color = on ? (vis === LAB_SHARED ? '#3730a3' : LAB_GOLD) : '';
+      o.style.fontWeight = on ? '600' : '';
+    });
+    const hint = pop.querySelector('[data-note-hint]');
+    hint.textContent = vis === LAB_SHARED
+      ? `${c.counterparty || 'The counterparty'} will be able to read this once the change is sent.`
+      : `Stays inside ${window.FIRST_PARTY || 'your organisation'}. It is not in the share payload.`;
+    hint.style.color = vis === LAB_SHARED ? '#3730a3' : LAB_GOLD;
+  }));
+  const save = () => {
+    const t = pop.querySelector('[data-note-text]').value;
+    if(!String(t || '').trim()){ if(window.toast) toast('Write the note first', 'err'); return; }
+    const tag = labTagChange(lab, changeId, t, { visibility: vis });
+    pop.remove();
+    if(!tag) return;
+    labPut(c.id, lab);
+    if(window.toast) toast(vis === LAB_SHARED
+      ? `Note attached to ${changeId} — it travels with the change when you send it`
+      : `Internal note attached to ${changeId} — it stays inside ${window.FIRST_PARTY || 'this organisation'}`);
+    if(typeof again === 'function') again();
+  };
+  pop.querySelector('[data-note-save]').addEventListener('click', save);
+  pop.querySelector('[data-note-text]').focus();
+}
+
+/* ---------- the change tag that rides with the diff ----------
+   Every redline in the text carries the id of the change it belongs to, inline
+   and clickable, so a reader looking at marked-up wording can get to the
+   argument about it without hunting the sidebar for a matching card. */
+function labChangeTagHtml(id, extra){
+  return `<span class="change-tag-badge bg-indigo-100 text-indigo-800 text-xs px-1.5 py-0.5 rounded cursor-pointer"
+    data-change-id="${esc(id)}" role="button" tabindex="0"
+    aria-label="Show the discussion on change ${esc(id)}"
+    title="Jump to ${esc(id)} in the sidebar">#${esc(id)}${extra ? esc(extra) : ''}</span>`;
+}
+
+/* ---------- one clause, one frame ----------
+   Each clause is its own container with its own border, its own hover state and
+   its own toolbar. That is not decoration: a contract is argued clause by
+   clause, and a frame is what makes "this clause" a thing the eye and the
+   pointer can both address. The toolbar sits with the clause it acts on, so an
+   AI action or a note can never be filed against a clause the writer was not
+   looking at.
+
+   The utility class names are the ones the spec asks for, and .clause-frame
+   carries the same look in this file's own CSS — so the frame holds whether or
+   not a utility framework is on the page. */
 function labDocHtml(c, lab, side, external){
   const clauses = labClausesOf(lab);
   if(!clauses.length)
@@ -593,19 +792,39 @@ function labDocHtml(c, lab, side, external){
     const body = pending
       ? labRedlineHtml(pending.before, pending.after)
       : labCleanHtml(now);
+    /* THE COUNTERPARTY GETS NO TOOLBAR. Their view is a picture of what was
+       sent; every one of these verbs ends in something being written to a lab
+       they do not own. */
+    const tools = external ? '' : `
+      <div class="clause-tools">
+        <button type="button" class="clause-tool" data-lab-assist="${esc(cl.clauseId)}"
+          title="Run an AI action on this clause">🪄 AI Assist</button>
+        <button type="button" class="clause-tool" data-lab-note="${esc(cl.clauseId)}"
+          title="Attach an internal or shared note to this clause">💬 Add Note/Tag</button>
+        <button type="button" class="clause-tool" data-lab-edit="${esc(cl.clauseId)}"
+          title="Edit this clause's wording directly">✏️ Direct Edit</button>
+      </div>`;
+    /* Tags already pinned to the live change on this clause, shown where the
+       change is rather than only in the sidebar. Internal ones are marked, and
+       on the counterparty's side they are not in the payload to begin with. */
+    const tags = (pending && Array.isArray(pending.tags) && pending.tags.length)
+      ? `<div class="clause-tags">${pending.tags.map(t => `
+          <span class="lab-tag${t.visibility === LAB_SHARED ? ' is-shared' : ' is-internal'}">
+            ${t.visibility === LAB_SHARED ? '🌐' : '🔒'} ${esc(t.text)}
+            ${external ? '' : `<button type="button" class="lab-tag-x" data-lab-untag="${esc(pending.id)}|${esc(t.id)}" title="Remove this note" aria-label="Remove this note">×</button>`}
+          </span>`).join('')}</div>`
+      : '';
     return `
-    <div style="margin:0 0 16px" data-lab-clause="${esc(cl.clauseId)}"
+    <div class="clause-frame bg-white border border-slate-200 rounded-lg p-4 mb-4 shadow-sm hover:border-indigo-300 transition-all"
+      data-clause-id="${esc(cl.clauseId)}" data-lab-clause="${esc(cl.clauseId)}"
       data-lab-clause-label="${esc(label)}">
-      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-        <span style="font-size:13.5px;font-weight:700">${esc(label)}</span>
-        ${pending ? `<button type="button" class="lab-badge" data-lab-badge="${esc(pending.id)}"
-          aria-pressed="${_labLinked === pending.id ? 'true' : 'false'}"
-          title="Show the conversation pinned to ${esc(pending.id)}">${esc(pending.id)}${pending.sent ? '' : ' · draft'}</button>` : ''}
+      <div class="clause-head">
+        <span class="clause-title">${esc(label)}</span>
+        ${pending ? labChangeTagHtml(pending.id, pending.sent ? '' : ' · draft') : ''}
+        ${tools}
       </div>
-      <div style="font-size:14px;line-height:1.72">${body}</div>
-      ${external ? '' : `<div style="margin-top:5px">
-        <button class="ui-btn" data-lab-edit="${esc(cl.clauseId)}" style="font-size:11px;padding:3px 9px">Change this clause</button>
-      </div>`}
+      <div class="clause-body">${body}</div>
+      ${tags}
     </div>`;
   }).join('');
 }
@@ -614,7 +833,8 @@ function labChangeCardHtml(ch, side, external){
   const mine = ch.side === side;
   const canDecide = !external && labCanDecide(ch, side);
   return `
-  <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:8px">
+  <div class="lab-card${ch.id === _labLinked ? ' is-linked' : ''}" data-lab-card="${esc(ch.id)}"
+    style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-700)">${esc(ch.id)}</span>
       ${labChip(ch.clauseLabel, 'quiet')}
@@ -624,6 +844,10 @@ function labChangeCardHtml(ch, side, external){
     </div>
     <div style="font-size:12.5px;line-height:1.6">${labRedlineHtml(ch.before, ch.after)}</div>
     <div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(ch.author)}${ch.revised ? ' · revised ' + ch.revised + '×' : ''}</div>
+    ${(Array.isArray(ch.tags) && ch.tags.length) ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${ch.tags.map(t => `
+      <span class="lab-tag${t.visibility === LAB_SHARED ? ' is-shared' : ' is-internal'}">${
+        t.visibility === LAB_SHARED ? '🌐' : '🔒'} ${esc(t.text)}</span>`).join('')}</div>` : ''}
+    ${external ? '' : `<div><button class="ui-btn" data-lab-tagadd="${esc(ch.id)}" style="font-size:10.5px;padding:3px 8px">💬 Add note</button></div>`}
     ${ch.decidedAt ? `<div style="font-size:10.5px;color:var(--color-neutral-600)">Decided by ${esc(
       /* Their copy names the ORGANISATION — decidedByOrg is the only name in
          the payload — and ours names the colleague. Reading decidedBy.name on
@@ -799,6 +1023,61 @@ function renderDocLab(){
     .lab-redline .rl-line-del::before{content:"−";position:absolute;left:-1.1em;
       color:#8f322b;font-weight:700;text-indent:0}
 
+    /* ---- ONE CLAUSE, ONE FRAME ----
+       The utility class names on the element are the ones the spec asks for.
+       These rules carry the same look independently, so the frame does not
+       vanish if a utility framework fails to load — which is exactly what
+       happens on this app's offline stage. */
+    .clause-frame{background:var(--color-surface);border:1px solid var(--color-divider);
+      border-radius:8px;padding:16px 18px;margin:0 0 16px;box-shadow:var(--shadow-sm);
+      transition:border-color .16s ease, box-shadow .16s ease;position:relative}
+    .clause-frame:hover{border-color:#a5b4fc}
+    .clause-frame:focus-within{border-color:#6366f1}
+    .clause-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 9px}
+    .clause-title{font-size:13.5px;font-weight:700;color:var(--color-neutral-900)}
+    .clause-body{font-size:14px;line-height:1.72}
+
+    /* The toolbar sits top-right of its own frame and stays out of the way
+       until the clause is hovered or something in it has focus — a document
+       with forty clauses must not read as forty rows of buttons. It is fully
+       visible on keyboard focus, so it is never unreachable without a pointer. */
+    .clause-tools{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap;
+      opacity:0;transition:opacity .16s ease}
+    .clause-frame:hover .clause-tools,
+    .clause-frame:focus-within .clause-tools{opacity:1}
+    @media (hover:none){ .clause-tools{opacity:1} }
+    .clause-tool{font:inherit;font-size:11px;line-height:1;cursor:pointer;white-space:nowrap;
+      border:1px solid var(--color-divider);background:var(--color-bg);
+      color:var(--color-neutral-700);border-radius:5px;padding:5px 8px}
+    .clause-tool:hover{border-color:#6366f1;color:#4338ca;background:#eef2ff}
+
+    /* ---- the change tag that rides with the diff ---- */
+    .change-tag-badge{display:inline-block;font-family:var(--font-mono);font-size:10.5px;
+      line-height:1.5;padding:2px 7px;border-radius:5px;cursor:pointer;
+      background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+    .change-tag-badge:hover{background:#c7d2fe}
+    .change-tag-badge[aria-pressed="true"]{background:#4338ca;border-color:#4338ca;color:#fff}
+
+    /* ---- notes pinned to a change ---- */
+    .clause-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;
+      padding-top:9px;border-top:1px dashed var(--color-divider)}
+    .lab-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;line-height:1.45;
+      border-radius:999px;padding:3px 9px}
+    .lab-tag.is-internal{background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.32)}
+    .lab-tag.is-shared{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+    .lab-tag-x{border:0;background:none;cursor:pointer;font:inherit;font-size:13px;
+      line-height:1;padding:0 1px;color:inherit;opacity:.55}
+    .lab-tag-x:hover{opacity:1}
+
+    /* ---- the note composer ---- */
+    .lab-notepop{position:fixed;z-index:82;width:min(380px,calc(100vw - 32px));border-radius:10px;
+      background:var(--color-surface);border:1px solid var(--color-divider);
+      box-shadow:0 18px 44px -12px rgba(20,32,48,.42);padding:13px 15px;
+      display:flex;flex-direction:column;gap:9px}
+    .lab-notepop textarea{width:100%;min-height:74px;resize:vertical;font:inherit;font-size:12.5px;
+      line-height:1.55;padding:8px 10px;border-radius:6px;border:1px solid var(--color-divider);
+      background:var(--color-bg);color:var(--color-neutral-800)}
+
     /* ---- the selection menu ---- */
     .lab-selmenu{position:fixed;z-index:80;display:flex;flex-direction:column;gap:1px;
       min-width:246px;padding:5px;border-radius:9px;background:var(--color-surface);
@@ -827,13 +1106,30 @@ function renderDocLab(){
       border-top-color:var(--color-neutral-700);animation:lab-spin .8s linear infinite}
     @keyframes lab-spin{to{transform:rotate(360deg)}}
 
+    /* ---- the editable AI proposal ---- */
+    .lab-ailabel{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--color-neutral-500);margin:0 0 5px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    .lab-aitext{width:100%;min-height:88px;resize:vertical;font-family:var(--font-doc);
+      font-size:13px;line-height:1.6;padding:9px 11px;border-radius:6px;
+      border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-900)}
+    .lab-aitext:focus{outline:2px solid #6366f1;outline-offset:1px;border-color:#6366f1}
+    .lab-aisub{font-size:11px;color:var(--color-neutral-600);margin-top:6px;line-height:1.5;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    .lab-aipreview{border:1px solid var(--color-divider);border-radius:6px;padding:11px 13px;
+      background:var(--color-bg);max-height:190px;overflow:auto}
+    .lab-aiempty{font-size:12px;color:var(--color-neutral-600);line-height:1.55;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    .lab-aistate{font-size:10.5px;color:var(--color-neutral-500)}
+    .lab-aipop footer .ui-btn[disabled]{opacity:.45;cursor:not-allowed}
+
     /* ---- a change badge in the document, and the thread it points at ---- */
     .lab-badge{font-family:var(--font-mono);font-size:10.5px;border-radius:999px;padding:2px 9px;
       cursor:pointer;border:1px solid var(--color-divider);background:var(--color-bg);
       color:var(--color-neutral-700)}
     .lab-badge:hover{border-color:#8a6a2a;color:#8a6a2a}
     .lab-badge[aria-pressed="true"]{background:#8a6a2a;border-color:#8a6a2a;color:#fff}
-    .lab-thread.is-linked{box-shadow:0 0 0 3px rgba(138,106,42,.34)}
+    .lab-thread.is-linked,.lab-card.is-linked{box-shadow:0 0 0 3px rgba(99,102,241,.42);
+      border-color:#6366f1 !important}
     .lab-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11.5px;
       padding:7px 11px;border-radius:6px;background:#fdf6e7;border:1px solid #e0c48a;color:#7d5a14}
     .lab-filterbar button{font:inherit;font-size:11px;font-weight:600;cursor:pointer;
@@ -960,19 +1256,67 @@ function renderDocLab(){
 function wireDocLab(c, lab, side, external){
   const againLab = () => renderDocLab();
 
-  /* ---------- a fingerprint in the document points at its conversation ----------
-     Clicking the badge on a clause highlights the threads pinned to that change
-     and scrolls to them. Clicking the same badge again clears it, so the link is
-     never a state somebody can be stuck in. */
-  document.querySelectorAll('[data-lab-badge]').forEach(b => b.addEventListener('click', e => {
-    e.stopPropagation();
-    const id = b.getAttribute('data-lab-badge');
+  /* ---------- an inline change tag points at its card and its argument ----------
+     Clicking the badge beside a redline scrolls the sidebar to the matching
+     change card and lights it, along with any threads pinned to that change.
+     Clicking the same badge again clears it, so the link is never a state
+     somebody can be stuck in without knowing why.
+
+     Scrolled AFTER the repaint, because the repaint rebuilds the very nodes
+     being scrolled to — doing it the other way round scrolls to a node that is
+     about to be thrown away. */
+  const linkTo = id => {
     if(_labLinked === id){ _labLinked = null; _labOnly = false; }
     else _labLinked = id;
     againLab();
-    const first = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
-    if(first) first.scrollIntoView({ block:'center', behavior:'smooth' });
+    if(!_labLinked) return;
+    const card = document.querySelector(`[data-lab-card="${_labLinked}"]`);
+    const thread = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
+    (card || thread)?.scrollIntoView({ block:'center', behavior:'smooth' });
+  };
+  document.querySelectorAll('.change-tag-badge[data-change-id]').forEach(b => {
+    const go = e => { e.stopPropagation(); linkTo(b.getAttribute('data-change-id')); };
+    b.addEventListener('click', go);
+    /* It is a span with role=button, so the keyboard has to be given the same
+       verb the pointer has. */
+    b.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); go(e); }
+    });
+  });
+
+  /* ---------- the per-clause toolbar ----------
+     Each button acts on the clause whose frame it sits in, so an action can
+     never be filed against a clause the writer was not looking at. */
+  const clauseCtx = clauseId => {
+    const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
+    if(!cl) return null;
+    const host = document.querySelector(`[data-clause-id="${clauseId}"]`);
+    return { clauseId, label: (host && host.getAttribute('data-lab-clause-label')) || clauseId,
+      text: labClauseText(cl, lab.changes) };
+  };
+  document.querySelectorAll('[data-lab-assist]').forEach(b => b.addEventListener('click', () => {
+    const clause = clauseCtx(b.getAttribute('data-lab-assist'));
+    if(!clause) return;
+    const rect = b.getBoundingClientRect();
+    /* No selection, so the whole clause is the passage. Offering the same menu
+       keeps one mental model: pick a passage, pick an action. */
+    labSelMenu({ c, lab, side, again: againLab, rect, clause, text: clause.text });
   }));
+  document.querySelectorAll('[data-lab-note]').forEach(b => b.addEventListener('click', () => {
+    const clauseId = b.getAttribute('data-lab-note');
+    const live = (lab.changes || []).find(x => x.clauseId === clauseId && x.status === 'pending');
+    labNoteCompose({ c, lab, changeId: live ? live.id : null,
+      rect: b.getBoundingClientRect(), again: againLab });
+  }));
+  document.querySelectorAll('[data-lab-tagadd]').forEach(b => b.addEventListener('click', () => {
+    labNoteCompose({ c, lab, changeId: b.getAttribute('data-lab-tagadd'),
+      rect: b.getBoundingClientRect(), again: againLab });
+  }));
+  document.querySelectorAll('[data-lab-untag]').forEach(b => b.addEventListener('click', () => {
+    const [changeId, tagId] = String(b.getAttribute('data-lab-untag')).split('|');
+    if(labUntagChange(lab, changeId, tagId)){ labPut(c.id, lab); againLab(); }
+  }));
+
   document.getElementById('lab-only')?.addEventListener('click', () => { _labOnly = !_labOnly; againLab(); });
   document.getElementById('lab-unlink')?.addEventListener('click', () => { _labLinked = null; _labOnly = false; againLab(); });
 
@@ -1033,25 +1377,7 @@ function wireDocLab(c, lab, side, external){
       if(!cl) return;
       const clause = { clauseId, label: host.getAttribute('data-lab-clause-label') || clauseId,
         text: labClauseText(cl, lab.changes) };
-      labKillSel();
-      const menu = document.createElement('div');
-      menu.className = 'lab-selmenu';
-      menu.setAttribute('role','menu');
-      menu.innerHTML = `<div class="lab-selhead">Selected wording</div>
-        <div class="lab-selquote">${esc(text.length > 66 ? text.slice(0,65) + '…' : text)}</div>
-        ${LAB_AI_ACTIONS.map(a => `<button type="button" role="menuitem" data-lab-ai="${a.id}">${esc(a.label)}</button>`).join('')}`;
-      document.body.appendChild(menu);
-      const box = menu.getBoundingClientRect();
-      const at = labAnchor(rect, box.width, box.height);
-      menu.style.left = at.left + 'px'; menu.style.top = at.top + 'px';
-      menu.querySelectorAll('[data-lab-ai]').forEach(btn => btn.addEventListener('mousedown', ev => {
-        /* mousedown, not click: clicking first collapses the selection, and the
-           proposal needs the words that were chosen. */
-        ev.preventDefault(); ev.stopPropagation();
-        const action = LAB_AI_ACTIONS.find(a => a.id === btn.getAttribute('data-lab-ai'));
-        labKillSel();
-        if(action) labAiPropose({ c, lab, action, text, clause, rect, side, again: againLab });
-      }));
+      labSelMenu({ c, lab, side, again: againLab, rect, clause, text });
     };
     const canvas = document.getElementById('lab-canvas');
     if(canvas){
