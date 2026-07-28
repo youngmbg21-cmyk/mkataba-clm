@@ -4596,3 +4596,158 @@ screen in every cycle rendered as unstyled text. Wording, controls, behaviour
 and the whole data round-trip were testable and were tested. Spacing, alignment,
 contrast and tap-target size were not, and no score should be read as covering
 them.
+
+---
+
+## Run: Bilingual EN ⇄ SV (2026-07-28)
+
+Open issues, deliberate omissions and uncertain translations from the
+bilingual build. Nothing here is a defect introduced by the run except where
+it says so — most of it is work not reached, recorded so the next person does
+not have to re-derive it.
+
+### 1. The build is partial — what is left, by file
+
+The spec asks for 100% of user-visible text in `STRINGS`. Delivered: 181 keys
+covering the application shell, the Queue board, the Renewal Calendar, and the
+shared label/dialog surface of `js/core.js`. Measured before starting (see
+`I18N_INVENTORY.md`), the whole job is **1,800–2,500 keys per language**.
+
+Remaining, ordered by size. "candidates" counts capitalised quoted literals
+plus text runs between tags — an upper bound that includes some non-user-visible
+matches, but the right order of magnitude:
+
+| File | Lines | Candidates | Notes |
+|---|---:|---:|---|
+| `js/views/contract.js` | 3166 | ~414 | the contract workspace; the biggest single screen |
+| `js/core.js` (remainder) | 2715 | ~365 | auth screens, share modal, ~65 toasts |
+| `js/ai.js` | 1259 | ~226 | Copilot panel, suggestion chips, answer styles |
+| `js/views/settings.js` | 967 | ~233 | team, allowance, rate table, approval rules |
+| `js/views/library.js` | 1346 | ~196 | templates page, playbook page |
+| `js/views/negotiation.js` | 2075 | ~120 | three-pane redline |
+| `js/views/migration.js` | 1116 | ~114 | bulk import queue |
+| `js/views/intelligence.js` | 959 | ~113 | contract graph, legend, dock |
+| `js/views/register.js` | 674 | ~91 | register table, folder view |
+| `js/playbook.js` | 385 | ~79 | playbook review |
+| `js/versioning.js` | 833 | ~76 | version compare |
+| `js/views/advice.js` | 318 | ~68 | advice desk |
+| `js/templates.js` | 178 | ~61 | template catalogue |
+| `js/views/reports.js` | 256 | ~54 | reports |
+| `js/advice.js` | 183 | ~53 | advice model |
+| `js/views/home.js` | 544 | ~50 | dashboard |
+| `js/family.js` | 344 | ~47 | contract families |
+| `js/wordflow.js` · `js/negotiation.js` · `js/aichart.js` · `js/obligations.js` · `js/templatefields.js` · `js/approvals.js` · `js/signature.js` · `js/wizard.js` · `js/discuss.js` · `js/metadata.js` · `js/docxwrite.js` and five smaller | — | ~250 combined | |
+
+Consequence for the acceptance checklist: items 2, 4 and 8 are FAIL until this
+is finished. An unconverted screen is not broken — it renders English, and
+`t()` falls back to English for any missing key — but it does not follow the
+toggle.
+
+### 2. Naming the helper `t` collides with ~40 local variables — a standing hazard
+
+The spec requires the helper be called `t()`. The codebase already uses `t` as
+a local name in about forty places (`const t=Date.parse(iso)`,
+`const t=TEMPLATES[tid]`, `.map(t=>…)`, `.find(t=>…)`, and so on). Inside any
+such function the global `t()` is shadowed and **unreachable**.
+
+Handled where it mattered: every local inside a function converted in this run
+was renamed with a comment saying why — `createFromTemplate` (`t`→`tpl`),
+`renderNewMenu` (`t`→`tp`), `relTime` (`t`→`ms`), `calendar.js`'s
+`CAL_PRIORITY.find` callbacks (`t`→`ty`), `updateCommandBar`'s destructure
+(`[t,s]`→`[title,sub]`).
+
+Locals in untouched functions were left alone deliberately — renaming them
+would be churn unrelated to the task. **Anyone continuing this work must check
+for a local `t` before adding a `t()` call to a function.** It fails loudly
+(`ReferenceError` or a wrong value), not silently, but it will fail.
+
+### 3. Dates already stored as pre-formatted English strings cannot follow the switch
+
+`todayStr()` and `fmtDT()` read like display helpers. They are not: they are
+called to **write** stored fields — `c.lastAction` (20+ sites), `comment.ts`
+(14+ sites) and `c.signedAt`. They therefore stay pinned to `en-GB`/`en-KE`;
+localising them would put Swedish date strings into SQLite, which the guardrail
+forbids outright.
+
+The consequence is real and visible: a contract's "last action" date renders as
+`28 Jul 2026` even in Swedish mode, because that is literally the string in the
+record. Fixing it properly means storing ISO and formatting at display time —
+a data-model change, out of scope here, and it would need a migration for
+existing rows.
+
+### 4. `fmtDocAmount()` is deliberately never localised
+
+It formats amounts **inside the contract document** — the text that is read,
+exported, signed and hashed. Re-grouping `5,000,000` as `5 000 000` because a
+reader changed their interface language would alter the document's own wording
+and, with it, the canonical string the execution seal is computed over. Pinned
+to `en-KE` with the reason in a comment at the site. Not a bug; recorded so
+nobody "fixes" it later.
+
+### 5. The language toggle is not reachable from the sign-in screen
+
+`#langToggleBtn` lives in the command bar, which is inside `#app-shell`. The
+auth screens render into `#auth-root` with the shell hidden, so someone who
+prefers Swedish must sign in against an English screen first. The spec said
+"topbar", and that is where it is. Worth adding a second toggle to the auth
+screen when `js/core.js`'s auth views are converted.
+
+### 6. Obligations results carry no language stamp
+
+Phase 5 records the generation language on saved analyses: `runPlaybookReview()`
+returns `lang`, and metadata extraction sets `meta._lang`. `extractObligations()`
+returns a **bare array** with no envelope to stamp, and the caller assigns it
+straight to `c.obligations`. Stamping it would mean changing the stored shape,
+which was not worth doing unprompted. Gap left open rather than papered over.
+
+### 7. CSV export headers stay English
+
+`exportWorkingSetCsv()` writes `ID,Name,Counterparty,Stream,Value (KES),…`.
+Left in English on the same reasoning as stored records: the export is a file
+artifact that downstream tooling may parse by column name, and translating
+headers would change the file format depending on who clicked the button. If
+localised headers are wanted, that is a product decision, not a translation
+one.
+
+### 8. Uncertain Swedish translations — marked `// TODO verify` in `js/i18n.js`
+
+Each is a best professional term, not a guess left silent, and each carries the
+rejected alternative in a comment beside it. A Swedish contracts professional
+should confirm:
+
+| Key | Chosen | Rejected alternative / reason |
+|---|---|---|
+| `nav_brand_sub` | Avtalslivscykel | *avtalshantering* is the commoner product-category term |
+| `nav_sec_build` | Skapa | literal *Bygg* reads oddly for a section holding Templates + Playbook |
+| `nav_advice` | Rådgivning | *Rådgivningsdesk* is closer to "Advice Desk" but not idiomatic |
+| `nav_playbook`, `cmd_title_playbook` | Playbook | kept as the English loanword Swedish legal-tech actually uses; *spelbok* is understood but not the trade term |
+| `nav_intel` | Analys | *Insikter* would collide with the `Insikt` section header |
+| `cmd_export_title` | det aktuella urvalet | *arbetsurval* is more literal, less idiomatic, for "working set" |
+| `stream_corp` | Koncern | *Bolagsgemensamt* is more precise but much longer for a dense grid cell |
+| `value_nm` | ej bel. | "n/m" is not read as an abbreviation in Swedish; needs to fit a narrow cell |
+| `side_status_line` | …{online} online | *inloggade* is the native alternative; "online" is common in Swedish business software |
+
+Five keys hold the **same** string in both halves, all deliberate and all
+commented so none reads as an untranslated leftover: `nav_register`
+(*Register*) and `nav_team_title` (*Team*) are the same word in Swedish,
+`nav_playbook` is the loanword above, and `nav_copilot` / `ai_title` are the
+product name.
+
+### 9. Not verified live: the AI actually answering in Swedish
+
+Phase 5's wiring is asserted statically by `npm run test:i18n` — both language
+notes present, all seven tool-prompt endpoints wrapped, the chat system prompt
+carrying it, `ai/ocr` excluded on both sides, the browser-direct path covered.
+**No live model call was made: this container has no Anthropic key.** Someone
+with a key must confirm a Swedish answer comes back and that its JSON keys are
+still English.
+
+### 10. Nothing has been seen rendered
+
+The app loads its stylesheet from a CDN this container cannot reach, so no
+screen was viewed. Specifically unverified: whether the toggle sits well among
+the command-bar buttons, and whether longer Swedish labels
+(`Team och inställningar`, `Väntar på godkännande`, `Förnyelsebeslut`) fit the
+210px sidebar and the status chips without wrapping or truncating. Swedish runs
+noticeably longer than English and this is the most likely place for the build
+to look wrong while testing green.

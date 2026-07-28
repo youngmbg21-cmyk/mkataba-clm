@@ -10,6 +10,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 4 — Word (.docx) Round-Trip (2026-07-26)](#run-4--word-docx-round-trip-2026-07-26)
 - [Run 5 — UX-review remediation: the negotiation loop (2026-07-26)](#run-5--ux-review-remediation-the-negotiation-loop-2026-07-26)
 - [Run 6 — The counterparty's side (2026-07-26)](#run-6--the-counterpartys-side-2026-07-26)
+- [Run 7 — Bilingual EN ⇄ SV (2026-07-28)](#run-7--bilingual-en--sv-2026-07-28)
 
 ---
 
@@ -3143,3 +3144,164 @@ it. Every screen in every cycle came up as plain text. So I can tell you the
 steps work — I have driven them end to end, twice over — but not that they
 *look* right, are readable, or are usable on a phone. Someone needs to open it
 on a normal computer and look.
+
+---
+
+# Run 7 — Bilingual EN ⇄ SV (2026-07-28)
+
+Built to `hati-translation-build-spec.html`, Part C phases 0–7 in order, one
+commit per phase. The spec file was named as the source of truth but did not
+exist in the repo; it is committed here alongside the work.
+
+**The build is partial and this section says exactly where the line falls.**
+The engine is complete and correct. The dictionary covers the application
+shell — everything visible on every screen — plus two whole views. Ten view
+modules were not reached. Nothing is half-converted: a screen either goes
+through the dictionary or is untouched English, and `t()` falls back to English
+for any key that is missing, so the app is shippable at every commit.
+
+## What was built
+
+**`js/i18n.js`** — the whole engine, ~180 lines, no dependency, no build step.
+`appLang` restored from `localStorage['hati_lang']`; `t(key, vars)` with the
+spec's three fallbacks and `{placeholder}` substitution; `tn(base, count)` for
+`_one`/`_many`; `langLocale()` for Phase 6; `toggleLanguage()`; and
+`applyLanguage()`, which updates the toggle, sweeps `[data-i18n]`,
+`[data-i18n-placeholder]`, `[data-i18n-title]` and `[data-i18n-aria]`, then
+re-renders the current view so JS-built text follows the switch with no reload.
+
+**Where the spec's assumptions and this repo differ** — recorded in
+`I18N_INVENTORY.md` and worked around, never ignored:
+
+| Spec assumed | HaTi is | What changed |
+|---|---|---|
+| one HTML file | 45 ES modules | engine lives in `js/i18n.js`, imported first by `js/app.js` |
+| prompts built in the browser, sent to a Cloudflare Worker | prompts built server-side in `server/server.js` (Express) | B7's note is appended there, driven by a `lang` field the client sends |
+| Supabase | SQLite / localStorage | guardrail applies unchanged, the store is just different |
+
+**Coverage**: 181 keys per language. `js/app.js`, `js/views/queue.js`,
+`js/views/calendar.js` complete; `js/core.js`'s shared label and dialog surface
+complete (`STATUS_META`, `SHARE_META`, `STREAM_SHORT`, `approvalLabel()`,
+`confirmDialog`, `promptDialog`, sidebar footer) — these feed dozens of screens
+from one place, which is why they came first.
+
+## Part D acceptance checklist — verdict for every item
+
+Verification is reproducible: **`npm run test:i18n`** (`test/i18n-verify.js`),
+48 assertions, all passing. Item numbers below cite the group that proves them.
+
+| # | Item | Verdict |
+|---|---|---|
+| 1 | Toggle in the topbar, names the destination language | **PASS** |
+| 2 | One click switches every label on every screen, no reload | **FAIL (partial)** |
+| 3 | Choice survives closing the browser (`hati_lang`) | **PASS** |
+| 4 | Toasts, dialogs and error messages follow the language | **FAIL (partial)** |
+| 5 | AI answers in the selected language; JSON keys stay English | **NEEDS MANUAL CHECK** |
+| 6 | Swedish number/date format; stored data unchanged | **FAIL (partial)** |
+| 7 | A missing Swedish key shows English, never blank or a crash | **PASS** |
+| 8 | Zero user-visible text outside STRINGS; no ternaries, no glued fragments | **FAIL** |
+| 9 | `{placeholder}` keys and `_one`/`_many` pairs | **PASS** |
+| 10 | Contract content, jurisdiction, role_profile, schema, portal untouched | **PASS** |
+| 11 | The three documents exist and reflect the actual work | **PASS** |
+
+**1 — PASS.** `#langToggleBtn` asserted present and inside the command-bar
+`<header>` by parsing `index.html`; the dictionary asserted to return
+`🇸🇪 Svenska` when `appLang==='en'` and `🇬🇧 English` when `'sv'` — the
+destination, not the current state.
+
+**2 — FAIL (partial).** The shell (sidebar, nav, command bar, context panel,
+Copilot panel), the Queue board and the Renewal Calendar switch with no reload.
+The other ten view modules do not. `applyLanguage()` re-renders the current view
+via `setView()`, so those screens re-render — in English, because their strings
+are still literals. Remaining work is itemised by file in BUGLOG.md.
+
+**3 — PASS.** Asserted by running the engine four times against a stubbed
+`localStorage`: no stored value → English; `toggleLanguage()` writes
+`hati_lang=sv`; a fresh load with `hati_lang=sv` starts Swedish; a stored value
+with no dictionary (`de`) falls back to English rather than rendering every
+label as its own key name.
+
+**4 — FAIL (partial).** `confirmDialog` and `promptDialog` defaults ("Are you
+sure?", "Confirm", "Cancel", "OK") and the log-out confirmation go through the
+dictionary, as do the five toasts raised by the shell. About 385 other toast
+messages across the unconverted modules do not.
+
+**5 — NEEDS MANUAL CHECK.** The wiring is verified statically — 11 assertions:
+both language notes present, all seven tool-prompt endpoints wrapped, the chat
+system prompt carrying the note, `ai/ocr` deliberately excluded on both client
+and server, the browser-direct path appending the note at both of its own prompt
+sites, and saved analyses stamped with their language. **No live call was made:
+this container has no Anthropic key.** Someone with a key must confirm that a
+Swedish answer actually comes back and that its JSON keys are still English.
+
+**6 — FAIL (partial), with the "stored data is unchanged" half fully PASS.**
+In Swedish mode money reads `5 000 000` and `KES 1,25M`, the calendar heading
+reads `juli 2026`, and nav counts group the Swedish way; English output is
+byte-identical to before. Storage is untouched, and three exclusions are
+deliberate and asserted by the harness: `fmtDocAmount()` stays `en-KE` because
+it formats amounts **inside the contract document**, which is exported, signed
+and hashed — re-grouping it would change the canonical string the execution seal
+is computed over; and `todayStr()` / `fmtDT()` stay `en-KE`/`en-GB` because,
+despite the names, they are called to **write** `c.lastAction`, `comment.ts` and
+`c.signedAt`. Consequence: dates already stored as pre-formatted English strings
+cannot follow the switch without parsing them back. That is a limitation of the
+existing data model, written up in BUGLOG.md.
+
+**7 — PASS.** Verified by actually deleting `STRINGS.sv.nav_home` at runtime and
+reading the result: `Hem` → `Home`, non-blank; then restored and re-asserted. A
+key missing from both halves returns the key name, so a gap is visible in
+testing rather than silent.
+
+**8 — FAIL.** Not zero — this is the honest headline of the run. What *was*
+verified: no inline language ternary exists in any converted file (the one
+`appLang === 'sv' ? 'sv-SE' : …` in `langLocale()` is the spec's own Part C
+step 6 pattern and selects a locale code, not a UI string), and no glued
+sentence fragments were introduced — `'Pending ' + name`, `' — ' + counterparty`
+and `ev.label + ' · ' + id` all became whole-sentence keys. What remains: roughly
+2,700 candidate literals across ten view modules and the smaller shared modules.
+
+**9 — PASS.** Asserted in both languages: `{placeholder}` substitution,
+multi-placeholder, Swedish word order differing from English
+(`filtered to Sales` / `filtrerat till Sales`), `_one` at count 1 and `_many` at
+count 2, and that every `_one` key has a matching `_many` in **both** halves.
+
+**10 — PASS.** Asserted from the git diff of the whole build:
+`js/views/portal.js` and `js/views/adviceportal.js` (the deferred counterparty
+surface) do not appear in it at all; no `CREATE TABLE` / `ALTER TABLE` /
+`CREATE INDEX` line changed; and no non-comment line mentioning `jurisdiction`
+or `role_profile` changed anywhere. Language and jurisdiction stay separate: the
+toggle writes one `localStorage` key and nothing else.
+
+**11 — PASS.** `I18N_INVENTORY.md` (written before any code, per phase 0),
+this section, and the BUGLOG entry below.
+
+## Regression
+
+**990 tests, 0 failures**, run after every phase. Three test harnesses —
+`test/dom.js`, `test/world.js`, `test/portalworld.js` — now load `js/i18n.js`
+first, mirroring `js/app.js`. Without that, eight tests failed with
+`t is not defined` the moment `js/core.js` began rendering labels through `t()`.
+
+## Two boundaries held on purpose
+
+**Interface language never becomes record data.** `ROLE_LABEL` stays English
+because it is written into the stored approval record and the audit trail;
+display sites read `role_*` keys instead. The seeded comment and audit entry in
+`createFromTemplate()` stay English for the same reason — baking the creator's
+interface language into a stored record would show a Swedish line to an English
+reader forever after.
+
+**No contract content is translated.** Every AI prompt asks the model to answer
+*about* a document; none asks it to rewrite one, and each language note
+explicitly requires quotations to be reproduced verbatim in the document's own
+language.
+
+## Not seen on a screen
+
+Same caveat as previous runs, and it applies here too: this container cannot
+reach the CDN the app loads its stylesheet from, so nothing was rendered
+visually. The toggle's *behaviour* is asserted programmatically; whether the
+button sits well in the command bar, and whether longer Swedish labels
+(`Team och inställningar`, `Väntar på godkännande`) fit the sidebar and the
+status chips without wrapping or truncation, has **not** been seen and needs a
+human with a browser.
