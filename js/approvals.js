@@ -102,6 +102,33 @@ function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.
 // before a counterparty signer's link goes live.
 function internalAllSigned(c){ const p=signerPlan(c).filter(s=>s.party==='internal'); return p.length===0 || p.every(s=>s.signed); }
 function signersRemaining(c){ return signerPlan(c).filter(s=>!s.signed).length; }
+/* ---- who has actually signed, as against what the seal says ----
+   Sealing is a fact about the DOCUMENT — the wording has stopped moving — and
+   a single-signer route seals on the first signature, correctly. Execution is a
+   fact about the PARTIES, and the two are not the same: a contract can be
+   sealed, frozen and fingerprinted with only one side's mark on it.
+
+   Everything that speaks about the parties — the copy that goes out, the notice
+   that announces it — reads this rather than c.status. The server computes the
+   same thing from the stored record (signedParties) so a stale page cannot talk
+   the server into sending a copy of a half-signed contract.
+
+   A contract with no counterparty named has one side to hear from. One filed as
+   executed outside HaTi carries the paper, which is already both. */
+function executionParties(c){
+  const sigs=Array.isArray(c&&c.signatures)?c.signatures:[];
+  const isTheirs=s=>!!s&&(s.party==='counterparty'||s.party==='external');
+  const theirs=sigs.filter(isTheirs), ours=sigs.filter(s=>s&&!isTheirs(s));
+  const offPlatform=!!(window.isExternallyExecuted&&isExternallyExecuted(c));
+  const expectsCounterparty=!!String((c&&c.counterparty)||'').trim();
+  const nameOf=list=>String((list[0]&&(list[0].name||list[0].email))||'').trim();
+  return { ours:ours.length, theirs:theirs.length,
+    ourName:nameOf(ours)||(window.FIRST_PARTY||'this workspace'),
+    theirName:nameOf(theirs)||String((c&&c.counterparty)||'the counterparty'),
+    fully: offPlatform || (ours.length>0 && (theirs.length>0 || !expectsCounterparty)) };
+}
+const bothPartiesSigned = c => executionParties(c).fully;
+
 // Everyone who should receive the executed copy: unique emails across the plan
 // and the recorded signatures, plus an optional workspace records mailbox.
 function distributionRecipients(c){
@@ -277,4 +304,4 @@ async function loadEngagement(c){
       <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
 }
 
-Object.assign(window,{approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});
+Object.assign(window,{approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});

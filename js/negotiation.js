@@ -667,11 +667,35 @@ function negoBodyFromText(oldBodyHtml, newText){
    an insertion anchored on a clause that is also being deleted still lands in
    the position it was proposed for, rather than falling off the end of the
    document because its anchor evaporated. */
-function negoResolvedBody(c){
+function negoResolvedBody(c){ return negoBuildBody(c, x => x.status === 'accepted'); }
+/* ---------- the document as it would read if everything were agreed ----------
+   THE SAME BUILDER, over the accepted set PLUS the pending one.
+
+   Reading a redline and reading a contract are two different acts, and the room
+   only supported the first. Every screen in it draws what is being asked for —
+   struck-through wording, inserted wording, a fingerprint in the margin — which
+   is exactly right for deciding a change and exactly wrong for the question
+   everybody asks next: what does this actually say if we agree to all of it?
+   Answering it meant accepting every change to see, which is a decision, not a
+   look.
+
+   So this is a READ and nothing else: it builds a document, writes nothing, and
+   the changes stay pending. A refused ask is not in it — silence still rejects,
+   and a rejected change is settled, not outstanding.
+
+   Withdrawn asks are excluded for the same reason: the side that made them has
+   taken them off the table, so a document that assumed them would be assuming
+   agreement to wording nobody is asking for any more. */
+function negoCleanBody(c){
+  return negoBuildBody(c, x => x.status === 'accepted'
+    || (x.status === 'pending' && !x.withdrawn));
+}
+const negoCleanText = c => (window.richToText ? richToText(negoCleanBody(c)) : '');
+function negoBuildBody(c, take){
   negoInit(c);
   let body = negoBaseBody(c);
   if (!window.clauseReplaceBody) return body;
-  const accepted = negoChanges(c).filter(x => x.status === 'accepted')
+  const accepted = negoChanges(c).filter(x => x.status !== 'superseded' && take(x))
     .slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
   for (const ch of accepted){
@@ -909,6 +933,53 @@ function negoPostComment(c, id, text, opts = {}){
 const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash && msg.atHash !== ch.hash);
 /* The topic key a change's thread shares with js/discuss.js. */
 const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
+
+/* ---------- ONE THREAD PER CHANGE, OUT OF TWO STORES ----------
+
+   A comment on a fingerprint has always had two places to live, and each side
+   was reading only one of them.
+
+     ch.thread          — written by negoPostComment, onto the contract record
+                          the screen is reading. The owner's record IS the
+                          contract, so their own comments landed here and stayed.
+     share_messages     — the discussion channel, keyed by topic. The
+                          counterparty's copy of the contract is assembled from
+                          a share payload and thrown away on the next repaint,
+                          so their replies cannot be written to it and go here
+                          instead, under topic `change:<id>`.
+
+   The card rendered ch.thread and nothing else. So the owner asked for input on
+   a change, the counterparty answered, the answer was filed — correctly, and
+   visibly in the discussion panel — and the card that asked the question showed
+   no reply at all. Each side could see its own half of a conversation and
+   neither could see the other's.
+
+   This is the read that puts them back together. It merges, it does not move
+   anything: both stores keep exactly what they held, and the ordering is by
+   time so an exchange reads in the order it happened.
+
+   Identical text from the same side in both stores is ONE message, not two —
+   the owner's comments are written to the thread and posted to the channel, so
+   without this every one of them would appear twice on their own screen. */
+function negoThreadOf(c, ch){
+  const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
+  const all = (c && Array.isArray(c._messages)) ? c._messages : [];
+  if (!ch || !all.length) return own;
+  const topic = negoTopicFor(ch);
+  const key = m => `${m.side || ''}|${String(m.text || '').replace(/\s+/g, ' ').trim()}`;
+  const have = new Set(own.map(key));
+  const extra = [];
+  for (const m of all){
+    if (!m || String(m.topic || '') !== topic) continue;
+    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null };
+    if (have.has(key(one))) continue;
+    have.add(key(one));
+    extra.push(one);
+  }
+  if (!extra.length) return own;
+  return own.concat(extra)
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+}
 
 /* ---------- progress, and the one transition out ---------- */
 function negoProgress(c){
@@ -1224,9 +1295,14 @@ function negoCopilotRecord(c){
    picking anything other than the live pair puts the screen in a read-only
    comparison, and says so. Offering Accept on a difference nobody proposed
    would be inventing a decision. */
+/* The comparison key for "is this the same document?". Whitespace-insensitive,
+   because two snapshots of one wording taken through different paths differ by
+   line breaks and by nothing a reader would call a version. */
+const _negoSameDoc = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+
 function negoVersionOptions(c){
   negoInit(c);
-  const out = [{
+  const baseline = {
     key: 'baseline', kind: 'live',
     /* The prototype's own words for these two panes, kept: "Original Baseline"
        and "Working Version" are what the screen has always called them, and a
@@ -1234,25 +1310,70 @@ function negoVersionOptions(c){
     label: `Original Baseline · round ${negoRound(c)}`,
     sub: 'the wording this round is measured against',
     body: negoBaseBody(c), text: negoBaseText(c),
-  }, {
+  };
+  const working = {
     key: 'working', kind: 'live',
     label: `Working Version · round ${negoRound(c)}`,
     sub: 'proposed redline',
     body: negoResolvedBody(c), text: negoResolvedText(c),
-  }];
-  /* Newest first: the version you want is nearly always a recent one, and a
-     list that makes you scroll past 1 to reach 40 is a list nobody uses. */
+  };
+  /* OLDEST FIRST, top to bottom. The list reads as the sequence the document
+     actually went through — the wording this round started from, then each
+     saved version in the order it was taken, then what is on the table now —
+     rather than the newest-first order it had, which put the original at the
+     bottom of a list whose first entry changed every round, so "which one did
+     we start from" was answered by a different row each time. */
+  const versions = [];
   /* The versions a person is offered to compare against: named snapshots and
      the milestones. The event copies the system keeps for its own baselines are
      not versions of the document and are not listed — see listedVersions. */
-  for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || [])).slice().reverse()){
+  for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || []))){
     const body = v.body != null && String(v.body).trim()
       ? String(v.body)
       : negoRichFromLines(v.text || '');
-    out.push({ key: 'v' + v.n, kind: 'version', n: v.n,
+    versions.push({ key: 'v' + v.n, kind: 'version', n: v.n,
       label: `v${v.n} · ${v.label || 'Saved'}`,
       sub: [v.by, v.at ? String(v.at).slice(0, 10) : null].filter(Boolean).join(' · '),
       body, text: v.text || '' });
+  }
+  return [baseline, ...versions, working];
+}
+
+/* ---- WHAT THE DROPDOWN OFFERS, AND WHY IT IS NOT EVERYTHING ----
+
+   Every milestone the product passes takes a snapshot: the template being
+   applied, each hand-over, each round closing, the send, the signature. All of
+   them are real records and all of them belong in the version history — but a
+   pane selector is not the version history. It asks "which two documents do you
+   want side by side", and two entries holding WORD FOR WORD the same document
+   are not two answers to it.
+
+   That is not hypothetical. A contract opened for the first time offered three
+   choices — Original Baseline, Working Version, and `v1 · Template "WH"` — of
+   which the first and the third were the identical document under two names.
+   One round of negotiation added more of exactly that kind, and the list became
+   something to pick through rather than read.
+
+   So a version is OFFERED only when it says something no entry above it already
+   says. Nothing is renamed, merged or thrown away: negoVersionOptions still
+   returns every one of them, which is what negoVersionByKey resolves against
+   and what the version history panel reads — a key that used to work still
+   works, it simply is not on the menu when a clearer name for the same document
+   already is. */
+function negoVersionChoices(c, keep){
+  const all = negoVersionOptions(c);
+  const wanted = new Set([].concat(keep || []).filter(Boolean));
+  const seen = new Set();
+  const out = [];
+  for (const o of all){
+    const key = _negoSameDoc(o.text || '');
+    /* The live pair is always on the menu — they are the two panes' home
+       position, and a selector you cannot get back to the live round from is
+       the trap the compare bar exists to prevent. So is anything currently
+       selected: a <select> whose own value is missing from its options renders
+       as blank or silently reassigns itself. */
+    if (o.kind === 'live' || wanted.has(o.key) || !key || !seen.has(key)) out.push(o);
+    if (key) seen.add(key);
   }
   return out;
 }
@@ -1613,12 +1734,13 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw,
-  negoPostComment, negoCommentIsStale, negoTopicFor,
+  negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf,
+  negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
-  negoVersionOptions, negoVersionByKey, negoIsLivePair, negoCompareVersions,
+  negoVersionOptions, negoVersionChoices, negoVersionByKey, negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,

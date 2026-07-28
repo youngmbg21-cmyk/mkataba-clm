@@ -2460,10 +2460,48 @@ app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
 });
 
-// Auto-distribution: email a sealed copy of the executed contract to every
-// party for their own records. The platform copy remains the source of truth;
-// this is a convenience copy (link + seal). Idempotency is enforced client-side
-// via c.distribution, but re-sends are allowed (Send again).
+/* ---------- WHO HAS ACTUALLY SIGNED ----------
+   Not the same question as "is the contract sealed", and reading one for the
+   other is how a notice went out saying a contract was "fully signed by all
+   parties" the moment ONE party had put a mark on it. A single-signer route
+   seals and freezes the wording on the first signature — which is correct, the
+   text has to stop moving — but sealing is a fact about the DOCUMENT and
+   execution is a fact about the PARTIES, and the email speaks about the
+   parties.
+
+   Fully executed means both named sides have signed. A contract with no
+   counterparty named has only one side to hear from; one filed as executed
+   outside HaTi carries the paper, which is already both. */
+function signedParties(c) {
+  const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const theirs = sigs.filter(isTheirs);
+  const ours = sigs.filter(s => s && !isTheirs(s));
+  const offPlatform = !!(c && ((c.execution && c.execution.offPlatform) || c.hash === 'MIGRATED'
+    || (c.migration && c.migration.executedOutside)));
+  const expectsCounterparty = !!String((c && c.counterparty) || '').trim();
+  const nameOf = list => String((list[0] && (list[0].name || list[0].email)) || '').trim();
+  return {
+    ours: ours.length, theirs: theirs.length,
+    ourName: nameOf(ours) || 'this workspace',
+    theirName: nameOf(theirs) || String((c && c.counterparty) || 'the counterparty'),
+    counterparty: String((c && c.counterparty) || '').trim(),
+    fully: offPlatform || (ours.length > 0 && (theirs.length > 0 || !expectsCounterparty)),
+  };
+}
+
+/* Distribution: email each party their copy of the executed contract. The
+   platform copy remains the source of truth; this is the convenience copy
+   (link + seal). Idempotency is enforced client-side via c.distribution, but
+   re-sends are allowed (Send again).
+
+   THE COPY GOES OUT ONLY WHEN BOTH PARTIES HAVE SIGNED, and that is the whole
+   point of the split below. A half-executed contract is not a document anybody
+   should be filing as their record of the deal: one side has committed and the
+   other has not, and a sealed copy with a fingerprint on it reads exactly like
+   a finished agreement. So while a signature is outstanding this sends a
+   PROGRESS NOTICE — who has signed, who has not — carrying no seal and no link
+   to the document. The copy itself follows when the last signature lands. */
 app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -2472,21 +2510,34 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
   const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
+  const st = signedParties(c);
+  const who = st.ours && !st.theirs ? st.ourName : st.theirs && !st.ours ? st.theirName : '';
+  const waitingFor = st.theirs ? st.ourName : (st.counterparty || st.theirName);
+  const subject = st.fully
+    ? `Fully executed — "${c.name}"`
+    : `Signed by ${who || 'one party'} — "${c.name}"`;
   const out = [];
   for (const r of recipients) {
     const email = String((r && r.email) || '').trim();
     if (!/.+@.+\..+/.test(email)) { out.push({ name: (r && r.name) || '', email, role: (r && r.role) || '', party: (r && r.party) || '', status: 'failed', at: now() }); continue; }
-    const subject = `Fully executed — "${c.name}"`;
-    const body = `Hello${r.name ? ' ' + r.name : ''},\n\n` +
-      `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
-      `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
-      `Document seal (SHA-256):\n${seal}\n\n` +
-      `Open it in HaTi:\n${appUrl}\n\n` +
-      `This is an automated notice from HaTi CLM.`;
-    const sent = await sendEmail(email, subject, body, `executed copy: ${c.id}`);
+    const body = st.fully
+      ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+        `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
+        `Document seal (SHA-256):\n${seal}\n\n` +
+        `Open it in HaTi:\n${appUrl}\n\n` +
+        `This is an automated notice from HaTi CLM.`
+      : `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `${who || 'One party'} has signed "${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}. ` +
+        `It is NOT yet fully executed — ${waitingFor} has still to sign.\n\n` +
+        `No copy of the contract is attached to this message, and none will be sent until every party has signed. ` +
+        `This is a progress notice only.\n\n` +
+        `This is an automated notice from HaTi CLM.`;
+    const sent = await sendEmail(email, subject, body,
+      st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`);
     out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '', status: sent.sent ? 'delivered' : 'sent', via: sent.provider, at: now() });
   }
-  res.json({ at: now(), recipients: out });
+  res.json({ at: now(), fullyExecuted: st.fully, recipients: out });
 });
 
 // "It's your turn to sign" nudge to the next internal signer on a route.
@@ -3106,37 +3157,29 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
 });
 
-/* A question nobody is told about is a question nobody answers — which would
-   leave the lightweight channel quieter than the heavyweight one it exists to
-   replace. Both directions are notified. */
-function notifyMessage(s, m) {
-  try {
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
-    for (const to of shareOwnerEmails(s))
-      sendEmail(to, `Question on "${cName}"`,
-        `${m.author} wrote about "${cName}":\n\n${m.body}\n\n` +
-        `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-        `Nothing has changed in the contract — they are asking, not proposing. Reply in HaTi.`,
-        'discussion message');
-  } catch (_) {}
-}
-async function notifyCounterpartyMessage(contractId, m) {
-  try {
-    const s = db.prepare(
-      `SELECT * FROM shares WHERE contract_id=? AND revoked_at IS NULL AND recipient_email IS NOT NULL
-        ORDER BY created_at DESC LIMIT 1`).get(contractId);
-    const to = s && String(s.recipient_email || '').trim();
-    if (!to) return { sent: false, to: null };
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || contractId || 'your contract';
-    const r = await sendEmail(to, `Message about "${cName}"`,
-      `${m.author} at ${p.org || 'the sender'} wrote about "${cName}":\n\n${m.body}\n\n` +
-      `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-      `The wording of the contract has not changed. Open your link to reply.`,
-      'discussion message');
-    return { sent: !!(r && r.sent), to };
-  } catch (_) { return { sent: false, to: null }; }
+/* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------
+   Both of these used to send one, in both directions, on every sentence. That
+   made the lightest act in the product — asking a question about a clause —
+   generate as much inbox traffic as returning a redline, and a three-line
+   exchange about payment terms filled six slots in a mailbox with copies of
+   words both parties were already reading on the same screen.
+
+   Nothing is lost by keeping it quiet. A message reaches the owner through
+   /api/messages/waiting, which raises it on the screen they already work in;
+   it reaches the counterparty on the change's own card the next time they open
+   their link, beside the change it is about. Email is reserved for the two
+   things that cannot be seen without opening the app: wording that moved, and
+   a signature.
+
+   Both functions are kept rather than deleted so their callers, their return
+   shapes and the notification surfaces around them stay exactly as they were —
+   what changed is that neither one now posts. */
+function notifyMessage(_s, _m) { /* in-app only — see above */ }
+async function notifyCounterpartyMessage(_contractId, _m) {
+  /* `to: null` and not the recipient's address: the caller turns a non-null
+     `to` into "the email to <them> could not be sent", which would be a
+     failure report about a message that was never meant to go. */
+  return { sent: false, to: null };
 }
 
 /* Refresh a durable link to the current wording. The copy being replaced is
@@ -3315,10 +3358,35 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   res.json({ ok: true });
 });
 
-// Close the loop by email: the sender learns the outcome without opening HaTi,
-// and the counterparty gets a receipt of what they submitted.
+/* ---------- WHICH RESPONSES ARE WORTH AN EMAIL ----------
+   Every response used to send two: one to the sender and one back to the
+   responder as a receipt. Answering three changes over a morning therefore put
+   six messages in two inboxes, most of them saying that something had been
+   recorded which both parties could already see on the contract — and when the
+   two addresses belong to the same person, as they do in a workspace that
+   negotiates with itself, all six land in one inbox.
+
+   An email is now sent for exactly two kinds of event: WORDING MOVED (they
+   proposed something, decided something we proposed, or returned a redline or
+   a value), and THE DEAL ENDED (somebody signed, or declined). Everything else
+   — a readiness signal, an acceptance that changes no words, a receipt for the
+   sender's own act — is visible on the contract and does not need an inbox.
+
+   The receipt is gone entirely. It told the responder what the responder had
+   just done. */
+function responseIsWorthEmail(r) {
+  if (!r) return false;
+  if (r.action === 'sign' || r.action === 'decline') return true;   // the deal ended
+  const moved = (Array.isArray(r.negoDecisions) && r.negoDecisions.length)
+    || (Array.isArray(r.negoProposed) && r.negoProposed.length)
+    || !!r.proposedText || r.proposedValue != null;
+  return !!moved;                                                   // wording moved
+}
+
+// Close the loop by email: the sender learns the outcome without opening HaTi.
 function notifyShareResponse(s, r) {
   try {
+    if (!responseIsWorthEmail(r)) return;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const who = r.name + (r.title ? `, ${r.title}` : '');
@@ -3350,13 +3418,6 @@ function notifyShareResponse(s, r) {
           `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
-    const rcpt = String(r.email || s.recipient_email || '').trim();
-    if (/.+@.+\..+/.test(rcpt)) {
-      const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
-      sendEmail(rcpt, `Your response to "${cName}" was delivered`,
-        `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`,
-        'share receipt');
-    }
   } catch (_) {}
 }
 

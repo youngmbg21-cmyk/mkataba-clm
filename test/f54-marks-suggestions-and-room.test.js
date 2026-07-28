@@ -253,13 +253,21 @@ describe('a version is named, and the bookkeeping is not a version', () => {
     assert.equal(c.versions[before - 1].label, 'Round 1 closed', 'and renamed to why it matters');
   });
 
-  test('the compare dropdown offers the live pair and the milestones, nothing else', async () => {
+  /* The milestone is kept — see the two tests above — and it is not OFFERED,
+     because "Round 1 closed" and "Original Baseline · round 2" are the same
+     document under two names. The selector asks which two documents to read
+     side by side; the version history answers what happened and when. */
+  test('the compare dropdown offers the live pair, and not the same document twice', async () => {
     const { win, c } = await negotiated();
     win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
-    const labels = win.negoVersionOptions(c).map(o => o.label);
-    assert.match(labels[0], /^Original Baseline/);
-    assert.match(labels[1], /^Working Version/);
-    assert.deepEqual(Array.from(labels.slice(2)), ['v1 · Round 1 closed']);
+    assert.deepEqual(Array.from(win.listedVersions(c).map(v => v.label)), ['Round 1 closed'],
+      'the milestone is still on the record');
+    const labels = win.negoVersionChoices(c).map(o => o.label);
+    assert.match(labels[0], /^Original Baseline/, 'the wording the round starts from comes first');
+    assert.match(labels[labels.length - 1], /^Working Version/, 'and what is on the table comes last');
+    assert.equal(labels.length, 2,
+      'the closed round says word for word what the new baseline says — one entry, not two');
+    assert.ok(win.negoVersionByKey(c, 'v1'), 'the key still resolves — nothing was thrown away');
   });
 
   test('the original is kept automatically, because nobody can recreate it', () => {

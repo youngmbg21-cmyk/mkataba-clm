@@ -51,6 +51,13 @@
    about the agreement, and it must never reach storage or the share payload. */
 let _negoActive = null;
 let _negoThreads = {};
+/* Reading the contract instead of reading the redline. A view, never a
+   decision: nothing is accepted, nothing is written, and switching back leaves
+   the round exactly where it was. Module-level for the same reason as the two
+   above — it is where the reader is looking. */
+let _negoClean = false;
+const negoCleanView = () => _negoClean;
+const negoSetCleanView = on => { _negoClean = !!on; return _negoClean; };
 
 const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
 
@@ -351,6 +358,19 @@ function negoStyleHtml(){
   .nego-cmp-tag{flex:none;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
     background:#b8862b;color:#fff;border-radius:4px;padding:2px 7px}
   .nego-cmp-txt{flex:1;min-width:220px;font-size:11.5px;line-height:1.5;color:#7d5a14}
+  /* Clean read is a HYPOTHETICAL, not history — so it is the room's own slate
+     rather than the amber of "you are looking at an old version". Same shape,
+     because it is the same kind of thing: a mode, with its way out in it. */
+  .nego-cmp-bar.clean{border-color:#c9d5e1;background:var(--n-badge-bg);border-left-color:var(--n-slate)}
+  .nego-cmp-bar.clean .nego-cmp-tag{background:var(--n-slate)}
+  .nego-cmp-bar.clean .nego-cmp-txt{color:var(--n-ink)}
+  .nego-cmp-bar.clean .nego-cmp-exit{border-color:var(--n-slate);background:var(--n-slate)}
+  /* The toggle itself, at the end of the working pane's header row. */
+  .nego-clean-btn{margin-left:auto;flex:none;border:1px solid var(--n-slate);background:var(--n-paper);
+    color:var(--n-slate);border-radius:6px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:700;
+    white-space:nowrap;cursor:pointer;transition:background .12s ease,color .12s ease}
+  .nego-clean-btn:hover{background:var(--n-badge-bg)}
+  .nego-clean-btn[aria-pressed="true"]{background:var(--n-slate);color:#fff}
   /* On an amber banner a ghost button is white-on-cream and unreadable — the
      way out of a mode has to be the most legible thing in it. */
   .nego-cmp-exit{flex:none;border:1px solid #7d5a14;background:#7d5a14;color:#fff;border-radius:6px;
@@ -657,6 +677,17 @@ function negoCardsHtml(c, opts){
 function negoLiveCardsHtml(c, opts){
   const side = opts.side || 'owner';
   const canAct = opts.readonly ? false : true;
+  /* DECIDING AND SPEAKING ARE NOT THE SAME PERMISSION, and one flag was
+     answering for both. A read-only copy is one that cannot move the
+     negotiation — a spent one-shot link, an executed contract — and that is
+     right for Accept and Reject. It is wrong for the reply box: a comment
+     opens no round, moves no wording and consumes no link, and the route it
+     travels on says so. So a counterparty who had already sent their decisions
+     found the owner's "what do you think?" on a card with nowhere to answer it.
+
+     The default is unchanged, so any caller that says nothing gets exactly the
+     behaviour it had. A page that knows it still has a channel back says so. */
+  const canComment = opts.canComment != null ? !!opts.canComment : canAct;
   const changes = negoChanges(c).filter(x => x.status !== 'superseded');
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
@@ -672,7 +703,12 @@ function negoLiveCardsHtml(c, opts){
   return changes.map(ch => {
     const active = _negoActive === ch.id;
     const open = _negoThreads[ch.id];
-    const n = (ch.thread || []).length;
+    /* BOTH HALVES OF THE CONVERSATION. The thread written onto the record and
+       the replies filed through the discussion channel are one exchange; see
+       negoThreadOf. Reading only ch.thread is how a card could show the
+       question and not the answer to it. */
+    const msgs = window.negoThreadOf ? negoThreadOf(c, ch) : (ch.thread || []);
+    const n = msgs.length;
     /* A side may decide the OTHER side's proposals. Nobody rules on their own
        ask: it would let one party mark their own wording adopted and tell the
        other it was agreed. They can still discuss it, and withdraw it by
@@ -702,11 +738,11 @@ function negoLiveCardsHtml(c, opts){
     const thread = `
       <div class="nego-thread${open ? ' open' : ''}" id="nego-thread-${_ne(ch.id)}">
         <div class="nego-tlabel">Discussion on #${_ne(ch.id)} — no formal round re-draft</div>
-        ${n ? (ch.thread || []).map(m => (window.discussBubbleHtml
+        ${n ? msgs.map(m => (window.discussBubbleHtml
             ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
             : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')
           : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}
-        ${canAct ? `<div class="nego-compose">
+        ${canComment ? `<div class="nego-compose">
           <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
           <button data-nego-send="${_ne(ch.id)}">Send</button>
         </div>` : ''}
@@ -820,7 +856,14 @@ function negoAfterPaint(c, opts, host){
    IS the state as far as the user is concerned, and a second copy is a second
    thing that can be wrong. */
 function negoPaneSelectHtml(c, which, current){
-  const opts = window.negoVersionOptions ? negoVersionOptions(c) : [];
+  /* The CHOICES, not every record: a version that says word for word what an
+     entry above it already says is not a second answer to "which document".
+     Both panes' current selections are passed in so neither can be dropped out
+     from under a <select> that is showing it — see negoVersionChoices. */
+  const pair = negoComparePair();
+  const opts = window.negoVersionChoices
+    ? negoVersionChoices(c, [pair.left, pair.right, current])
+    : (window.negoVersionOptions ? negoVersionOptions(c) : []);
   return `<select class="nego-vsel" data-nego-vsel="${which}" aria-label="${which === 'left' ? 'Left' : 'Right'} pane version">
     ${opts.map(o => `<option value="${_ne(o.key)}"${o.key === current ? ' selected' : ''}>${_ne(o.label)}</option>`).join('')}
   </select>`;
@@ -858,6 +901,55 @@ function negoCompareDocHtml(c, cmp, whichSide){
     <div class="nego-meta">${_ne([c.id, v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
     ${body || `<p style="color:var(--n-ink-soft)">This version has no wording.</p>`}
   </article>`;
+}
+
+/* ---------- READING THE CONTRACT, NOT THE REDLINE ----------
+   The same two panes with every mark taken off: the left says what the round
+   started from, the right says what it would say if every change on the table
+   were agreed. Struck-through wording is GONE rather than struck; proposed
+   wording is simply there. No badges, no fingerprints, no verbs — this is a
+   document to read, and a decision taken from a screen that looks like a clean
+   contract while the changes are still pending would be a decision taken about
+   something that is not true yet.
+
+   The words come from negoCleanBody, which is the same builder that produces
+   the agreed document when a change is actually accepted. So what this shows is
+   not an approximation of the outcome — it is the outcome. */
+function negoCleanDocHtml(c, whichSide){
+  const left = whichSide === 'left';
+  const body = left ? negoBaseBody(c) : negoCleanBody(c);
+  const clauses = window.clauseSegment ? clauseSegment(body || '') : [];
+  const title = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name)
+    || c.name || 'Contract';
+  const open = negoChanges(c).filter(x => x.status === 'pending' && !x.withdrawn).length;
+  const meta = [c.id,
+    left ? `Round ${negoRound(c)} · the wording as it stands today`
+      : `Round ${negoRound(c)} · as it would read with ${open ? `all ${open} open change${open === 1 ? '' : 's'}` : 'every change'} agreed`,
+  ].filter(Boolean).join(' · ');
+  const rows = clauses.map(cl => {
+    const label = negoClauseLabel(cl);
+    return `<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
+      ${label ? `<h2>${_ne(label)}</h2>` : ''}<p>${_ne(cl.text)}</p></div>`;
+  }).join('');
+  return `<article class="nego-doc">
+    <h1>${_ne(title)}</h1>
+    <div class="nego-meta">${_ne(meta)}</div>
+    ${rows || `<p style="color:var(--n-ink-soft)">This contract has no wording yet.</p>`}
+  </article>`;
+}
+/* The banner for that mode. It says plainly that nothing has been agreed, and
+   carries the way back — a mode you can enter and not leave is a trap. */
+function negoCleanBarHtml(c){
+  if (!_negoClean) return '';
+  if (!negoIsLivePair(negoComparePair().left, negoComparePair().right)) return '';
+  const open = negoChanges(c).filter(x => x.status === 'pending' && !x.withdrawn).length;
+  return `<div class="nego-cmp-bar clean" id="nego-clean-bar" role="status">
+    <span class="nego-cmp-tag">Reading as agreed</span>
+    <span class="nego-cmp-txt">${open
+      ? `Both documents read clean: removed wording is out, proposed wording is in. <b>Nothing has been accepted</b> — ${open} change${open === 1 ? ' is' : 's are'} still open and this is only what the contract would say if ${open === 1 ? 'it were' : 'they were all'} agreed.`
+      : 'Both documents read clean. Every change on the table has already been decided, so this is the wording as it stands.'}</span>
+    <button class="nego-cmp-exit" id="nego-clean-exit">Back to the redline</button>
+  </div>`;
 }
 
 /* The banner that says you are reading history. It carries the way back,
@@ -1159,13 +1251,19 @@ function negoPanesHtml(c, opts = {}){
   const L = negoLayout();
   const pair = negoComparePair();
   const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
+  const comparing = !!(cmp && !cmp.live);
+  /* Comparing two old versions wins over reading clean: a hypothetical outcome
+     of the LIVE round says nothing about a pair of snapshots from before it. */
+  const clean = _negoClean && !comparing;
   return `<div class="nego-work${L.idxOff ? ' idx-off' : ''}" id="nego-work"
       style="--nego-f:${L.f};--nego-c:${L.c}px">
 
     <section class="nego-pane baseline" aria-label="Original baseline, read-only">
-      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'left', pair.left)}<span class="nego-sub">read-only reference</span></div>
-      <div class="nego-scroll" id="nego-scroll-base">${cmp && !cmp.live
+      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'left', pair.left)}<span class="nego-sub">${
+        clean ? 'clean — no marks' : 'read-only reference'}</span></div>
+      <div class="nego-scroll" id="nego-scroll-base">${comparing
         ? negoCompareDocHtml(c, cmp, 'left')
+        : clean ? negoCleanDocHtml(c, 'left')
         : negoDocHtml(c, { ...opts, baseline: true })}</div>
     </section>
 
@@ -1183,12 +1281,29 @@ function negoPanesHtml(c, opts = {}){
              naming the control that performs it. Someone sent a contract to
              negotiate met two verbs, Decline and Ready to sign, and no third
              option. */}
-      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'right', pair.right)}<span class="nego-sub">${cmp && !cmp.live
+      <div class="nego-pane-head">${negoPaneSelectHtml(c, 'right', pair.right)}<span class="nego-sub">${comparing
         ? '— read-only comparison'
+        : clean ? '— as it would read with every change agreed'
         : (canAct && !p.total) ? '— press Change on any clause to ask for different wording'
-        : '— Proposed Redline · fingerprints anchor in the margin'}</span></div>
-      <div class="nego-scroll" id="nego-scroll-work">${cmp && !cmp.live
+        : '— Proposed Redline · fingerprints anchor in the margin'}</span>
+        ${''/* THE QUESTION THE REDLINE CANNOT ANSWER.
+
+               Both panes are marked up — struck-through wording, inserted
+               wording, a fingerprint against each — which is what deciding a
+               change needs and the opposite of what READING the contract
+               needs. "What does this actually say if we agree to all of it"
+               had no answer on this screen short of accepting everything to
+               find out, which is a decision rather than a look. One press,
+               and it is a view: nothing is accepted and nothing is written. */}
+        ${comparing ? '' : `<button class="nego-clean-btn" id="nego-clean-toggle" type="button"
+          aria-pressed="${clean ? 'true' : 'false'}"
+          title="${clean
+            ? 'Put the redline marks back'
+            : 'Read both documents clean — removed wording out, proposed wording in — as if every change were agreed. Nothing is accepted.'}">${
+          clean ? 'Show the redline' : 'Read as agreed'}</button>`}</div>
+      <div class="nego-scroll" id="nego-scroll-work">${comparing
         ? negoCompareDocHtml(c, cmp, 'right')
+        : clean ? negoCleanDocHtml(c, 'right')
         : negoDocHtml(c, { ...opts, baseline: false })}</div>
     </section>
 
@@ -1233,6 +1348,7 @@ function negoTabHtml(c, opts = {}){
     ${negoHeadHtml(c, opts)}
     ${negoTurnBannerHtml(c, opts)}
     ${negoCompareBarHtml(c)}
+    ${negoCleanBarHtml(c)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
       ${negoStatusHtml(c, opts)}
@@ -1427,6 +1543,7 @@ function negoRoomHtml(c, opts = {}){
     </header>
     ${negoRoomBannerHtml(c, opts, ready)}
     ${negoCompareBarHtml(c)}
+    ${negoCleanBarHtml(c)}
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;position:relative">
       ${negoPanesHtml(c, opts)}
     </div>
@@ -1784,6 +1901,15 @@ function wireNegotiationTab(c, opts = {}){
     _negoActive = null;
     again();
   });
+  /* Clean read. A repaint and nothing else — no model call, no persist, no
+     decision — so the round is in exactly the state it was in either way.
+
+     Through `byId`, not host.querySelector('#…'): the counterparty's page
+     mounts this component twice, and a `#id` selector is answered from the
+     document's id map, so scoping it to the room returns null rather than the
+     room's own button. See negoPick. */
+  byId('nego-clean-toggle')?.addEventListener('click', () => { negoSetCleanView(!_negoClean); again(); });
+  byId('nego-clean-exit')?.addEventListener('click', () => { negoSetCleanView(false); again(); });
   /* A comparison row scrolls both panes to the clause, which is the only verb
      this mode has. */
   host.querySelectorAll('[data-nego-cmp-row]').forEach(row => {
@@ -2062,7 +2188,7 @@ function wireNegotiationTab(c, opts = {}){
 
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
-function negoResetView(){ _negoActive = null; _negoThreads = {}; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
@@ -2072,4 +2198,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRoomBannerHtml, negoClosedBannerHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
+  negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

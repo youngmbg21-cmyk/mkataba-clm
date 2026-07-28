@@ -903,6 +903,13 @@ function portalNegoContract(p){
   const c = migrateContract({ ...src, status:'Under Review',
     folder: src.folder || (TEMPLATES[src.template]||{}).folder || 'corp' });
   c.changes = Array.isArray(src.changes) ? src.changes.map(x=>({ ...x, thread:(x.thread||[]).slice() })) : [];
+  /* THE DISCUSSION CHANNEL, on the record the room reads.
+     A reply on a fingerprint cannot be written to this page's copy of the
+     contract — the copy is rebuilt from the payload on every repaint — so it is
+     filed as a message under the change's own topic instead. Handing that list
+     to the component is what lets negoThreadOf show one thread per change
+     rather than the half of it the payload happened to carry. */
+  c._messages = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
   /* baselineBody carries the durable clause ids the changes are anchored on.
      Rebuilding it from the text projection instead would re-segment the
      document and mint FRESH ids on this page, and every fingerprint the owner
@@ -1099,6 +1106,34 @@ function portalNegoFootHtml(p){
     </span>
     ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
 }
+/* A reply on one fingerprint, sent immediately. It is not a response — it
+   changes no wording, opens no round and does not close the link — so it goes
+   down the messages route rather than the respond route, exactly as the
+   discussion panel's replies do. Their name is required for the same reason it
+   is required everywhere else: an unattributed comment on a contract is not
+   worth having.
+
+   ONE HANDLER FOR BOTH MOUNTS. The room and the embedded tab are the same
+   component, and only the room had this — so the reply box on the embedded copy
+   reported "comment posted" and posted it nowhere, onto a record thrown away on
+   the next repaint. */
+const portalNegoComment = p => async (_c, ch, msg) => {
+  if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
+  const author=portalResponderName();
+  if(!author){
+    toast('Enter your full name — the box is at the top of this page','err');
+    try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
+    return;
+  }
+  try{
+    const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
+      { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
+        topicLabel:`Change #${ch&&ch.id}${ch&&ch.clauseLabel?' · '+ch.clauseLabel:''}`,
+        body:msg.text });
+    PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
+    toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
+  }catch(e){ toast(e.message||'Could not send your comment','err'); }
+};
 function wirePortalNego(c, p){
   if(!window.renderNegotiationTab) return;
   if(!document.getElementById('pt-nego')) return;
@@ -1136,6 +1171,8 @@ function wirePortalNego(c, p){
     hostId:'pt-nego',
     side:'counterparty',
     readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
+    // an answered link can still be spoken on — see openPortalNegoRoom
+    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     by:who, author:who,
     /* There is nothing here to save. This page holds a COPY of somebody else's
        contract, assembled from the share payload; persisting it would write that
@@ -1154,6 +1191,7 @@ function wirePortalNego(c, p){
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
+    onComment:portalNegoComment(p),
     onPropose(){ document.getElementById('pt-redline')?.click(); },
   });
   const foot=document.getElementById('pt-nego-foot');
@@ -1194,6 +1232,14 @@ function openPortalNegoRoom(c, p){
     side:'counterparty',
     noExit:isLanding,
     readonly:!live,
+    /* SPEAKING OUTLIVES DECIDING. A one-shot link that has been answered can no
+       longer move the negotiation — correctly — but the message route it would
+       use is still open: a comment consumes no link, opens no round and changes
+       no wording, which is the whole reason that route exists separately. So
+       the reply box on a card stays as long as there is a channel back at all.
+       A superseded copy has none: a newer link was sent and this one's replies
+       would be filed against a conversation nobody is reading. */
+    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     /* Why there are no verbs, in the reader's terms. Each of the three ways a
        copy goes read-only is a different fact about their link, and "no buttons"
        is not one of them. */
@@ -1245,29 +1291,7 @@ function openPortalNegoRoom(c, p){
        reason: a withdrawal that never left the browser is a deadlock the
        reader thinks they have cleared. */
     onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; },
-    /* A reply on one fingerprint, sent immediately. It is not a response — it
-       changes no wording, opens no round and does not close the link — so it
-       goes down the messages route rather than the respond route, exactly as
-       the discussion panel's replies do. Their name is required for the same
-       reason it is required everywhere else: an unattributed comment on a
-       contract is not worth having. */
-    async onComment(_c, ch, msg){
-      if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
-      const author=portalResponderName();
-      if(!author){
-        toast('Enter your full name — the box is at the top of this page','err');
-        try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
-        return;
-      }
-      try{
-        const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
-          { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
-            topicLabel:`Change #${ch&&ch.id}${ch&&ch.clauseLabel?' · '+ch.clauseLabel:''}`,
-            body:msg.text });
-        PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
-        toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
-      }catch(e){ toast(e.message||'Could not send your comment','err'); }
-    },
+    onComment:portalNegoComment(p),
     rerender:reopen,
     onSendDecisions(){ portalRespond(p,'decisions'); },
     /* ONE PRESS, ONE CALL. Readiness carries the decisions with it — see

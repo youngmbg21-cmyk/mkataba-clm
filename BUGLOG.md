@@ -4596,3 +4596,101 @@ screen in every cycle rendered as unstyled text. Wording, controls, behaviour
 and the whole data round-trip were testable and were tested. Spacing, alignment,
 contrast and tap-target size were not, and no score should be read as covering
 them.
+
+---
+
+## Cycle 5 — one negotiation, walked as the customer walks it
+
+Five faults, all reported from a single WH negotiation run end to end, and every
+one of them is a place where a screen or a message said something that was not
+quite true.
+
+**16. The pane selector offered the same document under several names.** A
+contract opened for the first time gave three choices — *Original Baseline*,
+*Working Version*, and `v1 · Template "WH"` — of which the first and the third
+were the identical wording. One round of negotiation added more of exactly that
+kind, so the list became something to pick through rather than read.
+
+Every milestone takes a snapshot, and all of them belong in the version history.
+A pane selector is not the version history: it asks which two DOCUMENTS to read
+side by side, and two entries holding word for word the same document are not
+two answers to that. `negoVersionChoices` now drops a version that says nothing
+an entry above it already says; `negoVersionOptions` still returns every one of
+them, so a key that resolved yesterday resolves today and the history panel is
+untouched. The live pair and anything a pane is currently showing are never
+dropped — a `<select>` whose own value is missing from its options renders
+blank.
+
+The order changed with it. It was the live pair followed by the snapshots
+newest-first, which put the original at the bottom of a list whose first entry
+changed every round; it now reads top to bottom as the sequence the document
+went through — the wording the round is measured against, each saved version in
+the order it was taken, then what is on the table now.
+
+**17. The redline could not be read as a contract.** Both panes are marked up —
+struck-through wording, inserted wording, a fingerprint against each — which is
+what deciding a change needs and the opposite of what reading the agreement
+needs. *"What does this actually say if we agree to all of it"* had no answer
+short of accepting everything to find out, which is a decision rather than a
+look.
+
+**Read as agreed** is one button on the working pane. Both documents go clean:
+removed wording is gone rather than struck, proposed wording is simply there, no
+badges and no verbs. It is built by `negoCleanBody`, the same builder that
+produces the agreed document when a change is really accepted — so it is the
+outcome, not an impression of it. A banner says plainly that nothing has been
+accepted and carries the way back. A refused ask is not assumed, and neither is
+a withdrawn one: silence still rejects.
+
+**18. A card showed half a conversation.** A comment on a fingerprint has two
+stores — `ch.thread` on the contract record, and the discussion channel a
+counterparty's public page has to use, because their copy of the contract is
+rebuilt from the share payload and thrown away on every repaint. Each side
+rendered only the store it wrote to. So the owner asked for input on a change,
+the counterparty answered, the answer was filed correctly — and the card that
+asked the question showed no reply.
+
+`negoThreadOf` merges the two and orders by time; the owner's room now posts its
+comments to the channel as well, so they reach the other side without waiting
+for a link refresh. Identical text from the same side in both stores is one
+message, not two.
+
+Found while doing it: **deciding and speaking were one permission.** A copy that
+can no longer move the negotiation — a spent one-shot link — was also a copy
+that could not answer a question. A comment opens no round, moves no wording and
+consumes no link; `canComment` is now its own question, and the embedded mount
+finally has the `onComment` handler the room always had (without it, the reply
+box on that copy reported "comment posted" and posted it nowhere).
+
+**19. "Fully executed" with one signature on it.** Sealing is a fact about the
+DOCUMENT — the wording has stopped moving, correctly, on the first signature —
+and execution is a fact about the PARTIES. The distribution notice read one for
+the other: it announced a finished agreement to both sides when only one had
+signed, with the seal and a link to the document in it.
+
+`signedParties` (server) and `executionParties` (client) answer the real
+question. Fully executed means both named sides have signed; a contract with no
+counterparty has one side to hear from, and one filed as executed outside HaTi
+carries the paper. Until then the subject names the party that has signed and
+the body names the one outstanding, and it carries **no seal and no link** —
+both parties sign before the contract is shared. Automatic distribution is held
+until the last signature; the panel says so rather than leaving a button that
+never fires.
+
+**20. Six emails for three answers.** Every share response sent two — one to the
+sender, one back to the responder as a receipt — and every discussion message
+sent two more. Where a workspace negotiates through one address, all of them
+land in one inbox, most saying that something had been recorded which both
+parties could already see on the contract.
+
+Email is now reserved for the two things that cannot be seen without opening the
+app: **wording that moved** (a proposal, a decision, a returned redline or
+value) and **the deal ending** (a signature, a decline). The receipt is gone
+outright — it told the responder what the responder had just done. Discussion
+messages are carried in-app: `/api/messages/waiting` raises them on the screen
+the owner already works in, and they reach the counterparty on the change's own
+card.
+
+**1008 tests, 0 failures.** Three tests rewritten where the new behaviour is the
+reverse of the old, with the reason recorded in them; `f55` is new and covers
+the clean read, the merged thread, the execution wording and the email rules.

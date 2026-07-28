@@ -65,27 +65,81 @@ async function mounted(c){
 }
 
 describe('every version the contract carries is selectable', () => {
-  test('the live pair comes first, then the snapshots, newest first', async () => {
+  test('the list reads as a sequence: the original first, what is on the table last', async () => {
     const { win } = buildWorld();
     const c = await withHistory(win);
     const opts = win.negoVersionOptions(c);
 
-    assert.equal(opts[0].key, 'baseline');
-    assert.equal(opts[1].key, 'working');
+    /* THE ORDER IS THE DOCUMENT'S OWN. First the wording this round is
+       measured against, then each saved version in the order it was taken,
+       then what is on the table now. It used to be the live pair followed by
+       the snapshots newest-first, which put the original at the bottom of a
+       list whose first entry changed every round — so "which one is the
+       contract we started from" was answered by a different row each time. */
+    assert.equal(opts[0].key, 'baseline', 'the original the round is measured against comes first');
+    assert.equal(opts[opts.length - 1].key, 'working', 'and what is proposed now comes last');
     assert.match(opts[0].label, /^Original Baseline · round 3/, 'the prototype’s own words are kept');
-    assert.match(opts[1].label, /^Working Version · round 3/);
-    const versions = opts.slice(2);
-    /* Two, not four. captureVersion() deduplicates: a snapshot whose text and
-       canonical form match the previous one is the same version, so the two
-       decisions that moved the document leave a version each and the round
-       closes that moved nothing leave none. That is the absence of version
-       spam, and it is what should be offered here. */
+    assert.match(opts[opts.length - 1].label, /^Working Version · round 3/);
+    const versions = opts.slice(1, -1);
     assert.equal(versions.length, 2, `expected one snapshot per document change, got ${versions.length}`);
     assert.notEqual(versions[0].text, versions[1].text, 'and each one is a different document');
     const ns = versions.map(v => v.n);
-    assert.deepEqual(own(ns), own(ns.slice().sort((a, b) => b - a)),
-      'newest first — a list that makes you scroll past v1 to reach v40 is a list nobody uses');
+    assert.deepEqual(own(ns), own(ns.slice().sort((a, b) => a - b)),
+      'oldest first — the list is read top to bottom as the sequence the document went through');
     for (const v of versions) assert.ok(v.body && v.body.trim(), `v${v.n} must carry a document`);
+  });
+
+  /* WHAT IS NOT OFFERED, and why that is the point.
+
+     Every milestone takes a snapshot — the template applied, each hand-over,
+     each round closing, the signature — and all of them belong in the version
+     history. A pane selector is not the version history: it asks which two
+     DOCUMENTS to put side by side, and two entries holding word-for-word the
+     same document are not two answers to that.
+
+     A contract opened for the first time offered three choices, of which the
+     first and the third were the identical wording under two names. */
+  test('a version that says exactly what the live pair says is not offered twice', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    win.captureVersion(c, 'Template “Warehousing & Distribution”', 'Wanjiru Kamau');
+
+    assert.ok(win.listedVersions(c).length >= 1, 'the version history still records it');
+    assert.ok(win.negoVersionByKey(c, 'v1'), 'and the key still resolves to that document');
+    assert.deepEqual(own(win.negoVersionChoices(c).map(o => o.key)), ['baseline', 'working'],
+      'a freshly opened contract offers the original and the working copy, and nothing else');
+  });
+
+  test('a version that says something different is offered', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    win.captureVersion(c, 'Template “Warehousing & Distribution”', 'Wanjiru Kamau');
+    const cl = win.negoClauseList(c).find(x => x.num === '4');
+    const ch = await win.negoEditClause(c, cl.clauseId, `<p>${F.PROTO_ASKS['4'].text}</p>`,
+      { side: 'counterparty', author: 'Erik Lindqvist', summary: 'Net-45' });
+    win.negoResolve(c, ch.id, 'accepted', { by: 'Wanjiru Kamau' });
+    win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
+
+    const keys = win.negoVersionChoices(c).map(o => o.key);
+    assert.equal(keys[0], 'baseline');
+    assert.equal(keys[keys.length - 1], 'working');
+    assert.ok(keys.includes('v1'),
+      'the wording before the round is a different document, so it stays on the list');
+  });
+
+  /* A selection cannot be dropped out from under the pane showing it: a
+     <select> whose own value is missing from its options renders as blank. */
+  test('a version being shown stays on the menu even when it duplicates the pair', async () => {
+    const { win } = buildWorld();
+    const c = contract();
+    win.negoInit(c);
+    win.captureVersion(c, 'Template “Warehousing & Distribution”', 'Wanjiru Kamau');
+    const keys = win.negoVersionChoices(c, ['v1']).map(o => o.key);
+    assert.ok(keys.includes('v1'), 'the pane is showing it, so it is on the list');
+    assert.ok(keys.includes('baseline') && keys.includes('working'),
+      'and the live pair is always reachable — a mode you cannot leave is a trap');
   });
 
   test('a plain-text snapshot is lifted so it can still be compared', () => {

@@ -2030,6 +2030,19 @@ function wireWsTabs(c){
    parties. */
 function openNegotiationOwnerRoom(c){
   if(!window.openNegotiationRoom) return;
+  /* THE OTHER SIDE OF EVERY THREAD, fetched before the cards are drawn.
+     A counterparty's reply on a fingerprint is filed in the discussion channel
+     — it cannot be written to our contract record from a public page — so a
+     room that read only c.changes[].thread showed the owner their own question
+     with no answer under it. negoThreadOf merges the two stores; this is what
+     puts the second one within its reach. Fire-and-forget: the room opens
+     immediately either way and repaints when the replies land. */
+  if(API_MODE()&&!Array.isArray(c._messages)){
+    api('contracts/'+c.id+'/messages')
+      .then(r=>{ c._messages=(r&&r.messages)||[];
+        if(window.negoRoomIsOpen&&negoRoomIsOpen()) openNegotiationOwnerRoom(c); })
+      .catch(()=>{ c._messages=c._messages||[]; });
+  }
   openNegotiationRoom(c, {
     side:'owner',
     org:window.FIRST_PARTY,
@@ -2038,6 +2051,26 @@ function openNegotiationOwnerRoom(c){
     author:currentUser()?.name,
     shares:(window.cachedShares?cachedShares(c):[]),
     onChange(){ persist(c); },
+    /* A comment on a fingerprint has to LEAVE THE BUILDING. negoPostComment
+       writes it onto our record, which is what the owner's card reads — and
+       for a long time was the whole of it, so a question asked here reached
+       the counterparty only if the share link happened to be refreshed
+       afterwards. It goes down the discussion channel as well, under the
+       change's own topic, which is the store their page reads. Same message,
+       both stores, one thread on each side's card. */
+    async onComment(_c, ch, msg){
+      if(!API_MODE()||!ch) return;
+      try{
+        const res=await api('contracts/'+c.id+'/messages','POST',{
+          topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+ch.id),
+          topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}`,
+          body:msg.text });
+        c._messages=(res&&res.messages)||c._messages||[];
+        toast(`Comment posted on #${ch.id} — ${c.counterparty||'the counterparty'} sees it on the same change. The contract is unchanged.`);
+      }catch(e){
+        toast(`Saved on the change, but it could not be sent to ${c.counterparty||'the counterparty'}: ${e.message||'the message channel is unavailable'}`,'err');
+      }
+    },
     onPropose(){ openNegoProposeModal(c); },
     /* Leaving puts the workspace back the way it was, and repaints it — a
        decision taken in the room has to be visible on the Docs page the reader
@@ -2837,7 +2870,8 @@ function renderSignButton(c){
       ${distributionPanelHtml(c)}`;
     document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
     document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
-    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c); });
+    // pressed deliberately, so it goes now — see distributeExecuted's `force`
+    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c,{force:true}); });
     return;
   }
   if(!canEdit()){
@@ -3107,9 +3141,22 @@ async function finalizeExecution(c, opts={}){
   distributeExecuted(c);                 // email a sealed copy to every party
 }
 
-/* Auto-distribute the executed copy to every party (§ auto-distribution). */
-async function distributeExecuted(c){
+/* Auto-distribute the executed copy to every party (§ auto-distribution).
+
+   HELD UNTIL EVERY PARTY HAS SIGNED, and that is not the same test as "the
+   contract is sealed". Sealing happens on the first signature so the wording
+   stops moving; a copy sent at that moment is a document with one signature on
+   it, sealed and fingerprinted, arriving in the other side's inbox reading
+   exactly like a finished agreement. Nobody should be filing that as their
+   record of the deal.
+
+   `opts.force` is the owner pressing the button in the signature panel with
+   their eyes open. It still does not send a half-signed COPY — the server
+   answers a part-signed contract with a progress notice carrying no seal and no
+   link — it only says the notice may go now rather than waiting. */
+async function distributeExecuted(c, opts={}){
   if(c.distribution && c.distribution.at) return;                 // send once
+  if(!opts.force && window.bothPartiesSigned && !bothPartiesSigned(c)) return;
   const recipients=(typeof distributionRecipients==='function')?distributionRecipients(c):[];
   if(!recipients.length){ return; }
   if(API_MODE()){
@@ -3123,7 +3170,10 @@ async function distributeExecuted(c){
   } else {
     c.distribution={ at:nowISO(), triggeredBy:'manual', recipients:recipients.map(r=>({...r,status:'mailto'})) };
   }
-  logAudit(c,'Distributed',`Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`);
+  const fully=!window.bothPartiesSigned||bothPartiesSigned(c);
+  logAudit(c,'Distributed',fully
+    ? `Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`
+    : `Part-signed progress notice ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s) — no copy and no seal were sent, because not every party has signed`);
   persist(c); renderSignButton(c);
 }
 
@@ -3138,12 +3188,20 @@ function distributionPanelHtml(c){
   const d=c.distribution;
   const dot=st=>['delivered','queued','sent'].includes(st)?'#2e8763':['failed','bounced'].includes(st)?'#b0453c':'#8a8f95';
   const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
+  /* WHY NOTHING HAS GONE OUT YET, said before anyone has to wonder. The copy is
+     held until every party has signed; a panel that simply showed the button
+     and never fired it would read as a broken feature rather than a rule. */
+  const ex=(typeof executionParties==='function')?executionParties(c):{fully:true};
   if(!d){
     if(!canEdit()) return '';
     return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
       <div class="text-[11px] font-600 text-ink mb-1">Distribute copies</div>
-      <div class="text-[10.5px] text-ink/60 mb-2">Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.</div>
-      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg bg-brand-900 text-white py-2 text-[11.5px] font-600 hover:bg-brand-800">${icon('share','w-3.5 h-3.5')} Send signed copies to all parties</button>
+      <div class="text-[10.5px] text-ink/60 mb-2">${ex.fully
+        ? 'Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.'
+        : `Held: only <b>${(ex.ourName||'one party').replace(/</g,'&lt;')}</b> has signed, so the copy is not going out. Both parties have to sign before the contract is shared. Sending now delivers a progress notice — who has signed, who has not — with no copy and no seal in it.`}</div>
+      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg ${ex.fully?'bg-brand-900 text-white hover:bg-brand-800':'border border-line text-brand-700 hover:bg-brand-50'} py-2 text-[11.5px] font-600">${icon('share','w-3.5 h-3.5')} ${ex.fully
+        ? 'Send signed copies to all parties'
+        : 'Send a progress notice to all parties'}</button>
     </div>`;
   }
   const rows=(d.recipients||[]).map(r=>`<div class="flex items-center gap-2 py-1 text-[11px]">
