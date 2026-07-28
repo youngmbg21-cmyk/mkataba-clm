@@ -72,8 +72,8 @@ function commandMeta(view){
       // agreements, not files: a master agreement plus six addenda is ONE
       const fam=(window.familyCounts?familyCounts(cs):{agreements:count,documents:count,amendments:0});
       const head=fam.amendments
-        ? tn('cmd_head_agreements', fam.agreements, { agreements:fam.agreements.toLocaleString('en-KE'), documents:fam.documents.toLocaleString('en-KE') })
-        : tn('cmd_head_managed', count, { count:count.toLocaleString('en-KE') });
+        ? tn('cmd_head_agreements', fam.agreements, { agreements:fam.agreements.toLocaleString(langLocale('en-KE')), documents:fam.documents.toLocaleString(langLocale('en-KE')) })
+        : tn('cmd_head_managed', count, { count:count.toLocaleString(langLocale('en-KE')) });
       return [t('cmd_title_portfolio'), t('cmd_sub_portfolio',{ head, value:totalV })];
     }
     case 'register':  return [t('cmd_title_register'),  t('cmd_sub_register')];
@@ -122,7 +122,7 @@ function updateSidebarCounts(){
   };
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
-    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
+    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(langLocale('en-KE'));
   });
 }
 

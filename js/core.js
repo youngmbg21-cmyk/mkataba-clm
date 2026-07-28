@@ -121,8 +121,23 @@ const uploadTooBigMsg = f => `“${f.name}” is ${(f.size/1048576).toFixed(1)} 
 const EXTRACT_MAX_CHARS = 200000;
 
 /* ============================================================ HELPERS */
-const fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
-const fmtKESshort = n => { n=Number(n||0); if(n>=1e6) return 'KES '+(n/1e6).toFixed(2).replace(/\.00$/,'')+'M'; if(n>=1e3) return 'KES '+(n/1e3).toFixed(0)+'K'; return 'KES '+n; };
+/* Money in the APPLICATION CHROME — register cells, dashboard tiles, the
+   pipeline board. Swedish mode groups the Swedish way (1 234 567) and uses a
+   decimal comma; English mode keeps en-KE exactly as before, because this
+   build changes what a Swedish reader sees, not what an English reader
+   already sees.
+
+   The currency stays KES in both. A currency is a property of the money, not
+   of the reader's language.
+
+   Nothing here touches storage: the number in SQLite is a plain number and
+   stays one. See fmtDocAmount() below for the deliberate exception. */
+const fmtKES = n => 'KES ' + Number(n||0).toLocaleString(langLocale('en-KE'));
+const fmtKESshort = n => { n=Number(n||0);
+  const num=(v,d)=>v.toLocaleString(langLocale('en-KE'),{minimumFractionDigits:0,maximumFractionDigits:d});
+  if(n>=1e6) return 'KES '+num(n/1e6,2)+'M';
+  if(n>=1e3) return 'KES '+num(n/1e3,0)+'K';
+  return 'KES '+n; };
 
 /* ---- the one setting everything quiet depends on ----
    Without a mail provider a workspace cannot deliver an invitation, an update
@@ -181,6 +196,12 @@ function fmtDocAmount(v){
   const s = String(v==null?'':v).trim();
   if(!/^-?\d+(\.\d+)?$/.test(s)) return null;
   const n = Number(s);
+  /* DELIBERATELY not locale-switched. This formats an amount inside the
+     CONTRACT DOCUMENT itself, which is the thing that gets read, exported,
+     signed and hashed. Re-grouping 5,000,000 as 5 000 000 because the reader
+     changed their interface language would alter the document's own text —
+     and with it the canonical string the execution seal is computed over.
+     The interface language must never change contract content. */
   return Number.isFinite(n) ? n.toLocaleString('en-KE') : null;
 }
 /* The text that replaces one fill-in field. Money is marked in the document
@@ -908,7 +929,7 @@ async function refreshAiUsage(){
     const a=u.allowance;
     txt.textContent = a&&a.open
       ? `Onboarding allowance: $${Number(a.spent||0).toFixed(2)}${a.budget>0?' / $'+Number(a.budget).toFixed(2):''}`
-      : `Copilot today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString('en-KE')} req`;
+      : `Copilot today: $${spent.toFixed(2)}${budget>0?' / $'+budget.toFixed(2):''} · ${Number(u.count||0).toLocaleString(langLocale('en-KE'))} req`;
     box.style.display='flex';
   }catch(e){ box.style.display='none'; }
 }
