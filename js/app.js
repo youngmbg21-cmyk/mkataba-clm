@@ -145,6 +145,10 @@ function setView(view){
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+  /* Opening a contract that is out with the other side is the moment to start
+     watching closely, and leaving it is the moment to stop. */
+  if(window.schedulePolling) schedulePolling();
+  if(view==='workspace' && window.pollNow) pollNow('opened a contract');
   const sc=document.getElementById('content-scroll'); if(sc) sc.scrollTo({top:0});
 }
 function openFolder(fid){

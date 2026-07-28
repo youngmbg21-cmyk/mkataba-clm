@@ -4514,3 +4514,85 @@ Unchanged from cycle 2, and the reason the score is 9 rather than 10:
   every id;
 - the contract reads "Drafting" throughout the negotiation;
 - **layout was never verified** — no stylesheet in this container.
+
+### Cycle 4 — the four I had listed and not fixed
+
+Called out in review: three of the four items I had been citing as reasons for
+the score were things I had chosen not to fix, not things I could not. Fixed.
+
+**12. The contract called itself "Drafting" through the whole negotiation.**
+The status only ever moved on the internal "Send for review" button, which
+nobody presses once there is a counterparty to send to. Sending it outside the
+building IS the transition. Draft → Under Review now happens on the send, with
+the chip AND the bar repainted — updating the status without repainting the bar
+left it offering to do the thing that had just been done, the same stale-bar
+fault as after signing.
+
+**And the bar then invited her to SIGN a draft she had just sent out to
+negotiate.** Found by re-walking rather than by reading: with the status finally
+moving, the "Under Review" branch fell straight through to "Approved — confirm
+intent and sign below" on a contract that had gone out ten seconds earlier for
+the other side to argue with. Two causes, both fixed: `negoHandOver` is now
+called on a negotiation send (it was only ever called by the room's own send, so
+a share from the toolbar left the record saying it was still our turn), and
+`wsNextAction` answers "it is with them" or "your turn" before it answers
+anything about signing.
+
+**13. Five overlapping verbs on the counterparty's signing page.** Approve &
+sign · Accept the wording (without signing) · Propose edits (redline) · Request
+changes · Decline — rendered as equals, three of them the same sentence in a
+first-time reader's head, and every one named after what the system does rather
+than what the person does. The link already states its purpose, and on a signing
+link the answer is: sign. So that is the button. The other four keep their ids,
+handlers and behaviour behind one line — "Not ready to sign?" — each relabelled
+as an act with a sentence saying what it does:
+
+    Change the wording yourself      — edit the clauses; they accept or reject each one
+    Tell them what you want changed  — describe it; the wording stays as it is
+    Agree to the wording — but don't sign yet
+    Decline this contract            — ends it; you will be asked why
+
+**14. Two copies of the negotiation on the counterparty's page.** The room and
+a hidden embedded mount underneath it, duplicating every id the room uses:
+`#nego-cards`, `#nego-count`, `#nego-progress`, `#nego-send-decisions`. Anything
+reaching by id found the hidden one, because it comes first.
+
+Not theoretical. `portalRespond` picks the button it reports progress on with
+`getElementById('nego-send-decisions')` — so "Sending…" and "sent" were written
+onto an invisible copy while the button the reader was looking at said nothing.
+
+The mount was being kept because a parity test read it. That is a bad reason to
+ship a duplicated id. The embedded mount is now skipped exactly when the room is
+the page; the host element stays, and on a signing link — where the room is a
+mode entered from the page rather than the page itself — the embedded copy is
+still the only mount and still renders. `f37` now diffs whichever copy is live,
+which is a better test than one that read a screen nobody sees; `f51`'s
+"prove the duplicate loses" case became "prove there is no duplicate".
+
+Found while doing it: a whole-page render is a fresh arrival, so `_ptRoomOpened`
+has to reset with it — left set, a link refreshed in place kept the reader
+looking at the room built from the copy before it.
+
+**15. Nothing on the owner's screen updated itself.** One fixed 45-second beat
+treated every situation alike, so someone sitting on the contract they had just
+sent out — the one case where the wait IS the experience — watched a screen that
+could be three quarters of a minute stale. Two cheap corrections, no new
+infrastructure: poll every 12 seconds instead of 45 while the open contract is
+with the other side, and poll on tab focus, rate-limited so alt-tabbing cannot
+hammer the server.
+
+**Verified live, with the owner's tab never reloaded:** Erik proposes a change
+and sends it; her screen goes from *"It is with Nordfrakt AB. Nothing needs you
+until they answer"* to *"Nordfrakt AB is waiting on you — 1 change to decide"*
+**17 seconds later, with no reload.**
+
+**990 tests, 0 failures.** Two tests rewritten with the reason recorded in them.
+
+### What is left after cycle 4
+
+One thing, and it is not fixable from here: **the layout has never been seen.**
+This container cannot reach the stylesheet the app loads from a CDN, so every
+screen in every cycle rendered as unstyled text. Wording, controls, behaviour
+and the whole data round-trip were testable and were tested. Spacing, alignment,
+contrast and tap-target size were not, and no score should be read as covering
+them.

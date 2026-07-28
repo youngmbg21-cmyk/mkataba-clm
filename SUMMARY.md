@@ -3094,3 +3094,52 @@ names; and the contract calls itself "Drafting" through an entire negotiation.
 On top of that, **the layout has never been checked** — this machine cannot
 download the app's stylesheet, so every screen was tested unstyled. A ten would
 mean someone had looked at it properly on a real screen. Nobody has.
+
+## Update — the four open items are now closed
+
+Fair challenge: three of the four things I had been listing as reasons for the
+score were things I *chose* not to fix, not things I couldn't. All four are
+done, and each was re-checked in a live browser.
+
+**The contract no longer calls itself "Drafting" all the way through.** Sending
+it to the other side is what moves it to "In Review" — that is the moment it
+stops being a draft. Re-walking this immediately caught something worse hiding
+behind it: once the status moved, the page started offering Wanjiru a **Sign**
+button on a contract she had sent out ten seconds earlier for the buyer to argue
+with. Her page now says *"It is with Nordfrakt AB. Nothing needs you until they
+answer"*, and switches to *"Nordfrakt AB is waiting on you"* when they do.
+
+**Erik's signing page now asks one question.** It was five buttons that all
+sounded alike. It is now one — **Sign this contract** — with a single line
+underneath, *"Not ready to sign?"*, that opens the other four. Each of those is
+renamed to describe what he is doing rather than what the software calls it:
+*Change the wording yourself*, *Tell them what you want changed*, *Agree to the
+wording but don't sign yet*, *Decline this contract* — each with one sentence
+saying what happens.
+
+**The duplicate hidden screen is gone.** Erik's page was building the whole
+negotiation twice, one copy invisible behind the other, and both copies used the
+same internal names for the same parts. This was causing a real fault: when he
+pressed Send, the word "Sending…" was being written onto the invisible copy
+while the button he was looking at said nothing. There is now one copy. It was
+being kept only because a test read it; the test now reads the copy a person can
+actually see, which is a better test.
+
+**Her screen keeps up on its own now.** It used to check for news every 45
+seconds regardless. It now checks every 12 seconds while she is looking at a
+contract that is out with the other side, and immediately when she returns to
+the browser tab. Measured: Erik sends a proposed change, and her page updates
+itself **17 seconds later without her touching anything**.
+
+**990 tests, 0 failures.** Two tests were rewritten, with the reason written
+into them.
+
+## What is left
+
+One thing, and I cannot fix it from here: **nobody has seen any of this on a
+properly styled screen.** The app downloads the file that gives it its colours,
+spacing and button sizes from the internet, and this machine has no access to
+it. Every screen in every cycle came up as plain text. So I can tell you the
+steps work — I have driven them end to end, twice over — but not that they
+*look* right, are readable, or are usable on a phone. Someone needs to open it
+on a normal computer and look.

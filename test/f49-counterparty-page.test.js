@@ -308,11 +308,26 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     assert.ok(v.$('#nego-room #nego-exit'), 'and it can be left, because there is a page behind it');
   });
 
-  test('the signing verbs are on the page', async () => {
+  test('the signing verbs are on the page — one act, the rest behind a door', async () => {
+    /* There were five, rendered as equals: Approve & sign, Accept the wording
+       (without signing), Propose edits (redline), Request changes, Decline.
+       Three of them are the same sentence in a first-time reader's head, and
+       every one was named after what the system does rather than what the
+       person does. The link already knows it is for signing, so that is the
+       button; the other four keep their ids and their behaviour behind one
+       line of plain English, each relabelled as an act. */
     const v = theirPage(contract(), { purpose: 'sign' });
     const t = v.text();
-    for (const verb of ['Approve & sign', 'Accept the wording', 'Decline'])
-      assert.ok(t.includes(verb), `"${verb}" must be available on a signing link`);
+    assert.ok(t.includes('Sign this contract'), 'the one act the link is for');
+    assert.ok(t.includes('Not ready to sign?'), 'and a way to the alternatives');
+    const others = v.$('#pt-other');
+    assert.ok(others, 'the alternatives are on the page');
+    assert.ok(others.className.includes('hidden'), 'but not competing with the signature');
+    for (const id of ['pt-accept', 'pt-redline', 'pt-changes', 'pt-decline'])
+      assert.ok(v.$('#' + id), `${id} must still exist and still work`);
+    for (const label of ['Change the wording yourself', 'Tell them what you want changed',
+                         'Decline this contract'])
+      assert.ok(others.textContent.includes(label), `"${label}" names the act, not the mechanism`);
   });
 
   /* The fallback, kept because links created before purposes existed are still

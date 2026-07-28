@@ -1102,6 +1102,35 @@ function portalNegoFootHtml(p){
 function wirePortalNego(c, p){
   if(!window.renderNegotiationTab) return;
   if(!document.getElementById('pt-nego')) return;
+  /* ONE COPY OF THE NEGOTIATION ON THE PAGE, NOT TWO.
+
+     On a negotiation link the room opens over this page and IS the screen. This
+     embedded mount was still being rendered underneath it — hidden, but in the
+     document — which put a second element on the page for every id the room
+     uses: #nego-cards, #nego-count, #nego-progress, #nego-send-decisions and
+     the rest. Anything reaching by id (document.getElementById, fval) found the
+     HIDDEN one, because it comes first.
+
+     That is not theoretical. portalRespond picks the button to report progress
+     on with getElementById('nego-send-decisions') — so "Sending…" and "sent"
+     were being written onto an invisible copy while the button the reader was
+     looking at said nothing. It also cost a long stretch of this session's
+     debugging, because half the clicks in a scripted walk-through were landing
+     on the copy nobody can see. A duplicated id is a fault waiting for the next
+     person.
+
+     So the embedded mount is skipped exactly when the room is the page. The
+     host element stays — other code and the parity test look for it — and on a
+     SIGNING link, where the room is a mode entered from this page rather than
+     the page itself, the embedded copy is still the only mount and still
+     renders. */
+  if(portalNegoPhase(p).phase==='negotiate' && window.openNegotiationRoom){
+    document.getElementById('pt-nego').innerHTML='';
+    const foot0=document.getElementById('pt-nego-foot');
+    if(foot0){ foot0.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
+    if(!_ptRoomOpened){ _ptRoomOpened=true; openPortalNegoRoom(c,p); }
+    return;
+  }
   const who=portalResponderLabel(c);
   renderNegotiationTab(c, {
     hostId:'pt-nego',
@@ -1130,21 +1159,9 @@ function wirePortalNego(c, p){
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
   document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalNegoRoom(c,p));
-
-  /* THE LINK OPENS ON THE NEGOTIATION.
-
-     It used to open on a card with a preview squeezed into it and a button
-     marked "Open the negotiation room". That made the thing they were sent
-     something they had to go and find, in a panel a third of the size the
-     owner reads it at. While changes are outstanding the room IS the page.
-
-     Once, on the first paint. Leaving the room drops them onto the page
-     underneath — the banners, the name field, the signing route — and it must
-     not snap shut behind them again. */
-  if(!_ptRoomOpened && portalNegoPhase(p).phase==='negotiate' && window.openNegotiationRoom){
-    _ptRoomOpened=true;
-    openPortalNegoRoom(c,p);
-  }
+  /* Opening the room on a negotiation link is handled at the top, where the
+     embedded mount is skipped — the two decisions are the same decision and
+     were drifting apart when they lived in two places. */
 }
 /* Whether the room has already been offered on this page load. A page-level
    latch rather than a room-level one, because the room legitimately re-renders
@@ -1306,6 +1323,15 @@ async function portalEntry(encoded){
 }
 function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  /* A WHOLE-PAGE RENDER IS A FRESH ARRIVAL, so the room opens again with it.
+
+     `_ptRoomOpened` stops the room snapping shut and re-opening every time the
+     component repaints — necessary, because a reader who steps out of the room
+     on a signing link must be able to stay out. But it is a page-level latch,
+     and this is a new page: the link has been refreshed in place with newer
+     wording and newer statuses. Left set, the reader kept looking at the room
+     built from the copy before it. */
+  _ptRoomOpened=false;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
   // Is there actually a document to render? Three ways there can be:
@@ -1403,16 +1429,40 @@ function renderSharePortal(p, opts={}){
         <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" style="${TA}"></textarea></label>
         ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Propose a different value (optional, for change requests)</span>
         <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" style="${TA}min-height:36px;"/></label>`:''}
+        ${''/* ONE ACT, THEN THE OTHERS BEHIND A DOOR.
+
+               Five buttons used to sit here as equals: Approve & sign, Accept
+               the wording (without signing), Propose edits (redline), Request
+               changes, Decline. Three of them overlap in a first-time reader's
+               head — "request changes" and "propose edits" are the same
+               sentence in English — and every one of them was named after what
+               the SYSTEM does rather than what the PERSON does. A procurement
+               manager who signs forty contracts a year can work it out. A
+               caterer opening her first one cannot, and this is the screen
+               where getting it wrong is most expensive.
+
+               The link already knows what it is for (see the purpose picker on
+               the sender's side), and on a signing link the answer is: sign.
+               So that is the button. The other four keep their ids, their
+               handlers and their behaviour — they move behind one line of
+               plain English, and each is relabelled to describe the act rather
+               than the mechanism. */}
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:13px;">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
-          <!-- B: agreeing to the wording and executing the contract are two
-               different acts. Until now the only way to say the first was to do
-               the second. -->
-          <button id="pt-accept" class="ui-btn" style="width:100%;padding:8px;font-size:12px;">${icon('check2','w-3.5 h-3.5')} Accept the wording (without signing)</button>
-          <button id="pt-redline" class="ui-btn" style="width:100%;padding:8px;font-size:12px;">${icon('history','w-3.5 h-3.5')} Propose edits (redline)</button>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button id="pt-changes" class="ui-btn" style="padding:8px;font-size:12px;">Request changes</button>
-            <button id="pt-decline" class="ui-btn" style="padding:8px;font-size:12px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline</button>
+          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} Sign this contract</button>
+          <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
+            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">Not ready to sign?</button>
+          <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
+            ${[['pt-redline','history','Change the wording yourself','Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.'],
+               ['pt-changes','alert','Tell them what you want changed','Describe it in the comment box above. The wording stays as it is for now.'],
+               ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
+              .map(([id,ic,label,why])=>`<div>
+                <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
+                <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${why}</span>
+              </div>`).join('')}
+            <div style="border-top:1px solid var(--color-divider);padding-top:9px">
+              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline this contract</button>
+              <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">Ends the deal. You will be asked why, and they will be told.</span>
+            </div>
           </div>
         </div>
         <div id="portal-result" style="margin-top:16px;"></div>
@@ -1420,6 +1470,14 @@ function renderSharePortal(p, opts={}){
     </div>
   </div>
   <style>.portal-grid{grid-template-columns:1fr;}@media(min-width:1024px){.portal-grid{grid-template-columns:1fr 360px;}.portal-aside{position:sticky;top:24px;}}</style>`;
+  /* The door to the other four. It opens in place and stays open — somebody who
+     has decided they are not signing today should not have to find it twice. */
+  document.getElementById('pt-other-toggle')?.addEventListener('click',e=>{
+    const box=document.getElementById('pt-other');
+    const open=box.classList.toggle('hidden')===false;
+    e.currentTarget.setAttribute('aria-expanded',open?'true':'false');
+    e.currentTarget.textContent=open?'Hide the other options':'Not ready to sign?';
+  });
   document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));

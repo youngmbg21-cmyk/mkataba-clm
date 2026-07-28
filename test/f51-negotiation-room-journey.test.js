@@ -247,11 +247,20 @@ describe('they work through the changes', () => {
      document.getElementById, which returns the FIRST match in the document:
      always the hidden one. So on their page the room's bulk verbs, index fold,
      drawer and per-change reply boxes had no handlers on them at all. */
-  test('the room\'s own bulk verbs are wired to the room, not to the copy underneath', async () => {
+  test('there is only ONE copy of the negotiation on the page, and the verbs reach it', async () => {
+    /* This used to assert there were TWO — the room, and a hidden embedded
+       mount underneath it — and then prove that a press reached the visible
+       one. The right answer was never "make sure the duplicate loses"; it was
+       to stop rendering the duplicate. Two copies meant two elements for every
+       id the room uses, and portalRespond picked the button it reports
+       progress on with getElementById — so "Sending…" was being written onto a
+       copy nobody could see. On a negotiation link the room IS the page, so
+       the embedded mount is skipped and every id is unique again. */
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 2,
-      'the fixture must really have two copies, or this proves nothing');
+    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 1,
+      'exactly one negotiation on the page');
+    assert.equal(v.$$('[id="nego-cards"]').length, 1, 'and one change index');
     await v.press('#nego-bulk-acc');
     assert.match(v.$('#nego-send-decisions').textContent,
       new RegExp(`Send ${filed.length} decisions`), 'the press must reach the room');

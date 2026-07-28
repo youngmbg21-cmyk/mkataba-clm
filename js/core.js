@@ -814,7 +814,15 @@ function startApp(){
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
+    schedulePolling();
+    /* Coming back to the tab is when a person expects to be up to date. */
+    if(!window._pollFocusBound){
+      window._pollFocusBound=true;
+      window.addEventListener('focus',()=>pollNow('focus'));
+      document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollNow('visible'); });
+    }
+    setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
   repairMigratedSignatories();
 }
@@ -2023,6 +2031,40 @@ async function openShareModal(c, opts={}){
       if(c.status!=='Signed' && window.captureVersion)
         captureVersion(c, `Sent to ${rcptLabel}${payloadObj.purpose==='sign'?' for signature':''}`,
           currentUser()?.name, { auto:true, listed:true });
+      /* IT IS NOT A DRAFT ONCE IT IS WITH THE OTHER SIDE.
+
+         The status only ever moved on the "Send for review" button, which is an
+         internal step nobody presses once there is a counterparty to send to.
+         So a contract could go through six rounds of real negotiation with a
+         named buyer — proposals, refusals, counter-wording — and still call
+         itself Drafting on every screen and in every filter of the register.
+         Sending it to somebody outside the building IS the transition, and it
+         is the one the owner can see happening. */
+      /* AND IT IS THEIR MOVE NOW.
+
+         Handing the turn over was something only the negotiation room's own
+         send did, so a draft sent from the Share button left the record saying
+         it was still the owner's turn. With the status finally moving to
+         Under Review that became visible and wrong in the same breath: the bar
+         dropped straight to "Approved — confirm intent and sign below" on a
+         contract that had just gone out for the other side to argue with.
+
+         negoHandOver is idempotent and returns null if the turn is already
+         theirs, so the room's send and this one cannot fight. A signing link is
+         excluded — a signature request is not a negotiating turn. */
+      if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
+        try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
+      }
+      if(c.status==='Draft'){
+        c.status='Under Review';
+        logAudit(c,'Status changed',`Draft → Under Review — sent to ${rcptLabel}`);
+        /* The chip AND the bar. Changing the status without repainting the bar
+           left it still reading "Key terms are set — move it into review", with
+           a button offering to do the thing that had just been done — the same
+           stale-bar fault as after signing, in a different place. */
+        try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
+        try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
+      }
       logAudit(c,'Shared',`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
       persist(c); renderAuditSection(c);
       refreshShareOverview(); renderSharesSection(c);
@@ -2589,5 +2631,47 @@ async function pollPendingResponses(){
     }
   }catch(e){ /* transient network issues — next poll retries */ }
 }
+/* ---------- how often to look ----------
+   Answers arrive by polling; there is no channel from the server that can tap
+   this page on the shoulder. One fixed 45-second beat treated every situation
+   the same, so someone sitting on the contract they have just sent out — the
+   one case where the wait is the whole experience — watched a screen that could
+   be three quarters of a minute out of date, with no reason to suspect it.
 
-Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+   Two cheap corrections, both using what is already here:
+
+     · WATCH HARDER WHEN SOMEBODY IS WATCHING. While the open contract is with
+       the other side, look every twelve seconds instead of forty-five. It costs
+       one small request; it is the difference between "it just appeared" and
+       "I had to reload".
+     · LOOK WHEN THEY COME BACK. Returning to the tab is exactly the moment a
+       person expects to be caught up, and it costs nothing to be right then.
+       Rate-limited so alt-tabbing repeatedly cannot hammer the server. */
+const POLL_SLOW=45000, POLL_FAST=12000;
+let _pollTimer=null, _pollEvery=0, _pollLastAt=0;
+function pollWaitingOnThem(){
+  if(state.view!=='workspace') return false;
+  const c=getContract(state.activeId);
+  if(!c || c.status==='Signed' || c.status==='Declined') return false;
+  if((c.rounds||[]).some(r=>r&&r.status==='open')) return false;   // it is OUR move
+  const turn=window.negoTurn ? negoTurn(c) : (c.negotiation&&c.negotiation.turn);
+  if(turn==='counterparty') return true;
+  // or we have sent something and nobody has answered it yet
+  return !!(c.negotiation&&c.negotiation.turnAt) || (Array.isArray(c.signatures)&&c.signatures.length===0
+    && (Array.isArray(c.changes)?c.changes:[]).some(x=>x&&x.status==='pending'&&x.authorSide==='owner'));
+}
+async function pollNow(reason){
+  const t=Date.now();
+  if(t-_pollLastAt < 4000) return;      // never twice in four seconds
+  _pollLastAt=t;
+  await pollPendingResponses();
+}
+function schedulePolling(){
+  const want=pollWaitingOnThem()?POLL_FAST:POLL_SLOW;
+  if(_pollEvery===want && _pollTimer) return;
+  _pollEvery=want;
+  clearInterval(_pollTimer);
+  _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
+}
+
+Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

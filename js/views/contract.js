@@ -1857,6 +1857,29 @@ function wsNextAction(c){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
   }
+  /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
+
+     Everything below this point answers for a contract sitting in review with
+     nothing outstanding. Sending the draft out now moves the status, which is
+     right — but it also dropped the bar straight onto "Approved and ready —
+     apply the sealed signature" while the two sides were still three rounds
+     from agreeing. Offering the seal in the middle of an argument is worse
+     than saying nothing. Say whose move it is instead. */
+  const liveChanges=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x && x.status!=='superseded');
+  const notSettled=liveChanges.some(x=>x.status==='pending'
+    || (x.status==='rejected' && !x.withdrawn));
+  const theirTurn=(window.negoTurn ? negoTurn(c)==='counterparty'
+    : !!(c.negotiation && c.negotiation.turn==='counterparty'));
+  if(!cpSigned && (notSettled || theirTurn)){
+    const who=c.counterparty||'the counterparty';
+    const mine=liveChanges.filter(x=>x.status==='pending').length;
+    return theirTurn
+      ? { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`It is with ${who}. Nothing needs you until they answer.` }
+      : { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
+  }
   // Under Review
   if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
   if(!c.compliance.consent) return { label:'Sign', ic:'finger', guide:'Approved — confirm intent and sign below.', kind:'sign-scroll' };
