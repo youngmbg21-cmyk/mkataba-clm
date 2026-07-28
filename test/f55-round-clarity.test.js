@@ -111,7 +111,12 @@ describe('F55 — the contract can be read as if every change were agreed', () =
     const bar = doc.querySelector('#nego-clean-bar');
     assert.ok(bar, 'and the screen says what it is showing');
     assert.match(bar.textContent, /Nothing has been accepted/i);
-    assert.ok(doc.querySelector('#nego-clean-exit'), 'with the way back in it');
+    /* The way back is the toggle that opened the mode, in the place the reader
+       pressed to get here. The bar used to carry a second button saying the
+       same words a few inches away — see f60. */
+    assert.equal(doc.querySelector('#nego-clean-exit'), null, 'and only one way back');
+    assert.match(doc.querySelector('#nego-clean-toggle').textContent, /Show changes/,
+      'which is the toggle, now offering the return trip');
   });
 
   test('the counterparty gets the same switch — neither side reads a lesser screen', async () => {

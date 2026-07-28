@@ -246,13 +246,14 @@ describe('F59 — the clean-read control says what it shows', () => {
     assert.match(btn(win).getAttribute('title') || '', /Put the change marks back/);
   });
 
-  test('the banner and its exit use the same words', async () => {
+  test('the banner names the mode and warns, and carries no button', async () => {
     const win = await room();
     btn(win).dispatchEvent(new win.Event('click', { bubbles: true }));
     assert.match(win.document.querySelector('#nego-clean-bar .nego-cmp-tag').textContent, /Clean read/);
-    assert.match(win.document.querySelector('#nego-clean-exit').textContent, /Show changes/);
     assert.match(win.document.querySelector('#nego-clean-bar').textContent, /Nothing has been accepted/i,
-      'and the banner still says it in full');
+      'the sentence on it is the point');
+    // the second "Show changes" a few inches from the first — see f60
+    assert.equal(win.document.querySelector('#nego-clean-exit'), null);
   });
 
   test('the old wording is gone from the interface', async () => {

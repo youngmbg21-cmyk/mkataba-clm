@@ -3344,3 +3344,64 @@ edits inside `js/views/portal.js` are the second cause of the reported bug.
 **1079 tests, 0 failures.** 12 new. One existing test — the counterparty
 changing their mind after sending — now presses "Change decision" first, which
 is the behaviour change itself.
+
+---
+
+# Round 10 — arriving at a negotiation shows what is being negotiated
+
+Reported from a screenshot: the negotiation opened on a **clean document** — no
+marks, no changes visible, and a button reading "Show changes" — with no memory
+of having asked for that. Two faults behind it.
+
+## Two buttons saying "Show changes"
+
+The grey bar across the top carried its own exit, and the working document pane
+carried the toggle. Two buttons a few inches apart, doing exactly the same
+thing — and the one further from the document was the more prominent of the two.
+
+The bar's button is gone. The bar itself stays, because the sentence on it is
+the whole point of it: *"Nothing has been accepted — 1 change is still open."*
+The way out is now the same control that opened the mode, in the place you
+pressed to get there.
+
+## Clean Read was outliving the room
+
+This is what the screenshot was actually showing, and it is worth stating
+plainly because nothing on screen said it.
+
+Clean Read — and version comparison alongside it — were remembered for as long
+as the browser tab was open. Take a clean read, step out to the Docs page, come
+back to the negotiation, and it opened clean: every change invisible, on the one
+screen you go to in order to look at them.
+
+Nothing was broken, and nothing said so. The screen simply was not the screen
+you expected, and the single thing you had come to do was the single thing you
+could not see.
+
+**Arriving now always shows the changes.** Every entry starts on the redline,
+with every change across every clause marked up and fingerprinted. A version
+comparison left open behaves the same way — you arrive at the live round, not at
+wherever the last visit was abandoned.
+
+**Repaints deliberately do not reset it.** If you are reading the contract clean
+and accept something as you read, you stay in Clean Read. A mode that switched
+itself off every time you decided something would fight you the whole way
+through.
+
+## The flow, as it now runs
+
+1. Open Negotiation → every change, across every clause, marked up in the
+   document with its fingerprint in the margin
+2. Click a card in the right-hand panel → both documents jump to that clause and
+   highlight it; Accept, Reject and Discuss are on the card *(unchanged)*
+3. Click **Clean Read** → the contract as it would read if every change were
+   agreed, with the bar saying plainly that none of them has been
+4. Click **Show changes** → back to the redline
+
+## What was not touched
+
+The comparison engine, the fingerprints and the change model. Accept All and
+Reject All. The mobile/WhatsApp portal.
+
+**1087 tests, 0 failures.** 8 new. Two existing tests asserted the bar's button
+existed; both now assert there is exactly one way back, which is the change.

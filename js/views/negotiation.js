@@ -1171,13 +1171,20 @@ function negoCleanBarHtml(c){
   if (!_negoClean) return '';
   if (!negoIsLivePair(negoComparePair().left, negoComparePair().right)) return '';
   const open = negoChanges(c).filter(x => x.status === 'pending' && !x.withdrawn).length;
+  /* NO BUTTON OF ITS OWN. The way out is the toggle at the top of the working
+     pane — the same control that opened the mode, in the place the reader
+     pressed to get here. A second one on this bar meant two buttons reading
+     "Show changes" on one screen, a few inches apart, doing the same thing;
+     and the one further from the document was the more prominent of the two.
+
+     The bar stays, because the sentence on it is the point: this is a
+     hypothetical, and nothing has been accepted. */
   return `<div class="nego-cmp-bar clean" id="nego-clean-bar" role="status">
     ${''/* The mode's own name, matching the control that opens it. */}
     <span class="nego-cmp-tag">Clean read</span>
     <span class="nego-cmp-txt">${open
       ? `Both documents read clean: removed wording is out, proposed wording is in. <b>Nothing has been accepted</b> — ${open} change${open === 1 ? ' is' : 's are'} still open and this is only what the contract would say if ${open === 1 ? 'it were' : 'they were all'} agreed.`
       : 'Both documents read clean. Every change on the table has already been decided, so this is the wording as it stands.'}</span>
-    <button class="nego-cmp-exit" id="nego-clean-exit">Show changes</button>
   </div>`;
 }
 
@@ -1906,6 +1913,21 @@ function openNegotiationRoom(c, opts = {}){
   negoEnsureStyle();
   const host = negoRoomHost();
   const shell = document.getElementById('app-shell');
+  /* ---- ARRIVING SHOWS THE CHANGES. ALWAYS. ----
+     Clean read and version comparison are both LOOKS somebody takes, and both
+     were module state that outlived the room. Take a clean read, step out to
+     the Docs page, come back — and the negotiation opened on a clean document
+     with every change invisible and a button reading "Show changes". Nothing
+     was broken and nothing said so; the screen simply was not the screen the
+     reader expected, and the one thing they had come to do was the one thing
+     they could not see.
+
+     The first thing a negotiation must show is what is being negotiated. So
+     entering resets the view to the live round, every time. Repaints do not:
+     `_negoRoomOpen` is already true for those, and a mode that switched itself
+     off every time a change was accepted would fight the person using it. */
+  const arriving = !_negoRoomOpen;
+  if (arriving){ negoSetCleanView(false); negoSetComparePair('baseline', 'working'); }
   if (shell && !_negoRoomOpen){ shell.dataset.negoHidden = '1'; shell.classList.add('hidden'); }
   _negoRoomOpen = true;
   _negoRoomC = c;
@@ -2149,7 +2171,6 @@ function wireNegotiationTab(c, opts = {}){
      document's id map, so scoping it to the room returns null rather than the
      room's own button. See negoPick. */
   byId('nego-clean-toggle')?.addEventListener('click', () => { negoSetCleanView(!_negoClean); again(); });
-  byId('nego-clean-exit')?.addEventListener('click', () => { negoSetCleanView(false); again(); });
   /* A comparison row scrolls both panes to the clause, which is the only verb
      this mode has. */
   host.querySelectorAll('[data-nego-cmp-row]').forEach(row => {
