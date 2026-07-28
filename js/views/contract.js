@@ -1819,9 +1819,66 @@ function wsNextAction(c){
   if(!canEdit()) return null;
   const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
   const appr=(window.approvalState?approvalState(c):{ok:true});
+  /* THE OTHER SIDE IS WAITING ON YOU, and that outranks everything below.
+
+     This bar used to answer "what is the next step for a contract at this
+     status", which stops being the right question the moment a counterparty
+     sends something back. A contract whose status is still Draft carried on
+     saying "Key terms are set — move it into review" with a returned-changes
+     banner sitting directly above it saying the opposite. Two primary buttons,
+     two different next steps, one screen. The one that is actually urgent is
+     the one somebody else is waiting on. */
+  const openRds=(c.rounds||[]).filter(r=>r&&r.status==='open').length;
+  const pendingCh=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x&&x.status==='pending'&&x.authorSide==='counterparty').length;
+  if(openRds||pendingCh){
+    const n=openRds||pendingCh;
+    return { label:'Review the changes', ic:'history', kind:'review-changes',
+      guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
+  }
+  /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
+
+     Walked end to end: the counterparty opens the signing link, adopts a mark,
+     signs. Their signature is filed, the audit trail records it and the share
+     shows "Signed" — and the owner's page went on reading "Key terms are set —
+     move it into review", with a button offering to do something the contract
+     passed three rounds ago. The one act left in the entire deal is her
+     signature, and the screen never mentioned it. */
+  const cpSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party==='counterparty');
+  const weSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party!=='counterparty');
+  if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
+    const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
+    return { label:'Sign', ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
+      guide:`${who} has signed. Your signature is the only thing left.` };
+  }
   if(c.status==='Draft'){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
+  }
+  /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
+
+     Everything below this point answers for a contract sitting in review with
+     nothing outstanding. Sending the draft out now moves the status, which is
+     right — but it also dropped the bar straight onto "Approved and ready —
+     apply the sealed signature" while the two sides were still three rounds
+     from agreeing. Offering the seal in the middle of an argument is worse
+     than saying nothing. Say whose move it is instead. */
+  const liveChanges=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x && x.status!=='superseded');
+  const notSettled=liveChanges.some(x=>x.status==='pending'
+    || (x.status==='rejected' && !x.withdrawn));
+  const theirTurn=(window.negoTurn ? negoTurn(c)==='counterparty'
+    : !!(c.negotiation && c.negotiation.turn==='counterparty'));
+  if(!cpSigned && (notSettled || theirTurn)){
+    const who=c.counterparty||'the counterparty';
+    const mine=liveChanges.filter(x=>x.status==='pending').length;
+    return theirTurn
+      ? { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`It is with ${who}. Nothing needs you until they answer.` }
+      : { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review
   if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
@@ -1851,6 +1908,15 @@ function wireActionBar(c){
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
     if(kind==='evidence'){ downloadEvidence(c); return; }
+    /* Deliberately the same code path as the returned-changes strip's own
+       button: two ways to reach one thing, never two things that can drift. */
+    if(kind==='review-changes'){
+      const strip=document.getElementById('changes-review');
+      if(strip){ strip.click(); return; }
+      /* Changes that arrived as tracked items rather than as a round have no
+         strip to borrow — the room is where they are decided. */
+      openNegotiationOwnerRoom(c); return;
+    }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
     if(kind==='review'){
@@ -3014,11 +3080,27 @@ async function finalizeExecution(c, opts={}){
   if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System',{auto:true,listed:true});
   logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
   persist(c);                            // critical state saved before any DOM work
+  /* AND ACTUALLY WRITTEN, before anything reads it back off the server.
+
+     `persist` only marks the contract dirty and sets a 400 ms timer.
+     distributeExecuted below POSTs to /distribute, and the server checks the
+     STORED status before it will send an executed copy — so the request
+     overtook the save, the server saw a contract that was not yet Signed, and
+     answered "Contract is not executed yet". That sentence was then filed on
+     the distribution record and printed in the signature panel of a contract
+     the same panel had just marked Executed & sealed, with both parties shown
+     as Failed. Nobody received their copy. */
+  try{ await flushSaves(); }catch(_){}
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
     const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBody(c); wireDocCanvas(c); }
     if(typeof updateStatusUI==='function') updateStatusUI(c);
+    /* The bar that says what to do next. Left alone, it kept the sentence it
+       had a second earlier — "Erik has signed. Your signature is the only thing
+       left." — on a contract that was by then executed and sealed, until the
+       reader happened to reload. That is the last screen of the whole journey. */
+    if(typeof renderActionBar==='function') renderActionBar(c);
     renderSignButton(c); renderAuditSection(c);
   }catch(e){ /* not on screen — fine */ }
   if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');

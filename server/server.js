@@ -3328,15 +3328,21 @@ function notifyShareResponse(s, r) {
       : r.action === 'decisions' ? `Decisions returned: "${cName}"`
       : `Changes requested: "${cName}"`;
     const n = Array.isArray(r.negoDecisions) ? r.negoDecisions.length : 0;
+    /* Wording of their own travels on the same response. An email that counted
+       only the decisions told an owner "answered 0 proposed changes" for a round
+       that was entirely new asks. */
+    const np = Array.isArray(r.negoProposed) ? r.negoProposed.length : 0;
+    const answered = [np ? `proposed ${np} change${np === 1 ? '' : 's'}` : '',
+      n ? `answered ${n} of yours` : ''].filter(Boolean).join(' and ') || 'replied';
     const detail = r.action === 'sign'
       ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
       : r.action === 'ready'
         ? `${who} has signalled they are ready to sign "${cName}".`
-          + `${n ? `\n\nThey answered ${n} proposed change${n === 1 ? '' : 's'} in the same step.` : ''}`
+          + `${(n || np) ? `\n\nThey ${answered} in the same step.` : ''}`
           + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`
       : r.action === 'decisions'
-        ? `${who} answered ${n} proposed change${n === 1 ? '' : 's'} on "${cName}".`
-          + `\n\nThe decisions have been recorded on the contract — open Negotiation to see where the deal stands.`
+        ? `${who} ${answered} on "${cName}".`
+          + `\n\nIt is recorded on the contract — open Negotiation to see where the deal stands.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +

@@ -1357,7 +1357,14 @@ function negoHandOver(c, opts = {}){
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   /* Every turn close snapshots a version, so version compare keeps working and
      the history reads as a sequence of hand-offs rather than a pile of edits. */
-  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by, { auto: true });
+  /* LISTED, and it has to be. A hand-over is the one moment in a negotiation
+     that a person can name afterwards — "the draft we sent them on Tuesday",
+     "what came back". Filed unlisted, a negotiation conducted entirely through
+     tracked changes in the room produced a version list reading "0 versions",
+     so there was nothing to compare and nothing to go back to unless somebody
+     had remembered to press Snapshot before every send. The per-change copies
+     stay unlisted; these are the milestones, one per turn. */
+  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by, { auto: true, listed: true });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
   return { turn: to, at: n.turnAt };

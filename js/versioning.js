@@ -180,6 +180,69 @@ function captureVersion(c, label, by, opts){
   return v;
 }
 
+/* ---- going back to an earlier version ----
+   Versions were for reading and comparing and nothing else. You could look at
+   what the contract said three rounds ago, put it side by side with now, and
+   then retype it — which is exactly the manual work this product exists to
+   remove, at the exact moment somebody has realised they have talked themselves
+   into a worse position.
+
+   WHAT THIS IS NOT: it is not an undo, and it does not erase anything. Restoring
+   takes a snapshot of the wording as it stands FIRST, then writes the old
+   wording in as a new version on top. The history only ever grows, so "we went
+   back to Tuesday's draft" is itself on the record — which is the only version
+   of this that is safe to give somebody negotiating a contract.
+
+   REFUSED WHILE A NEGOTIATION IS LIVE. Every pending change is anchored to a
+   clause id in the body it was proposed against. Swapping that body underneath
+   them would leave fingerprints pointing at wording nobody had seen — so the
+   changes have to be settled first, and the refusal says so. */
+function restoreBlockedWhy(c){
+  if(!canEdit()) return 'Viewers cannot change documents.';
+  if(c.status==='Signed') return 'This contract is executed and sealed — its wording is fixed. Record an amendment instead.';
+  const pending=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status==='pending').length;
+  if(pending) return `${pending} proposed change${pending===1?' is':'s are'} still open in the negotiation. `
+    +'Every one of them is anchored to this wording, so settle them first — accept, reject or withdraw — and the version list will still be here.';
+  const open=(c.rounds||[]).filter(r=>r&&r.status==='open').length;
+  if(open) return `${open} returned round${open===1?' is':'s are'} still awaiting your decision. Resolve ${open===1?'it':'them'} first.`;
+  return '';
+}
+async function restoreVersion(c, n, after){
+  const why=restoreBlockedWhy(c);
+  if(why){ toast(why,'err'); return null; }
+  const v=(c.versions||[]).find(x=>x.n===n);
+  if(!v){ toast('That version is no longer on this contract','err'); return null; }
+  const now=docPlainText(c);
+  if(normText(v.text||'')===normText(now||'')){
+    toast('The contract already reads exactly like that version — nothing to restore'); return null; }
+  const label=(v.label||'').trim();
+  if(window.confirmDialog){
+    const ok=await confirmDialog({
+      title:`Go back to v${v.n}?`,
+      message:`The contract will read as it did on ${fmtDT(v.at)}${label?` — “${label}”`:''}. `
+        +'The wording as it stands right now is saved first, as its own version, so nothing is lost and you can come straight back.',
+      confirmLabel:`Restore v${v.n}` });
+    if(!ok) return null;
+  }
+  const u=currentUser();
+  /* The current wording, kept before it is replaced. Listed, because somebody
+     will want to find it again — that is the whole point of taking it. */
+  captureVersion(c, `Before going back to v${v.n}`, u?.name);
+  /* The body, not its text shadow, where the version kept one — a rich version
+     restored from `text` alone would come back as flat prose. */
+  if(v.body!=null){ c.redlineText=v.body; if(v.format&&window.docFormat) c.format=v.format; }
+  else { c.redlineText=v.text||''; if(window.TEXT_FORMAT) c.format=TEXT_FORMAT; }
+  const nv=captureVersion(c, `Restored from v${v.n}${label?` — ${label}`:''}`, u?.name);
+  logAudit(c,'Edited',`Wording restored to v${v.n}${label?` (“${label}”)`:''} of ${fmtDT(v.at)}`
+    +`${nv?` — captured as v${nv.n}`:''}. The wording it replaced was kept as its own version first.`);
+  c.lastAction=todayStr();
+  persist(c);
+  toast(`Back to v${v.n}${label?` — ${label}`:''}. The wording you had is saved as a version of its own.`);
+  if(typeof after==='function') after();
+  else if(window.renderWorkspace) renderWorkspace();
+  return nv;
+}
+
 /* ---- word-level diff (E2-T2): LCS over whitespace tokens ---- */
 function tokenize(s){ return String(s||'').split(/(\s+)/).filter(x=>x!==''); }
 function wordDiff(aStr, bStr){
@@ -359,6 +422,7 @@ function renderVersionsSection(c){
           <span style="color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0">${(v.label||'').replace(/</g,'&lt;')}</span>
           <span style="margin-left:auto;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none">${fmtDT(v.at)}</span>
           ${v.n>1?`<button data-ver-diff="${v.n}" style="flex:none;border:0;background:none;cursor:pointer;color:var(--color-accent);font:inherit;font-size:11px;font-weight:600;padding:0" title="Compare with previous version">diff</button>`:''}
+          ${canSnap?`<button data-ver-restore="${v.n}" style="flex:none;border:0;background:none;cursor:pointer;color:var(--color-accent);font:inherit;font-size:11px;font-weight:600;padding:0" title="Make the contract read as it did in this version — the wording you have now is saved first">restore</button>`:''}
         </div>`).join('')}</div>`
       :`<p style="font-size:11px;color:var(--color-neutral-600);line-height:1.5;margin:0">No versions captured yet. Snapshots are taken automatically when a counterparty redline is accepted and at signing — or capture one now to start tracking changes.</p>`}
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
@@ -368,6 +432,8 @@ function renderVersionsSection(c){
     </div>`;
   host.querySelectorAll('[data-ver-diff]').forEach(b=>b.addEventListener('click',()=>{ const n=Number(b.getAttribute('data-ver-diff'));
     const cur=vs.find(v=>v.n===n), prev=vs.find(v=>v.n===n-1); if(cur&&prev) openDiffModal(prev.text,cur.text,`v${prev.n}`,`v${cur.n}`); }));
+  host.querySelectorAll('[data-ver-restore]').forEach(b=>b.addEventListener('click',()=>
+    restoreVersion(c, Number(b.getAttribute('data-ver-restore')))));
   document.getElementById('ver-snap')?.addEventListener('click',()=>takeNamedSnapshot(c,()=>renderVersionsSection(c)));
   document.getElementById('ver-compare')?.addEventListener('click',()=>openCompareModal(c));
 }
@@ -764,4 +830,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,tokenize,renderVersionsSection,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

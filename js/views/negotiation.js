@@ -541,8 +541,14 @@ function negoDocHtml(c, opts){
      Read-only panes get none of this: the baseline is a reference and the
      other side's turn is not yours to edit. */
   const editable = !baseline && !opts.readonly && opts.canEdit !== false;
+  /* "Change", not "Edit". A counterparty cannot edit somebody else's contract
+     and knows it, so a button marked Edit reads as one they are not allowed to
+     press — and the act it performs is not an edit at all: it files a tracked
+     change for the other side to accept or reject. The word people reach for is
+     the one the portal's own redline screen already uses. */
   const tools = cl => editable ? `<div class="nego-tools">
-      <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}" title="Edit this clause">Edit</button>
+      <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}"
+        title="Propose a change to this clause — it goes to the other side to accept or reject">Change</button>
       ${''/* "Add clause" is gone. Proposing a clause the contract does not
              have yet is a real act, but it was done through two blank prompt
              boxes — a heading, then a body, typed into a modal with no sight of
@@ -655,9 +661,12 @@ function negoLiveCardsHtml(c, opts){
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
       <b style="display:block;color:var(--n-ink);margin-bottom:4px">No changes on the table.</b>
-      ${side === 'counterparty'
-        ? 'Nothing has been proposed for this round yet. Propose wording and each change you make becomes a fingerprint on this list.'
-        : 'Nothing has been proposed for this round yet. When the counterparty proposes wording, each change arrives here with its own fingerprint.'}
+      ${canAct
+        ? 'To ask for something different, press <b>Change</b> beside any clause in the middle pane. '
+          + 'Each one you make lands here as its own item, and the other side accepts or rejects them one at a time.'
+        : side === 'counterparty'
+          ? 'Nothing has been proposed for this round yet.'
+          : 'Nothing has been proposed for this round yet. When the counterparty proposes wording, each change arrives here with its own fingerprint.'}
     </div>`;
 
   return changes.map(ch => {
@@ -1127,11 +1136,21 @@ function negoTurnBannerHtml(c, opts){
 function negoIndexSendHtml(c, opts = {}){
   if ((opts.side || 'owner') !== 'counterparty' || opts.readonly) return '';
   const n = opts.pendingDecisions || 0;
-  if (!n) return '';
+  /* WORDING THEY HAVE ASKED FOR COUNTS TOO, and leaving it out was a dead end
+     with no bottom. This postbox counted decisions only — answers to the
+     owner's asks — so a counterparty who pressed Change on a clause, wrote what
+     they wanted and saved it got a fingerprinted change in the index and NO
+     SEND ANYWHERE ON THE SCREEN. The one act the room exists for could not
+     leave the browser. */
+  const pr = opts.pendingProposals || 0;
+  if (!n && !pr) return '';
+  const parts = [];
+  if (pr) parts.push(`${pr} change${pr === 1 ? '' : 's'} you have asked for`);
+  if (n) parts.push(`${n} decision${n === 1 ? '' : 's'}`);
+  const who = _ne(String(opts.org || window.FIRST_PARTY || 'the other side'));
   return `<div class="nego-index-send">
-    <button id="nego-send-decisions">Send ${n} decision${n === 1 ? '' : 's'}</button>
-    <span class="why">Held on this page until you send them. Nothing has reached
-      ${_ne(String(opts.org || window.FIRST_PARTY || 'the other side'))} yet.</span>
+    <button id="nego-send-decisions">Send ${parts.join(' and ')} to ${who}</button>
+    <span class="why">Held on this page until you send. Nothing has reached ${who} yet.</span>
   </div>`;
 }
 function negoPanesHtml(c, opts = {}){
@@ -1155,8 +1174,19 @@ function negoPanesHtml(c, opts = {}){
       title="Drag to resize · double-click to reset"></div>
 
     <section class="nego-pane working" aria-label="Working version with the proposed redline">
+      ${''/* THE PANE SAYS WHAT IT IS FOR BEFORE ANYTHING IS IN IT.
+
+             "Proposed Redline · fingerprints anchor in the margin" describes a
+             pane that already has changes in it. On an empty round it described
+             nothing the reader could see, and the one act this whole screen
+             exists for — asking for different wording — had no words anywhere
+             naming the control that performs it. Someone sent a contract to
+             negotiate met two verbs, Decline and Ready to sign, and no third
+             option. */}
       <div class="nego-pane-head">${negoPaneSelectHtml(c, 'right', pair.right)}<span class="nego-sub">${cmp && !cmp.live
-        ? '— read-only comparison' : '— Proposed Redline · fingerprints anchor in the margin'}</span></div>
+        ? '— read-only comparison'
+        : (canAct && !p.total) ? '— press Change on any clause to ask for different wording'
+        : '— Proposed Redline · fingerprints anchor in the margin'}</span></div>
       <div class="nego-scroll" id="nego-scroll-work">${cmp && !cmp.live
         ? negoCompareDocHtml(c, cmp, 'right')
         : negoDocHtml(c, { ...opts, baseline: false })}</div>
