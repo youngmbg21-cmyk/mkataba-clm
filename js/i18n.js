@@ -121,6 +121,57 @@ const STRINGS = {
     /* ---- Language toggle ---- */
     lang_toggle:            '🇬🇧 English',
     lang_toggle_title:      'Byt gränssnittet till engelska',
+
+    /* ---- Sidebar: brand + section headers ---- */
+    nav_brand_sub:          'Avtalslivscykel',   // TODO verify — "avtalshantering" is the commoner product-category term; "avtalslivscykel" is the literal CLM reading
+    nav_sec_work:           'Arbete',
+    nav_sec_contracts:      'Avtal',
+    nav_sec_build:          'Skapa',             // TODO verify — the section holds Templates + Playbook, i.e. authoring; "Bygg" is the literal word but reads oddly here
+    nav_sec_insight:        'Insikt',
+    nav_sec_settings:       'Inställningar',
+
+    /* ---- Sidebar: navigation items (label and tooltip share a key) ---- */
+    nav_home:               'Hem',
+    nav_queue:              'Kö',
+    nav_advice:             'Rådgivning',        // TODO verify — "Advice Desk" as a staffed service; "Rådgivningsdesk" is closer but not idiomatic
+    nav_doc:                'Dokument',
+    nav_register:           'Register',
+    nav_calendar:           'Kalender',
+    nav_migration:          'Migrering',
+    nav_templates:          'Mallar',
+    nav_playbook:           'Playbook',          // TODO verify — deliberately kept: Swedish legal-tech uses the English loanword; "spelbok" is understood but not the trade term
+    nav_reports:            'Rapporter',
+    nav_intel:              'Analys',            // TODO verify — short label for "Portfolio Intelligence"; "Insikter" collides with the Insikt section header
+    nav_team:               'Team och inställningar',
+    nav_team_title:         'Team',
+
+    /* ---- Sidebar: Copilot launcher and footer ---- */
+    nav_copilot:            'HaTi Copilot',      // product name — identical in both halves by design, not an untranslated leftover
+    nav_copilot_title:      'Öppna HaTi Copilot — din assistent för avtalsintelligens',
+    nav_ai_usage_title:     'Faktiska Anthropic API-anrop som gjorts i dag i hela arbetsytan — nollställs vid lokal midnatt. Klicka för kostnadskontroller för Copilot.',
+    nav_logout_title:       'Logga ut från HaTi',
+    nav_logout_aria:        'Logga ut',
+
+    /* ---- Command bar ---- */
+    cmd_search_ph:          'Filtrera registret…',
+    cmd_k_title:            'Öppna global sökning (Ctrl/Cmd+K)',
+    cmd_export:             'Exportera',
+    cmd_export_title:       'Exportera det aktuella urvalet',   // TODO verify — "working set"; "arbetsurval" is more literal but less idiomatic
+    cmd_new_contract:       '+ Nytt avtal',
+    cmd_ai_title:           'Fråga HaTi Copilot',
+    cmd_panel_title:        'Visa eller dölj kontextpanelen',
+
+    /* ---- Context panel ---- */
+    panel_activity:         'Aktivitet',
+
+    /* ---- Copilot slide-over ---- */
+    ai_title:               'HaTi Copilot',      // product name — identical in both halves by design
+    ai_expand_title:        'Förstora panelen',
+    ai_clear_title:         'Radera konversationen',
+    ai_min_title:           'Minimera — du meddelas när ett svar kommer',
+    ai_close_title:         'Stäng',
+    ai_answers_label:       'Svar',
+    ai_input_ph:            'Sök, sammanfatta eller ställ en fråga om dina avtal…',
   }
 };
 
