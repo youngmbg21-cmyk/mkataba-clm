@@ -56,6 +56,11 @@ let _negoThreads = {};
    the round exactly where it was. Module-level for the same reason as the two
    above — it is where the reader is looking. */
 let _negoClean = false;
+/* WHICH SENT DECISIONS THIS READER HAS RE-OPENED. Where the reader is looking,
+   not anything about the agreement — so it lives here beside _negoThreads and
+   never reaches storage, the record or the share payload. Cleared with the rest
+   of the view state when a different contract opens. */
+let _negoRedeciding = {};
 const negoCleanView = () => _negoClean;
 const negoSetCleanView = on => { _negoClean = !!on; return _negoClean; };
 
@@ -495,6 +500,12 @@ function negoStyleHtml(){
   }
   .nego-acts .b-undo{border-color:#c9d5e1;color:var(--n-ink-soft);flex:0 0 auto;padding:6px 12px}
   .nego-acts .b-undo:hover{background:#f2f4f7}
+  /* Tertiary on purpose. Changing an answer that has already gone to the other
+     side is a real thing to be able to do and a rare thing to want, so it reads
+     as a link beside the verbs rather than as a third verb among them. */
+  .nego-acts .b-redecide{flex:0 0 auto;border:0;background:none;padding:6px 8px;
+    color:var(--n-slate-soft);text-decoration:underline;font-weight:600}
+  .nego-acts .b-redecide:hover{color:var(--n-slate)}
   .nego-acts .b-wdr{border-color:var(--n-slate-soft);color:var(--n-slate);padding:6px 10px}
   .nego-acts .b-wdr:hover{background:var(--n-slate);color:#fff}
   /* ---- sending decisions, from the index ----
@@ -908,11 +919,31 @@ function negoLiveCardsHtml(c, opts){
 
        A sent decision is no longer theirs to UNDO: it is filed with the other
        party, and quietly returning it to "pending" here would leave the two
-       sides holding different answers. Changing their mind is still allowed —
-       that is a new decision, and it travels — so the verbs stay. */
+       sides holding different answers.
+
+       AND IT IS NOT STILL A QUESTION. `sent` used to keep Accept and Reject on
+       the card, on the reasoning that changing your mind is allowed. It is —
+       but the effect was that the counterparty pressed Send, watched the verbs
+       come straight back, and had no way to tell whether anything had left. The
+       owner's copy of the same change settled into its decided state at the
+       same moment, so the two sides were reading different screens about the
+       same decision, which is the one thing this component exists to prevent.
+
+       A decided change is decided on both sides. Deciding it AGAIN is a
+       deliberate act now, behind "Change decision" below — the ability is kept,
+       the accident is not. */
     const sent = !!ch.sentByMe;
-    const decidable = canAct && !mine && (ch.status === 'pending' || sent);
-    const undoable = canAct && !mine && ch.status !== 'pending' && !sent;
+    const reopened = !!_negoRedeciding[ch.id];
+    const decidable = canAct && !mine && (ch.status === 'pending' || reopened);
+    /* Only an unsent decision may be quietly undone; a sent one is filed with
+       the other party, and the way back to it is a new decision that travels.
+       Not while the verbs are showing either — Undo beside Accept and Reject
+       is two ways to do the same thing, one of which is not a decision. */
+    const undoable = canAct && !mine && ch.status !== 'pending' && !sent && !reopened;
+    /* THE WAY BACK, and it is one click rather than none. Offered only on a
+       change whose answer has actually gone: an unsent decision still has Undo,
+       and a pending one still has the verbs. */
+    const redecidable = canAct && !mine && sent && !reopened && ch.status !== 'pending';
     /* THE ONE VERB A SIDE HAS OVER ITS OWN ASK. It is not a decision — they
        cannot accept their own proposal — it is an acknowledgement that the
        other side refused it and they are letting it go. Without it a single
@@ -948,6 +979,8 @@ function negoLiveCardsHtml(c, opts){
       : `<div class="nego-acts">
         <button class="${disCls}"${disTitle} data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
         ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">Undo</button>` : ''}
+        ${redecidable ? `<button class="b-redecide" data-nego-redecide="${_ne(ch.id)}"
+            title="You answered this and it has gone to them. Answering differently files a new decision, and that travels too.">Change decision</button>` : ''}
         ${withdrawable && !ch.withdrawn
           ? `<button class="b-wdr" data-nego-withdraw="${_ne(ch.id)}"
               title="They refused this. Take it off the table so it stops standing between you — the record keeps the ask and the refusal.">Withdraw this ask</button>` : ''}
@@ -1139,11 +1172,12 @@ function negoCleanBarHtml(c){
   if (!negoIsLivePair(negoComparePair().left, negoComparePair().right)) return '';
   const open = negoChanges(c).filter(x => x.status === 'pending' && !x.withdrawn).length;
   return `<div class="nego-cmp-bar clean" id="nego-clean-bar" role="status">
-    <span class="nego-cmp-tag">Reading as agreed</span>
+    ${''/* The mode's own name, matching the control that opens it. */}
+    <span class="nego-cmp-tag">Clean read</span>
     <span class="nego-cmp-txt">${open
       ? `Both documents read clean: removed wording is out, proposed wording is in. <b>Nothing has been accepted</b> — ${open} change${open === 1 ? ' is' : 's are'} still open and this is only what the contract would say if ${open === 1 ? 'it were' : 'they were all'} agreed.`
       : 'Both documents read clean. Every change on the table has already been decided, so this is the wording as it stands.'}</span>
-    <button class="nego-cmp-exit" id="nego-clean-exit">Back to the redline</button>
+    <button class="nego-cmp-exit" id="nego-clean-exit">Show changes</button>
   </div>`;
 }
 
@@ -1490,12 +1524,22 @@ function negoPanesHtml(c, opts = {}){
                had no answer on this screen short of accepting everything to
                find out, which is a decision rather than a look. One press,
                and it is a view: nothing is accepted and nothing is written. */}
+        ${''/* "Clean Read", not "Read as agreed". The old label described the
+                ARRANGEMENT rather than the view, and on a screen where the one
+                thing at stake is what has and has not been agreed, a control
+                that says "agreed" is the wrong word to have to read twice. It
+                names what it shows: a clean document. The banner it opens still
+                says in full that nothing has been accepted.
+
+                And "Show changes", not "Show the redline" — the way back is
+                the same act on the other side of the switch, and "changes" is
+                the word this screen uses for them everywhere else. */}
         ${comparing ? '' : `<button class="nego-clean-btn" id="nego-clean-toggle" type="button"
           aria-pressed="${clean ? 'true' : 'false'}"
           title="${clean
-            ? 'Put the redline marks back'
-            : 'Read both documents clean — removed wording out, proposed wording in — as if every change were agreed. Nothing is accepted.'}">${
-          clean ? 'Show the redline' : 'Read as agreed'}</button>`}</div>
+            ? 'Put the change marks back'
+            : 'Read both documents clean — removed wording out, proposed wording in. Nothing is accepted.'}">${
+          clean ? 'Show changes' : 'Clean Read'}</button>`}</div>
       <div class="nego-scroll" id="nego-scroll-work">${comparing
         ? negoCompareDocHtml(c, cmp, 'right')
         : clean ? negoCleanDocHtml(c, 'right')
@@ -2049,6 +2093,7 @@ function wireNegotiationTab(c, opts = {}){
   const decide = (id, status, extra) => {
     const ch = negoResolve(c, id, status, { side, by: opts.by, ...(extra || {}) });
     if (!ch) return;
+    delete _negoRedeciding[id];   // answered again — the card settles again
     _negoActive = id;
     if (opts.persist !== false && window.persist) persist(c);
     if (window.toast){
@@ -2270,6 +2315,17 @@ function wireNegotiationTab(c, opts = {}){
     e.stopPropagation(); decide(b.getAttribute('data-nego-accept'), 'accepted'); }));
   host.querySelectorAll('[data-nego-undo]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); decide(b.getAttribute('data-nego-undo'), 'pending'); }));
+  /* Re-open ONE sent decision for another answer. It changes nothing about the
+     change — not its status, not its hash, not what the other side holds — it
+     only puts the verbs back on this one card, for this reader, until they use
+     them. Deciding again then travels exactly as the first answer did. */
+  host.querySelectorAll('[data-nego-redecide]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.getAttribute('data-nego-redecide');
+    _negoRedeciding[id] = true;
+    _negoActive = id;
+    again();
+  }));
   /* Withdrawing an ask, and putting it back. Not routed through decide(): this
      is not a decision on the change and must not read like one — the change
      keeps its rejected status, and what moves is whether the point is still
@@ -2408,7 +2464,7 @@ function wireNegotiationTab(c, opts = {}){
 
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,

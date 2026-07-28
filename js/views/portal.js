@@ -1204,10 +1204,14 @@ function wirePortalNego(c, p){
     /* A decision here is recorded locally and remembered, so it survives the
        component's own re-render and can be sent as a batch. */
     onChange(rec){
-      for(const ch of (rec.changes||[]))
-        if(ch.status!=='pending' && ch.authorSide==='owner')
+      // same rule as the room's — see openPortalNegoRoom
+      for(const ch of (rec.changes||[])){
+        const already=PORTAL_NEGO_SENT[ch.id];
+        if(ch.status!=='pending' && ch.authorSide==='owner'
+          && !(already && already.status===ch.status))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+      }
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
@@ -1299,7 +1303,19 @@ function openPortalNegoRoom(c, p){
     readySignalled:PORTAL_READY_SENT,
     onChange(rec){
       for(const ch of (rec.changes||[])){
-        if(ch.status!=='pending' && ch.authorSide==='owner')
+        /* A HELD DECISION IS ONE THAT DIFFERS FROM WHAT WAS SENT.
+
+           This ran on every repaint and re-registered any decided change as
+           held — including ones already posted, and including repaints that
+           decided nothing at all. So opening a Discuss thread on a change whose
+           answer had gone made "Send 1 decision" reappear, the "sent" pill
+           vanish and Undo come back: the page forgot, on a click that touched
+           nothing, that the answer had ever left. Same symptom as the verbs
+           reappearing after a send, and the same wrong answer to "has this
+           been dealt with". */
+        const already=PORTAL_NEGO_SENT[ch.id];
+        if(ch.status!=='pending' && ch.authorSide==='owner'
+          && !(already && already.status===ch.status))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
         /* Wording THEY have asked for. Held until they send it — and held by

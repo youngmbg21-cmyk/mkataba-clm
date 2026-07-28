@@ -3279,3 +3279,68 @@ up as plain text. The behaviour is driven end to end and tested. Whether the
 amber flash reads as urgent rather than broken, and whether the blue pulse is
 noticeable without being irritating, are judgements that need a person looking at
 a real screen.
+
+---
+
+# Round 9 — a decision that has gone is a decision
+
+## The bug: the counterparty's cards would not settle
+
+Erik answers every change, presses "Send 2 decisions" — and Accept and Reject
+come straight back onto the cards. Meanwhile Wanjiru's copy of those same
+changes settles into its answered state. Two people looking at one negotiation
+and reading different screens about the same answers.
+
+The reasoning behind it was sound and the effect was not. Changing your mind
+after sending IS a real thing to be able to do, so the verbs were left on a sent
+card. But that made the exception the normal state of every card, and left Erik
+with no way to tell whether anything had left his browser at all.
+
+**A sent decision now looks like a decision**: the answer, a "sent" mark, and
+Discuss. Same as Wanjiru's.
+
+### A second cause, found while fixing the first
+
+The same fault wearing a different coat, and worth reporting because nobody
+would have noticed it from the screenshot. Erik's page was re-filing every
+decided change as *unsent* on every redraw — including redraws that decided
+nothing. So merely opening a Discuss thread on a change he had already answered
+brought back "Send 1 decision", removed the "sent" mark and restored Undo. One
+click that touched nothing, and the page had forgotten the answer ever left.
+
+A held decision is now one that actually *differs* from what was sent.
+
+### Changing your mind is kept, behind one click
+
+On a sent, answered card there is now a small **"Change decision"** link. Press
+it and Accept / Reject come back for that one card. Answering again files a new
+decision and it travels exactly as the first did.
+
+Nothing about the change itself moves when you press it — not its status, not
+its fingerprint, not what the other side is holding. It only puts the buttons
+back on your own screen, and only until you use them. Which cards you have
+re-opened is where you are looking, not a fact about the agreement: it never
+reaches the record or the link.
+
+## Two buttons renamed
+
+**"Read as agreed" → "Clean Read".** The old label described the *arrangement*
+rather than the *view*, on the one screen where what has and has not been agreed
+is the entire question. The tooltip no longer implies agreement either: "Read
+both documents clean — removed wording out, proposed wording in. Nothing is
+accepted."
+
+**"Show the redline" → "Show changes."** Same button, other state. Its tooltip
+is now "Put the change marks back", and the banner that appears in clean read
+was brought into line with both — it is headed "Clean read" and its way out
+reads "Show changes".
+
+## What was deliberately not touched
+
+The comparison engine, the fingerprints and the change model. Accept All and
+Reject All are unchanged. The mobile/WhatsApp portal is out of scope; the two
+edits inside `js/views/portal.js` are the second cause of the reported bug.
+
+**1079 tests, 0 failures.** 12 new. One existing test — the counterparty
+changing their mind after sending — now presses "Change decision" first, which
+is the behaviour change itself.

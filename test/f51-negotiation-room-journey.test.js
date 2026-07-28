@@ -855,11 +855,20 @@ describe('the awkward cases', () => {
     assert.equal(v.$('#nego-send-decisions'), null, 'with nothing left waiting to go');
   });
 
-  test('but changing their mind is still allowed, and travels as a new decision', async () => {
+  /* Still allowed, and now a DELIBERATE act rather than the default state of
+     the card. Accept and Reject used to stay on a sent decision, so pressing
+     Send made the verbs reappear a moment later and there was no way to tell
+     from the card whether anything had gone — while the owner's copy of the
+     same change settled. See f59: the two sides render the same. */
+  test('but changing their mind is still allowed, behind Change decision', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
+    assert.equal(v.$(`[data-nego-reject="${filed[0].id}"]`), null,
+      'a sent decision is a decision, not a question still on the table');
+
+    await v.press(`[data-nego-redecide="${filed[0].id}"]`);
     v.win.promptDialog = async () => 'On reflection, no.';
     await v.press(`[data-nego-reject="${filed[0].id}"]`);
     assert.ok(v.$('#nego-send-decisions'), 'a new answer is a new thing to send');
