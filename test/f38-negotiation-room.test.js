@@ -130,8 +130,10 @@ describe('the room takes the window', () => {
     assert.ok(left && right, 'each pane picks its own version');
     assert.equal(left.value, 'baseline');
     assert.equal(right.value, 'working');
-    assert.match(left.options[left.selectedIndex].textContent, /Original Baseline · round 1/);
-    assert.match(right.options[right.selectedIndex].textContent, /Working Version · round 1/);
+    /* ROUND FIRST — see f64. The round is what orders a list spanning several
+       of them, so it leads the label rather than trailing it. */
+    assert.match(left.options[left.selectedIndex].textContent, /Round 1 - Baseline/);
+    assert.match(right.options[right.selectedIndex].textContent, /Round 1 - Working Version/);
     assert.match(r.$('.nego-pane.baseline .nego-pane-head').textContent, /read-only reference/);
     assert.match(r.$('.nego-pane.working .nego-pane-head').textContent,
       /— Proposed Redline · fingerprints anchor in the margin/);

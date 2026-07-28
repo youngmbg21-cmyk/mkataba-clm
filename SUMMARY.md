@@ -3570,3 +3570,83 @@ that has already gone. And it degrades safely: a browser that will not remember
 — private browsing, a locked-down device, a full quota — behaves exactly as
 before, because every read and write is wrapped. A convenience that cannot
 remember must never be able to take the page down.
+
+## Round 14 — the negotiation you can read back, and a round that asks first
+
+You sent a screenshot of a room reading "Round 2 · 0 of 0 changes resolved" and
+said the round you had just negotiated had disappeared. It had not — but you
+could not see it, and you could not get back to the wording it started from.
+Four changes.
+
+### The dropdown is named by round
+
+`Original Baseline · round 2` now reads **Round 2 - Baseline**. Round first,
+thing second, so the list reads as the sequence the deal actually went through:
+
+- Round 1 - Baseline
+- Round 2 - Baseline
+- Round 2 - Working Version
+
+Saved snapshots restart their numbering in each round, as you asked — the first
+snapshot of round 2 is **Round 2 - V1**, not V3. The app's own number for it
+(`v3`) is kept and shown in the small print under the pane, so nothing has two
+names you cannot connect.
+
+### The rounds that are over are on the list
+
+The wording round 1 started from was being stored the whole time and was never
+offered. It is now a row you can pick, so you can put the day-one contract on the
+left and today's working version on the right and see how far the deal has moved.
+
+One thing you will notice: **Round 1 - V1 · Round 1 closed** does not appear.
+That snapshot is word for word what "Round 2 - Baseline" says — closing a round
+is what makes the two identical — so it is one row, under the name you can always
+get back to. It is still in the version history; it is simply not a second answer
+to "which two documents do you want side by side".
+
+### The rounds that are over can be read
+
+Under the live changes there is now an **Earlier rounds** section, folded away.
+Open Round 1 and you get every change it settled: what was decided, why, who
+asked, the discussion, and the fingerprint.
+
+They are **read-only** and look it. No Accept, no Reject, no Undo, no reply box.
+A change settled in round 1 has already had its wording folded into the baseline
+— deciding it again would be inventing a second decision, and the fingerprints
+are sealed.
+
+The round in flight still comes first. The history sits underneath it, because
+the panel is what needs deciding, with the record below.
+
+### And a round no longer closes by surprise
+
+This is the one you spotted yourself. **"Send to Docs tab for signature"** is a
+button about signing that actually ends the round — archiving its decisions,
+making the agreed wording the new baseline, moving the counter and emptying the
+table. There is no way back; nothing in HaTi reopens a closed round.
+
+It now asks first:
+
+> **Close Round 1?**
+> This ends round 1 and starts round 2. The agreed wording becomes the new
+> baseline, so anything proposed from now on is measured against it. All 2
+> changes decided in this round (2 accepted) move into the history: still
+> readable, but no longer able to be changed, undone or decided again. A snapshot
+> is saved as "Round 1 closed". This cannot be undone — if they come back with
+> more asks, those open as round 2. Signing still happens on the Docs tab;
+> nothing here signs anything.
+>
+> [ Cancel ] [ Close round 1 and continue ]
+
+The counts are read off the contract, so you can check the sentence against the
+list in front of you. **Cancel means nothing happened** — not closed and
+reopened; the round never closed, the changes are still live, no snapshot, no
+audit line.
+
+**1142 tests, 0 failures.** 25 new in f64. Four existing tests were rewritten to
+the new names and the new list — they asserted the old labels and the old
+two-row dropdown, both of which were the thing being changed.
+
+Nothing here touched the diff engine, the fingerprints, the change model or the
+comparison text. Accept All / Reject All are exactly as they were, and the
+counterparty's page is unaffected.

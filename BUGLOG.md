@@ -4817,3 +4817,94 @@ Nothing here touches `richToText`, the diff engine, the fingerprints or the
 change model. Text remains the compared substance; this is what the reader sees.
 
 **1042 tests, 0 failures.** `f57` is new.
+
+## Cycle 8 — a negotiation you could not read back
+
+Reported from a screenshot of a room reading **"Round 2 · 0 of 0 changes
+resolved"**, from somebody who had just spent a round negotiating and could find
+no trace of it.
+
+Nothing was broken, which is what made it worth fixing. `negoAdvanceRound`
+archives a round's decided changes onto `c.negotiation.rounds`, makes the
+resolved wording the new baseline, and empties `c.changes` — correct, and the
+whole point of a round. But the change index drew `negoChanges(c)` and nothing
+else, and `negoVersionOptions` offered the live pair plus `listedVersions(c)`
+and nothing else. So the moment round 1 closed:
+
+- every decision in it, every reason given, every discussion and every
+  fingerprint left the screen, and the panel read "No changes on the table";
+- `c.negotiation.rounds[0].baselineBody` — the wording the negotiation actually
+  started from — was stored, intact, and unreachable from the one page that
+  exists to put two wordings side by side.
+
+A record you cannot look at is not much of a record.
+
+### The names
+
+`Original Baseline · round 2` became `Round 2 - Baseline`. The round is what
+orders a list spanning several of them, so it leads the label instead of
+trailing it; the old shape read as a pile of similar phrases whose one ordering
+fact was the last thing on each row.
+
+Snapshots are numbered **within their round** — `Round 2 - V1` is the first
+snapshot of round 2, whatever its number in the version history. That number is
+not lost: it moves to `sub`, which `negoCompareDocHtml` prints under the pane.
+The keys are untouched (`v3` is still `v3`), so nothing that resolved stopped
+resolving.
+
+Which round a snapshot belongs to is now stamped at capture (`roundStamp`), and
+`negoAdvanceRound` passes the round that CLOSED rather than letting it read the
+counter it has already incremented — otherwise "Round 1 closed" files itself
+under round 2, the one entry nobody could place. Contracts negotiated before the
+stamp existed carry none, so `negoVersionRound` falls back to the clock: a
+snapshot taken before round 1 closed belongs to round 1.
+
+### The closed rounds, on the list and readable
+
+Each closed round contributes `Round N - Baseline` from its stored body. Its
+WORKING version is deliberately not a separate row — it is word for word the
+next round's baseline, which is the row directly below it.
+
+That exposed a real duplicate the moment it worked. Closing a round also saves a
+snapshot of the wording it produced, so `Round 1 - V1 · Round 1 closed` and
+`Round 2 - Baseline` are the same document, every time — and the live row can
+never be dropped, so first-seen-keeps-it put both on the menu. `negoVersionChoices`
+now seeds `seen` with the live pair's text before the pass, so **the live row
+wins a tie wherever it sits**. That is the rule the list already had, applied to
+the entries added to make history reachable.
+
+`negoHistoryHtml` puts the closed rounds under the live index, folded, one
+section per round with its count and outcome on the header. Drawn only when
+open — six rounds behind `display:none` is six rounds of cards, threads and
+fingerprints built on every repaint of a screen showing none of them, and it
+makes "is this readable" a question about a stylesheet.
+
+The cards are read-only and carry `data-nego-past`, not `data-nego-card`: there
+is no verb that could honestly be offered on a change settled two rounds ago —
+accepting it again would be inventing a second decision, and the wording it
+produced is already the baseline. What they carry is the decision, the reason,
+the discussion, the author and the full hash.
+
+### And a round no longer closes by surprise
+
+One control closes a round, and its words are `Send to Docs tab for signature` —
+about the step after, on a button that ends the round, archives its decisions,
+moves the counter, empties the table and cannot be undone. Nothing in this
+product reopens a closed round.
+
+`negoConfirmCloseRound` names the act before it happens, with the real counts off
+the contract, and it sits ABOVE the `opts.onReadyToSign` branch — a guard inside
+the fallback would have protected the one path nobody uses, since the
+Negotiations tab supplies its own hand-off. Cancel means the round never closed:
+no archive, no snapshot, no audit line, changes still live. A page with no
+`confirmDialog` goes ahead, because refusing to perform a deliberate act over a
+dialog that could not be drawn would break the only route out of a finished
+round.
+
+Nothing here touches the diff engine, the fingerprints, the change model or
+`richToText`. Accept All / Reject All are unchanged. The share payload does not
+carry `negotiation.rounds`, so the counterparty's page is unaffected.
+
+**1142 tests, 0 failures.** `f64` is new (25 tests). Four existing tests were
+rewritten to the new labels and the new list: `f36` (the hand-off is now
+asynchronous), `f38`, `f46` and `f54`.

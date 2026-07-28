@@ -1335,43 +1335,99 @@ function negoCopilotRecord(c){
    line breaks and by nothing a reader would call a version. */
 const _negoSameDoc = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
 
+/* WHICH ROUND A SNAPSHOT BELONGS TO.
+   Stamped at capture from now on. Contracts negotiated before that stamp
+   existed carry nothing, so the round is read off the clock instead: a snapshot
+   taken before round 1 closed belongs to round 1, one taken before round 2
+   closed belongs to round 2, and so on. Anything that still cannot be placed
+   falls into the round in flight, which is where an unplaceable snapshot is
+   least surprising and never invents a round that is not on the list. */
+function negoVersionRound(c, v){
+  const cur = negoRound(c);
+  const closed = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
+  let r = (v && typeof v.roundN === 'number' && v.roundN > 0) ? v.roundN : null;
+  if (r == null && v && v.at){
+    const at = Date.parse(v.at);
+    if (!isNaN(at)){
+      for (const cr of closed){
+        const closedAt = Date.parse(cr.at || '');
+        if (isNaN(closedAt) || at <= closedAt){ r = cr.n; break; }
+      }
+    }
+  }
+  if (r == null) r = cur;
+  return Math.max(1, Math.min(r, cur));
+}
+
 function negoVersionOptions(c){
   negoInit(c);
+  const cur = negoRound(c);
+  const closed = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
+  /* ROUND FIRST, THING SECOND — "Round 2 - Baseline", not "Original Baseline ·
+     round 2". The old names described the pane and buried the round at the end
+     of the line, so a list spanning three rounds read as a pile of similar
+     phrases and the one fact that ordered it was the last thing on each row.
+     The V numbers restart with each round for the same reason: "Round 2 - V1"
+     is the first snapshot of round 2, which is the question people ask. The
+     snapshot's own number in the version history travels in `sub`, so nothing
+     is renamed out of existence — see negoCompareDocHtml, which prints it. */
+  const versionsIn = round => {
+    const out = [];
+    for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || []))){
+      if (negoVersionRound(c, v) !== round) continue;
+      const body = v.body != null && String(v.body).trim()
+        ? String(v.body)
+        : negoRichFromLines(v.text || '');
+      const named = v.label && v.label !== 'Saved' ? ` · ${v.label}` : '';
+      out.push({ key: 'v' + v.n, kind: 'version', n: v.n, roundN: round,
+        label: `Round ${round} - V${out.length + 1}${named}`,
+        sub: [`v${v.n} in the version history`, v.by, v.at ? String(v.at).slice(0, 10) : null]
+          .filter(Boolean).join(' · '),
+        body, text: v.text || '' });
+    }
+    return out;
+  };
+  /* OLDEST FIRST, top to bottom. The list reads as the sequence the document
+     actually went through — every closed round in order, then the wording this
+     round started from, then each saved version in the order it was taken, then
+     what is on the table now — rather than the newest-first order it had, which
+     put the original at the bottom of a list whose first entry changed every
+     round, so "which one did we start from" was answered by a different row
+     each time. */
+  const out = [];
+  /* THE ROUNDS THAT ARE OVER. Their wording was stored the moment each round
+     closed and was then unreachable from this screen: the selector offered the
+     live pair and nothing else, so "what did we start from before we conceded
+     that in round 1" had no answer here at all, on a negotiation whose whole
+     record was sitting in the contract.
+
+     A closed round's WORKING version is deliberately not a separate entry —
+     it is word for word the next round's baseline, which is the row directly
+     below it. Two rows, one document, is the noise the choices list exists to
+     keep out. */
+  for (const r of closed){
+    out.push({ key: `round${r.n}-baseline`, kind: 'round', roundN: r.n,
+      label: `Round ${r.n} - Baseline`,
+      sub: `the wording round ${r.n} was measured against`,
+      body: r.baselineBody || '', text: r.baselineText || '' });
+    out.push(...versionsIn(r.n));
+  }
   const baseline = {
-    key: 'baseline', kind: 'live',
-    /* The prototype's own words for these two panes, kept: "Original Baseline"
-       and "Working Version" are what the screen has always called them, and a
-       dropdown is no reason to rename the thing it selects. */
-    label: `Original Baseline · round ${negoRound(c)}`,
-    sub: 'the wording this round is measured against',
+    key: 'baseline', kind: 'live', roundN: cur,
+    label: `Round ${cur} - Baseline`,
+    sub: cur > 1
+      ? `the wording round ${cur - 1} ended on — what this round is measured against`
+      : 'the wording this round is measured against',
     body: negoBaseBody(c), text: negoBaseText(c),
   };
   const working = {
-    key: 'working', kind: 'live',
-    label: `Working Version · round ${negoRound(c)}`,
+    key: 'working', kind: 'live', roundN: cur,
+    label: `Round ${cur} - Working Version`,
     sub: 'proposed redline',
     body: negoResolvedBody(c), text: negoResolvedText(c),
   };
-  /* OLDEST FIRST, top to bottom. The list reads as the sequence the document
-     actually went through — the wording this round started from, then each
-     saved version in the order it was taken, then what is on the table now —
-     rather than the newest-first order it had, which put the original at the
-     bottom of a list whose first entry changed every round, so "which one did
-     we start from" was answered by a different row each time. */
-  const versions = [];
-  /* The versions a person is offered to compare against: named snapshots and
-     the milestones. The event copies the system keeps for its own baselines are
-     not versions of the document and are not listed — see listedVersions. */
-  for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || []))){
-    const body = v.body != null && String(v.body).trim()
-      ? String(v.body)
-      : negoRichFromLines(v.text || '');
-    versions.push({ key: 'v' + v.n, kind: 'version', n: v.n,
-      label: `v${v.n} · ${v.label || 'Saved'}`,
-      sub: [v.by, v.at ? String(v.at).slice(0, 10) : null].filter(Boolean).join(' · '),
-      body, text: v.text || '' });
-  }
-  return [baseline, ...versions, working];
+  out.push(baseline, ...versionsIn(cur), working);
+  return out;
 }
 
 /* ---- WHAT THE DROPDOWN OFFERS, AND WHY IT IS NOT EVERYTHING ----
@@ -1399,6 +1455,18 @@ function negoVersionChoices(c, keep){
   const all = negoVersionOptions(c);
   const wanted = new Set([].concat(keep || []).filter(Boolean));
   const seen = new Set();
+  /* THE LIVE PAIR WINS A TIE, wherever it sits in the list. First-seen-keeps-it
+     is the right rule between two archived entries, but not against the two
+     rows that are always on the menu: a round CLOSING makes its wording the
+     next round's baseline, so "Round 1 - V1 · Round 1 closed" and
+     "Round 2 - Baseline" are word for word the same document, every time. The
+     live row cannot be dropped, so without this both appear and the list is
+     back to naming one document twice — the exact thing it exists to prevent,
+     arriving through the entries that were added to make history reachable. */
+  for (const o of all) if (o.kind === 'live'){
+    const k = _negoSameDoc(o.text || '');
+    if (k) seen.add(k);
+  }
   const out = [];
   for (const o of all){
     const key = _negoSameDoc(o.text || '');
@@ -1569,7 +1637,11 @@ function negoAdvanceRound(c, opts = {}){
   /* A round closing makes the agreed wording the new baseline — that is an
      update to the contract, so it is listed even though nobody asked for it. */
   if (window.captureVersion) captureVersion(c, `Round ${n} closed`, opts.by
-    || (window.currentUser && window.currentUser()?.name) || 'System', { auto: true, listed: true });
+    || (window.currentUser && window.currentUser()?.name) || 'System',
+    /* Stamped with the round that CLOSED, not the one starting. The counter
+       above has already moved, and a snapshot named "Round 1 closed" filed
+       under round 2 would be the one entry in the list nobody could place. */
+    { auto: true, listed: true, roundN: n });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
@@ -1775,7 +1847,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
-  negoVersionOptions, negoVersionChoices, negoVersionByKey, negoIsLivePair, negoCompareVersions,
+  negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
+  negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,

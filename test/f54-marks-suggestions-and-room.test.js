@@ -254,19 +254,35 @@ describe('a version is named, and the bookkeeping is not a version', () => {
   });
 
   /* The milestone is kept — see the two tests above — and it is not OFFERED,
-     because "Round 1 closed" and "Original Baseline · round 2" are the same
-     document under two names. The selector asks which two documents to read
-     side by side; the version history answers what happened and when. */
+     because "Round 1 closed" and "Round 2 - Baseline" are the same document
+     under two names. The selector asks which two documents to read side by
+     side; the version history answers what happened and when.
+
+     What DID change with f64 is that the round that closed brings its own
+     starting wording onto the list. That is a third document, not a third name
+     for the same one: it is what the contract said before round 1 moved it. */
   test('the compare dropdown offers the live pair, and not the same document twice', async () => {
     const { win, c } = await negotiated();
     win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
     assert.deepEqual(Array.from(win.listedVersions(c).map(v => v.label)), ['Round 1 closed'],
       'the milestone is still on the record');
-    const labels = win.negoVersionChoices(c).map(o => o.label);
-    assert.match(labels[0], /^Original Baseline/, 'the wording the round starts from comes first');
-    assert.match(labels[labels.length - 1], /^Working Version/, 'and what is on the table comes last');
-    assert.equal(labels.length, 2,
-      'the closed round says word for word what the new baseline says — one entry, not two');
+    const offered = win.negoVersionChoices(c);
+    const labels = offered.map(o => o.label);
+    assert.deepEqual(Array.from(labels),
+      ['Round 1 - Baseline', 'Round 2 - Baseline', 'Round 2 - Working Version'],
+      'the round that closed, the wording it produced, and what is on the table now');
+    const doc = k => offered.find(o => o.key === k).text.replace(/\s+/g, ' ').trim();
+    assert.notEqual(doc('round1-baseline'), doc('baseline'),
+      'the round that closed started from different wording — that is why it is a row');
+    /* The snapshot the close took says word for word what the new baseline
+       says, so it is named once, and the name kept is the live one — the row
+       you can always get back to. */
+    assert.ok(!labels.some(l => /Round 1 - V/.test(l)),
+      'and "Round 1 closed" is not offered a second time under the round it closed');
+    /* Baseline and Working Version are the same document until somebody
+       proposes something, and both stay on the menu regardless: a selector you
+       cannot get back to the live pair from is the trap it exists to prevent. */
+    assert.equal(doc('baseline'), doc('working'));
     assert.ok(win.negoVersionByKey(c, 'v1'), 'the key still resolves — nothing was thrown away');
   });
 

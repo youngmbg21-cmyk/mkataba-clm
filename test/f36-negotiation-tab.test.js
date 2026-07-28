@@ -614,7 +614,9 @@ describe('the one transition out', () => {
   test('the hand-off closes the round and makes the agreed wording the baseline', async () => {
     const m = await mounted();
     m.click('#nego-bulk-acc');
+    /* It asks before it closes the round — see f64. The stage confirms. */
     m.click('#nego-to-docs');
+    for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r));
     assert.equal(m.win.negoRound(m.c), 2);
     assert.match(m.win.negoBaseText(m.c), /forty-five \(45\) days/);
     assert.equal(m.win.negoChanges(m.c).length, 0, 'the decided set is archived onto the round');
