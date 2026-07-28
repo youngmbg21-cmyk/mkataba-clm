@@ -75,31 +75,14 @@ function check(name, ok, detail){
     await page.waitForSelector('.nav-item[data-view="doclab"]', { timeout: 20000 });
     check('the Doc Lab nav item ships in the shell', true);
 
-    /* ---- open a contract, and put a real change on it ----
-       The sample portfolio ships with no negotiation history, and the lab's
-       most interesting behaviour — a thread closing when the change it is
-       pinned to is decided — needs one to exist. It is filed through the real
-       model (negoEditClause), so the lab is reading a genuine change rather
-       than one this script invented. */
-    const opened = await page.evaluate(async () => {
+    /* ---- open a contract ---- */
+    const opened = await page.evaluate(() => {
       const c = state.contracts[0];
       if (!c) return null;
       openWorkspace(c.id);
-      let changes = 0, err = null;
-      try{
-        const clauses = window.negoClauseList ? negoClauseList(c) : [];
-        if (clauses.length){
-          await negoEditClause(c, clauses[0].clauseId,
-            '<p>Either party may terminate on sixty (60) days written notice.</p>',
-            { side: 'counterparty', author: 'Amina Wanjiru' });
-          changes = (window.negoAllChanges ? negoAllChanges(c) : []).length;
-        }
-      }catch(e){ err = e.message; }
-      return { id: c.id, name: c.name, changes, err };
+      return { id: c.id, name: c.name };
     });
     check('a sample contract opened', !!opened, opened && opened.id);
-    check('a real change was filed on it through the model',
-      opened && opened.changes > 0, opened && (opened.err || opened.changes + ' change(s)'));
 
     await page.click('.nav-item[data-view="doclab"]');
     await page.waitForTimeout(400);
@@ -113,19 +96,105 @@ function check(name, ok, detail){
     check('the command bar names it a sandbox', /sandbox/i.test(routed.title), routed.title);
     check('the nav item highlights', routed.navActive);
 
-    /* ---- the real document draws, read-only ---- */
+    /* ---- the lab's own copy of the document draws, with clauses to edit ---- */
     const doc = await page.evaluate(() => {
-      const host = document.querySelector('.hati-doc');
+      const clauses = document.querySelectorAll('[data-lab-clause]');
       return {
-        present: !!host,
-        chars: host ? (host.textContent || '').trim().length : 0,
-        liveInputs: host ? host.querySelectorAll('input,textarea').length : -1
+        clauses: clauses.length,
+        chars: Array.from(clauses).reduce((n, el) => n + (el.textContent || '').trim().length, 0),
+        editButtons: document.querySelectorAll('[data-lab-edit]').length,
+        copiedBaseline: !!labFor(state.activeId).baseHtml
       };
     });
-    check('the real document draws inside the lab', doc.present && doc.chars > 200, doc.chars + ' characters');
-    check('it is read-only — no live inputs', doc.liveInputs === 0, 'inputs: ' + doc.liveInputs);
+    check('the document draws as editable clauses', doc.clauses > 0 && doc.chars > 200,
+      `${doc.clauses} clauses, ${doc.chars} characters`);
+    check('every clause offers a change control', doc.editButtons === doc.clauses);
+    check('the lab took its own copy of the wording', doc.copiedBaseline);
 
-    /* ---- seed, and read what the owner sees ---- */
+    /* ---- edit a clause by hand, through the real controls ---- */
+    await page.click('[data-lab-edit]');
+    await page.waitForTimeout(150);
+    await page.fill('[data-lab-editor] textarea', 'The Supplier shall deliver within seven (7) days of each purchase order.');
+    await page.click('[data-lab-save]');
+    await page.waitForTimeout(300);
+
+    const edited = await page.evaluate(() => {
+      const lab = labFor(state.activeId);
+      const ch = lab.changes[0];
+      const html = document.getElementById('content').innerHTML;
+      return {
+        filed: lab.changes.length,
+        sent: ch ? ch.sent : null,
+        redlineShown: html.includes('lab-ins') && html.includes('lab-del'),
+        withheldDrafts: labWithheld(lab).drafts
+      };
+    });
+    check('editing a clause files a change', edited.filed === 1);
+    check('and it starts unsent — it is yours until you send it', edited.sent === false);
+    check('the document shows it as a redline', edited.redlineShown);
+    check('it is counted as staying behind', edited.withheldDrafts === 1);
+
+    /* an unsent draft must not reach them — the seam the wall most easily fails at */
+    await page.click('#lab-ext');
+    await page.waitForTimeout(250);
+    const draftLeak = await page.evaluate(() => ({
+      wording: document.getElementById('content').innerHTML.includes('seven (7) days'),
+      payloadChanges: labSharePayload(labFor(state.activeId)).changes.length
+    }));
+    check('an unsent draft is absent from the counterparty view', !draftLeak.wording);
+    check('and absent from the payload', draftLeak.payloadChanges === 0);
+    await page.click('#lab-int');
+    await page.waitForTimeout(250);
+
+    /* ---- you cannot decide your own ask ---- */
+    const ownAsk = await page.evaluate(() => {
+      const id = labFor(state.activeId).changes[0].id;
+      document.querySelector(`[data-lab-send="${id}"]`).click();
+      return { id, acceptOffered: !!document.querySelector(`[data-lab-accept="${id}"]`) };
+    });
+    await page.waitForTimeout(250);
+    const afterSend = await page.evaluate(() => {
+      const id = labFor(state.activeId).changes[0].id;
+      return {
+        sent: labFor(state.activeId).changes[0].sent,
+        acceptOfferedToUs: !!document.querySelector(`[data-lab-accept="${id}"]`)
+      };
+    });
+    check('sending puts the change on the table', afterSend.sent === true);
+    check('and we are not offered a decision on our own ask', !afterSend.acceptOfferedToUs);
+
+    /* switching sides is how you answer it */
+    await page.click('#lab-side-them');
+    await page.waitForTimeout(250);
+    const asThem = await page.evaluate(() => {
+      const id = labFor(state.activeId).changes[0].id;
+      return { acceptOffered: !!document.querySelector(`[data-lab-accept="${id}"]`) };
+    });
+    check('the other side is offered the decision', asThem.acceptOffered);
+
+    /* reject, and confirm the original wording comes back exactly */
+    const rejected = await page.evaluate(() => {
+      const id = labFor(state.activeId).changes[0].id;
+      document.querySelector(`[data-lab-reject="${id}"]`).click();
+      return id;
+    });
+    await page.waitForTimeout(250);
+    const restored = await page.evaluate(() => {
+      const lab = labFor(state.activeId);
+      const cl = labClausesOf(lab)[0];
+      return {
+        status: lab.changes[0].status,
+        reads: labClauseText(cl, lab.changes),
+        baseline: cl.text
+      };
+    });
+    check('rejecting returns the clause to its original wording exactly',
+      restored.status === 'rejected' && restored.reads === restored.baseline, rejected);
+
+    await page.click('#lab-side-us');
+    await page.waitForTimeout(200);
+
+    /* ---- seed a round, and read what the owner sees ---- */
     await page.click('#lab-seed');
     await page.waitForTimeout(300);
 
@@ -165,23 +234,57 @@ function check(name, ok, detail){
     check('no internal author name reaches the page', !ext.internalAuthorAnywhere);
     check('the shared thread is still there', ext.sharedWordingPresent);
     check('the payload carries exactly one thread', ext.payloadThreads === 1, String(ext.payloadThreads));
+
+    /* Their copy must READ correctly, not merely contain the right rows. Both
+       of these were wrong first time round: a change they had just been sent
+       was labelled "Not sent" and "your draft", and a decided one said
+       "Decided by someone" — because the payload legitimately drops the fields
+       the owner's renderer reads, and nothing was reading the ones it keeps. */
+    const reads = await page.evaluate(() => {
+      const html = document.getElementById('content').innerHTML;
+      return {
+        saysNotSent: html.includes('Not sent'),
+        saysYourDraft: html.includes('your draft'),
+        saysSomeone: html.includes('Decided by someone'),
+        /* Whichever side ruled, the label must be an ORGANISATION. L-001 was
+           rejected while acting as them, so that is the org named here. */
+        namesAnOrg: html.includes('Decided by Wanjiru Catering Ltd')
+          || html.includes('Decided by The counterparty'),
+        namesAColleague: html.includes('Decided by Amina Otieno')
+      };
+    });
+    check('their copy does not call a sent change “Not sent”', !reads.saysNotSent);
+    check('nor call it “your draft”', !reads.saysYourDraft);
+    check('a decision names an organisation, not “someone”',
+      !reads.saysSomeone && reads.namesAnOrg);
+    check('and never names the colleague who ruled', !reads.namesAColleague);
+
     await page.screenshot({ path: path.join(OUT, 'doclab-counterparty.png'), fullPage: true });
 
     /* ---- deciding a change closes the thread pinned to it ---- */
     await page.click('#lab-int');
     await page.waitForTimeout(250);
 
+    /* The seeded change is THEIR ask and we are acting as us, so the decision
+       is ours to make — which is the arrangement the real model requires. */
     const decided = await page.evaluate(() => {
       const btn = document.querySelector('[data-lab-accept]');
-      if (!btn) return { skipped: true };          // this contract has no changes on it
+      if (!btn) return { skipped: true };
       const id = btn.getAttribute('data-lab-accept');
-      const before = labFor(state.activeId).threads.filter(t => t.changeId == id && t.status === 'open').length;
+      const before = labFor(state.activeId).threads.filter(t => t.changeId === id && t.status === 'open').length;
       btn.click();
-      const after = labFor(state.activeId).threads.filter(t => t.changeId == id && t.status === 'open').length;
-      return { skipped: false, id, before, after };
+      const lab = labFor(state.activeId);
+      const ch = lab.changes.find(x => x.id === id);
+      const cl = labClausesOf(lab).find(x => x.clauseId === ch.clauseId);
+      return { skipped: false, id, before,
+        after: lab.threads.filter(t => t.changeId === id && t.status === 'open').length,
+        status: ch.status,
+        clauseNowReadsTheNewWording: labClauseText(cl, lab.changes) === ch.after };
     });
-    check('the accept control rendered for the real change', !decided.skipped);
+    check('the accept control rendered for the seeded change', !decided.skipped);
     if (!decided.skipped){
+      check('accepting it records the decision', decided.status === 'accepted', decided.id);
+      check('the clause then reads the accepted wording', decided.clauseNowReadsTheNewWording);
       check('deciding a change closes the threads pinned to it',
         decided.before > 0 && decided.after === 0, `${decided.before} open → ${decided.after}`);
     }

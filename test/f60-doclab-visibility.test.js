@@ -160,12 +160,12 @@ describe('F60c — what stayed behind is counted for the owner only', () => {
       { id: 'b', visibility: 'internal', messages: [msg('1'), msg('2')] },
       { id: 'c',                          messages: [msg('1')] }   // unmarked counts as withheld
     ]});
-    assert.deepEqual(plain(held), { threads: 2, messages: 3 });
+    assert.deepEqual(plain(held), { threads: 2, messages: 3, drafts: 0 });
   });
 
   test('nothing withheld reads as zero rather than throwing', () => {
-    assert.deepEqual(plain(lab.labWithheld({ threads: [] })), { threads: 0, messages: 0 });
-    assert.deepEqual(plain(lab.labWithheld(null)), { threads: 0, messages: 0 });
+    assert.deepEqual(plain(lab.labWithheld({ threads: [] })), { threads: 0, messages: 0, drafts: 0 });
+    assert.deepEqual(plain(lab.labWithheld(null)), { threads: 0, messages: 0, drafts: 0 });
   });
 });
 
@@ -249,9 +249,9 @@ describe('F60e — the store is the lab’s own, and keeps what it was given', (
 
   test('a corrupt store reads as empty rather than throwing the page down', () => {
     lab._store.set('hati.lab.v1', '{not json at all');
-    assert.deepEqual(plain(lab.labFor('C-001')), { threads: [], decisions: {} });
+    assert.deepEqual(plain(lab.labFor('C-001')), { threads: [], changes: [], baseHtml: '', nextId: 1 });
     // and it recovers: the next write replaces the damage
-    lab.labPut('C-001', { threads: [{ id: 't1', visibility: 'shared', messages: [msg('a')] }], decisions: {} });
+    lab.labPut('C-001', { threads: [{ id: 't1', visibility: 'shared', messages: [msg('a')] }] });
     assert.equal(lab.labFor('C-001').threads.length, 1);
   });
 
@@ -259,5 +259,248 @@ describe('F60e — the store is the lab’s own, and keeps what it was given', (
     assert.equal(lab.LAB_KEY, 'hati.lab.v1');
     assert.ok(!lab.LAB_KEY.startsWith('hati.v1.'),
       'the lab must not share a namespace with the real data keys in js/core.js');
+  });
+});
+
+/* ============================================================
+   The editing half. Same question as above, asked at the other seam: a clause
+   you are still drafting is not on the table, and must not travel either.
+   ============================================================ */
+
+const CLAUSE = { clauseId: 'cl_12', text: 'Either party may terminate on thirty (30) days written notice.' };
+const mkLab = () => ({ threads: [], changes: [], baseHtml: '', nextId: 1 });
+
+describe('F60f — a change travels only once it has been sent', () => {
+  let lab;
+  beforeEach(() => { lab = loadLab(); });
+
+  test('a freshly filed change is not sent, and does not travel', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', clauseLabel: '12. Term',
+      before: CLAUSE.text, after: 'Either party may terminate on sixty (60) days written notice.',
+      side: 'owner', author: 'You' });
+    assert.equal(ch.sent, false);
+    assert.equal(lab.labShareChanges(l.changes).length, 0);
+    assert.ok(!JSON.stringify(lab.labSharePayload(l)).includes('sixty'),
+      'an unsent draft’s wording must not appear in the payload');
+  });
+
+  test('sending it puts it on the table', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'owner', author: 'You' });
+    lab.labSendChange(l, ch.id);
+    assert.equal(lab.labShareChanges(l.changes).length, 1);
+  });
+
+  test('a change whose sent flag was NEVER SET stays home', () => {
+    // explicit allow again, on the other field
+    assert.equal(lab.labShareChanges([{ id: 'L-001', status: 'pending', after: 'secret' }]).length, 0);
+    for (const v of ['true', 1, 'yes', null, undefined])
+      assert.equal(lab.labShareChanges([{ id: 'L-001', sent: v, after: 'secret' }]).length, 0,
+        `sent=${JSON.stringify(v)} must not be treated as sent`);
+  });
+
+  test('who decided travels as an organisation, not as a colleague', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: 'a', after: 'b',
+      side: 'counterparty', author: 'Amina Wanjiru' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'accepted', { name: 'Sarah Chen' }, 'owner');
+    const sent = lab.labShareChanges(l.changes)[0];
+    assert.equal(sent.decidedByOrg, 'Wanjiru Catering Ltd');
+    assert.equal(sent.decidedBy, undefined);
+    assert.ok(!JSON.stringify(lab.labSharePayload(l)).includes('Sarah Chen'));
+  });
+
+  test('unsent drafts are counted in what stays behind', () => {
+    const l = mkLab();
+    lab.labFileChange(l, { clauseId: 'cl_12', before: 'a', after: 'b', side: 'owner', author: 'You' });
+    assert.equal(lab.labWithheld(l).drafts, 1);
+  });
+});
+
+describe('F60g — nobody rules on their own ask', () => {
+  let lab;
+  beforeEach(() => { lab = loadLab(); });
+
+  const sentChange = (l, side) => {
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side, author: 'Someone' });
+    lab.labSendChange(l, ch.id);
+    return ch;
+  };
+
+  test('the side that proposed a change cannot accept it', () => {
+    const l = mkLab();
+    const ch = sentChange(l, 'owner');
+    assert.equal(lab.labCanDecide(ch, 'owner'), false);
+    assert.equal(lab.labDecide(l, ch.id, 'accepted', { name: 'You' }, 'owner'), null);
+    assert.equal(l.changes[0].status, 'pending', 'the change must not have moved');
+  });
+
+  test('the other side can', () => {
+    const l = mkLab();
+    const ch = sentChange(l, 'owner');
+    assert.equal(lab.labCanDecide(ch, 'counterparty'), true);
+    assert.ok(lab.labDecide(l, ch.id, 'accepted', { name: 'Amina' }, 'counterparty'));
+    assert.equal(l.changes[0].status, 'accepted');
+  });
+
+  test('an unsent change cannot be decided by anyone', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: 'a', after: 'b',
+      side: 'owner', author: 'You' });
+    assert.equal(lab.labCanDecide(ch, 'counterparty'), false);
+    assert.equal(lab.labCanDecide(ch, 'owner'), false);
+  });
+
+  test('a change already decided cannot be decided again', () => {
+    const l = mkLab();
+    const ch = sentChange(l, 'owner');
+    lab.labDecide(l, ch.id, 'accepted', { name: 'Amina' }, 'counterparty');
+    assert.equal(lab.labDecide(l, ch.id, 'rejected', { name: 'Amina' }, 'counterparty'), null);
+    assert.equal(l.changes[0].status, 'accepted');
+  });
+});
+
+describe('F60h — silence rejects: the wording is built, never overwritten', () => {
+  let lab;
+  beforeEach(() => { lab = loadLab(); });
+
+  test('with nothing accepted, a clause reads exactly as it did', () => {
+    assert.equal(lab.labClauseText(CLAUSE, []), CLAUSE.text);
+  });
+
+  test('a pending change does not change the wording', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'counterparty', author: 'Amina' });
+    lab.labSendChange(l, ch.id);
+    assert.equal(lab.labClauseText(CLAUSE, l.changes), CLAUSE.text);
+  });
+
+  test('a REJECTED change reproduces the original exactly', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'counterparty', author: 'Amina' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'rejected', { name: 'Sarah' }, 'owner');
+    assert.equal(lab.labClauseText(CLAUSE, l.changes), CLAUSE.text,
+      'rejecting must return the baseline byte for byte');
+  });
+
+  test('an accepted change is what the clause then reads', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'Either party may terminate on sixty (60) days written notice.',
+      side: 'counterparty', author: 'Amina' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'accepted', { name: 'Sarah' }, 'owner');
+    assert.match(lab.labClauseText(CLAUSE, l.changes), /sixty \(60\) days/);
+  });
+
+  test('a change to a DIFFERENT clause leaves this one alone', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_13', before: 'x', after: 'y',
+      side: 'counterparty', author: 'Amina' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'accepted', { name: 'Sarah' }, 'owner');
+    assert.equal(lab.labClauseText(CLAUSE, l.changes), CLAUSE.text);
+  });
+
+  test('the baseline is still intact after a full accept — nothing was overwritten', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'counterparty', author: 'Amina' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'accepted', { name: 'Sarah' }, 'owner');
+    assert.equal(CLAUSE.text, 'Either party may terminate on thirty (30) days written notice.',
+      'the clause object the wording is read from must be untouched');
+    assert.equal(l.changes[0].before, CLAUSE.text, 'and the change still remembers what it replaced');
+  });
+});
+
+describe('F60i — one live ask per clause per side', () => {
+  let lab;
+  beforeEach(() => { lab = loadLab(); });
+
+  test('re-editing a clause revises the ask rather than opening a second one', () => {
+    const l = mkLab();
+    const a = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'forty-five (45) days', side: 'owner', author: 'You' });
+    const b = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'owner', author: 'You' });
+    assert.equal(l.changes.length, 1);
+    assert.equal(a.id, b.id);
+    assert.equal(l.changes[0].after, 'sixty (60) days');
+    assert.equal(l.changes[0].revised, 1);
+  });
+
+  test('revising a SENT ask takes it back off the table until it is sent again', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'owner', author: 'You' });
+    lab.labSendChange(l, ch.id);
+    assert.equal(lab.labShareChanges(l.changes).length, 1);
+    lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'ninety (90) days', side: 'owner', author: 'You' });
+    assert.equal(lab.labShareChanges(l.changes).length, 0,
+      'a revised ask must not sit on their table showing wording we have moved on from');
+  });
+
+  test('the two sides can each hold their own ask on the same clause', () => {
+    const l = mkLab();
+    lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text, after: 'sixty (60) days',
+      side: 'owner', author: 'You' });
+    lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text, after: 'ninety (90) days',
+      side: 'counterparty', author: 'Amina' });
+    assert.equal(l.changes.length, 2);
+  });
+
+  test('an edit that changes nothing files nothing', () => {
+    const l = mkLab();
+    assert.equal(lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: CLAUSE.text, side: 'owner', author: 'You' }), null);
+    assert.equal(lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: '   ', side: 'owner', author: 'You' }), null);
+    assert.equal(l.changes.length, 0);
+  });
+});
+
+describe('F60j — an unsent draft is visible only to the side holding it', () => {
+  let lab;
+  beforeEach(() => { lab = loadLab(); });
+
+  test('the side that wrote it sees it on the clause', () => {
+    const l = mkLab();
+    lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text, after: 'sixty (60) days',
+      side: 'owner', author: 'You' });
+    assert.ok(lab.labPendingOn(l.changes, 'cl_12', 'owner'));
+  });
+
+  test('the other side does not', () => {
+    const l = mkLab();
+    lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text, after: 'sixty (60) days',
+      side: 'owner', author: 'You' });
+    assert.equal(lab.labPendingOn(l.changes, 'cl_12', 'counterparty'), null);
+  });
+
+  test('once sent, both sides do', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'owner', author: 'You' });
+    lab.labSendChange(l, ch.id);
+    assert.ok(lab.labPendingOn(l.changes, 'cl_12', 'owner'));
+    assert.ok(lab.labPendingOn(l.changes, 'cl_12', 'counterparty'));
+  });
+
+  test('a decided change is no longer pending on the clause', () => {
+    const l = mkLab();
+    const ch = lab.labFileChange(l, { clauseId: 'cl_12', before: CLAUSE.text,
+      after: 'sixty (60) days', side: 'owner', author: 'You' });
+    lab.labSendChange(l, ch.id);
+    lab.labDecide(l, ch.id, 'rejected', { name: 'Amina' }, 'counterparty');
+    assert.equal(lab.labPendingOn(l.changes, 'cl_12', 'owner'), null);
   });
 });
