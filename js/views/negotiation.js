@@ -261,7 +261,52 @@ function negoStyleHtml(){
   .nego-clause{position:relative;margin-bottom:22px;padding:10px 12px;border-radius:8px;
     transition:background .25s ease,box-shadow .25s ease}
   .nego-clause h2{font-size:14.5px;margin:0 0 5px;font-family:var(--n-font-doc);font-weight:700}
-  .nego-clause p{margin:0}
+  /* THE LINE BREAKS ARE THE DOCUMENT, and the browser was eating them.
+
+     A clause under negotiation is drawn from richToText's projection, which is
+     one line per block — a paragraph, a heading, a numbered party, a WHEREAS
+     recital, a list item with its own marker. Those lines are separated by real
+     newline characters, and HTML collapses a newline to a space unless it is
+     told not to. So the preamble and the recitals — the part of a contract most
+     densely made of short lines — arrived as one unbroken run-on blob, and a
+     numbered list of parties read as a sentence.
+
+     The projection emits no blank lines (richToText drops empty ones), so
+     pre-wrap gives exactly one break where there was one break, and nothing
+     doubles up. */
+  .nego-clause p{margin:0;white-space:pre-wrap}
+  /* ---- a clause with nothing proposed against it reads as the DOCUMENT ----
+     Not as a text projection of it. The projection exists to be diffed; it is
+     the substance the fingerprints bind and it is right for a clause under
+     redline. It is not right for the other twenty clauses on the page, where
+     it flattens a numbered sub-list into "1. … 2. …" run together and drops
+     every piece of emphasis the drafter put there on purpose.
+
+     Real markup carries its own structure, so pre-wrap is turned back OFF
+     inside it: the source HTML's own indentation between tags is not content
+     and must not print. */
+  .nego-clause .nego-body>*{margin:0 0 9px}
+  .nego-clause .nego-body>*:last-child{margin-bottom:0}
+  .nego-clause .nego-body p,.nego-clause .nego-body li{white-space:normal}
+  .nego-clause .nego-body ol,.nego-clause .nego-body ul{margin:7px 0 9px;padding-left:26px}
+  .nego-clause .nego-body li{margin:0 0 5px}
+  .nego-clause .nego-body li:last-child{margin-bottom:0}
+  .nego-clause .nego-body ol ol,.nego-clause .nego-body ul ul,
+  .nego-clause .nego-body ol ul,.nego-clause .nego-body ul ol{margin:5px 0 0}
+  .nego-clause .nego-body strong,.nego-clause .nego-body b{font-weight:700}
+  .nego-clause .nego-body em,.nego-clause .nego-body i{font-style:italic}
+  .nego-clause .nego-body u{text-decoration:underline}
+  .nego-clause .nego-body h1,.nego-clause .nego-body h2,.nego-clause .nego-body h3,
+  .nego-clause .nego-body h4,.nego-clause .nego-body h5,.nego-clause .nego-body h6{
+    font-family:var(--n-font-doc);font-size:14.5px;font-weight:700;margin:12px 0 5px}
+  .nego-clause .nego-body table{border-collapse:collapse;width:100%;margin:9px 0;font-size:13px}
+  .nego-clause .nego-body td,.nego-clause .nego-body th{
+    border:1px solid var(--n-line);padding:5px 8px;text-align:left;vertical-align:top}
+  .nego-clause .nego-body th{font-weight:700;background:var(--n-badge-bg)}
+  .nego-clause .nego-body pre{white-space:pre;overflow-x:auto;
+    font-family:var(--n-font-mono);font-size:12px;line-height:1.5}
+  .nego-clause .nego-body blockquote{margin:8px 0 8px 18px;padding-left:12px;
+    border-left:2px solid var(--n-line);color:var(--n-ink-soft)}
   .nego-clause.is-active{background:#f3f7fb;box-shadow:0 0 0 2px var(--n-slate-soft)}
   .nego-clause.flash{animation:negoFlash 1.4s ease 1}
   @keyframes negoFlash{
@@ -494,6 +539,19 @@ function negoStyleHtml(){
 </style>`;
 }
 
+/* ---------- a clause body, as the document holds it ----------
+   Used wherever a clause is shown with nothing proposed against it. Falls back
+   to the text projection when there is no body to show, or when this page has
+   no sanitiser — never to the raw html, because an unsanitised clause body is
+   the one thing that must not reach the page and a flattened clause is a far
+   smaller loss. */
+const negoFlatBody = cl => `<p>${_ne((cl && cl.text) || '')}</p>`;
+function negoRichBody(cl){
+  const html = String((cl && cl.bodyHtml) || '').trim();
+  if (!html || !window.sanitizeRich) return negoFlatBody(cl);
+  return `<div class="nego-body">${sanitizeRich(html)}</div>`;
+}
+
 /* ---------- the document panes ----------
    Both panes are built from the SAME baseline clause list, so a clause sits at
    the same place in both and the eye can cross between them. The working pane
@@ -579,30 +637,49 @@ function negoDocHtml(c, opts){
       <button class="nego-tool danger" data-nego-del="${_ne(cl.clauseId)}" title="Propose deleting this clause">Delete</button>
     </div>` : '';
 
+  /* ---------- THE TWO WAYS A CLAUSE IS DRAWN ----------
+     A clause with a change on it is drawn from the TEXT PROJECTION, and it has
+     to be: the redline is rendered from the change's stored ops, which are ops
+     over that projection, so the marked-up words and the fingerprint that binds
+     them are the same substance. Nothing here touches that.
+
+     A clause with nothing on it is drawn from the DOCUMENT — its own bodyHtml,
+     lists and emphasis and tables intact — because there is no redline to line
+     up against and no reason to show anybody a flattened copy of a document
+     they are being asked to agree to.
+
+     Both keep the same wrapper: the same clause id, the same tools, the same
+     heading, so Change, Delete, badge anchoring and the synchronised highlight
+     do not know the difference. And the comparison is unaffected either way —
+     negoEditClause still opens on bodyHtml, the diff still runs on text. */
   const clauseBlock = (cl, ch, domPrefix) => {
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-        ${tools(cl)}${head(cl) ? `<h2>${head(cl)}</h2>` : ''}<p>${_ne(cl.text)}</p></div>`;
+        ${tools(cl)}${head(cl) ? `<h2>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
 
-    let inner, badgeCls = '', badgeSuffix = '', note = '';
+    let body, badgeCls = '', badgeSuffix = '', note = '';
     if (ch.status === 'pending'){
       /* A proposed DELETION strikes the clause through whole and leaves every
          word of it on the page. The text is not removed until the deletion is
          accepted — a document that quietly loses a clause while someone is
          still deciding about it is the failure this rule exists to prevent. */
-      inner = ch.changeType === 'deleteClause'
-        ? `<span class="nego-del">${_ne(cl.text)}</span>`
-        : redline(ch);
+      body = ch.changeType === 'deleteClause'
+        ? `<p><span class="nego-del">${_ne(cl.text)}</span></p>`
+        : `<p>${redline(ch)}</p>`;
     } else if (ch.status === 'accepted'){
-      inner = ch.changeType === 'deleteClause'
-        ? `<span class="nego-del">${_ne(cl.text)}</span>`
-        : resolvedHtml(ch);
+      body = ch.changeType === 'deleteClause'
+        ? `<p><span class="nego-del">${_ne(cl.text)}</span></p>`
+        : `<p>${resolvedHtml(ch)}</p>`;
       badgeCls = 'is-accepted'; badgeSuffix = ' ✓';
       note = ch.changeType === 'deleteClause'
         ? `<span class="nego-note ok">Accepted — clause removed</span>`
         : `<span class="nego-note ok">Accepted</span>`;
     } else {
-      inner = _ne(cl.text);                          // the baseline, verbatim
+      /* Rejected: the baseline stands, so this clause is not under redline any
+         more and reads as the document — the visible half of "silence
+         rejects". It used to render the projection, which meant a refusal
+         quietly cost the clause its structure for the rest of the negotiation. */
+      body = negoRichBody(cl);
       badgeCls = 'is-rejected'; badgeSuffix = ' ✕';
       note = `<span class="nego-note no">Rejected — baseline kept</span>`;
     }
@@ -612,7 +689,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
       ${tools(cl)}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${head(cl) ? `<h2>${head(cl)}${note}${flag}</h2>` : (note + flag)}<p>${inner}</p></div>`;
+      ${head(cl) ? `<h2>${head(cl)}${note}${flag}</h2>` : (note + flag)}${body}</div>`;
   };
 
   const insertBlock = ch => {
@@ -928,8 +1005,12 @@ function negoCleanDocHtml(c, whichSide){
   ].filter(Boolean).join(' · ');
   const rows = clauses.map(cl => {
     const label = negoClauseLabel(cl);
+    /* Every clause through the document's own body: there is no redline on this
+       screen at all, so there is nothing here that needs the flat projection —
+       and a screen whose whole purpose is "read it as a contract" is the last
+       place that should show a flattened one. */
     return `<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-      ${label ? `<h2>${_ne(label)}</h2>` : ''}<p>${_ne(cl.text)}</p></div>`;
+      ${label ? `<h2>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -1998,7 +2079,13 @@ function wireNegotiationTab(c, opts = {}){
     const clauseId = b.getAttribute('data-nego-edit');
     const block = host.querySelector(`.nego-pane.working .nego-clause[data-clause="${clauseId}"]`);
     if (!block || block.querySelector('.nego-edit-bar')) return;
-    const body = block.querySelector('p');
+    /* THE WHOLE BODY, not the first paragraph of it. A clause with nothing
+       proposed against it is drawn as its own markup — `<div class="nego-body">`
+       around however many paragraphs, lists and tables it has — so reaching for
+       `p` found the first paragraph inside it and swapped only that, leaving the
+       list and the paragraphs after it stranded below the editor and outside
+       what would be saved. */
+    const body = block.querySelector('.nego-body') || block.querySelector('p');
     if (!body) return;
     /* The clause is edited as the RICH content it is, in place. The old flow
        put the whole document into a <textarea>, which is why headings,
@@ -2199,4 +2286,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
+  negoRichBody, negoFlatBody,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

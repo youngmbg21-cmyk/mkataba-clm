@@ -4767,3 +4767,53 @@ somebody whose scan can actually be read.
 
 **1028 tests, 0 failures.** `f56` is new and covers both faults, including the
 two that were found while fixing them.
+
+---
+
+## Cycle 7 — the negotiation room was flattening the contract
+
+**23. Every line break in every clause was being eaten.** `clauseSegment` gives
+each clause two forms of itself and they are not interchangeable: `bodyHtml` is
+the document — paragraphs, numbered lists, emphasis, tables — and `text` is
+`richToText`'s projection, one line per block separated by real newline
+characters. The projection is the substance the diff runs on and the
+fingerprints bind, and that is exactly what it is for.
+
+Both panes rendered `<p>${text}</p>`, and no rule in `negoStyleHtml()` set
+`white-space` on those paragraphs. HTML collapses a newline to a space. So every
+line break in the projection vanished: the preamble and the recitals — the part
+of a contract most densely made of short lines — arrived as one unbroken run-on
+blob, and a numbered list of parties read as a sentence.
+
+Two fixes, in that order.
+
+`.nego-clause p{white-space:pre-wrap}` makes the projection's breaks visible.
+That is what a clause UNDER REDLINE needs and all it needs: its marked-up words
+have to stay the words the ops were computed over, so the redline rendering is
+untouched. `richToText` drops empty lines, so pre-wrap gives exactly one break
+where there was one break and nothing doubles up.
+
+A clause with NOTHING proposed against it is now drawn from its own markup
+instead — the whole baseline pane, every untouched clause in the working pane,
+and every clause whose ask was refused. There is no redline to line up against
+there, and no reason to show somebody a flattened copy of a document they are
+being asked to agree to. Same wrapper, same clause id, same tools and heading,
+so Change, Delete, badge anchoring and the synchronised highlight cannot tell
+the difference. `.nego-body` turns pre-wrap back off inside itself: real markup
+carries its own structure, and the source html's indentation between tags is not
+content.
+
+Found while doing it, and it would have shipped as a new fault: the Change
+editor reached for `block.querySelector('p')`. With a rich body that finds the
+FIRST paragraph inside it and swaps only that — the list and every paragraph
+after it stranded below the editor and outside what would be saved. It takes
+`.nego-body` when there is one.
+
+The clean read ("Read as agreed") went the same way, for the same reason: a
+screen whose whole purpose is to be read as a contract is the last place that
+should show a flattened one.
+
+Nothing here touches `richToText`, the diff engine, the fingerprints or the
+change model. Text remains the compared substance; this is what the reader sees.
+
+**1042 tests, 0 failures.** `f57` is new.
