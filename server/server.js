@@ -3196,11 +3196,32 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
     return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  /* ---- A SILENT REFRESH IS A DIFFERENT ACT FROM SENDING A ROUND ----
+
+     Two things want to write a payload, and only one of them is a message to
+     anybody.
+
+       SENDING a round — the owner presses "Send updated version". The wording
+       has moved, the other side needs to know, and an email goes.
+
+       CATCHING THE LINK UP — the counterparty answered, we applied it, and the
+       copy their link serves is now describing a negotiation that has moved on.
+       Nothing new is being asked of them; the link is simply being stopped from
+       lying. Emailing that would put "we have updated the contract" in their
+       inbox every time they themselves answered something.
+
+     A silent refresh therefore sends nothing, does not count as a send, and —
+     this matters — does not clear `first_opened_at`. Whether they have opened
+     the current wording is a fact about THEM, and it must not be reset by
+     bookkeeping they never asked for and cannot see. */
+  const silent = !!(req.body || {}).silent;
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
-  db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
-    .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
-  db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
+  if (!silent)
+    db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
+      .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
+  if (silent) db.prepare('UPDATE shares SET payload=? WHERE token=?').run(JSON.stringify(payload), s.token);
+  else db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
 
   /* TELL THEM. Refreshing the link used to be silent: the owner was shown
@@ -3210,7 +3231,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      A refresh is only "sent" once something has actually gone. */
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
-  if ((s.channel || 'link') === 'email' && s.recipient_email) {
+  if (!silent && (s.channel || 'link') === 'email' && s.recipient_email) {
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
@@ -3221,7 +3242,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
   }
-  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link',
+  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });

@@ -3405,3 +3405,79 @@ Reject All. The mobile/WhatsApp portal.
 
 **1087 tests, 0 failures.** 8 new. Two existing tests asserted the bar's button
 existed; both now assert there is exactly one way back, which is the change.
+
+---
+
+# Round 11 — an answer lands on both screens
+
+Reported as one bug. It was two, one on each side of the wire, and both were
+real.
+
+## Bug 1 — the owner's screen did not move
+
+Erik accepts a change and sends it. The answer arrives, and it is applied to the
+contract correctly. Wanjiru, sitting in the negotiation at that moment, goes on
+reading **PENDING**.
+
+The negotiation room is a full-window layer that sits *over* the normal page.
+The refresh that runs when an answer arrives rebuilds the page **underneath**
+it, and never touches the room. So the record was right, the screen she was
+reading was wrong, and nothing on it said so. Leaving the negotiation and coming
+back showed the truth — which is the worst kind of fix, because only somebody
+who already suspects a problem ever finds it.
+
+The room now repaints when an answer lands on the contract it is showing. Only
+that contract: somebody else's deal moving must not rebuild the screen you are
+standing in.
+
+## Bug 2 — their link served a photocopy
+
+Proved end to end against a real server. Erik accepts, sends, we receive and
+apply it — and then he reloads his link:
+
+    what his link still serves:  CHG-001, pending
+
+The link hands out a copy of the contract taken **when the link was made**.
+Nothing updated that copy when his own answers were applied. So reloading
+replayed the negotiation as it stood before he touched it: decision needed,
+Accept and Reject, on a change he had already answered. From where he sits that
+is indistinguishable from his answer having been thrown away.
+
+His link is now caught up quietly whenever an answer is applied — and *quietly*
+is the whole design of it:
+
+- **no email.** The existing "Send updated version" emails him. Firing that
+  every time he answered something would put "we have updated the contract" in
+  his inbox in response to his own click.
+- **not counted as a send.** The history records what was sent, and this was not
+  sent to anybody.
+- **and it does not forget he opened it.** Whether he has seen the current
+  wording is a fact about him. Bookkeeping he never asked for must not reset it.
+
+Telling him something has changed stays a deliberate act. That button is
+untouched, and still emails, and still counts.
+
+## The reply button says "Send"
+
+It was briefly "Save", to keep it apart from the "Send N decisions" postbox
+below it. That was the wrong call: the comment goes to the other side the moment
+the button is pressed, and a button whose word does not match what it does is
+the worse of the two problems. The postbox keeps its own word.
+
+## Long discussions fold back up
+
+A thread of a dozen replies made one card fill the whole change index and push
+every other change off the screen. Discuss has always been the toggle — but on a
+long thread the toggle is above the top of the window, so closing what you had
+just read meant scrolling back past all of it.
+
+**Hide** now sits at the top of the discussion itself, next to its heading,
+reachable the moment the thread opens and however long it gets. Closing it
+counts as having read it, so it does not go back to nagging. And the messages
+have a ceiling of their own with their own scroll, so a card can be open without
+becoming the entire index.
+
+**1098 tests, 0 failures.** 11 new, including the round trip walked both ways:
+counterparty accepts and sends → the owner's open room shows it → the
+counterparty reloads and still sees their own answer. Two f58 tests were
+reversed to the new wording, with the reason written into them.

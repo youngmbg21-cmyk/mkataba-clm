@@ -2505,7 +2505,43 @@ async function applyResponse(c, r, opts={}){
      what arrived. */
   try{ await flushSaves(); }catch(_){}
   if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
+  /* THE ROOM IS A LAYER OVER THE PAGE, and the repaint above rebuilds the page
+     UNDER it. So an owner sitting in the negotiation watched a change stay
+     "pending" after the counterparty had accepted it and we had applied the
+     acceptance: the record was right, the screen they were reading was not, and
+     nothing on it said so. Leaving and coming back fixed it, which is the worst
+     kind of fix — the one only somebody who already suspects a problem finds. */
+  if(window.negoRepaintOpenRoom) negoRepaintOpenRoom(c);
+  /* AND THEIR LINK IS A PHOTOCOPY. It serves the payload taken when the link
+     was made; nothing updated it when their own answers were applied. So the
+     counterparty answered, sent, and reloaded — and their page replayed the
+     negotiation as it stood before they touched it: decision needed, Accept and
+     Reject, on a change they had already answered.
+
+     Caught up quietly: no email, no "sent" mark, no reset of whether they have
+     opened the current wording. Telling them stays a deliberate act. */
+  refreshLiveShareQuietly(c);
   return true;
+}
+
+/* Bring the counterparty's live link up to date with the record, silently.
+   Fire-and-forget by design: it is a correction to a copy, and a contract that
+   has just been updated must not fail because a link could not be refreshed. */
+async function refreshLiveShareQuietly(c){
+  if(!API_MODE() || !canEdit()) return;
+  try{
+    const shares=await contractShares(c);
+    const live=(shares||[]).filter(s=>s && s.durable && !s.revokedAt && !s.expired);
+    if(!live.length) return;
+    const docHash=await sha256(canonicalDoc(c));
+    for(const s of live){
+      /* The purpose the link was issued with is kept. A negotiation link that
+         quietly became a signing link — or the reverse — would change what the
+         reader is being asked to do without anybody deciding it. */
+      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined });
+      try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
+    }
+  }catch(e){ /* the record is right either way; the link catches up next time */ }
 }
 
 /* WHOSE MOVE IT IS, after they answer.
@@ -2684,9 +2720,8 @@ async function pollThreadMessages(){
        would rebuild the room under the reader twice a minute — and take the
        reply box they were typing into with it. */
     if(next.length!==before){
-      if(window.negoRoomIsOpen&&negoRoomIsOpen()&&window.negoRoomContract
-        &&negoRoomContract()===c&&window.openNegotiationOwnerRoom) openNegotiationOwnerRoom(c);
-      else if(window.renderDiscussSection) renderDiscussSection(c);
+      const painted=window.negoRepaintOpenRoom ? negoRepaintOpenRoom(c) : false;
+      if(!painted && window.renderDiscussSection) renderDiscussSection(c);
     }
   }catch(e){ /* transient — the next tick retries */ }
 }
@@ -2705,4 +2740,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

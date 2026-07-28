@@ -543,8 +543,20 @@ function negoStyleHtml(){
   /* ---- threads on a fingerprint ---- */
   .nego-thread{margin-top:10px;border-top:1px dashed var(--n-line);padding-top:10px;display:none}
   .nego-thread.open{display:block}
-  .nego-tlabel{font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
-    color:var(--n-ink-soft);margin-bottom:7px}
+  .nego-thead{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .nego-tlabel{flex:1;min-width:0;font-size:10px;font-weight:800;letter-spacing:.5px;
+    text-transform:uppercase;color:var(--n-ink-soft)}
+  /* The way back to a card the size it was, at the top of the thread so a long
+     conversation never puts it out of reach. */
+  .nego-tmin{flex:none;border:1px solid var(--n-line);background:var(--n-paper);
+    color:var(--n-ink-soft);border-radius:5px;padding:2px 9px;font:inherit;font-size:10.5px;
+    font-weight:700;cursor:pointer;transition:background .12s ease,color .12s ease}
+  .nego-tmin:hover{background:var(--n-badge-bg);color:var(--n-slate)}
+  /* A CEILING ON THE CONVERSATION. Without it one change with a dozen replies
+     fills the index and pushes every other change on the table off the screen.
+     The thread keeps its own scroll; the card keeps its shape. */
+  .nego-tbody{max-height:260px;overflow-y:auto;padding-right:2px;
+    display:flex;flex-direction:column;gap:6px}
   .nego-compose{display:flex;gap:6px;margin-top:8px}
   .nego-compose input{flex:1;min-width:0;border:1px solid var(--n-line);border-radius:6px;
     padding:6px 9px;font:inherit;font-size:11.5px;background:var(--n-paper);outline:none}
@@ -952,21 +964,38 @@ function negoLiveCardsHtml(c, opts){
        Only on a REFUSED ask, and only for the side that made it. */
     const withdrawable = canAct && mine && ch.status === 'rejected';
 
+    /* ---- A CARD IS A CARD AGAIN WHEN THE READING IS DONE ----
+
+       An open thread grows without limit, and the card grows with it: a dozen
+       replies and one change fills the index, pushing every other change on the
+       table off the screen. Discuss has always been the toggle, but on a long
+       thread the toggle is somewhere above the top of the window — you have to
+       scroll back past everything you just read to close what you just read.
+
+       So the way out sits at the TOP of the thread, next to the label that
+       names it, where it is reachable the moment the thread opens and stays
+       reachable however long the thread gets. And the messages themselves are
+       given a ceiling with their own scroll, so a card can be open without
+       becoming the whole index. */
     const thread = `
       <div class="nego-thread${open ? ' open' : ''}" id="nego-thread-${_ne(ch.id)}">
-        <div class="nego-tlabel">Discussion on #${_ne(ch.id)} — no formal round re-draft</div>
-        ${n ? msgs.map(m => (window.discussBubbleHtml
+        <div class="nego-thead">
+          <span class="nego-tlabel">Discussion on #${_ne(ch.id)} — no formal round re-draft</span>
+          <button class="nego-tmin" data-nego-collapse="${_ne(ch.id)}"
+            title="Collapse this discussion and put the card back the size it was">Hide</button>
+        </div>
+        <div class="nego-tbody">${n ? msgs.map(m => (window.discussBubbleHtml
             ? discussBubbleHtml({ author: m.who, at: m.at, body: m.text, side: m.side }, side)
             : `<div style="font-size:11.5px;margin-bottom:6px"><b>${_ne(m.who)}</b> ${_ne(m.text)}</div>`)).join('')
-          : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}
+          : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}</div>
         ${canComment ? `<div class="nego-compose">
           <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
-          ${''/* "Save", not "Send". Every other Send on this screen posts a
-                  batch of decisions to the other side; this one attaches a
-                  sentence to a fingerprint, and two controls a few inches
-                  apart reading the same word are two controls people get
-                  wrong. The act is unchanged — it still reaches them. */}
-          <button data-nego-send="${_ne(ch.id)}">Save</button>
+          ${''/* "Send", because that is what it does: the comment goes to the
+                  other side on the discussion channel the moment it is
+                  pressed. It was briefly "Save" to keep it apart from the
+                  postbox below — but a button whose word does not match its
+                  act is the worse of the two problems. */}
+          <button data-nego-send="${_ne(ch.id)}">Send</button>
         </div>` : ''}
       </div>`;
 
@@ -974,10 +1003,12 @@ function negoLiveCardsHtml(c, opts){
       <div class="nego-acts">
         <button class="b-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>
         <button class="b-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>
-        <button class="${disCls}"${disTitle} data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
+        <button class="${disCls}"${disTitle} aria-expanded="${open ? 'true' : 'false'}"
+          aria-controls="nego-thread-${_ne(ch.id)}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
       </div>`
       : `<div class="nego-acts">
-        <button class="${disCls}"${disTitle} data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
+        <button class="${disCls}"${disTitle} aria-expanded="${open ? 'true' : 'false'}"
+          aria-controls="nego-thread-${_ne(ch.id)}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
         ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">Undo</button>` : ''}
         ${redecidable ? `<button class="b-redecide" data-nego-redecide="${_ne(ch.id)}"
             title="You answered this and it has gone to them. Answering differently files a new decision, and that travels too.">Change decision</button>` : ''}
@@ -2389,6 +2420,15 @@ function wireNegotiationTab(c, opts = {}){
   }));
 
   const seenScope = negoSeenScope(c, opts);
+  /* Put the card back the size it was. Same state the Discuss toggle writes —
+     one open/closed fact per change, two ways to reach it. */
+  host.querySelectorAll('[data-nego-collapse]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.getAttribute('data-nego-collapse');
+    _negoThreads[id] = false;
+    negoMarkThreadSeen(seenScope, id);   // they read it, then closed it
+    again();
+  }));
   host.querySelectorAll('[data-nego-discuss]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.getAttribute('data-nego-discuss');
@@ -2438,7 +2478,7 @@ function wireNegotiationTab(c, opts = {}){
         try { await opts.onComment(c, negoChangeById(c, id), msg); }
         catch (e){ /* the handler reports its own failure */ }
       }
-      else if (window.toast) toast(`Comment saved on #${id} — the contract is unchanged and no round was opened`);
+      else if (window.toast) toast(`Comment sent on #${id} — the contract is unchanged and no round was opened`);
       again();
       const back = byId('nego-ti-' + id);
       if (back && back.focus) back.focus();

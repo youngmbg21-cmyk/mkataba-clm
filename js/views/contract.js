@@ -2107,6 +2107,23 @@ function wireWsTabs(c){
    owner lives here — who they are, what pressing "Propose edits" does, where
    the hand-off goes — so js/views/negotiation.js stays the same code for both
    parties. */
+/* REPAINT THE ROOM, IF THE ROOM IS WHAT THEY ARE LOOKING AT.
+
+   The room is a full-window layer mounted outside the app shell, so
+   renderWorkspace() rebuilds the page UNDERNEATH it and leaves it exactly as it
+   was. Every path that changes the record while the owner might be standing in
+   the room has to say so — an answer arriving from the counterparty, a reply on
+   a thread — or the screen goes on showing a state the contract left behind.
+
+   Guarded on the contract as well as on the room: repainting somebody's open
+   negotiation because a DIFFERENT contract moved would be worse than not
+   repainting at all. */
+function negoRepaintOpenRoom(c){
+  if(!c || !window.negoRoomIsOpen || !negoRoomIsOpen()) return false;
+  if(!window.negoRoomContract || negoRoomContract() !== c) return false;
+  openNegotiationOwnerRoom(c);
+  return true;
+}
 function openNegotiationOwnerRoom(c){
   if(!window.openNegotiationRoom) return;
   /* THE OTHER SIDE OF EVERY THREAD, fetched before the cards are drawn.
@@ -3305,4 +3322,4 @@ function distributionPanelHtml(c){
 
 
 Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,openNegoProposeModal});
+  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

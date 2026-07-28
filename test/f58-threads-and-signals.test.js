@@ -204,19 +204,25 @@ describe('F58 — held decisions pulse until they are sent', () => {
   });
 });
 
-describe('F58 — the reply button saves', () => {
-  test('it reads Save, and the footer send is untouched', async () => {
+/* THIS READS "SEND" NOW, and the reversal is deliberate. It was briefly "Save"
+   to keep it apart from the postbox a few inches below, which says "Send N
+   decisions" and does something else entirely. But the comment goes to the
+   other side the moment the button is pressed — it is not saved anywhere for
+   later — and a button whose word does not match its act is the worse of the
+   two problems. The postbox keeps its own word; see f59 for what that one
+   does. */
+describe('F58 — the reply button sends', () => {
+  test('it reads Send, and the footer send is untouched', async () => {
     const { win, c, filed } = await ownerProposed();
     win.negoResetView();
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
     const b = win.document.querySelector(`[data-nego-send="${filed[0].id}"]`);
-    assert.equal(b.textContent.trim(), 'Save',
-      'two buttons a few inches apart reading Send are two buttons people get wrong');
+    assert.equal(b.textContent.trim(), 'Send', 'because that is what pressing it does');
     assert.match(win.negoIndexSendHtml(c, { side: 'counterparty', pendingDecisions: 1, org: 'H' }),
-      /Send 1 decision/, 'the postbox still says Send — it is a different act');
+      /Send 1 decision/, 'and the postbox is a different button doing a different thing');
   });
 
-  test('Enter still saves, and the handler is unchanged', async () => {
+  test('Enter still sends, and the handler is unchanged', async () => {
     const { win, c, filed } = await ownerProposed();
     win.negoResetView();
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
@@ -368,11 +374,11 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
     assert.match(send.className, /nego-pulse/, 'and it asks to be pressed');
   });
 
-  test('their reply button reads Save too — one component, both sides', async () => {
+  test('their reply button reads Send too — one component, both sides', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press(`[data-nego-discuss="${filed[0].id}"]`);
-    assert.equal(v.$(`[data-nego-send="${filed[0].id}"]`).textContent.trim(), 'Save');
+    assert.equal(v.$(`[data-nego-send="${filed[0].id}"]`).textContent.trim(), 'Send');
   });
 });
 
