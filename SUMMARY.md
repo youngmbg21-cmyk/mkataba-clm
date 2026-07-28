@@ -3541,11 +3541,32 @@ That difference used to be inferred from a flag that is false on any reloaded
 page — which would have handed the owner's quiet Undo to an answer already filed
 with them. The page now says which of the two it is.
 
-**1108 tests, 0 failures.** 10 new.
+**1117 tests, 0 failures.** 19 new across f62 and f63. One f51 test was
+rewritten: it asserted that a refresh loses unsent answers, which is now only
+true where the browser cannot remember — what it holds either way is that the
+page never claims an unsent answer has travelled.
 
-## Still open, and your call
+## And a reply in progress now survives closing the laptop
 
-Held answers are still lost if the counterparty reloads before sending. Now that
-the page says clearly that the step has not happened, that is far less likely to
-bite — but it is the other half of the same complaint, and remembering held
-answers in their browser would close it. Not done, because it was not asked for.
+The other half of the same complaint, done in the same round.
+
+Everything the counterparty had done and not yet sent lived only in the tab.
+Answer four changes, close the laptop, come back — and you had answered nothing.
+Wording typed into a Change went the same way, which is more work to lose than a
+click.
+
+It is now kept in their own browser, against the link it belongs to. Three
+things about that are deliberate:
+
+- **It is not a record.** Nothing in it has been agreed with anybody. It is a
+  draft of a reply, and every card goes on saying so until it is sent.
+- **It is keyed by the link.** A different link is a different negotiation, and
+  answers must never follow a reader from one deal to another.
+- **It expires after a month.** A reply nobody sent in March should not be put
+  back onto a link that has moved four rounds since.
+
+Sending it clears the draft, so reopening later never offers to send an answer
+that has already gone. And it degrades safely: a browser that will not remember
+— private browsing, a locked-down device, a full quota — behaves exactly as
+before, because every read and write is wrapped. A convenience that cannot
+remember must never be able to take the page down.

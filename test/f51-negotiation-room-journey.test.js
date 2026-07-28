@@ -823,18 +823,24 @@ describe('the mirror: we refuse their ask, and they withdraw it', () => {
    The awkward cases, tested because they are where this breaks
    ============================================================ */
 describe('the awkward cases', () => {
-  test('a refresh mid-journey loses UNSENT decisions, and the page says they are unsent', async () => {
+  /* THIS STAGE HAS NO ORIGIN, so every localStorage call in it throws — which
+     is a fair stand-in for private browsing, a locked-down device or a full
+     quota. On a browser that CAN remember, an unsent answer now survives the
+     reload; see f63. What must hold either way is the line below: the page
+     never claims an answer has travelled when it has not. */
+  test('an unsent decision is never reported as having travelled', async () => {
     const { c, filed } = await ownerProposed();
     const v1 = theirLink(c);
     await v1.press(`[data-nego-accept="${filed[0].id}"]`);
     assert.match(v1.$('#nego-send-decisions').parentElement.textContent.replace(/\s+/g, ' '),
       /Nothing has reached .* yet/, 'the page never claims a decision has travelled');
-    // reload: a fresh page on the same unchanged payload
+    assert.ok(v1.$(`[data-unsent="${filed[0].id}"]`), 'and the card itself says so');
+    // and where the browser cannot remember, the answer is simply not there
     const v2 = theirLink(c);
     assert.equal(v2.$('#nego-send-decisions'), null,
-      'they were held in the browser, and the browser is what was refreshed');
+      'nothing half-answered is left behind claiming to be ready to send');
     assert.equal(v2.$(`[data-nego-accept="${filed[0].id}"]`) != null, true,
-      'so the change is back to undecided rather than silently half-answered');
+      'the change is an open question again rather than a silent half-answer');
   });
 
   /* The send succeeds, the room repaints — and the room repaints from a payload

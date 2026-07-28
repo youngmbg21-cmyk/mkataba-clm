@@ -909,6 +909,61 @@ function portalChangeSummaryHtml(p){
   </div>`;
 }
 
+/* ---------- WORK IN PROGRESS SURVIVES A RELOAD ----------
+
+   Everything this reader has done and not yet sent lives in three module
+   variables, and a module variable is exactly as durable as the tab. So a
+   counterparty who answered four changes, closed the laptop and came back had
+   answered nothing: the page rebuilt from the share payload and every card was
+   undecided again. Wording they had typed into a Change went the same way, and
+   that is more work to lose than a click.
+
+   It is now kept in their own browser, against the link it belongs to. Three
+   properties matter and each is deliberate:
+
+     · IT IS NOT A RECORD. Nothing here has been agreed with anybody. It is a
+       draft of a reply, and it says so on every card until it is sent.
+     · IT IS KEYED BY THE LINK. A different link is a different negotiation, and
+       held answers must never follow a reader from one deal to another.
+     · IT EXPIRES. A draft reply nobody sent three months ago is not something
+       to resurrect on a link that has moved on several rounds since.
+
+   Every read and write is wrapped: this page runs on a no-login origin where
+   localStorage can throw outright, and a convenience that cannot remember must
+   never be able to take the page down. */
+const PORTAL_HELD_KEY = t => `hati.negoHeld.${t}`;
+const PORTAL_HELD_TTL = 30*24*60*60*1000;        // a month, then it is stale news
+function portalSaveHeld(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const any=Object.keys(PORTAL_NEGO_DECISIONS).length
+      || Object.keys(PORTAL_NEGO_WITHDRAWN).length
+      || Object.keys(PORTAL_NEGO_PROPOSED).length;
+    if(!any){ localStorage.removeItem(PORTAL_HELD_KEY(t)); return; }
+    localStorage.setItem(PORTAL_HELD_KEY(t), JSON.stringify({ v:1, at:Date.now(),
+      decisions:PORTAL_NEGO_DECISIONS, withdrawn:PORTAL_NEGO_WITHDRAWN,
+      proposed:PORTAL_NEGO_PROPOSED }));
+  }catch(e){ /* a browser that will not remember is not a reason to stop */ }
+}
+function portalLoadHeld(){
+  PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const raw=localStorage.getItem(PORTAL_HELD_KEY(t)); if(!raw) return;
+    const held=JSON.parse(raw);
+    if(!held || held.v!==1) return;
+    if(!held.at || (Date.now()-held.at)>PORTAL_HELD_TTL){ localStorage.removeItem(PORTAL_HELD_KEY(t)); return; }
+    PORTAL_NEGO_DECISIONS=held.decisions&&typeof held.decisions==='object'?held.decisions:{};
+    PORTAL_NEGO_WITHDRAWN=held.withdrawn&&typeof held.withdrawn==='object'?held.withdrawn:{};
+    PORTAL_NEGO_PROPOSED=held.proposed&&typeof held.proposed==='object'?held.proposed:{};
+  }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; }
+}
+/* Sent, or overtaken by the record — either way it is no longer a draft. */
+function portalDropHeld(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{ localStorage.removeItem(PORTAL_HELD_KEY(t)); }catch(e){}
+}
+
 /* Is this answer already somewhere other than this browser? Either it has been
    sent from this page, or the record itself already carries it. Both mean the
    answer is not waiting on anybody, and re-registering it as held is what made
@@ -1007,7 +1062,7 @@ function portalNegoContract(p){
     /* The record has caught up with this answer, so it is not waiting on
        anything any more. Kept as a held decision it would go on offering Undo
        and asking to be sent a second time. */
-    if(d && PORTAL_NEGO_FILED[ch.id]===d.status){ delete PORTAL_NEGO_DECISIONS[ch.id]; d=null; }
+    if(d && PORTAL_NEGO_FILED[ch.id]===d.status){ delete PORTAL_NEGO_DECISIONS[ch.id]; d=null; portalSaveHeld(); }
     if(d){ ch.status=d.status; ch.reply=d.reply||ch.reply||null; ch.sentByMe=false;
       /* ANSWERED HERE, NOT YET ANYWHERE ELSE. The one state on this page that
          looks finished and is not: the card says "accepted" and the other side
@@ -1250,6 +1305,7 @@ function wirePortalNego(c, p){
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
       }
+      portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
@@ -1363,6 +1419,7 @@ function openPortalNegoRoom(c, p){
         if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
           PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
       }
+      portalSaveHeld();   // it is a draft of a reply, and drafts survive a reload
       /* The postbox lives in the change index and is rendered from these
          counts, so it has to be repainted when they move. */
       const foot=document.getElementById('pt-nego-foot');
@@ -1372,7 +1429,7 @@ function openPortalNegoRoom(c, p){
        page beside the decisions and posted in the same call, for the same
        reason: a withdrawal that never left the browser is a deadlock the
        reader thinks they have cleared. */
-    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; },
+    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
     onComment:portalNegoComment(p),
     rerender:reopen,
     onSendDecisions(){ portalRespond(p,'decisions'); },
@@ -1429,6 +1486,10 @@ async function portalEntry(encoded){
 }
 function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  /* Whatever this reader had answered and not sent, put back — see
+     portalLoadHeld. Before the room is built, because the room is built FROM
+     these. */
+  portalLoadHeld();
   /* A WHOLE-PAGE RENDER IS A FRESH ARRIVAL, so the room opens again with it.
 
      `_ptRoomOpened` stops the room snapping shut and re-opening every time the
@@ -1709,6 +1770,7 @@ async function portalRespond(p, action, extra){
       for(const id of withdrawn) PORTAL_NEGO_WITHDRAWN_SENT[id]=true;
       for(const pr of proposed) PORTAL_NEGO_PROPOSED_SENT[pr.id]={ ...PORTAL_NEGO_PROPOSED[pr.id] };
       PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
+      portalDropHeld();                        // it has gone; it is not a draft any more
       if(action==='ready') PORTAL_READY_SENT=true;
       const n=decisions.length, np=proposed.length;
       /* What actually went, named. "2 decisions sent" was the only sentence
