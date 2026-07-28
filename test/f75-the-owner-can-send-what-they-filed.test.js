@@ -118,3 +118,42 @@ describe('F75 — work we have not sent can always be sent', () => {
       'their answers travel on the response route, not by minting a share link');
   });
 });
+
+/* The counterparty's postbox pulses under a line reading "nothing has reached
+   them yet", so a held answer cannot be walked past. Ours sat still in a bar at
+   the top, and an ask we had filed but not sent looked exactly like one we had
+   already sent. Same signal, both sides. */
+describe('F75 — unsent work asks to be sent', () => {
+  const bannerHtml = async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    return { r, btn: host.querySelector('[id="nego-send"]') };
+  };
+
+  test('the send flashes while something is being held', async () => {
+    const { btn } = await bannerHtml();
+    assert.match(btn.className, /nego-pulse/,
+      'the same animation the counterparty’s postbox uses, for the same reason');
+  });
+
+  test('and says how much, so the number is not a surprise', async () => {
+    const { btn } = await bannerHtml();
+    assert.match(btn.textContent, /Send 1 change to Nordfrakt Logistik AB/);
+  });
+
+  test('the ordinary your-turn send does not flash', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    const btn = host.querySelector('[id="nego-send"]');
+    assert.ok(!/nego-pulse/.test(btn.className),
+      'nothing is being held, so a blinking control would just be noise');
+  });
+});

@@ -1733,8 +1733,18 @@ function negoTurnBannerHtml(c, opts){
            that would send it. The rule the counterparty's postbox already
            follows is the right one — offer the send where there is something to
            send. Whose turn it is decides what the banner SAYS. */}
+    ${''/* AND IT FLASHES WHILE SOMETHING IS WAITING, the way the counterparty's
+           postbox does. Theirs pulses under a line reading "nothing has reached
+           them yet", so a held answer is impossible to walk past; ours sat
+           still, in a bar at the top, and an ask we had filed and not sent
+           looked exactly like an ask we had sent. Same signal, both sides.
+
+           The pulse is on unsent work only — not on the ordinary "your turn"
+           send, where nothing is being held and a blinking control would just
+           be noise. */}
     ${(mine || b.unsent) && !opts.readonly && side === 'owner'
-      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go${b.unsent ? ' nego-pulse' : ''}" style="flex:none">Send ${
+          b.unsent ? `${b.unsent} change${b.unsent === 1 ? '' : 's'} to ` : 'to '}${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;
 }
