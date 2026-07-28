@@ -1712,9 +1712,13 @@ function negoUnsentAsks(c, side){
      Reading a missing turnAt as "everything is unsent" also mislabels the other
      side's asks: a change of theirs is on our record only because it was sent
      to us, whatever the turn stamp says. */
-  if (!at) return [];
   return negoPending(c).filter(x => x && x.authorSide === me
-    && String(x.createdAt || '') > String(at));
+    && (at ? String(x.createdAt || '') > String(at)
+           /* Nothing has ever been handed over. Our own pending asks are
+              therefore unsent — the first round is unsent work like any other.
+              Theirs are not: a change of theirs is on our record only because
+              it was sent to us, whatever the turn stamp says. */
+           : me === 'owner'));
 }
 function negoTurnBanner(c, side){
   negoInit(c);

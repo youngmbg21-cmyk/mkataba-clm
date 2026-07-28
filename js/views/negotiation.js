@@ -1784,9 +1784,11 @@ function negoTurnBannerHtml(c, opts){
            The pulse is on unsent work only — not on the ordinary "your turn"
            send, where nothing is being held and a blinking control would just
            be noise. */}
-    ${(mine || b.unsent) && !opts.readonly && side === 'owner'
-      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go${b.unsent ? ' nego-pulse' : ''}" style="flex:none">Send ${
-          b.unsent ? `${b.unsent} change${b.unsent === 1 ? '' : 's'} to ` : 'to '}${_ne(c.counterparty || 'the counterparty')}</button>`
+    ${''/* Only when the postbox is NOT up. With unsent asks the send belongs in
+           the index beside them; with none, this is the way to hand the
+           contract back unchanged, and there is nowhere else for it. */}
+    ${mine && !b.unsent && !opts.readonly && side === 'owner'
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;
 }
@@ -1808,7 +1810,27 @@ function negoTurnBannerHtml(c, opts){
    Rendered only where there is something to send. A button that is always there
    and usually does nothing teaches people to ignore it. */
 function negoIndexSendHtml(c, opts = {}){
-  if ((opts.side || 'owner') !== 'counterparty' || opts.readonly) return '';
+  const me = opts.side || 'owner';
+  if (opts.readonly) return '';
+  /* THE OWNER'S POSTBOX, in the index, where the work is.
+
+     Their side has always had this: file an answer and the send appears
+     directly under it, flashing, over a line saying nothing has reached anybody
+     yet. Ours was a button in a bar at the top — the same act, a screen away
+     from the thing it acts on, and it kept being asked for because it kept not
+     being found. One send, both sides, in the same place. The turn banner keeps
+     its own send for the case this one does not cover: handing the contract
+     back with nothing of ours outstanding. */
+  if (me === 'owner'){
+    const n = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
+    if (!n) return '';
+    const them = _ne(String(c.counterparty || 'the counterparty'));
+    return `<div class="nego-index-send">
+      <button id="nego-send" class="nego-pulse">Send ${n} change${n === 1 ? '' : 's'} to ${them}</button>
+      <span class="why">Held on this page until you send. Nothing has reached ${them} yet.</span>
+    </div>`;
+  }
+  if (me !== 'counterparty') return '';
   const n = opts.pendingDecisions || 0;
   /* WORDING THEY HAVE ASKED FOR COUNTS TOO, and leaving it out was a dead end
      with no bottom. This postbox counted decisions only — answers to the

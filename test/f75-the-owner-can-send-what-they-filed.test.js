@@ -146,14 +146,24 @@ describe('F75 — unsent work asks to be sent', () => {
     assert.match(btn.textContent, /Send 1 change to Nordfrakt Logistik AB/);
   });
 
-  test('the ordinary your-turn send does not flash', async () => {
+  test('the send sits in the index, beside the work it sends', async () => {
+    const { btn } = await bannerHtml();
+    const box = btn.closest ? btn.closest('.nego-index-send') : null;
+    assert.ok(box, 'their side has always had it here; ours was a screen away');
+    assert.match(box.textContent, /Nothing has reached Nordfrakt Logistik AB yet/,
+      'and says so in the same words theirs does');
+  });
+
+  test('handing it back unchanged still has a send, and does not flash', async () => {
     const r = await room();
-    await r.propose('4');
     r.win.negoResetView();
     r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
     const host = r.win.document.querySelector('#nego-room') || r.win.document;
     const btn = host.querySelector('[id="nego-send"]');
+    assert.ok(btn, 'sending it back with nothing of ours outstanding is a real act');
     assert.ok(!/nego-pulse/.test(btn.className),
       'nothing is being held, so a blinking control would just be noise');
+    assert.ok(!btn.closest('.nego-index-send'),
+      'and it belongs in the banner, because there is no held work to sit beside');
   });
 });
