@@ -78,7 +78,7 @@ describe('every version the contract carries is selectable', () => {
        the contract we started from" was answered by a different row each time.
 
        Rounds 1 and 2 are closed here, so the sequence starts where the whole
-       negotiation started, which is what f64 made reachable. */
+       negotiation started, which is what f69 made reachable. */
     assert.equal(opts[0].key, 'round1-baseline', 'the wording the negotiation started from comes first');
     assert.equal(opts[opts.length - 1].key, 'working', 'and what is proposed now comes last');
     assert.match(opts[0].label, /^Round 1 - Baseline/, 'named by its round, and the round leads');
@@ -145,7 +145,7 @@ describe('every version the contract carries is selectable', () => {
     /* The wording before the round is a different document, so it stays on the
        list. It is offered under the name that places it — "Round 1 - Baseline"
        — rather than under v1: the template snapshot and the wording round 1 was
-       measured against are the same document, and f64 gave that document the
+       measured against are the same document, and f69 gave that document the
        clearer of its two names. Nothing was thrown away; the key still
        resolves, which is what the version history and the compare screen read. */
     const before = offered.find(o => /^Round 1 - Baseline/.test(o.label));

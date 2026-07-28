@@ -1,5 +1,5 @@
 /* ============================================================
-   F64 — a negotiation you can read back
+   F69 — a negotiation you can read back
    ============================================================
    Reported from a screenshot of a room reading "Round 2 · 0 of 0 changes
    resolved", from somebody who had just spent a round negotiating and could
@@ -78,7 +78,7 @@ async function afterOneRound(){
 
 /* ---- 1. the names ------------------------------------------------------- */
 
-describe('F64 — every row in the selector names its round, and the round leads', () => {
+describe('F69 — every row in the selector names its round, and the round leads', () => {
   test('a fresh negotiation reads Round 1 - Baseline and Round 1 - Working Version', () => {
     const { win } = buildWorld();
     const c = contract();
@@ -150,7 +150,7 @@ describe('F64 — every row in the selector names its round, and the round leads
 
 /* ---- 2. the closed rounds are on the list ------------------------------- */
 
-describe('F64 — the wording a closed round started from is reachable', () => {
+describe('F69 — the wording a closed round started from is reachable', () => {
   test('the round that closed brings its starting wording onto the selector', async () => {
     const { win, c } = await afterOneRound();
     const opt = win.negoVersionByKey(c, 'round1-baseline');
@@ -195,7 +195,7 @@ describe('F64 — the wording a closed round started from is reachable', () => {
 
 /* ---- 3. the closed rounds can be read ----------------------------------- */
 
-describe('F64 — a closed round can be read back', () => {
+describe('F69 — a closed round can be read back', () => {
   const room = async () => {
     const { win, c, filed } = await afterOneRound();
     win.negoResetView();
@@ -330,7 +330,7 @@ describe('F64 — a closed round can be read back', () => {
 
 /* ---- 4. a round does not close by surprise ------------------------------ */
 
-describe('F64 — closing a round asks first', () => {
+describe('F69 — closing a round asks first', () => {
   const ready = async (opts = {}) => {
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();

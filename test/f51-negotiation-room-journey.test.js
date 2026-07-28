@@ -187,7 +187,7 @@ describe('the link they were sent is the room, and the room is all there is', ()
     for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib'])
       assert.equal(v.$('#nego-room #' + id), null, id + ' is ours');
     assert.equal(v.$('#nego-room #nego-share-link'), null,
-      'and Share Link is on neither bar now — see f65');
+      'and Share Link is on neither bar now — see f70');
     assert.ok(v.$('#nego-room #nego-bulk-acc'), '"I agree to all of it" is a real answer');
     assert.ok(v.$('#nego-room #nego-bulk-rej'));
   });

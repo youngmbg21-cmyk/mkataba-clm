@@ -226,7 +226,7 @@ describe('what is ours stays ours', () => {
     const d = win.document;
     for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib'])
       assert.ok(d.getElementById(id), `${id} must still be on the owner's bar`);
-    /* Share Link left the bar in f65 — for both sides, and for a different
+    /* Share Link left the bar in f70 — for both sides, and for a different
        reason than the one this suite is about: it was a second way to do
        what "Send to <them>" already does. Distribution is still ours. */
     assert.equal(d.getElementById('nego-share-link'), null);

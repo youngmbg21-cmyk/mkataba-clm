@@ -258,7 +258,7 @@ describe('a version is named, and the bookkeeping is not a version', () => {
      under two names. The selector asks which two documents to read side by
      side; the version history answers what happened and when.
 
-     What DID change with f64 is that the round that closed brings its own
+     What DID change with f69 is that the round that closed brings its own
      starting wording onto the list. That is a third document, not a third name
      for the same one: it is what the contract said before round 1 moved it. */
   test('the compare dropdown offers the live pair, and not the same document twice', async () => {

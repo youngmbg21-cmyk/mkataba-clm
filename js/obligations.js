@@ -21,11 +21,37 @@ const OBLIG_RECUR = [['none','One-off'],['monthly','Monthly'],['quarterly','Quar
    So the value is normalised before any arithmetic touches it: a leading
    YYYY-MM-DD is taken as-is, anything else is offered to Date.parse, and a
    value that survives neither is null. Null is a real answer here — "we do not
-   know when this expires" — and every caller already handles it. */
+   know when this expires" — and every caller already handles it.
+
+   AND Date.parse ON ITS OWN IS NOT THE TEST. Handing it any string at all was
+   the second half of the same mistake, one step further down: outside the ISO
+   grammar the engine falls back to a legacy parser that will find a date in
+   almost anything. `Date.parse("Phase 2")` is 1 February 2001.
+   `Date.parse("clause 4.2")` is 2 April 2001. So an expiry a migration left as
+   "Phase 2" did not come back as "we do not know" — it came back as a
+   confident calendar day twenty-five years ago, and the contract read as long
+   expired, sat in the expiring buckets and drew itself on a 2001 calendar.
+   A wrong date stated as fact is worse than no date, because nobody goes
+   looking for it.
+
+   Only shapes a person actually writes a date in are offered to the parser.
+   Anything else is null — which is the honest answer and the handled one. */
+const DATE_MONTH_RE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+const DATE_SHAPES = [
+  /^(\d{1,2})(?:st|nd|rd|th)?[ .\-]+([A-Za-z]{3,9})\.?,?[ .\-]+(\d{4})$/,   // 30 September 2026
+  /^([A-Za-z]{3,9})\.?[ .\-]+(\d{1,2})(?:st|nd|rd|th)?,?[ .\-]+(\d{4})$/,   // September 30, 2026
+];
 function dateOnly(v){
+  if(v instanceof Date) return isNaN(v.getTime()) ? null : isoDay(v);
   const s = String(v==null?'':v).trim();
   if(!s) return null;
   if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  // the same year-first date with the other separators
+  if(!/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s)){
+    const shape = DATE_SHAPES.map(re=>re.exec(s)).find(Boolean);
+    // a month has to be a month — "Foo 30, 2026" is not a date, it is a label
+    if(!shape || !DATE_MONTH_RE.test(shape[1].length>2?shape[1]:shape[2])) return null;
+  }
   const t = Date.parse(s);
   if(Number.isNaN(t)) return null;
   const d = new Date(t);
@@ -54,9 +80,18 @@ function renewalDecisionDate(c){
   if(isNaN(d.getTime())) return null;        // arithmetic can still land outside the range
   return isoDay(d);
 }
+/* An obligation's due date, normalised — the same treatment the expiry gets,
+   and for the same reason. `due` is filed from whatever the Copilot scan put in
+   it ("31 March 2027" is a perfectly ordinary answer to "ISO yyyy-mm-dd if a
+   concrete date is stated") or from a migration spreadsheet somebody typed.
+   Nothing throws on it, which is why it went unnoticed: `daysUntil` simply
+   returns NaN, every comparison against NaN is false, and the obligation was
+   never overdue however long ago it was due. */
+const obligationDue = o => (window.dateOnly ? dateOnly(o && o.due) : ((o && o.due) || null));
 function obState(o){
   if(o.status==='done') return 'done';
-  if(o.due && daysUntil(o.due)<0) return 'overdue';
+  const due=obligationDue(o);
+  if(due && daysUntil(due)<0) return 'overdue';
   return 'open';
 }
 function contractObligations(c){ return (c.obligations||[]); }
@@ -95,6 +130,20 @@ async function extractObligations(c){
     catch(e){ toast('Copilot obligation scan unavailable — using a basic scan','err'); }
   }
   return heuristicObligations(text, c);
+}
+
+/* EVERY SURFACE THAT COUNTS OBLIGATIONS, when the obligations change.
+
+   The sidebar badge on Calendar is "due in the next sixty days", and it is
+   recomputed at the end of setView() — a SCREEN SWITCH. All three things that
+   move that number (adding one, completing one, removing one) happen inside the
+   workspace, which is not a screen switch. So the badge went on reading 1 over
+   a portfolio with nothing due, and corrected itself silently the next time the
+   reader navigated anywhere. The Calendar itself, if it is the open screen, has
+   the same problem for the same reason. */
+function obligationSurfacesChanged(){
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  if(window.state && state.view==='calendar' && window.renderCalendar) renderCalendar();
 }
 
 /* ---- workspace obligations section ---- */
@@ -136,8 +185,8 @@ function renderObligationsSection(c){
         <button id="ob-find" class="flex items-center gap-1.5 rounded-lg border border-gold-500/30 text-gold-600 px-3 py-1.5 text-[11px] font-600 hover:bg-gold-500/10 transition">${icon('sparkle','w-3 h-3')} Find obligations</button>
       </div>`:''}
     </div>`;
-  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>{ const o=obs[Number(b.getAttribute('data-ob-toggle'))]; o.status=o.status==='done'?'open':'done'; logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`); persist(c); renderObligationsSection(c); }));
-  host.querySelectorAll('[data-ob-del]').forEach(b=>b.addEventListener('click',()=>{ obs.splice(Number(b.getAttribute('data-ob-del')),1); persist(c); renderObligationsSection(c); }));
+  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>{ const o=obs[Number(b.getAttribute('data-ob-toggle'))]; o.status=o.status==='done'?'open':'done'; logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`); persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
+  host.querySelectorAll('[data-ob-del]').forEach(b=>b.addEventListener('click',()=>{ obs.splice(Number(b.getAttribute('data-ob-del')),1); persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
   document.getElementById('ob-add')?.addEventListener('click',()=>openObligationForm(c));
   document.getElementById('ob-find')?.addEventListener('click',()=>runFindObligations(c));
 }
@@ -173,7 +222,7 @@ function openObligationForm(c, seed){
     c.obligations=c.obligations||[];
     if(seed._i!=null) c.obligations[seed._i]=o; else c.obligations.push(o);
     logAudit(c,'Obligation',`Added: ${o.desc}${o.due?` (due ${o.due})`:''}`);
-    persist(c); closeModal(); renderObligationsSection(c);
+    persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
   });
 }
 async function runFindObligations(c){
@@ -208,9 +257,9 @@ function openObligationsReview(c, found){
     document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(cb.checked){ const o=found[Number(cb.getAttribute('data-ob-pick'))];
       c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++; } });
     logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`);
-    persist(c); closeModal(); renderObligationsSection(c);
+    persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
     toast(`Added ${n} obligation${n===1?'':'s'}`);
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,dateOnly,isoDay,renewalDecisionDate,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,dateOnly,isoDay,renewalDecisionDate,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

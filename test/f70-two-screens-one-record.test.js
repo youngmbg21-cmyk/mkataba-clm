@@ -1,9 +1,9 @@
 /* ============================================================
-   F65 — the same negotiation, on both screens
+   F70 — the same negotiation, on both screens
    ============================================================
    Four things, from one sitting with the product.
 
-   1. THE OTHER SIDE'S SCREEN DID NOT MATCH OURS. f64 gave the owner the rounds
+   1. THE OTHER SIDE'S SCREEN DID NOT MATCH OURS. f69 gave the owner the rounds
       that are over — their starting wording on the selector, their decisions
       readable underneath. The counterparty got neither, because the share link
       never carried the closed rounds. Worse than missing: their page put EVERY
@@ -84,7 +84,7 @@ const rows = sel => Array.from(sel.options).map(o => o.textContent);
 
 /* ---- 1. one record, two matching screens -------------------------------- */
 
-describe('F65 — the counterparty sees the negotiation we see', () => {
+describe('F70 — the counterparty sees the negotiation we see', () => {
   test('the closed rounds travel on the link', async () => {
     const { c } = await played();
     const v = theirLink(c);
@@ -180,7 +180,7 @@ describe('F65 — the counterparty sees the negotiation we see', () => {
 
 /* ---- 2. whose ask is this ----------------------------------------------- */
 
-describe('F65 — every card says whose ask it is', () => {
+describe('F70 — every card says whose ask it is', () => {
   test('in words, in the top row, where the reader is already looking', async () => {
     const { win, c, live } = await played();
     const r = ownerRoom(win, c);
@@ -253,7 +253,7 @@ describe('F65 — every card says whose ask it is', () => {
 
 /* ---- 3. the closed rounds are marked in colour -------------------------- */
 
-describe('F65 — a round that is over is marked, and the live round is left alone', () => {
+describe('F70 — a round that is over is marked, and the live round is left alone', () => {
   test('the selector marks the closed rows and not the live ones', async () => {
     const { win, c } = await played();
     const sel = ownerRoom(win, c).$('[data-nego-vsel="left"]');
@@ -297,7 +297,7 @@ describe('F65 — a round that is over is marked, and the live round is left alo
 
 /* ---- 4. the two buttons that move the deal, and the one that was spare --- */
 
-describe('F65 — the sends are prominent, and there is one of each', () => {
+describe('F70 — the sends are prominent, and there is one of each', () => {
   test('"Send to <them>" is given weight the ghost buttons do not have', async () => {
     const { win, c } = await played();
     const btn = ownerRoom(win, c).$('#nego-send');
