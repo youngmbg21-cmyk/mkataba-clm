@@ -231,3 +231,48 @@ describe('F77 — the address is asked for once, at the start', () => {
       'the strip is a fallback for contracts that have no address, not a step');
   });
 });
+
+/* AND THE SAME QUESTION ON THE OTHER TEMPLATE ROUTE.
+
+   Saved templates ("My templates") do not go through the guided wizard — they
+   have their own fill form. Adding the address to the wizard alone left every
+   contract made from a saved template exactly where it started: asked in the
+   negotiation room, and again by the share dialog. */
+describe('F77 — saved templates ask for it too', () => {
+  const tpl = { id: 'ct_1', name: 'WH', folder: 'proc', text: 'Body', chars: 4,
+    fields: [{ key: 'counterparty', label: 'Supplier', maps: 'counterparty', type: 'text' }] };
+  const lib = () => {
+    const modals = [];
+    const sb = loadViews(['js/templatefields.js', 'js/views/library.js'], {
+      TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS,
+      openModal: html => modals.push(String(html)), closeModal(){}, toast(){},
+      canEdit: () => true, currentUser: () => ({ name: 'Wanjiru Kamau' }),
+      customTemplates: () => [tpl], nextId: () => 'MK-1', todayStr: () => 'x',
+      nowISO: () => '2026-07-28T00:00:00.000Z', fmtDT: () => 'x',
+      persist(){}, setView(){}, renderSideFolders(){},
+      state: { contracts: [], settings: {}, view: 'workspace' },
+    });
+    return { sb, modals };
+  };
+
+  test('the fill form offers a place for their email', () => {
+    const { sb, modals } = lib();
+    sb.openTemplateFillModal(tpl);
+    assert.match(modals[modals.length - 1] || '', /tf-cpemail/,
+      'the same question the built-in templates ask, because it is the same act');
+  });
+
+  test('and the draft carries it', () => {
+    const { sb } = lib();
+    sb.buildFromCustomTemplate(tpl, { counterparty: 'Young Mbagaya' },
+      { counterpartyEmail: 'young@mkataba.co.ke' });
+    assert.equal(sb.state.contracts[0].counterpartyEmail, 'young@mkataba.co.ke');
+  });
+
+  test('a template with no blanks still creates, with nothing invented', () => {
+    const { sb } = lib();
+    sb.buildFromCustomTemplate({ ...tpl, fields: [] }, {});
+    assert.equal(sb.state.contracts[0].counterpartyEmail, undefined,
+      'no form was shown, so nothing was asked — the negotiation strip covers it');
+  });
+});
