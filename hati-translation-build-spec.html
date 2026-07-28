@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HaTi Bilingual Build Spec — EN ⇄ SV Translation Architecture</title>
+<style>
+  :root {
+    --ink: #1a1d21;
+    --ink2: #4a5058;
+    --ink3: #8a919b;
+    --paper: #fbfaf7;
+    --card: #ffffff;
+    --line: #e4e1da;
+    --se-blue: #00529c;
+    --se-blue-soft: #eaf1f8;
+    --ke-gold: #b07d2b;
+    --ke-gold-soft: #f7f0e2;
+    --ok: #1f7a4d;
+    --warn: #a13a1f;
+    --code-bg: #14171b;
+    --code-text: #d8dee7;
+    --code-key: #7fb4e8;
+    --code-str: #a8d49a;
+    --code-com: #6b7482;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 28px 96px; }
+
+  /* Header */
+  .doc-head { border-bottom: 3px solid var(--ink); padding-bottom: 28px; margin-bottom: 40px; }
+  .doc-eyebrow {
+    display:flex; align-items:center; gap:12px;
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink3);
+    margin-bottom: 14px;
+  }
+  .lang-pill {
+    display:inline-flex; border:1.5px solid var(--ink); border-radius: 999px; overflow:hidden;
+    font-size:10px; font-weight:700; letter-spacing:0.1em;
+  }
+  .lang-pill span { padding: 3px 10px; }
+  .lang-pill .en { background: var(--ink); color: var(--paper); }
+  .lang-pill .sv { color: var(--ink); }
+  h1 { font-size: 34px; line-height: 1.15; font-weight: 800; letter-spacing: -0.01em; }
+  .doc-sub { margin-top: 10px; color: var(--ink2); font-size: 16px; max-width: 640px; }
+  .doc-meta { margin-top: 18px; display:flex; flex-wrap:wrap; gap: 10px 26px; font-size: 12.5px; color: var(--ink3); }
+  .doc-meta b { color: var(--ink2); font-weight: 600; }
+
+  /* Sections */
+  h2 {
+    font-size: 22px; font-weight: 800; margin: 56px 0 6px;
+    padding-top: 24px; border-top: 1px solid var(--line);
+    display:flex; align-items:baseline; gap: 12px;
+  }
+  h2 .part {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: var(--se-blue);
+    text-transform: uppercase; white-space: nowrap;
+  }
+  h3 { font-size: 16px; font-weight: 700; margin: 30px 0 8px; }
+  p { margin: 10px 0; }
+  p.lede { color: var(--ink2); font-size: 15.5px; margin-bottom: 18px; }
+
+  /* Callouts */
+  .plain {
+    background: var(--se-blue-soft); border-left: 4px solid var(--se-blue);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14.5px;
+  }
+  .plain b:first-child { color: var(--se-blue); }
+  .guard {
+    background: #faeee9; border-left: 4px solid var(--warn);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14.5px;
+  }
+  .guard b:first-child { color: var(--warn); }
+  .tip {
+    background: var(--ke-gold-soft); border-left: 4px solid var(--ke-gold);
+    padding: 14px 18px; border-radius: 0 8px 8px 0; margin: 16px 0; font-size: 14.5px;
+  }
+  .tip b:first-child { color: var(--ke-gold); }
+
+  /* Code */
+  pre {
+    background: var(--code-bg); color: var(--code-text);
+    padding: 18px 20px; border-radius: 10px; overflow-x: auto;
+    font-family: 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    font-size: 12.5px; line-height: 1.6; margin: 12px 0 6px;
+  }
+  code.inline {
+    background: #eceae4; padding: 1px 6px; border-radius: 4px;
+    font-family: 'Consolas', 'Menlo', monospace; font-size: 12.5px; color: var(--ink);
+  }
+  .code-caption { font-size: 12.5px; color: var(--ink3); margin: 0 0 18px 4px; }
+  .c-com { color: var(--code-com); }
+  .c-key { color: var(--code-key); }
+  .c-str { color: var(--code-str); }
+
+  /* Blocks table */
+  table { width:100%; border-collapse: collapse; margin: 14px 0 6px; font-size: 13.5px; }
+  th { text-align:left; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink3); padding: 8px 12px; border-bottom: 2px solid var(--ink); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { font-weight: 700; white-space: nowrap; }
+
+  /* Steps */
+  .step { display:flex; gap: 16px; margin: 22px 0; }
+  .step-n {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--ink); color: var(--paper); font-weight: 800; font-size: 14px;
+    display:flex; align-items:center; justify-content:center; margin-top: 2px;
+  }
+  .step-body h4 { font-size: 15.5px; font-weight: 700; margin-bottom: 4px; }
+
+  /* Checklist */
+  .check { list-style: none; margin: 12px 0; }
+  .check li { padding: 7px 0 7px 30px; position: relative; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .check li::before {
+    content: "☐"; position: absolute; left: 4px; top: 6px; font-size: 16px; color: var(--se-blue);
+  }
+
+  ul.norm { margin: 8px 0 8px 22px; }
+  ul.norm li { margin: 5px 0; }
+
+  .foot { margin-top: 64px; padding-top: 20px; border-top: 3px solid var(--ink); font-size: 12px; color: var(--ink3); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  @media (max-width: 620px) {
+    h1 { font-size: 26px; }
+    .wrap { padding: 32px 18px 72px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ HEADER ============ -->
+  <header class="doc-head">
+    <div class="doc-eyebrow">
+      <span class="lang-pill"><span class="en">EN</span><span class="sv">SV</span></span>
+      Build specification · For Claude Code
+    </div>
+    <h1>HaTi Bilingual Build Spec</h1>
+    <p class="doc-sub">How to add an English ⇄ Swedish language switch to HaTi (Mkataba CLM), using the proven translation architecture from the VCFO Terminal.</p>
+    <div class="doc-meta">
+      <span><b>Source pattern:</b> youngmbg21-cmyk/vcfo</span>
+      <span><b>Target repo:</b> youngmbg21-cmyk/mkataba-clm</span>
+      <span><b>Author:</b> Young Mbagaya</span>
+      <span><b>Date:</b> 28 July 2026</span>
+    </div>
+  </header>
+
+  <!-- ============ PART A ============ -->
+  <h2><span class="part">Part A</span> How the VCFO translation system works (plain English)</h2>
+  <p class="lede">VCFO does not run text through a translation service. Instead, every piece of English text in the app was written down twice — once in English, once in Swedish — in one big organised list inside the app itself. A small switch decides which column of that list the app reads from. Six building blocks make this work:</p>
+
+  <table>
+    <tr><th>Block</th><th>What it is</th><th>Everyday analogy</th></tr>
+    <tr>
+      <td>1. The dictionary</td>
+      <td>One JavaScript object called <code class="inline">STRINGS</code> with two halves: <code class="inline">en</code> and <code class="inline">sv</code>. Every label, button, heading, and message has a short nickname (a "key") like <code class="inline">tab_company</code>, and each half gives that key its text in one language. VCFO's dictionary has roughly 180 keys per language.</td>
+      <td>A restaurant menu printed in two columns — same dishes, same order, English on the left, Swedish on the right.</td>
+    </tr>
+    <tr>
+      <td>2. The memory of your choice</td>
+      <td>A variable <code class="inline">appLang</code> holds the current language ('en' or 'sv'). It is saved to localStorage (a small notepad the browser keeps for each website), so the app remembers your language next time you visit.</td>
+      <td>A sticky note on your fridge: "This household speaks Swedish."</td>
+    </tr>
+    <tr>
+      <td>3. The lookup helper</td>
+      <td>A tiny function <code class="inline">t(key)</code>. Give it a nickname, it hands back the text in the current language. If a Swedish translation is missing, it quietly falls back to English instead of showing a broken label.</td>
+      <td>A waiter who reads the correct menu column for you — and reads the English column if a Swedish line was left blank.</td>
+    </tr>
+    <tr>
+      <td>4. Labels on the furniture</td>
+      <td>Every fixed piece of text on the page carries a small tag in the HTML: <code class="inline">data-i18n="key_name"</code>. This tag doesn't change how anything looks — it just marks "this text is translatable, and here is its nickname."</td>
+      <td>Price stickers on shop shelves. The sticker says which product it belongs to, so restocking staff know exactly what goes where.</td>
+    </tr>
+    <tr>
+      <td>5. The switch sweep</td>
+      <td>One button flips the language. It calls <code class="inline">applyLanguage()</code>, which walks through the whole page, finds every tagged element, and swaps its text using the lookup helper — instantly, with no page reload.</td>
+      <td>Flipping every menu on every table in the restaurant at once, in one pass through the room.</td>
+    </tr>
+    <tr>
+      <td>6. The AI speaks the same language</td>
+      <td>When the app asks Claude to write an analysis, it adds one line to the request: "Write the entire response in Swedish" (or English). So AI-generated content follows the switch too — the dictionary only covers fixed text; the AI covers everything it writes fresh.</td>
+      <td>Telling a guest speaker before they walk on stage: "The audience tonight is Swedish — present in Swedish."</td>
+    </tr>
+  </table>
+
+  <div class="plain">
+    <b>Why this approach is right for HaTi:</b> it's a zero-dependency pattern — no libraries to install, no build step, no external translation service, no cost per page view. It fits your single-file, no-build-step convention exactly, and translations are reviewed by a human once instead of machine-translated live (important for a contract platform where wording is legally sensitive).
+  </div>
+
+  <!-- ============ PART B ============ -->
+  <h2><span class="part">Part B</span> The architecture, with the actual code pattern</h2>
+  <p class="lede">These five code blocks are the complete engine, adapted from VCFO with HaTi naming. Claude Code should replicate this structure — not invent an alternative.</p>
+
+  <h3>B1. Language state + saved preference</h3>
+  <p>Placed near the top of the app's JavaScript. Reads the saved choice; defaults to English.</p>
+<pre><span class="c-com">// ============================================================</span>
+<span class="c-com">// INTERNATIONALISATION — EN / SV</span>
+<span class="c-com">// ============================================================</span>
+<span class="c-key">let</span> appLang = <span class="c-str">'en'</span>;
+<span class="c-key">try</span> { appLang = localStorage.getItem(<span class="c-str">'hati_lang'</span>) || <span class="c-str">'en'</span>; } <span class="c-key">catch</span>(e) {}</pre>
+  <p class="code-caption">The try/catch means: if the browser blocks saving (some private-browsing modes do), the app still works — it just forgets the choice between visits.</p>
+
+  <h3>B2. The dictionary</h3>
+  <p>One flat object, snake_case keys (matches your existing record conventions), grouped by screen with comment headers. English is the master list; Swedish mirrors it key-for-key.</p>
+<pre><span class="c-key">const</span> STRINGS = {
+  en: {
+    <span class="c-com">// Topbar</span>
+    <span class="c-key">lang_toggle:</span>       <span class="c-str">'🇸🇪 Svenska'</span>,   <span class="c-com">// button shows the OTHER language</span>
+    <span class="c-key">nav_contracts:</span>     <span class="c-str">'Contracts'</span>,
+    <span class="c-key">nav_templates:</span>     <span class="c-str">'Templates'</span>,
+    <span class="c-key">btn_new_contract:</span>  <span class="c-str">'+ New Contract'</span>,
+    <span class="c-key">status_draft:</span>      <span class="c-str">'Draft'</span>,
+    <span class="c-key">status_signed:</span>     <span class="c-str">'Signed'</span>,
+    <span class="c-com">// ... every fixed label in the app ...</span>
+  },
+  sv: {
+    <span class="c-key">lang_toggle:</span>       <span class="c-str">'🇬🇧 English'</span>,
+    <span class="c-key">nav_contracts:</span>     <span class="c-str">'Avtal'</span>,
+    <span class="c-key">nav_templates:</span>     <span class="c-str">'Mallar'</span>,
+    <span class="c-key">btn_new_contract:</span>  <span class="c-str">'+ Nytt avtal'</span>,
+    <span class="c-key">status_draft:</span>      <span class="c-str">'Utkast'</span>,
+    <span class="c-key">status_signed:</span>     <span class="c-str">'Signerat'</span>,
+    <span class="c-com">// ... same keys, same order ...</span>
+  }
+};</pre>
+  <p class="code-caption">The toggle button's own label is a dictionary entry too — in English mode it shows "🇸🇪 Svenska" (the destination, not the current state).</p>
+
+  <h3>B3. The lookup helper — with fallback and fill-in-the-blank values</h3>
+  <p>This is an upgraded version of VCFO's helper. It does two jobs: fetch the text in the current language, and fill in any blanks like <code class="inline">{days}</code> or <code class="inline">{name}</code> with real values.</p>
+<pre><span class="c-key">function</span> t(key, vars) {
+  <span class="c-key">let</span> s = (STRINGS[appLang] || STRINGS.en)[key] || STRINGS.en[key] || key;
+  <span class="c-key">if</span> (vars) {
+    Object.keys(vars).forEach(k =&gt; {
+      s = s.split(<span class="c-str">'{'</span> + k + <span class="c-str">'}'</span>).join(vars[k]);
+    });
+  }
+  <span class="c-key">return</span> s;
+}</pre>
+  <p class="code-caption">Three safety nets: unknown language → English; missing Swedish key → English; key missing everywhere → show the key name itself (so a gap is visible during testing, never a blank).</p>
+  <p>How the fill-in-the-blank works in practice — the dictionary holds the sentence with a placeholder, and the code supplies the value:</p>
+<pre><span class="c-com">// In the dictionary:</span>
+<span class="c-key">expiry_notice:</span> <span class="c-str">'Contract expires in {days} days'</span>,        <span class="c-com">// en</span>
+<span class="c-key">expiry_notice:</span> <span class="c-str">'Avtalet löper ut om {days} dagar'</span>,        <span class="c-com">// sv</span>
+
+<span class="c-com">// In the code:</span>
+<span class="c-key">const</span> msg = t(<span class="c-str">'expiry_notice'</span>, { days: 14 });</pre>
+  <p class="code-caption">Why this matters: word order differs between languages. If code glues sentences together piece by piece ("Contract expires in " + 14 + " days"), the Swedish version comes out garbled. With placeholders, each language writes its sentence naturally and the value drops in wherever that language needs it.</p>
+  <p><b>Plurals:</b> where a count changes the wording (1 avtal / 2 avtal, 1 day / 2 days), use two keys — a <code class="inline">_one</code> and an <code class="inline">_many</code> variant — and pick between them in code with a simple <code class="inline">count === 1</code> check. Don't build anything cleverer than that.</p>
+
+  <h3>B4. Tagging static text in the HTML</h3>
+<pre>&lt;div <span class="c-key">class</span>=<span class="c-str">"tab"</span> <span class="c-key">data-i18n</span>=<span class="c-str">"nav_contracts"</span>&gt;Contracts&lt;/div&gt;
+&lt;button <span class="c-key">data-i18n</span>=<span class="c-str">"btn_new_contract"</span>&gt;+ New Contract&lt;/button&gt;</pre>
+  <p class="code-caption">The English text stays inside the tag as the default — the page reads correctly even before any JavaScript runs. Input placeholders (the grey hint text in empty boxes) can't use this tag directly; they're set individually inside applyLanguage().</p>
+
+  <h3>B5. The toggle and the sweep</h3>
+<pre><span class="c-key">function</span> toggleLanguage() {
+  appLang = appLang === <span class="c-str">'en'</span> ? <span class="c-str">'sv'</span> : <span class="c-str">'en'</span>;
+  <span class="c-key">try</span> { localStorage.setItem(<span class="c-str">'hati_lang'</span>, appLang); } <span class="c-key">catch</span>(e) {}
+  applyLanguage();
+}
+
+<span class="c-key">function</span> applyLanguage() {
+  <span class="c-com">// 1. The toggle button itself</span>
+  <span class="c-key">const</span> btn = document.getElementById(<span class="c-str">'langToggleBtn'</span>);
+  <span class="c-key">if</span> (btn) btn.textContent = t(<span class="c-str">'lang_toggle'</span>);
+
+  <span class="c-com">// 2. Every tagged element on the page</span>
+  document.querySelectorAll(<span class="c-str">'[data-i18n]'</span>).forEach(el =&gt; {
+    <span class="c-key">const</span> val = t(el.getAttribute(<span class="c-str">'data-i18n'</span>));
+    <span class="c-key">if</span> (!val) <span class="c-key">return</span>;
+    <span class="c-com">// Use innerHTML only when the string genuinely contains HTML;</span>
+    <span class="c-com">// plain textContent is safer everywhere else.</span>
+    <span class="c-key">if</span> (/&lt;[a-z]/i.test(val)) {
+      <span class="c-key">try</span> { el.innerHTML = val; } <span class="c-key">catch</span>(e) { el.textContent = val.replace(/&lt;[^&gt;]+&gt;/g, <span class="c-str">''</span>); }
+    } <span class="c-key">else</span> {
+      el.textContent = val;
+    }
+  });
+
+  <span class="c-com">// 3. Placeholders and other special cases, set one by one</span>
+  <span class="c-key">const</span> search = document.getElementById(<span class="c-str">'contractSearch'</span>);
+  <span class="c-key">if</span> (search) search.placeholder = t(<span class="c-str">'search_placeholder'</span>);
+}</pre>
+
+  <h3>B6. Dynamic text built by JavaScript — everything goes through the dictionary</h3>
+  <p>Text that JavaScript assembles on the fly (status messages, table rows, alerts, toasts) can't be tagged in HTML — it doesn't exist yet when the page loads. The rule for HaTi is simple: <b>every piece of it, short or long, is a dictionary key</b>, fetched with <code class="inline">t()</code> at the moment the text is built. Because rendering functions re-run when data changes, they pick up the current language automatically.</p>
+  <div class="guard">
+    <b>Deliberate improvement over VCFO:</b> VCFO scatters long sentences through its code as inline either/or statements (<code class="inline">isSv ? 'svenska...' : 'english...'</code>). Do <b>not</b> replicate that pattern in HaTi. It works, but it makes translations impossible to audit — you can never see in one place whether everything is covered, and a Swedish reviewer would have to read the entire codebase. In HaTi, one hundred percent of user-visible text lives in STRINGS, so the dictionary is the single, complete, reviewable list. If a sentence needs a value inserted, use a {placeholder} as shown in B3 — never build sentences by gluing text fragments together in code.</div>
+
+  <h3>B7. Making the AI follow the language switch</h3>
+  <p>Wherever HaTi builds a prompt for Claude (via the Cloudflare Worker), inject a language instruction based on the current setting — this is exactly what VCFO does:</p>
+<pre><span class="c-key">const</span> lang = appLang === <span class="c-str">'sv'</span> ? <span class="c-str">'sv'</span> : <span class="c-str">'en'</span>;
+<span class="c-key">const</span> langNote = lang === <span class="c-str">'sv'</span>
+  ? <span class="c-str">'Skriv hela svaret på svenska — all löptext, alla punkter, alla rubriker. Behåll JSON-nycklarna oförändrade.'</span>
+  : <span class="c-str">'Write the entire response in English. Keep the JSON keys unchanged.'</span>;
+<span class="c-com">// ...append langNote to the end of the prompt string...</span></pre>
+  <p class="code-caption">The crucial detail: when the AI returns structured data (JSON), only the human-readable values switch language — the field names stay in English so the app can still read them.</p>
+
+  <h3>B8. Switch it on at startup</h3>
+<pre>document.addEventListener(<span class="c-str">'DOMContentLoaded'</span>, () =&gt; {
+  applyLanguage();   <span class="c-com">// restores the saved language before the user sees anything</span>
+  <span class="c-com">// ...rest of app initialisation...</span>
+});</pre>
+
+  <!-- ============ PART C ============ -->
+  <h2><span class="part">Part C</span> Build instructions for Claude Code — apply this to HaTi</h2>
+  <p class="lede">Claude Code: implement the architecture above in the mkataba-clm repository. Work in the phases below, in order. Do not substitute a library-based i18n framework — replicate the vanilla pattern exactly, matching the repo's existing no-build-step, single-file conventions.</p>
+
+  <div class="step"><div class="step-n">0</div><div class="step-body">
+    <h4>Survey before touching anything</h4>
+    <p>Read the HaTi codebase first. Produce a short inventory: (a) every screen/view, (b) where static UI text lives, (c) every function that builds text dynamically, (d) every place a prompt is sent to the AI. Write this inventory to <code class="inline">I18N_INVENTORY.md</code> before writing any code. This becomes the master key list.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">1</div><div class="step-body">
+    <h4>Install the engine</h4>
+    <p>Add the code from B1, B3, B5, and B8 near the top of HaTi's script section: the <code class="inline">appLang</code> state with localStorage key <code class="inline">hati_lang</code>, the <code class="inline">t()</code> helper, <code class="inline">toggleLanguage()</code>, <code class="inline">applyLanguage()</code>, and the startup call. Add a language toggle button to the topbar with id <code class="inline">langToggleBtn</code>, styled to match existing header buttons.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">2</div><div class="step-body">
+    <h4>Build the English half of the dictionary</h4>
+    <p>Walk every screen from the inventory. For each fixed text element, invent a flat snake_case key with a screen prefix (<code class="inline">nav_</code>, <code class="inline">btn_</code>, <code class="inline">status_</code>, <code class="inline">contract_</code>, <code class="inline">template_</code>, <code class="inline">party_</code>, <code class="inline">sign_</code>, etc.), add it to <code class="inline">STRINGS.en</code>, and tag the HTML element with <code class="inline">data-i18n="key"</code>. Group keys with comment headers per screen. The English text stays in the HTML as the default.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">3</div><div class="step-body">
+    <h4>Write the Swedish half</h4>
+    <p>Mirror <code class="inline">STRINGS.en</code> into <code class="inline">STRINGS.sv</code>, same keys, same order, same comment grouping. Translation register: professional business Swedish as used in Swedish contract and legal software (avtal, motpart, mall, signera, giltighetstid, uppsägningstid — not casual phrasing). Where a term is legally loaded, prefer the term Swedish contract tools like Oneflow use. Flag any translation you are uncertain about with a <code class="inline">// TODO verify</code> comment rather than guessing silently.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">4</div><div class="step-body">
+    <h4>Convert dynamic text — dictionary only, no exceptions</h4>
+    <p>Go through every rendering function from the inventory. Replace every hard-coded string — short labels and full sentences alike — with <code class="inline">t('key')</code> calls, adding keys to both language halves as you go. Sentences containing values use {placeholder} keys per B3; sentences whose wording changes with a count get <code class="inline">_one</code> / <code class="inline">_many</code> key pairs. Never use inline language ternaries and never concatenate sentence fragments in code. Toasts, empty states, confirmation dialogs, and error messages all count.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">5</div><div class="step-body">
+    <h4>Wire the AI to the switch</h4>
+    <p>In every function that builds a prompt for the Cloudflare Worker, append the language instruction from B7. Where the AI returns JSON, state explicitly in the prompt that keys stay in English and only values change language. Where AI output is stored (e.g., saved analyses), record which language it was generated in alongside the record, so old content isn't mistaken for the wrong language later.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">6</div><div class="step-body">
+    <h4>Handle formats, not just words</h4>
+    <p>Swedish mode should also format numbers and dates the Swedish way where they're displayed to users: use <code class="inline">toLocaleString(appLang === 'sv' ? 'sv-SE' : 'en-GB')</code> for amounts and <code class="inline">toLocaleDateString</code> for dates. Do not change how values are stored in Supabase — storage stays in neutral machine formats (ISO dates, plain numbers); only the display layer changes.</p>
+  </div></div>
+
+  <div class="step"><div class="step-n">7</div><div class="step-body">
+    <h4>Test and document</h4>
+    <p>Verify: toggle flips every visible label on every screen with no reload; refresh the page and the choice persists; a deliberately deleted Swedish key falls back to English (then restore it); AI responses arrive in the selected language; no console errors. Write <code class="inline">SUMMARY.md</code> covering what was changed, and log any untranslated leftovers or uncertain translations in <code class="inline">BUGLOG.md</code>, consistent with the existing overnight-loop output convention.</p>
+  </div></div>
+
+  <h3>Guardrails for this build</h3>
+  <div class="guard">
+    <b>Do not touch:</b> the mobile/WhatsApp counterparty portal remains explicitly deferred — no work on it in this build. Do not modify the Supabase schema, the jurisdiction logic, or the role_profile logic. Do not add npm packages, build steps, or external i18n libraries. Do not machine-translate stored contract content — this build translates the app's interface, never the user's contract documents.
+  </div>
+  <div class="tip">
+    <b>Keep language and jurisdiction separate:</b> HaTi already treats <code class="inline">jurisdiction</code> as its own first-class field. Interface language is a display preference; jurisdiction is a legal property of a contract. A Kenyan user may view the app in Swedish and vice versa — never infer one from the other, and never let the language toggle change any contract data.
+  </div>
+  <div class="tip">
+    <b>Future-proofing for a third language:</b> this architecture extends by simply adding another block (e.g., <code class="inline">sw: {...}</code> for Swahili) to STRINGS and turning the toggle into a small cycle or dropdown. Nothing else changes. Structure the work so that adding Swahili later requires no refactor — but do not add it now.
+  </div>
+
+  <!-- ============ PART D ============ -->
+  <h2><span class="part">Part D</span> Acceptance checklist</h2>
+  <p class="lede">The build is done when every box can be ticked:</p>
+  <ul class="check">
+    <li>A language toggle button sits in the topbar and shows the destination language ("🇸🇪 Svenska" when in English, "🇬🇧 English" when in Swedish).</li>
+    <li>One click switches every visible label, button, tab, heading, placeholder, and empty-state message on every screen — no page reload.</li>
+    <li>The choice survives closing and reopening the browser (saved as <code class="inline">hati_lang</code>).</li>
+    <li>Toasts, confirmation dialogs, and error messages appear in the selected language.</li>
+    <li>AI-generated analysis and suggestions arrive in the selected language; JSON keys stay in English.</li>
+    <li>Numbers and dates display in Swedish format in Swedish mode; stored data is unchanged.</li>
+    <li>A missing Swedish key shows the English text, never a blank or a crash.</li>
+    <li>Zero user-visible text exists outside the STRINGS dictionary — a search of the code finds no inline language ternaries and no glued-together sentence fragments.</li>
+    <li>Sentences with inserted values use {placeholder} keys; count-dependent wording uses _one / _many key pairs.</li>
+    <li>Contract content, jurisdiction, role_profile, Supabase schema, and the deferred mobile portal are untouched.</li>
+    <li><code class="inline">I18N_INVENTORY.md</code>, <code class="inline">SUMMARY.md</code>, and <code class="inline">BUGLOG.md</code> exist and reflect the actual work.</li>
+  </ul>
+
+  <div class="foot">
+    <span>HaTi Bilingual Build Spec · derived from VCFO Terminal i18n architecture</span>
+    <span>EN ⇄ SV · v1.1 — dictionary-only + placeholder upgrades</span>
+  </div>
+
+</div>
+</body>
+</html>
