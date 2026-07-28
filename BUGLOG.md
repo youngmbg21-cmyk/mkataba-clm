@@ -4751,3 +4751,112 @@ the command-bar buttons, and whether longer Swedish labels
 210px sidebar and the status chips without wrapping or truncating. Swedish runs
 noticeably longer than English and this is the most likely place for the build
 to look wrong while testing green.
+
+---
+
+## Run: Bilingual EN ⇄ SV, module sweep (2026-07-28)
+
+Continues the entry above. Items 1–10 there still stand except where updated
+here. Full accounting in `COMPLETION_REPORT.md`.
+
+### 1. UPDATE to "the build is partial" — five of ten modules converted
+
+Converted this run: `reports.js`, `advice.js`, `home.js`, `register.js`,
+`intelligence.js`. Dictionary 181 → 600 keys per language.
+
+**Remaining, measured with `node test/i18n-audit.js <file>` — the same tool
+that certifies the finished modules clean, so directly comparable:**
+
+| Module | Lines | Strings |
+|---|---:|---:|
+| `js/views/contract.js` | 3166 | 321 |
+| `js/views/settings.js` | 967 | 201 |
+| `js/views/library.js` | 1346 | 186 |
+| `js/views/negotiation.js` | 2075 | 106 |
+| `js/views/migration.js` | 1116 | 85 |
+| **Total** | **8,670** | **899** |
+
+These are **NOT REACHED, not BLOCKED**. No work was started on any of them, so
+none is in a partial state. Suggested order next time, smallest first:
+migration → negotiation → library → settings → contract.
+
+### 2. FIXED — dashboard threw on every render with an active share
+
+`js/views/home.js` line 322 read `SHARE_META[st].label`. The earlier phase of
+this branch replaced that field with a dictionary key `k`, so the read returned
+`undefined` and `.toLowerCase()` threw. Live on every dashboard render in
+server mode with any share in flight; no test covers that path. Found by
+grepping for readers of the field before converting the module, and fixed in
+the same commit (`881e477`).
+
+Checked the two other `.label` readers at the same time — `js/core.js`
+(`SHARE_PURPOSE_COPY`) and `js/ai.js` (`SEV_META`) are different maps and still
+carry their own `label`. Neither is affected.
+
+### 3. FIXED — every approval cell the wrong colour in Swedish
+
+`js/views/register.js` picked the approval-cell tone by comparing
+`approvalLabel()`'s **output** against the English literals `'Approved'`,
+`'Rejected'` and `'—'`. The earlier phase made that function return translated
+text, so under Swedish all three comparisons failed silently and every row fell
+through to the amber default. Now compares against the same dictionary entries
+the label is built from (`885201e`).
+
+The neighbouring `/escalat/i` test was deliberately left alone, with a comment:
+it matches an approval **rule name**, which is user-authored data in settings
+and is never translated.
+
+### 4. FIXED — Intelligence suggestion chips frozen at module load
+
+`IG_SUGGESTIONS` was an array of English literals evaluated once at import, so
+the six starter prompts stayed English after a language switch. Now
+`IG_SUGGESTION_KEYS` + an `igSuggestions()` resolver called at render time.
+
+### 5. Thrown Error messages from shared modules are not translated
+
+`js/advice.js` throws `new Error('Request not found')`, and the view surfaces it
+through `toast(e.message)`. This is a whole category, not one string: shared
+model modules throw English messages that reach the user through a catch. Not
+addressed in this run and not counted in the 899 above, which only covers the
+five view modules. Fixing it properly probably means throwing an error carrying
+a dictionary key rather than a message.
+
+### 6. NEW — `i18n-exempt` markers, and what they cover
+
+Deliberate English now has to be declared in the code, not just remembered.
+`test/i18n-audit.js` skips a line carrying `i18n-exempt:` (or a block between
+`i18n-exempt-begin:` and `i18n-exempt-end`), and the marker must carry a reason.
+Eight exist on the branch:
+
+- four CSV export header blocks (`app.js`, `reports.js`, `register.js` ×2) — a
+  spreadsheet's column names are a file format downstream tools parse by name
+- `'Authorized signatory'` in `app.js` — written into the contract record
+- `ADVICE_SEED_DESC` in `js/advice.js` — stored record text also used as a
+  comparison sentinel, so translating it would break the comparison
+- `REL_SEEDS` in `intelligence.js` — demo relationships matched against sample
+  contract **names**
+- two `copilotAsk()` prompts in `intelligence.js` — prompts to the model, not
+  interface text; the server appends the language instruction
+
+Items 4 (CSV headers) and 7 of the previous entry are unchanged: both remain
+open product decisions rather than bugs.
+
+### 7. Still no live AI check, still nothing rendered
+
+Unchanged and now more consequential:
+
+- **No live model call has been made.** This container has no Anthropic key.
+  Part D item 5 stays NEEDS MANUAL CHECK.
+- **No screen has been viewed.** The app loads its stylesheet from a CDN this
+  container cannot reach. `LAYOUT_RISKS.md` now lists **54 keys** more than 40%
+  longer in Swedish, **15 of them width-constrained** (210px sidebar, status
+  chips, command-bar buttons) — worst are `nav_doc` +167%, `role_admin` +160%,
+  `stream_sales` +120%. This is the most likely way the build looks wrong while
+  every test passes.
+
+### 8. Fifteen Swedish terms awaiting professional review
+
+Listed with the rejected alternative for each in `COMPLETION_REPORT.md` §5 and
+marked `// TODO verify` at the site in `js/i18n.js`. Up from seven, because
+four more modules of legal vocabulary landed. These are legally-adjacent words
+in a contract product — a wrong register is worse than an obvious gap.

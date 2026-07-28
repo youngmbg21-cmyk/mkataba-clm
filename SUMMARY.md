@@ -11,6 +11,7 @@ One section per build run, newest at the bottom — the same convention
 - [Run 5 — UX-review remediation: the negotiation loop (2026-07-26)](#run-5--ux-review-remediation-the-negotiation-loop-2026-07-26)
 - [Run 6 — The counterparty's side (2026-07-26)](#run-6--the-counterpartys-side-2026-07-26)
 - [Run 7 — Bilingual EN ⇄ SV (2026-07-28)](#run-7--bilingual-en--sv-2026-07-28)
+- [Run 8 — Bilingual EN ⇄ SV, module sweep (2026-07-28)](#run-8--bilingual-en--sv-module-sweep-2026-07-28)
 
 ---
 
@@ -3305,3 +3306,70 @@ button sits well in the command bar, and whether longer Swedish labels
 (`Team och inställningar`, `Väntar på godkännande`) fit the sidebar and the
 status chips without wrapping or truncation, has **not** been seen and needs a
 human with a browser.
+
+---
+
+# Run 8 — Bilingual EN ⇄ SV, module sweep (2026-07-28)
+
+Continuation of Run 7. The objective was 100% coverage: convert the ten view
+modules that still rendered English. **Five of ten were converted.** Full
+accounting, including the 899 strings that remain, is in `COMPLETION_REPORT.md`.
+
+## What changed
+
+Five modules converted whole, smallest first, one commit each, each audited
+clean before the next was started: `reports.js` (256 lines), `advice.js` (318),
+`home.js` (544), `register.js` (674), `intelligence.js` (959). Dictionary grew
+from 181 to **600 keys per language**.
+
+Not reached, and untouched rather than half-done: `migration.js` (85 strings),
+`negotiation.js` (106), `library.js` (186), `settings.js` (201),
+`contract.js` (321).
+
+## New tooling — the reason the coverage claim is checkable
+
+`test/i18n-audit.js` (`node test/i18n-audit.js`) does two continuous jobs:
+
+- **Stray-string audit.** Scans a module for user-visible literals still
+  outside the dictionary. A module is only listed as converted once it reports
+  CLEAN. The `CONVERTED` list is imported by `test/i18n-verify.js` so the two
+  harnesses cannot disagree about what is done.
+- **Length risk.** Flags Swedish values >40% longer than their English
+  counterpart, split by whether they land somewhere width-constrained, and
+  writes `LAYOUT_RISKS.md`.
+
+Deliberate English is not merely tolerated — it must carry an `i18n-exempt:`
+marker **with a reason at the site**. Eight exist: four CSV export headers, a
+stored signatory default, the demo relationship seeds, and two AI prompts.
+
+## Three real bugs found and fixed
+
+All three were introduced by Run 7 and would have shipped silently; none is
+covered by a test.
+
+1. `js/views/home.js` read `SHARE_META[st].label` after Run 7 replaced that
+   field with a dictionary key — a `TypeError` on every dashboard render in
+   server mode with an active share.
+2. `js/views/register.js` chose the approval-cell colour by comparing
+   `approvalLabel()`'s output against English literals. Run 7 made that
+   function return translated text, so in Swedish every row fell through to
+   amber.
+3. Intelligence's six starter prompts were frozen at module load instead of
+   resolving through `t()` at render time.
+
+## Part D — fresh verdicts
+
+Re-run in full. 6 PASS, 4 FAIL, 1 NEEDS MANUAL CHECK — the same shape as Run 7,
+with items 2, 4 and 8 materially improved but still failing because five
+modules remain. Item-by-item reasoning, with the verification behind each, is
+in `COMPLETION_REPORT.md` §3.
+
+`npm test` — 990 tests, 0 failures. `npm run test:i18n` — 49 assertions, 0
+failures. `node test/i18n-audit.js` — clean across 8 modules.
+
+## Still unseen
+
+Unchanged from Run 7 and now more consequential: **nothing has been rendered.**
+54 keys are >40% longer in Swedish, 15 of them in the 210px sidebar, status
+chips or command-bar buttons. `LAYOUT_RISKS.md` lists them worst-first. This is
+the most likely way the build looks wrong while every test passes.
