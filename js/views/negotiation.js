@@ -1721,7 +1721,15 @@ function negoTurnBannerHtml(c, opts){
            response route, from the send that sits in the change index beside
            the decisions it carries. So the banner's send is the owner's, and
            theirs is where their work is. */}
-    ${mine && !opts.readonly && side === 'owner'
+    ${''/* AND WHEN IT IS NOT OUR TURN BUT WE ARE HOLDING SOMETHING UNSENT.
+
+           Rendered on `mine` alone, this was the counterparty's old dead end
+           moved to our side of the glass: propose a change after handing over
+           and it sat in the index, pending, with nothing anywhere in the room
+           that would send it. The rule the counterparty's postbox already
+           follows is the right one — offer the send where there is something to
+           send. Whose turn it is decides what the banner SAYS. */}
+    ${(mine || b.unsent) && !opts.readonly && side === 'owner'
       ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;

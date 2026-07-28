@@ -1662,6 +1662,30 @@ function negoHandOver(c, opts = {}){
 }
 /* The banner both sides read. A READ of the change set and the turn, so it can
    never claim a state the record does not support. */
+/* ASKS OF OURS THE OTHER SIDE HAS NEVER BEEN SHOWN.
+
+   A change is handed over by sending the round, and `turnAt` records when that
+   last happened. Anything of ours still pending and filed SINCE then has not
+   left the building — nobody on the other side can answer it, because they have
+   not seen it.
+
+   This exists because the owner had the same dead end the counterparty's page
+   was fixed for: propose something after handing over, and the change was
+   filed, pending, with no send anywhere in the room. It waited for THEM to
+   answer before we were allowed to tell them what we had asked. */
+function negoUnsentAsks(c, side){
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  /* Measured against a hand-over that actually happened. With no `turnAt` at
+     all nothing has ever been sent, and "unsent" is not the useful fact about
+     the round — it is simply somebody's turn, and the turn already says so.
+     Reading a missing turnAt as "everything is unsent" also mislabels the other
+     side's asks: a change of theirs is on our record only because it was sent
+     to us, whatever the turn stamp says. */
+  if (!at) return [];
+  return negoPending(c).filter(x => x && x.authorSide === me
+    && String(x.createdAt || '') > String(at));
+}
 function negoTurnBanner(c, side){
   negoInit(c);
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
@@ -1669,11 +1693,19 @@ function negoTurnBanner(c, side){
   const other = me === 'owner' ? (c.counterparty || 'the counterparty') : ((window.FIRST_PARTY) || 'the owner');
   const mine = negoPending(c).filter(x => x.authorSide !== me).length;
   if (turn === me)
-    return { mine: true, text: mine
+    return { mine: true, unsent: 0, text: mine
       ? `Your turn — ${mine} change${mine === 1 ? '' : 's'} to review`
       : 'Your turn — propose changes or send it back' };
   const sent = c.negotiation.turnAt || null;
-  return { mine: false, sentAt: sent, text: `Waiting on ${other}${sent ? '' : ''}` };
+  /* AND "WAITING ON THEM" HAS TO BE TRUE TO BE SAID. With an ask of ours they
+     have never seen, it is not: they are not the hold-up on a change nobody has
+     shown them. The wait is stated as what it is, and the send that clears it
+     is offered beside it. */
+  const unsent = negoUnsentAsks(c, me).length;
+  if (unsent) return { mine: false, unsent, sentAt: sent,
+    text: `${unsent} change${unsent === 1 ? '' : 's'} you have not sent yet`
+      + ` — ${other} cannot answer ${unsent === 1 ? 'it' : 'them'} until you do` };
+  return { mine: false, unsent: 0, sentAt: sent, text: `Waiting on ${other}${sent ? '' : ''}` };
 }
 
 /* ---------- advancing the round ----------
@@ -1916,7 +1948,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
-  negoTurn, negoHandOver, negoTurnBanner,
+  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

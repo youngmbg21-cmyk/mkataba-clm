@@ -1,0 +1,120 @@
+/* ============================================================
+   F75 — the owner's own work had nowhere to go either
+   ============================================================
+   Reported as a question: "how am I supposed to send changes from the HaTi side
+   to the counterparty, when that button is only on the counterparty's side?"
+
+   It is the same dead end that was found and fixed on the counterparty's page —
+   they could press Change on a clause, write what they wanted, and end up with
+   a fingerprinted change in the index and no send anywhere on the screen — and
+   it is now on ours.
+
+   The owner's send lives in the turn banner and renders on one condition:
+   `mine`, meaning it is our turn. That is right for the ordinary rhythm and
+   wrong the moment the deal steps outside it. Send a round; the turn moves to
+   them. Notice something else that needs changing, propose it — and the change
+   is filed, pending, unsent, with no control anywhere in the room that would
+   send it. It waits for THEM to answer before we are allowed to tell them what
+   we asked.
+
+   And the banner does not merely omit the button. It says "Waiting on Nordfrakt
+   Logistik AB" over a change Nordfrakt has never been shown — asserting that
+   the other side is the hold-up on something they cannot possibly answer.
+
+   The rule the counterparty's postbox already follows is the right one: render
+   it where there is something to send. Whose turn it is decides what the banner
+   SAYS, not whether our own unsent work can leave the building.
+*/
+const { test, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const { buildWorld } = require('./world');
+const F = require('./clausefixtures.js');
+
+function contract(){
+  return { id: 'MK-800', name: 'Warehousing and Logistics Services Agreement',
+    counterparty: 'Nordfrakt Logistik AB', template: 'WH', status: 'Under Review',
+    folder: 'dist', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
+    signatures: [], comments: [], redlineText: F.protoRich(), format: 'rich' };
+}
+async function room(){
+  const { win } = buildWorld({ negotiationView: true, contractView: true });
+  const c = contract();
+  win.negoInit(c);
+  const propose = async num => {
+    const cl = win.negoClauseList(c).find(x => x.num === num);
+    return win.negoEditClause(c, cl.clauseId, `<p>${F.PROTO_ASKS[num].text}</p>`,
+      { side: 'owner', author: 'Wanjiru Kamau', summary: F.PROTO_ASKS[num].summary });
+  };
+  const paint = () => {
+    win.negoResetView();
+    win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = win.document.querySelector('#nego-room') || win.document;
+    return {
+      send: host.querySelector('[id="nego-send"]'),
+      banner: (host.querySelector('[id="nego-turn"]') || {}).textContent || '',
+    };
+  };
+  return { win, c, propose, paint };
+}
+
+describe('F75 — work we have not sent can always be sent', () => {
+  test('on our turn, the send is there — unchanged', async () => {
+    const r = await room();
+    await r.propose('4');
+    assert.ok(r.paint().send, 'the ordinary rhythm still works exactly as before');
+  });
+
+  test('a change filed after we handed over can still be sent', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    assert.equal(r.win.negoTurn(r.c), 'counterparty', 'it is genuinely their turn');
+    assert.ok(r.paint().send,
+      'and we are still holding an ask they have never seen — it has to be able to leave');
+  });
+
+  test('the banner stops claiming they are the hold-up', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    const banner = r.paint().banner;
+    assert.match(banner, /not sent|unsent|have not sent/i,
+      'a change they have never been shown is not one they are keeping us waiting on');
+  });
+
+  test('having sent everything, the banner is plainly about them again', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    const p = r.paint();
+    assert.match(p.banner, /Waiting on Nordfrakt Logistik AB/,
+      'nothing of ours is outstanding, so the wait really is theirs');
+    assert.ok(!p.send, 'and there is nothing to send, so nothing offers to');
+  });
+
+  test('a viewer is offered nothing, whatever is outstanding', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'A Viewer', persist: false, readonly: true });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    assert.ok(!host.querySelector('[id="nego-send"]'),
+      'read-only is read-only — this must not become a way round it');
+  });
+
+  test('the counterparty’s banner never grows an owner send', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'counterparty', by: 'Erik Lindqvist', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    assert.ok(!host.querySelector('[id="nego-send"]'),
+      'their answers travel on the response route, not by minting a share link');
+  });
+});
