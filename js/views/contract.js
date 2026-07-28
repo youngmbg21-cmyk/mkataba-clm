@@ -2998,7 +2998,8 @@ function renderSignButton(c){
   }
   // The other way a deal ends. Offered once the wording is settled, because
   // until then there is nothing to have signed on paper.
-  const paperRoute = !(window.unresolvedRedlines && unresolvedRedlines(c))
+  const paperRoute = !((window.negoSigningBlockers ? negoSigningBlockers(c).length
+      : (window.unresolvedRedlines && unresolvedRedlines(c))))
     ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">Signed on paper instead? File the signed copy here</button>`
     : '';
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
@@ -3014,12 +3015,29 @@ function renderSignButton(c){
   if(!c.compliance.consent)missing.push('intent-to-sign consent');
   if(!appr.ok)missing.push('approvals');
   const signLabel = planned&&ns ? `Sign as ${ns.name}` : 'Sign Document';
+  /* WHO SIGNS, AND IN WHAT ORDER — asked BEFORE the button that ends it.
+
+     This was an 11px text link UNDERNEATH "Sign Document": a decision about
+     which parties execute the contract and in which sequence, sitting below the
+     control that carries it out and styled like a footnote. Anyone who read
+     down the panel in order had already signed by the time they reached it, and
+     a signature cannot be taken back.
+
+     It sits above the button now and is drawn as a control rather than as small
+     print. Once an order exists the panel shows the route itself, with its own
+     "edit route" — so this appears exactly while it is still a live choice. */
+  const signerRoute = !planned&&canEdit()&&c.status!=='Signed'
+    ? `<button id="sp-setup" class="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white py-2.5 mb-2.5 text-[12.5px] font-600 text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition">
+        ${icon('users','w-4 h-4')} Set a multi-signer order…
+      </button>
+      <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">More than one signatory? Set the order first — signing seals the document.</p>`
+    : '';
   wrap.innerHTML=`
     ${approvalPanelHtml(c)}
+    ${signerRoute}
     <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
       ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
     </button>
-    ${!planned&&canEdit()&&c.status!=='Signed'?`<button id="sp-setup" class="mt-2 w-full text-[11px] text-brand-600 hover:text-brand-800 font-600">Set a multi-signer order…</button>`:''}
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
            :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
@@ -3037,15 +3055,31 @@ async function signDocument(c){
   // The document is out in Word: the counterparty may be mid-edit on wording
   // this signature would seal. Bring the file back (or cancel) before signing.
   if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review before signing','err'); return; }
-  // E2-T5: don't seal over unresolved proposed edits. Admin/Legal may override.
-  const openRedlines=unresolvedRedlines(c);
-  if(openRedlines){
-    const u=currentUser();
-    const canOverride = u && (u.role==='admin' || u.role==='legal');
-    const msg=`${openRedlines} proposed edit${openRedlines===1?'':'s'} from the counterparty ${openRedlines===1?'is':'are'} still open. Signing now seals the current text and leaves ${openRedlines===1?'it':'them'} unresolved.`;
-    if(!canOverride){ toast(msg+' Resolve the redline(s) first, or ask an Admin/Legal approver.','err'); return; }
-    if(!await confirmDialog({title:'Sign with open redlines?', message:msg+' This will be recorded as an Admin/Legal override.', confirmLabel:'Sign anyway', danger:true})) return;
-    logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
+  /* E2-T5: don't seal over an unsettled negotiation. Admin/Legal may override.
+
+     Through negoSigningBlockers, which asks BOTH generations of the
+     negotiation. This read `unresolvedRedlines` alone — open ROUNDS carrying
+     proposed text — and the room creates no round at all, so a contract with
+     four unanswered changes on it reported nothing outstanding and was sealed
+     mid-argument. See js/negotiation.js. */
+  /* AND IT IS A REFUSAL, not a warning.
+
+     This used to let Admin or Legal sign anyway behind a confirmation, on the
+     reading that an approver should be able to overrule the gate. There are
+     three roles — Admin, Legal and Viewer — and a Viewer cannot sign at all.
+     So "Admin or Legal" was everybody who could reach the button: the override
+     granted no one anything, and the gate was a dialog rather than a gate.
+
+     A signature is the one act in this product that cannot be taken back. It
+     freezes the wording, seals it with a fingerprint and sends both parties
+     their copy as the record of the deal. It does not go on top of an argument
+     that is still running. The room has verbs for every way out — accept,
+     refuse, withdraw — and the refusal names which ones are outstanding. */
+  const blockers=(window.negoSigningBlockers?negoSigningBlockers(c):
+    (unresolvedRedlines(c)?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
+  if(blockers.length){
+    toast(`Not signed — ${blockers.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,'err');
+    return;
   }
   const u=currentUser(), at0=nowISO();
   // capture server-stamped IP + time where available (honest attribution)
@@ -3114,8 +3148,13 @@ async function attachPaperSignature(c, file, opts={}){
   if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return null; }
   if(c.status==='Signed' || (c.execution&&c.execution.at)){
     toast('This contract is already executed — record an amendment instead','err'); return null; }
-  if(window.unresolvedRedlines && unresolvedRedlines(c)){
-    toast('There are still open proposed edits — resolve them before recording a signature','err'); return null; }
+  /* The same gate as the electronic route, through the same helper: a scan of
+     a signature page is the same claim about the parties, and asked only about
+     the old round model it let a room negotiation straight past. */
+  const paperBlockers=(window.negoSigningBlockers?negoSigningBlockers(c):
+    (window.unresolvedRedlines&&unresolvedRedlines(c)?['there are still open proposed edits']:[]));
+  if(paperBlockers.length){
+    toast(`${paperBlockers.join('; ')} — settle the negotiation before recording a signature`,'err'); return null; }
   if(window.wordReviewOut && wordReviewOut(c)){
     toast('This document is out for Word review — bring it back or cancel the review first','err'); return null; }
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return null; }

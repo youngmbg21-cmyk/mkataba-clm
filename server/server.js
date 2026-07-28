@@ -2560,12 +2560,37 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   for (const r of recipients) {
     const email = String((r && r.email) || '').trim();
     if (!/.+@.+\..+/.test(email)) { out.push({ name: (r && r.name) || '', email, role: (r && r.role) || '', party: (r && r.party) || '', status: 'failed', at: now() }); continue; }
+    /* WHICH DOOR THIS PERSON IS ENTITLED TO.
+
+       Everybody used to get `appUrl` — the platform's own front door. For our
+       own people that is right: they have accounts and the master copy is what
+       they want. For the counterparty it was an invitation into the workspace
+       that holds every other deal we have. They cannot get in, so nothing
+       leaked; what they got was a sign-in wall where the message had promised
+       them a contract.
+
+       Their door is the share link they have been reading the contract through
+       all along, which now serves it executed. Where there is no live link,
+       they get the seal and no link at all — which is what the part-signed
+       notice already does, and is honest. */
+    const external = r.party === 'counterparty' || r.party === 'external';
+    let door = external ? '' : appUrl;
+    if (external) {
+      const own = db.prepare(`SELECT token FROM shares
+        WHERE contract_id=? AND revoked_at IS NULL AND LOWER(COALESCE(recipient_email,''))=?
+        ORDER BY created_at DESC LIMIT 1`).get(c.id, email.toLowerCase());
+      if (own && !shareExpired(db.prepare('SELECT * FROM shares WHERE token=?').get(own.token)))
+        door = `${appUrl}#share=${own.token}`;
+    }
+    const doorLine = door
+      ? (external ? `Your copy of the signed contract:\n${door}\n\n` : `Open it in HaTi:\n${door}\n\n`)
+      : '';
     const body = st.fully
       ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
         `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
         `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
         `Document seal (SHA-256):\n${seal}\n\n` +
-        `Open it in HaTi:\n${appUrl}\n\n` +
+        doorLine +
         `This is an automated notice from HaTi CLM.`
       : `Hello${r.name ? ' ' + r.name : ''},\n\n` +
         `${who || 'One party'} has signed "${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}. ` +
@@ -2879,7 +2904,19 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
 // "hottest" state per contract (for register/folder dots) and recent items
 // (for the dashboard strip). Registered before /api/shares/:token.
-const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'reviewed', 'expired', 'revoked'];
+/* WHICH OF A CONTRACT'S LINKS SPEAKS FOR IT, when it has several.
+
+   The hottest state wins, and "hottest" used to mean "most in need of a
+   decision" — so `changes` led and `signed` came fifth. One stale negotiation
+   link therefore buried a real signature: a workspace full of executed
+   contracts read as a workspace full of outstanding change requests, and there
+   was no way to see which ones were done.
+
+   The two TERMINAL outcomes lead now. A contract that has been signed, or
+   declined, is finished; nothing any other link says about it can matter more
+   than that, and a person scanning the list is looking for exactly this. Then
+   the states that need somebody to act, then the ones that are merely waiting. */
+const SHARE_STATE_PRIORITY = ['signed', 'declined', 'changes', 'opened', 'sent', 'reviewed', 'expired', 'revoked'];
 /* A share whose returned changes have already been dealt with is finished
    business: the round it raised on the contract has been accepted or rejected.
    Leaving it labelled "changes" kept it on the home page's attention list
@@ -2889,22 +2926,44 @@ const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed',
 function shareStateResolved(s, cache) {
   const st = shareState(s);
   if (st !== 'changes' || !s.contract_id) return st;
-  let rounds = cache && cache.get(s.contract_id);
-  if (rounds === undefined) {
+  let full = cache && cache.get(s.contract_id);
+  if (full === undefined) {
     try {
       const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
-      rounds = row ? ((JSON.parse(row.json).rounds) || []) : null;
-    } catch (_) { rounds = null; }
-    if (cache) cache.set(s.contract_id, rounds);
+      full = row ? (JSON.parse(row.json) || null) : null;
+    } catch (_) { full = null; }
+    if (cache) cache.set(s.contract_id, full);
   }
-  if (!rounds || !rounds.length) return st;
+  if (!full) return st;
+  /* An executed contract is not waiting on a change request. applyResponse
+     already refuses to let a share response touch one — "already executed; a
+     share response cannot change it" — so a link still asking for a decision on
+     it is describing a conversation that can no longer happen. */
+  if (full.status === 'Signed' || (full.execution && full.execution.at)) return 'reviewed';
+  const rounds = full.rounds || [];
   // the round this response created carries the response's own timestamp
   let mine = null;
   try { const r = JSON.parse(s.response); mine = rounds.find(x => x.at === r.at) || null; } catch (_) {}
-  if (mine) return mine.status === 'open' ? st : 'reviewed';
-  // older data whose timestamps don't line up: once the response has been
-  // imported and no round on the contract is open, nothing is waiting
-  if (s.applied && !rounds.some(x => x.status === 'open')) return 'reviewed';
+  if (mine && mine.status === 'open') return st;
+  /* THE OTHER HALF OF THE NEGOTIATION, which this could not see at all.
+
+     Everything above reads `rounds` — the round-based model. The negotiation
+     ROOM works change by change on `c.changes`, and a counterparty answering
+     through the room creates NO ROUND. So a room negotiation, however
+     completely it was settled, said "Changes" on the dashboard for ever: there
+     was no path through this function that could clear it.
+
+     Settled means what negoAlignment means by it on the client, and the second
+     case is the one that gets missed: a refused ask nobody has withdrawn is
+     answered but not agreed, and is still outstanding between the parties. */
+  const live = (Array.isArray(full.changes) ? full.changes : []).filter(x => x && x.status !== 'superseded');
+  const outstanding = live.filter(x => x.status === 'pending'
+    || (x.status === 'rejected' && !x.withdrawn));
+  if (outstanding.length) return st;
+  if (mine) return 'reviewed';
+  if (rounds.some(x => x.status === 'open')) return st;
+  // no round of ours, none open, nothing outstanding in the change set
+  if (s.applied || live.length) return 'reviewed';
   return st;
 }
 app.get('/api/shares/overview', auth, (req, res) => {
@@ -3570,7 +3629,13 @@ app.delete('/api/batches/:id', auth, editor, (req, res) => {
 
 /* ---------- outbox (admin can see what was emailed / dev codes) ---------- */
 app.get('/api/outbox', auth, admin, (req, res) => {
-  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
+  /* The body travels too. This is the sender's own outgoing mail on an
+     admin-only diagnostics route that already returns the recipient and the
+     subject — and what an email actually SAYS is the thing that turned out to
+     be wrong: the executed copy was telling counterparties to "open it in
+     HaTi" and handing them the platform's front door. What cannot be read
+     back cannot be checked. */
+  const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
   res.json({ emailConfigured: EMAIL_ON(), items: rows });
 });
 

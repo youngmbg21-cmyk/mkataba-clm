@@ -1072,6 +1072,43 @@ function negoAlignment(c){
     total: live.length, pending, contested,
     outstanding: pending.concat(contested) };
 }
+/* ---------- WHAT MUST BE SETTLED BEFORE ANYTHING IS SEALED ----------
+
+   The gate in front of every signature, and the one place both generations of
+   the negotiation are asked at once.
+
+   The signing panel has refused to seal over an unresolved redline since E2,
+   and it asked `unresolvedRedlines()` — which counts open ROUNDS carrying
+   proposed text. That was the whole negotiation once. It is not now: the room
+   works change by change on `c.changes`, and a counterparty answering through
+   the room creates NO ROUND AT ALL. So the old gate reported nothing
+   outstanding over a contract with four unanswered changes on it, and the
+   signature went on. A contract was frozen, sealed with a tamper-evident
+   fingerprint and distributed to both parties as their record of the deal,
+   while a change was still being argued about.
+
+   Both states in the change model stop a signature, and the second is the one
+   that gets missed: a REFUSED ask nobody has withdrawn has an answer, so the
+   round is finished — but it is not agreement, and sealing over it records
+   agreement where there is a live disagreement. That distinction is
+   negoAlignment's, and it is deliberately not re-derived here.
+
+   Returns plain sentences a person can act on, because whatever refuses a
+   signature has to say what would clear it. */
+function negoSigningBlockers(c){
+  const out = [];
+  const rounds = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
+  if (rounds) out.push(`${rounds} proposed edit${rounds === 1 ? '' : 's'} from the counterparty`
+    + ` ${rounds === 1 ? 'is' : 'are'} still open`);
+  const a = negoAlignment(c);
+  if (a.pending.length) out.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'}`
+    + ` ${a.pending.length === 1 ? 'has' : 'have'} not been answered`
+    + ` (${a.pending.map(x => '#' + x.id).join(', ')})`);
+  if (a.contested.length) out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
+    + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
+    + ` ${a.contested.length === 1 ? 'it' : 'them'} (${a.contested.map(x => '#' + x.id).join(', ')})`);
+  return out;
+}
 /* What is stopping this, in words, for the disabled button to say. Never
    "not ready yet": a control that refuses without saying why teaches nothing,
    and the reader is the one person who can clear it. */
@@ -1138,11 +1175,35 @@ function negoSignalReady(c, opts = {}){
    deal stands. Deleting it would erase the fact that it was given; leaving it
    unqualified would have the owner issue a signing link for a contract that had
    gone back into negotiation. So it is kept, and marked. */
+/* Has this side actually signed? The counterparty's marks are `counterparty`
+   and `external`; everything else on the list is ours. Mirrors signedParties()
+   on the server and cpSigned in the workspace's action bar, which had this
+   right long before the readiness strip did. */
+const negoSideSigned = (c, side) => {
+  const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
+  const theirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  return side === 'counterparty' ? sigs.some(theirs) : sigs.some(s => s && !theirs(s));
+};
+/* A SIGNAL OF INTENT, SUPERSEDED BY THE ACT.
+
+   This returned the signal for as long as the record carried it, and the four
+   surfaces that read it all stood down on the same condition: the whole
+   contract reaching "Executed". Between the first signature and the last, the
+   contract is still "Under Review" — so a counterparty who had signed was
+   shown, in bold, "Nothing is signed yet", next to their own signature.
+
+   Once a side has signed, their signature is the live fact about them and it
+   says more than the signal did. Retired here rather than at each surface,
+   because there were four of them: the strip on the Docs page, the banner in
+   the room, the same banner on their own page, and the dashboard's count of
+   contracts waiting for a signature. */
 const negoReadySignal = (c, side) => {
   const n = (c && c.negotiation && c.negotiation.ready) || null;
   if (!n) return null;
-  const sig = n[side === 'counterparty' ? 'counterparty' : 'owner'] || null;
+  const s = side === 'counterparty' ? 'counterparty' : 'owner';
+  const sig = n[s] || null;
   if (!sig) return null;
+  if (negoSideSigned(c, s)) return null;
   return { ...sig, stale: !negoAlignment(c).aligned };
 };
 /* Points the counterparty raised that were refused, and are therefore still
@@ -1772,7 +1833,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,
+  negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoIsLivePair, negoCompareVersions,

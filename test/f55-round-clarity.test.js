@@ -301,8 +301,18 @@ describe('F55 — the executed copy waits for every signature', () => {
     for (const m of sent) {
       assert.match(m.subject, /^Fully executed —/);
       assert.ok(m.text.includes(SEAL), 'now the seal travels with it');
-      assert.match(m.text, /hati-clm\.onrender\.com/, 'and so does the copy');
     }
+    /* F70: the two parties are sent to DIFFERENT doors, and used to be sent to
+       the same one. Ours has an account and gets the platform. Theirs does not,
+       and being handed the workspace's front door put a sign-in wall where the
+       message had promised them a contract — they get their own share link, or,
+       having none, the seal and no link at all. */
+    const ours = sent.find(m => m.to === 'young@highland.co.ke');
+    const theirs = sent.find(m => m.to === 'amara@savannah.co.ke');
+    assert.match(ours.text, /hati-clm\.onrender\.com/,
+      'somebody with a login is exactly who that link is for');
+    assert.ok(!/hati-clm\.onrender\.com/.test(theirs.text),
+      'and an external party is not — no door beats the wrong door');
   });
 });
 
