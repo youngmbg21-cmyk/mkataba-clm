@@ -204,18 +204,22 @@ function fieldDisplayValue(inp){
 // Closed/Expired=ruby. Internal status values stay Draft/Under Review/Signed/
 // Declined so filters, backend and logic are untouched — only the visible
 // chip label and colours change.
+/* The KEYS here ('Draft', 'Under Review', …) are the stored contract status
+   and never move. `k` names the dictionary entry that supplies the label the
+   user reads, so the stage displays in the chosen language while the record
+   keeps saying 'Signed'. */
 const STATUS_META = {
-  'Draft':        {label:'Drafting',  dot:'#98989b', bg:'#eceae6', tx:'#5d5d60', bd:'#dedcd6'},
-  'Under Review': {label:'In Review', dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14', bd:'#f0e3c2'},
-  'Signed':       {label:'Executed',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d', bd:'#cfe7d9'},
-  'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
+  'Draft':        {k:'status_draft',        dot:'#98989b', bg:'#eceae6', tx:'#5d5d60', bd:'#dedcd6'},
+  'Under Review': {k:'status_under_review', dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14', bd:'#f0e3c2'},
+  'Signed':       {k:'status_signed',       dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d', bd:'#cfe7d9'},
+  'Declined':     {k:'status_declined',     dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
 };
-const statusLabel = s => (STATUS_META[s]||{}).label || s;
+const statusLabel = s => { const m=STATUS_META[s]; return m ? t(m.k) : s; };
 // Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
 // own colour carries the stage; the separate share dot (shareDot) sits outside
 // the chip so the two signals never read as one confusing double dot.
 const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${m.label}</span>`; };
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}">${t(m.k)}</span>`; };
 
 // ---- Share dispatch traffic lights ----
 // A share (one recipient's tracked link) moves sent → opened → signed /
@@ -223,24 +227,25 @@ const statusChip = s => { const m=STATUS_META[s]||STATUS_META.Draft;
 // server-side; these chips only render it. Distinct from STATUS_META — a
 // contract can be In Review while its shares are in several of these states.
 const SHARE_META = {
-  sent:    {label:'Sent',      dot:'#98989b', bg:'#eceae6', tx:'#5d5d60'},
-  opened:  {label:'Opened',    dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
-  changes: {label:'Changes',   dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
-  accepted:{label:'Accepted',  dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
-  reviewed:{label:'Reviewed',  dot:'#98989b', bg:'#f2f1ee', tx:'#5d5d60'},
-  signed:  {label:'Signed',    dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
-  declined:{label:'Declined',  dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
-  expired: {label:'Expired',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
-  revoked: {label:'Revoked',   dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
+  sent:    {k:'share_sent',     dot:'#98989b', bg:'#eceae6', tx:'#5d5d60'},
+  opened:  {k:'share_opened',   dot:'#5980a6', bg:'#e7edf3', tx:'#3f5f7d'},
+  changes: {k:'share_changes',  dot:'#b8862b', bg:'#fbf4e3', tx:'#7d5a14'},
+  accepted:{k:'share_accepted', dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
+  reviewed:{k:'share_reviewed', dot:'#98989b', bg:'#f2f1ee', tx:'#5d5d60'},
+  signed:  {k:'share_signed',   dot:'#2e8763', bg:'#e8f4ee', tx:'#1e6b4d'},
+  declined:{k:'share_declined', dot:'#b0453c', bg:'#fdece9', tx:'#8f322b'},
+  expired: {k:'share_expired',  dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
+  revoked: {k:'share_revoked',  dot:'#a8a8ab', bg:'#f2f1ee', tx:'#8a8a8d'},
 };
 const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
-  return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${m.label}</span>`; };
+  return `<span class="badge" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${t(m.k)}</span>`; };
 // traffic-light dot for dense tables — the tooltip carries the label. This is
 // the contract's dispatch status (sent → opened → signed); it lives outside the
 // stage chip so it reads as a distinct signal.
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
-  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-left:8px;vertical-align:middle;flex:none"></span>`; };
+  const title=s.n>1 ? t('share_dot_title_n',{ state:t(m.k), n:s.n }) : t('share_dot_title',{ state:t(m.k) });
+  return `<span title="${title}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-left:8px;vertical-align:middle;flex:none"></span>`; };
 /* A question the counterparty asked and nobody answered. It changes no document
    state, so without a mark here a contract carrying one looks identical in the
    list to a contract with nothing outstanding. */
@@ -249,7 +254,7 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-left:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${tn('question_dot_title',n)}" style="display:inline-block;margin-left:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
@@ -284,8 +289,9 @@ function contractRisk(c){
 const riskChip = (r,withR=true) => { const p=riskPal(r); return `<span class="badge tnum" style="background:${p.bg};color:${p.fg}">${withR?'R ':''}${r}</span>`; };
 
 // short value-stream label for dense grids (folder → single word)
-const STREAM_SHORT = { proc:'Procurement', mfg:'Manufacturing', dist:'Distribution', sales:'Sales', mktg:'Marketing', corp:'Corporate' };
-const streamLabel = c => STREAM_SHORT[c && c.folder] || (FOLDERS[c && c.folder]?.name) || '—';
+const STREAM_SHORT = { proc:'stream_proc', mfg:'stream_mfg', dist:'stream_dist', sales:'stream_sales', mktg:'stream_mktg', corp:'stream_corp' };
+const streamLabel = c => { const k=STREAM_SHORT[c && c.folder];
+  return k ? t(k) : ((FOLDERS[c && c.folder]?.name) || t('value_none')); };
 // display owner initials (the app has no per-contract owner field; use the
 // signed-in user, matching the existing register behaviour)
 const ownerInitials = () => { const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); };
@@ -294,15 +300,19 @@ const ownerInitials = () => { const u=currentUser(); const n=(u&&u.name)||FIRST_
 // legacy one below) — read it via window so this label matches what the sign
 // panel actually enforces, instead of the superseded spend-threshold config.
 function approvalLabel(c){
-  if(c && c.approval) return 'Approved';
-  if(c && c.status==='Declined') return 'Rejected';   // closed — nothing is pending any more
+  if(c && c.approval) return t('approval_approved');
+  if(c && c.status==='Declined') return t('approval_rejected');   // closed — nothing is pending any more
   const st=((window.approvalState)||approvalState)(c);
   if(c && c.status!=='Signed' && st.required){
-    if(st.ok) return 'Approved';
+    if(st.ok) return t('approval_approved');
     const a=st.next && st.next.approver;
-    return 'Pending '+(a ? (a.kind==='member' ? a.name : (a.role==='legal'?'Legal':'Admin')) : 'approval');
+    // "Pending X" is one dictionary sentence with {who} dropped in, rather
+    // than the string 'Pending ' glued to a name — Swedish needs "Väntar på X".
+    if(!a) return t('approval_pending');
+    const who=a.kind==='member' ? a.name : (a.role==='legal' ? t('approval_role_legal') : t('approval_role_admin'));
+    return t('approval_pending_who',{ who });
   }
-  return '—';
+  return t('value_none');
 }
 
 function toast(msg,kind='ok'){
@@ -855,24 +865,31 @@ function renderSideUser(){
   const org=getOrg().name||'HaTi';
   const initials=(u.name||org).split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   const av=document.getElementById('rail-avatar');
-  if(av){ av.title=`${u.name} · ${org} · ${ROLE_LABEL[u.role]}`; av.onclick=()=>setView('team'); }
+  if(av){ av.title=t('side_avatar_title',{ name:u.name, org, role:t('role_'+u.role) }); av.onclick=()=>setView('team'); }
   const lo=document.getElementById('side-logout');
   if(lo) lo.onclick=async()=>{
     const ok=(typeof confirmDialog==='function')
-      ? await confirmDialog({ title:'Log out?', message:`End your session${org?` on ${org}`:''} and return to the sign-in screen?`, confirmLabel:'Log out' })
+      ? await confirmDialog({ title:t('dlg_logout_title'),
+          message:org ? t('dlg_logout_msg_org',{ org }) : t('dlg_logout_msg'),
+          confirmLabel:t('dlg_logout_confirm') })
       : true;
     if(ok) logout();
   };
   const setTxt=(id,t)=>{ const el=document.getElementById(id); if(el) el.textContent=t; };
   setTxt('side-avatar', initials);
   setTxt('side-name', u.name||org);
-  setTxt('side-role', `${ROLE_LABEL[u.role]||'Member'} · ${org}`);
+  /* ROLE_LABEL stays English — it is written into the stored approval record
+     and the audit trail. What the sidebar SHOWS comes from the dictionary. */
+  setTxt('side-role', t('side_role_line',{ role:(STRINGS.en['role_'+u.role]?t('role_'+u.role):t('role_member')), org }));
   const online=(getUsers()||[]).length||1;
   // Show the storage backend AND whether the Copilot brain is live, so an entered key
   // is visibly reflected (green ✦ = Claude answering; grey = keyword fallback).
   const aiOn=(typeof copilotAvailable==='function') && copilotAvailable();
   const st=document.getElementById('side-status');
-  if(st) st.innerHTML=`${API_MODE()?'Server mode · SQLite':'Local mode'} · <span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?'✦ Claude Copilot':'Copilot off'}</span> · ${online} online`;
+  if(st){
+    const brain=`<span style="color:${aiOn?'#1e6b4d':'var(--color-neutral-500)'};font-weight:600">${aiOn?t('side_copilot_on'):t('side_copilot_off')}</span>`;
+    st.innerHTML=t('side_status_line',{ mode:API_MODE()?t('side_mode_server'):t('side_mode_local'), brain, online });
+  }
 }
 // Bottom-left Copilot meter: today's real Anthropic API calls across the workspace,
 // so the owner can watch actual usage and size a per-customer daily limit.
@@ -1072,10 +1089,10 @@ function closeModal(){ document.getElementById('modal-root').innerHTML=''; }
    never clobbers an open modal in #modal-root. Usage:
      if(!await confirmDialog({title, message})) return; */
 function confirmDialog(opts={}){
-  const title=opts.title||'Are you sure?';
+  const title=opts.title||t('dlg_confirm_title');
   const message=opts.message||'';
-  const confirmLabel=opts.confirmLabel||'Confirm';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||t('dlg_confirm');
+  const cancelLabel=opts.cancelLabel||t('dlg_cancel');
   const danger=!!opts.danger;
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
@@ -1121,8 +1138,8 @@ function promptDialog(opts={}){
   const message=opts.message||'';
   const label=opts.label||'';
   const placeholder=opts.placeholder||'';
-  const confirmLabel=opts.confirmLabel||'OK';
-  const cancelLabel=opts.cancelLabel||'Cancel';
+  const confirmLabel=opts.confirmLabel||t('dlg_ok');
+  const cancelLabel=opts.cancelLabel||t('dlg_cancel');
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     const prev=document.getElementById('prompt-overlay'); if(prev) prev.remove();

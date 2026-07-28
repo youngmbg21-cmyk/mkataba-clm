@@ -26,6 +26,9 @@ const ROOT = path.join(__dirname, '..');
    because buildSharePayload — the thing that decides what Erik is allowed to
    see — must be the real one, not a copy kept in a test. */
 const MODULES = [
+  // first, exactly as in js/app.js: js/core.js and the view modules render
+  // their labels through t(), so the dictionary has to exist before them
+  'js/i18n.js',
   'js/richdoc.js',
   'js/clausemodel.js',
   'js/redline.js',

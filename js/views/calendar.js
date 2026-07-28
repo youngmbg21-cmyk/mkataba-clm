@@ -3,10 +3,12 @@
 let calState = { ym:null };   // {y, m} current month; null -> this month resolved at render
 
 function calMonth(){ if(!calState.ym){ const d=new Date(); calState.ym={y:d.getFullYear(), m:d.getMonth()}; } return calState.ym; }
+/* `k` names the dictionary entry for the event's label; the object keys
+   (expiry/renewal/obligation) are the internal event type and never move. */
 const CAL_EVENT = {
-  expiry:     { dot:'#b0453c', fg:'#8f322b', label:'Expiry',           tint:'rgba(176,69,60,.13)' },
-  renewal:    { dot:'#b8862b', fg:'#7d5a14', label:'Renewal decision', tint:'rgba(184,134,43,.15)' },
-  obligation: { dot:'#2e8763', fg:'#1e6b4d', label:'Obligation',       tint:'rgba(46,135,99,.13)' },
+  expiry:     { dot:'#b0453c', fg:'#8f322b', k:'cal_ev_expiry',     tint:'rgba(176,69,60,.13)' },
+  renewal:    { dot:'#b8862b', fg:'#7d5a14', k:'cal_ev_renewal',    tint:'rgba(184,134,43,.15)' },
+  obligation: { dot:'#2e8763', fg:'#1e6b4d', k:'cal_ev_obligation', tint:'rgba(46,135,99,.13)' },
 };
 // priority when a day carries more than one kind of event (drives its tint)
 const CAL_PRIORITY = ['expiry','renewal','obligation'];
@@ -18,7 +20,7 @@ function calendarEvents(){
       const exp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
       if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
       const dd=renewalDecisionDate(c);
-      if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });
+      if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:t('cal_note_decide_by') });
     }
     (c.obligations||[]).forEach(o=>{ if(o.due) out.push({ date:o.due, type:'obligation', cid:c.id, cname:c.name, note:o.desc, done:o.status==='done' }); });
   });
@@ -44,7 +46,8 @@ function renderCalendar(){
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
     // dominant event kind drives the cell tint + border so days with an
     // expiry / renewal / obligation read as coloured boxes at a glance
-    const kind=CAL_PRIORITY.find(t=>list.some(e=>e.type===t&&!e.done)) || CAL_PRIORITY.find(t=>list.some(e=>e.type===t));
+    // callbacks renamed from `t` to `ty`: `t` is the translation helper
+    const kind=CAL_PRIORITY.find(ty=>list.some(e=>e.type===ty&&!e.done)) || CAL_PRIORITY.find(ty=>list.some(e=>e.type===ty));
     const ev=kind?CAL_EVENT[kind]:null;
     const bg=today?'rgba(89,128,166,.1)':(ev?ev.tint:'var(--color-bg)');
     const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
@@ -53,10 +56,10 @@ function renderCalendar(){
     const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+      return `<button data-sel="${e.cid}" title="${t('cal_chip_title',{ kind:t(ev.k), note:_esc(e.note) })}" style="display:flex;align-items:center;gap:4px;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
         _dot(ev.dot,6)+`<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
     }).join('');
-    const moreLine=more>0?`<span style="font-size:9px;color:var(--color-neutral-500);padding-left:2px">+${more} more</span>`:'';
+    const moreLine=more>0?`<span style="font-size:9px;color:var(--color-neutral-500);padding-left:2px">${t('cal_more',{ n:more })}</span>`:'';
     return `<div class="cal-day" style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
   };
   const cells=[]; for(let i=0;i<42;i++) cells.push(cell(i-start+1));
@@ -64,12 +67,12 @@ function renderCalendar(){
   // agenda: upcoming events across the whole portfolio, next 60 days
   const agenda=evs.filter(e=>{ const d=daysUntil(e.date); return d>=-3 && d<=60 && !e.done; }).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,40);
 
-  const weekdays=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div>${d}</div>`).join('');
+  const weekdays=[0,1,2,3,4,5,6].map(i=>`<div>${t('cal_wd_'+i)}</div>`).join('');
 
   const agendaRows=agenda.length?agenda.map(e=>{
     const ev=CAL_EVENT[e.type], d=daysUntil(e.date);
-    const inTxt=d<0?Math.abs(d)+'d ago':d+'d';
-    const kind=ev.label+' · '+_esc(e.cid);
+    const inTxt=d<0?t('cal_days_ago',{ n:Math.abs(d) }):t('cal_days_in',{ n:d });
+    const kind=t('cal_agenda_kind',{ kind:t(ev.k), id:_esc(e.cid) });
     return `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">`+
       _dot(ev.dot,7)+
       `<span style="flex:1;min-width:0">`+
@@ -80,9 +83,9 @@ function renderCalendar(){
     `</button>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
-      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">Nothing due in the next 60 days</div>
-      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">Expiry and renewal dates on your contracts show up here automatically.</div>
-      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">Open the register</button>
+      <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">${t('cal_empty_title')}</div>
+      <div style="font-size:11px;color:var(--color-neutral-600);margin:3px 0 12px;line-height:1.5">${t('cal_empty_body')}</div>
+      <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">${t('cal_empty_cta')}</button>
     </div>`;
 
   const btnBase='width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:13px;color:var(--color-neutral-700);line-height:1';
@@ -100,7 +103,7 @@ function renderCalendar(){
           <div style="display:flex;gap:4px">
             <button id="cal-prev" style="${btnBase}">‹</button>
             <button id="cal-next" style="${btnBase}">›</button>
-            <button id="cal-today" style="height:26px;padding:0 9px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;color:var(--color-neutral-700)">Today</button>
+            <button id="cal-today" style="height:26px;padding:0 9px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;color:var(--color-neutral-700)">${t('cal_today')}</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px;flex:none">
@@ -108,11 +111,11 @@ function renderCalendar(){
         </div>
         <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:3px">${cells.join('')}</div>
         <div style="display:flex;gap:14px;margin-top:9px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-700);flex:none">
-          ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:5px">${_dot(v.dot,7)}${v.label}</span>`).join('')}
+          ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:5px">${_dot(v.dot,7)}${t(v.k)}</span>`).join('')}
         </div>
       </section>
       <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:14px;display:flex;flex-direction:column;min-height:0">
-        <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text);flex:none">Next 60 days</h4>
+        <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text);flex:none">${t('cal_agenda_title')}</h4>
         <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
       </section>
     </div>

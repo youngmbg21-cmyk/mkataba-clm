@@ -34,6 +34,9 @@ const ROOT = path.join(__dirname, '..');
 
 /* The modules a negotiation actually runs through, in js/app.js order. */
 const MODULES = [
+  // first, exactly as in js/app.js: js/core.js and the view modules render
+  // their labels through t(), so the dictionary has to exist before them
+  'js/i18n.js',
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state
