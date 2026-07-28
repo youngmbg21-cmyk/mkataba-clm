@@ -146,7 +146,7 @@ describe('F57 — a clause nobody has touched reads as the document', () => {
       'the baseline stands, so the clause is not under redline any more');
     assert.equal(block.querySelectorAll('li').length, 2,
       'a refusal must not quietly cost the clause its structure for the rest of the negotiation');
-    assert.match(block.textContent, /Rejected — baseline kept/, 'and it still says so');
+    assert.match(block.textContent, /rejected — baseline kept/, 'and it still says so');
   });
 
   test('an accepted change keeps the redline rendering it was decided on', async () => {

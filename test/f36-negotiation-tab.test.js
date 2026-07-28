@@ -371,7 +371,8 @@ describe('accept, reject and undo do what they say to the document', () => {
     assert.ok(!/ninety \(90\)/.test(m.win.docPlainText(m.c)),
       'the refused wording must not be in the contract');
     const clause = m.work(ch.clauseId);
-    assert.match(clause.textContent, /Rejected — baseline kept/);
+    // the label names the change it belongs to — see f58
+    assert.match(clause.textContent, /#CHG-\d+ rejected — baseline kept/);
     assert.match(clause.textContent, /one hundred and twenty \(120\) days/);
   });
 

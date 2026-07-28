@@ -129,8 +129,12 @@ describe('F55 — one thread per change, out of two stores', () => {
   test('a reply filed through the discussion channel appears on the card that asked', async () => {
     const { win } = buildWorld();
     const { c, ch } = await pending(win);
-    win.negoPostComment(c, ch.id, 'Possibly not needed — what do you think?',
-      { side: 'owner', author: 'Young Mbagaya' });
+    /* Stamped explicitly rather than through negoPostComment, which uses the
+       clock: the thread is ordered by time, so whether the owner's own line
+       sorted before or after a fixed fixture timestamp depended on the time of
+       day the suite happened to run. */
+    win.negoChangeById(c, ch.id).thread = [{ who: 'Young Mbagaya', side: 'owner',
+      at: '2026-07-28T07:18:00Z', text: 'Possibly not needed — what do you think?' }];
     /* What the counterparty's page can actually do: their copy of the contract
        is rebuilt from the share payload on every repaint, so a reply cannot be
        written to it and goes to the channel under the change's own topic. */

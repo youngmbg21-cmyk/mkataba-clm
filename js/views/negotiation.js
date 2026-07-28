@@ -751,9 +751,22 @@ function negoDocHtml(c, opts){
         ? `<p><span class="nego-del">${_ne(cl.text)}</span></p>`
         : `<p>${resolvedHtml(ch)}</p>`;
       badgeCls = 'is-accepted'; badgeSuffix = ' ✓';
+      /* THE LABEL NAMES THE CHANGE, and it has to.
+
+         A clause block is whatever sits between two headings, and in a real
+         contract that can be a great deal: the parties, the recitals and the
+         "NOW, THEREFORE" all land in one block under one short heading. A bare
+         "Accepted" pill over a slab like that reads as a verdict on every
+         paragraph beneath it, and the reader has no way to tell which part of
+         it the word refers to.
+
+         Naming the change fixes exactly that, and nothing else moves. It reads
+         as the outcome of one identified proposal — the same one whose
+         fingerprint is in the margin an inch away and whose entry is in the
+         index on the right — rather than as a stamp on the document. */
       note = ch.changeType === 'deleteClause'
-        ? `<span class="nego-note ok">Accepted — clause removed</span>`
-        : `<span class="nego-note ok">Accepted</span>`;
+        ? `<span class="nego-note ok">#${_ne(ch.id)} accepted — clause removed</span>`
+        : `<span class="nego-note ok">#${_ne(ch.id)} accepted</span>`;
     } else {
       /* Rejected: the baseline stands, so this clause is not under redline any
          more and reads as the document — the visible half of "silence
@@ -761,11 +774,11 @@ function negoDocHtml(c, opts){
          quietly cost the clause its structure for the rest of the negotiation. */
       body = negoRichBody(cl);
       badgeCls = 'is-rejected'; badgeSuffix = ' ✕';
-      note = `<span class="nego-note no">Rejected — baseline kept</span>`;
+      note = `<span class="nego-note no">#${_ne(ch.id)} rejected — baseline kept</span>`;
     }
     const active = _negoActive === ch.id;
     const flag = ch.needsReview
-      ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">Needs review</span>` : '';
+      ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">#${_ne(ch.id)} needs review</span>` : '';
     const notes = note + flag;
     /* Emitted ONCE: in the tools row where there is one, in the heading where
        there is not. Rendering it in both places is the thing this change exists
@@ -786,8 +799,8 @@ function negoDocHtml(c, opts){
       ? `<span class="nego-del">${_ne(ch.newText)}</span>`
       : ch.status === 'accepted' ? resolvedHtml(ch)
       : `<span class="nego-ins">${_ne(ch.newText)}</span>`;
-    const note = ch.status === 'accepted' ? `<span class="nego-note ok">Accepted — clause added</span>`
-      : ch.status === 'rejected' ? `<span class="nego-note no">Rejected — not added</span>` : '';
+    const note = ch.status === 'accepted' ? `<span class="nego-note ok">#${_ne(ch.id)} accepted — clause added</span>`
+      : ch.status === 'rejected' ? `<span class="nego-note no">#${_ne(ch.id)} rejected — not added</span>` : '';
     const label = ch.headingText || ch.clauseLabel || 'New clause';
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
       <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}"

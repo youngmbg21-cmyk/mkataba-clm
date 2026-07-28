@@ -3221,7 +3221,7 @@ It said "Send", a few inches from another button reading "Send 2 decisions" that
 does something completely different. Same behaviour, including Enter — only the
 word changed, and only on the reply box.
 
-## Accepted / Rejected moved onto the buttons' line
+## Accepted / Rejected moved onto the buttons' line — and now names the change
 
 The status was being pushed inside the clause's own heading, so a clause read
 "Clause 4 · Payment Terms Accepted" — the status looked like part of the title,
@@ -3229,6 +3229,33 @@ and on a narrow pane it pushed the heading onto two lines. It now sits on the
 same row as Change and Delete, immediately before them, where the controls for
 that clause already are. On read-only screens, which have no button row, it
 stays exactly where it was.
+
+**And it names the change: "#CHG-001 accepted", not a bare "Accepted".** Raised
+after the first pass, and right. A clause block is whatever sits between two
+headings, and in a real contract that can be a great deal — in the WH document
+the heading "AND" swallows the parties, the RECITALS line, three WHEREAS
+paragraphs and "NOW, THEREFORE" into a single block. One bare "Accepted" over a
+slab like that reads as a verdict on every paragraph beneath it, and the reader
+has no way to tell which part of it the word is about.
+
+The wider practice worth recording, because it decided this: in Word, Google
+Docs and the serious contract tools, **the marking IS the status in the
+document** — accept a change and the mark-up simply disappears, leaving ordinary
+text. No permanent "Accepted" sticker is left in the body; the written record
+lives in the review panel. Measured against that, this app was saying the same
+thing three times: the margin fingerprint turns green with a tick, the change
+index says "accepted", and now the document said it too.
+
+Removing it from the document altogether would be the more orthodox answer, and
+was offered. It was not taken because the margin fingerprint signals status
+largely by colour, and colour alone is a poor signal for a reader who cannot
+easily tell green from red. Naming the change keeps a readable label and removes
+the ambiguity for the cost of one word.
+
+Still open, and deliberately not touched: the real cause of the oversized block
+is that "AND" is read as a clause heading. Fixing that means changing where one
+clause ends and the next begins — which is the anchor the fingerprints are
+attached to, so it moves hashes. A separate conversation.
 
 ## What was deliberately not touched
 
@@ -3239,7 +3266,10 @@ inside `js/views/portal.js` are the ones named in the brief — putting replies
 back on the rebuilt page, and the pulse on that page's own send button.
 
 **1067 tests, 0 failures.** 25 new ones covering all five, including the two
-faults found while fixing the first.
+faults found while fixing the first. Three existing tests were updated to the
+new label wording, and two were rewritten off the wall clock — they stamped a
+comment with "now" and compared it against a fixed fixture time, so whether they
+passed depended on the hour the suite happened to run.
 
 ## Still true from earlier rounds
 

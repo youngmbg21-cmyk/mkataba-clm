@@ -291,7 +291,7 @@ describe('an action by one side shows up on the other', () => {
     assert.match(card.textContent, /One hundred and twenty days is the whole point of the facility\./,
       'a refusal he cannot understand is a refusal he will send again');
     assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✕/);
-    assert.match(liveNego(v.p.win).textContent, /Rejected — baseline kept/);
+    assert.match(liveNego(v.p.win).textContent, /#CHG-\d+ rejected — baseline kept/);
     assert.ok(!/ninety \(90\)/.test(v.$('.nego-pane.baseline').textContent),
       'the refused wording is not in the document');
   });

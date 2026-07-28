@@ -253,6 +253,12 @@ describe('F58 — the status sits with the verbs, on one line', () => {
       'and immediately before Change, which is what justify-end gives from this order');
     assert.ok(!/nego-note/.test(block.querySelector('h2').innerHTML),
       'never in the heading — "Clause 4 · Payment Terms Accepted" reads as the title of the clause');
+    /* AND IT NAMES THE CHANGE. A clause block is whatever sits between two
+       headings, and in a real contract that can be the parties, the recitals
+       and "NOW, THEREFORE" all under one short heading. A bare "Accepted" over
+       a slab like that reads as a verdict on every paragraph beneath it. */
+    assert.match(row.textContent, new RegExp(`#${filed[0].id} accepted`),
+      'the outcome of one identified proposal, not a stamp on the document');
   });
 
   test('Rejected does the same', async () => {
@@ -262,7 +268,8 @@ describe('F58 — the status sits with the verbs, on one line', () => {
     win.negoResetView();
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
     const block = paneBlock(win, c, cl);
-    assert.match(block.querySelector('.nego-tools').textContent, /Rejected — baseline kept/);
+    assert.match(block.querySelector('.nego-tools').textContent,
+      new RegExp(`#${filed[0].id} rejected — baseline kept`));
     assert.ok(!/nego-note/.test(block.querySelector('h2').innerHTML));
   });
 
@@ -286,7 +293,8 @@ describe('F58 — the status sits with the verbs, on one line', () => {
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false, readonly: true });
     const block = paneBlock(win, c, cl);
     assert.equal(block.querySelector('.nego-tools'), null, 'no verbs to sit beside');
-    assert.match(block.textContent, /Accepted/, 'and the status is still on the page');
+    assert.match(block.textContent, new RegExp(`#${filed[0].id} accepted`),
+      'and the status is still on the page');
   });
 });
 
