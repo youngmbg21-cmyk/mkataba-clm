@@ -497,7 +497,7 @@
       <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
       <div style="line-height:1.15;">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
-        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
+        <div data-i18n="nav_brand_sub" style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
       </div>
     </div>
 
@@ -505,91 +505,91 @@
       <!-- Collapsible sections: each header toggles its tabs open/closed. "Work"
            opens on login; the others start collapsed (see .open below). -->
       <div class="nav-section open" data-section="work">
-        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true">Work<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true"><span data-i18n="nav_sec_work">Work</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="dashboard" class="nav-item active" title="Home">
+          <button data-view="dashboard" class="nav-item active" title="Home" data-i18n-title="nav_home">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-            <span style="flex:1;">Home</span><span class="nav-count" data-count="dashboard"></span>
+            <span data-i18n="nav_home" style="flex:1;">Home</span><span class="nav-count" data-count="dashboard"></span>
           </button>
-          <button data-view="pipeline" class="nav-item" title="Queue">
+          <button data-view="pipeline" class="nav-item" title="Queue" data-i18n-title="nav_queue">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18"/></svg>
-            <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
+            <span data-i18n="nav_queue" style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
           </button>
-          <button data-view="advice" class="nav-item" title="Advice Desk">
+          <button data-view="advice" class="nav-item" title="Advice Desk" data-i18n-title="nav_advice">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+            <span data-i18n="nav_advice" style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
           </button>
-          <button data-view="workspace" class="nav-item" title="Doc">
+          <button data-view="workspace" class="nav-item" title="Doc" data-i18n-title="nav_doc">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-            <span style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
+            <span data-i18n="nav_doc" style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="contracts">
-        <button class="nav-section-head" data-section-toggle="contracts" aria-expanded="false">Contracts<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="contracts" aria-expanded="false"><span data-i18n="nav_sec_contracts">Contracts</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="register" class="nav-item" title="Register">
+          <button data-view="register" class="nav-item" title="Register" data-i18n-title="nav_register">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-            <span style="flex:1;">Register</span><span class="nav-count" data-count="register"></span>
+            <span data-i18n="nav_register" style="flex:1;">Register</span><span class="nav-count" data-count="register"></span>
           </button>
-          <button data-view="calendar" class="nav-item" title="Calendar">
+          <button data-view="calendar" class="nav-item" title="Calendar" data-i18n-title="nav_calendar">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-            <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
+            <span data-i18n="nav_calendar" style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
-          <button data-view="migration" class="nav-item" title="Migration">
+          <button data-view="migration" class="nav-item" title="Migration" data-i18n-title="nav_migration">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
-            <span style="flex:1;">Migration</span><span class="nav-count" data-count="migration"></span>
+            <span data-i18n="nav_migration" style="flex:1;">Migration</span><span class="nav-count" data-count="migration"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="build">
-        <button class="nav-section-head" data-section-toggle="build" aria-expanded="false">Build<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="build" aria-expanded="false"><span data-i18n="nav_sec_build">Build</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="templates" class="nav-item" title="Templates">
+          <button data-view="templates" class="nav-item" title="Templates" data-i18n-title="nav_templates">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
+            <span data-i18n="nav_templates" style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
-          <button data-view="playbook" class="nav-item" title="Playbook">
+          <button data-view="playbook" class="nav-item" title="Playbook" data-i18n-title="nav_playbook">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>
-            <span style="flex:1;">Playbook</span><span class="nav-count" data-count="playbook"></span>
+            <span data-i18n="nav_playbook" style="flex:1;">Playbook</span><span class="nav-count" data-count="playbook"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="insight">
-        <button class="nav-section-head" data-section-toggle="insight" aria-expanded="false">Insight<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="insight" aria-expanded="false"><span data-i18n="nav_sec_insight">Insight</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="reports" class="nav-item" title="Reports">
+          <button data-view="reports" class="nav-item" title="Reports" data-i18n-title="nav_reports">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6"/></svg>
-            <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
+            <span data-i18n="nav_reports" style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
           </button>
-          <button data-view="intel" class="nav-item" title="Intel">
+          <button data-view="intel" class="nav-item" title="Intel" data-i18n-title="nav_intel">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/></svg>
-            <span style="flex:1;">Intel</span><span class="nav-count" data-count="intel"></span>
+            <span data-i18n="nav_intel" style="flex:1;">Intel</span><span class="nav-count" data-count="intel"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="settings">
-        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Settings<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false"><span data-i18n="nav_sec_settings">Settings</span><span class="nav-plus"></span></button>
         <div class="nav-section-body">
-          <button data-view="team" class="nav-item" title="Team">
+          <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span style="flex:1;">Team &amp; settings</span><span class="nav-count" data-count="team"></span>
+            <span data-i18n="nav_team" style="flex:1;">Team &amp; settings</span><span class="nav-count" data-count="team"></span>
           </button>
         </div>
       </div>
@@ -598,9 +598,9 @@
     <!-- HaTi Copilot launcher — pinned above the footer, deliberately dark
          blue (accent-800/900) so it stands off the light sidebar -->
     <div class="copilot-wrap" style="padding:8px 10px;">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:9px 10px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.02em;box-shadow:0 2px 10px rgba(29,45,61,.28);transition:background .15s;" onmouseover="this.style.background='var(--color-accent-900)'" onmouseout="this.style.background='var(--color-accent-800)'">
+      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:9px 10px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.02em;box-shadow:0 2px 10px rgba(29,45,61,.28);transition:background .15s;" onmouseover="this.style.background='var(--color-accent-900)'" onmouseout="this.style.background='var(--color-accent-800)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
-        <span class="sc-label">HaTi Copilot</span>
+        <span class="sc-label" data-i18n="nav_copilot">HaTi Copilot</span>
         <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
       </button>
     </div>
@@ -611,7 +611,7 @@
         <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
         <span id="side-status">Server mode · SQLite · 4 online</span>
       </div>
-      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
+      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." data-i18n-title="nav_ai_usage_title" style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
         <span style="width:7px;height:7px;border-radius:50%;background:#c79a3e;flex:none;"></span>
         <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
       </button>
@@ -623,7 +623,7 @@
             <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin</span>
           </span>
         </button>
-        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;color:var(--color-neutral-600);cursor:pointer;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#b0453c';this.style.borderColor='#e6c9c1'" onmouseout="this.style.color='var(--color-neutral-600)';this.style.borderColor='var(--color-divider)'">
+        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" data-i18n-title="nav_logout_title" data-i18n-aria="nav_logout_aria" style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;color:var(--color-neutral-600);cursor:pointer;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#b0453c';this.style.borderColor='#e6c9c1'" onmouseout="this.style.color='var(--color-neutral-600)';this.style.borderColor='var(--color-divider)'">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
@@ -642,25 +642,25 @@
       <div style="flex:1;"></div>
       <div class="cmd-search">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.5;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="cmd-search" placeholder="Filter register…"/>
-        <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9px;border:1px solid var(--color-divider);padding:1px 5px;color:var(--color-neutral-600);font-family:var(--font-mono);border-radius:3px;background:var(--color-surface);cursor:pointer;">⌘K</button>
+        <input id="cmd-search" placeholder="Filter register…" data-i18n-placeholder="cmd_search_ph"/>
+        <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" data-i18n-title="cmd_k_title" style="font-size:9px;border:1px solid var(--color-divider);padding:1px 5px;color:var(--color-neutral-600);font-family:var(--font-mono);border-radius:3px;background:var(--color-surface);cursor:pointer;">⌘K</button>
       </div>
       <button id="langToggleBtn" class="ui-btn" title="Switch the interface to Swedish" data-i18n="lang_toggle" data-i18n-title="lang_toggle_title">🇸🇪 Svenska</button>
-      <button id="cmd-export" class="ui-btn" title="Export the working set">
+      <button id="cmd-export" class="ui-btn" title="Export the working set" data-i18n-title="cmd_export_title">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Export
+        <span data-i18n="cmd_export">Export</span>
       </button>
       <div style="position:relative;">
-        <button id="cmd-new" class="ui-btn ui-btn-primary" style="padding:6px 14px;">
+        <button id="cmd-new" class="ui-btn ui-btn-primary" data-i18n="cmd_new_contract" style="padding:6px 14px;">
           + New contract
         </button>
         <div id="new-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:5px;padding:6px;z-index:50;max-height:70vh;overflow-y:auto;"></div>
       </div>
-      <button id="cmd-ai" class="ui-btn" title="Ask HaTi Copilot" style="position:relative;width:30px;height:30px;padding:0;background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff;">
+      <button id="cmd-ai" class="ui-btn" title="Ask HaTi Copilot" data-i18n-title="cmd_ai_title" style="position:relative;width:30px;height:30px;padding:0;background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
         <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
       </button>
-      <button id="cmd-panel" class="ui-btn" title="Toggle context panel" style="width:30px;height:30px;padding:0;">
+      <button id="cmd-panel" class="ui-btn" title="Toggle context panel" data-i18n-title="cmd_panel_title" style="width:30px;height:30px;padding:0;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M15 3v18"/></svg>
       </button>
     </header>
@@ -674,7 +674,7 @@
       <!-- context panel (292px) -->
       <aside id="context-panel" style="border-left:1px solid var(--color-divider);background:var(--color-surface);display:flex;flex-direction:column;min-height:0;overflow:hidden;">
         <div style="display:flex;flex:none;border-bottom:1px solid var(--color-divider);">
-          <span class="panel-tab active">Activity</span>
+          <span class="panel-tab active" data-i18n="panel_activity">Activity</span>
         </div>
         <div id="panel-body" class="scroll-thin" style="flex:1;overflow-y:auto;"></div>
       </aside>
@@ -688,13 +688,13 @@
   <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
     <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:4px;" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
-      <div class="font-display font-600">HaTi Copilot</div>
+      <div class="font-display font-600" data-i18n="ai_title">HaTi Copilot</div>
       <div id="ai-brain-sub" class="text-[11px] flex items-center gap-1.5" style="color:var(--color-accent-200);"><span class="h-1.5 w-1.5 rounded-full live-dot" style="background:#2e8763;"></span>Searching your live contract data</div>
     </div>
-    <button id="ai-expand" title="Expand the panel" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
-    <button id="ai-clear" title="Delete conversation" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
-    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
-    <button id="ai-close" title="Close" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
+    <button id="ai-expand" title="Expand the panel" data-i18n-title="ai_expand_title" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg></button>
+    <button id="ai-clear" title="Delete conversation" data-i18n-title="ai_clear_title" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="trash"></button>
+    <button id="ai-min" title="Minimize — you'll be notified when an answer arrives" data-i18n-title="ai_min_title" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="minus"></button>
+    <button id="ai-close" title="Close" data-i18n-title="ai_close_title" class="h-8 w-8 grid place-items-center rounded hover:bg-white/10 transition" style="color:var(--color-accent-200);" data-ic-big="x"></button>
   </header>
 
   <div id="ai-feed" class="flex-1 overflow-y-auto scroll-thin px-5 py-4 space-y-4" style="background:var(--color-bg);"></div>
@@ -702,7 +702,7 @@
   <!-- How much to say, and in what register. Above the input because it
        changes the NEXT answer, not the ones already on the screen. -->
   <div class="px-5 pt-2 flex items-center gap-2" style="background:var(--color-bg);">
-    <span class="text-[10px] font-600 uppercase tracking-wider" style="color:var(--color-neutral-500);">Answers</span>
+    <span class="text-[10px] font-600 uppercase tracking-wider" style="color:var(--color-neutral-500);" data-i18n="ai_answers_label">Answers</span>
     <div id="ai-style" class="flex items-center gap-1"></div>
   </div>
 
@@ -710,7 +710,7 @@
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
-      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;"/>
+      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" data-i18n-placeholder="ai_input_ph" class="flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;"/>
       <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:4px;" data-ic-big="send"></button>
     </div>
   </footer>

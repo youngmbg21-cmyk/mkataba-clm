@@ -63,13 +63,64 @@ setLang(appLang);
 const STRINGS = {
   en: {
     /* ---- Language toggle ---- */
-    lang_toggle:        '🇸🇪 Svenska',   // the button shows the OTHER language
-    lang_toggle_title:  'Switch the interface to Swedish',
+    lang_toggle:            '🇸🇪 Svenska',   // the button shows the OTHER language
+    lang_toggle_title:      'Switch the interface to Swedish',
+
+    /* ---- Sidebar: brand + section headers ---- */
+    nav_brand_sub:          'Contract Lifecycle',
+    nav_sec_work:           'Work',
+    nav_sec_contracts:      'Contracts',
+    nav_sec_build:          'Build',
+    nav_sec_insight:        'Insight',
+    nav_sec_settings:       'Settings',
+
+    /* ---- Sidebar: navigation items (label and tooltip share a key) ---- */
+    nav_home:               'Home',
+    nav_queue:              'Queue',
+    nav_advice:             'Advice Desk',
+    nav_doc:                'Doc',
+    nav_register:           'Register',
+    nav_calendar:           'Calendar',
+    nav_migration:          'Migration',
+    nav_templates:          'Templates',
+    nav_playbook:           'Playbook',
+    nav_reports:            'Reports',
+    nav_intel:              'Intel',
+    nav_team:               'Team & settings',
+    nav_team_title:         'Team',
+
+    /* ---- Sidebar: Copilot launcher and footer ---- */
+    nav_copilot:            'HaTi Copilot',   // product name, not translated
+    nav_copilot_title:      'Open HaTi Copilot — your contract-intelligence assistant',
+    nav_ai_usage_title:     'Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls.',
+    nav_logout_title:       'Log out of HaTi',
+    nav_logout_aria:        'Log out',
+
+    /* ---- Command bar ---- */
+    cmd_search_ph:          'Filter register…',
+    cmd_k_title:            'Open global search (Ctrl/Cmd+K)',
+    cmd_export:             'Export',
+    cmd_export_title:       'Export the working set',
+    cmd_new_contract:       '+ New contract',
+    cmd_ai_title:           'Ask HaTi Copilot',
+    cmd_panel_title:        'Toggle context panel',
+
+    /* ---- Context panel ---- */
+    panel_activity:         'Activity',
+
+    /* ---- Copilot slide-over ---- */
+    ai_title:               'HaTi Copilot',   // product name, not translated
+    ai_expand_title:        'Expand the panel',
+    ai_clear_title:         'Delete conversation',
+    ai_min_title:           "Minimize — you'll be notified when an answer arrives",
+    ai_close_title:         'Close',
+    ai_answers_label:       'Answers',
+    ai_input_ph:            'Search, summarize, or ask about your contracts…',
   },
   sv: {
     /* ---- Language toggle ---- */
-    lang_toggle:        '🇬🇧 English',
-    lang_toggle_title:  'Byt gränssnittet till engelska',
+    lang_toggle:            '🇬🇧 English',
+    lang_toggle_title:      'Byt gränssnittet till engelska',
   }
 };
 
