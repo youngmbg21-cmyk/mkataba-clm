@@ -905,7 +905,13 @@ function aiPortfolioSnapshot(){
     parties?`Largest counterparties by value — ${parties}.`:'',
     `Expiring: ${win(30).length} within 30 days, ${win(60).length} within 60, ${win(90).length} within 90.`,
     win(90).length?`  Soonest: ${win(90).slice(0,6).map(c=>`${c.name} (${exp(c)})`).join('; ')}.`:'',
-    obs.length?`Open obligations: ${obs.length}${overdue.length?`, of which ${overdue.length} OVERDUE`:''}.`:'Open obligations: none recorded.',
+    /* Split ours from theirs, because the two are different answers to "what
+       is outstanding": one is our team's work, the other is what we should be
+       chasing them for. Counting them together was the reason a reader could
+       not act on the number. */
+    obs.length?`Open obligations: ${obs.length}${overdue.length?`, of which ${overdue.length} OVERDUE`:''}`
+      +`${(typeof obligationsOurs==='function')?` — ${obligationsOurs(obs).length} ours to do, ${obligationsTheirs(obs).length} theirs to chase`:''}.`
+      :'Open obligations: none recorded.',
     ``,
     `CONTRACTS (soonest to expire first; showing ${Math.min(live.length,AI_SNAPSHOT_CAP)} of ${live.length}):`,
     ...lines,

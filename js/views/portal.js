@@ -1309,16 +1309,160 @@ function openPortalNegoRoom(c, p){
   });
 }
 
+/* ---------- THE PAGE KEEPS UP WITH THE DEAL ----------
+
+   The owner's screen has polled for years: it picks up the other side's answers
+   within a cycle, and every count and banner on it is live. This page rendered
+   once, at the moment it was opened, and then never moved. So the counterparty
+   sat looking at wording that had been revised, at asks that had already been
+   answered, at a turn banner that still said it was their move — and had no way
+   to know, because nothing on the page ever told them to reload.
+
+   That is the last asymmetry between the two screens, and it is a read, not a
+   write. The architecture note this page is built on says a public no-login URL
+   must not MUTATE a contract per click, which is right and is untouched here:
+   this asks the same GET the link already answers, on a slow timer.
+
+   WHAT IT MUST NOT DO IS EAT THEIR WORK. A repaint rebuilds the whole page, and
+   a reader half-way through rewriting four clauses would lose them — which is
+   exactly the fault fixed one release ago in the redline editor, reintroduced
+   by a timer. So a refresh that lands while they are working does not happen:
+   they are told, once, and choose when. */
+const PORTAL_POLL_MS = 45000;
+let _ptPollTimer=null, _ptPollSig=null, _ptPollToken=null, _ptPollInFlight=false;
+
+/* One place that turns a server answer into render options, so the first paint
+   and every refresh after it cannot drift apart. */
+function portalRenderOpts(token, d){
+  return { token, responded:d.responded, share:d.share||{},
+    prior:d.prior||null, superseded:d.superseded||null,
+    /* Read LIVE, not from the payload: a signature that landed after this link
+       was last refreshed is precisely the case that matters. */
+    executed:d.executed||null,
+    emailConfigured:d.emailConfigured!==false, messages:d.messages||[] };
+}
+/* A fingerprint of everything on this page a reader would notice moving. Kept
+   deliberately narrow: the engagement log ticks on every open, and a page that
+   repainted because it had been looked at would never stop repainting. */
+function portalSignature(d){
+  if(!d) return '';
+  const c=(d.payload&&d.payload.contract)||{};
+  /* CONTENT ONLY, and `payload.at` is deliberately not in it. That stamp moves
+     every time the owner's link is refreshed in place — which happens on their
+     side for reasons this reader cannot see — and a signature watching it would
+     report a change over an identical page. Everything the stamp could tell us
+     is already below: the wording, the asks and their statuses, whose turn it
+     is, and what has been said. */
+  const parts=[
+    String(c.docText||c.redlineText||''),
+    (Array.isArray(c.changes)?c.changes:[]).map(x=>`${x.id}:${x.status}:${x.hash||''}:${x.withdrawn?'w':''}`).join(','),
+    String((c.negotiation&&c.negotiation.turn)||''), String((c.negotiation&&c.negotiation.turnAt)||''),
+    String((c.negotiation&&c.negotiation.round)||''),
+    `op${(c.openPoints||[]).length}`, `v${(c.versions||[]).length}`, `rd${(c.rounds||[]).length}`,
+    d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
+    d.responded?'r':'', String((d.messages||[]).length),
+    String((d.share&&d.share.expiresAt)||''),
+  ].join('');
+  let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
+  return parts.length+'.'+h.toString(16);
+}
+/* Is the reader in the middle of something a repaint would destroy? */
+function portalBusy(){
+  try{
+    if(Object.keys(PORTAL_CLAUSE_EDITS).length) return true;      // clauses rewritten, not sent
+    if(Object.keys(PORTAL_NEGO_DECISIONS).length
+      || Object.keys(PORTAL_NEGO_PROPOSED).length
+      || Object.keys(PORTAL_NEGO_WITHDRAWN).length) return true;  // answers held, not sent
+    const rl=document.getElementById('portal-redline');
+    if(rl && !rl.classList.contains('hidden')) return true;       // the editor is open
+    if(document.getElementById('confirm-overlay')) return true;
+    if(document.getElementById('prompt-overlay')) return true;
+    const modal=document.getElementById('modal-root');
+    if(modal && String(modal.innerHTML||'').trim()) return true;
+    return false;
+  }catch(_){ return true; }   // cannot tell ⇒ assume they are working
+}
+/* What a poll that came back should do. A pure read of the two answers, so the
+   rule is one thing a test can hold rather than three scattered conditions. */
+function portalPollDecide(d, prevSig){
+  if(!d) return 'same';
+  const sig=portalSignature(d);
+  if(prevSig && sig===prevSig) return 'same';
+  /* THE DEAL IS OVER, OR THIS COPY IS. Repainted whatever the reader is doing —
+     not to be rude, but because everything they are working on has just become
+     unsendable, and letting them carry on typing into it is the worse outcome.
+     The banner that replaces it says exactly what happened. */
+  if(d.executed || d.superseded) return 'repaint';
+  return portalBusy() ? 'notify' : 'repaint';
+}
+/* The quiet strip. It appears once, says what moved, and waits — it never
+   reloads under somebody's hands. */
+function portalUpdatedNoticeHtml(){
+  return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+      border-bottom:1px solid #e0c48a;background:#fdf6e7;padding:10px 24px;font-size:12.5px;color:#7d5a14;box-shadow:var(--shadow-sm)">
+    <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+    <span style="flex:1;min-width:0;line-height:1.5"><b>This contract has been updated.</b>
+      Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
+    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:12px;padding:6px 13px">Refresh now</button>
+  </div>`;
+}
+function portalShowUpdatedNotice(){
+  if(document.getElementById('pt-updated')) return;      // said once, not once a minute
+  const root=document.getElementById('share-root'); if(!root) return;
+  root.insertAdjacentHTML('afterbegin', portalUpdatedNoticeHtml());
+  document.getElementById('pt-updated-go')?.addEventListener('click',()=>portalRefreshNow('asked'));
+}
+async function portalFetchShare(token){
+  const r=await fetch('api/shares/'+encodeURIComponent(token));
+  const d=await r.json().catch(()=>null);
+  return { status:r.status, ok:r.ok, d };
+}
+/* Repaint from the server's current answer, keeping the reader where they were
+   on the page — a refresh that jumps them back to the top reads as the page
+   having reset rather than caught up. */
+function portalRepaint(token, d){
+  let y=0; try{ y=window.scrollY||0; }catch(_){}
+  renderSharePortal(d.payload, portalRenderOpts(token, d));
+  _ptPollSig=portalSignature(d);
+  try{ window.scrollTo(0, y); }catch(_){}
+}
+async function portalRefreshNow(reason){
+  if(!_ptPollToken || _ptPollInFlight) return 'skipped';
+  _ptPollInFlight=true;
+  try{
+    const { status, ok, d }=await portalFetchShare(_ptPollToken);
+    /* The link died while they held it open — withdrawn by the sender, or
+       expired. That is a whole-page answer and it is shown immediately. */
+    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
+    if(!ok || !d) return 'error';
+    const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
+    if(what==='repaint'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
+    if(what==='notify'){ portalShowUpdatedNotice(); return 'notify'; }
+    return 'same';
+  }catch(e){ return 'error'; }        // a dropped connection is not news; the next tick retries
+  finally{ _ptPollInFlight=false; }
+}
+function portalStopPolling(){ if(_ptPollTimer){ clearInterval(_ptPollTimer); _ptPollTimer=null; } }
+function portalStartPolling(token, d){
+  portalStopPolling();
+  _ptPollToken=token; _ptPollSig=portalSignature(d);
+  try{
+    _ptPollTimer=setInterval(()=>{ portalRefreshNow('tick'); }, PORTAL_POLL_MS);
+    /* Coming back to the tab is the moment somebody most wants the truth, and
+       it costs one request rather than a faster timer for everybody. */
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) portalRefreshNow('visible'); });
+  }catch(_){ /* a page that cannot keep a timer still renders */ }
+}
+
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
+    const token=encoded.slice(2);
     try{
-      const r=await fetch('api/shares/'+encodeURIComponent(encoded.slice(2)));
-      const d=await r.json().catch(()=>null);
-      if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
-      if(!r.ok) throw new Error(d?.error||'not found');
-      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{},
-        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false,
-        messages:d.messages||[] });
+      const { status, ok, d }=await portalFetchShare(token);
+      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      if(!ok) throw new Error(d?.error||'not found');
+      renderSharePortal(d.payload, portalRenderOpts(token, d));
+      portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -2061,4 +2205,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

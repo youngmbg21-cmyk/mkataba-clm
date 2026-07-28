@@ -31,6 +31,12 @@ function calendarEvents(){
        day at all, while daysUntil(NaN) kept it out of the agenda as well. */
     (c.obligations||[]).forEach(o=>{ const od=window.obligationDue?obligationDue(o):o.due;
       if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc,
+        /* Carried so the agenda can act on this row without looking anything
+           up. BY ID, never by position: this list is sorted by date and the
+           contract's own list is not, so an index here would tick off a
+           different obligation from the one that was pressed. */
+        obId:o.id||null, theirs:!!(window.obligationIsTheirs&&obligationIsTheirs(o)),
+        owner:(window.obligationOwner?obligationOwner(o,c):(o.assignee||'')),
         /* WHOSE DELIVERABLE IT IS. The workspace panel has always printed this
            under every obligation ("unassigned" when nobody owns it); the
            calendar — the screen somebody actually opens to ask "what is due
@@ -89,16 +95,39 @@ function renderCalendar(){
     /* An obligation says WHAT is due and who owns it; an expiry or a renewal
        decision is about the contract itself, and its own name is the subject. */
     const kind=e.type==='obligation'
-      ? _esc(e.note||ev.label)+(e.assignee?' · '+_esc(e.assignee):' · unassigned')
+      ? _esc(e.note||ev.label)+' · '+_esc(e.owner||'unassigned')
       : ev.label+' · '+_esc(e.cid);
-    return `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">`+
-      _dot(ev.dot,7)+
-      `<span style="flex:1;min-width:0">`+
-        `<span style="display:block;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
-        `<span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
-      `</span>`+
-      `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none">${inTxt}</span>`+
-    `</button>`;
+    /* THE ROW BECAME A ROW, not a button.
+
+       It used to be one <button> wrapping everything, which is why nothing on
+       this screen could ever be acted on: there was nowhere to put a second
+       control, because a button inside a button is not a thing. An obligation
+       row now carries "Done" beside it — the verb people come to this screen
+       wanting, and which until now meant clicking through to the contract,
+       scrolling to its Obligations panel and ticking it there.
+
+       Only obligations get it. An expiry or a renewal deadline is a date, not a
+       task; there is nothing to complete. */
+    const doneBtn = (e.type==='obligation' && e.obId && window.toggleObligationById
+        && (!window.canEdit || canEdit()))
+      ? `<button data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="Mark this obligation complete"
+           style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;
+             padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Done</button>`
+      : '';
+    const theirsChip = (e.type==='obligation' && e.theirs)
+      ? `<span title="The counterparty owes this — chase it" style="flex:none;font-size:8.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-radius:3px;padding:1px 4px;background:rgba(184,134,43,.15);color:#7d5a14">theirs</span>`
+      : '';
+    return `<div style="display:flex;align-items:center;gap:8px;width:100%;border-bottom:1px solid rgba(29,31,32,.07)" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">`+
+      `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">`+
+        _dot(ev.dot,7)+
+        `<span style="flex:1;min-width:0">`+
+          `<span style="display:block;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span>`+
+          `<span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${kind}</span>`+
+        `</span>`+
+      `</button>`+
+      theirsChip+doneBtn+
+      `<span style="font-size:10px;font-weight:600;font-family:var(--font-mono);color:${ev.fg};flex:none;padding-right:2px">${inTxt}</span>`+
+    `</div>`;
   }).join(''):`<div style="text-align:center;padding:22px 8px">
       <div style="width:40px;height:40px;margin:0 auto 10px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('calendar','w-5 h-5')}</div>
       <div style="font-size:12.5px;font-weight:600;color:var(--color-text)">Nothing due in the next 60 days</div>
@@ -143,6 +172,15 @@ function renderCalendar(){
   document.getElementById('cal-next').addEventListener('click',()=>{ let {y,m}=calMonth(); m++; if(m>11){m=0;y++;} calState.ym={y,m}; renderCalendar(); });
   document.getElementById('cal-today').addEventListener('click',()=>{ calState.ym=null; renderCalendar(); });
   document.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>selectContract(b.getAttribute('data-sel'))));
+  /* Completing goes through the shared verb in js/obligations.js, which writes
+     the audit line and refreshes every surface that counts them — including
+     this one. A second copy of that logic here is how two screens come to
+     disagree about the same tick-box. */
+  document.querySelectorAll('[data-ob-done]').forEach(b=>b.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=toggleObligationById(b.getAttribute('data-ob-cid'), b.getAttribute('data-ob-done'), { from:'calendar' });
+    if(o) toast(`Marked complete: ${o.desc}`);
+  }));
   document.getElementById('cal-empty-reg')?.addEventListener('click',()=>setView('register'));
   setActiveNav('calendar');
 }
