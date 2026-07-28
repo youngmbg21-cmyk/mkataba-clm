@@ -2526,7 +2526,7 @@ function renderWorkspace(){
         <div style="min-width:0;flex:1">
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
-            <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
+            <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
@@ -2663,7 +2663,7 @@ function renderWorkspace(){
             <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
               <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
                 <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             <label style="${KROW}"><span style="${KKEY}">Effective</span>
               <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
@@ -2673,7 +2673,7 @@ function renderWorkspace(){
             :`
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
             ${kv('Expiry',c.expiry||'—')}
@@ -2896,8 +2896,9 @@ async function fillKeyTermsFromDocument(c){
 }
 function updateStatusUI(c){
   const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
-  if(ms) ms.innerHTML=statusChip(c.status);
-  if(ws) ws.innerHTML=statusChip(c.status);
+  const chip=window.contractStatusChip?contractStatusChip(c):statusChip(c.status);
+  if(ms) ms.innerHTML=chip;
+  if(ws) ws.innerHTML=chip;
 }
 
 /* -------- comments -------- */

@@ -16,11 +16,12 @@ const KPI_META={
   expiring30:  'Expiring < 30 days',
   expiring60:  'Expiring < 60 days',
   expiring90:  'Expiring < 90 days',
+  expired:     'Term already ended',
   highrisk:    'High-risk findings',
   avgcycle:    'Avg cycle · draft→signed',
 };
-const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','highrisk','avgcycle'];
-const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','highrisk','avgcycle'];
+const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','expired','highrisk','avgcycle'];
+const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','expired','highrisk'];
 /* Money-bearing metrics. A member without can_view_values receives no value
    from the server at all, so these cards would read "KES 0" — a wrong number,
    not a hidden one. They are removed from the catalog entirely rather than
@@ -165,6 +166,10 @@ function renderDashboard(){
   const stalled=awaiting.filter(s=>{ const t=Date.parse(s.at); return !isNaN(t)&&(Date.now()-t)>14*864e5; }).length;
   const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
   // Expiry views: nearest-first buckets at 30 / 60 / 90 days (expiring is 0–90, sorted).
+  /* Executed agreements whose term has already run out — the same read the
+     status chip uses, so a row badged "Expired" is a row counted here. */
+  const lapsed=agreementsIn(cs).filter(c=>!!(window.contractExpired&&contractExpired(c)))
+    .sort((a,b)=>{ const ea=effectiveExpiry(a)||'', eb=effectiveExpiry(b)||''; return String(ea).localeCompare(String(eb)); });
   const expWithin=n=>expiring.filter(x=>x.d<=n);
   const exp30=expWithin(30), exp60=expWithin(60), exp90=expiring;
   const expVal=arr=>valOf(arr.map(x=>x.c));
@@ -190,6 +195,10 @@ function renderDashboard(){
     expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),                                               grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
     expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
     expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
+       `days >= 0`, so a contract dropped out of all three on the morning its
+       term ended — the one day it most needed somebody to look at it. */
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtKESshort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`,                              grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
@@ -224,7 +233,7 @@ function renderDashboard(){
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
       <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
       ${riskChip(x.r)}
-      ${statusChip(c.status)}
+      ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
     </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
 
   // ---- renewal pipeline (6 mo) ----

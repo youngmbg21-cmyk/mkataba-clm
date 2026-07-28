@@ -1153,8 +1153,33 @@ app.get('/api/stats', auth, (req, res) => {
   const byFolder = db.prepare(`SELECT folder, COUNT(*) n,
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val,
       SUM(status='Under Review') pending FROM contracts ${w} GROUP BY folder`).all(...f.args);
+  /* ---- AND THE ONES WHOSE TERM HAS RUN OUT ----
+
+     "Active value" was every contract that was not Declined, so an agreement
+     that ended in 2023 kept its whole face value in the headline figure for
+     ever, and there was no count anywhere of how many had quietly lapsed. The
+     browser derives the same fact for the badge and the calendar
+     (contractExpired in js/core.js); this is the portfolio-wide answer, so the
+     dashboard's number and its chips cannot disagree.
+
+     Read in JS rather than compared in SQL because an expiry does not have to
+     be a clean YYYY-MM-DD — a bulk migration or a Copilot extraction can leave
+     "30 September 2026" in that column, and a string comparison against today
+     would silently call it expired. dateOnly is the same normalisation the
+     reminder sweep uses; a value that is no kind of date means "we do not know
+     when this ends", which is not a claim that it has ended. */
+  const today = isoDay(new Date());
+  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", f.sql)}`).all(...f.args);
+  let expired = 0, expiredValue = 0;
+  for (const r of signed) {
+    const day = dateOnly(r.expiry);
+    if (day && day < today) { expired++; expiredValue += Number(r.value) || 0; }
+  }
+  g.expired = expired;
+  g.expiredValue = expiredValue;
+  g.totalValue = Math.max(0, (Number(g.totalValue) || 0) - expiredValue);
   if (!canViewValues(req.user)) {
-    delete g.totalValue;
+    delete g.totalValue; delete g.expiredValue;
     return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
   }
   res.json({ ...g, byFolder });
@@ -2989,6 +3014,39 @@ app.get('/api/shares/overview', auth, (req, res) => {
   res.json({ counts, byContract, items });
 });
 
+/* ---------- THE SIGNED DOOR, on the counterparty's side of it ----------
+
+   js/negotiation.js has one and documents it: an executed record takes no new
+   decisions, however it came to be executed. js/core.js has one in
+   applyResponse: a share response cannot change a contract that is already
+   signed. The public link had neither, and the two together are what made that
+   a silent failure rather than a refusal —
+
+     · the link took the answer and stored it, because nothing here asked;
+     · the owner's poller handed it to applyResponse, which refused it and
+       returned false, so the response was never marked applied and came round
+       again on the next poll, and the next, in silence.
+
+   The counterparty was told their round had gone. Nobody ever saw it.
+
+   Read from the STORED record and never from the share payload: the payload is
+   a copy taken before the signature, and it can only ever be out of date about
+   this. The three signals are the same three the negotiation model uses, and
+   for the same reason — a seal, an execution stamp or the status, any one of
+   which means the wording has stopped moving. */
+function contractExecution(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const at = (c.execution && c.execution.at) || null;
+  if (!(c.status === 'Signed' || c.hash || at)) return null;
+  /* WHEN, and nothing else. This is served on a public no-login endpoint, so
+     it carries the one fact the reader's page needs and not a word about who
+     signed, in what capacity, or under which seal. */
+  return { at: at || c.signedAt || null };
+}
+
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -3033,6 +3091,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     messages: s.contract_id ? contractMessages(s.contract_id) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
+    /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
+       link still opens — a counterparty is entitled to see what they were sent
+       — but their page has to be able to say that the wording is final, or it
+       goes on inviting redlines on a sealed contract. */
+    executed: contractExecution(s.contract_id),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
@@ -3429,6 +3492,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
       : 'This copy of the contract has been superseded — a newer version was sent to you on '
         + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
     superseded: stale.at });
+  /* AND THE DEAL MAY SIMPLY BE OVER. Checked here, in front of every action,
+     rather than in the signing branch alone: a redline, an acceptance and a
+     decline are each as impossible on an executed contract as a second
+     signature, and each was being stored and then silently discarded. See
+     contractExecution above. */
+  const done = contractExecution(s.contract_id);
+  if (done) return res.status(409).json({
+    error: 'This contract has been executed and sealed'
+      + (done.at ? ' (' + String(done.at).slice(0, 10) + ')' : '')
+      + ' — it can no longer be answered from this link. If something has to change,'
+      + ' ask the sender to record an amendment.',
+    executed: done.at || true });
   const r = req.body || {};
   /* 'decisions' and 'ready' were missing from this list, and the portal had
      been sending 'decisions' for a whole release. Every batch of per-change

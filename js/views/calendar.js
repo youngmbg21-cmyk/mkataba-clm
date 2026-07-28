@@ -30,7 +30,14 @@ function calendarEvents(){
        sheet both produce — built an event, counted it, and then drew it on no
        day at all, while daysUntil(NaN) kept it out of the agenda as well. */
     (c.obligations||[]).forEach(o=>{ const od=window.obligationDue?obligationDue(o):o.due;
-      if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc, done:o.status==='done' }); });
+      if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc,
+        /* WHOSE DELIVERABLE IT IS. The workspace panel has always printed this
+           under every obligation ("unassigned" when nobody owns it); the
+           calendar — the screen somebody actually opens to ask "what is due
+           this month" — carried neither the obligation's description nor its
+           owner, only the contract's name. A row reading "Nandi Dairy ·
+           Obligation · MK-2 · 12d" does not tell anybody what to do. */
+        assignee:o.assignee||'', done:o.status==='done' }); });
   });
   return out;
 }
@@ -79,7 +86,11 @@ function renderCalendar(){
   const agendaRows=agenda.length?agenda.map(e=>{
     const ev=CAL_EVENT[e.type], d=daysUntil(e.date);
     const inTxt=d<0?Math.abs(d)+'d ago':d+'d';
-    const kind=ev.label+' · '+_esc(e.cid);
+    /* An obligation says WHAT is due and who owns it; an expiry or a renewal
+       decision is about the contract itself, and its own name is the subject. */
+    const kind=e.type==='obligation'
+      ? _esc(e.note||ev.label)+(e.assignee?' · '+_esc(e.assignee):' · unassigned')
+      : ev.label+' · '+_esc(e.cid);
     return `<button data-sel="${e.cid}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 2px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">`+
       _dot(ev.dot,7)+
       `<span style="flex:1;min-width:0">`+
