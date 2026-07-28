@@ -4449,3 +4449,68 @@ automated tests, 0 failures.**
   were not walked. Round 6 is therefore verified up to the signature and no
   further, and the score reflects that.
 - **Layout was not verified.** No stylesheet in this container.
+
+### Cycle 3 — score 9/10, and round 6 walked to the end
+
+The gap left open in cycle 2 was closed: signing was driven all the way to an
+executed, sealed contract, in the browser, both sides. It works — and getting
+there surfaced four more defects, two of them the same class as the big one.
+
+**8. Erik signs, and the headline still told him to sign.** `portalSetDone`
+correctly spends every action button, but the green band at the top of his page
+went on reading *"Ready to sign — read the wording below, then sign or respond
+on the right"*, with the confirmation in a box far below it. The biggest thing
+on the screen instructed him to do the thing he had just done. `portalMarkSigned`
+now rewrites that band to *"Erik Lindqvist signed this contract … there is
+nothing further for you to do here"*, on both the verified and the unverified
+signing paths.
+
+**9. The owner was never told the counterparty had signed.** Erik's signature is
+filed, the audit trail records it, the share row reads Signed — and Wanjiru's
+action bar went on saying *"Key terms are set — move it into review"* with a
+button offering a step the contract passed three rounds earlier. The single act
+left in the whole deal was her signature and the screen never mentioned it.
+`wsNextAction` now answers *"Erik Lindqvist has signed. Your signature is the
+only thing left."*
+
+**10. The executed copies were never sent, and the reason shown was nonsense.**
+`finalizeExecution` called `persist(c)` — which only marks dirty and sets a
+400 ms timer — and then immediately called `distributeExecuted(c)`, which POSTs
+to `/distribute`. The server checks the STORED status before it will send an
+executed copy, so the request overtook the save, the server saw a contract that
+was not yet `Signed`, and answered **"Contract is not executed yet"**. That
+sentence was filed on the distribution record and printed in the signature panel
+of a contract the same panel had just marked *Executed & sealed*, with both
+parties listed as **Failed**. Nobody got their copy.
+
+Same shape as defect 4: a debounced write overtaken by a read that depends on
+it. Fixed the same way — `await flushSaves()` before distributing. Verified:
+both recipients now read **Sent**.
+
+**11. And the last screen of the journey did not repaint.** After signing, the
+action bar kept "your signature is the only thing left" on an executed contract
+until the reader reloaded. `renderActionBar` is now called with the rest of the
+post-execution repaint.
+
+**What the end of the journey now does.** Wanjiru presses *Issue a signing link*
+from the readiness strip; the share dialog opens on **Sign** (not by guessing —
+the caller states it and the picker shows it); Erik opens it, adopts a typed
+signature, is told plainly that his email cannot be verified on this workspace
+and that the record will say so, signs anyway; his page says he signed; her page
+says her signature is all that is left; she ticks intent-to-sign and signs; the
+contract goes to **Signed**, the seal and the text hash are written, a version
+"Signed & sealed" is filed, and the executed copies go out to both parties.
+
+**990 tests, 0 failures.**
+
+### Still not fixed after cycle 3
+
+Unchanged from cycle 2, and the reason the score is 9 rather than 10:
+
+- the five overlapping verbs on the counterparty's signing page;
+- no live signal on the owner's screen — answers arrive on reload or on the
+  45-second poll;
+- two copies of the negotiation component in the counterparty's DOM sharing
+  every id;
+- the contract reads "Drafting" throughout the negotiation;
+- **layout was never verified** — no stylesheet in this container.

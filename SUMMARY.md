@@ -3051,3 +3051,46 @@ link]"* — and that survives reloading the page.
   stylesheet the app loads from a CDN, so every screen rendered unstyled.
   Wording, controls and behaviour were testable; spacing and tap targets were
   not, and nothing here claims they were.
+
+## Update — round 6 driven to the end
+
+The one thing left open above has been closed. Signing was walked all the way
+through in the browser, both sides, to an executed and sealed contract.
+
+**It works.** Wanjiru issues the signing link from the readiness message; Erik
+opens it, types his signature, is told plainly that this workspace cannot check
+his email address and that the record will say so, and signs; she is told her
+signature is all that is left; she signs; the contract is sealed and a copy goes
+to both parties.
+
+Getting there found four more faults, all now fixed and re-checked:
+
+1. **Erik signed and the top of his page still said "Ready to sign."** The
+   buttons were correctly spent, but the biggest words on the screen went on
+   telling him to do what he had just done.
+2. **Wanjiru was never told he had signed.** Her page still offered "Send for
+   review" — a step the contract had passed three rounds earlier — when the only
+   thing left in the whole deal was her signature.
+3. **The signed copies were never actually sent, and the reason given was
+   nonsense.** The app asked the server to email the executed contract a
+   fraction of a second before it had finished saving the fact that it was
+   signed. The server, reading the older saved copy, replied *"Contract is not
+   executed yet"* — and that sentence was then printed in the signature panel of
+   a contract the same panel had just marked *Executed and sealed*, with both
+   parties shown as **Failed**. This is the same underlying mistake as the lost
+   round, in a different place. Both recipients now show **Sent**.
+4. **The final screen did not refresh.** After signing, the page kept saying
+   "your signature is the only thing left" on a contract that was already
+   sealed, until you reloaded.
+
+**Score after this cycle: 9 out of 10.** Three cycles: 4 → 8 → 9. 990 tests, 0
+failures.
+
+**Why not 10.** Four things are still true, and a strict reviewer would mark all
+four: the counterparty's signing page still offers five overlapping choices with
+no signpost; nothing on the owner's screen updates itself; there are two copies
+of the negotiation screen in the counterparty's page sharing the same internal
+names; and the contract calls itself "Drafting" through an entire negotiation.
+On top of that, **the layout has never been checked** — this machine cannot
+download the app's stylesheet, so every screen was tested unstyled. A ten would
+mean someone had looked at it properly on a real screen. Nobody has.

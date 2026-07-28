@@ -460,6 +460,27 @@ function portalSetDone(pressedId, label){
   }
   const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
 }
+/* THE HEADLINE HAS TO AGREE WITH WHAT JUST HAPPENED.
+
+   Signing left the green banner at the top of the page reading "Ready to sign —
+   read the wording below, then sign or respond on the right", with the
+   confirmation sitting in a box much further down beside the buttons. So the
+   biggest thing on the screen went on instructing someone to do the thing they
+   had just done. The buttons were correctly spent; the page still said
+   otherwise, and on a page this long that is what a reader takes away. */
+function portalMarkSigned(p, info){
+  const band=document.getElementById('pt-agreed');
+  if(!band) return;
+  const who=esc((info&&info.name)||'You');
+  band.style.background='#d9eae0';
+  band.style.borderLeftColor='#1e6b4d';
+  band.innerHTML=`
+    <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+    <span style="flex:1;min-width:220px;line-height:1.5">
+      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:#14503a">${who} signed this contract</span>
+      <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
+    </span>`;
+}
 /* The link is answered, or the wording has moved on since it was sent. Either
    way nothing on this page can be submitted, and the page should say so at the
    top rather than letting someone fill a form that will be refused. */
@@ -1659,6 +1680,7 @@ async function portalSignUnverified(p, info){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');
+      portalMarkSigned(p, info);
       box.innerHTML=`
         <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed</div>
@@ -1703,6 +1725,8 @@ async function portalVerifyAndSign(p, info){
     signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
   try{
     await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+    portalSetDone('pt-sign','Signed and sent');
+    portalMarkSigned(p, info);
     document.getElementById('portal-result').innerHTML=`
       <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>

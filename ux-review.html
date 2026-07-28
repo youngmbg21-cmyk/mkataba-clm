@@ -82,7 +82,7 @@
 <h2>The score, cycle by cycle</h2>
 
 <figure>
-<svg viewBox="0 0 880 240" role="img" aria-label="A chart showing the score going from four out of ten to eight out of ten">
+<svg viewBox="0 0 880 240" role="img" aria-label="A chart showing the score going from four to eight to nine out of ten">
   <style>
     .ax{fill:none;stroke:#1b1d1e;stroke-width:1.6}
     .gl{fill:none;stroke:#dcdee1;stroke-width:1}
@@ -93,7 +93,7 @@
     .jb{font:19px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:800}
     .jr{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
   </style>
-  <line class="gl" x1="90" y1="40"  x2="800" y2="40"/>
+  <line class="gl" x1="90" y1="40"  x2="800" y2="40" stroke-dasharray="5 4"/>
   <line class="gl" x1="90" y1="90"  x2="800" y2="90"/>
   <line class="gl" x1="90" y1="140" x2="800" y2="140"/>
   <line class="ax" x1="90" y1="190" x2="800" y2="190"/>
@@ -102,19 +102,22 @@
   <text class="js" x="58" y="95">8</text>
   <text class="js" x="58" y="145">5</text>
   <text class="js" x="58" y="194">0</text>
-  <path class="ln" d="M240 157 L560 90"/>
-  <circle class="dot" cx="240" cy="157" r="7"/>
-  <circle class="dot" cx="560" cy="90" r="7"/>
-  <text class="jb" x="222" y="185">4</text>
-  <text class="jb" x="544" y="78">8</text>
-  <text class="jt" x="196" y="212">Cycle 1</text>
-  <text class="jt" x="516" y="212">Cycle 2</text>
-  <text class="js" x="140" y="232">three things stopped the negotiation dead</text>
-  <text class="js" x="470" y="232">six rounds work; signing not fully walked</text>
-  <line class="gl" x1="90" y1="40" x2="800" y2="40" stroke-dasharray="5 4"/>
-  <text class="jr" x="700" y="34">10 was not reached</text>
+  <path class="ln" d="M190 157 L440 90 L690 73"/>
+  <circle class="dot" cx="190" cy="157" r="7"/>
+  <circle class="dot" cx="440" cy="90" r="7"/>
+  <circle class="dot" cx="690" cy="73" r="7"/>
+  <text class="jb" x="172" y="185">4</text>
+  <text class="jb" x="424" y="78">8</text>
+  <text class="jb" x="674" y="61">9</text>
+  <text class="jt" x="150" y="212">Cycle 1</text>
+  <text class="jt" x="400" y="212">Cycle 2</text>
+  <text class="jt" x="650" y="212">Cycle 3</text>
+  <text class="js" x="100" y="232">three things stopped it dead</text>
+  <text class="js" x="352" y="232">six rounds work</text>
+  <text class="js" x="574" y="232">signed, sealed and delivered</text>
+  <text class="jr" x="676" y="34">10 not reached</text>
 </svg>
-<figcaption>Two cycles were run. The loop stopped because the session's time ran out, not because the software reached ten.</figcaption>
+<figcaption>Three cycles. Each one was a fresh walk through the whole thing, and each one found faults the one before it had been hiding.</figcaption>
 </figure>
 
 <h2>What went wrong, and what was done about it</h2>
@@ -541,6 +544,119 @@
 <figcaption>Two problems, one screen: there was no way back, and there was nowhere to go back to.</figcaption>
 </figure>
 
+<!-- 9: signing -->
+<div class="item">
+<h3 style="margin-top:0"><span class="tag r">Round 6</span> &nbsp;Erik signed, and his screen still told him to sign</h3>
+<p>He typed his name into the signature pad, was told plainly that this workspace cannot check his email address and that the record would say so, and pressed <b>Sign anyway</b>. A green box appeared confirming it — a long way down the page, beside the buttons.</p>
+<p>Meanwhile the big green band at the very top still read <b>"Ready to sign — read the wording below, then sign or respond on the right."</b> The buttons were correctly spent. The headline was not.</p>
+<div class="good"><b>Fixed:</b> the band now says <i>"Erik Lindqvist signed this contract — sent to Wanjiru Kamau at Karibu Catering. There is nothing further for you to do here."</i></div>
+</div>
+
+<figure>
+<svg viewBox="0 0 880 230" role="img" aria-label="Before and after of the counterparty's page once signed">
+  <style>
+    .p9{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .p9t{fill:none;stroke:#1b1d1e;stroke-width:1.3}
+    .r9{fill:none;stroke:#b3382c;stroke-width:2.8;stroke-linecap:round}
+    .t9{font:13.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .s9{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .x9{font:12.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .g9{font:12.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .h9{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.09em}
+    .band9{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.8}
+    .ok9{fill:#d9eae0;stroke:#1d6b4c;stroke-width:1.8}
+  </style>
+  <text class="h9" x="18" y="18">BEFORE — after he had signed</text>
+  <rect class="p9" x="18" y="30" width="390" height="176" rx="7"/>
+  <rect class="band9" x="34" y="46" width="358" height="46" rx="6"/>
+  <text class="t9" x="48" y="66">Ready to sign</text>
+  <text class="s9" x="48" y="84">Read the wording below, then sign on the right</text>
+  <ellipse class="r9" cx="213" cy="69" rx="188" ry="30"/>
+  <line class="p9t" x1="34" y1="110" x2="392" y2="110"/>
+  <line class="p9t" x1="34" y1="124" x2="360" y2="124"/>
+  <rect class="ok9" x="34" y="140" width="358" height="30" rx="5"/>
+  <text class="s9" x="48" y="160">Signed — delivered to Karibu Catering</text>
+  <text class="x9" x="34" y="194">The confirmation is down here. The headline is up there.</text>
+  <path class="r9" d="M420 115 l38 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="h9" x="474" y="18">AFTER</text>
+  <rect class="p9" x="474" y="30" width="390" height="176" rx="7"/>
+  <rect class="ok9" x="490" y="46" width="358" height="52" rx="6"/>
+  <circle cx="514" cy="72" r="13" fill="#1d6b4c"/>
+  <path d="M508 72 l5 5 l10 -11" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+  <text class="t9" x="536" y="68">Erik Lindqvist signed this contract</text>
+  <text class="s9" x="536" y="88">Nothing further for you to do here</text>
+  <line class="p9t" x1="490" y1="116" x2="848" y2="116"/>
+  <line class="p9t" x1="490" y1="130" x2="816" y2="130"/>
+  <text class="g9" x="490" y="170">The biggest words on the page now agree</text>
+  <text class="g9" x="490" y="190">with what just happened.</text>
+</svg>
+<figcaption>The buttons were right. The headline was still giving instructions for a job already done.</figcaption>
+</figure>
+
+<!-- 10 -->
+<div class="item">
+<h3 style="margin-top:0"><span class="tag r">Round 6</span> &nbsp;Wanjiru was never told he had signed</h3>
+<p>Erik's signature was filed properly. Her history recorded it. The share row said "Signed". And the top of her contract page carried on saying <b>"Key terms are set — move it into review"</b>, with a button offering a step the contract had passed three rounds earlier.</p>
+<div class="hurt"><b>The damage:</b> the only act left in the entire deal was her signature, and no screen mentioned it. She would have found out by opening the audit trail, or not at all.</div>
+<div class="good"><b>Fixed:</b> the bar now reads <i>"Erik Lindqvist has signed. Your signature is the only thing left."</i> with a Sign button.</div>
+</div>
+
+<!-- 11 -->
+<div class="item">
+<h3 style="margin-top:0"><span class="tag r">Round 6</span> &nbsp;The signed copies were never sent — and the reason given was nonsense</h3>
+<p>When both parties have signed, HaTi emails a sealed copy to each of them. It asked the server to do that a fraction of a second before it had finished saving the fact that the contract was signed. The server looked at the older saved copy, saw a contract that was not signed, and refused with <b>"Contract is not executed yet"</b>.</p>
+<p>That sentence was then printed in the signature panel of a contract the same panel had just marked <b>Executed and sealed</b>, with both parties listed as <b>Failed</b>.</p>
+<div class="hurt"><b>The damage:</b> nobody received their copy of a signed contract, and the explanation on screen contradicted the panel it was sitting in. This is the same underlying mistake as the lost round — a save that had not finished before something read it back.</div>
+<div class="good"><b>Fixed:</b> the save is finished before the copies are requested. Both parties now show <b>Sent</b>. And the "what to do next" bar refreshes the moment the contract is sealed, instead of waiting for a reload.</div>
+</div>
+
+<figure>
+<svg viewBox="0 0 880 250" role="img" aria-label="Before and after of the signed copies not being sent">
+  <style>
+    .pA{fill:none;stroke:#1b1d1e;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .pAt{fill:none;stroke:#1b1d1e;stroke-width:1.3}
+    .rA{fill:none;stroke:#b3382c;stroke-width:2.8;stroke-linecap:round}
+    .tA{font:13.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#1b1d1e}
+    .sA{font:12px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63}
+    .xA{font:12.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#b3382c;font-weight:700}
+    .gA{font:12.5px -apple-system,Segoe UI,Arial,sans-serif;fill:#1d6b4c;font-weight:700}
+    .hA{font:13px -apple-system,Segoe UI,Arial,sans-serif;fill:#5a5f63;font-weight:700;letter-spacing:.09em}
+    .sealA{fill:#d9eae0;stroke:#1d6b4c;stroke-width:1.8}
+    .failA{fill:#faecea;stroke:#b3382c;stroke-width:1.6}
+    .sentA{fill:#e5f1ea;stroke:#1d6b4c;stroke-width:1.6}
+  </style>
+  <text class="hA" x="18" y="18">BEFORE — her signature panel</text>
+  <rect class="pA" x="18" y="30" width="390" height="196" rx="7"/>
+  <rect class="sealA" x="34" y="46" width="358" height="28" rx="5"/>
+  <text class="gA" x="48" y="65">Executed &amp; sealed</text>
+  <rect class="failA" x="34" y="84" width="358" height="26" rx="4"/>
+  <text class="sA" x="46" y="102">erik@nordfrakt.se</text>
+  <text class="xA" x="330" y="102">Failed</text>
+  <rect class="failA" x="34" y="116" width="358" height="26" rx="4"/>
+  <text class="sA" x="46" y="134">wanjiru@karibucatering.co.ke</text>
+  <text class="xA" x="330" y="134">Failed</text>
+  <text class="xA" x="34" y="164">"Contract is not executed yet"</text>
+  <ellipse class="rA" cx="150" cy="159" rx="126" ry="20"/>
+  <text class="xA" x="34" y="196">…on a contract this same panel calls sealed.</text>
+  <text class="xA" x="34" y="216">Neither party got their copy.</text>
+  <path class="rA" d="M420 128 l38 0 m-10 -8 l10 8 l-10 8"/>
+  <text class="hA" x="474" y="18">AFTER</text>
+  <rect class="pA" x="474" y="30" width="390" height="196" rx="7"/>
+  <rect class="sealA" x="490" y="46" width="358" height="28" rx="5"/>
+  <text class="gA" x="504" y="65">Executed &amp; sealed</text>
+  <rect class="sentA" x="490" y="84" width="358" height="26" rx="4"/>
+  <text class="sA" x="502" y="102">erik@nordfrakt.se</text>
+  <text class="gA" x="792" y="102">Sent</text>
+  <rect class="sentA" x="490" y="116" width="358" height="26" rx="4"/>
+  <text class="sA" x="502" y="134">wanjiru@karibucatering.co.ke</text>
+  <text class="gA" x="792" y="134">Sent</text>
+  <text class="gA" x="490" y="170">The save finishes before the copies are asked for.</text>
+  <text class="sA" x="490" y="196">Same mistake as the lost round, in a different place.</text>
+  <text class="sA" x="490" y="214">Both are now fixed the same way.</text>
+</svg>
+<figcaption>The last thing that happens in a contract's life is the copy landing in both inboxes. It was not happening.</figcaption>
+</figure>
+
 <h2>What the six rounds look like now</h2>
 
 <table>
@@ -551,16 +667,16 @@
 <tr><td><b>3</b></td><td>She accepts one, refuses one, and gives her reason</td><td>Yes. The reason travels attached to the refusal, where he will read it.</td></tr>
 <tr><td><b>4</b></td><td>She writes a compromise and sends it back</td><td>Yes — on the same link he already has.</td></tr>
 <tr><td><b>5</b></td><td>He drops his refused point and accepts hers</td><td>Yes. Both reach her and stay put.</td></tr>
-<tr><td><b>6</b></td><td>He says he is ready; she issues a signing link</td><td>Partly. Her screen shows it and offers the route. The signature itself was not walked — see below.</td></tr>
+<tr><td><b>6</b></td><td>He says he is ready; she issues a signing link; he signs; she signs</td><td>Yes, end to end. The contract goes to Signed, the seal is written, and a copy reaches both inboxes.</td></tr>
 </tbody>
 </table>
 
 <h2>The verdict</h2>
 
 <div class="score">
-<div class="n">8 / 10</div>
+<div class="n">9 / 10</div>
 <p>Six rounds of real back-and-forth now go through this software without anything falling on the floor. Before this work, three separate things stopped it — and one of them threw away a whole round of a counterparty's work without telling anyone. That is fixed, and checked.</p>
-<p>It is not a ten, and I am not going to call it one. The last step — the signature itself — I did not drive all the way to a finished, executed contract. Everything up to it is confirmed working. That is what eight means here.</p>
+<p>The last step is now done too: the signature, the seal, and the signed copy landing in both inboxes were all driven through in the browser. Closing that step found four more faults, three of them in the final minute of the whole journey — including one where nobody received their copy of a signed contract and the reason on screen contradicted the panel it appeared in.</p><p>It is still not a ten, and I am not going to call it one. Four things below would be marked down by any strict reviewer, and on top of that <b>nobody has looked at this on a properly styled screen</b>. A ten would need that.</p>
 </div>
 
 <h3>Would a Kenyan SME owner keep using it?</h3>
@@ -579,7 +695,7 @@ It was not a flaw in the negotiation. It was four steps in the wrong order: the 
 <table>
 <thead><tr><th style="width:34%">What</th><th style="width:66%">Why it still matters</th></tr></thead>
 <tbody>
-<tr><td><b>Signing was not walked to the end</b></td><td>The "ready to sign" message, the button that issues a signing link, and the signing panel are all there and correct. The signature pad and the emailed one-time code were not tested. Until they are, nobody should claim the last round is proven.</td></tr>
+
 <tr><td><b>Five near-identical choices on the signing page</b></td><td>Approve and sign · Accept the wording · Propose edits · Request changes · Decline. Three of them overlap and nothing says which is which. Negotiation links now open the room instead, so this is no longer the first thing anyone meets — but it is still a fork with no signpost.</td></tr>
 <tr><td><b>Nothing updates by itself</b></td><td>When Erik answers, Wanjiru finds out by reloading the page, or up to 45 seconds later. The information is right; it is just late, and she has no way to know she should look.</td></tr>
 <tr><td><b>Two copies of the negotiation screen exist at once</b></td><td>On the counterparty's page, one is hidden behind the other, and both use the same internal names for the same parts. No user can see this today. It cost an hour of this session's debugging, because half the clicks were landing on the invisible copy — which is exactly how a silent fault gets shipped.</td></tr>
@@ -588,7 +704,7 @@ It was not a flaw in the negotiation. It was four steps in the wrong order: the 
 </tbody>
 </table>
 
-<p class="note">Two cycles were run: the software scored 4 out of 10, then 8 out of 10 after the fixes. The loop stopped there because the session's time ran out — not because it reached ten. Everything above was seen on a screen. 990 automated tests pass with no failures.</p>
+<p class="note">Three cycles: 4 out of 10, then 8, then 9. Each one was a fresh walk through the whole journey, and each one found faults the cycle before it had been hiding — the worst bug in the product only became reachable once the two in front of it were cleared. Everything above was seen happening on a screen. 990 automated tests pass with no failures.</p>
 
 </div>
 </body>

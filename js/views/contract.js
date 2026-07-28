@@ -1836,6 +1836,23 @@ function wsNextAction(c){
     return { label:'Review the changes', ic:'history', kind:'review-changes',
       guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
   }
+  /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
+
+     Walked end to end: the counterparty opens the signing link, adopts a mark,
+     signs. Their signature is filed, the audit trail records it and the share
+     shows "Signed" — and the owner's page went on reading "Key terms are set —
+     move it into review", with a button offering to do something the contract
+     passed three rounds ago. The one act left in the entire deal is her
+     signature, and the screen never mentioned it. */
+  const cpSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party==='counterparty');
+  const weSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party!=='counterparty');
+  if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
+    const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
+    return { label:'Sign', ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
+      guide:`${who} has signed. Your signature is the only thing left.` };
+  }
   if(c.status==='Draft'){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
@@ -3040,11 +3057,27 @@ async function finalizeExecution(c, opts={}){
   if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System',{auto:true,listed:true});
   logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
   persist(c);                            // critical state saved before any DOM work
+  /* AND ACTUALLY WRITTEN, before anything reads it back off the server.
+
+     `persist` only marks the contract dirty and sets a 400 ms timer.
+     distributeExecuted below POSTs to /distribute, and the server checks the
+     STORED status before it will send an executed copy — so the request
+     overtook the save, the server saw a contract that was not yet Signed, and
+     answered "Contract is not executed yet". That sentence was then filed on
+     the distribution record and printed in the signature panel of a contract
+     the same panel had just marked Executed & sealed, with both parties shown
+     as Failed. Nobody received their copy. */
+  try{ await flushSaves(); }catch(_){}
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
     const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBody(c); wireDocCanvas(c); }
     if(typeof updateStatusUI==='function') updateStatusUI(c);
+    /* The bar that says what to do next. Left alone, it kept the sentence it
+       had a second earlier — "Erik has signed. Your signature is the only thing
+       left." — on a contract that was by then executed and sealed, until the
+       reader happened to reload. That is the last screen of the whole journey. */
+    if(typeof renderActionBar==='function') renderActionBar(c);
     renderSignButton(c); renderAuditSection(c);
   }catch(e){ /* not on screen — fine */ }
   if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
