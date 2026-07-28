@@ -256,6 +256,7 @@ async function verifyChangeChain(c){
   negoInit(c);
   const list = negoIssuances(c);
   let prev = null;                       // the hash issued immediately before, in creation order
+  let omitted = 0;                       // links this copy was never given (see below)
   const lastOf = new Map();              // and the previous hash of each change's own history
   for (const iss of list){
     if (iss.hashV !== NEGO_HASH_V)
@@ -268,7 +269,24 @@ async function verifyChangeChain(c){
        shows up as a broken link rather than passing quietly. */
     const isRevision = lastOf.has(iss.id);
     const expectPrev = isRevision ? lastOf.get(iss.id) : prev;
-    if ((iss.prevChangeHash || null) !== expectPrev)
+    /* A COPY THAT WAS NEVER GIVEN THE WHOLE CHAIN.
+
+       The counterparty's copy carries a change but not the earlier drafts it
+       replaced — those are the owner's, and only what was sent is published.
+       The chain links a change to the wording it replaced, so the first record
+       of a revised change points at a hash this copy does not hold. That is not
+       a broken chain; it is a chain seen through a window, and reporting it as
+       "the stored wording has been altered" accused the document of something
+       nobody had done.
+
+       The payload says how many are missing, so the difference is knowable
+       rather than guessed. The link across them is not checked — it cannot be —
+       and the verdict says so. Everything else still is: the record's own
+       fingerprint is recomputed and matched exactly as before, and a broken
+       link the omission does not account for still fails. */
+    const notCarried = !isRevision && Number(iss.revisionsOmitted || 0) > 0;
+    if (notCarried) omitted += Number(iss.revisionsOmitted);
+    else if ((iss.prevChangeHash || null) !== expectPrev)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'broken-link',
         detail: isRevision
@@ -293,8 +311,14 @@ async function verifyChangeChain(c){
         + 'so these fingerprints were computed with a weak substitute and cannot be verified. '
         + 'Open this page over https to check the chain.' };
   return { ok: true, checked: list.length, failedAt: null, reason: null,
-    detail: list.length ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints`
-      : 'nothing filed yet' };
+    omitted, partial: omitted > 0,
+    detail: !list.length ? 'nothing filed yet'
+      : omitted
+        ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints.`
+          + ` ${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not carried by`
+          + ` this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be`
+          + ` checked here. Nothing suggests the wording has been altered.`
+        : `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints` };
 }
 
 /* The verification the "Verified" pill reads.

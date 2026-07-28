@@ -1313,7 +1313,12 @@ function negoHistoryCardHtml(c, ch, r, opts){
 function negoVerifyPill(c, ch){
   const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
   if (!v) return `<span class="nego-st verified" title="Recomputing this change's fingerprint from the stored wording">Checking…</span>`;
-  if (v.ok) return `<span class="nego-st verified" data-verify="ok" title="${_ne(v.detail)}">Verified</span>`;
+  /* "Verified in part" is not a hedge, it is the truth about this copy: every
+     record it holds was recomputed and matched, and the links across records it
+     was never given could not be. It stays GREEN — nothing here suggests
+     tampering, and a warning colour would recreate the alarm this replaced. */
+  if (v.ok) return `<span class="nego-st verified" data-verify="${v.partial ? 'ok-partial' : 'ok'}" title="${_ne(v.detail)}">${
+    v.partial ? 'Verified in part' : 'Verified'}</span>`;
   const isThis = ch && v.failedAt === ch.id;
   return `<span class="nego-st rejected" data-verify="${isThis ? 'failed-here' : 'failed'}" title="${_ne(v.detail)}">${
     isThis ? 'Integrity check failed' : 'Chain unverified'}</span>`;
@@ -1527,7 +1532,8 @@ function negoStatusHtml(c, opts){
 function negoIntegritySeg(c){
   const v = window.negoVerifyCached ? negoVerifyCached(c) : null;
   if (!v) return `<div class="seg" id="nego-integrity"><span class="dot warn"></span>Fingerprints: checking…</div>`;
-  if (v.ok) return `<div class="seg" id="nego-integrity"><span class="dot ok"></span>Fingerprints: ${v.checked} verified</div>`;
+  if (v.ok) return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot ok"></span>Fingerprints: ${v.checked} verified${
+    v.partial ? ' in part — this copy does not carry every earlier draft' : ''}</div>`;
   return `<div class="seg" id="nego-integrity" title="${_ne(v.detail)}"><span class="dot warn"></span>Integrity check failed — first broken link ${_ne('#' + (v.failedAt || 'unknown'))}</div>`;
 }
 

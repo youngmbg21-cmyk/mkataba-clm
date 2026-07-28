@@ -1622,6 +1622,15 @@ function buildSharePayload(c, docHash, who, opts){
          why. Who withdrew it travels too — it is their own name coming back
          when the ask was theirs, and the organisation's when it was ours. */
       withdrawn:x.withdrawn?{ by:x.withdrawn.by, side:x.withdrawn.side, at:x.withdrawn.at }:null,
+      /* HOW MANY EARLIER DRAFTS THIS COPY IS NOT CARRYING, and not one word of
+         them. A revision is wording we wrote and REPLACED before sending; it is
+         ours, and the reader gets what was sent. But the fingerprint chain links
+         a change to the wording it replaced, so a copy without the revisions
+         hits a link pointing at a hash it has never been given — and reported
+         the only failure it knew how to report, in red, on a legal document.
+         The number is enough for the check to say "not carried here" instead of
+         "altered", and it publishes nothing. See verifyChangeChain. */
+      revisionsOmitted:(Array.isArray(x.revisions)?x.revisions.length:0) || undefined,
       thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to
