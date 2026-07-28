@@ -261,10 +261,40 @@ function portalMarkSigned(p, info){
       <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
     </span>`;
 }
-/* The link is answered, or the wording has moved on since it was sent. Either
-   way nothing on this page can be submitted, and the page should say so at the
-   top rather than letting someone fill a form that will be refused. */
+/* IS THE DEAL OVER? The one question this page could not ask.
+
+   The server answers it live (`executed` on the share endpoint) because a
+   signature that lands after the link was refreshed is exactly the case that
+   matters. The payload answers it for a static-mode link, which has no server
+   to ask and whose copy is all there is. Either way it is a fact about a deal
+   this reader is a party to, and it is the fact that ends their round. */
+function portalExecuted(){
+  const srv=PORTAL_OPTS&&PORTAL_OPTS.executed;
+  if(srv) return { at:(srv&&srv.at)||null };
+  const pc=PORTAL_OPTS&&PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract;
+  return (pc&&pc.executed) ? { at:pc.executed.at||null } : null;
+}
+/* Every reason this copy cannot be submitted, in one read. Three of them
+   existed and were checked one at a time in five places; the fourth — the
+   contract has been signed — was checked nowhere at all. */
+const portalReadOnly = () => !!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded||portalExecuted());
+/* The deal is done, the link is answered, or the wording has moved on since it
+   was sent. Any of the three means nothing on this page can be submitted, and
+   the page should say so at the top rather than letting someone fill a form
+   that will be refused. */
 function portalClosedBanner(){
+  /* Executed first. A signed contract that is ALSO an older copy is finished
+     either way, and "a newer version was sent to you" would send the reader
+     looking for a link that no longer has anything for them to do. */
+  const done=portalExecuted();
+  if(done) return `
+    <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid #cfe7d9;background:#e8f4ee;border-left:4px solid #1e6b4d;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">This contract is executed and sealed</span>
+        <span style="display:block;font-size:12px;color:#14503a;margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
+      </span>
+    </div>`;
   const sup=PORTAL_OPTS.superseded;
   if(!sup) return '';
   return `
@@ -904,7 +934,9 @@ function portalNegoPhase(p){
   const src=(p&&p.contract)||{};
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
   const pending=changes.filter(x=>x.status==='pending').length;
-  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded) return { phase:'read', changes:changes.length, pending };
+  /* An executed contract joins them. It is the strongest form of the same
+     fact: this copy is history, and history is not signable. */
+  if(portalReadOnly()) return { phase:'read', changes:changes.length, pending };
   /* THE LINK SAYS WHAT IT IS. It used to be worked out from the change set,
      and the arithmetic made a decision that is not arithmetic's to make:
      resolve the last change — even by refusing it — and the room the
@@ -1011,7 +1043,7 @@ function portalAgreedHtml(p){
 
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
-  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
+  const live=!!PORTAL_OPTS.token && !portalReadOnly();
   if(!live) return `<span style="font-size:11.5px;color:var(--color-neutral-600)">This copy is read-only — decisions have to be sent from the current link.</span>`;
   return `
     <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'#7d5a14':'var(--color-neutral-600)'}">
@@ -1084,7 +1116,7 @@ function wirePortalNego(c, p){
   renderNegotiationTab(c, {
     hostId:'pt-nego',
     side:'counterparty',
-    readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
+    readonly:portalReadOnly(),
     // an answered link can still be spoken on — see openPortalNegoRoom
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     // this page holds answers until they are sent — see negoLiveCardsHtml
@@ -1150,7 +1182,7 @@ function wirePortalNegoFoot(c, p){
 function openPortalNegoRoom(c, p){
   if(!window.openNegotiationRoom){ toast('The negotiation room is unavailable on this page','err'); return; }
   const who=portalResponderLabel(c);
-  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
+  const live=!!PORTAL_OPTS.token && !portalReadOnly();
   const reopen=()=>openPortalNegoRoom(portalNegoContract(p), p);
   /* Is the room the page, or a mode? It is the page when the link they were
      sent is a negotiation link; a mode when they opened it from a signing link
@@ -1178,7 +1210,9 @@ function openPortalNegoRoom(c, p){
        copy goes read-only is a different fact about their link, and "no buttons"
        is not one of them. */
     readonlyWhy: live ? '' :
-      PORTAL_OPTS.superseded
+      portalExecuted()
+        ? 'This contract has been executed and sealed — the wording is final. Ask the sender to record an amendment if something has to change.'
+      : PORTAL_OPTS.superseded
         ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
       : PORTAL_OPTS.responded
         ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
@@ -1275,16 +1309,160 @@ function openPortalNegoRoom(c, p){
   });
 }
 
+/* ---------- THE PAGE KEEPS UP WITH THE DEAL ----------
+
+   The owner's screen has polled for years: it picks up the other side's answers
+   within a cycle, and every count and banner on it is live. This page rendered
+   once, at the moment it was opened, and then never moved. So the counterparty
+   sat looking at wording that had been revised, at asks that had already been
+   answered, at a turn banner that still said it was their move — and had no way
+   to know, because nothing on the page ever told them to reload.
+
+   That is the last asymmetry between the two screens, and it is a read, not a
+   write. The architecture note this page is built on says a public no-login URL
+   must not MUTATE a contract per click, which is right and is untouched here:
+   this asks the same GET the link already answers, on a slow timer.
+
+   WHAT IT MUST NOT DO IS EAT THEIR WORK. A repaint rebuilds the whole page, and
+   a reader half-way through rewriting four clauses would lose them — which is
+   exactly the fault fixed one release ago in the redline editor, reintroduced
+   by a timer. So a refresh that lands while they are working does not happen:
+   they are told, once, and choose when. */
+const PORTAL_POLL_MS = 45000;
+let _ptPollTimer=null, _ptPollSig=null, _ptPollToken=null, _ptPollInFlight=false;
+
+/* One place that turns a server answer into render options, so the first paint
+   and every refresh after it cannot drift apart. */
+function portalRenderOpts(token, d){
+  return { token, responded:d.responded, share:d.share||{},
+    prior:d.prior||null, superseded:d.superseded||null,
+    /* Read LIVE, not from the payload: a signature that landed after this link
+       was last refreshed is precisely the case that matters. */
+    executed:d.executed||null,
+    emailConfigured:d.emailConfigured!==false, messages:d.messages||[] };
+}
+/* A fingerprint of everything on this page a reader would notice moving. Kept
+   deliberately narrow: the engagement log ticks on every open, and a page that
+   repainted because it had been looked at would never stop repainting. */
+function portalSignature(d){
+  if(!d) return '';
+  const c=(d.payload&&d.payload.contract)||{};
+  /* CONTENT ONLY, and `payload.at` is deliberately not in it. That stamp moves
+     every time the owner's link is refreshed in place — which happens on their
+     side for reasons this reader cannot see — and a signature watching it would
+     report a change over an identical page. Everything the stamp could tell us
+     is already below: the wording, the asks and their statuses, whose turn it
+     is, and what has been said. */
+  const parts=[
+    String(c.docText||c.redlineText||''),
+    (Array.isArray(c.changes)?c.changes:[]).map(x=>`${x.id}:${x.status}:${x.hash||''}:${x.withdrawn?'w':''}`).join(','),
+    String((c.negotiation&&c.negotiation.turn)||''), String((c.negotiation&&c.negotiation.turnAt)||''),
+    String((c.negotiation&&c.negotiation.round)||''),
+    `op${(c.openPoints||[]).length}`, `v${(c.versions||[]).length}`, `rd${(c.rounds||[]).length}`,
+    d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
+    d.responded?'r':'', String((d.messages||[]).length),
+    String((d.share&&d.share.expiresAt)||''),
+  ].join('');
+  let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
+  return parts.length+'.'+h.toString(16);
+}
+/* Is the reader in the middle of something a repaint would destroy? */
+function portalBusy(){
+  try{
+    if(Object.keys(PORTAL_CLAUSE_EDITS).length) return true;      // clauses rewritten, not sent
+    if(Object.keys(PORTAL_NEGO_DECISIONS).length
+      || Object.keys(PORTAL_NEGO_PROPOSED).length
+      || Object.keys(PORTAL_NEGO_WITHDRAWN).length) return true;  // answers held, not sent
+    const rl=document.getElementById('portal-redline');
+    if(rl && !rl.classList.contains('hidden')) return true;       // the editor is open
+    if(document.getElementById('confirm-overlay')) return true;
+    if(document.getElementById('prompt-overlay')) return true;
+    const modal=document.getElementById('modal-root');
+    if(modal && String(modal.innerHTML||'').trim()) return true;
+    return false;
+  }catch(_){ return true; }   // cannot tell ⇒ assume they are working
+}
+/* What a poll that came back should do. A pure read of the two answers, so the
+   rule is one thing a test can hold rather than three scattered conditions. */
+function portalPollDecide(d, prevSig){
+  if(!d) return 'same';
+  const sig=portalSignature(d);
+  if(prevSig && sig===prevSig) return 'same';
+  /* THE DEAL IS OVER, OR THIS COPY IS. Repainted whatever the reader is doing —
+     not to be rude, but because everything they are working on has just become
+     unsendable, and letting them carry on typing into it is the worse outcome.
+     The banner that replaces it says exactly what happened. */
+  if(d.executed || d.superseded) return 'repaint';
+  return portalBusy() ? 'notify' : 'repaint';
+}
+/* The quiet strip. It appears once, says what moved, and waits — it never
+   reloads under somebody's hands. */
+function portalUpdatedNoticeHtml(){
+  return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+      border-bottom:1px solid #e0c48a;background:#fdf6e7;padding:10px 24px;font-size:12.5px;color:#7d5a14;box-shadow:var(--shadow-sm)">
+    <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+    <span style="flex:1;min-width:0;line-height:1.5"><b>This contract has been updated.</b>
+      Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
+    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:12px;padding:6px 13px">Refresh now</button>
+  </div>`;
+}
+function portalShowUpdatedNotice(){
+  if(document.getElementById('pt-updated')) return;      // said once, not once a minute
+  const root=document.getElementById('share-root'); if(!root) return;
+  root.insertAdjacentHTML('afterbegin', portalUpdatedNoticeHtml());
+  document.getElementById('pt-updated-go')?.addEventListener('click',()=>portalRefreshNow('asked'));
+}
+async function portalFetchShare(token){
+  const r=await fetch('api/shares/'+encodeURIComponent(token));
+  const d=await r.json().catch(()=>null);
+  return { status:r.status, ok:r.ok, d };
+}
+/* Repaint from the server's current answer, keeping the reader where they were
+   on the page — a refresh that jumps them back to the top reads as the page
+   having reset rather than caught up. */
+function portalRepaint(token, d){
+  let y=0; try{ y=window.scrollY||0; }catch(_){}
+  renderSharePortal(d.payload, portalRenderOpts(token, d));
+  _ptPollSig=portalSignature(d);
+  try{ window.scrollTo(0, y); }catch(_){}
+}
+async function portalRefreshNow(reason){
+  if(!_ptPollToken || _ptPollInFlight) return 'skipped';
+  _ptPollInFlight=true;
+  try{
+    const { status, ok, d }=await portalFetchShare(_ptPollToken);
+    /* The link died while they held it open — withdrawn by the sender, or
+       expired. That is a whole-page answer and it is shown immediately. */
+    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
+    if(!ok || !d) return 'error';
+    const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
+    if(what==='repaint'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
+    if(what==='notify'){ portalShowUpdatedNotice(); return 'notify'; }
+    return 'same';
+  }catch(e){ return 'error'; }        // a dropped connection is not news; the next tick retries
+  finally{ _ptPollInFlight=false; }
+}
+function portalStopPolling(){ if(_ptPollTimer){ clearInterval(_ptPollTimer); _ptPollTimer=null; } }
+function portalStartPolling(token, d){
+  portalStopPolling();
+  _ptPollToken=token; _ptPollSig=portalSignature(d);
+  try{
+    _ptPollTimer=setInterval(()=>{ portalRefreshNow('tick'); }, PORTAL_POLL_MS);
+    /* Coming back to the tab is the moment somebody most wants the truth, and
+       it costs one request rather than a faster timer for everybody. */
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) portalRefreshNow('visible'); });
+  }catch(_){ /* a page that cannot keep a timer still renders */ }
+}
+
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
+    const token=encoded.slice(2);
     try{
-      const r=await fetch('api/shares/'+encodeURIComponent(encoded.slice(2)));
-      const d=await r.json().catch(()=>null);
-      if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
-      if(!r.ok) throw new Error(d?.error||'not found');
-      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{},
-        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false,
-        messages:d.messages||[] });
+      const { status, ok, d }=await portalFetchShare(token);
+      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      if(!ok) throw new Error(d?.error||'not found');
+      renderSharePortal(d.payload, portalRenderOpts(token, d));
+      portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -1325,7 +1503,15 @@ function renderSharePortal(p, opts={}){
     return;
   }
   FIRST_PARTY=p.org;
-  const c=migrateContract({ ...p.contract, status:'Under Review',
+  /* THE STATUS THIS PAGE GIVES THE CONTRACT IT BUILDS.
+     It was 'Under Review', unconditionally, because the payload carried no
+     status and a contract needs one to render. That was harmless right up to
+     the moment the deal was signed: every guard in the shared Negotiation
+     component that closes a finished negotiation reads `c.status === 'Signed'`,
+     so on this page not one of them could ever fire. The executed fact now
+     travels (see buildSharePayload) and the server reports it live, so the
+     record this page builds can tell the truth about which of the two it is. */
+  const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
@@ -1457,20 +1643,35 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
-  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
+  if(portalReadOnly()){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
   }
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
   // E2: the redline editor takes over the main column, so the document being
   // rewritten and the box you rewrite it in are the same size.
-  const showRedline=on=>{
+  /* HOW MANY CLAUSES THEY HAVE REWRITTEN AND NOT SENT. */
+  const stagedEdits=()=>Object.keys(PORTAL_CLAUSE_EDITS).length;
+  /* THE EDITOR DOES NOT EAT WORK ON THE WAY IN.
+
+     This reset PORTAL_CLAUSE_EDITS on every open, unconditionally. The editor
+     is not a modal — it is a panel that hides the document and is hidden by the
+     same button that shows it, and the room's "Propose a change" clicks that
+     button too. So the ordinary path through a negotiation destroyed the work:
+     rewrite four clauses, press "Review what changed" to check them against the
+     other side's asks, come back, and all four were gone. Nothing asked, nothing
+     warned, and the panel reopened looking like the document had never been
+     touched — which reads as the edits having been sent rather than binned.
+
+     Opening now keeps whatever is staged. The reset belongs to the two moments
+     that genuinely end a draft: it was sent (portalRespond clears it), or its
+     author said to throw it away — which is asked for below rather than
+     assumed. */
+  const showRedline=(on,opts={})=>{
     document.getElementById('portal-redline').classList.toggle('hidden',!on);
     document.getElementById('pt-doc').classList.toggle('hidden',on);
-    if(on){
-      PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={};
-      wirePortalClauseEditor(c, p);
-    }
+    if(opts.fresh){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
+    if(on) wirePortalClauseEditor(c, p);
     try{ document.getElementById('pt-main')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
   };
   /* The escape hatch. Clause-at-a-time is right for the ordinary case — change
@@ -1494,7 +1695,21 @@ function renderSharePortal(p, opts={}){
   });
   document.getElementById('pt-redline').addEventListener('click',()=>
     showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
-  document.getElementById('pt-redline-cancel').addEventListener('click',()=>showRedline(false));
+  /* CANCEL IS A DISCARD, so it says so and asks first — but only when there is
+     something to lose. Closing an editor nobody typed into is not a decision
+     worth a dialog. */
+  document.getElementById('pt-redline-cancel').addEventListener('click',async()=>{
+    const n=stagedEdits();
+    if(!n){ showRedline(false); return; }
+    let ok=true;
+    if(typeof window.confirmDialog==='function'){
+      ok=await window.confirmDialog({ title:`Discard ${n} rewritten clause${n===1?'':'s'}?`,
+        message:`You have rewritten ${n} clause${n===1?'':'s'} and not sent ${n===1?'it':'them'} yet. Discarding throws the wording away; closing the editor instead keeps it here until you send it.`,
+        confirmLabel:'Discard them', cancelLabel:'Keep editing', danger:true });
+    }
+    if(!ok) return;
+    showRedline(false,{ fresh:true });
+  });
   document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
   if(opts.share){
@@ -1655,6 +1870,11 @@ async function portalRespond(p, action, extra){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone(pressed, doneLabel);
+      /* SENT IS THE MOMENT THE DRAFT STOPS BEING A DRAFT. Cleared here, and
+         only here, because the editor no longer wipes itself on open — see
+         showRedline. Cleared on failure would be worse than the bug it
+         replaced: nothing was recorded, and their wording would be gone. */
+      if(action==='redline'){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
@@ -1959,14 +2179,25 @@ function metrics(){
   // Prefer server-computed aggregates (accurate at any scale, even when the
   // client only holds a capped working set); fall back to the in-memory set.
   const s=state.serverStats;
-  if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0, declined:s.declined||0, drafts:s.drafts||0 };
-  const cs=state.contracts, active=cs.filter(c=>c.status!=='Declined');
+  if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0,
+    declined:s.declined||0, drafts:s.drafts||0, expired:s.expired||0, expiredValue:s.expiredValue||0 };
+  const cs=state.contracts;
+  /* ACTIVE VALUE IS THE VALUE OF WHAT IS STILL RUNNING. This counted every
+     contract that was not Declined, so a supply agreement that ended in 2023
+     went on contributing its whole face value to the headline figure on the
+     dashboard for ever. See contractExpired in js/core.js — the same read the
+     status chip and the calendar use, so the number and the badges agree. */
+  const gone=c=>!!(window.contractExpired&&contractExpired(c));
+  const active=cs.filter(c=>c.status!=='Declined'&&!gone(c));
+  const expired=cs.filter(gone);
   return {
     totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
     pending:cs.filter(c=>c.status==='Under Review').length,
     signed:cs.filter(c=>c.status==='Signed').length,
     declined:cs.filter(c=>c.status==='Declined').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
+    expired:expired.length,
+    expiredValue:expired.reduce((s,c)=>s+Number(c.value||0),0),
   };
 }
 async function refreshStats(){
@@ -1974,4 +2205,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

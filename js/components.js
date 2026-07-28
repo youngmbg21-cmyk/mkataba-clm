@@ -94,7 +94,7 @@ function contractRow(c, {showFolder=false}={}){
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
     <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
-    <span class="shrink-0">${statusChip(c.status)}</span>
+    <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
     <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
   </button>`;
 }

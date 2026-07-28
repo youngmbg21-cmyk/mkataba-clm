@@ -211,6 +211,44 @@ const STATUS_META = {
   'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
+
+/* ---- THE STAGE THAT ARRIVES BY ITSELF ----
+
+   Every other stage in this product is something a person did: somebody drafted
+   it, somebody sent it for review, somebody signed it, somebody closed it. One
+   is not. A contract's term ends because a date went past, with nobody pressing
+   anything — and there was no stage for it. An executed contract whose term ran
+   out in 2023 still showed the emerald "Executed" chip, still sat in the
+   portfolio's "Active value" figure, and dropped out of the expiring-in-30/60/90
+   buckets on the very day it needed attention most, because every one of those
+   filters is `days >= 0`. The whole product agreed it was live.
+
+   So the stage is DERIVED, never stored. A stored one would need a sweep to
+   write it, would be wrong between sweeps, and would have to be un-written if
+   an amendment extended the term. This is a read of the same effective expiry
+   the register and the calendar already draw, so the badge, the date column and
+   the renewal calendar cannot disagree with each other.
+
+   Only an EXECUTED contract expires. A draft whose stated end date has passed
+   is a drafting problem, not an expired agreement, and calling it expired would
+   bury it under a label that reads as "finished". Declined is already an end. */
+function contractExpired(c){
+  if(!c || c.status!=='Signed') return false;
+  const raw=(window.effectiveExpiry?effectiveExpiry(c):null)
+    || (c.metadata&&c.metadata.expiryDate) || c.expiry;
+  const day=window.dateOnly?dateOnly(raw):raw;
+  if(!day) return false;                       // no term recorded — not a claim we can make
+  const d=window.daysUntil?daysUntil(day):null;
+  return d!=null && !isNaN(d) && d<0;
+}
+/* The stage to SHOW for this contract, as against the one stored on it. The
+   stored status is untouched — filters, the server and every existing query
+   keep working on Draft/Under Review/Signed/Declined exactly as before. */
+const contractStage = c => contractExpired(c) ? 'Expired' : (c&&c.status);
+const EXPIRED_META = {label:'Expired', dot:'#8a8a8d', bg:'#efedea', tx:'#5d5d60', bd:'#dedcd6'};
+const contractStatusChip = c => contractExpired(c)
+  ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
+  : statusChip(c&&c.status);
 // Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
 // own colour carries the stage; the separate share dot (shareDot) sits outside
 // the chip so the two signals never read as one confusing double dot.
@@ -1361,6 +1399,36 @@ function contractReadiness(c){
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',
     `The document still contains ${ph.length} unfilled placeholder${ph.length===1?'':'s'}: ${ph.slice(0,5).join(', ')}${ph.length>5?', …':''}`);
+  /* INTERNAL APPROVAL IS PART OF BEING READY TO SEND, and it was not on this
+     list. Signing checks it — signDocument refuses outright — but sharing
+     never did, and sharing is how a contract actually reaches the other side:
+     a link sent with purpose 'sign' puts the counterparty in front of a
+     signature panel, and their signature executes the contract through
+     applyResponse without the owner touching the Sign button at all. So the
+     one gate that existed could be walked straight past by pressing Share.
+
+     Read through `window` so the rule-chain version in js/approvals.js is the
+     one that answers — js/core.js declares its own legacy approvalState below,
+     and a bare call would resolve to that lexical binding for ever. */
+  /* AND THE SEVERITY IS NOT THE SAME IN ALL THREE CASES. Sending a draft out
+     for comment while approval is still working its way through is not a
+     mistake — it is the ordinary order of events, and making the sender tick an
+     acknowledgement for it would teach them to tick acknowledgements. A
+     REFUSAL is different: somebody said no, and putting that wording in front
+     of the counterparty anyway is a decision the sender should have to own. So
+     is a sign-off the contract has since moved out from under. */
+  try{
+    const ap=(window.approvalState)?window.approvalState(c):null;
+    if(ap && ap.required && !ap.ok){
+      const refused=(ap.rejected||[])[0], stale=(ap.stale||[])[0];
+      if(refused) add('block','approval',
+        `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`);
+      else if(stale) add('block','approval',
+        `“${stale.name}” was approved and the contract has changed since — it needs approving again.`);
+      else add('warn','approval',
+        `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
+    }
+  }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
   const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
   if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
@@ -1681,6 +1749,20 @@ function buildSharePayload(c, docHash, who, opts){
         baselineBody:c.negotiation.baselineBody||'',
         baselineText:c.negotiation.baselineText||'' } : undefined,
       upload:isUpload(c)?shareUpload(c.upload):undefined,
+      /* THE ONE FACT THAT ENDS THE NEGOTIATION, and it was not on the list.
+         Everything on the counterparty's page that should stop when a contract
+         is executed — the redline editor, the decision verbs, the readiness
+         signal — is gated on `c.status === 'Signed'`, and the payload carried
+         no status at all, so renderSharePortal hard-coded 'Under Review' onto
+         every copy it built. Their screen therefore showed a live negotiation
+         over a contract that had been signed and sealed.
+
+         WHEN, and nothing else. Not who signed, not their capacity, not the
+         seal: those are the evidence pack, which is not a counterparty's to
+         read. The date is the fact they need, and it is a fact about a deal
+         they are a party to. */
+      executed:(c.status==='Signed'||c.hash||(c.execution&&c.execution.at))
+        ? { at:(c.execution&&c.execution.at)||c.signedAt||null } : undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
       rounds:shareRounds.length?shareRounds:undefined,
       /* The wording exactly as it left, in plain text. A template-drafted
@@ -2004,6 +2086,30 @@ async function openShareModal(c, opts={}){
     payloadObj.contract.changeSummary=summary||null;
     if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
+    /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
+
+       Everything else on the readiness list is the sender's call — a missing
+       effective date, a Draft status, even an unfilled placeholder: they tick
+       the box, they own it, and the contract can still be pulled back. An
+       outstanding internal approval on a link whose purpose is SIGN is a
+       different kind of thing. The counterparty's signature executes the
+       contract by itself, through applyResponse, and a signature cannot be
+       taken back — so the approval the organisation requires would be
+       permanently bypassed by one tick of a checkbox in the sender's own
+       dialog. signDocument refuses this outright rather than warning about it;
+       so does this. A negotiation link is unaffected: sending a draft out for
+       comment is exactly what happens BEFORE approval. */
+    if(purposeSel==='sign'){
+      let ap=null; try{ ap=(window.approvalState)?window.approvalState(c):null; }catch(_){ ap=null; }
+      if(ap && ap.required && !ap.ok){
+        toast(`This contract needs internal approval before it can go out for signature — ${
+          (ap.rejected||[]).length ? 'an approver refused it'
+          : (ap.stale||[]).length ? 'it changed after it was approved'
+          : `“${ap.next?ap.next.name:'approval'}” is still waiting on ${ap.approverLabel||'an approver'}`
+        }. Send it to negotiate instead, or clear the approval first.`,'err');
+        return;
+      }
+    }
     // A share cannot be recalled, so an incomplete contract needs an explicit
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
@@ -2792,4 +2898,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

@@ -73,9 +73,24 @@ describe('F67 — the portfolio snapshot counts obligations the way the product 
   });
 
   test('an obligation with no usable date is open, and not claimed to be overdue', () => {
-    assert.match(obligationsLine(snapshotOf([
+    /* The line carries an ours/theirs split as well now — see F83, where the
+       two became different answers to "what is outstanding". What this test is
+       about is unchanged: one open, and the word OVERDUE nowhere near it. */
+    const line = obligationsLine(snapshotOf([
       { id: 'a', desc: 'Review on completion', due: 'on completion of Phase 2', status: 'open' },
-    ])), /Open obligations: 1\.$/);
+    ]));
+    assert.match(line, /Open obligations: 1\b/);
+    assert.ok(!/OVERDUE/.test(line),
+      'a date nobody can read is not a deadline anybody has missed');
+  });
+
+  test('and the line says which side is outstanding', () => {
+    const line = obligationsLine(snapshotOf([
+      { id: 'a', desc: 'Pay Q1', due: isoDay(9), status: 'open' },
+      { id: 'b', desc: 'Deliver tonnage', due: isoDay(9), status: 'open', party: 'theirs' },
+    ]));
+    assert.match(line, /1 ours to do, 1 theirs to chase/,
+      'a count that mixes our work with theirs is a number nobody can act on');
   });
 });
 

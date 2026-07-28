@@ -161,7 +161,7 @@ function folderRowsHtml(cs){
       <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
-      <td style="text-align:right;padding-right:12px;white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
+      <td style="text-align:right;padding-right:12px;white-space:nowrap">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
     </tr>`; }).join('') + (cs.length>shown
       ? `<tr><td colspan="7" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
@@ -240,6 +240,7 @@ const REG_VIEWS=[
   {k:'expiring90', label:'Expiring ≤ 90 days'},
   {k:'expiring60', label:'Expiring ≤ 60 days'},
   {k:'expiring30', label:'Expiring ≤ 30 days'},
+  {k:'expired',    label:'Term already ended'},
   {k:'autosoon',   label:'Auto-renewing soon'},
   {k:'overdueob',  label:'Overdue obligations'},
 ];
@@ -310,6 +311,10 @@ function regFiltered(){
   if(R.view==='expiring90') cs=cs.filter(expWithin(90));
   else if(R.view==='expiring60') cs=cs.filter(expWithin(60));
   else if(R.view==='expiring30') cs=cs.filter(expWithin(30));
+  /* Executed contracts whose term has run out. They match none of the three
+     buckets above — each is `days >= 0` — so before this there was no filter
+     anywhere in the product that would list them. */
+  else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
@@ -448,7 +453,7 @@ function regRowsHtml(cs){
         </span>
       </td>
       <td style="white-space:nowrap"><span style="font-size:11.5px;font-weight:${renUrgent?600:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
-      <td style="white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
+      <td style="white-space:nowrap">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
       <td><span style="font-size:10.5px;font-weight:500;white-space:nowrap;color:${apprColor}">${appr}</span></td>
       <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       <td style="position:relative;width:30px" onclick="event.stopPropagation()">
