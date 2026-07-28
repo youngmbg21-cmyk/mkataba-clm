@@ -2111,6 +2111,38 @@ function openNegotiationOwnerRoom(c){
 
        Silent, like the original: no email, no new share record, no re-marking
        the link as sent, no resetting whether they have opened it. */
+    /* WHO WE ARE NEGOTIATING WITH, if we know. The room asks for it once when
+       we do not, and sends without asking when we do. */
+    contact:(window.counterpartyContact?counterpartyContact(c,(window.cachedShares?cachedShares(c):[])):null),
+    onSetCounterparty(x){
+      c.counterpartyEmail=String((x&&x.email)||'').trim();
+      if(x&&x.name) c.counterpartyName=x.name;
+      logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
+      persist(c);
+      toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
+      openNegotiationOwnerRoom(c);
+    },
+    /* THE SEND, once there is somewhere to send to. Rides the same route the
+       "send updated version" control has always used: an existing standing link
+       is refreshed in place rather than duplicated, and a first send mints one.
+       A NEW ASK NOTIFIES — unlike a decision, which updates their link in
+       silence. They are not waiting to be told we accepted something; they
+       cannot answer wording they do not know has arrived. */
+    async onSendDirect(){
+      const to=c.counterpartyName||c.counterparty||'the counterparty';
+      try{
+        const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
+        if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
+        else persist(c);
+        toast(out.delivered
+          ? `Sent to ${to} — it is now their turn`
+          : `Published to ${to}'s link — it is now their turn. ${out.channel==='email'?'It was not emailed; send them the link.':'Send them the link.'}`,
+          out.delivered?undefined:'err');
+      }catch(err){
+        toast(`Could not send to ${to} — ${err.message}`,'err');
+      }
+      openNegotiationOwnerRoom(c);
+    },
     onDecided(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     onWithdraw(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     /* A comment on a fingerprint has to LEAVE THE BUILDING. negoPostComment

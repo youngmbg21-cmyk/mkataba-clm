@@ -1620,15 +1620,51 @@ function negoReadyHtml(c, opts){
    The compare bar is left to render on its own because it is a MODE with its
    own way out, not a notice — but while it is up the rest are suppressed, since
    they describe a round you are not currently looking at. */
+/* WHO ARE WE NEGOTIATING WITH, asked once and then never again.
+
+   The two sides did the same act by completely different means. The
+   counterparty files an answer and a postbox appears under it: press, gone. The
+   owner filed a change and got a button that opened a DIALOG — recipient,
+   channel, expiry, a covering message — because the address had always been
+   collected at SEND time. Collect it once, at the start, and the owner's send
+   becomes what theirs already is.
+
+   A STRIP, NOT A DIALOG. A modal that fires on opening the negotiation stands in
+   the way of somebody who only wanted to read, and a "skip" button is one more
+   thing to dismiss that nobody asked for. Ignore this and it waits; fill it in
+   and it goes. Nothing is blocked either way — a change proposed without an
+   address still has a send, it just asks at that moment (see the send handler).
+
+   The name is already known: it is the contract's counterparty. Only the
+   address is missing, which is why this is one field and not a form. */
+function negoCounterpartySetupHtml(c, opts = {}){
+  if ((opts.side || 'owner') !== 'owner' || opts.readonly) return '';
+  if (opts.contact && opts.contact.email) return '';
+  if (typeof opts.onSetCounterparty !== 'function') return '';
+  const who = _ne(String(c.counterparty || 'the counterparty'));
+  return `<div class="nego-turn" id="nego-cp-setup" style="flex:none;display:flex;align-items:center;gap:10px;
+      flex-wrap:wrap;border-radius:6px;padding:9px 14px;border:1px solid var(--n-line);
+      background:var(--n-badge-bg);border-left:4px solid var(--n-slate-soft)">
+    <span style="flex:1;min-width:220px;font-size:12.5px;color:var(--n-ink)">
+      Negotiating with <b>${who}</b>? Add their email and changes go straight to them.</span>
+    <input id="nego-cp-email" type="email" placeholder="their email"
+      style="flex:none;width:210px;border:1px solid var(--n-line);border-radius:5px;padding:6px 9px;
+        font:inherit;font-size:12px;outline:none"/>
+    <button id="nego-cp-save" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 12px">Save</button>
+    <button id="nego-cp-more" class="nego-tbtn ghost" style="flex:none">More options…</button>
+  </div>`;
+}
 function negoRoomBannerHtml(c, opts = {}, ready){
   const comparing = !negoIsLivePair(negoComparePair().left, negoComparePair().right);
   if (comparing) return '';
   const status = String(c.status || '');
   if (status === 'Signed' || status === 'Declined') return negoClosedBannerHtml(c, opts);
+  const setup = negoCounterpartySetupHtml(c, opts);
+  const wrap = inner => `<div style="padding:0 14px;display:flex;flex-direction:column;gap:8px">${setup}${inner}</div>`;
   const signal = negoReadySignalHtml(c, opts);
-  if (signal) return signal;
-  if (ready) return negoReadyHtml(c, opts);
-  return `<div style="padding:0 14px">${negoTurnBannerHtml(c, opts)}</div>`;
+  if (signal) return setup ? wrap(signal) : signal;
+  if (ready) return setup ? wrap(negoReadyHtml(c, opts)) : negoReadyHtml(c, opts);
+  return wrap(negoTurnBannerHtml(c, opts));
 }
 /* An executed or declined contract is not a negotiation. Saying so once, in the
    slot the turn banner used, is the whole of it — the alternative was a signed
@@ -2548,8 +2584,40 @@ function wireNegotiationTab(c, opts = {}){
     openAI();
   });
 
+  /* The setup strip. Saving records the address on the contract, so the next
+     send has somewhere to go without asking; "More options…" is the whole
+     dialog, because purpose, expiry and channel still matter and a signing link
+     is not a negotiation link. */
+  const cpSave = byId('nego-cp-save');
+  if (cpSave) cpSave.addEventListener('click', () => {
+    const el = byId('nego-cp-email');
+    const email = String((el && el.value) || '').trim();
+    if (!/.+@.+\..+/.test(email)){
+      if (window.toast) toast('Enter an email address they can be reached at', 'err');
+      if (el && el.focus) el.focus();
+      return;
+    }
+    if (typeof opts.onSetCounterparty === 'function')
+      opts.onSetCounterparty({ name: c.counterparty || '', email });
+    again();
+  });
+  byId('nego-cp-more')?.addEventListener('click', () => {
+    if (typeof opts.onShareLink === 'function') opts.onShareLink(c, { purpose: 'negotiate' });
+    else if (typeof window.openShareModal === 'function') openShareModal(c, { purpose: 'negotiate' });
+  });
+
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {
+    /* WE ALREADY KNOW WHERE THIS GOES. With an address recorded, the send is a
+       send — the same one-press act the counterparty's postbox has always been.
+       Without one it still appears, and still works: it opens the dialog, which
+       collects the address it needs. What must never happen is the press doing
+       nothing, which is the dead end this whole thread began with. */
+    if (side === 'owner' && opts.contact && opts.contact.email
+        && typeof opts.onSendDirect === 'function'){
+      opts.onSendDirect(c);
+      return;
+    }
     /* "Send to the counterparty" takes the SAME ROUTE as Share Link: the
        summary of what changed, then the send form. It used to flip the turn
        and tell nobody — the contract said "waiting on Nordfrakt" while nothing
