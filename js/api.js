@@ -3,7 +3,22 @@
 // onclick handlers, cross-module calls); modules give file isolation
 // for editing, not scope isolation.
 const API_MODE=()=>!!REMOTE;
+/* Endpoints whose server side BUILDS A PROMPT. Each one gets the interface
+   language so Copilot answers in the language the user is reading (B7 of the
+   bilingual build spec); server/server.js turns it into one appended line.
+
+   Listed by name rather than matched on an 'ai/' prefix so the exclusions are
+   visible rather than accidental:
+     ai/ocr        transcribes a scanned page — it must return what the page
+                   says, in the language the page is written in
+     ai/config, ai/usage, ai/spend, ai/allowance
+                   carry no prompt at all; they are settings and meters
+   The language is a display preference. It selects the wording of the model's
+   own prose and nothing else — no contract text is translated, no record is
+   written, and jurisdiction is untouched. */
+const AI_PROMPT_PATHS=['ai/chat','ai/search','ai/graph','ai/template','ai/extract','ai/blanks','ai/obligations','ai/playbook'];
 async function api(path, method='GET', body){
+  if(body && AI_PROMPT_PATHS.includes(path)) body={ ...body, lang:(typeof getLang==='function'?getLang():'en') };
   const res=await fetch('api/'+path,{ method,
     headers:body?{'Content-Type':'application/json'}:undefined,
     body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
@@ -50,4 +65,4 @@ async function loadBootstrap(){
   state.folderId=ui.folderId||null;
   if(state.view==='workspace'&&!state.activeId) state.view='dashboard';
 }
-Object.assign(window,{API_MODE,api,loadBootstrap});
+Object.assign(window,{API_MODE,api,AI_PROMPT_PATHS,loadBootstrap});

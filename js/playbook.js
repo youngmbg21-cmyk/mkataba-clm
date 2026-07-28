@@ -126,7 +126,12 @@ async function runPlaybookReview(c){
   if(API_MODE() && state.aiConfigured){
     try{ const pb=resolvePlaybook(playbookKeyFor(c));
       const r=await api('ai/playbook','POST',{ text:text.slice(0,20000), playbook:pb, kind:cKind(c) });
-      return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai' };
+      /* A saved review is prose the model wrote, in whatever language the
+         reviewer's interface was set to. Stamping it means a reader months
+         later can tell a Swedish review from an English one instead of
+         guessing from the words. */
+      return { key:playbookKeyFor(c), label:pb.label, verdicts:r.verdicts||[], source:'ai',
+        lang:(typeof getLang==='function'?getLang():'en') };
     }catch(e){ toast('Copilot playbook review unavailable — using the basic checks','err'); }
   }
   return playbookReviewHeuristic(c, text);

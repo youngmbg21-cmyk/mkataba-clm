@@ -227,6 +227,8 @@ async function aiExtractMetadata(text, opts={}){
   if(r.sourceSpans) meta.sourceSpans = r.sourceSpans;
   meta._payload = { chars: payload.text.length, sections: payload.sections,
     omitted: payload.omitted, sourceChars: payload.sourceChars||t.length };
+  // which interface language the model was asked to write in (B7/step 5)
+  meta._lang = (typeof getLang==='function'?getLang():'en');
   return meta;
 }
 

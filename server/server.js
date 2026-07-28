@@ -1258,7 +1258,7 @@ app.post('/api/ai/search', auth, rlAiLight, aiFeature('search'), aiBudgetGuard, 
   const body = candidates.slice(0, 30).map(c => ({ id: c.id, name: c.name, counterparty: c.counterparty, text: String(c.text || '').slice(0, 3000) }));
   const prompt = `Answer the question about this contract portfolio using ONLY the provided contracts. Cite each contract that supports the answer with a short verbatim quote. Question: "${question}"\n\nCONTRACTS (JSON):\n${JSON.stringify(body)}\n\nReturn via answer_portfolio.`;
   try {
-    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'search' });
+    const out = await anthropicMessages(key, 'fast', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'answer_portfolio' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'search' });
     if (!out.ok) return res.status(502).json({ error: 'Copilot provider error (' + out.status + '): ' + String(out.error).slice(0, 300) });
     const data = out.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1474,6 +1474,34 @@ const isModelRejection = (status, text) => {
      allowance    — true when the call draws on the onboarding allowance
    Spend is recorded from the token usage Anthropic returns on the response, so
    a failed call costs nothing and books nothing. */
+/* ---------- interface language for model prose (B7) ----------
+   The dictionary in js/i18n.js covers HaTi's own fixed text. Everything
+   Copilot writes fresh is generated here, so one line appended to the prompt
+   is what makes an answer follow the language the user is reading.
+
+   Three things this deliberately does NOT do:
+   - It never asks for a CONTRACT to be translated. Every prompt below asks the
+     model to answer ABOUT a document; the note changes the language of the
+     model's own words, and explicitly requires quotes to stay verbatim in the
+     document's own language. Stored contract content is never machine-
+     translated.
+   - It never renames a key. Every one of these endpoints returns a tool call
+     the app then reads by field name, so the note states that keys and tool
+     field names stay in English.
+   - It is not applied to /api/ai/ocr. That endpoint transcribes a scanned
+     page, and a transcription has to say what the page says.
+
+   The language arrives as `lang` on the request body, sent by js/api.js. It is
+   a display preference only: it selects a sentence from this table and touches
+   nothing else — not the jurisdiction, not the record, not the query. */
+const AI_LANG_NOTE = {
+  en: 'Write the entire response in English. Keep the JSON keys and tool field names unchanged in English. Quote contract text verbatim in its original language — never translate a quotation.',
+  sv: 'Skriv hela svaret på svenska — all löptext, alla punkter, alla rubriker. Behåll JSON-nycklarna och verktygsfältens namn oförändrade på engelska. Citera avtalstext ordagrant på originalspråket — översätt aldrig ett citat.',
+};
+const reqLang = req => (req && req.body && req.body.lang === 'sv') ? 'sv' : 'en';
+const langNote = lang => AI_LANG_NOTE[lang] || AI_LANG_NOTE.en;
+const withLang = (prompt, req) => String(prompt) + '\n\n' + langNote(reqLang(req));
+
 async function anthropicMessages(key, tier, payload, meter = {}) {
   const t = tier === 'deep' ? 'deep' : 'fast';
   const chosen = aiModelForTier(t);
@@ -1705,7 +1733,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, 600) : null;
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n\nContracts (JSON):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring"), put ONLY the matching contract ids in visibleIds.\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel.\n- If it is purely a grouping request ("group by customer", "by city"), leave visibleIds empty and set groupBy.\n- It can be both.\n- For a dimension not present in the data (city, region, sector…), set groupBy="custom" and fill groups by INFERRING the label from the counterparty/name.\n- Always return via the render_graph tool.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'graph' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1832,7 +1860,7 @@ app.post('/api/ai/template', auth, rlAiLight, aiFeature('template'), aiBudgetGua
   const body = scored.map(c => ({ id: c.id, name: c.name, kind: c.kind, counterparty: c.counterparty, value: c.value, status: c.status, expiry: c.expiry || '', clauses: String(c.text || '').slice(0, 6000) }));
   const prompt = `You advise which existing contract to use as the TEMPLATE for a new one.\n\nToday's date: ${today}\n\nUser request: "${query}"\n\nCandidate contracts, each with full clause text (JSON):\n${JSON.stringify(body)}\n\nJudge fit on: clause structure and completeness for the requested deal type, quality of terms, whether it was executed (Signed is battle-tested), and how close the counterparty/commercial shape is to the request. Rank the top 3 via the recommend_template tool with a one-line reason each.`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'template' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'recommend_template' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'template' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1909,7 +1937,7 @@ ${String(text)}`;
     // Thorough mode reads the whole agreement chunk by chunk — judgement work
     // over partial context, so it runs on the deep tier.
     const tier = thorough ? 'deep' : 'fast';
-    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'extract', allowance: req.aiAllowance });
+    const resp = await anthropicMessages(key, tier, { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'file_contract' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'extract', allowance: req.aiAllowance });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -1965,7 +1993,7 @@ Return via the propose_blanks tool.
 TEMPLATE:
 ${String(text)}`;
   try {
-    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'blanks' });
+    const resp = await anthropicMessages(key, 'fast', { max_tokens: 3000, tools: [tool], tool_choice: { type: 'tool', name: 'propose_blanks' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'blanks' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
@@ -2007,7 +2035,7 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
   };
   const prompt = `Extract the obligations this contract imposes (payment milestones, notice/termination deadlines, deliverables, reporting duties, insurance/indemnity upkeep). Quote the clause each came from. Only list obligations actually present. Return via list_obligations.\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'obligations' });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1500, tools: [tool], tool_choice: { type: 'tool', name: 'list_obligations' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'obligations' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2046,7 +2074,7 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
   };
   const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: withLang(prompt, req) }] }, { feature: 'playbook' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
@@ -2355,7 +2383,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     .slice(-10).map(m => ({ role: m.role, content: m.content.slice(0, 4000) }));
   if (!convo.length || convo[convo.length - 1].role !== 'user') return res.status(400).json({ error: 'the last message must be from the user' });
 
-  const system = buildCopilotSystem(context, cx);
+  const system = buildCopilotSystem(context, cx) + '\n\n' + langNote(reqLang(req));
   const working = convo.slice();
   let final = null, fellBack = false, rejectedModel = null, usedModel = aiModelForTier('fast');
   try {
