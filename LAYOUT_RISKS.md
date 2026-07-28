@@ -44,7 +44,10 @@ worth a glance for wrapping.
 | `rel_days` | {n}d ago | för {n} dgr sedan | +113% |
 | `advice_kpi_due48` | Due in 48h | Förfaller inom 48 tim | +110% |
 | `rel_months` | {n}mo ago | för {n} mån sedan | +89% |
+| `home_kpi_reset` | Reset | Återställ | +80% |
+| `home_delta_none_due` | none due | inga förfaller | +75% |
 | `cp_kind_folder` | folder | värdeflöde | +67% |
+| `home_dd_act` | Act | Agera | +67% |
 | `report_metric_avg_risk` | Avg risk score | Genomsnittlig riskpoäng | +64% |
 | `advice_lbl_note` | Add internal note | Lägg till intern anteckning | +59% |
 | `advice_row_feedback_due` | Feedback due | Återkoppling senast | +58% |
@@ -52,13 +55,17 @@ worth a glance for wrapping.
 | `advice_eta_today` | due today | förfaller idag | +56% |
 | `report_metric_age_review` | Avg age · in review | Snittålder · under granskning | +53% |
 | `advice_in_title` | Log an advice request | Registrera ett rådgivningsärende | +52% |
+| `home_kpi_drag` | Drag cards to reorder | Dra korten för att ändra ordning | +52% |
 | `advice_row_estimate` | Estimate | Uppskattning | +50% |
+| `home_ready_stat` | ready to sign | klara för signering | +46% |
 | `cal_note_decide_by` | decide by | beslut senast | +44% |
+| `home_idle_tag` | {n}d idle | {n} d inaktiv | +44% |
 | `advice_h_notes` | Internal notes | Interna anteckningar | +43% |
 | `cal_agenda_title` | Next 60 days | Kommande 60 dagar | +42% |
+| `home_delta_stalled` | {n} stalled > 14d | {n} stillastående > 14 d | +41% |
 | `advice_no_notes` | No internal notes yet. | Inga interna anteckningar ännu. | +41% |
 
 ---
 
-**34** of 315 keys exceed the
+**41** of 397 keys exceed the
 threshold; **15** of them are width-constrained.

@@ -63,6 +63,17 @@ function loadViews(files, overrides = {}) {
     fmtKESshort: n => { n = Number(n || 0); if (n >= 1e6) return 'KES ' + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M'; if (n >= 1e3) return 'KES ' + (n / 1e3).toFixed(0) + 'K'; return 'KES ' + n; },
     fmtDT: iso => String(iso || ''),
     statusChip: s => `<span class="badge">${s}</span>`,
+    /* Mirrors STATUS_META / statusLabel() in js/core.js, which loads before
+       every view module in js/app.js. The stage labels moved into the
+       dictionary, so the stub resolves through t() exactly as the real one
+       does — the sandbox has js/i18n.js loaded ahead of every file. */
+    STATUS_META: {
+      'Draft':        { k: 'status_draft',        dot: '#98989b' },
+      'Under Review': { k: 'status_under_review', dot: '#b8862b' },
+      'Signed':       { k: 'status_signed',       dot: '#2e8763' },
+      'Declined':     { k: 'status_declined',     dot: '#b0453c' },
+    },
+    statusLabel: s => { const m = sandbox.STATUS_META[s]; return m ? sandbox.t(m.k) : s; },
     riskChip: r => `<span class="badge">R ${r}</span>`,
     shareChip: s => `<span class="badge">${s}</span>`,
     SHARE_META: { sent: {}, opened: {}, changes: {}, signed: {}, declined: {}, expired: {}, revoked: {} },

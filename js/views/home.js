@@ -9,15 +9,18 @@
    cards show, drags them to reorder, and the grid adapts to the count. The
    chosen subset + order is stored PER USER in localStorage so it survives
    reloads and stays independent of other teammates on the same server. */
+/* id -> dictionary key. The ids are persisted per user in localStorage as the
+   chosen KPI set, so they never move; only the label they resolve to does.
+   `avgcycle` reuses the Reports key rather than duplicating the same sentence. */
 const KPI_META={
-  under_mgmt:  'Under management',
-  active_value:'Active value',
-  awaiting:    'Awaiting counterparty',
-  expiring30:  'Expiring < 30 days',
-  expiring60:  'Expiring < 60 days',
-  expiring90:  'Expiring < 90 days',
-  highrisk:    'High-risk findings',
-  avgcycle:    'Avg cycle · draft→signed',
+  under_mgmt:  'home_kpi_under_mgmt',
+  active_value:'home_kpi_active_value',
+  awaiting:    'home_kpi_awaiting',
+  expiring30:  'home_kpi_expiring30',
+  expiring60:  'home_kpi_expiring60',
+  expiring90:  'home_kpi_expiring90',
+  highrisk:    'home_kpi_highrisk',
+  avgcycle:    'report_metric_avg_cycle',
 };
 const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','highrisk','avgcycle'];
 const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','highrisk','avgcycle'];
@@ -50,14 +53,14 @@ function openKpiCustomizer(anchor){
   const row=id=>`
     <label style="display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:12.5px;" onmouseover="this.style.background='rgba(89,128,166,.08)'" onmouseout="this.style.background='none'">
       <input type="checkbox" data-kpi-toggle="${id}" ${sel.includes(id)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none;"/>
-      <span style="flex:1;">${KPI_META[id]}</span>
+      <span style="flex:1;">${t(KPI_META[id])}</span>
     </label>`;
   pop.innerHTML=`
-    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">Show metrics</div>
+    <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;padding:4px 8px 6px;">${t('home_kpi_show')}</div>
     ${kpiCatalogOrder().map(row).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--color-divider);margin-top:6px;padding:8px 8px 4px;">
-      <span style="font-size:10.5px;color:var(--color-neutral-500);">Drag cards to reorder</span>
-      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">Reset</button>
+      <span style="font-size:10.5px;color:var(--color-neutral-500);">${t('home_kpi_drag')}</span>
+      <button data-kpi-reset style="border:0;background:none;color:var(--color-accent-700);font-weight:600;font-size:11px;cursor:pointer;padding:0;">${t('home_kpi_reset')}</button>
     </div>`;
   anchor.parentElement.style.position='relative';
   anchor.parentElement.appendChild(pop);
@@ -65,7 +68,7 @@ function openKpiCustomizer(anchor){
     const id=cb.getAttribute('data-kpi-toggle');
     let cur=currentKpiSel();
     if(cb.checked){ if(!cur.includes(id)) cur.push(id); }
-    else { if(cur.length<=1){ cb.checked=true; toast('Keep at least one metric','err'); return; } cur=cur.filter(x=>x!==id); }
+    else { if(cur.length<=1){ cb.checked=true; toast(t('home_toast_keep_min'),'err'); return; } cur=cur.filter(x=>x!==id); }
     setKpiSel(cur); renderDashboard();
   }));
   pop.querySelector('[data-kpi-reset]')?.addEventListener('click',()=>{ setKpiSel(DEFAULT_KPI_SEL.slice()); renderDashboard(); });
@@ -105,14 +108,14 @@ function readyToSignRowsHtml(items){
   if(!items||!items.length) return '';
   return `
     <div style="margin-bottom:10px" id="dd-ready-rows">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#1e6b4d;margin-bottom:5px">Ready to sign — issue a signing link</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#1e6b4d;margin-bottom:5px">${t('home_ready_head')}</div>
       ${items.slice(0,6).map(r=>`
         <button data-sel="${esc(r.c.id)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.c.name)}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.sig.by||r.c.counterparty||'They')} signalled ready — nothing is signed yet</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t('home_ready_sig',{by:esc(r.sig.by||r.c.counterparty||t('home_ready_they'))})}</span>
           </span>
-          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#1e6b4d;flex:none">issue link</span>
+          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#1e6b4d;flex:none">${t('home_ready_action')}</span>
         </button>`).join('')}
     </div>`;
 }
@@ -130,11 +133,13 @@ function renderDashboard(){
   const idleOf=c=>{ const t=Date.parse(c.lastAction); return isNaN(t)?0:Math.max(0,Math.floor((Date.now()-t)/86400000)); };
 
   // ---- slices ----
+  // labels come from statusLabel() so a stage is named identically here, on the
+  // queue board and in every status chip — one dictionary entry, one place
   const STAGE_DEF=[
-    {k:'Draft',        label:'Drafting',  color:'#98989b'},
-    {k:'Under Review', label:'In Review', color:'#b8862b'},
-    {k:'Signed',       label:'Executed',  color:'#2e8763'},
-    {k:'Declined',     label:'Closed',    color:'#b0453c'},
+    {k:'Draft',        color:'#98989b'},
+    {k:'Under Review', color:'#b8862b'},
+    {k:'Signed',       color:'#2e8763'},
+    {k:'Declined',     color:'#b0453c'},
   ];
   const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
   const stageTotal=stages.reduce((s,x)=>s+x.n,0)||1;
@@ -146,7 +151,10 @@ function renderDashboard(){
   // renewal decisions due (expiry − notice period), within 90 days, live contracts only
   const rdd=window.renewalDecisionDate||(()=>null);
   const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
-  const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
+  // local renamed from `t` to `ms`: `t` is the translation helper. The date is
+  // parsed from a stored ISO string and formatted only for display, so it can
+  // follow the interface language.
+  const fmtDDay=iso=>{ const ms=Date.parse((iso||'')+'T00:00:00'); return isNaN(ms)?iso:new Date(ms).toLocaleDateString(langLocale('en-KE'),{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   const waiting=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const reviewByRisk=cs.filter(c=>c.status==='Under Review').map(c=>({c,r:contractRisk(c)})).sort((a,b)=>b.r-a.r);
@@ -171,27 +179,27 @@ function renderDashboard(){
   // The exposure figure on an expiring card is a money total. Without the
   // right, the card still earns its place — it just says WHEN instead of HOW
   // MUCH, which is the more actionable half anyway.
-  const expDelta=arr=>money?`${fmtKESshort(expVal(arr))} exposure`
-    :(arr.length?`soonest in ${arr[0].d}d`:'none due');
+  const expDelta=arr=>money?t('home_delta_exposure',{value:fmtKESshort(expVal(arr))})
+    :(arr.length?t('home_delta_soonest',{n:arr[0].d}):t('home_delta_none_due'));
   // avg cycle draft→signed from audit where both stamps exist
   const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
     const a=(c.audit||[]); const cr=a.find(x=>/creat/i.test(x.action||'')), sg=a.find(x=>/sign|execut|seal/i.test(x.action||''));
     if(cr&&sg){ const d=(Date.parse(sg.at)-Date.parse(cr.at))/864e5; return d>0?d:null; } return null;
   }).filter(x=>x!=null);
-  const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
+  const avgCycle=cycles.length?t('report_days',{n:(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)}):t('value_none');
 
   // Gradient hero cards — one semantic tone per KPI. The full catalog is keyed
   // by a stable id; the user's chosen subset + order comes from currentKpiSel().
   const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
   const KPI_CATALOG={
-    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtKESshort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
-    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),                                               grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
-    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
-    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`,                              grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
-    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
+    under_mgmt:  {lk:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString(langLocale('en-KE')),       delta:t('home_delta_new_week',{n:newThisWeek}),                        grad:G.steel, ic:'building', go:{stage:'all'}},
+    active_value:{lk:KPI_META.active_value, val:fmtKESshort(m.totalValue),                                  delta:t('home_delta_executed',{n:Number(m.signed||0).toLocaleString(langLocale('en-KE'))}), grad:G.green, ic:'coins', go:{stage:'all',sort:'value'}},
+    awaiting:    {lk:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString(langLocale('en-KE')),   delta:t('home_delta_stalled',{n:stalled}),                             grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
+    expiring30:  {lk:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString(langLocale('en-KE')),    delta:expDelta(exp30),                                                 grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
+    expiring60:  {lk:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString(langLocale('en-KE')),    delta:expDelta(exp60),                                                 grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
+    expiring90:  {lk:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString(langLocale('en-KE')),    delta:expDelta(exp90),                                                 grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    highrisk:    {lk:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString(langLocale('en-KE')), delta:t('home_delta_on_executed',{n:onExecuted}),                      grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    avgcycle:    {lk:KPI_META.avgcycle,     val:avgCycle,                                                    delta:cycles.length?t('report_metric_avg_cycle_sub',{n:cycles.length}):t('value_none'), grad:G.green, ic:'clock', go:{stage:'Signed'}},
   };
   const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
   // Adaptive layout: 1–6 chosen → one balanced row that fills the width; more
@@ -201,7 +209,7 @@ function renderDashboard(){
     <button data-kpi-id="${id}" draggable="true" style="position:relative;display:flex;flex-direction:column;gap:10px;align-items:flex-start;border:0;border-radius:10px;background:${k.grad};padding:15px 16px;font:inherit;color:#fff;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
       <span style="display:flex;align-items:center;gap:9px;">
         <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff;">${icon(k.ic,'w-4 h-4',1.7)}</span>
-        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25;">${k.label}</span>
+        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25;">${t(k.lk)}</span>
       </span>
       <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff;">${k.val}</span>
       <span style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:500;">${k.delta}</span>
@@ -212,9 +220,9 @@ function renderDashboard(){
   const segBar=stages.map((s,i)=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color};"></span>`).join('');
   const stageCards=stages.map(s=>`
     <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
-      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?`${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}`:`${s.n.toLocaleString('en-KE')} contract${s.n===1?'':'s'}`}</span>
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${statusLabel(s.k)}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString(langLocale('en-KE'))}</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?t('home_stage_money',{n:s.n.toLocaleString(langLocale('en-KE')),value:fmtKESshort(s.val)}):tn('home_stage_contracts',s.n,{n:s.n.toLocaleString(langLocale('en-KE'))})}</span>
     </button>`).join('');
 
   // ---- needs your action ----
@@ -222,15 +230,16 @@ function renderDashboard(){
     return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
       <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
-      <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
+      <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||t('value_none')}</span>
       ${riskChip(x.r)}
       ${statusChip(c.status)}
-    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
+    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">${t('home_no_review')}</div>`;
 
   // ---- renewal pipeline (6 mo) ----
   const now=new Date(); const months=[];
-  for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString('en-KE',{month:'short'}),v:0,n:0}); }
-  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const t=Date.parse(e); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b){ b.v+=Number(c.value||0); b.n++; } });
+  for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString(langLocale('en-KE'),{month:'short'}),v:0,n:0}); }
+  // local renamed from `t` to `ms`: `t` is the translation helper
+  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const ms=Date.parse(e); if(isNaN(ms)) return; const d=new Date(ms); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b){ b.v+=Number(c.value||0); b.n++; } });
   // Without the value right the pipeline is drawn from CONTRACT COUNTS, not
   // from a total of values the browser was never sent — the shape of the
   // renewal year is still readable, it just is not denominated in shillings.
@@ -242,11 +251,11 @@ function renderDashboard(){
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
       <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;"><div style="width:${(pipeOf(x)/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);border-radius:999px;"></div></div>
-      <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${money?(x.v?fmtKESshort(x.v).replace('KES ',''):'—'):(x.n||'—')}</span>
+      <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${money?(x.v?fmtKESshort(x.v).replace('KES ',''):t('value_none')):(x.n||t('value_none'))}</span>
     </div>`).join('');
   const pipeSummary=money
-    ? `${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}`
-    : `${pipeCount} contract${pipeCount===1?'':'s'} expiring in the next 6 months`;
+    ? tn('home_pipe_money',pipeCount,{value:fmtKESshort(pipeTotal),n:pipeCount})
+    : tn('home_pipe_count',pipeCount,{n:pipeCount});
 
   // ---- approvals waiting ----
   /* This used to be "the five contracts that have sat in review longest",
@@ -274,23 +283,23 @@ function renderDashboard(){
     // A rule's name is auto-generated from its condition ("Value ≥ KES 5M"),
     // so printing it would hand the spend threshold to someone who may not see
     // amounts. They get the generic label.
-    const step=(money&&x.st.next&&x.st.next.name)||'Approval';
-    const why=x.mine?'waiting on you':'yours · waiting on '+(x.st.approverLabel||'an approver');
+    const step=(money&&x.st.next&&x.st.next.name)||t('home_appr_step_default');
+    const why=x.mine?t('home_appr_why_you'):t('home_appr_why_other',{who:x.st.approverLabel||t('home_appr_approver')});
     return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 0;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;font-size:12px;text-align:left;color:inherit;">
       <span style="width:7px;height:7px;border-radius:50%;background:${dotc};flex:none;"></span>
       <span style="flex:1;min-width:0;">
-        <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(step)} — ${esc(c.counterparty||c.name)}${(money&&isMonetary(c)&&c.value)?` (${fmtKESshort(c.value)})`:''}</span>
-        <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${why}</span>
+        <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${(money&&isMonetary(c)&&c.value)?t('home_appr_row_value',{step:esc(step),party:esc(c.counterparty||c.name),value:fmtKESshort(c.value)}):t('home_appr_row',{step:esc(step),party:esc(c.counterparty||c.name)})}</span>
+        <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t('home_appr_meta',{id:c.id,why})}</span>
       </span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);flex:none;">${x.idle}d</span>
-    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">Nothing is waiting on you.</div>`;
+      <span style="font-size:10.5px;color:var(--color-neutral-600);flex:none;">${t('report_days',{n:x.idle})}</span>
+    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">${t('home_no_approvals')}</div>`;
 
   // ---- compact attention row (used inside the Decisions-due panel) ----
   const attnRow=(c,tag,tagColor)=>`
     <button data-sel="${c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0;">
         <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${c.counterparty||'—'}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t('home_attn_meta',{id:c.id,party:c.counterparty||t('value_none')})}</span>
       </span>
       <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:${tagColor};flex:none;">${tag}</span>
     </button>`;
@@ -300,10 +309,10 @@ function renderDashboard(){
       <span style="width:9px;height:9px;border-radius:50%;background:${urgent?'#b0453c':'#b8862b'};flex:none"></span>
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'—'} · decide by ${fmtDDay(x.dd)}</span>
+        <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t('home_dd_decide_by',{party:c.counterparty||t('value_none'),date:fmtDDay(x.dd)})}</span>
       </span>
-      <span style="font-size:11.5px;font-weight:600;font-family:var(--font-mono);color:${urgent?'#8f322b':'#7d5a14'};flex:none;white-space:nowrap">${x.d===0?'today':'in '+x.d+'d'}</span>
-      <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
+      <span style="font-size:11.5px;font-weight:600;font-family:var(--font-mono);color:${urgent?'#8f322b':'#7d5a14'};flex:none;white-space:nowrap">${x.d===0?t('home_dd_today'):t('home_dd_in_days',{n:x.d})}</span>
+      <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">${t('home_dd_act')}</button>
     </div>`; }).join('');
   // ---- out with counterparties (share dispatch traffic lights) ----
   const so=state.shareOverview||{}; const shCounts=so.counts||{};
@@ -318,22 +327,24 @@ function renderDashboard(){
      amber pulse on the count and a banded row, so what is waiting on you separates
      from what is waiting on them. */
   const needsYou=st=>st==='changes'||st==='declined';
+  /* SHARE_META carries a dictionary key (`k`), not a `label` — reading .label
+     here threw once the share states moved into the dictionary. */
   const shCountChip=(st,n)=>{ if(!n) return ''; const m=SHARE_META[st];
-    return `<span class="badge${needsYou(st)?' needs-you':''}" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
+    return `<span class="badge${needsYou(st)?' needs-you':''}" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${t('home_share_chip',{n,state:t(m.k).toLowerCase()})}</span>`; };
   const shareRows=(API_MODE()?shItems:[]).slice(0,5).map(it=>`
     <button data-share-open="${it.contractId}"${needsYou(it.state)?' data-needs-you="1"':''} style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);${needsYou(it.state)?'background:#fdf6e7;box-shadow:inset 3px 0 0 #b8862b;border-radius:5px;':'background:none;'}cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='${needsYou(it.state)?'#fdf6e7':'none'}'">
       ${shareChip(it.state)}
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.contractId} · with ${it.recipientName||it.recipientEmail||it.counterparty||'counterparty'} · via ${it.channel==='whatsapp'?'WhatsApp':it.channel==='email'?'email':'link'}</span>
+        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t('home_share_meta',{id:it.contractId,who:it.recipientName||it.recipientEmail||it.counterparty||t('home_share_counterparty'),channel:it.channel==='whatsapp'?t('home_channel_whatsapp'):it.channel==='email'?t('home_channel_email'):t('home_channel_link')})}</span>
       </span>
       <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none;white-space:nowrap">${fmtDT(it.at)}</span>
     </button>`).join('');
   const hasShares=API_MODE()&&shItems.length>0;
   // ---- Waiting longest (relocated from the deleted bottom cards into the empty
   // right-hand space inside the Decisions-due panel) ----
-  const waitDdRows=waiting.slice(0,10).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('')
-    || `<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>Nothing sitting in review.</div>`;
+  const waitDdRows=waiting.slice(0,10).map(x=>attnRow(x.c,t('home_idle_tag',{n:x.idle}),x.idle>=30?'#8f322b':'#7d5a14')).join('')
+    || `<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>${t('home_none_review')}</div>`;
   // ---- Decisions due: one collapsible card merging renewal decisions with the
   // shares out for counterparty review — a compact summary that expands on click,
   // so the dashboard stays tight instead of two full-height stacked cards. ----
@@ -351,32 +362,35 @@ function renderDashboard(){
   const ddCount=decisions.length+(hasShares?shItems.length:0)+(((state.waitingQuestions||{}).total)||0)+readyItems.length;
   const ddTone=(needAttn||decisions.some(x=>x.d<=30))?'#b8862b':'var(--color-accent)';
   const chevron=`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-  const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span><b>${decisions.length}</b> renewal decision${decisions.length===1?'':'s'} <span style="color:var(--color-neutral-500)">· 90d</span></span>`;
-  const shareStat=hasShares?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#eceae6;color:#5d5d60">•</span><b>${shItems.length}</b> out with counterparties</span>`:'';
+  /* The count is inside the sentence so Swedish can place it — the <b> wrapper
+     travels with it through the {n} placeholder. */
+  const bn=n=>`<b>${n}</b>`;
+  const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span>${tn('home_dd_renewals',decisions.length,{n:bn(decisions.length)})} <span style="color:var(--color-neutral-500)">${t('home_dd_90d')}</span></span>`;
+  const shareStat=hasShares?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#eceae6;color:#5d5d60">•</span>${bn(shItems.length)} ${t('home_dd_out_with')}</span>`:'';
   /* Questions the other side asked and nobody answered. These arrive through
      the light channel, which changes no document state — so without a count
      here the only two ways to learn of one are an email (the setting most
      workspaces have not configured) and opening that one contract. */
   const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
   const wqTotal=(state.waitingQuestions&&state.waitingQuestions.total)||0;
-  const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span><b>${wqTotal}</b> question${wqTotal===1?'':'s'} waiting for you</span>`:'';
+  const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span>${tn('home_dd_questions',wqTotal,{n:bn(wqTotal)})}</span>`:'';
   /* ASK-AI, FROM THE PLACE THE QUESTION OCCURS TO YOU. A pre-filled question
      rather than an empty box: the hard part of using an assistant is knowing
      what it can answer, and the dashboard already knows what is worth asking
      about today. */
-  const askDash=`<button id="dd-ask-ai" class="dd-more" style="padding:0;margin-left:auto;font-weight:600">Ask Copilot about this →</button>`;
-  const readyStat=readyItems.length?`<span class="dd-sep"></span><span class="dd-stat" id="dd-ready-stat"><span class="dd-badge" style="background:#e8f4ee;color:#1e6b4d">•</span><b>${readyItems.length}</b> ready to sign</span>`:'';
+  const askDash=`<button id="dd-ask-ai" class="dd-more" style="padding:0;margin-left:auto;font-weight:600">${t('home_dd_ask')}</button>`;
+  const readyStat=readyItems.length?`<span class="dd-sep"></span><span class="dd-stat" id="dd-ready-stat"><span class="dd-badge" style="background:#e8f4ee;color:#1e6b4d">•</span>${bn(readyItems.length)} ${t('home_ready_stat')}</span>`:'';
   const readyRows=readyToSignRowsHtml(readyItems);
   const questionRows=wq.length?`
     <div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7d5a14;margin-bottom:5px">Questions waiting for you</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7d5a14;margin-bottom:5px">${t('home_dd_questions_head')}</div>
       ${wq.slice(0,6).map(q=>`
         <button data-sel="${esc(q.contractId)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
           <span style="flex:1;min-width:0">
             <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(q.name)}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((q.latest&&q.latest.author)||q.counterparty||'They')}: “${esc((q.latest&&q.latest.body)||'')}”</span>
+            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t('home_q_quote',{author:esc((q.latest&&q.latest.author)||q.counterparty||t('home_ready_they')),body:esc((q.latest&&q.latest.body)||'')})}</span>
           </span>
-          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;flex:none">${q.count>1?q.count+' open':'reply'}</span>
+          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;flex:none">${q.count>1?t('home_q_open',{n:q.count}):t('home_q_reply')}</span>
         </button>`).join('')}
     </div>`:'';
   const decisionsSection=`
@@ -419,7 +433,7 @@ function renderDashboard(){
       <summary>
         <span class="dd-head">
           <span class="dd-ic">${icon('clock','w-3.5 h-3.5')}</span>
-          <span class="dd-title">Decisions due</span>
+          <span class="dd-title">${t('home_dd_title')}</span>
           ${ddCount?`<span class="dd-count">${ddCount}</span>`:''}
           <span class="dd-chev">${chevron}</span>
         </span>
@@ -427,15 +441,15 @@ function renderDashboard(){
       </summary>
       <div class="dd-detail">
         <div class="dd-col">
-          <div class="dd-eyebrow" style="margin-top:6px">Renewal decisions · next 90 days${askDash}</div>
-          ${decisions.length?decisionRows+(decisions.length>6?`<button data-open-decisions class="dd-more">See all in the calendar →</button>`:'')
-            :`<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>None due — you're all caught up.</div>`}
-          ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
+          <div class="dd-eyebrow" style="margin-top:6px">${t('home_dd_eyebrow_renewals')}${askDash}</div>
+          ${decisions.length?decisionRows+(decisions.length>6?`<button data-open-decisions class="dd-more">${t('home_dd_see_all')}</button>`:'')
+            :`<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>${t('home_dd_caught_up')}</div>`}
+          ${hasShares?`<div class="dd-eyebrow">${t('home_dd_out_head')}${needAttn?` · <span style="color:#7d5a14">${tn('home_dd_need_attn',needAttn,{n:needAttn})}</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
         </div>
         <div class="dd-col dd-col-r">
           ${readyRows}
           ${questionRows}
-          <div class="dd-eyebrow"${questionRows?'':' style="margin-top:6px"'}>Waiting longest · in review${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
+          <div class="dd-eyebrow"${questionRows?'':' style="margin-top:6px"'}>${t('home_dd_waiting_head')}${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
           ${waitDdRows}
         </div>
       </div>
@@ -448,10 +462,10 @@ function renderDashboard(){
     <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
     <section>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">Key metrics</span>
-        <button id="kpi-customize" class="ui-btn" title="Choose which metrics to show" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:700;">${t('home_key_metrics')}</span>
+        <button id="kpi-customize" class="ui-btn" title="${t('home_kpi_customize_title')}" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center;gap:6px;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-          Customize
+          ${t('home_kpi_customize')}
         </button>
       </div>
       <div id="kpi-grid" style="display:grid;grid-template-columns:repeat(${kpiCols},minmax(0,1fr));gap:14px;">
@@ -468,15 +482,15 @@ function renderDashboard(){
     <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:stretch;">
       <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;">
-          <h4 style="font-size:15px;margin:0;">Portfolio by stage</h4>
-          <button data-open-register style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0;">Open full register →</button>
+          <h4 style="font-size:15px;margin:0;">${t('home_portfolio_stage')}</h4>
+          <button data-open-register style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0;">${t('home_open_register')}</button>
         </div>
         <div style="display:flex;height:9px;overflow:hidden;margin-bottom:10px;border-radius:999px;">${segBar}</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">${stageCards}</div>
         <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:10px;">
           <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
-            <h6 style="margin:0;font-size:10.5px;color:var(--color-neutral-700);letter-spacing:.08em;text-transform:uppercase;">Needs your action</h6>
-            <span style="font-size:10px;color:var(--color-neutral-600);">sorted by risk</span>
+            <h6 style="margin:0;font-size:10.5px;color:var(--color-neutral-700);letter-spacing:.08em;text-transform:uppercase;">${t('home_needs_action')}</h6>
+            <span style="font-size:10px;color:var(--color-neutral-600);">${t('home_sorted_risk')}</span>
           </div>
           ${actionRows}
         </div>
@@ -487,12 +501,12 @@ function renderDashboard(){
       <div style="position:relative;min-width:0;">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;min-height:0;">
           <section style="flex:none;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
-            <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
+            <h4 style="font-size:15px;margin:0 0 8px;">${t('home_pipeline_title')}</h4>
             ${pipeBars}
             <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${pipeSummary}</div>
           </section>
           <section style="flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;overflow:hidden;">
-            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting on you${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-600)">· ${myApprovals.length} total</span>`:''}</h4>
+            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">${t('home_appr_title')}${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-600)">${t('home_appr_total',{n:myApprovals.length})}</span>`:''}</h4>
             <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${apprRows}</div>
           </section>
         </div>
@@ -526,7 +540,7 @@ function renderDashboard(){
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
   document.getElementById('dd-ask-ai')?.addEventListener('click',e=>{
     e.preventDefault(); e.stopPropagation();
-    if(typeof openAI==='function') openAI('What needs my attention in the next 90 days — renewals, expiries and anything overdue?');
+    if(typeof openAI==='function') openAI(t('home_dd_ask_prompt'));
   });
   document.querySelectorAll('[data-sel]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel'))));
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));

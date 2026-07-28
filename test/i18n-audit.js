@@ -28,6 +28,7 @@ const CONVERTED = [
   'js/views/calendar.js',
   'js/views/reports.js',
   'js/views/advice.js',
+  'js/views/home.js',
 ];
 
 /* Text that looks like a user-visible string to the matcher but is not.
@@ -51,6 +52,7 @@ const NOT_UI = [
   /^(GET|POST|PUT|DELETE|PATCH)$/,
   /^application\//, /^text\//, /^image\//,       // MIME types
   /^[A-Z]{2,}(-[A-Z0-9]+)?$/,                    // KES, SHA-256, MK-103 style codes
+  /^T\d{2}:\d{2}(:\d{2})?$/,                     // ISO time suffix appended to a date, e.g. 'T00:00:00'
   // ---- class lists: all-lowercase words, digits and hyphens, e.g.
   //      "pipe-col scroll-thin", "w-5 h-5", "flex items-center gap-2" ----
   /^[a-z0-9][a-z0-9/:.\[\]()%-]*( [a-z0-9][a-z0-9/:.\[\]()%-]*)*$/,
