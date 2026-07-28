@@ -294,7 +294,10 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.equal(card.querySelector('[data-nego-accept]'), null,
       'a party must not be able to mark its own wording adopted');
     assert.ok(card.querySelector('[data-nego-discuss]'), 'but they can still discuss it');
-    assert.match(card.textContent, /\(your side\)/);
+    /* The marker moved out of the grey italic beside the author and into a
+       pill in the top row of the card — see f70. */
+    assert.match(card.textContent, /Your ask/);
+    assert.match(card.className, /is-mine/, 'and the card carries an edge, so it reads without being read');
   });
 });
 
@@ -614,7 +617,9 @@ describe('the one transition out', () => {
   test('the hand-off closes the round and makes the agreed wording the baseline', async () => {
     const m = await mounted();
     m.click('#nego-bulk-acc');
+    /* It asks before it closes the round — see f69. The stage confirms. */
     m.click('#nego-to-docs');
+    for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r));
     assert.equal(m.win.negoRound(m.c), 2);
     assert.match(m.win.negoBaseText(m.c), /forty-five \(45\) days/);
     assert.equal(m.win.negoChanges(m.c).length, 0, 'the decided set is archived onto the round');

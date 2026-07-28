@@ -1627,6 +1627,25 @@ function buildSharePayload(c, docHash, who, opts){
      before purposes existed, or by a path that has no opinion — fall back to
      the old reading of the change set, so an existing link keeps opening on
      exactly the screen it opened on yesterday. New links always state it. */
+  /* THE ROUNDS THAT ARE OVER, so the other side's screen can say what ours says.
+     Their page had no idea a round had ever closed: it could not offer the
+     wording a past round started from, it could not show the history, and every
+     change ever decided sat in one undifferentiated live list — so a change
+     settled two rounds ago read to them as something still on the table.
+
+     WHAT TRAVELS is the round's number, when it closed, the wording it was
+     measured against, and WHICH CHANGES BELONGED TO IT — by id. The changes
+     themselves are already in shareChanges, whole; sending them a second time
+     inside the round would put two copies of one fingerprint on their page and
+     invite the two to disagree. The ids are the join.
+
+     WHAT DOES NOT TRAVEL is the internal name of whoever ruled, exactly as for
+     shareRounds and shareChanges above: the organisation speaks. */
+  const shareNegoRounds = ((c.negotiation&&c.negotiation.rounds)||[]).map(r=>({
+    n:r.n, at:r.at||null,
+    baselineBody:r.baselineBody||'',
+    baselineText:r.baselineText||'',
+    changeIds:(r.changes||[]).map(x=>x&&x.id).filter(Boolean) }));
   const purpose = SHARE_PURPOSE(opts&&opts.purpose) || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
@@ -1649,6 +1668,7 @@ function buildSharePayload(c, docHash, who, opts){
            just theirs: a reader who cannot see that WE have signalled cannot
            tell a deal waiting on them from one waiting on us. */
         ready:c.negotiation.ready||undefined,
+        rounds:shareNegoRounds.length?shareNegoRounds:undefined,
         baselineBody:c.negotiation.baselineBody||'',
         baselineText:c.negotiation.baselineText||'' } : undefined,
       upload:isUpload(c)?shareUpload(c.upload):undefined,

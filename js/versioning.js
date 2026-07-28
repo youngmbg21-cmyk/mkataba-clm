@@ -136,6 +136,16 @@ function listedVersions(c){
     .filter(v => v && v.listed !== false);
 }
 
+/* The round a snapshot is taken in. The caller may name it — negoAdvanceRound
+   does, because by the time it saves "Round 1 closed" the counter has already
+   moved to 2 and the snapshot belongs to the round that just ended, not the one
+   just started. Everything else is simply the round in flight. */
+function roundStamp(c, o){
+  if(o && o.roundN!=null) return o.roundN;
+  const r=c && c.negotiation && c.negotiation.round;
+  return (typeof r==='number' && r>0) ? r : null;
+}
+
 function captureVersion(c, label, by, opts){
   const text=docPlainText(c); if(!text) return null;
   const canon=docCanonical(c);
@@ -165,10 +175,17 @@ function captureVersion(c, label, by, opts){
       if(label) last.label=label;
       if(!o.auto) last.by=by||currentUser()?.name||last.by;
     }
+    if(last.roundN==null) last.roundN=roundStamp(c,o);
     return last;
   }
   const v={ n:c.versions.length+1, at:nowISO(), by:by||currentUser()?.name||'System',
     label:label||'Saved', text, canon,
+    /* WHICH ROUND THIS SNAPSHOT BELONGS TO.
+       The number `n` counts every snapshot the contract has ever taken and says
+       nothing about when in the negotiation it was taken — so the pane selector
+       could not group a round's snapshots under that round without guessing
+       from timestamps. It is stamped once, here, and never recomputed. */
+    roundN:roundStamp(c,o),
     /* Who asked for it, and whether it belongs in the list a person reads. */
     kind:o.auto?'auto':'named',
     listed:o.auto?!!o.listed:true,

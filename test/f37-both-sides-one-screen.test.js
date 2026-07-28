@@ -353,7 +353,7 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const own = v2.$(`#nego-card-${o2.filed[0].id}`);
     assert.equal(own.querySelector('[data-nego-accept]'), null,
       'nobody rules on their own ask');
-    assert.match(own.textContent, /\(your side\)/);
+    assert.match(own.textContent, /Your ask/);          // f70 — a pill, not a grey italic
   });
 
   test('his decisions are held on the page until he sends them', async () => {

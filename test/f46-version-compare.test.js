@@ -70,23 +70,39 @@ describe('every version the contract carries is selectable', () => {
     const c = await withHistory(win);
     const opts = win.negoVersionOptions(c);
 
-    /* THE ORDER IS THE DOCUMENT'S OWN. First the wording this round is
-       measured against, then each saved version in the order it was taken,
-       then what is on the table now. It used to be the live pair followed by
-       the snapshots newest-first, which put the original at the bottom of a
-       list whose first entry changed every round — so "which one is the
-       contract we started from" was answered by a different row each time. */
-    assert.equal(opts[0].key, 'baseline', 'the original the round is measured against comes first');
+    /* THE ORDER IS THE DOCUMENT'S OWN. Every closed round in sequence, then the
+       wording this round is measured against, then each saved version in the
+       order it was taken, then what is on the table now. It used to be the live
+       pair followed by the snapshots newest-first, which put the original at the
+       bottom of a list whose first entry changed every round — so "which one is
+       the contract we started from" was answered by a different row each time.
+
+       Rounds 1 and 2 are closed here, so the sequence starts where the whole
+       negotiation started, which is what f69 made reachable. */
+    assert.equal(opts[0].key, 'round1-baseline', 'the wording the negotiation started from comes first');
     assert.equal(opts[opts.length - 1].key, 'working', 'and what is proposed now comes last');
-    assert.match(opts[0].label, /^Original Baseline · round 3/, 'the prototype’s own words are kept');
-    assert.match(opts[opts.length - 1].label, /^Working Version · round 3/);
-    const versions = opts.slice(1, -1);
+    assert.match(opts[0].label, /^Round 1 - Baseline/, 'named by its round, and the round leads');
+    assert.match(opts[opts.length - 1].label, /^Round 3 - Working Version/);
+    assert.ok(opts.some(o => o.key === 'baseline' && /^Round 3 - Baseline/.test(o.label)),
+      'the wording round 3 is measured against is on the list under round 3');
+    /* Each closed round appears once, in order, before the live pair. */
+    assert.deepEqual(own(opts.filter(o => o.kind === 'round').map(o => o.label)),
+      ['Round 1 - Baseline', 'Round 2 - Baseline']);
+    const versions = opts.filter(o => o.kind === 'version');
     assert.equal(versions.length, 2, `expected one snapshot per document change, got ${versions.length}`);
     assert.notEqual(versions[0].text, versions[1].text, 'and each one is a different document');
     const ns = versions.map(v => v.n);
     assert.deepEqual(own(ns), own(ns.slice().sort((a, b) => a - b)),
       'oldest first — the list is read top to bottom as the sequence the document went through');
     for (const v of versions) assert.ok(v.body && v.body.trim(), `v${v.n} must carry a document`);
+    /* And a snapshot is filed under the round it was taken in, numbered within
+       that round — "Round 2 - V1" is the first snapshot of round 2, which is
+       the question people ask. Its number in the version history is not lost;
+       it travels in the small print. */
+    for (const v of versions){
+      assert.match(v.label, new RegExp(`^Round ${v.roundN} - V\\d`), `${v.label} names its round`);
+      assert.match(v.sub, new RegExp(`v${v.n} in the version history`));
+    }
   });
 
   /* WHAT IS NOT OFFERED, and why that is the point.
@@ -122,11 +138,21 @@ describe('every version the contract carries is selectable', () => {
     win.negoResolve(c, ch.id, 'accepted', { by: 'Wanjiru Kamau' });
     win.negoAdvanceRound(c, { by: 'Wanjiru Kamau' });
 
-    const keys = win.negoVersionChoices(c).map(o => o.key);
-    assert.equal(keys[0], 'baseline');
+    const offered = win.negoVersionChoices(c);
+    const keys = offered.map(o => o.key);
     assert.equal(keys[keys.length - 1], 'working');
-    assert.ok(keys.includes('v1'),
-      'the wording before the round is a different document, so it stays on the list');
+    assert.ok(keys.includes('baseline'), 'the live pair is always reachable');
+    /* The wording before the round is a different document, so it stays on the
+       list. It is offered under the name that places it — "Round 1 - Baseline"
+       — rather than under v1: the template snapshot and the wording round 1 was
+       measured against are the same document, and f69 gave that document the
+       clearer of its two names. Nothing was thrown away; the key still
+       resolves, which is what the version history and the compare screen read. */
+    const before = offered.find(o => /^Round 1 - Baseline/.test(o.label));
+    assert.ok(before, 'the wording before the round is on the list');
+    assert.equal(keys[0], before.key, 'and it comes first, because it came first');
+    assert.match(before.text, /thirty \(30\) days/, 'and it really is the pre-round wording');
+    assert.ok(win.negoVersionByKey(c, 'v1'), 'the snapshot key still resolves');
   });
 
   /* A selection cannot be dropped out from under the pane showing it: a
