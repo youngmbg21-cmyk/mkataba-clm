@@ -294,7 +294,10 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.equal(card.querySelector('[data-nego-accept]'), null,
       'a party must not be able to mark its own wording adopted');
     assert.ok(card.querySelector('[data-nego-discuss]'), 'but they can still discuss it');
-    assert.match(card.textContent, /\(your side\)/);
+    /* The marker moved out of the grey italic beside the author and into a
+       pill in the top row of the card — see f65. */
+    assert.match(card.textContent, /Your ask/);
+    assert.match(card.className, /is-mine/, 'and the card carries an edge, so it reads without being read');
   });
 });
 

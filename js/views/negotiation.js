@@ -486,22 +486,65 @@ function negoStyleHtml(){
   .nego-hold{display:none;align-items:flex-start;gap:6px;margin-top:9px;
     border-top:1px dashed #e0c48a;padding-top:8px;font-size:10.5px;line-height:1.45;color:#7d5a14}
   .nego-hold b{font-weight:700}
+  /* ---- whose ask is this ----
+     THE EDGE IS THE ONLY THING THAT CHANGES, and only on your own asks. Cards
+     already carry colour for STATE — green accepted, red refused, amber not
+     sent — so a second colour system laid over the same surfaces is how a
+     screen stops being readable. One edge, one group, one meaning.
+
+     It cannot collide with the amber edge either: "not sent yet" only ever
+     lands on a decision made about the OTHER side's ask, because nobody
+     decides their own. So no card is ever both. */
+  /* ---- THE TWO BUTTONS THAT MOVE THE DEAL ----
+     "Send to <them>" hands the turn over; "Send to Docs tab for signature"
+     closes the round. Everything else in this room edits, reads or decides
+     within it — these two are the only controls that move the negotiation to
+     its next state, and they were rendered at the same weight as a ghost
+     button beside them.
+
+     Bigger, filled, and given a shadow so they sit ABOVE the surface rather
+     than in it. This is the one place on the screen where being loud is
+     correct: a reader who cannot find how to send has a contract that goes
+     nowhere. */
+  .nego-go{font-size:13px;font-weight:600;letter-spacing:.01em;padding:9px 20px;
+    border-radius:6px;box-shadow:0 1px 2px rgba(20,42,74,.18),0 2px 8px rgba(20,42,74,.14);
+    transition:transform .08s ease,box-shadow .12s ease}
+  .nego-go:hover{box-shadow:0 2px 4px rgba(20,42,74,.2),0 4px 14px rgba(20,42,74,.2)}
+  .nego-go:active{transform:translateY(1px)}
+  .nego-card.is-mine{border-left:3px solid var(--n-mine,#1f3f6e)}
+  .nego-whose{margin-left:0;font-size:9.5px;font-weight:700;letter-spacing:.04em;
+    border-radius:20px;padding:2px 8px;white-space:nowrap;max-width:170px;
+    overflow:hidden;text-overflow:ellipsis;
+    background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
+  .nego-whose.mine{background:#eaf0f8;color:var(--n-mine,#1f3f6e);border-color:#b9cbe4}
   /* ---- the rounds that are over ----
      Set apart from the round in flight without being hidden: a quieter card on
      a tinted ground, folded away behind its own heading. It must never be
      mistaken for something awaiting a decision, and it must never look like
      something that has been thrown away. */
+  /* ONE COLOUR MEANS ONE THING. Dark red is "this round is closed" — on the
+     rows of the version selector and on the history below it, so a reader who
+     learns it in one place has learned it in the other. It is deliberately not
+     the red this screen already uses for a REFUSED change (--n-reject): a
+     closed round is finished, not rejected, and two reds a shade apart saying
+     two different things would be worse than no colour at all. */
   .nego-history{margin-top:18px;border-top:1px solid var(--n-line);padding-top:12px}
   .nego-history-head{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--n-slate);margin:0 2px 8px}
+    color:var(--n-closed,#8c2f28);margin:0 2px 8px}
   .nego-round{margin-bottom:8px;border:1px solid var(--n-line);border-radius:6px;
     background:var(--n-badge-bg);overflow:hidden}
   .nego-round-tog{display:flex;align-items:center;gap:8px;width:100%;text-align:left;cursor:pointer;
-    background:none;border:0;padding:9px 11px;font:inherit;color:var(--n-ink)}
+    background:none;border:0;padding:9px 11px;font:inherit;color:var(--n-closed,#8c2f28)}
   .nego-round-tog:hover{background:rgba(0,0,0,.03)}
-  .nego-round-caret{flex:none;font-size:10px;color:var(--n-slate)}
-  .nego-round-name{font-size:12px;font-weight:600}
+  .nego-round-caret{flex:none;font-size:10px}
+  .nego-round-name{font-size:12px;font-weight:700}
   .nego-round-count{font-size:10.5px;color:var(--n-ink-soft);margin-left:auto}
+  /* The rows of the version selector. Browsers on a computer honour a colour on
+     an option; Safari and phones draw the operating system's own menu and will
+     ignore it. The "Round 1 -" on the front of every label carries the same
+     meaning either way, so nothing is lost where the colour does not land. */
+  .nego-vsel option.closed{color:var(--n-closed,#8c2f28)}
+  .nego-vsel option.live{color:var(--n-ink)}
   .nego-round-body{display:none;padding:0 9px 9px}
   .nego-round.open .nego-round-body{display:block}
   .nego-round-note{font-size:10.5px;line-height:1.5;color:var(--n-ink-soft);
@@ -1089,10 +1132,11 @@ function negoLiveCardsHtml(c, opts){
       </div>`;
 
     return `
-      <div class="nego-card${active ? ' is-active' : ''}${held ? ' is-held' : ''}" id="nego-card-${_ne(ch.id)}" data-nego-card="${_ne(ch.id)}"
+      <div class="nego-card${active ? ' is-active' : ''}${held ? ' is-held' : ''}${mine ? ' is-mine' : ''}" id="nego-card-${_ne(ch.id)}" data-nego-card="${_ne(ch.id)}"
            role="button" tabindex="0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-id">#${_ne(ch.id)}</span>
+          ${negoWhoseHtml(c, ch, opts, mine)}
           ${negoVerifyPill(c, ch)}
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
           ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
@@ -1107,7 +1151,12 @@ function negoLiveCardsHtml(c, opts){
           ${mine ? 'you withdraw it' : `${_ne(ch.author)} withdraws it`} — until then neither side can signal readiness to sign.</div>` : ''}
         <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
         <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
-        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b>${mine ? ' <span style="font-style:italic">(your side)</span>' : ''}</div>
+        ${''/* The "(your side)" italic that used to live here is gone. It was
+                the only thing on the card saying whose ask this was: grey, small,
+                at the bottom, next to a name that on a deal where both sides are
+                you says nothing at all. It is a pill in the top row now, and the
+                card carries an edge. */}
+        <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
         ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
           <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
           <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
@@ -1121,6 +1170,38 @@ function negoLiveCardsHtml(c, opts){
         </div>` : ''}${thread}
       </div>`;
   }).join('') + history;
+}
+
+/* ---------- WHOSE ASK IS THIS ----------
+
+   The one fact a change index has to carry and did not. Every card looked
+   alike, and the only thing distinguishing an ask you had made from one you
+   were being asked to answer was the word "(your side)" in grey italic at the
+   bottom, beside an author name — which on a deal where the same person is
+   testing both sides says nothing at all, and on a real one still asks the
+   reader to read where they wanted to glance.
+
+   It is why "Change decision" appears on some cards and not others: nobody
+   rules on their own ask. That rule was being applied on a screen that did not
+   say which was which, so its effect read as an inconsistency.
+
+   SAID TWICE, ON PURPOSE, IN TWO CHANNELS. The pill carries the words, and
+   words survive a printed page, a colour-blind reader and a phone that renders
+   its own controls. The edge carries the colour, and colour is what lets eight
+   cards split into two groups without being read.
+
+   NAMED, NOT SIDED. "Nordfrakt Logistik AB asked" beats "counterparty asked" —
+   the reader knows who they are talking to, and one component serves both
+   screens, so the card you see as yours is the card they see as ours. */
+function negoWhoseHtml(c, ch, opts, mine){
+  const side = opts.side || 'owner';
+  const them = (side === 'owner'
+    ? String((c && c.counterparty) || '')
+    : String(opts.org || window.FIRST_PARTY || '')).trim();
+  const label = mine ? 'Your ask' : (them ? `${them}’s ask` : 'Their ask');
+  return `<span class="nego-whose${mine ? ' mine' : ''}" data-whose="${mine ? 'mine' : 'theirs'}"
+    title="${mine ? 'Your side asked for this. Nobody rules on their own ask, so there is no Accept or Reject on it here.'
+      : 'They asked for this — it is yours to accept, reject or discuss.'}">${_ne(label)}</span>`;
 }
 
 /* ---------- THE ROUNDS THAT ARE OVER ----------
@@ -1172,19 +1253,21 @@ function negoHistoryHtml(c, opts = {}){
           <div class="nego-round-note">Closed${when ? ` on ${_ne(when)}` : ''} — settled, and kept as the record.
             The wording agreed here became the baseline for round ${_ne(r.n + 1)}.</div>
           ${list.length
-            ? list.map(ch => negoHistoryCardHtml(c, ch, r, side)).join('')
+            ? list.map(ch => negoHistoryCardHtml(c, ch, r, opts)).join('')
             : '<div class="nego-round-note">This round closed with nothing decided.</div>'}` : ''}
         </div>
       </section>`;
     }).join('')}
   </div>`;
 }
-function negoHistoryCardHtml(c, ch, r, side){
+function negoHistoryCardHtml(c, ch, r, opts){
+  const side = (opts && opts.side) || 'owner';
   const msgs = ch.thread || [];
   const mine = ch.authorSide === side;
-  return `<div class="nego-card is-past" data-nego-past="${_ne(ch.id)}" data-round-of="${_ne(r.n)}">
+  return `<div class="nego-card is-past${mine ? ' is-mine' : ''}" data-nego-past="${_ne(ch.id)}" data-round-of="${_ne(r.n)}">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
       <span class="nego-id">#${_ne(ch.id)}</span>
+      ${negoWhoseHtml(c, ch, opts || {}, mine)}
       <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
       ${ch.withdrawn ? '<span class="nego-st withdrawn">withdrawn</span>' : ''}
       <span class="nego-st past" data-past-round="${_ne(ch.id)}"
@@ -1192,7 +1275,7 @@ function negoHistoryCardHtml(c, ch, r, side){
     </div>
     <div style="font-size:12.5px;font-weight:600;line-height:1.45;margin-bottom:4px">${_ne(ch.summary)}</div>
     <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">${_ne(ch.clauseLabel || ch.clauseId)}</div>
-    <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b>${mine ? ' <span style="font-style:italic">(your side)</span>' : ''}</div>
+    <div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:7px">Author: <b style="color:var(--n-ink);font-weight:600">${_ne(ch.author)}</b></div>
     ${ch.note ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:0 4px 4px 0;padding:6px 9px;margin-bottom:8px">
       <span style="display:block;font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--n-slate)">Why they asked</span>
       <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
@@ -1278,8 +1361,17 @@ function negoPaneSelectHtml(c, which, current){
   const opts = window.negoVersionChoices
     ? negoVersionChoices(c, [pair.left, pair.right, current])
     : (window.negoVersionOptions ? negoVersionOptions(c) : []);
+  /* A ROUND THAT IS OVER IS MARKED, and the round in flight is left alone. The
+     list spans the whole negotiation now, and every row on it starts with the
+     word "Round" — so the reader needs to know which of them are still moving
+     without reading each number against the one at the top of the screen. */
+  const cur = window.negoRound ? negoRound(c) : null;
   return `<select class="nego-vsel" data-nego-vsel="${which}" aria-label="${which === 'left' ? 'Left' : 'Right'} pane version">
-    ${opts.map(o => `<option value="${_ne(o.key)}"${o.key === current ? ' selected' : ''}>${_ne(o.label)}</option>`).join('')}
+    ${opts.map(o => {
+      const closed = cur != null && o.roundN != null && o.roundN < cur;
+      return `<option value="${_ne(o.key)}" class="${closed ? 'closed' : 'live'}"${
+        closed ? ' data-closed="1"' : ''}${o.key === current ? ' selected' : ''}>${_ne(o.label)}</option>`;
+    }).join('')}
   </select>`;
 }
 
@@ -1490,7 +1582,7 @@ function negoReadyHtml(c, opts){
         <span style="display:block;font-size:11.5px;color:var(--n-ink-soft);margin-top:1px">All ${p.total} change${p.total === 1 ? '' : 's'} on the table ${p.total === 1 ? 'has' : 'have'} an answer${accepted ? ` · ${accepted} adopted into the wording` : ''}${withdrawn ? ` · ${withdrawn} ask${withdrawn === 1 ? '' : 's'} withdrawn` : ''}. Nothing is outstanding between the parties.</span>
       </span>
       ${side === 'owner'
-        ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:7px 14px">Send to Docs tab for signature</button>`
+        ? `<button id="nego-to-docs" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to Docs tab for signature</button>`
         : `<span style="flex:none;font-size:11.5px;color:var(--n-ink-soft)">${_ne((window.FIRST_PARTY || 'The other side'))} will send it for signature.</span>`}
     </div>`;
 }
@@ -1630,7 +1722,7 @@ function negoTurnBannerHtml(c, opts){
            the decisions it carries. So the banner's send is the owner's, and
            theirs is where their work is. */}
     ${mine && !opts.readonly && side === 'owner'
-      ? `<button id="nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12px;padding:6px 13px">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
+      ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;
 }
@@ -1916,7 +2008,16 @@ function negoRoomActionsHtml(c, opts){
   }
   return `
     <button class="nego-tbtn ghost" id="nego-save-draft">Save Draft</button>
-    <button class="nego-tbtn ghost" id="nego-share-link">Share Link</button>
+    ${''/* SHARE LINK IS GONE FROM THIS BAR, because "Send to <them>" in the
+            turn banner opens the very same share dialog by the very same route
+            — see the send handler below, which has always said so. Two ghost
+            buttons a few inches apart minting the same link is one too many,
+            and the quieter of the two sat next to Save Draft where nothing
+            about it said it was how the contract reaches the other party.
+
+            Sharing is not lost: the workspace's own Share and the contracts
+            list both open the same dialog, for the cases this room is not the
+            right place for — a third party, a re-send, a link for signature. */}
     <button class="nego-tbtn ghost" id="nego-copilot" title="Ask about this contract — search it, or get help with the wording">✦ Ask Copilot</button>
     ${canAct ? `<button class="nego-tbtn ghost" id="nego-insert-lib" title="Insert preferred wording from your clause library — filed as a tracked change, not an edit">+ Insert clause</button>` : ''}
     <button class="nego-tbtn acc" id="nego-all-acc"${p.pending && canAct ? '' : ' disabled'}
@@ -2148,10 +2249,9 @@ function openNegotiationRoom(c, opts = {}){
     if (opts.onSaveDraft) opts.onSaveDraft(c);
     else if (window.toast) toast('Saving is not available on this screen', 'err');
   });
-  roomId('nego-share-link')?.addEventListener('click', () => {
-    if (opts.onShareLink) opts.onShareLink(c, {});
-    else if (window.toast) toast('Sharing is not available on this screen', 'err');
-  });
+  /* The Share Link button is gone from the bar; opts.onShareLink is NOT. It is
+     the route "Send to <them>" travels, and removing the hook along with the
+     button would have taken the send with it. */
   /* The counterparty's verbs. Each one hands back to the page that owns it —
      the room renders them, it does not implement signing or declining. */
   for (const [id, hook] of [['nego-cp-ready', 'onSignalReady'],
@@ -2737,7 +2837,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
-  negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound,
+  negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
   negoRoomBannerHtml, negoClosedBannerHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,

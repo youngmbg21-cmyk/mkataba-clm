@@ -1406,10 +1406,16 @@ function negoVersionOptions(c){
      below it. Two rows, one document, is the noise the choices list exists to
      keep out. */
   for (const r of closed){
+    /* The body if the record has one, lifted from the text if it does not — a
+       link made before closed rounds travelled carries neither, and a row that
+       selects an empty document is worse than no row. */
     out.push({ key: `round${r.n}-baseline`, kind: 'round', roundN: r.n,
       label: `Round ${r.n} - Baseline`,
       sub: `the wording round ${r.n} was measured against`,
-      body: r.baselineBody || '', text: r.baselineText || '' });
+      body: (r.baselineBody && String(r.baselineBody).trim())
+        ? String(r.baselineBody)
+        : negoRichFromLines(r.baselineText || ''),
+      text: r.baselineText || '' });
     out.push(...versionsIn(r.n));
   }
   const baseline = {

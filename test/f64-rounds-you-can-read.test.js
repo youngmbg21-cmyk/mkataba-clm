@@ -321,7 +321,7 @@ describe('F64 — a closed round can be read back', () => {
       .dispatchEvent(new win.Event('click', { bubbles: true }));
     const card = win.document.querySelector(`[data-nego-past="${filed.accepted.id}"]`);
     assert.ok(card, 'both sides can look back at what was settled');
-    assert.match(card.textContent.replace(/\s+/g, ' '), /your side/,
+    assert.match(card.textContent.replace(/\s+/g, ' '), /Your ask/,
       'and the ask they made is marked as theirs');
     assert.equal(card.querySelector('[data-nego-accept],[data-nego-undo]'), null,
       'and it is no more decidable from this side than from the other');

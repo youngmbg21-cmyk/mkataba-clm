@@ -1013,7 +1013,26 @@ function portalNegoContract(p){
        tell them where the deal stands — they would reopen the link after
        saying they were ready and find no trace of having said it. */
     ready:sn.ready||undefined,
+    /* THE ROUNDS THAT ARE OVER, rebuilt from the payload — see buildSharePayload.
+       The round carries the ids of the changes that belonged to it and the
+       changes themselves arrive once, in the payload's change list, so this is
+       where the two are put back together.
+
+       AND IT TAKES THEM OUT OF THE LIVE LIST. That list is what the index draws
+       as "on the table"; before this, every change ever decided was in it, so
+       something settled two rounds ago sat among this round's open questions
+       looking exactly as live as they did. */
+    rounds:[],
     seq:sn.seq||c.changes.length };
+  const archived = new Set();
+  for (const r of (Array.isArray(sn.rounds) ? sn.rounds : [])){
+    const ids = Array.isArray(r.changeIds) ? r.changeIds : [];
+    for (const id of ids) archived.add(id);
+    c.negotiation.rounds.push({ n:r.n, at:r.at||null,
+      baselineBody:r.baselineBody||'', baselineText:r.baselineText||'',
+      changes:c.changes.filter(x=>x&&ids.includes(x.id)).map(x=>({ ...x })) });
+  }
+  if(archived.size) c.changes = c.changes.filter(x=>x&&!archived.has(x.id));
   /* Changes THIS reader asked for, put back. The payload is a snapshot taken
      before they existed, so rebuilding from it alone would make a change they
      filed a moment ago vanish on the room's next repaint. Sent ones stay too:
@@ -1026,9 +1045,16 @@ function portalNegoContract(p){
      from the payload on every repaint — so a reader who asked for two changes
      got CHG-001 twice, the re-injection above saw the id already present, and
      their second ask silently replaced their first. */
-  const held=c.changes.map(x=>/^CHG-(\d+)$/.exec(String(x.id||'')))
+  /* EVERY id this negotiation has ever used, not just the ones still on the
+     table. Taking the closed rounds out of the live list above must not take
+     their ids out of the counter — CHG-001 to CHG-005 archived and nothing live
+     would restart the count at CHG-001, and a reader's next ask would arrive
+     wearing a fingerprint that already belongs to something else. */
+  const everyChange=c.changes.concat(
+    ...(c.negotiation.rounds||[]).map(r=>r.changes||[]));
+  const held=everyChange.map(x=>/^CHG-(\d+)$/.exec(String(x.id||'')))
     .filter(Boolean).map(m=>Number(m[1]));
-  c.negotiation.seq=Math.max(c.negotiation.seq||0, c.changes.length, ...(held.length?held:[0]));
+  c.negotiation.seq=Math.max(c.negotiation.seq||0, everyChange.length, ...(held.length?held:[0]));
   /* AND SO DOES THE HASH CHAIN. negoIssue links each new change onto
      `chainHead` and stamps it with `++chainSeq`, both of which the payload
      answers for — as it stood before any of these existed. Rebuilding from the
@@ -1036,7 +1062,7 @@ function portalNegoContract(p){
      first and a prevChangeHash pointing past it, and the room told them, in
      red, that their own chain was broken. Wind both forward to the last record
      actually on this page. */
-  const chain=c.changes.filter(x=>x&&x.hash&&(x.seq||0)>(c.negotiation.chainSeq||0));
+  const chain=everyChange.filter(x=>x&&x.hash&&(x.seq||0)>(c.negotiation.chainSeq||0));
   if(chain.length){
     const last=chain.reduce((a,b)=>((b.seq||0)>=(a.seq||0)?b:a));
     c.negotiation.chainHead=last.hash;

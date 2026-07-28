@@ -224,8 +224,12 @@ describe('what is ours stays ours', () => {
     const { win, c } = await negotiated();
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
     const d = win.document;
-    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'])
+    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib'])
       assert.ok(d.getElementById(id), `${id} must still be on the owner's bar`);
+    /* Share Link left the bar in f65 — for both sides, and for a different
+       reason than the one this suite is about: it was a second way to do
+       what "Send to <them>" already does. Distribution is still ours. */
+    assert.equal(d.getElementById('nego-share-link'), null);
     assert.match(d.getElementById('nego-status').textContent, /Email:/);
     assert.match(d.querySelector('.nego-crumbs').textContent, /Contract Workspace/);
   });

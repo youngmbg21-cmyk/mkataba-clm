@@ -4908,3 +4908,94 @@ carry `negotiation.rounds`, so the counterparty's page is unaffected.
 **1142 tests, 0 failures.** `f64` is new (25 tests). Four existing tests were
 rewritten to the new labels and the new list: `f36` (the hand-off is now
 asynchronous), `f38`, `f46` and `f54`.
+
+## Cycle 9 — one record, two screens, and the card that would not say whose it was
+
+Four faults from one sitting with the product, three of them reported as
+questions rather than bugs — which is usually where the real ones are.
+
+### 1. The counterparty's screen did not match ours
+
+Cycle 8 gave the OWNER the rounds that are over. The counterparty got neither
+the rows nor the history, because `buildSharePayload` never carried
+`negotiation.rounds`. And it was worse than an omission: the payload sends
+`negoAllChanges` — live AND archived — and `portalNegoContract` put the lot into
+`c.changes`, which is what the index draws as "on the table". So a change settled
+two rounds ago sat among this round's open questions looking exactly as live as
+they did.
+
+`shareNegoRounds` now carries each closed round's number, when it closed, the
+wording it was measured against, and **the ids of the changes that belonged to
+it**. Not the changes themselves — they already travel once, whole, in
+`shareChanges`, and two copies of one fingerprint on one page is an invitation
+for the two to disagree. The ids are the join; the portal partitions
+`c.changes` on them and files each round's own set onto `negotiation.rounds`.
+
+**The thing that would have broken quietly.** Taking the archived changes out of
+`c.changes` also took them out of the two counters rebuilt from it. `negoNextId`
+mints from `negotiation.seq` and `negoIssue` links onto `chainHead`/`chainSeq`,
+both derived from that array on every repaint — so five archived changes and
+nothing live would have restarted the count at CHG-001 and handed a reader's next
+ask a fingerprint that already belonged to something else, with a chain head
+pointing past it. Both now read `everyChange` — live plus archived.
+
+Payload cost: ~4KB per closed round on the test contract, against a 15MB server
+limit. Not capped, deliberately — a cap would mean the oldest rounds silently
+vanish from their dropdown, which is the fault being fixed. `negoVersionOptions`
+lifts a round's body from its text when a link carries no body, so an older
+payload degrades instead of offering an empty document.
+
+### 2. Nothing said whose ask a change was
+
+Reported as *"why do some cards have Change decision and some do not?"* — which
+is `!mine` working correctly on a screen that would not say which was which.
+Nobody rules on their own ask; the only thing carrying that fact was
+`(your side)` in grey italic at the bottom of the card, beside an author name
+that on a deal where one person is testing both sides says nothing at all.
+
+`negoWhoseHtml` puts it in the top row as a pill, named — "Nordfrakt Logistik
+AB's ask", not "counterparty" — and the card takes `.is-mine`, a dark blue left
+edge. Two channels on purpose: words survive a printed page, a colour-blind
+reader and a phone rendering its own controls; colour is what lets eight cards
+split into two groups without being read. The grey italic is gone rather than
+left beside it.
+
+**The edge cannot collide with the amber "not sent yet" edge**, and that is a
+property rather than a coincidence: `held` only ever lands on a decision made
+about the OTHER side's ask, because nobody decides their own. Asserted, so the
+styling rests on something.
+
+One component serves both screens and computes `mine` from the side looking, so
+the card we see as ours is the card they see as ours — no second implementation
+and no way for the two to disagree.
+
+### 3. Dark red for a round that is over
+
+On the selector rows (`option.closed`) and on the history below it, so the
+colour means one thing in both places. Deliberately not `--n-reject`: a closed
+round is finished, not refused, and two reds a shade apart meaning two different
+things is worse than no colour. Browsers on a computer honour a colour on an
+option; Safari and phones draw the OS menu and may ignore it — every label
+starts with `Round N - ` either way.
+
+### 4. Two buttons that move the deal, and one that was spare
+
+`Send to <them>` hands over the turn; `Send to Docs tab for signature` closes the
+round. Everything else in the room edits, reads or decides within it. Both now
+carry `.nego-go` — larger, filled, raised — instead of rendering at the same
+weight as the ghost button beside them.
+
+`Share Link` is removed from the bar. It opened the same dialog by the same
+route as `Send to <them>` (the send handler has said so in a comment since it was
+written), from a position beside Save Draft where nothing suggested it was how
+the contract reaches the other party. **`opts.onShareLink` is kept** — it is the
+route the send rides, and removing the hook with the button would have taken the
+send with it. There is a test for exactly that. Sharing outside the room is
+untouched (`#ws-share`, the contracts list).
+
+Nothing here touches the diff engine, the fingerprints, the change model or
+`richToText`. Accept All / Reject All are unchanged.
+
+**1165 tests, 0 failures.** `f65` is new (23 tests). Six existing assertions were
+updated: `f36`/`f37`/`f64` for the marker that moved out of the grey italic, and
+`f38`/`f49`/`f51` for Share Link leaving the bar.

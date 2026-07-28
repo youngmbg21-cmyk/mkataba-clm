@@ -3650,3 +3650,75 @@ two-row dropdown, both of which were the thing being changed.
 Nothing here touched the diff engine, the fingerprints, the change model or the
 comparison text. Accept All / Reject All are exactly as they were, and the
 counterparty's page is unaffected.
+
+## Round 15 — the counterparty's screen catches up, and every card says whose it is
+
+Four things from your last sitting with it.
+
+### Their screen now shows what yours shows
+
+Their dropdown reads exactly like yours — `Round 1 - Baseline`, `Round 2 -
+Baseline`, `Round 2 - Working Version` — and they get the same **Earlier rounds**
+section, folded away and read-only.
+
+**And one thing you hadn't spotted.** Their page was putting *every change ever
+decided* into the live list. So a change you settled two rounds ago was sitting
+among this round's open questions, looking exactly as live as they did. Settled
+changes now move into the history where they belong, on their screen as on
+yours.
+
+The link carries about 4KB more per closed round. The limit is 15MB, so this is
+not close to a problem, and I chose not to cap it — capping would mean your
+oldest rounds silently disappear from their dropdown, which is the exact fault
+being fixed.
+
+### Every card says whose ask it is
+
+This is the answer to your "why do some cards have Change decision and some do
+not". Two markers, on purpose:
+
+- **A pill in the top row**, next to the change number: **`Your ask`** or
+  **`Nordfrakt Logistik AB's ask`** — their real name, not "the counterparty".
+- **A dark blue edge** down the left of your own cards, like the green edge on
+  your contract cards. Theirs are left plain.
+
+Words *and* colour, because colour alone fails on a printout, for a
+colour-blind reader, or on a phone. The old grey `(your side)` italic is gone —
+saying it twice in two places is how it got ignored the first time.
+
+I checked one thing before choosing the edge: the amber "not sent yet" edge can
+**never** land on the same card, because you can only hold a decision on the
+*other* side's ask. So the two never fight.
+
+Same code runs both screens, so the card you see as **Your ask** they see as
+**Wanjiru Catering Ltd's ask**. The two can't disagree.
+
+### Closed rounds in dark red
+
+On the dropdown rows and on the "Earlier rounds" heading, so the colour means
+one thing everywhere: *this is history, not live*. It's deliberately **not** the
+red used for a refused change — a closed round is finished, not rejected.
+
+On Safari and on phones the dropdown is drawn by the operating system and may
+ignore the colour. Every row still starts with `Round 1 -`, so nothing is lost
+where the colour doesn't land.
+
+### The send buttons, and Share Link
+
+**Send to Nordfrakt Logistik AB** and **Send to Docs tab for signature** are now
+bigger, filled and raised off the surface. They're the only two controls in the
+room that move the deal to its next state — everything else edits, reads or
+decides within it.
+
+**Share Link is removed.** It opened the very same dialog as "Send to
+Nordfrakt", from a spot next to Save Draft where nothing suggested it was how
+the contract reaches the other side. Sharing is still there from the contract
+workspace and the contracts list, for a third party or a re-send.
+
+One caution I flagged and you accepted: "Send to Nordfrakt" only appears when
+it's *your* turn. Once you've sent and are waiting on them, the room has no
+share button — you'd share from the workspace. Say the word if you'd rather that
+button stayed visible all the time.
+
+**1165 tests, 0 failures.** 23 new in f65. Six existing assertions were updated
+for the marker that moved and the button that went.
