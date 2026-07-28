@@ -167,3 +167,59 @@ describe('F75 — unsent work asks to be sent', () => {
       'and it belongs in the banner, because there is no held work to sit beside');
   });
 });
+
+/* THE BUG THIS FILE'S OWN TESTS WALKED PAST.
+
+   Moving the send into the index left the banner still rendering one whenever
+   it was your turn — because negoTurnBanner reports unsent:0 on your own turn,
+   which is right for the sentence it writes and wrong for deciding whether the
+   postbox has this covered. Two elements, one id, and the wiring takes the
+   first match: the button on screen beside the work was the one with no handler
+   on it. Every test above passed throughout, because each asserted that A send
+   exists and none asked how many. */
+describe('F75 — there is exactly one send, and it is the one you can see', () => {
+  const sends = host => host.querySelectorAll('[id="nego-send"]');
+
+  test('on your own turn, holding an unsent ask', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    assert.equal(sends(host).length, 1, 'two would mean one of them is dead');
+    assert.ok(sends(host)[0].closest('.nego-index-send'),
+      'and the live one has to be the one beside the work');
+  });
+
+  test('after handing over, holding a new ask', async () => {
+    const r = await room();
+    await r.propose('4');
+    r.win.negoHandOver(r.c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    await r.propose('5');
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    assert.equal(sends(host).length, 1);
+  });
+
+  test('and with nothing held, exactly one in the banner', async () => {
+    const r = await room();
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    assert.equal(sends(host).length, 1);
+    assert.ok(!sends(host)[0].closest('.nego-index-send'));
+  });
+
+  test('the one that is rendered is the one that is wired', async () => {
+    const r = await room();
+    await r.propose('4');
+    let fired = 0;
+    r.win.negoResetView();
+    r.win.openNegotiationRoom(r.c, { side: 'owner', by: 'Wanjiru Kamau', persist: false,
+      onShareLink: () => { fired++; } });
+    const host = r.win.document.querySelector('#nego-room') || r.win.document;
+    host.querySelector('[id="nego-send"]').dispatchEvent(new r.win.Event('click', { bubbles: true }));
+    assert.equal(fired, 1, 'pressing the button you can see has to do something');
+  });
+});

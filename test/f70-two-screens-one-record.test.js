@@ -298,12 +298,35 @@ describe('F70 — a round that is over is marked, and the live round is left alo
 /* ---- 4. the two buttons that move the deal, and the one that was spare --- */
 
 describe('F70 — the sends are prominent, and there is one of each', () => {
-  test('"Send to <them>" is given weight the ghost buttons do not have', async () => {
+  /* The send moved into the change index, beside the work it sends, to match
+     the counterparty's postbox — asked for repeatedly and answered in the wrong
+     place until it was. Where we are HOLDING an unsent ask, as here, that is
+     where it is and it pulses. The banner keeps a `nego-go` send for the case
+     the postbox cannot cover — handing the contract back with nothing of ours
+     outstanding — which the test below this one now pins. */
+  test('the send that moves the deal is given weight the ghost buttons do not have', async () => {
     const { win, c } = await played();
-    const btn = ownerRoom(win, c).$('#nego-send');
-    assert.ok(btn, 'it is our turn, so the send is there');
-    assert.match(btn.className, /nego-go/);
-    assert.match(btn.textContent, /Send to Nordfrakt Logistik AB/);
+    const room = ownerRoom(win, c);
+    const btn = room.$('#nego-send');
+    assert.ok(btn, 'we are holding an ask, so the send is there');
+    assert.equal(room.$$('[id="nego-send"]').length, 1, 'and there is exactly one of it');
+    assert.match(btn.className, /nego-pulse/, 'flashing, because something is being held');
+    assert.ok(btn.closest('.nego-index-send'), 'in the index, beside the change it sends');
+    assert.match(btn.textContent, /Send \d+ change/);
+    assert.match(btn.textContent, /Nordfrakt Logistik AB/);
+  });
+
+  test('and with nothing held it is the banner send, still weighty', async () => {
+    const { win, c } = await played();
+    for (const ch of win.negoPending(c))
+      if (ch.authorSide === 'owner') win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik Lindqvist' });
+    const room = ownerRoom(win, c);
+    const btn = room.$('#nego-send');
+    if (btn){
+      assert.equal(room.$$('[id="nego-send"]').length, 1);
+      assert.match(btn.className, /nego-go/);
+      assert.ok(!btn.closest('.nego-index-send'));
+    }
   });
 
   test('and so is "Send to Docs tab for signature"', async () => {

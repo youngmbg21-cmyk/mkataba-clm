@@ -1748,6 +1748,15 @@ function negoTurnBannerHtml(c, opts){
   const sent = c.negotiation && c.negotiation.turnAt;
   const when = sent && window.fmtDT ? fmtDT(sent) : null;
   const mine = b.mine;
+  /* ASKED DIRECTLY, not read off the banner's own summary. negoTurnBanner
+     returns unsent:0 whenever it is your turn — right for the sentence it
+     writes, wrong for deciding whether the postbox already has this covered. So
+     on your own turn with an ask you had not sent, BOTH rendered, both carrying
+     id="nego-send" — and the wiring, which takes the first match, bound the
+     banner's. The button in the index was the one on screen beside the work,
+     and it was the one with no handler on it: pressing it did nothing at all. */
+  const heldHere = (side === 'owner' && window.negoUnsentAsks)
+    ? negoUnsentAsks(c, 'owner').length : (b.unsent || 0);
   return `<div class="nego-turn" id="nego-turn" data-turn="${mine ? 'mine' : 'theirs'}"
       style="flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-radius:6px;padding:9px 14px;
       border:1px solid ${mine ? '#a8cbb8' : 'var(--n-line)'};background:${mine ? '#eef7f1' : 'var(--n-badge-bg)'};
@@ -1787,7 +1796,7 @@ function negoTurnBannerHtml(c, opts){
     ${''/* Only when the postbox is NOT up. With unsent asks the send belongs in
            the index beside them; with none, this is the way to hand the
            contract back unchanged, and there is nowhere else for it. */}
-    ${mine && !b.unsent && !opts.readonly && side === 'owner'
+    ${mine && !heldHere && !opts.readonly && side === 'owner'
       ? `<button id="nego-send" class="ui-btn ui-btn-primary nego-go" style="flex:none">Send to ${_ne(c.counterparty || 'the counterparty')}</button>`
       : ''}
   </div>`;
