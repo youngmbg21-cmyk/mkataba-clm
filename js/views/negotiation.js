@@ -511,7 +511,11 @@ function negoStyleHtml(){
     transition:transform .08s ease,box-shadow .12s ease}
   .nego-go:hover{box-shadow:0 2px 4px rgba(20,42,74,.2),0 4px 14px rgba(20,42,74,.2)}
   .nego-go:active{transform:translateY(1px)}
-  .nego-card.is-mine{border-left:3px solid var(--n-mine,#1f3f6e)}
+  /* WHOSE ASK THIS IS, readable without reading. It pairs with the "Your ask"
+     chip and explains why the card has no Accept on it — nobody rules on their
+     own proposal. At 3px it was competing with the 1px border it sits inside
+     and had to be looked for; the padding absorbs the extra so nothing shifts. */
+  .nego-card.is-mine{border-left:5px solid var(--n-mine,#1f3f6e);padding-left:11px}
   .nego-whose{margin-left:0;font-size:9.5px;font-weight:700;letter-spacing:.04em;
     border-radius:20px;padding:2px 8px;white-space:nowrap;max-width:170px;
     overflow:hidden;text-overflow:ellipsis;
