@@ -106,11 +106,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       c.playbook = { verdicts:[{ status:'deviation', category:'Liability cap',
         quote:'EUR 250,000 in the aggregate per contract year' }] };
     }
+    /* A clause with NO pending change, for the AI proposal shot: the guard
+       correctly refuses a selection that spans marked-up text, so demonstrating
+       the editable preview needs settled wording to select from. */
+    const clean = labClausesOf(lab)[2];
     labPut(c.id, lab);
     window.copilotAvailable = () => true;
-    window.copilotAsk = async () => '7.2 Either party may terminate for convenience on thirty (30) days written notice, such notice not to expire before the end of the then-current storage cycle.';
+    /* Echoes the passage it was given, so the picture shows a plausible rewrite
+       of the actual selection rather than a fixed sentence pasted over unrelated
+       wording. Still a stub — these are shots of the flow, not of a model. */
+    window.copilotAsk = async (messages) => {
+      const m = /"""\n([\s\S]*?)\n"""/.exec((messages && messages[0] && messages[0].content) || '');
+      const sel = (m && m[1] || '').trim();
+      if(!sel) return 'No wording was supplied.';
+      return sel.replace(/\.$/, '') + ', provided that the Buyer\'s prior written approval shall not be unreasonably withheld.';
+    };
     renderDocLab();
-    return { change: ch.id, clause: cl.clauseId };
+    return { change: ch.id, clause: cl.clauseId, clean: clean ? clean.clauseId : null };
   });
   await pause(500);
   console.log('  staged ' + JSON.stringify(staged));
@@ -145,18 +157,35 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   if(flat) await shot('04-structure-before', flat);
   await page.evaluate(() => document.getElementById('flat')?.remove());
 
-  /* the selection menu */
+  /* the clause frames and their toolbars — hovered so the tools show */
+  await page.evaluate(() => {
+    const f = document.querySelector('.clause-frame');
+    if(f) f.scrollIntoView({ block:'center' });
+    document.querySelectorAll('.clause-tools').forEach(t => t.style.opacity = '1');
+  });
+  await pause(300);
+  await shot('13-clause-frames');
+  const frame = await page.$(`[data-clause-id="${staged.clause}"]`);
+  if(frame) await shot('14-clause-frame-toolbar', frame);
+
+  /* the selection menu — on settled wording, so the proposal can be shown */
   await page.evaluate(id => {
     const host = document.querySelector(`[data-lab-clause="${id}"]`);
-    const line = [...host.querySelectorAll('.rl-line')].find(p => /terminate for convenience/.test(p.textContent));
+    const line = [...host.querySelectorAll('.rl-line')].find(p => p.textContent.trim().length > 40)
+      || host.querySelector('.rl-line');
     if(!line) return;
     line.scrollIntoView({ block:'center' });
     const t = [...line.childNodes].find(n => n.nodeType === 3 && n.textContent.trim().length > 15) || line.firstChild;
     const r = document.createRange();
-    r.setStart(t, 0); r.setEnd(t, Math.min(40, t.textContent.length));
+    /* Snapped to a word boundary — a selection cut mid-word makes the shot look
+       like a bug when it is only the harness being careless. */
+    const raw = t.textContent;
+    let end = Math.min(64, raw.length);
+    while(end > 12 && !/\s/.test(raw[end])) end--;
+    r.setStart(t, 0); r.setEnd(t, end);
     const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
     document.getElementById('lab-canvas').dispatchEvent(new MouseEvent('mouseup', { bubbles:true }));
-  }, staged.clause);
+  }, staged.clean || staged.clause);
   await pause(500);
   await shot('05-selection-menu');
 
@@ -169,6 +198,25 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await shot('07-ai-proposal-in-page');
   await page.evaluate(() => document.querySelector('.lab-aipop [data-ai-cancel]')?.click());
   await pause(250);
+
+  /* the AI Assist button on the toolbar opens the same menu */
+  await page.evaluate(id => document.querySelector(`[data-lab-assist="${id}"]`)?.click(), staged.clause);
+  await pause(400);
+  await shot('15-toolbar-assist-menu');
+  await page.evaluate(() => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove()));
+
+  /* the note composer */
+  await page.evaluate(id => document.querySelector(`[data-lab-note="${id}"]`)?.click(), staged.clause);
+  await pause(400);
+  const note = await page.$('.lab-notepop');
+  if(note) await shot('16-note-composer', note);
+  await page.evaluate(() => {
+    const t = document.querySelector('.lab-notepop [data-note-text]');
+    if(t) t.value = 'Ops will not accept under 30 days. Concede re-tender costs instead.';
+    document.querySelector('.lab-notepop [data-note-save]')?.click();
+  });
+  await pause(500);
+  await shot('17-tag-attached');
 
   /* the change badge → its conversation */
   await page.evaluate(() => document.querySelector('[data-lab-badge]')?.click());
