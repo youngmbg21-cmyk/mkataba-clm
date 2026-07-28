@@ -3143,3 +3143,109 @@ it. Every screen in every cycle came up as plain text. So I can tell you the
 steps work — I have driven them end to end, twice over — but not that they
 *look* right, are readable, or are usable on a phone. Someone needs to open it
 on a normal computer and look.
+
+---
+
+# Round 8 — the conversation on a change, and the signals around it
+
+Five things. One was a real bug that was losing people's words; the rest are the
+screen saying out loud what it already knew.
+
+## The bug: replies were disappearing
+
+Erik types an answer under a proposed change. He sees it appear. He presses
+Accept on that same change a moment later — and his own words are gone.
+
+**They were never lost.** They were on the server the whole time, and they were
+in the discussion panel. But a page that shows you your comment and then takes
+it away has told you it was lost, and there is no difference to the person
+reading it.
+
+Why it happened: a comment on a change has two places it can live. On our side
+it goes onto the contract record itself. On Erik's side it cannot — his page
+holds a *copy* of the contract built fresh from the link every time anything on
+the screen moves, so anything written onto it is thrown away seconds later. His
+replies therefore go to a separate message store, and that store was never being
+read back in when the page rebuilt itself.
+
+Three parts to the fix.
+
+**The two stores are read as one thread**, on both sides, with the same piece of
+code. A comment written in both places — which is what happens every time *we*
+post one — counts once, not twice. They read in the order they were said.
+
+**Erik's page puts them back** every time it rebuilds. Same treatment his
+proposed changes already had, for exactly the same reason.
+
+**Our side now fetches them**, on opening the negotiation and again on the same
+12-second beat that already watches for his answers. Before, a reply sat on the
+server until somebody reloaded the page. The screen only repaints when something
+has actually arrived — repainting on every beat would rebuild the room under you
+and take the reply box you were typing into with it.
+
+**And found while fixing it:** the reply was posted and the screen repainted at
+the same moment, without waiting. So the repaint often read the message store a
+fraction of a second before the reply reached it. It now waits.
+
+## Discuss flashes amber when somebody is waiting
+
+"Discuss (2)" reads exactly the same whether the last word was theirs an hour
+ago or yours a moment ago. A question addressed to you sat on a card looking
+identical to a settled conversation.
+
+The button now pulses amber when **the last word is theirs and it arrived since
+you last opened that thread** — both halves, because either one alone is wrong.
+"Their word is last" nags for ever once you have read it and chosen not to
+reply; "newer than my last look" lights up over your own comment.
+
+Opening the thread stops it. So does answering. Which threads you have read is
+kept in your own browser and never travels with the contract: it is a fact about
+you, not about the agreement, and the other side can neither see it nor change
+it.
+
+## "Send N decisions" pulses until you press it
+
+Decisions you have taken and not sent are the one state on that screen with
+nothing to show for themselves — you have answered, they have heard none of it,
+and the page looks finished. The button now pulses between the room's two blues
+until it is pressed. On both sides. Nothing to switch off afterwards: the button
+stops being drawn the moment there is nothing held.
+
+Both flashes stop, and hold a static colour instead, for anyone whose device is
+set to reduce motion. Someone who asked for less movement did not ask to be told
+less.
+
+## The reply button now says "Save"
+
+It said "Send", a few inches from another button reading "Send 2 decisions" that
+does something completely different. Same behaviour, including Enter — only the
+word changed, and only on the reply box.
+
+## Accepted / Rejected moved onto the buttons' line
+
+The status was being pushed inside the clause's own heading, so a clause read
+"Clause 4 · Payment Terms Accepted" — the status looked like part of the title,
+and on a narrow pane it pushed the heading onto two lines. It now sits on the
+same row as Change and Delete, immediately before them, where the controls for
+that clause already are. On read-only screens, which have no button row, it
+stays exactly where it was.
+
+## What was deliberately not touched
+
+The comparison engine, the fingerprints and the change model — none of this
+changes what is compared or what is signed. Accept All and Reject All are
+untouched. The mobile/WhatsApp counterparty portal is untouched; the two changes
+inside `js/views/portal.js` are the ones named in the brief — putting replies
+back on the rebuilt page, and the pulse on that page's own send button.
+
+**1067 tests, 0 failures.** 25 new ones covering all five, including the two
+faults found while fixing the first.
+
+## Still true from earlier rounds
+
+**Nobody has seen any of this on a properly styled screen.** This machine cannot
+reach the file that gives the app its colours and spacing, so every screen comes
+up as plain text. The behaviour is driven end to end and tested. Whether the
+amber flash reads as urgent rather than broken, and whether the blue pulse is
+noticeable without being irritating, are judgements that need a person looking at
+a real screen.

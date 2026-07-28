@@ -960,25 +960,60 @@ const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
 
    Identical text from the same side in both stores is ONE message, not two —
    the owner's comments are written to the thread and posted to the channel, so
-   without this every one of them would appear twice on their own screen. */
-function negoThreadOf(c, ch){
+   without this every one of them would appear twice on their own screen.
+
+   `extra` is passed rather than only read off the record, because the two sides
+   hold that list in different places: the owner keeps it on `c._messages`, and
+   the counterparty's page has no contract to keep anything on — its copy is
+   rebuilt from the share payload on every repaint, so the list lives on the
+   page (PORTAL_OPTS.messages) and is handed in. */
+function negoMergedThread(c, ch, extra){
   const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
-  const all = (c && Array.isArray(c._messages)) ? c._messages : [];
+  const all = Array.isArray(extra) ? extra
+    : ((c && Array.isArray(c._messages)) ? c._messages : []);
   if (!ch || !all.length) return own;
   const topic = negoTopicFor(ch);
-  const key = m => `${m.side || ''}|${String(m.text || '').replace(/\s+/g, ' ').trim()}`;
+  /* THE TIMESTAMP IS DELIBERATELY NOT IN THE KEY, and leaving it in would put
+     every one of the owner's own comments on the screen twice. A comment they
+     post is written to `ch.thread` stamped by their browser and posted to the
+     channel stamped by the server — same words, same author, same side, two
+     clocks. Author, side and wording identify a message; the moment it was
+     recorded identifies which copy of it you are holding. */
+  const key = m => `${m.side || ''}|${String(m.who || '').trim()}|${String(m.text || '').replace(/\s+/g, ' ').trim()}`;
   const have = new Set(own.map(key));
-  const extra = [];
+  const extras = [];
   for (const m of all){
     if (!m || String(m.topic || '') !== topic) continue;
     const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null };
     if (have.has(key(one))) continue;
     have.add(key(one));
-    extra.push(one);
+    extras.push(one);
   }
-  if (!extra.length) return own;
-  return own.concat(extra)
+  if (!extras.length) return own;
+  return own.concat(extras)
     .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+}
+/* The name this was introduced under, kept: it reads better at the call sites
+   that only ever have the record to go on. */
+const negoThreadOf = (c, ch) => negoMergedThread(c, ch);
+
+/* ---------- IS SOMEBODY WAITING ON AN ANSWER? ----------
+   Unread means two things at once, and both have to be true: the last word in
+   the thread is THEIRS, and it arrived after the last time this reader opened
+   that thread. Either half alone is wrong — "the last word is theirs" nags for
+   ever once you have read it and decided not to reply, and "newer than last
+   opened" lights up over your own comment.
+
+   `seenAt` is the reader's own record of when they last opened this thread. It
+   is a local fact about a person, not a fact about the agreement, so it is kept
+   in localStorage per reader and never travels with the contract. */
+function negoThreadUnread(msgs, side, seenAt){
+  const list = Array.isArray(msgs) ? msgs : [];
+  if (!list.length) return false;
+  const last = list[list.length - 1];
+  if (!last || last.side === side) return false;           // our own word is last
+  if (!seenAt) return true;                                // never opened
+  return String(last.at || '') > String(seenAt);
 }
 
 /* ---------- progress, and the one transition out ---------- */
@@ -1734,7 +1769,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw,
-  negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf,
+  negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,

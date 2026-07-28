@@ -59,6 +59,34 @@ let _negoClean = false;
 const negoCleanView = () => _negoClean;
 const negoSetCleanView = on => { _negoClean = !!on; return _negoClean; };
 
+/* ---------- WHAT THIS READER HAS ALREADY READ ----------
+   A local fact about a person, never a fact about the agreement: when did I
+   last open the thread on this change. It decides one thing — whether the
+   Discuss button nags — and it must not travel with the contract, must not
+   reach the share payload, and must not be something the other side can see or
+   change. So it is kept per browser, keyed by the thing that identifies the
+   conversation on each side: the contract id for the owner, the share token for
+   the counterparty, whose page has no contract id to key on.
+
+   Every read and write is wrapped: a no-login origin can throw outright on
+   localStorage, and a decoration that cannot remember what you read is not a
+   reason to take a screen down. */
+const negoSeenKey = (scope, id) => `hati.threadSeen.${scope || 'anon'}.${id}`;
+function negoThreadSeenAt(scope, id){
+  try { return localStorage.getItem(negoSeenKey(scope, id)) || null; }
+  catch (e){ return null; }
+}
+function negoMarkThreadSeen(scope, id){
+  const at = window.nowISO ? nowISO() : new Date().toISOString();
+  try { localStorage.setItem(negoSeenKey(scope, id), at); } catch (e){}
+  return at;
+}
+/* Which store this reader's "seen" marks belong in. The owner is identified by
+   the contract; the counterparty by the link they were sent. */
+const negoSeenScope = (c, opts) => String((opts && opts.seenScope)
+  || (opts && opts.side === 'counterparty' ? (opts.token || '') : '')
+  || (c && c.id) || 'anon');
+
 const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
 
 /* A clause id is a NEGOTIATION key, not a DOM id. "clause:2." carries a colon
@@ -372,7 +400,12 @@ function negoStyleHtml(){
      463px text column minus 210px of reserved space wrapped "Clause 1 · Scope
      of Services" onto two lines in BOTH panes, including the one that has no
      tools at all. A row costs a little height and collides with nothing. */
-  .nego-tools{display:flex;justify-content:flex-end;gap:4px;margin-bottom:7px}
+  .nego-tools{display:flex;justify-content:flex-end;align-items:center;gap:6px;
+    margin-bottom:7px;flex-wrap:wrap}
+  /* The status pill lives in this row now, immediately before the verbs. Its
+     own margin was written for sitting inside a heading; in a flex row the gap
+     is the spacing and the margin would double it. */
+  .nego-tools .nego-note{margin-left:0;vertical-align:baseline}
   .nego-tool{font-size:10.5px;font-weight:700;border:1px solid var(--n-slate);
     background:var(--n-slate);color:#fff;border-radius:5px;padding:3px 9px;white-space:nowrap;
     cursor:pointer;font-family:inherit;letter-spacing:.01em;
@@ -447,6 +480,19 @@ function negoStyleHtml(){
   .nego-acts .b-dis{border-color:#c9d5e1;color:var(--n-slate-soft)}
   .nego-acts .b-dis:hover{background:var(--n-badge-bg)}
   .nego-acts .b-dis.has-thread{border-color:var(--n-slate-soft)}
+  /* ---- somebody is waiting on an answer ----
+     The count could not say this. "Discuss (2)" reads the same whether the last
+     word was theirs an hour ago or yours a moment ago, so a question addressed
+     to you sat on a card looking exactly like a settled conversation. Amber is
+     the colour this product already uses for an open point, and it stops the
+     moment the thread is opened — a light that never goes out is a light people
+     stop seeing. */
+  .nego-acts .b-dis.has-unread{border-color:#b8862b;color:#7d5a14;background:#fdf6e7;
+    animation:negoUnread 1.2s ease-in-out infinite}
+  @keyframes negoUnread{
+    0%,100%{background:#fdf6e7;box-shadow:0 0 0 0 rgba(184,134,43,0)}
+    50%{background:#f7e9c8;box-shadow:0 0 0 3px rgba(184,134,43,.28)}
+  }
   .nego-acts .b-undo{border-color:#c9d5e1;color:var(--n-ink-soft);flex:0 0 auto;padding:6px 12px}
   .nego-acts .b-undo:hover{background:#f2f4f7}
   .nego-acts .b-wdr{border-color:var(--n-slate-soft);color:var(--n-slate);padding:6px 10px}
@@ -460,6 +506,20 @@ function negoStyleHtml(){
   .nego-index-send button{width:100%;border:0;border-radius:7px;padding:8px 0;font:inherit;font-size:12px;
     font-weight:700;color:#fff;background:var(--n-slate);cursor:pointer;transition:filter .12s ease}
   .nego-index-send button:hover{filter:brightness(1.12)}
+  /* ---- decisions that have not left the browser ----
+     Held answers are the one state on this screen with a deadline attached to
+     nothing: the reader has decided, the other side has heard none of it, and
+     the page looks finished. It pulses between the room's two blues until the
+     button is pressed, and there is nothing to switch off afterwards — the
+     control it lives on stops being rendered the moment there is nothing held.
+     The .nego-pulse class is deliberately UNSCOPED: the counterparty's own
+     postbox (#pt-nego-send) sits on their page rather than inside the room, and
+     one animation for both is one thing to keep right. */
+  .nego-pulse{animation:negoPulseBlue 1.2s ease-in-out infinite}
+  @keyframes negoPulseBlue{
+    0%,100%{background:#33475c;box-shadow:0 0 0 0 rgba(69,106,143,0)}
+    50%{background:#5b83ad;box-shadow:0 0 0 4px rgba(69,106,143,.30)}
+  }
   .nego-index-send .why{display:block;font-size:10.5px;line-height:1.45;color:var(--n-ink-soft);margin-top:5px}
   .nego-bulk{display:flex;gap:8px;margin-top:10px}
   .nego-bulk button{flex:1;border:0;border-radius:7px;padding:7px 0;font:inherit;font-size:12px;
@@ -532,9 +592,15 @@ function negoStyleHtml(){
     border-radius:50%;place-items:center;background:var(--n-slate);color:#fff;border:0;
     font:inherit;font-size:11px;font-weight:800;box-shadow:var(--n-shadow-pop);cursor:pointer}
 
+  /* MOTION IS THE DECORATION, NOT THE MESSAGE. With animation off, both signals
+     have to survive as colour — a reader who has asked for no movement is not
+     asking to be told less. */
   @media (prefers-reduced-motion:reduce){
     .nego-scroll,.nego-index-scroll{scroll-behavior:auto}
     .nego-room *,#nego-root *{transition:none !important;animation:none !important}
+    .nego-pulse{animation:none !important;background:#5b83ad}
+    .nego-acts .b-dis.has-unread{animation:none !important;background:#f7e9c8;
+      border-color:#b8862b;color:#7d5a14}
   }
 </style>`;
 }
@@ -624,7 +690,21 @@ function negoDocHtml(c, opts){
      press — and the act it performs is not an edit at all: it files a tracked
      change for the other side to accept or reject. The word people reach for is
      the one the portal's own redline screen already uses. */
-  const tools = cl => editable ? `<div class="nego-tools">
+  /* THE STATUS SITS WITH THE VERBS, ON ONE LINE.
+
+     "Accepted", "Rejected — baseline kept" and "Needs review" used to be pushed
+     inside the clause's own <h2>, which put a status pill in the middle of the
+     document's heading — "Clause 4 · Payment Terms Accepted" reads as part of
+     the title of the clause, and on a narrow pane it wrapped the heading onto
+     two lines. It belongs with the controls that act on that clause, which
+     already have a row of their own.
+
+     The row is flex/justify-end, so the notes are emitted FIRST and land
+     immediately before Change and Delete. Where there is no row — a read-only
+     pane, the baseline — the note stays exactly where it was, because a
+     reference copy still has to say what was decided. */
+  const tools = (cl, notes) => editable ? `<div class="nego-tools">
+      ${notes || ''}
       <button class="nego-tool" data-nego-edit="${_ne(cl.clauseId)}"
         title="Propose a change to this clause — it goes to the other side to accept or reject">Change</button>
       ${''/* "Add clause" is gone. Proposing a clause the contract does not
@@ -686,10 +766,16 @@ function negoDocHtml(c, opts){
     const active = _negoActive === ch.id;
     const flag = ch.needsReview
       ? `<span class="nego-note no" title="${_ne(ch.needsReviewWhy || '')}">Needs review</span>` : '';
+    const notes = note + flag;
+    /* Emitted ONCE: in the tools row where there is one, in the heading where
+       there is not. Rendering it in both places is the thing this change exists
+       to stop. */
+    const row = tools(cl, notes);
+    const inHead = row ? '' : notes;
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
-      ${tools(cl)}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
+      ${row}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${head(cl) ? `<h2>${head(cl)}${note}${flag}</h2>` : (note + flag)}${body}</div>`;
+      ${head(cl) ? `<h2>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
   };
 
   const insertBlock = ch => {
@@ -765,6 +851,7 @@ function negoLiveCardsHtml(c, opts){
      The default is unchanged, so any caller that says nothing gets exactly the
      behaviour it had. A page that knows it still has a channel back says so. */
   const canComment = opts.canComment != null ? !!opts.canComment : canAct;
+  const seenScope = negoSeenScope(c, opts);
   const changes = negoChanges(c).filter(x => x.status !== 'superseded');
   if (!changes.length) return `
     <div style="padding:18px 6px;font-size:12px;line-height:1.6;color:var(--n-ink-soft)">
@@ -784,8 +871,17 @@ function negoLiveCardsHtml(c, opts){
        the replies filed through the discussion channel are one exchange; see
        negoThreadOf. Reading only ch.thread is how a card could show the
        question and not the answer to it. */
-    const msgs = window.negoThreadOf ? negoThreadOf(c, ch) : (ch.thread || []);
+    const msgs = window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []);
     const n = msgs.length;
+    /* SOMEBODY IS WAITING ON AN ANSWER, and the card has to say so without
+       being read. The count alone does not: "Discuss (2)" looks the same
+       whether the last word was theirs an hour ago or yours a moment ago. */
+    const unread = !!(window.negoThreadUnread
+      && negoThreadUnread(msgs, side, negoThreadSeenAt(seenScope, ch.id)));
+    const disCls = `b-dis${n ? ' has-thread' : ''}${unread ? ' has-unread' : ''}`;
+    const disTitle = unread
+      ? ` title="${_ne((msgs[msgs.length - 1] || {}).who || 'They')} has replied and is waiting on you"`
+      : '';
     /* A side may decide the OTHER side's proposals. Nobody rules on their own
        ask: it would let one party mark their own wording adopted and tell the
        other it was agreed. They can still discuss it, and withdraw it by
@@ -821,7 +917,12 @@ function negoLiveCardsHtml(c, opts){
           : `<div style="font-size:11px;color:var(--n-ink-soft);margin-bottom:8px">No comments yet — start the thread. It stays attached to this fingerprint.</div>`}
         ${canComment ? `<div class="nego-compose">
           <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
-          <button data-nego-send="${_ne(ch.id)}">Send</button>
+          ${''/* "Save", not "Send". Every other Send on this screen posts a
+                  batch of decisions to the other side; this one attaches a
+                  sentence to a fingerprint, and two controls a few inches
+                  apart reading the same word are two controls people get
+                  wrong. The act is unchanged — it still reaches them. */}
+          <button data-nego-send="${_ne(ch.id)}">Save</button>
         </div>` : ''}
       </div>`;
 
@@ -829,10 +930,10 @@ function negoLiveCardsHtml(c, opts){
       <div class="nego-acts">
         <button class="b-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>
         <button class="b-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>
-        <button class="b-dis${n ? ' has-thread' : ''}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
+        <button class="${disCls}"${disTitle} data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
       </div>`
       : `<div class="nego-acts">
-        <button class="b-dis${n ? ' has-thread' : ''}" data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
+        <button class="${disCls}"${disTitle} data-nego-discuss="${_ne(ch.id)}">Discuss${n ? ` (${n})` : ''}</button>
         ${undoable ? `<button class="b-undo" data-nego-undo="${_ne(ch.id)}">Undo</button>` : ''}
         ${withdrawable && !ch.withdrawn
           ? `<button class="b-wdr" data-nego-withdraw="${_ne(ch.id)}"
@@ -1322,7 +1423,7 @@ function negoIndexSendHtml(c, opts = {}){
   if (n) parts.push(`${n} decision${n === 1 ? '' : 's'}`);
   const who = _ne(String(opts.org || window.FIRST_PARTY || 'the other side'));
   return `<div class="nego-index-send">
-    <button id="nego-send-decisions">Send ${parts.join(' and ')} to ${who}</button>
+    <button id="nego-send-decisions" class="nego-pulse">Send ${parts.join(' and ')} to ${who}</button>
     <span class="why">Held on this page until you send. Nothing has reached ${who} yet.</span>
   </div>`;
 }
@@ -2197,24 +2298,31 @@ function wireNegotiationTab(c, opts = {}){
     decide(b.getAttribute('data-nego-reject'), 'rejected', { reply: why });
   }));
 
+  const seenScope = negoSeenScope(c, opts);
   host.querySelectorAll('[data-nego-discuss]').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation();
     const id = b.getAttribute('data-nego-discuss');
     _negoThreads[id] = !_negoThreads[id];
     _negoActive = id;
+    /* Opening it is reading it. Marked on the way OPEN and not on the way
+       closed, because a reader who opens a thread and immediately collapses it
+       has still read what was in it — and marking on close would leave the
+       nag lit for anyone who read it and clicked elsewhere. */
+    if (_negoThreads[id]) negoMarkThreadSeen(seenScope, id);
     again();
     const inp = byId('nego-ti-' + id);
     if (inp && inp.focus) inp.focus();
   }));
   host.querySelectorAll('[data-nego-send]').forEach(b => {
     const id = b.getAttribute('data-nego-send');
-    const send = () => {
+    const send = async () => {
       const inp = byId('nego-ti-' + id);
       const text = inp ? String(inp.value || '').trim() : '';
       if (!text){ if (window.toast) toast('Write your reply first', 'err'); return; }
       const msg = negoPostComment(c, id, text, { side, author: opts.author });
       _negoThreads[id] = true;
       _negoActive = id;
+      negoMarkThreadSeen(seenScope, id);   // answering is reading
       if (opts.persist !== false && window.persist) persist(c);
       /* WHERE THE COMMENT ACTUALLY GOES.
 
@@ -2226,9 +2334,21 @@ function wireNegotiationTab(c, opts = {}){
          the only page they have. The page that owns a channel back supplies one
          here, and the comment rides the messages route that already exists for
          exactly this: it changes no wording and closes no link. */
-      if (typeof opts.onComment === 'function' && msg)
-        opts.onComment(c, negoChangeById(c, id), msg);
-      else if (window.toast) toast(`Comment posted on #${id} — the contract is unchanged and no round was opened`);
+      /* AWAITED, and the repaint comes after it. This used to fire and forget,
+         then repaint immediately — so on the counterparty's page the repaint
+         rebuilt the room from the share payload, a snapshot taken before the
+         comment existed, while the post was still in flight. Their reply
+         appeared for one frame and was gone: the local copy of the contract is
+         thrown away on every repaint, and the store that WOULD have carried it
+         had not been updated yet.
+
+         Waiting means the repaint reads a message list that already has the
+         reply in it, on both sides. */
+      if (typeof opts.onComment === 'function' && msg){
+        try { await opts.onComment(c, negoChangeById(c, id), msg); }
+        catch (e){ /* the handler reports its own failure */ }
+      }
+      else if (window.toast) toast(`Comment saved on #${id} — the contract is unchanged and no round was opened`);
       again();
       const back = byId('nego-ti-' + id);
       if (back && back.focus) back.focus();
@@ -2287,4 +2407,5 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,
+  negoSeenKey, negoSeenScope, negoThreadSeenAt, negoMarkThreadSeen,
   NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });

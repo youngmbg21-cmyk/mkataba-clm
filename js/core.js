@@ -2660,11 +2660,42 @@ function pollWaitingOnThem(){
   return !!(c.negotiation&&c.negotiation.turnAt) || (Array.isArray(c.signatures)&&c.signatures.length===0
     && (Array.isArray(c.changes)?c.changes:[]).some(x=>x&&x.status==='pending'&&x.authorSide==='owner'));
 }
+/* A REPLY IS NOT A RESPONSE, and it arrives by a different door.
+   pollPendingResponses collects answers that MOVE the negotiation — decisions,
+   proposals, signatures. A comment on a fingerprint moves nothing and is
+   deliberately not on that route, so a counterparty's reply reached the server
+   and then sat there until the owner reloaded the page. On the one screen built
+   for the conversation, that is the reply arriving late by exactly as long as
+   the owner happens to stay put.
+
+   Refreshed on the same beat, and only for the contract that is open: the
+   messages belong to a screen somebody is looking at, and there is no reason to
+   fetch a conversation nobody is reading. */
+async function pollThreadMessages(){
+  if(!API_MODE()) return;
+  const c=state.contracts&&state.activeId?getContract(state.activeId):null;
+  if(!c) return;
+  try{
+    const r=await api('contracts/'+c.id+'/messages');
+    const next=(r&&r.messages)||[];
+    const before=(c._messages||[]).length;
+    c._messages=next;
+    /* Repaint only when something actually arrived. A repaint on every tick
+       would rebuild the room under the reader twice a minute — and take the
+       reply box they were typing into with it. */
+    if(next.length!==before){
+      if(window.negoRoomIsOpen&&negoRoomIsOpen()&&window.negoRoomContract
+        &&negoRoomContract()===c&&window.openNegotiationOwnerRoom) openNegotiationOwnerRoom(c);
+      else if(window.renderDiscussSection) renderDiscussSection(c);
+    }
+  }catch(e){ /* transient — the next tick retries */ }
+}
 async function pollNow(reason){
   const t=Date.now();
   if(t-_pollLastAt < 4000) return;      // never twice in four seconds
   _pollLastAt=t;
   await pollPendingResponses();
+  await pollThreadMessages();
 }
 function schedulePolling(){
   const want=pollWaitingOnThem()?POLL_FAST:POLL_SLOW;
@@ -2674,4 +2705,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

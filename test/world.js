@@ -77,9 +77,15 @@ const HOST_IDS = ['content', 'modal-root', 'print-root', 'share-root', 'app-shel
   'nego-tab'];
 
 function buildWorld(opts = {}) {
+  /* A REAL ORIGIN, so localStorage works. Without a url jsdom serves the
+     document from an opaque origin and every localStorage access throws — which
+     the product survives (every one of them is wrapped, because a no-login
+     portal origin can throw for real) but which means anything REMEMBERED per
+     browser could not be exercised here at all: the pane layout, and now which
+     discussion threads this reader has already opened. */
   const dom = new JSDOM(
     `<!doctype html><html><body>${HOST_IDS.map(id => `<div id="${id}"></div>`).join('')}</body></html>`,
-    { runScripts: 'outside-only', pretendToBeVisual: true });
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://hati.test/' });
   const win = dom.window;
 
   /* Platform pieces the modules reach for that jsdom does not carry. The .docx

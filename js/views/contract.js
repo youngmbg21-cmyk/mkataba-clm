@@ -2128,6 +2128,11 @@ function openNegotiationOwnerRoom(c){
     readonly:!canEdit()||c.status==='Signed',
     by:currentUser()?.name,
     author:currentUser()?.name,
+    /* The other half of every thread, and which of them this reader has read.
+       Passed rather than looked up, because the counterparty's page keeps the
+       same two things somewhere else entirely — see portalNegoContract. */
+    messages:c._messages||[],
+    seenScope:c.id,
     shares:(window.cachedShares?cachedShares(c):[]),
     onChange(){ persist(c); },
     /* A comment on a fingerprint has to LEAVE THE BUILDING. negoPostComment

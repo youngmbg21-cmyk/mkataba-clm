@@ -903,13 +903,23 @@ function portalNegoContract(p){
   const c = migrateContract({ ...src, status:'Under Review',
     folder: src.folder || (TEMPLATES[src.template]||{}).folder || 'corp' });
   c.changes = Array.isArray(src.changes) ? src.changes.map(x=>({ ...x, thread:(x.thread||[]).slice() })) : [];
-  /* THE DISCUSSION CHANNEL, on the record the room reads.
+  /* THE DISCUSSION CHANNEL, ON THE RECORD THE ROOM READS — and MERGED IN, not
+     merely handed over.
+
      A reply on a fingerprint cannot be written to this page's copy of the
-     contract — the copy is rebuilt from the payload on every repaint — so it is
-     filed as a message under the change's own topic instead. Handing that list
-     to the component is what lets negoThreadOf show one thread per change
-     rather than the half of it the payload happened to carry. */
-  c._messages = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
+     contract: the copy is rebuilt from the share payload on every repaint, and
+     the payload is a snapshot taken before the reply existed. So the reply is
+     filed as a message under the change's own topic, and it has to be put back
+     here on the way through — exactly as PORTAL_NEGO_PROPOSED is for wording
+     they have asked for, and for exactly the same reason.
+
+     Without this, a counterparty typed an answer, saw it appear, pressed Accept
+     on the same change a moment later, and watched their own words vanish. The
+     reply was never lost — it was on the server the whole time — but a page
+     that shows you your comment and then takes it away has told you it was
+     lost, which is the same thing to the person reading it. */
+  const msgs = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
+  c._messages = msgs;
   /* baselineBody carries the durable clause ids the changes are anchored on.
      Rebuilding it from the text projection instead would re-segment the
      document and mint FRESH ids on this page, and every fingerprint the owner
@@ -954,6 +964,11 @@ function portalNegoContract(p){
     c.negotiation.chainHead=last.hash;
     c.negotiation.chainSeq=last.seq||c.negotiation.chainSeq;
   }
+  /* Every thread, whole, on every change — including the ones this reader filed
+     themselves a moment ago, which is why it runs after they have been put
+     back. */
+  if(window.negoMergedThread)
+    for(const ch of c.changes) ch.thread = negoMergedThread(c, ch, msgs);
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
@@ -1104,7 +1119,7 @@ function portalNegoFootHtml(p){
       ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
         :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
     </span>
-    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
+    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
 }
 /* A reply on one fingerprint, sent immediately. It is not a response — it
    changes no wording, opens no round and does not close the link — so it goes
@@ -1173,6 +1188,11 @@ function wirePortalNego(c, p){
     readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
     // an answered link can still be spoken on — see openPortalNegoRoom
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
+    /* Which conversations THIS reader has read. Keyed by the link, because
+       their page has no contract id and the mark must not follow a different
+       link to a different deal. */
+    seenScope:PORTAL_OPTS.token||'',
+    messages:PORTAL_OPTS.messages||[],
     by:who, author:who,
     /* There is nothing here to save. This page holds a COPY of somebody else's
        contract, assembled from the share payload; persisting it would write that
@@ -1206,6 +1226,11 @@ function wirePortalNego(c, p){
    itself many times and re-opening on each would trap the reader inside it. */
 let _ptRoomOpened=false;
 function wirePortalNegoFoot(c, p){
+  /* The pulse on this button is defined in the room's stylesheet — one
+     animation for both postboxes rather than two that can drift. The sheet
+     goes in <head> and re-adding is a no-op, so asking for it here costs
+     nothing and removes the assumption that the room has already opened. */
+  if(window.negoEnsureStyle) negoEnsureStyle();
   document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
 }
 /* The counterparty's door into the room — the SAME full-window mode the owner
@@ -1232,6 +1257,9 @@ function openPortalNegoRoom(c, p){
     side:'counterparty',
     noExit:isLanding,
     readonly:!live,
+    // see wirePortalNego — the link identifies this reader's own read-marks
+    seenScope:PORTAL_OPTS.token||'',
+    messages:PORTAL_OPTS.messages||[],
     /* SPEAKING OUTLIVES DECIDING. A one-shot link that has been answered can no
        longer move the negotiation — correctly — but the message route it would
        use is still open: a comment consumes no link, opens no round and changes
