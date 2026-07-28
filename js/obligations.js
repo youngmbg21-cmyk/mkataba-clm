@@ -94,11 +94,59 @@ function obState(o){
   if(due && daysUntil(due)<0) return 'overdue';
   return 'open';
 }
+
+/* ---- WHOSE DELIVERABLE IS IT? ----
+
+   A contract's obligations are almost never all one side's. A supply agreement
+   has things we must do — pay within thirty days, give sixty days' notice — and
+   things they must do — deliver monthly, keep insurance current, file quarterly
+   returns. The record had one field for this, `assignee`, and it offered a list
+   of people in THIS workspace. There was no way to write down "the supplier
+   owes us this one".
+
+   So every screen that counted obligations counted both kinds together, and
+   "six due this month" could not be read: it might mean six jobs for our team,
+   or six things to chase them about. Those are different mornings.
+
+   `party` is the answer, and it is deliberately two values and not a directory
+   of people on the other side. We do not have their staff list, we are not
+   going to maintain one, and the useful distinction is ours/theirs — the
+   counterparty's own internal owner is their business.
+
+   A record filed before this existed has no `party`. It reads as ours, which is
+   what it was: the only assignees the form ever offered were our own people. */
+const OBLIG_PARTY = [['ours','Us'],['theirs','Counterparty']];
+const obligationParty = o => ((o && o.party)==='theirs' ? 'theirs' : 'ours');
+const obligationIsTheirs = o => obligationParty(o)==='theirs';
+/* Who to chase, in the words a person would use. Their side speaks as the
+   counterparty — we hold no names over there — and ours names the colleague, or
+   says plainly that nobody has it. */
+function obligationOwner(o, c){
+  if(obligationIsTheirs(o)) return String((c && c.counterparty) || '').trim() || 'the counterparty';
+  return String((o && o.assignee) || '').trim() || 'unassigned';
+}
+const obligationsOurs   = list => (list||[]).filter(o=>!obligationIsTheirs(o));
+const obligationsTheirs = list => (list||[]).filter(obligationIsTheirs);
 function contractObligations(c){ return (c.obligations||[]); }
 function allObligations(){
   const out=[];
-  state.contracts.forEach(c=>{ (c.obligations||[]).forEach(o=>out.push({...o, cid:c.id, cname:c.name})); });
+  /* `counterparty` travels with each one so a screen listing obligations from
+     several contracts can name who owes a "theirs" without looking the contract
+     up again — and cannot name the wrong one. */
+  state.contracts.forEach(c=>{ (c.obligations||[]).forEach(o=>out.push({...o,
+    cid:c.id, cname:c.name, counterparty:c.counterparty||'' })); });
   return out;
+}
+/* Everything still outstanding across the portfolio, soonest first. What the
+   dashboard panel reads. Declined contracts are out — a deal nobody is doing
+   has no deliverables — and so is anything already done. */
+function openObligations(withinDays){
+  const live=new Set((state.contracts||[]).filter(c=>c.status!=='Declined').map(c=>c.id));
+  return allObligations()
+    .filter(o=>live.has(o.cid) && obState(o)!=='done')
+    .map(o=>{ const due=obligationDue(o); return { ...o, due, days:due?daysUntil(due):null }; })
+    .filter(o=>withinDays==null || o.days==null || o.days<=withinDays)
+    .sort((a,b)=>{ if(a.days==null) return 1; if(b.days==null) return -1; return a.days-b.days; });
 }
 function overdueObligationCount(){ return allObligations().filter(o=>obState(o)==='overdue').length; }
 function renewalDecisionsDue(withinDays=30){
@@ -144,13 +192,69 @@ async function extractObligations(c){
 function obligationSurfacesChanged(){
   if(window.updateSidebarCounts) updateSidebarCounts();
   if(window.state && state.view==='calendar' && window.renderCalendar) renderCalendar();
+  /* AND THE DASHBOARD, now that it counts them too. Same reasoning as the
+     calendar above: its numbers are computed during a render, and ticking an
+     obligation off is not a screen switch. */
+  if(window.state && state.view==='dashboard' && window.renderDashboard) renderDashboard();
+}
+
+/* ---- ONE VERB, PRESSED FROM THREE SCREENS ----
+
+   Completing an obligation used to exist only as an inline handler inside the
+   workspace panel, which is why it could only ever be done there. It is a verb
+   now: the calendar and the dashboard call the same function, so there is one
+   place that decides what completing means, one audit line, and one refresh of
+   every surface that counts them. A second copy of this logic on the calendar
+   is exactly how two screens come to disagree.
+
+   Addressed BY ID rather than by position. The workspace lists a contract's
+   obligations in their stored order, but the calendar sorts by date and the
+   dashboard filters to what is due — so an index means three different things
+   on three screens, and the wrong one would be ticked off. */
+function findObligation(cid, obId){
+  const c=window.getContract?getContract(cid):null;
+  if(!c) return null;
+  const list=c.obligations||[];
+  const i=list.findIndex(o=>o&&String(o.id)===String(obId));
+  return i<0 ? null : { c, o:list[i], i };
+}
+function toggleObligation(c, i, opts={}){
+  if(!canEdit()){ toast('Viewers cannot change obligations','err'); return null; }
+  const o=(c&&c.obligations||[])[i]; if(!o) return null;
+  o.status = o.status==='done' ? 'open' : 'done';
+  logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`
+    +` — ${obligationIsTheirs(o)?`${c.counterparty||'the counterparty'}'s to deliver`:'ours'}`
+    +(opts.from?` (from the ${opts.from})`:''));
+  persist(c);
+  if(window.renderObligationsSection) renderObligationsSection(c);
+  obligationSurfacesChanged();
+  return o;
+}
+/* The calendar's and the dashboard's way in. Returns the obligation so a caller
+   can report what happened; null when the record has moved on underneath. */
+function toggleObligationById(cid, obId, opts={}){
+  const hit=findObligation(cid, obId);
+  if(!hit){ toast('That obligation is no longer on the contract','err'); return null; }
+  return toggleObligation(hit.c, hit.i, opts);
 }
 
 /* ---- workspace obligations section ---- */
 function renderObligationsSection(c){
   const host=document.getElementById('obligations-section'); if(!host) return;
   const obs=c.obligations||[];
-  const editable=canEdit()&&c.status!=='Signed';
+  /* AN EXECUTED CONTRACT IS WHERE OBLIGATIONS START, not where they stop.
+
+     This read `canEdit() && c.status !== 'Signed'`, so the moment a deal was
+     signed every control in this panel disappeared — no ticking one off, no
+     adding the one the scan missed, no correcting a due date. On exactly the
+     contracts whose obligations are live. The whole point of tracking a
+     quarterly report is that the quarter comes round after signature.
+
+     The 'Signed' guard belongs to the DOCUMENT: sealed wording does not change,
+     and nothing here touches the wording. An obligation is a note about what
+     the parties have to do, kept alongside it. It stays editable for as long as
+     the contract is running. */
+  const editable=canEdit();
   const dd=renewalDecisionDate(c);
   if(!obs.length && !editable && !dd){ host.innerHTML=''; return; }   // nothing to show; empty:hidden collapses it
   const chip=st=>st==='overdue'?'bg-rose-50 text-rose-600 border-rose-200':st==='done'?'bg-brand-50 text-brand-600 border-brand-200':'bg-gold-500/10 text-gold-600 border-gold-500/25';
@@ -172,9 +276,14 @@ function renderObligationsSection(c){
           </div>
           <div class="mt-1 flex items-center gap-2 text-[10px] text-ink/55">
             ${o.recurring&&o.recurring!=='none'?`<span>${(OBLIG_RECUR.find(r=>r[0]===o.recurring)||[])[1]}</span>·`:''}
-            <span>${o.assignee||'unassigned'}</span>
+            ${''/* Ours or theirs, said on the row rather than inferred from a
+                   name. "Wanjiku Kamau" reads as a job; "Kabras Sugar" beside
+                   it would read as one too unless the row says which it is. */}
+            <span class="inline-block rounded border px-1 py-px text-[9px] font-mono uppercase tracking-wide ${obligationIsTheirs(o)?'border-gold-500/30 bg-gold-500/10 text-gold-700':'border-brand-200 bg-brand-50 text-brand-600'}">${obligationIsTheirs(o)?'theirs':'ours'}</span>
+            <span>${String(obligationOwner(o,c)).replace(/</g,'&lt;')}</span>
             ${editable?`<span class="ml-auto flex gap-2">
               <button data-ob-toggle="${i}" class="text-brand-600 hover:text-brand-800 font-600">${o.status==='done'?'reopen':'done'}</button>
+              <button data-ob-edit="${i}" class="text-brand-600 hover:text-brand-800">edit</button>
               <button data-ob-del="${i}" class="text-rose-500 hover:text-rose-700">remove</button></span>`:''}
           </div>
           ${o.quote?`<div class="mt-1 text-[10px] text-ink/50 italic border-l-2 border-line pl-2">“${o.quote.replace(/</g,'&lt;')}”</div>`:''}
@@ -185,8 +294,16 @@ function renderObligationsSection(c){
         <button id="ob-find" class="flex items-center gap-1.5 rounded-lg border border-gold-500/30 text-gold-600 px-3 py-1.5 text-[11px] font-600 hover:bg-gold-500/10 transition">${icon('sparkle','w-3 h-3')} Find obligations</button>
       </div>`:''}
     </div>`;
-  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>{ const o=obs[Number(b.getAttribute('data-ob-toggle'))]; o.status=o.status==='done'?'open':'done'; logAudit(c,'Obligation',`${o.status==='done'?'Completed':'Reopened'}: ${o.desc}`); persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
-  host.querySelectorAll('[data-ob-del]').forEach(b=>b.addEventListener('click',()=>{ obs.splice(Number(b.getAttribute('data-ob-del')),1); persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
+  host.querySelectorAll('[data-ob-toggle]').forEach(b=>b.addEventListener('click',()=>
+    toggleObligation(c, Number(b.getAttribute('data-ob-toggle')))));
+  host.querySelectorAll('[data-ob-edit]').forEach(b=>b.addEventListener('click',()=>{
+    const i=Number(b.getAttribute('data-ob-edit'));
+    openObligationForm(c, { ...obs[i], _i:i }); }));
+  host.querySelectorAll('[data-ob-del]').forEach(b=>b.addEventListener('click',()=>{
+    const o=obs[Number(b.getAttribute('data-ob-del'))];
+    obs.splice(Number(b.getAttribute('data-ob-del')),1);
+    if(o) logAudit(c,'Obligation',`Removed: ${o.desc}`);
+    persist(c); renderObligationsSection(c); obligationSurfacesChanged(); }));
   document.getElementById('ob-add')?.addEventListener('click',()=>openObligationForm(c));
   document.getElementById('ob-find')?.addEventListener('click',()=>runFindObligations(c));
 }
@@ -204,24 +321,51 @@ function openObligationForm(c, seed){
         <label class="block"><span class="text-[11px] font-600 text-ink/70">Recurring</span>
           <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k,l])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${l}</option>`).join('')}</select></label>
       </div>
-      <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">Assign to</span>
+      ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
+              independent — "assign to" only means anything for an obligation
+              that is ours — so the field that decides it comes first, and the
+              one it governs is hidden when it does not apply. */}
+      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">Whose obligation is this?</span>
+        <div id="of-party" class="mt-1 grid grid-cols-2 gap-2">
+          ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
+            return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
+        </div></div>
+      <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">Assign to</span>
         <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500"/>
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
+      <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
         <button id="of-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
         <button id="of-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save</button>
       </div>
     </div>`);
+  let party=(seed.party==='theirs')?'theirs':'ours';
+  const paintParty=()=>{
+    document.querySelectorAll('[data-of-party]').forEach(b=>{
+      const on=b.getAttribute('data-of-party')===party;
+      b.className=`rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}`;
+    });
+    document.getElementById('of-assignee-wrap')?.classList.toggle('hidden', party==='theirs');
+    document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');
+  };
+  document.querySelectorAll('[data-of-party]').forEach(b=>b.addEventListener('click',()=>{
+    party=b.getAttribute('data-of-party')==='theirs'?'theirs':'ours'; paintParty(); }));
   document.getElementById('of-cancel').addEventListener('click',closeModal);
   document.getElementById('of-save').addEventListener('click',()=>{
     const o={ id:seed.id||('ob_'+Math.abs((Date.parse(nowISO())+(c.obligations||[]).length)).toString(36)),
       desc:document.getElementById('of-desc').value.trim(), due:document.getElementById('of-due').value,
-      recurring:document.getElementById('of-recur').value, assignee:document.getElementById('of-assignee').value.trim(),
+      recurring:document.getElementById('of-recur').value,
+      party,
+      /* An obligation that is theirs carries no assignee of ours. Leaving a
+         stale colleague's name on it would put their job in our queue. */
+      assignee: party==='theirs' ? '' : document.getElementById('of-assignee').value.trim(),
       status:seed.status||'open', quote:seed.quote||'' };
     if(!o.desc){ toast('Enter a description','err'); return; }
     c.obligations=c.obligations||[];
-    if(seed._i!=null) c.obligations[seed._i]=o; else c.obligations.push(o);
-    logAudit(c,'Obligation',`Added: ${o.desc}${o.due?` (due ${o.due})`:''}`);
+    const editing=seed._i!=null;
+    if(editing) c.obligations[seed._i]=o; else c.obligations.push(o);
+    logAudit(c,'Obligation',`${editing?'Updated':'Added'}: ${o.desc}${o.due?` (due ${o.due})`:''}`
+      +` — ${party==='theirs'?`${c.counterparty||'the counterparty'}'s to deliver`:`ours${o.assignee?`, assigned to ${o.assignee}`:''}`}`);
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
   });
 }
@@ -238,7 +382,7 @@ function openObligationsReview(c, found){
     <div class="p-6">
       <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
         <h3 class="font-serif font-600 text-lg text-ink">Proposed obligations</h3></div>
-      <p class="text-xs text-ink/60 mb-3">Tick the ones to add. You can edit dates and assignees after adding. Nothing is saved until you confirm.</p>
+      <p class="text-xs text-ink/60 mb-3">Tick the ones to add. They are filed as <b>ours</b> — open any one afterwards to mark it as the counterparty&rsquo;s, or to set a date and an owner. Nothing is saved until you confirm.</p>
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
         ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer">
           <input type="checkbox" data-ob-pick="${i}" checked class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
@@ -262,4 +406,4 @@ function openObligationsReview(c, found){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,dateOnly,isoDay,renewalDecisionDate,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,obligationDue,obligationSurfacesChanged,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

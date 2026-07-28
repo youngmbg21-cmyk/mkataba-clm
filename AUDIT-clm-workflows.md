@@ -6,10 +6,10 @@ execution, the counterparty portal, and signature — following each one the way
 customer walks it rather than reading the files that implement it. It is written
 for a reader who does not work on the code.
 
-**Result.** Seven faults found and proved, seven fixed. Seven things were checked,
-found to be working, and are recorded here so nobody has to check them again.
-Three are product gaps rather than defects and are flagged for a person to
-decide on. The test suite went from **1,188 tests passing to 1,231 passing**,
+**Result.** Eight faults found and proved, eight fixed, plus the three product
+gaps the audit flagged — all three since commissioned and built. Seven things
+were checked, found to be working, and are recorded here so nobody has to check
+them again. The test suite went from **1,188 tests passing to 1,273 passing**,
 with nothing broken on the way.
 
 Everything below was **reproduced first** — a test written that fails against the
@@ -336,30 +336,116 @@ Recorded so nobody has to check them again.
 
 ---
 
-## Product gaps — a person's call, not a bug
+## The three product gaps — since built
 
-1. **The counterparty's page does not refresh itself.** The owner's screen polls
-   and picks up the other side's answers within a cycle; the portal renders once
-   at page load and has no polling at all, so a counterparty sitting on the page
-   sees nothing move until they reload. The architecture note in the code is
-   explicit that a public no-login URL must not *mutate* a contract per click —
-   which is right, and does not apply to a read. Adding a slow poll of the share
-   endpoint would close the last asymmetry between the two screens. Finding 1
-   above removes the worst consequence of it (answering a contract that has since
-   been signed), but not the general case.
+The audit flagged three things as product gaps rather than defects: real
+shortcomings, but ones that needed a person to decide on rather than a bug fix.
+All three were then commissioned and built, and one more defect surfaced while
+building them. The order was chosen deliberately — the party field had to land
+before the screens that read it, or the screens would have been built twice.
 
-2. **Obligations cannot be acted on from the calendar.** They can be created,
-   completed and removed only inside a contract's workspace. The calendar draws
-   them and now names them, but has no verbs; the dashboard has no obligations
-   panel at all. Every count is kept in step when an obligation moves — the
-   sidebar badge and the calendar are both refreshed — so the plumbing for
-   cross-view sync is in place and it is the controls that are missing.
+### 8. The counterparty's page now keeps up with the deal
 
-3. **An obligation's owner is a free-text name, not a party.** It is picked from
-   the workspace directory, so there is no way to express "this one is the
-   counterparty's deliverable". Reminders and dashboard widgets therefore cannot
-   distinguish our obligations from theirs. That is a data-model change, not a
-   defect fix.
+The owner's screen has polled for years. The counterparty's rendered once, when
+they opened the link, and then never moved — so they could sit looking at
+wording that had been revised, at asks that had already been answered, and at a
+banner still saying it was their move, with nothing on the page to tell them
+otherwise.
+
+It refreshes itself now, on a slow timer and whenever they come back to the tab.
+This is a **read** — the same request the link already answers — so the rule the
+page is built on, that a public no-login URL must never *change* a contract per
+click, is untouched.
+
+The danger in this change is the change itself: a repaint rebuilds the whole
+page, so a refresh landing while somebody is half-way through rewriting four
+clauses would delete them — finding 6, reintroduced by a timer. So there are
+three behaviours, and each is tested:
+
+| what happened | what the page does |
+| --- | --- |
+| nothing moved | nothing at all |
+| something moved, reader idle | repaints, and keeps their place on the page |
+| something moved, reader mid-edit | tells them, touches nothing, offers a Refresh button |
+
+With one deliberate exception: if the contract has been **executed**, or this
+copy superseded, the repaint happens regardless. Everything they were working on
+has just become unsendable, and letting somebody carry on typing into it is the
+worse outcome.
+
+This also closed a loose end left by finding 1: the server reports execution
+live, but the portal was never handed that answer, so only a link refreshed
+*after* signature could close itself. It reads the live signal now.
+
+**Proved by** `test/f82-their-page-keeps-up.test.js` (15 assertions; all 15
+failed against the shipped code).
+
+### 9. An obligation now says which side owes it
+
+A contract's obligations are almost never all one side's: we pay within thirty
+days, they deliver monthly and keep insurance current. The record had one field
+for this — `assignee` — and the form offered a list of people in *this*
+workspace. There was no way to write down "the supplier owes us this one".
+
+So every count in the product counted both kinds together, and "six due this
+month" could not be read: six jobs for our team, or six things to chase them
+about? Those are different mornings.
+
+Obligations now carry a **party**, deliberately two values rather than a
+directory of people on the other side — we do not hold their staff list and are
+not going to maintain one; their internal owner is their business. A record
+filed before this existed reads as *ours*, which is what it was: the only
+assignees the form ever offered were our own people.
+
+It reaches everywhere obligations are read: the workspace row says *ours* or
+*theirs* and names who to chase, the calendar marks the ones to chase, the
+dashboard counts them apart, and the Copilot portfolio snapshot now answers
+"what is outstanding" as *n ours to do, n theirs to chase* rather than one
+number that mixes the two.
+
+**Proved by** `test/f83-obligations-have-an-owner-and-a-button.test.js`, and
+`test/f67-copilot-counts-obligations.test.js` for the assistant's line.
+
+### 10. Obligations can be acted on from the screens that show them
+
+Ticking one off meant opening the contract, scrolling to its Obligations panel
+and pressing there. The calendar drew them and offered no verb — the whole
+agenda row was a single `<button>`, and there is nowhere to put a second control
+inside one. The dashboard did not mention obligations anywhere.
+
+- The **calendar** agenda now carries a *Done* button on obligation rows, and
+  marks the ones that are theirs to chase. Expiry and renewal rows deliberately
+  get no button: a date is not a task.
+- The **dashboard** has an obligations panel for the next 45 days, split *Ours
+  to do* / *Theirs to chase*, with the overdue count called out and the same
+  tick-off control on every row.
+- Completing one is now a **single shared verb** rather than an inline handler.
+  All three screens call it, so there is one place that decides what completing
+  means, one audit line — which records where it was pressed — and one refresh
+  of every surface that counts them. A second copy of that logic on the calendar
+  is precisely how two screens come to disagree about the same tick-box.
+
+It is addressed **by id, never by position**: the workspace lists a contract's
+obligations in their stored order, the calendar sorts by date and the dashboard
+filters to what is due, so an index means three different things on three
+screens and the wrong one would be ticked off.
+
+**Proved by** `test/f83-obligations-have-an-owner-and-a-button.test.js`.
+
+### 11. And a defect found while building them: obligations went read-only at signature
+
+The workspace panel read `canEdit() && c.status !== 'Signed'`, so the moment a
+deal was signed every control disappeared — no ticking one off, no adding the
+one the scan missed, no correcting a due date. On exactly the contracts whose
+obligations are live. The whole point of tracking a quarterly report is that the
+quarter comes round *after* signature.
+
+The `'Signed'` guard belongs to the **document**: sealed wording does not change,
+and nothing in this panel touches the wording. An obligation is a note about
+what the parties have to do, kept alongside it, and it stays editable for as
+long as the contract is running. A viewer still cannot change anything.
+
+**Proved by** `test/f83-obligations-have-an-owner-and-a-button.test.js`.
 
 ---
 
@@ -372,6 +458,13 @@ audit framework asks: *if something unexpected happens right now — a refresh, 
 edit, a signature landing on the other side — does the system recover, or leave a
 dead end?*
 
-The seven faults above are all answers to that question, and five of the seven
-are the same shape: **one side of the glass knew something the other side could
-not be told.**
+The eight faults above are all answers to that question, and five of them are
+the same shape: **one side of the glass knew something the other side could not
+be told.**
+
+The three commissioned gaps were built afterwards, in the order that avoided
+building anything twice — the obligation party field before the screens that
+read it, and the portal refresh built so that the cure could not become the
+disease. Building them turned up an eighth fault (11) that reading the same
+files had not, which is the usual argument for finishing a thing rather than
+only auditing it.
