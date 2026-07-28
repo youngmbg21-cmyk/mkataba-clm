@@ -2379,6 +2379,11 @@ function negoRoomHtml(c, opts = {}){
         <div class="nego-avatar" title="${_ne(who || org)}">${_ne(initials)}</div>
       </div>
     </header>
+    ${''/* Which mode the room is in, above everything the reader will act on.
+          The embedded tab carries the same banner from negoHeadHtml; the room
+          is a different layout and needed it mounting separately, which is why
+          it appeared on one surface and not the other. */}
+    <div style="flex:none;padding:9px 18px 0">${negoModeHtml(c, opts)}</div>
     ${negoRoomBannerHtml(c, opts, ready)}
     ${negoCompareBarHtml(c)}
     ${negoCleanBarHtml(c)}

@@ -401,8 +401,19 @@ async function negoFileChange(c, draft, opts = {}){
 
   const oldText = String(draft.oldText == null ? '' : draft.oldText);
   const newText = String(draft.newText == null ? '' : draft.newText);
-  const ops = (draft.changeType === 'modify' && window.redlineOps)
-    ? redlineOps(oldText, newText)
+  /* ALIGNED ON LINES FIRST where the engine offers it. A clause is rarely one
+     sentence — it is a heading, numbered sub-clauses and lettered
+     sub-paragraphs — and aligning words across the whole of it lets the diff
+     match "(a)" against an "(a)" three lines away. The reconstruction is exact
+     either way; the difference is that the line-aware walk reports the two
+     sub-paragraphs nobody touched as untouched, instead of striking them out
+     and re-inserting them verbatim.
+
+     This is decided HERE, at the moment of filing, because the ops are the
+     record: every later render reads them back rather than re-deriving them,
+     so a bad alignment saved now is a bad redline for the life of the change. */
+  const ops = (draft.changeType === 'modify' && (window.redlineOpsStructured || window.redlineOps))
+    ? (window.redlineOpsStructured ? redlineOpsStructured(oldText, newText) : redlineOps(oldText, newText))
     : draft.changeType === 'insertClause' ? [{ op: 'ins', text: newText }]
     : [{ op: 'del', text: oldText }];
 

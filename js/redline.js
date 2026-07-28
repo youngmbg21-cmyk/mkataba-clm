@@ -376,7 +376,7 @@ function redlineBlocks(oldText, newText){
   const anchored = new Map(pairs);                // old index → new index
   const out = [];
   let i = 0, j = 0;
-  const flush = (dels, inses) => {
+  const flush = (dels, inses, di, ii) => {
     /* Pair off what went with what arrived, in order, wherever the two lines
        are recognisably the same line reworded. What is left over on either side
        is a genuine insertion or deletion. */
@@ -384,30 +384,30 @@ function redlineBlocks(oldText, newText){
     while (x < dels.length && y < inses.length){
       if (_rlKinship(dels[x], inses[y]) >= RL_KINSHIP_MIN){
         out.push({ kind: 'edit', text: inses[y], before: dels[x],
-          ops: redlineOps(dels[x], inses[y]) });
+          oi: di[x], ni: ii[y], ops: redlineOps(dels[x], inses[y]) });
         x++; y++;
       /* On a tie the DELETION goes first. A reader compares what was there
          against what is proposed, and printing the replacement above the thing
          it replaces reverses that reading. */
-      } else if (dels.length - x >= inses.length - y){ out.push({ kind: 'del', text: dels[x++] }); }
-      else { out.push({ kind: 'ins', text: inses[y++] }); }
+      } else if (dels.length - x >= inses.length - y){ out.push({ kind: 'del', text: dels[x], oi: di[x] }); x++; }
+      else { out.push({ kind: 'ins', text: inses[y], ni: ii[y] }); y++; }
     }
-    while (x < dels.length) out.push({ kind: 'del', text: dels[x++] });
-    while (y < inses.length) out.push({ kind: 'ins', text: inses[y++] });
+    while (x < dels.length){ out.push({ kind: 'del', text: dels[x], oi: di[x] }); x++; }
+    while (y < inses.length){ out.push({ kind: 'ins', text: inses[y], ni: ii[y] }); y++; }
   };
   while (i < a.length || j < b.length){
     if (anchored.has(i) && anchored.get(i) === j){
-      out.push({ kind: 'same', text: b[j] }); i++; j++; continue;
+      out.push({ kind: 'same', text: b[j], oi: i, ni: j }); i++; j++; continue;
     }
     /* Collect up to the NEXT ANCHOR, whatever line it pairs with — not up to an
        anchor that happens to pair with the line j is sitting on. Stopping only
        on the exact match swallowed every anchored line between here and there,
        so a sub-paragraph nobody had touched was reported as edited. */
-    const dels = [], inses = [];
-    while (i < a.length && !anchored.has(i)) dels.push(a[i++]);
+    const dels = [], inses = [], di = [], ii = [];
+    while (i < a.length && !anchored.has(i)){ di.push(i); dels.push(a[i++]); }
     const stop = anchored.has(i) ? anchored.get(i) : b.length;
-    while (j < stop) inses.push(b[j++]);
-    flush(dels, inses);
+    while (j < stop){ ii.push(j); inses.push(b[j++]); }
+    flush(dels, inses, di, ii);
   }
   return out;
 }
@@ -473,6 +473,66 @@ function redlineBlocksHtml(blocks, opts = {}){
     return `<${tag} class="${cls}">${inner}</${tag}>`;
   }).join('');
 }
+/* ---- LINE-AWARE OPS, for the record rather than for the screen ----
+
+   redlineOps aligns WORDS across the whole clause at once, and on a multi-line
+   clause that is the wrong unit. Given a six-line clause where only line two
+   moved, Myers is free to match the word "(a)" in the old text against the
+   "(a)" three lines further down the new one — every token lands in a correct
+   box, the reconstruction invariants hold, and the result is unreadable: two
+   sub-paragraphs nobody touched come out struck through and re-inserted, and
+   the replacement wording appears nowhere near the line it replaces.
+
+   Rendering could not fix that, because the record was already wrong: the ops
+   are stored when the change is FILED and every later render is a faithful
+   read of them. So the alignment is fixed here, at the point of filing.
+
+   Lines are matched first, then words within a matched pair — the same two-level
+   walk redlineBlocks does. What comes out is an ordinary ops array: same shape,
+   same guarantees, same renderer, merely aligned on the boundaries a contract
+   actually has.
+
+   THE INVARIANTS ARE THE HARD PART, and they are about newlines. A separator
+   belongs to the side whose line it ends: if the old text has a further line
+   after this one and the new text does not, the newline between them is part of
+   the DELETION, not shared context. Getting that wrong reconstructs a text with
+   a stray blank line at the end — which would be a redline that cannot
+   reproduce the wording it claims to describe. */
+function redlineOpsStructured(oldText, newText){
+  const blocks = redlineBlocks(oldText, newText);
+  if (!blocks) return redlineOps(oldText, newText);   // too large to align by line
+  const a = String(oldText == null ? '' : oldText);
+  const b = String(newText == null ? '' : newText);
+  const lastO = (a === '' ? -1 : a.split('\n').length - 1);
+  const lastN = (b === '' ? -1 : b.split('\n').length - 1);
+  const out = [];
+  const push = (op, text) => {
+    if (!text) return;
+    const last = out[out.length - 1];
+    if (last && last.op === op) last.text += text;
+    else out.push({ op, text });
+  };
+  for (const blk of blocks){
+    if (blk.kind === 'same') push('keep', blk.text);
+    else if (blk.kind === 'edit') for (const o of blk.ops) push(o.op, o.text);
+    else if (blk.kind === 'ins') push('ins', blk.text);
+    else push('del', blk.text);
+    /* The separator after this line, attributed to whichever sides still have
+       a line coming. A line present on both sides with more to follow on both
+       shares its newline; anything else owns it alone. */
+    const moreO = blk.oi != null && blk.oi < lastO;
+    const moreN = blk.ni != null && blk.ni < lastN;
+    if (blk.kind === 'same' || blk.kind === 'edit'){
+      if (moreO && moreN) push('keep', '\n');
+      else if (moreO) push('del', '\n');
+      else if (moreN) push('ins', '\n');
+    }
+    else if (blk.kind === 'del'){ if (moreO) push('del', '\n'); }
+    else if (moreN) push('ins', '\n');
+  }
+  return out;
+}
+
 /* ---- the same structure, from STORED ops ----
    The negotiation renders a redline from the ops recorded when the change was
    filed, never from a diff run at display time: two renders of one record are
@@ -533,12 +593,12 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineOldText, redlineNewText, redlineIsNoop, redlineStats, REDLINE_MAX_D,
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
-  redlineOpsBlocks, redlineOpsBlocksHtml,
+  redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
   redlineLineKind, redlineSplitMarker,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
-  redlineOpsBlocks, redlineOpsBlocksHtml,
+  redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
   redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
 };
