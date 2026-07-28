@@ -3481,3 +3481,71 @@ becoming the entire index.
 counterparty accepts and sends → the owner's open room shows it → the
 counterparty reloads and still sees their own answer. Two f58 tests were
 reversed to the new wording, with the reason written into them.
+
+---
+
+# Round 12 — an answer that has not left the browser says so
+
+*"Why would I have to send a decision if I have accepted?"*
+
+Because on the counterparty's page a decision is **held** until they post it,
+and that is deliberate: the negotiation tracks whose move it is, each response
+hands the turn back and emails you, and until an answer is posted it can be
+undone with nothing on the record. Answering five changes is one round, not five
+separate acts.
+
+**The step was not the problem. Its invisibility was.** Press Accept, and the
+card goes green and reads "accepted". The only thing anywhere saying you had not
+finished was a line of small print under a button at the bottom of the panel. So
+a reader answered, believed they were done, closed the tab, and lost the answer.
+
+## What a held answer looks like now
+
+Three signals, in the place the decision was made:
+
+- **"not sent yet"** in amber, beside the green "accepted" — because green
+  "accepted" is the half of this state the reader already believes
+- **the card itself** goes amber-edged, so five cards show at a glance which
+  have gone and which have not
+- **a line at the foot of the card** saying it in words: *"Not sent yet.
+  Highland Corporate Ltd has not seen this answer. Use the blue Send button
+  under the list to file it."*
+
+Sending clears all three and the "sent" mark takes their place.
+
+## A bug found before the badge could be trusted
+
+The badge could not be built until the page could tell **"held here"** from
+**"already filed"** — and it could not.
+
+Since round 11 the counterparty's link is caught up whenever their answer is
+applied. So reloading it serves a decided change. The page had no way to know
+that decision had come *from the record* rather than from this browser: it
+offered **Undo** on an answer the owner was already holding, and one harmless
+click — opening a discussion thread — brought back **"Send 1 decision"** for
+something that had been sent and applied twenty minutes earlier. A "not sent
+yet" badge on top of that would have lied on every reload.
+
+The page now keeps what the record says beside what this browser holds. An
+answer the record already carries is finished: no badge, no Undo, nothing to
+send. Answering *differently* is held again, and says so.
+
+## And the two sides answer differently, which is now stated rather than guessed
+
+The owner's decision is written to the record as it is made — no holding step,
+nothing to warn about, and Undo is simply theirs. The counterparty's is held
+until the round is sent, so their Undo lasts only while the answer is still in
+their browser, and after that changing it goes through "Change decision".
+
+That difference used to be inferred from a flag that is false on any reloaded
+page — which would have handed the owner's quiet Undo to an answer already filed
+with them. The page now says which of the two it is.
+
+**1108 tests, 0 failures.** 10 new.
+
+## Still open, and your call
+
+Held answers are still lost if the counterparty reloads before sending. Now that
+the page says clearly that the step has not happened, that is far less likely to
+bite — but it is the other half of the same complaint, and remembering held
+answers in their browser would close it. Not done, because it was not asked for.

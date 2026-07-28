@@ -836,6 +836,20 @@ let PORTAL_READY_SENT = false;
    back from the owner's record as the real status. */
 let PORTAL_NEGO_SENT = {};
 let PORTAL_NEGO_WITHDRAWN_SENT = {};
+/* WHAT THE RECORD ITSELF SAYS, as the link last served it.
+
+   Held decisions are kept in the browser and the record is kept on the server,
+   and the page has to be able to tell them apart — otherwise a decision that
+   was sent, applied and came back on a refreshed payload is indistinguishable
+   from one still sitting in this browser waiting to go. It was not
+   distinguishable: reloading a link whose answers had been applied offered
+   "Undo" on them, and one harmless click brought back "Send 1 decision" for an
+   answer the owner was already holding.
+
+   So the payload's own statuses are kept beside the held ones. A held decision
+   that says what the record already says is not held — it is finished, and it
+   is dropped. */
+let PORTAL_NEGO_FILED = {};
 /* CHANGES THIS READER HAS ASKED FOR, and the reason they need somewhere to go.
 
    The room gives the counterparty a Change button on every clause, and pressing
@@ -895,6 +909,15 @@ function portalChangeSummaryHtml(p){
   </div>`;
 }
 
+/* Is this answer already somewhere other than this browser? Either it has been
+   sent from this page, or the record itself already carries it. Both mean the
+   answer is not waiting on anybody, and re-registering it as held is what made
+   a settled decision ask to be sent again. */
+function portalDecisionSettled(ch){
+  const sent=PORTAL_NEGO_SENT[ch.id];
+  if(sent && sent.status===ch.status) return true;
+  return PORTAL_NEGO_FILED[ch.id]===ch.status;
+}
 function portalNegoContract(p){
   /* A contract-shaped record for the component to read. The changes and the
      baseline come from the payload, so this page cannot show a fingerprint the
@@ -969,13 +992,28 @@ function portalNegoContract(p){
      back. */
   if(window.negoMergedThread)
     for(const ch of c.changes) ch.thread = negoMergedThread(c, ch, msgs);
+  /* What the record says about each change, before this page's own held
+     answers are laid over it. Read from the payload, which IS the record as of
+     the last time the link was caught up. */
+  PORTAL_NEGO_FILED={};
+  for(const x of (Array.isArray(src.changes)?src.changes:[]))
+    if(x&&x.id) PORTAL_NEGO_FILED[x.id]=x.status||'pending';
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
     const s=PORTAL_NEGO_SENT[ch.id];
     if(s) ch.status=s.status, ch.reply=s.reply||ch.reply||null, ch.sentByMe=true;
-    const d=PORTAL_NEGO_DECISIONS[ch.id];
-    if(d) ch.status=d.status, ch.reply=d.reply||ch.reply||null, ch.sentByMe=false;
+    let d=PORTAL_NEGO_DECISIONS[ch.id];
+    /* The record has caught up with this answer, so it is not waiting on
+       anything any more. Kept as a held decision it would go on offering Undo
+       and asking to be sent a second time. */
+    if(d && PORTAL_NEGO_FILED[ch.id]===d.status){ delete PORTAL_NEGO_DECISIONS[ch.id]; d=null; }
+    if(d){ ch.status=d.status; ch.reply=d.reply||ch.reply||null; ch.sentByMe=false;
+      /* ANSWERED HERE, NOT YET ANYWHERE ELSE. The one state on this page that
+         looks finished and is not: the card says "accepted" and the other side
+         has heard nothing. The component draws it; the page is the only thing
+         that knows it. */
+      ch.heldByMe=true; }
     // and so is an ask of their own they have taken off the table
     if(PORTAL_NEGO_WITHDRAWN[ch.id]||PORTAL_NEGO_WITHDRAWN_SENT[ch.id])
       ch.withdrawn={ by:portalResponderLabel(c), side:'counterparty', at:nowISO() };
@@ -1188,6 +1226,8 @@ function wirePortalNego(c, p){
     readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
     // an answered link can still be spoken on — see openPortalNegoRoom
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
+    // this page holds answers until they are sent — see negoLiveCardsHtml
+    holdsDecisions:true,
     /* Which conversations THIS reader has read. Keyed by the link, because
        their page has no contract id and the mark must not follow a different
        link to a different deal. */
@@ -1206,9 +1246,7 @@ function wirePortalNego(c, p){
     onChange(rec){
       // same rule as the room's — see openPortalNegoRoom
       for(const ch of (rec.changes||[])){
-        const already=PORTAL_NEGO_SENT[ch.id];
-        if(ch.status!=='pending' && ch.authorSide==='owner'
-          && !(already && already.status===ch.status))
+        if(ch.status!=='pending' && ch.authorSide==='owner' && !portalDecisionSettled(ch))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
       }
@@ -1261,6 +1299,8 @@ function openPortalNegoRoom(c, p){
     side:'counterparty',
     noExit:isLanding,
     readonly:!live,
+    // answers are held here until they are sent — see negoLiveCardsHtml
+    holdsDecisions:true,
     // see wirePortalNego — the link identifies this reader's own read-marks
     seenScope:PORTAL_OPTS.token||'',
     messages:PORTAL_OPTS.messages||[],
@@ -1313,9 +1353,7 @@ function openPortalNegoRoom(c, p){
            nothing, that the answer had ever left. Same symptom as the verbs
            reappearing after a send, and the same wrong answer to "has this
            been dealt with". */
-        const already=PORTAL_NEGO_SENT[ch.id];
-        if(ch.status!=='pending' && ch.authorSide==='owner'
-          && !(already && already.status===ch.status))
+        if(ch.status!=='pending' && ch.authorSide==='owner' && !portalDecisionSettled(ch))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
         else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
         /* Wording THEY have asked for. Held until they send it — and held by

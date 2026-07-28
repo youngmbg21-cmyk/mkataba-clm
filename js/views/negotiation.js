@@ -470,6 +470,18 @@ function negoStyleHtml(){
      Replacing the status would erase the refusal from the face of the card. */
   .nego-st.withdrawn{margin-left:0;background:var(--n-badge-bg);color:var(--n-slate);border:1px solid #dde5ee}
   .nego-st.sent{margin-left:0;background:var(--n-ins-bg);color:var(--n-ins-fg);border:1px solid #a8cbb8}
+  /* ---- answered here, and nowhere else yet ----
+     Amber, the colour this product already uses for something still open, and
+     deliberately louder than the status beside it: the green "accepted" is the
+     half of this state a reader already believes. */
+  .nego-st.unsent{margin-left:0;background:#fdf6e7;color:#7d5a14;border:1px solid #e0c48a}
+  /* And on the card itself, so a held answer is one glance rather than one
+     read — an index of five cards shows at once which of them have gone. */
+  .nego-card.is-held{border-color:#e0c48a;border-left:3px solid #b8862b;background:#fffdf7}
+  .nego-card.is-held .nego-hold{display:flex}
+  .nego-hold{display:none;align-items:flex-start;gap:6px;margin-top:9px;
+    border-top:1px dashed #e0c48a;padding-top:8px;font-size:10.5px;line-height:1.45;color:#7d5a14}
+  .nego-hold b{font-weight:700}
   .nego-contested{border-left:2px solid var(--n-reject);background:var(--n-del-bg);border-radius:0 4px 4px 0;
     padding:6px 9px;margin-bottom:8px;font-size:11px;line-height:1.5;color:var(--n-ink)}
   .nego-hash{font-family:var(--n-font-mono);font-size:9.5px;color:var(--n-slate-soft);
@@ -945,17 +957,44 @@ function negoLiveCardsHtml(c, opts){
        deliberate act now, behind "Change decision" below — the ability is kept,
        the accident is not. */
     const sent = !!ch.sentByMe;
+    /* ANSWERED HERE, AND NOWHERE ELSE YET. The one state on this screen that
+       looks finished and is not: the card says "accepted", it is green, and the
+       other side has heard nothing at all. The only thing that said so was a
+       line of small print under a button at the bottom of the panel — so a
+       reader who answered and closed the tab lost the answer and had every
+       reason to think they had sent it.
+
+       The page supplies this, because the page is the only thing that knows.
+       The component cannot work it out: a decision that WAS sent, applied, and
+       came back on a refreshed link looks identical from here. */
+    const held = !!ch.heldByMe;
     const reopened = !!_negoRedeciding[ch.id];
     const decidable = canAct && !mine && (ch.status === 'pending' || reopened);
-    /* Only an unsent decision may be quietly undone; a sent one is filed with
-       the other party, and the way back to it is a new decision that travels.
-       Not while the verbs are showing either — Undo beside Accept and Reject
-       is two ways to do the same thing, one of which is not a decision. */
-    const undoable = canAct && !mine && ch.status !== 'pending' && !sent && !reopened;
-    /* THE WAY BACK, and it is one click rather than none. Offered only on a
-       change whose answer has actually gone: an unsent decision still has Undo,
-       and a pending one still has the verbs. */
-    const redecidable = canAct && !mine && sent && !reopened && ch.status !== 'pending';
+    /* DOES THIS SIDE HOLD ITS ANSWERS BEFORE THEY GO?
+
+       The two sides answer differently and the difference is not cosmetic. The
+       owner's decision is written to the record as it is made — there is no
+       holding step, so there is nothing to warn about and nothing to post. The
+       counterparty's is held on their page until they send the round, because a
+       public link that wrote to the contract on every click would hand back the
+       turn, email the owner and file an audit line five times over one sitting.
+
+       Which of the two this is decides what "changing your mind" means, so the
+       page says so outright rather than the component guessing from `sentByMe`
+       — which is false on a page that has been reloaded, and would have quietly
+       given the owner's Undo to an answer that had already been filed. */
+    const holds = !!opts.holdsDecisions;
+    const decided = ch.status !== 'pending';
+    /* Quiet undo, while the answer is still in this browser. On a side that
+       does not hold answers at all, every decision is undoable — the record is
+       ours and reopening it is our own act. Never while the verbs are showing:
+       Undo beside Accept and Reject is two ways to do one thing, one of which
+       is not a decision. */
+    const undoable = canAct && !mine && decided && !reopened && (!holds || held);
+    /* And the deliberate way back, once the answer is with the other party —
+       whether it went from this page a moment ago or was applied and came back
+       on the link. */
+    const redecidable = canAct && !mine && decided && !reopened && holds && !held;
     /* THE ONE VERB A SIDE HAS OVER ITS OWN ASK. It is not a decision — they
        cannot accept their own proposal — it is an acknowledgement that the
        other side refused it and they are letting it go. Without it a single
@@ -1021,7 +1060,7 @@ function negoLiveCardsHtml(c, opts){
       </div>`;
 
     return `
-      <div class="nego-card${active ? ' is-active' : ''}" id="nego-card-${_ne(ch.id)}" data-nego-card="${_ne(ch.id)}"
+      <div class="nego-card${active ? ' is-active' : ''}${held ? ' is-held' : ''}" id="nego-card-${_ne(ch.id)}" data-nego-card="${_ne(ch.id)}"
            role="button" tabindex="0">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">
           <span class="nego-id">#${_ne(ch.id)}</span>
@@ -1029,6 +1068,8 @@ function negoLiveCardsHtml(c, opts){
           <span class="nego-st ${_ne(ch.status)}">${_ne(ch.status)}</span>
           ${sent ? `<span class="nego-st sent" data-sent="${_ne(ch.id)}"
             title="This answer has been sent. Decide it differently and the new answer travels too.">sent</span>` : ''}
+        ${held ? `<span class="nego-st unsent" data-unsent="${_ne(ch.id)}"
+            title="You have answered this, and it has not left this page. Press the blue Send button below the list to file it with the other side.">not sent yet</span>` : ''}
           ${ch.withdrawn ? `<span class="nego-st withdrawn" data-withdrawn="${_ne(ch.id)}"
             title="Refused, and the side that asked for it has withdrawn the ask — it is no longer outstanding between the parties">withdrawn</span>` : ''}
         </div>
@@ -1043,7 +1084,12 @@ function negoLiveCardsHtml(c, opts){
           <span style="font-size:11.5px;line-height:1.5;color:var(--n-ink)">${_ne(ch.note)}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:8px;font-size:11.5px;line-height:1.5;color:var(--n-ink)"><b>Reply:</b> ${_ne(ch.reply)}</div>` : ''}
         <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
-        ${acts}${thread}
+        ${acts}
+        ${held ? `<div class="nego-hold" data-hold="${_ne(ch.id)}">
+          <span aria-hidden="true">▲</span>
+          <span><b>Not sent yet.</b> ${_ne(String(opts.org || window.FIRST_PARTY || 'The other side'))} has not seen this answer.
+          Use the blue <b>Send</b> button under the list to file it.</span>
+        </div>` : ''}${thread}
       </div>`;
   }).join('');
 }
