@@ -337,12 +337,248 @@ function labChip(text, kind){
   }[kind] || '';
   return `<span class="badge" style="${pal}">${esc(text)}</span>`;
 }
+/* ---------- the redline, with the clause's shape left on it ----------
+   A clause is a heading, numbered sub-clauses and lettered sub-paragraphs, and
+   that shape is how a reader finds 7.1(b). Diffing it as one string and printing
+   the result in one block collapses the sub-list into "(a) … (b) … (c) …" run
+   together — in the one view where somebody is deciding about it.
+
+   redlineOpsStructured aligns LINES first and words only inside a matched line,
+   so a sub-paragraph nobody touched is reported as untouched rather than struck
+   out and re-inserted verbatim. redlineOpsBlocksHtml then gives each line its
+   own block. Both degrade to the flat renderer where the engine is older. */
 function labRedlineHtml(before, after){
+  if(window.redlineOpsStructured && window.redlineOpsBlocksHtml){
+    const ops = redlineOpsStructured(before, after);
+    return `<div class="lab-redline">${redlineOpsBlocksHtml(ops,
+      { insClass: 'lab-ins', delClass: 'lab-del' })}</div>`;
+  }
   if(window.redlineOps && window.redlineOpsHtml){
     const ops = redlineOps(before, after);
     return redlineOpsHtml(ops, { insClass: 'lab-ins', delClass: 'lab-del' });
   }
   return `<span class="lab-del">${esc(before)}</span> <span class="lab-ins">${esc(after)}</span>`;
+}
+/* A clause NOBODY has changed keeps its shape too. Printing it through esc()
+   into a single div flattened every numbered sub-clause in the document, so the
+   structure appeared only where there happened to be a redline. */
+function labCleanHtml(text){
+  if(window.redlineOpsBlocksHtml)
+    return `<div class="lab-redline">${redlineOpsBlocksHtml([{ op: 'keep', text: String(text == null ? '' : text) }])}</div>`;
+  return esc(text);
+}
+
+/* ============================================================
+   WHICH CHANGE THE READER SINGLED OUT
+   ============================================================
+   Module-level beside the lab's other view state: it is where the reader is
+   looking, not anything about the contract, so it must never reach storage or
+   the share payload. */
+let _labLinked = null;
+let _labOnly = false;
+
+/* ---------- is this change safe to accept without reading it? ----------
+   "Accept all non-risk redlines" moves wording without a person reading each
+   one, so what counts as risk decides how much one click can do. The test is
+   deliberately INCLUSIVE — anything that trips any signal is held for a human,
+   and anything unclassifiable counts as risk. A check that fails to run must
+   not read as "nothing to worry about". */
+function labRiskOf(c, ch, side){
+  const why = [];
+  if(!ch || ch.status !== 'pending') return { risky:true, why:['not awaiting a decision'] };
+  const hay = `${ch.before || ''}\n${ch.after || ''}`.toLowerCase();
+  const label = String(ch.clauseLabel || '').toLowerCase();
+  const before = String(ch.before || '').trim(), after = String(ch.after || '').trim();
+  if(!before) why.push('adds a whole clause');
+  if(!after) why.push('removes a whole clause');
+  /* A rewrite rather than an amendment: past roughly half the wording, this is
+     not "the same clause with a change in it" and deserves a reader. */
+  if(before && after){
+    const bw = before.split(/\s+/).length, aw = after.split(/\s+/).length;
+    if(Math.abs(aw - bw) / Math.max(bw, 1) > 0.5) why.push('rewrites most of the clause');
+  }
+  try{
+    for(const v of (((c && c.playbook) || {}).verdicts || [])){
+      if(v.status !== 'deviation') continue;
+      const q = String(v.quote || '').toLowerCase().trim();
+      const cat = String(v.category || '').toLowerCase().trim();
+      if((q && q.length > 6 && hay.includes(q)) || (cat && label.includes(cat)))
+        why.push(`playbook deviation — ${v.category || 'flagged'}`);
+    }
+  }catch(e){ why.push('the playbook could not be read'); }
+  try{
+    const scan = (c && c.scan) || {};
+    const dismissed = new Set(scan.dismissed || []);
+    for(const f of (scan.findings || [])){
+      if(dismissed.has(f.id)) continue;
+      const q = String((window.findingQuote ? findingQuote(f) : f.quote) || '').toLowerCase().trim();
+      if(q && q.length > 6 && hay.includes(q))
+        why.push(`open finding — ${f.title || f.kind || 'risk'}`);
+    }
+  }catch(e){ why.push('the scan could not be read'); }
+  return { risky: why.length > 0, why };
+}
+/* Split the pending set the way the two batch buttons need it. An ask of ours
+   is deliberately not counted as risk — labCanDecide already refuses to let a
+   side rule on its own proposal, and double-counting it would have the preview
+   claim a change was dangerous when it was merely not ours to take. */
+function labBatchSplit(c, lab, side){
+  const pending = (lab.changes || []).filter(x => x.status === 'pending');
+  const clear = [], held = [], theirs = [];
+  for(const ch of pending){
+    if(labCanDecide(ch, side)) theirs.push(ch);
+    const r = labRiskOf(c, ch, side);
+    if(r.risky) held.push({ ch, why: r.why });
+    else if(labCanDecide(ch, side)) clear.push(ch);
+  }
+  return { pending, clear, held, theirs };
+}
+
+/* ---------- the four things a person wants done to wording ----------
+   Defined here rather than borrowed from the negotiation tab: the lab has to
+   keep working if that tab is ever removed. */
+const LAB_AI_ACTIONS = [
+  { id:'advantage', label:'🪄 Rephrase for Buyer/Supplier Advantage',
+    ask:'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
+  { id:'playbook', label:'⚖️ Align with Corporate Playbook',
+    ask:'Rewrite this contract wording so it matches our corporate playbook position. If the playbook has a preferred formulation for this category, use it.' },
+  { id:'risk', label:'🔍 Explain Legal Risk',
+    ask:'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain:true },
+  { id:'shorten', label:'✂️ Shorten Wording',
+    ask:'Rewrite this contract wording more concisely without changing its legal effect. Keep defined terms exactly as they are.' }
+];
+const labKillSel = () => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
+const labKillPop = () => document.querySelectorAll('.lab-aipop').forEach(n => n.remove());
+/* Anchored to the selection's own rectangle and clamped to the viewport, so a
+   clause selected at the bottom of the window does not put its menu off-screen. */
+function labAnchor(rect, w, h){
+  const pad = 10;
+  const left = Math.min(Math.max(pad, rect.left), window.innerWidth - w - pad);
+  let top = rect.bottom + 8;
+  if(top + h > window.innerHeight - pad) top = Math.max(pad, rect.top - h - 8);
+  return { left, top };
+}
+
+/* Ask the Copilot for wording, then show what it WOULD change — never change
+   anything. The popover is the whole safety argument for putting a model near a
+   contract: it renders the redline that would be filed against the clause as it
+   currently stands, and Apply is a person's decision. Cancel, Escape and
+   clicking away all leave the document untouched.
+
+   What comes back is treated as WORDING, not instructions and not markup: it is
+   escaped by the redline renderer like any other proposed text. */
+async function labAiPropose(ctx){
+  const { c, lab, action, text, clause, rect, side, again } = ctx;
+  labKillPop();
+  const pop = document.createElement('div');
+  pop.className = 'lab-aipop';
+  pop.setAttribute('role','dialog');
+  pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
+  pop.innerHTML = `<header><span style="flex:1">${esc(action.label)}</span>
+      <button class="ui-btn" data-ai-x style="font-size:11px;padding:3px 9px">Close</button></header>
+    <div class="lab-aiwait"><span class="lab-aispin"></span>Reading the clause…</div>`;
+  document.body.appendChild(pop);
+  const place = () => {
+    const b = pop.getBoundingClientRect();
+    const at = labAnchor(rect, b.width, b.height);
+    pop.style.left = at.left + 'px'; pop.style.top = at.top + 'px';
+  };
+  place();
+  pop.querySelector('[data-ai-x]').addEventListener('click', () => pop.remove());
+  const fail = msg => {
+    pop.querySelector('.lab-aiwait')?.remove();
+    const d = document.createElement('div');
+    d.style.cssText = 'padding:14px;font-size:12.5px;line-height:1.6;color:#8f322b';
+    d.textContent = msg;
+    pop.insertBefore(d, pop.querySelector('header').nextSibling);
+    place();
+  };
+  if(!window.copilotAvailable || !copilotAvailable()){
+    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
+    return;
+  }
+  const pbLine = (() => {
+    try{
+      const v = (((c && c.playbook) || {}).verdicts || []).filter(x => x.status === 'deviation');
+      return v.length ? `Our playbook flags this contract for: ${v.map(x => x.category).join(', ')}.` : '';
+    }catch(_){ return ''; }
+  })();
+  const messages = [{ role:'user', content:
+    `${action.ask}\n\nYou are helping negotiate a contract governed by Kenyan law. `
+    + `The party I act for is ${side === LAB_THEM ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
+    + (pbLine ? pbLine + ' ' : '')
+    + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
+    + (action.explain
+      ? 'Reply with at most three sentences of risk explanation, then a line containing only ---, then the replacement wording for the selected passage and nothing else.'
+      : 'Reply with the replacement wording for the selected passage and nothing else. No preamble, no quotation marks, no commentary.') }];
+  let raw;
+  try{
+    const res = await copilotAsk(messages, window.buildAssistantContext ? buildAssistantContext() : null);
+    raw = typeof res === 'string' ? res
+      : (res && (res.text || res.answer || res.content || res.reply || res.message)) || '';
+    raw = String(raw || '');
+  }catch(err){
+    fail(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
+    return;
+  }
+  if(!pop.isConnected) return;                      // closed while it was thinking
+  if(!raw.trim()){ fail('The Copilot returned nothing usable. Nothing was changed.'); return; }
+
+  let note = '', replacement = raw.trim();
+  if(action.explain){
+    const parts = replacement.split(/\n---+\n/);
+    if(parts.length > 1){ note = parts[0].trim(); replacement = parts.slice(1).join('\n').trim(); }
+    else { note = replacement; replacement = ''; }
+  }
+  /* A model that wrapped its answer in quotes or a fence is answering the
+     question; it is not proposing quotation marks into the contract. */
+  replacement = replacement.replace(/^```[a-z]*\s*/i,'').replace(/```\s*$/,'').trim()
+    .replace(/^["“]([\s\S]*)["”]$/,'$1').trim();
+
+  /* THE SELECTION HAS TO BE FOUND IN THE CLAUSE, and if it is not, this stops.
+
+     The fallback used to be "replace the whole clause with whatever came back",
+     which is a quiet catastrophe: a person selects five words inside a clause
+     under redline — where the visible text is a mix of kept, inserted and
+     struck-through wording that exists in no single version — the lookup misses,
+     and the entire clause is silently swapped for a sentence. Refusing is the
+     only safe answer, and it is a better one than guessing. */
+  const found = !!replacement && clause.text.includes(text);
+  if(replacement && !found){
+    fail('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    return;
+  }
+  const proposed = found ? clause.text.replace(text, replacement) : clause.text;
+  const canApply = found && proposed !== clause.text;
+
+  pop.querySelector('.lab-aiwait')?.remove();
+  const body = document.createElement('div');
+  body.className = 'lab-aibody';
+  body.innerHTML = (note ? `<p style="font-size:12.5px;line-height:1.6;margin:0 0 10px;padding:9px 11px;background:var(--color-bg);border-radius:6px;font-family:inherit">${esc(note)}</p>` : '')
+    + (canApply ? labRedlineHtml(clause.text, proposed)
+      : `<p style="font-size:12.5px;color:var(--color-neutral-600);margin:0">No wording change was proposed${note ? ' — the note above is the whole answer' : ''}.</p>`);
+  pop.insertBefore(body, pop.querySelector('header').nextSibling);
+  const foot = document.createElement('footer');
+  foot.innerHTML = `${canApply ? '<button class="ui-btn ui-btn-primary" data-ai-apply style="font-size:12px">Apply Redline</button>' : ''}
+    <button class="ui-btn" data-ai-cancel style="font-size:12px">Cancel</button>
+    <span style="flex:1"></span>
+    <span style="font-size:10.5px;color:var(--color-neutral-500)">Nothing has changed yet</span>`;
+  pop.appendChild(foot);
+  place();
+  foot.querySelector('[data-ai-cancel]').addEventListener('click', () => pop.remove());
+  foot.querySelector('[data-ai-apply]')?.addEventListener('click', () => {
+    /* Filed as an ordinary tracked change — same model, same id series, same
+       card in the list. A suggestion that arrived from a model is not a
+       different KIND of change and must not get a private path into the doc. */
+    const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
+      before: clause.text, after: proposed, side,
+      author: `${(window.currentUser && currentUser()?.name) || 'You'} · Copilot (${action.label.replace(/^\S+\s/,'')})` });
+    pop.remove();
+    if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
+    labPut(c.id, lab);
+    if(window.toast) toast(`${ch.id} filed from the Copilot — it is a draft until you send it`);
+    if(typeof again === 'function') again();
+  });
 }
 
 function labDocHtml(c, lab, side, external){
@@ -356,13 +592,15 @@ function labDocHtml(c, lab, side, external){
     const pending = labPendingOn(changes, cl.clauseId, side);
     const body = pending
       ? labRedlineHtml(pending.before, pending.after)
-      : esc(now);
+      : labCleanHtml(now);
     return `
-    <div style="margin:0 0 16px" data-lab-clause="${esc(cl.clauseId)}">
+    <div style="margin:0 0 16px" data-lab-clause="${esc(cl.clauseId)}"
+      data-lab-clause-label="${esc(label)}">
       <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
         <span style="font-size:13.5px;font-weight:700">${esc(label)}</span>
-        ${pending ? labChip(pending.sent ? 'change ' + pending.id : 'your draft ' + pending.id,
-          pending.sent ? 'open' : 'draft') : ''}
+        ${pending ? `<button type="button" class="lab-badge" data-lab-badge="${esc(pending.id)}"
+          aria-pressed="${_labLinked === pending.id ? 'true' : 'false'}"
+          title="Show the conversation pinned to ${esc(pending.id)}">${esc(pending.id)}${pending.sent ? '' : ' · draft'}</button>` : ''}
       </div>
       <div style="font-size:14px;line-height:1.72">${body}</div>
       ${external ? '' : `<div style="margin-top:5px">
@@ -415,9 +653,14 @@ function labThreadHtml(t, opts){
       <div style="font-size:10px;color:var(--color-neutral-500)">${esc(fmtDT(m.at))}</div>
     </div>`).join('');
   return `
-  <div style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
+  <div class="lab-thread${t.changeId && t.changeId === _labLinked ? ' is-linked' : ''}" data-lab-thread="${esc(t.id)}"${
+    t.changeId ? ` data-lab-thread-change="${esc(t.changeId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-      ${internal ? labChip('Internal', 'internal') : labChip('Shared', 'shared')}
+      ${''/* SPELT OUT, not abbreviated. "Internal" and "Shared" read as
+             categories; a person scanning a thread needs to know at a glance
+             whether the other side can see it, and the cost of guessing wrong
+             is saying something to a room you thought was empty. */}
+      ${internal ? labChip('🔒 Internal Only', 'internal') : labChip('🌐 Shared with Counterparty', 'shared')}
       ${resolved ? labChip('Resolved', 'good') : labChip('Open', 'open')}
       ${t.changeId ? labChip('on ' + t.changeId, 'quiet') : ''}
     </div>
@@ -426,6 +669,75 @@ function labThreadHtml(t, opts){
     ${resolved ? `<div style="font-size:10.5px;color:#1e6b4d">Closed${t.resolvedAt ? ' on ' + esc(fmtDT(t.resolvedAt)) : ''}${
       owner && t.resolvedBy ? ' by ' + esc(t.resolvedBy.name) : (t.resolvedByOrg ? ' by ' + esc(t.resolvedByOrg) : '')}</div>` : ''}
     ${owner && !resolved ? `<div><button class="ui-btn" data-lab-resolve="${esc(t.id)}" style="font-size:11px;padding:4px 10px">Mark resolved</button></div>` : ''}
+  </div>`;
+}
+
+/* ---------- which mode the lab is in, and the two batch actions ----------
+   Two states that look almost identical and mean opposite things:
+
+     INTERNAL SANDBOX DRAFTING — drafts of ours that have not been sent. The
+     other side cannot see them, cannot answer them, and does not know they
+     exist. Work in progress, on our desk.
+
+     COUNTERPARTY PUBLISHED ROUND — what was sent is on their table. It can be
+     answered, and every word of it has left the building.
+
+   The lab already kept the distinction in the data (`ch.sent`, and the
+   counterparty view) but never named it, so it was legible only by reading the
+   chips on individual cards. */
+function labModeBannerHtml(c, lab, side, external){
+  const pending = (lab.changes || []).filter(x => x.status === 'pending');
+  const unsent  = pending.filter(x => !x.sent && x.side === side);
+  const split   = labBatchSplit(c, lab, side);
+  const other   = esc(c.counterparty || 'the counterparty');
+  if(external) return `
+    <div class="lab-mode is-published" role="status">
+      <b>🌐 Counterparty published round</b>
+      <span style="flex:1;min-width:180px">This is their view. Everything on it has been sent; nothing private is here, because internal work was never put in the object this page renders.</span>
+    </div>`;
+  const banner = unsent.length ? `
+    <div class="lab-mode is-sandbox" role="status">
+      <b>🔒 Internal sandbox drafting</b>
+      <span style="flex:1;min-width:180px">${unsent.length} draft${unsent.length === 1 ? '' : 's'} still on your desk. ${other} cannot see ${unsent.length === 1 ? 'it' : 'them'} and cannot answer until you send.</span>
+    </div>` : `
+    <div class="lab-mode is-published" role="status">
+      <b>🌐 Counterparty published round</b>
+      <span style="flex:1;min-width:180px">Everything on the table has been sent to ${other}. Nothing here is private.</span>
+    </div>`;
+  /* The two batch actions live in the same banner, because what they do depends
+     entirely on which of the two states you are in. */
+  const acts = (split.clear.length || split.theirs.length) ? `
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">
+      <button class="ui-btn" id="lab-batch-acc"${split.clear.length ? '' : ' disabled'}
+        style="font-size:11.5px;padding:4px 11px;border-color:#1e6b4d;color:#1e6b4d"
+        title="Accepts only the pending changes that trip no playbook, scan or rewrite signal — the rest are held back for you to read">Accept All Non-Risk Redlines${split.clear.length ? ` (${split.clear.length})` : ''}</button>
+      <button class="ui-btn" id="lab-batch-rej"${split.theirs.length ? '' : ' disabled'}
+        style="font-size:11.5px;padding:4px 11px;border-color:#b0453c;color:#b0453c"
+        title="Rejects every pending change proposed by the other side. Your own drafts are untouched.">Reject All Counterparty Redlines${split.theirs.length ? ` (${split.theirs.length})` : ''}</button>
+      ${split.held.length ? `<span style="font-size:11px;color:${LAB_GOLD};align-self:center">${split.held.length} held back for a person</span>` : ''}
+    </div>` : '';
+  return banner.replace('</div>', acts + '</div>');
+}
+
+/* The bar that says the discussion is showing one change out of many, and the
+   way back. Clicking a fingerprint always HIGHLIGHTS its thread; narrowing the
+   list to it is a second, explicit, reversible press — a reader who clicks
+   L-002 to read it and then goes looking for L-003 must still find it. */
+function labVisibleThreads(threads){
+  if(_labOnly && _labLinked && threads.some(t => t.changeId === _labLinked))
+    return threads.filter(t => t.changeId === _labLinked);
+  return threads;
+}
+function labLinkedBarHtml(threads){
+  if(!_labLinked) return '';
+  const n = threads.filter(t => t.changeId === _labLinked).length;
+  return `<div class="lab-filterbar" role="status" style="margin-bottom:9px">
+    <span style="flex:1;min-width:0">${_labOnly
+      ? `Showing the ${n} thread${n === 1 ? '' : 's'} on <b>${esc(_labLinked)}</b>.`
+      : (n ? `<b>${esc(_labLinked)}</b> — ${n} thread${n === 1 ? '' : 's'} highlighted below.`
+           : `<b>${esc(_labLinked)}</b> has no conversation on it yet.`)}</span>
+    ${n ? `<button type="button" id="lab-only">${_labOnly ? 'Show all threads' : 'Show only this one'}</button>` : ''}
+    <button type="button" id="lab-unlink">Clear</button>
   </div>`;
 }
 
@@ -464,8 +776,75 @@ function renderDocLab(){
 
   content.innerHTML = `
   <style>
-    .lab-ins{color:#1e6b4d;background:rgba(46,135,99,.12);border-radius:2px;padding:0 2px;font-weight:600}
+    .lab-ins{color:#1e6b4d;background:rgba(46,135,99,.12);border-radius:2px;padding:0 2px;font-weight:600;text-decoration:none}
     .lab-del{color:#8f322b;background:rgba(176,69,60,.10);border-radius:2px;padding:0 2px;text-decoration:line-through}
+
+    /* THE CLAUSE KEEPS ITS SHAPE. Each line of a clause is its own block, so
+       pre-wrap is off inside one — the blocks carry the breaks now. The hanging
+       indent pulls "7.1" and "(b)" into the gutter and hangs the wrapped wording
+       under the first word rather than under the margin, which is how a contract
+       is set on paper. */
+    .lab-redline .rl-line{margin:0 0 7px;white-space:normal}
+    .lab-redline .rl-line:last-child{margin-bottom:0}
+    .lab-redline .rl-heading{font-weight:700;font-size:13.5px;margin:11px 0 6px}
+    .lab-redline .rl-heading:first-child{margin-top:0}
+    .lab-redline .rl-hang{padding-left:2.6em;text-indent:-2.6em}
+    .lab-redline .rl-clause{margin-top:9px}
+    /* A line that arrived or went whole is marked in the margin as well as in
+       colour, so the two stay distinguishable in print and to a reader who
+       cannot separate the reds from the greens. */
+    .lab-redline .rl-line-ins,.lab-redline .rl-line-del{position:relative}
+    .lab-redline .rl-line-ins::before{content:"+";position:absolute;left:-1.1em;
+      color:#1e6b4d;font-weight:700;text-indent:0}
+    .lab-redline .rl-line-del::before{content:"−";position:absolute;left:-1.1em;
+      color:#8f322b;font-weight:700;text-indent:0}
+
+    /* ---- the selection menu ---- */
+    .lab-selmenu{position:fixed;z-index:80;display:flex;flex-direction:column;gap:1px;
+      min-width:246px;padding:5px;border-radius:9px;background:var(--color-surface);
+      border:1px solid var(--color-divider);box-shadow:0 12px 32px -8px rgba(20,32,48,.34)}
+    .lab-selmenu button{display:block;width:100%;text-align:left;font:inherit;font-size:12.5px;
+      color:var(--color-neutral-800);background:none;border:0;border-radius:6px;padding:7px 9px;cursor:pointer}
+    .lab-selmenu button:hover,.lab-selmenu button:focus-visible{background:var(--color-neutral-100)}
+    .lab-selhead{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+      color:var(--color-neutral-500);padding:5px 9px 3px}
+    .lab-selquote{font-size:11px;color:var(--color-neutral-600);padding:0 9px 6px;font-style:italic;
+      max-width:246px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* ---- the AI proposal popover ---- */
+    .lab-aipop{position:fixed;z-index:81;width:min(470px,calc(100vw - 32px));border-radius:10px;
+      background:var(--color-surface);border:1px solid var(--color-divider);
+      box-shadow:0 20px 46px -12px rgba(20,32,48,.42);overflow:hidden}
+    .lab-aipop header{display:flex;align-items:center;gap:8px;padding:11px 14px;
+      border-bottom:1px solid var(--color-divider);background:var(--color-bg);font-size:12.5px;font-weight:700}
+    .lab-aibody{padding:12px 14px;max-height:42vh;overflow:auto;font-family:var(--font-doc);
+      font-size:13px;line-height:1.68}
+    .lab-aipop footer{display:flex;gap:8px;align-items:center;padding:10px 14px;
+      border-top:1px solid var(--color-divider);background:var(--color-bg);flex-wrap:wrap}
+    .lab-aiwait{display:flex;align-items:center;gap:9px;padding:16px 14px;font-size:12.5px;
+      color:var(--color-neutral-600)}
+    .lab-aispin{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid var(--color-divider);
+      border-top-color:var(--color-neutral-700);animation:lab-spin .8s linear infinite}
+    @keyframes lab-spin{to{transform:rotate(360deg)}}
+
+    /* ---- a change badge in the document, and the thread it points at ---- */
+    .lab-badge{font-family:var(--font-mono);font-size:10.5px;border-radius:999px;padding:2px 9px;
+      cursor:pointer;border:1px solid var(--color-divider);background:var(--color-bg);
+      color:var(--color-neutral-700)}
+    .lab-badge:hover{border-color:#8a6a2a;color:#8a6a2a}
+    .lab-badge[aria-pressed="true"]{background:#8a6a2a;border-color:#8a6a2a;color:#fff}
+    .lab-thread.is-linked{box-shadow:0 0 0 3px rgba(138,106,42,.34)}
+    .lab-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11.5px;
+      padding:7px 11px;border-radius:6px;background:#fdf6e7;border:1px solid #e0c48a;color:#7d5a14}
+    .lab-filterbar button{font:inherit;font-size:11px;font-weight:600;cursor:pointer;
+      border:1px solid #d8bd86;background:#fff;color:#7d5a14;border-radius:5px;padding:3px 9px}
+
+    /* ---- which mode the lab is in ---- */
+    .lab-mode{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;
+      padding:9px 14px;border-radius:6px;border:1px solid var(--color-divider)}
+    .lab-mode.is-sandbox{border-left:4px solid #8a6a2a;background:#fffdf7;color:#7d5a14}
+    .lab-mode.is-published{border-left:4px solid #33475c;background:#f5f8fb;color:var(--color-neutral-800)}
+    .lab-mode b{font-size:12.5px}
   </style>
   <div class="view-enter" style="padding:14px 16px 24px;display:flex;flex-direction:column;gap:12px">
 
@@ -501,11 +880,13 @@ function renderDocLab(){
       </div>
     </section>` : '')}
 
+    ${labModeBannerHtml(c, lab, side, external)}
+
     <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,1fr);gap:12px;align-items:start">
 
       <section style="${LAB_CARD};padding:18px 22px 26px;min-width:0">
         <h6 style="${LAB_H6};margin-bottom:14px">Working document${external ? ' · as they see it' : ' · the lab’s own copy'}</h6>
-        <div style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
+        <div id="lab-canvas" style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
       </section>
 
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
@@ -521,8 +902,9 @@ function renderDocLab(){
 
         <section style="${LAB_CARD};padding:14px 16px">
           <h6 style="${LAB_H6};margin-bottom:10px">Discussion${external ? ' · as they see it' : ''}</h6>
+          ${labLinkedBarHtml(threadsToDraw)}
           ${threadsToDraw.length
-            ? `<div style="display:flex;flex-direction:column;gap:9px">${threadsToDraw.map(t => labThreadHtml(t, { owner: !external })).join('')}</div>`
+            ? `<div style="display:flex;flex-direction:column;gap:9px">${labVisibleThreads(threadsToDraw).map(t => labThreadHtml(t, { owner: !external })).join('')}</div>`
             : `<div style="font-size:12px;color:var(--color-neutral-600);line-height:1.6">${external
                 ? 'Nothing has been shared with them yet.'
                 : 'No threads yet. Write one below, or seed a round.'}</div>`}
@@ -576,6 +958,114 @@ function renderDocLab(){
 }
 
 function wireDocLab(c, lab, side, external){
+  const againLab = () => renderDocLab();
+
+  /* ---------- a fingerprint in the document points at its conversation ----------
+     Clicking the badge on a clause highlights the threads pinned to that change
+     and scrolls to them. Clicking the same badge again clears it, so the link is
+     never a state somebody can be stuck in. */
+  document.querySelectorAll('[data-lab-badge]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const id = b.getAttribute('data-lab-badge');
+    if(_labLinked === id){ _labLinked = null; _labOnly = false; }
+    else _labLinked = id;
+    againLab();
+    const first = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
+    if(first) first.scrollIntoView({ block:'center', behavior:'smooth' });
+  }));
+  document.getElementById('lab-only')?.addEventListener('click', () => { _labOnly = !_labOnly; againLab(); });
+  document.getElementById('lab-unlink')?.addEventListener('click', () => { _labLinked = null; _labOnly = false; againLab(); });
+
+  /* ---------- the two batch actions ----------
+     Neither is "do it to everything". Accept takes only what trips no risk
+     signal and says what it held back; reject takes only the other side's asks,
+     because sweeping away our own drafts would be a bulk route around "nobody
+     rules on their own proposal". */
+  const batch = kind => {
+    const split = labBatchSplit(c, lab, side);
+    const take = kind === 'accept' ? split.clear : split.theirs;
+    if(!take.length){
+      if(window.toast) toast(kind === 'accept'
+        ? `Nothing accepted automatically — all ${split.held.length} pending change${split.held.length === 1 ? '' : 's'} tripped a risk signal, so each one needs a person`
+        : 'No changes from the other side are pending', 'err');
+      return;
+    }
+    let done = 0;
+    for(const ch of take)
+      if(labDecide(lab, ch.id, kind === 'accept' ? 'accepted' : 'rejected',
+        window.currentUser ? currentUser() : null, side)) done++;
+    labPut(c.id, lab);
+    /* WHAT WAS HELD BACK IS SAID, every time. A batch that silently took four
+       of six reads as though it took all six, and the two left behind are
+       exactly the ones that needed a person to look at them. */
+    if(window.toast) toast(kind === 'accept'
+      ? `${done} change${done === 1 ? '' : 's'} accepted`
+        + (split.held.length ? ` · ${split.held.length} held back: ${split.held.slice(0,3).map(h => h.ch.id + ' (' + h.why[0] + ')').join(', ')}${split.held.length > 3 ? '…' : ''}` : '')
+      : `${done} change${done === 1 ? '' : 's'} rejected — those clauses revert to the baseline`);
+    againLab();
+  };
+  document.getElementById('lab-batch-acc')?.addEventListener('click', () => batch('accept'));
+  document.getElementById('lab-batch-rej')?.addEventListener('click', () => batch('reject'));
+
+  /* ---------- highlight a passage, ask for something to be done to it ----------
+     Offered on the lab's own copy only. The counterparty's view is a read-only
+     picture of what was sent, so a menu there would end at a proposal nobody is
+     in a position to file.
+
+     Bound on mouseup and on keyup rather than on selectionchange: the latter
+     fires on every character of a drag and would flicker a menu under the
+     pointer the whole way across the clause. */
+  if(!external){
+    const openSel = () => {
+      const sel = window.getSelection && window.getSelection();
+      if(!sel || sel.isCollapsed){ labKillSel(); return; }
+      const text = String(sel.toString() || '').trim();
+      if(text.length < 3){ labKillSel(); return; }
+      const node = sel.anchorNode;
+      const el = node && (node.nodeType === 1 ? node : node.parentElement);
+      const host = el && el.closest('[data-lab-clause]');
+      if(!host || !document.getElementById('lab-canvas')?.contains(host)){ labKillSel(); return; }
+      let rect;
+      try{ rect = sel.getRangeAt(0).getBoundingClientRect(); }catch(_){ return; }
+      if(!rect || (!rect.width && !rect.height)) return;
+      const clauseId = host.getAttribute('data-lab-clause');
+      const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
+      if(!cl) return;
+      const clause = { clauseId, label: host.getAttribute('data-lab-clause-label') || clauseId,
+        text: labClauseText(cl, lab.changes) };
+      labKillSel();
+      const menu = document.createElement('div');
+      menu.className = 'lab-selmenu';
+      menu.setAttribute('role','menu');
+      menu.innerHTML = `<div class="lab-selhead">Selected wording</div>
+        <div class="lab-selquote">${esc(text.length > 66 ? text.slice(0,65) + '…' : text)}</div>
+        ${LAB_AI_ACTIONS.map(a => `<button type="button" role="menuitem" data-lab-ai="${a.id}">${esc(a.label)}</button>`).join('')}`;
+      document.body.appendChild(menu);
+      const box = menu.getBoundingClientRect();
+      const at = labAnchor(rect, box.width, box.height);
+      menu.style.left = at.left + 'px'; menu.style.top = at.top + 'px';
+      menu.querySelectorAll('[data-lab-ai]').forEach(btn => btn.addEventListener('mousedown', ev => {
+        /* mousedown, not click: clicking first collapses the selection, and the
+           proposal needs the words that were chosen. */
+        ev.preventDefault(); ev.stopPropagation();
+        const action = LAB_AI_ACTIONS.find(a => a.id === btn.getAttribute('data-lab-ai'));
+        labKillSel();
+        if(action) labAiPropose({ c, lab, action, text, clause, rect, side, again: againLab });
+      }));
+    };
+    const canvas = document.getElementById('lab-canvas');
+    if(canvas){
+      canvas.addEventListener('mouseup', () => setTimeout(openSel, 0));
+      canvas.addEventListener('keyup', e => { if(e.shiftKey || e.key === 'Shift') setTimeout(openSel, 0); });
+    }
+    document.addEventListener('mousedown', e => {
+      if(!e.target.closest || (!e.target.closest('.lab-selmenu') && !e.target.closest('.lab-aipop'))) labKillSel();
+    }, true);
+    document.addEventListener('keydown', e => {
+      if(e.key === 'Escape'){ labKillSel(); labKillPop(); }
+    });
+  }
+
   const on = (id, fn) => { const el = document.getElementById(id); if(el) el.addEventListener('click', fn); };
   const save = () => labPut(c.id, lab);
   const repaint = () => renderDocLab();

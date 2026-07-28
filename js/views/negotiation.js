@@ -2923,12 +2923,20 @@ async function negoAiPropose(c, ctx){
   replacement = replacement.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '').trim()
     .replace(/^["“]([\s\S]*)["”]$/, '$1').trim();
 
-  const proposed = replacement && clauseText.includes(text)
-    ? clauseText.replace(text, replacement)
-    : (replacement || clauseText);
+  /* THE SELECTION HAS TO BE FOUND IN THE CLAUSE. Falling back to "replace the
+     whole clause with whatever came back" is a quiet catastrophe: a person
+     selects five words inside a clause under redline — where the visible text
+     mixes kept, inserted and struck-through wording and exists in no single
+     version — the lookup misses, and the entire clause is silently swapped. */
+  const found = !!replacement && clauseText.includes(text);
+  if (replacement && !found){
+    fail('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    return;
+  }
+  const proposed = found ? clauseText.replace(text, replacement) : clauseText;
   const structured = window.redlineStructuredHtml
     ? redlineStructuredHtml(clauseText, proposed) : null;
-  const canApply = !!replacement && proposed !== clauseText;
+  const canApply = found && proposed !== clauseText;
 
   pop.querySelector('.nego-aiwait')?.remove();
   const body = document.createElement('div');
