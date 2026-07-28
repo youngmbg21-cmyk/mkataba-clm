@@ -176,7 +176,7 @@ function createFromTemplate(tid){
   const c={ id:nextId(), name:tpl.name+' (Draft)', counterparty:'', value:0, status:'Draft',
     template:tid, folder:tpl.folder,
     lastAction:todayStr(),
-    hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
+    hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',  // i18n-exempt: written into the contract record as the signatory of record — record data, not chrome
     compliance:{iprs:false,pki:false},
     /* The seeded comment and the audit entry below are RECORD DATA, written
        once into the contract and read later by anyone. They stay in English
@@ -233,6 +233,7 @@ function exportWorkingSetCsv(){
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
   if(!rows.length){ toast(t('toast_nothing_export'),'err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  // i18n-exempt: CSV column names are a file format downstream tools parse by name; translating them would change the format depending on who clicked Export (BUGLOG run 2026-07-28 item 7)
   const head=['ID','Name','Counterparty','Stream','Value (KES)','Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
