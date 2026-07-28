@@ -4694,3 +4694,76 @@ card.
 **1008 tests, 0 failures.** Three tests rewritten where the new behaviour is the
 reverse of the old, with the reason recorded in them; `f55` is new and covers
 the clean read, the merged thread, the execution wording and the email rules.
+
+---
+
+## Cycle 6 — two faults with the same shape
+
+Both are a value that was ALMOST the right kind being used as if it were exactly
+the right kind, and the product carrying on as though nothing had happened.
+
+**21. One badly typed date killed two screens for the whole portfolio.**
+Everything downstream of an expiry assumes a clean `YYYY-MM-DD`, because the
+date pickers produce one. An expiry can also arrive from metadata extraction,
+from a bulk migration, or from a spreadsheet somebody typed — and then it reads
+`30 September 2026`. `new Date("30 September 2026" + "T00:00:00")` is an Invalid
+Date, and `toISOString()` on an Invalid Date **throws**.
+
+It threw out of `renewalDecisionDate`, out of `renderDashboard` and
+`renderCalendar`, and Home and Calendar went dead for every contract in the
+workspace — over one field on one record.
+
+And it went dead **silently**. The throw escaped `setView` before
+`setActiveNav` ran, so the nav button never highlighted: no error on the screen,
+no toast, nothing in the interface at all. A button that does nothing when you
+press it reads as a broken button, not as a broken screen, and there was no way
+for the person pressing it to know the difference.
+
+Three parts to the fix.
+
+`dateOnly()` normalises before any arithmetic touches the value: a leading
+`YYYY-MM-DD` is taken as-is, anything else goes to `Date.parse`, and a value
+that survives neither is `null`. Null is a real answer — *we do not know when
+this expires* — and every caller already handled it.
+
+`setView` catches the render. The rest of the switch then runs, so the shell
+arrives in a coherent state, and the failure is **said**: named view, the error,
+and the record when the error carries one (never guessed — a wrong id sends
+somebody to the wrong contract). The content area says it too, because a toast
+is gone in four seconds.
+
+Found while doing it: `toISOString()` was also **wrong**, not just fragile. It
+converts to UTC first, so midnight local in Nairobi (UTC+3) came back as the
+previous day — every renewal deadline reported one day early, in the market this
+product is built for. The day is now read in the reader's own timezone. The
+calendar's expiry events go through the same normalisation, because the grid is
+keyed by `YYYY-MM-DD`: an event carrying `30 September 2026` was built, counted,
+and then drawn on no day at all.
+
+**22. Compressed bytes were printed as if they were the contract.**
+`pdfFlatText` fell back with `inf ? pdfLatin(inf) : m[1]` — so when the inflate
+failed, the **raw compressed bytes** went to the string scraper. Deflate output
+is high-entropy, so across a few hundred kilobytes it reliably contains `Tj` or
+`BT` and plenty of `(`…`)` pairs. The test passed, `pdfStringsFrom` scraped the
+noise between the parentheses, and that was stored as `upload.extractedText` and
+printed by the PDF export.
+
+`pdfStreamBytes` had the same line in a different form — `return inf || arr` —
+so the STRUCTURED reader reached the fault by its own route: a stream that would
+not inflate came back as its own compressed bytes and was handed to the
+content-stream walker as drawing operators.
+
+A declared-Flate stream that will not inflate is skipped on both paths. An
+uncompressed content stream really is text and still reads as one, so this is
+not a blanket skip: `pdfStreamIsCompressed` reads the `/Filter` entry where
+there is one and the zlib/gzip header where there is not.
+
+`looksLikeText()` is the gate at the end — >85% printable over the opening few
+kilobytes — applied to every result of `extractPdfText`, again before the upload
+stores it, and again on the re-read repair path. Below the line the answer is
+the empty string, which is not a failure state: it is the existing "no
+machine-readable text" path, and it is what puts the OCR offer in front of
+somebody whose scan can actually be read.
+
+**1028 tests, 0 failures.** `f56` is new and covers both faults, including the
+two that were found while fixing them.

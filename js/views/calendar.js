@@ -15,7 +15,12 @@ function calendarEvents(){
   const out=[];
   state.contracts.forEach(c=>{
     if(c.status!=='Declined'){
-      const exp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
+      /* Through dateOnly, because the grid is keyed by YYYY-MM-DD: an expiry
+         written "30 September 2026" matched no cell, so the event was built,
+         counted and then rendered on no day at all. Same normalisation the
+         decision date uses, so the two are comparable below. */
+      const rawExp=(window.effectiveExpiry?effectiveExpiry(c):null)||(c.metadata&&c.metadata.expiryDate)||c.expiry;
+      const exp=window.dateOnly?dateOnly(rawExp):rawExp;
       if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
       const dd=renewalDecisionDate(c);
       if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });

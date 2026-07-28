@@ -59,7 +59,16 @@ function pdfIndexObjects(bin){
 async function pdfStreamBytes(o){
   if(!o||o.raw==null) return null;
   const arr=Uint8Array.from(o.raw, ch=>ch.charCodeAt(0)&0xff);
-  if(/\/Flate/.test(o.dict)){ const inf=await inflateBytes(arr); return inf||arr; }
+  /* A DECLARED-FLATE STREAM THAT WILL NOT INFLATE IS NOT READABLE, and
+     `return inf||arr` said otherwise: it handed the raw compressed bytes back
+     as though they were the decoded content. Everything above this treats the
+     return value as text — the content-stream walker turns it straight into
+     drawing operators — so a truncated, encrypted or oddly-predicted stream
+     became a page full of high-entropy noise that then looked, to every check
+     downstream, like a document with text in it.
+
+     Null is what the callers already handle: "this stream could not be read". */
+  if(/\/Flate/.test(o.dict)) return await inflateBytes(arr) || null;
   return arr;
 }
 /* PDF 1.5+ keeps most non-stream objects (page dicts, fonts) inside /ObjStm containers */
@@ -653,12 +662,46 @@ function pdfStringsFrom(content){
    what a page break is here. What CANNOT be recovered from this path — real
    headings, list nesting — is rebuilt afterwards by docRichFromText, which
    reads the wording itself. */
+/* IS THIS STREAM COMPRESSED? The scrape works on a raw regex over the file, so
+   it has no object dictionary to hand — it looks at the one that precedes the
+   `stream` keyword, and at the bytes themselves. A zlib stream opens 0x78 with
+   a valid two-byte check; that is a strong enough signal on its own, and the
+   /Filter entry is the authoritative one where it is there to be read. */
+function pdfStreamIsCompressed(bin, at, raw){
+  const head=bin.slice(Math.max(0, at-800), at);
+  const dictAt=head.lastIndexOf('<<');
+  if(dictAt>=0 && /\/Filter\b[^>]{0,200}\/(FlateDecode|LZWDecode|DCTDecode|JPXDecode|CCITTFaxDecode|RunLengthDecode|ASCIIHexDecode|ASCII85Decode)/
+      .test(head.slice(dictAt))) return true;
+  if(raw.length>=2){
+    const a=raw.charCodeAt(0)&0xff, b=raw.charCodeAt(1)&0xff;
+    if(a===0x78 && ((a<<8)+b)%31===0) return true;      // zlib header
+    if(a===0x1f && b===0x8b) return true;               // gzip
+  }
+  return false;
+}
 async function pdfFlatText(bin){
   const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
   while((m=re.exec(bin))){
-    const arr=Uint8Array.from(m[1],ch=>ch.charCodeAt(0)&0xff);
+    const raw=m[1];
+    const arr=Uint8Array.from(raw,ch=>ch.charCodeAt(0)&0xff);
     const inf=await inflateBytes(arr);
-    const text=inf?pdfLatin(inf):m[1];
+    /* COMPRESSED BYTES ARE NOT TEXT, and the fallback treated them as text.
+
+       `inf ? pdfLatin(inf) : m[1]` meant that when the inflate failed — an
+       unsupported predictor, a truncated stream, an encrypted document — the
+       RAW COMPRESSED BYTES were handed to the scraper. Deflate output is
+       high-entropy, so across a few hundred kilobytes it reliably contains the
+       letters `Tj` or `BT` somewhere, and plenty of `(` … `)` pairs. The test
+       passed, `pdfStringsFrom` dutifully scraped the bytes between the
+       parentheses, and the result — pure binary noise — was stored as the
+       contract's extractedText and printed by the PDF export.
+
+       An uncompressed content stream really is text and still reads as one.
+       A compressed one that will not inflate yields nothing, and nothing is
+       the honest answer: it routes to the "no machine-readable text" path and
+       the OCR offer, which can actually read the document. */
+    if(!inf && pdfStreamIsCompressed(bin, m.index, raw)) continue;
+    const text=inf?pdfLatin(inf):raw;
     if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
   }
   return out.join('\n\n')
@@ -666,6 +709,31 @@ async function pdfFlatText(bin){
     .replace(/[ \t]*\n[ \t]*/g,'\n')
     .replace(/\n{3,}/g,'\n\n')
     .trim();
+}
+
+/* ---- THE LAST GATE BEFORE GARBAGE BECOMES THE CONTRACT ----
+
+   Extraction has several fallbacks and each of them can fail in a way that
+   still returns a string. The check that matters is not which path produced it
+   but whether the result is READABLE — because whatever comes back is stored as
+   the document's text, fed to Copilot, searched, diffed and printed.
+
+   Printable means what a person reading a contract would call printable: the
+   Latin-1 range, tabs and line breaks. Below 85% over the opening few kilobytes
+   this is not a document, it is bytes, and the caller is told so by being given
+   nothing at all. Empty is not a failure state here — it is the existing "no
+   machine-readable text" path, and it is what puts the OCR offer in front of
+   someone whose scan can actually be read. */
+function looksLikeText(s){
+  const t=String(s==null?'':s);
+  if(!t.trim()) return true;                       // nothing is not garbage
+  const sample=t.slice(0,4096);
+  let ok=0;
+  for(let i=0;i<sample.length;i++){
+    const ch=sample.charCodeAt(i);
+    if(ch===9||ch===10||ch===13||(ch>=32&&ch<=126)||(ch>=160&&ch<=0x2027)||ch>=0x202a) ok++;
+  }
+  return (ok/sample.length)>0.85;
 }
 
 async function extractPdfText(buf){
@@ -698,8 +766,11 @@ async function extractPdfText(buf){
       if(txt) pages.push(txt);
     }
   }catch(e){ pages=[]; }
-  if(pages.length) return pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
-  return await pdfFlatText(bin);
+  const text = pages.length
+    ? pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim()
+    : await pdfFlatText(bin);
+  // one gate, on every path out of here — see looksLikeText
+  return looksLikeText(text) ? text : '';
 }
 /* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
    CSP (connect-src 'self'), so the bytes are unpacked without a request. */
@@ -1036,6 +1107,12 @@ async function submitUpload(){
   } else {
     extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   }
+  /* NOTHING UNREADABLE IS STORED, whichever reader produced it. extractPdfText
+     already applies this gate, and it is applied again here because this is the
+     last point before the string becomes the contract's text — and because the
+     next line decides whether to offer OCR, which is exactly the right thing to
+     do with a document nobody could read. */
+  if(!looksLikeText(extractedText)) extractedText='';
   // A PDF with no text layer, or a photo of a contract, is read by OCR rather
   // than filed as an empty shell. Provenance is recorded either way.
   let ocr=null, textSource=word==='docx'?'docx-text':(extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none');
@@ -1423,7 +1500,9 @@ async function rereadUploadText(c, btn){
     }
     if(!u.dataUrl) throw new Error('the original file is not available on this record');
     const text=await extractDocText(u.dataUrl, u.mime||'');
-    if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+    // …and the same gate on the repair path: a re-read that produced bytes must
+    // not overwrite text that was readable
+    if(!text || text.length<40 || !looksLikeText(text)) throw new Error('no machine-readable text in this file');
     const before=Number(u.textChars||0);
     u.extractedText=text; u.textChars=text.length;
     c.lastAction=todayStr();
@@ -3220,5 +3299,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,openNegoProposeModal});

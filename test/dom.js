@@ -18,7 +18,7 @@ function fakeElement(id) {
     addEventListener() {}, removeEventListener() {}, appendChild() {}, remove() {},
     setAttribute() {}, getAttribute() { return null; }, querySelector() { return null; },
     querySelectorAll() { return []; }, focus() {}, select() {}, contains() { return false; },
-    scrollIntoView() {}, click() {},
+    scrollIntoView() {}, scrollTo() {}, click() {},
   };
   el.parentElement = { style: {}, appendChild() {} };
   return el;

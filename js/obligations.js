@@ -2,17 +2,57 @@
 
 const OBLIG_RECUR = [['none','One-off'],['monthly','Monthly'],['quarterly','Quarterly'],['annual','Annual']];
 
+/* ---- A DATE FIELD IS NOT ALWAYS A DATE ----
+
+   Everything downstream of an expiry — the calendar grid, the dashboard's
+   "decisions due", the register's auto-renew filter — assumes a clean
+   YYYY-MM-DD. Most of the time it is one, because the date pickers produce one.
+   But an expiry can also arrive from metadata extraction, from a bulk
+   migration, or from a spreadsheet a person typed by hand, and then it reads
+   "30 September 2026", or a full ISO datetime, or something that is not a date
+   at all.
+
+   `new Date("30 September 2026" + "T00:00:00")` is an Invalid Date, and
+   `toISOString()` on an Invalid Date THROWS. That threw out of
+   renewalDecisionDate, out of renderDashboard and renderCalendar, and took the
+   whole portfolio's Home and Calendar screens down — over one record. Two
+   working screens, dead, because of one badly typed field on one contract.
+
+   So the value is normalised before any arithmetic touches it: a leading
+   YYYY-MM-DD is taken as-is, anything else is offered to Date.parse, and a
+   value that survives neither is null. Null is a real answer here — "we do not
+   know when this expires" — and every caller already handles it. */
+function dateOnly(v){
+  const s = String(v==null?'':v).trim();
+  if(!s) return null;
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const t = Date.parse(s);
+  if(Number.isNaN(t)) return null;
+  const d = new Date(t);
+  if(isNaN(d.getTime())) return null;
+  return isoDay(d);
+}
+/* A Date as the calendar day it IS, read in the reader's own timezone.
+   `toISOString()` converts to UTC first, so midnight local in Nairobi (UTC+3)
+   comes back as the PREVIOUS day — a renewal deadline reported one day early,
+   every time, for the market this product is built for. */
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
 /* The date by which a renewal decision must be made: expiry minus the notice
    period (from E1 metadata). Null when we don't know both. */
 function renewalDecisionDate(c){
   // family-aware: if a later amendment moved the term, the decision deadline
   // moves with it (window.effectiveExpiry — family.js loads after this module)
-  const expiry = (window.effectiveExpiry?effectiveExpiry(c):null) || (c.metadata&&c.metadata.expiryDate) || c.expiry;
-  const notice = c.metadata&&Number(c.metadata.noticePeriodDays)||0;
-  if(!expiry) return null;
+  const raw = (window.effectiveExpiry?effectiveExpiry(c):null) || (c&&c.metadata&&c.metadata.expiryDate) || (c&&c.expiry);
+  const expiry = dateOnly(raw);
+  const notice = c&&c.metadata&&Number(c.metadata.noticePeriodDays)||0;
+  if(!expiry) return null;                   // not a date we can count from
   if(!notice) return expiry;                 // no notice period known — decide by expiry
-  const d = new Date(expiry+'T00:00:00'); d.setDate(d.getDate()-notice);
-  return d.toISOString().slice(0,10);
+  const d = new Date(expiry+'T00:00:00');
+  if(isNaN(d.getTime())) return null;
+  d.setDate(d.getDate()-notice);
+  if(isNaN(d.getTime())) return null;        // arithmetic can still land outside the range
+  return isoDay(d);
 }
 function obState(o){
   if(o.status==='done') return 'done';
@@ -173,4 +213,4 @@ function openObligationsReview(c, found){
   });
 }
 
-Object.assign(window,{OBLIG_RECUR,renewalDecisionDate,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+Object.assign(window,{OBLIG_RECUR,dateOnly,isoDay,renewalDecisionDate,obState,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
