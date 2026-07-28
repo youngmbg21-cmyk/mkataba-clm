@@ -401,8 +401,19 @@ async function negoFileChange(c, draft, opts = {}){
 
   const oldText = String(draft.oldText == null ? '' : draft.oldText);
   const newText = String(draft.newText == null ? '' : draft.newText);
-  const ops = (draft.changeType === 'modify' && window.redlineOps)
-    ? redlineOps(oldText, newText)
+  /* ALIGNED ON LINES FIRST where the engine offers it. A clause is rarely one
+     sentence — it is a heading, numbered sub-clauses and lettered
+     sub-paragraphs — and aligning words across the whole of it lets the diff
+     match "(a)" against an "(a)" three lines away. The reconstruction is exact
+     either way; the difference is that the line-aware walk reports the two
+     sub-paragraphs nobody touched as untouched, instead of striking them out
+     and re-inserting them verbatim.
+
+     This is decided HERE, at the moment of filing, because the ops are the
+     record: every later render reads them back rather than re-deriving them,
+     so a bad alignment saved now is a bad redline for the life of the change. */
+  const ops = (draft.changeType === 'modify' && (window.redlineOpsStructured || window.redlineOps))
+    ? (window.redlineOpsStructured ? redlineOpsStructured(oldText, newText) : redlineOps(oldText, newText))
     : draft.changeType === 'insertClause' ? [{ op: 'ins', text: newText }]
     : [{ op: 'del', text: oldText }];
 
@@ -951,11 +962,26 @@ function negoPostComment(c, id, text, opts = {}){
     ? (c.counterparty || 'The counterparty')
     : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
   ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
-  const msg = { who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
+  /* WHO THIS IS FOR, and the default is the safe one.
+
+     'shared' means it also goes out on the discussion channel and the other
+     side reads it. 'internal' means it stays on this record: ch.thread is not
+     in the share payload (buildSharePayload, js/core.js) and never has been, so
+     an internal note reaches nobody by simply not being posted — there is no
+     filter here to get wrong, which is the point.
+
+     Anything that is not exactly 'shared' is internal. A caller that forgets
+     the field, or passes something misspelt, keeps the note at home; the
+     opposite default would publish a colleague's aside to the counterparty. */
+  const visibility = opts.visibility === 'shared' ? 'shared' : 'internal';
+  const msg = { who, side, visibility,
+    at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: ch.hash || null };
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Comment posted on #${ch.id} by ${who} — the contract is unchanged and no round was opened`);
+    `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on #${ch.id} by ${who}`
+    + ` — the contract is unchanged and no round was opened`
+    + (visibility === 'shared' ? '' : '; it stays inside this organisation'));
   return msg;
 }
 /* Is this comment about wording that has since been revised? A read, never a
@@ -1014,7 +1040,11 @@ function negoMergedThread(c, ch, extra){
   const extras = [];
   for (const m of all){
     if (!m || String(m.topic || '') !== topic) continue;
-    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null };
+    /* A message from the discussion channel is SHARED by definition: it
+       travelled. Stamping it here means the badge on a merged thread is right
+       for both stores rather than only for the half written locally. */
+    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null,
+      visibility: 'shared' };
     if (have.has(key(one))) continue;
     have.add(key(one));
     extras.push(one);

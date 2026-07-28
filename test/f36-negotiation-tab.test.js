@@ -125,9 +125,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
      readable. Rewrite a clause and LCS latches onto whatever words the two
      versions happen to share — "the", "of", "value" — and interleaves them, so
      the passage is in the right boxes and cannot be read. */
+  /* ins and del are ELEMENTS now, carrying the nego-* hooks on their class list
+     alongside the utility names — see js/redline.js. */
   const strip = html => html
-    .replace(/<span class="nego-ins">/g, '[+').replace(/<span class="nego-del">/g, '[-')
-    .replace(/<\/span>/g, ']');
+    .replace(/<ins class="[^"]*nego-ins[^"]*">/g, '[+').replace(/<del class="[^"]*nego-del[^"]*">/g, '[-')
+    .replace(/<\/(ins|del|span)>/g, ']');
 
   test('a small edit marks only the words that moved, as one decision', async () => {
     const m = await mounted();
@@ -165,9 +167,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
     const before = 'The cap shall not exceed the full replacement value of the affected goods.';
     const after = 'The cap shall not exceed EUR 250,000 in the aggregate per contract year.';
     const html = m.win.negoDiffHtml(before, after);
-    const dels = [...html.matchAll(/<span class="nego-del">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const inss = [...html.matchAll(/<span class="nego-ins">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const eq = html.replace(/<span class="nego-(ins|del)">[^<]*<\/span>/g, '').trim();
+    /* <del> and <ins> elements now, carrying the nego-* hooks in their class
+       list — the reconstruction invariant is unchanged and is what this asserts. */
+    const dels = [...html.matchAll(/<del class="[^"]*">([^<]*)<\/del>/g)].map(x => x[1]).join(' ');
+    const inss = [...html.matchAll(/<ins class="[^"]*">([^<]*)<\/ins>/g)].map(x => x[1]).join(' ');
+    const eq = html.replace(/<(ins|del) class="[^"]*">[^<]*<\/\1>/g, '').trim();
     // nothing invented, nothing lost: context + deletions reconstructs the old
     assert.equal((eq + ' ' + dels).replace(/\s+/g, ' ').trim(), before.replace(/\s+/g, ' ').trim());
     assert.equal((eq + ' ' + inss).replace(/\s+/g, ' ').trim(), after.replace(/\s+/g, ' ').trim());

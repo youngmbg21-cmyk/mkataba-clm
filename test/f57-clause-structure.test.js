@@ -88,10 +88,27 @@ describe('F57 — the projection keeps its line breaks', () => {
     assert.ok(!block.querySelector('.nego-body'),
       'a clause under redline is NOT swapped to rich markup — the marked-up words have to '
       + 'stay the words the ops were computed over');
-    const p = block.querySelector('p');
-    assert.match(p.textContent, /\n/, 'and its line breaks survive to the page');
-    assert.ok(!/\n\s*\n/.test(p.textContent),
-      'richToText emits no blank lines, so pre-wrap must not double-space anything');
+    /* THE BREAKS ARE BLOCKS NOW, not newlines inside one paragraph.
+
+       The projection's line structure used to survive as \n characters held
+       open by white-space:pre-wrap in a single <p>. It survives as one element
+       per line instead (js/redline.js, redlineOpsBlocksHtml), which is the
+       same information in a form that can carry a hanging indent and a heading
+       level — and which stops a numbered sub-list reading as one slab in the
+       one view where a reader is being asked to decide about it.
+
+       The guarantee is checked more strictly than before: every line of the
+       projection has to be present, in order, each in its own block. */
+    const lines = r.parties.text.split('\n').filter(x => x.trim());
+    const blocks = [...block.querySelectorAll('.nego-redline > p, .nego-redline > h4')];
+    assert.ok(blocks.length >= lines.length,
+      `every projected line keeps a block of its own (${lines.length} lines, ${blocks.length} blocks)`);
+    const flat = blocks.map(b => b.textContent.replace(/\s+/g, ' ').trim()).join('\n');
+    for (const line of lines)
+      assert.ok(flat.includes(line.replace(/\s+/g, ' ').trim()),
+        `the projection lost a line: ${line.slice(0, 40)}`);
+    assert.ok(!blocks.some(b => /\n/.test(b.textContent)),
+      'a block holds one line — a newline left inside one means two lines were merged');
   });
 
   test('a proposed deletion strikes the clause through and keeps its shape', async () => {
@@ -99,9 +116,17 @@ describe('F57 — the projection keeps its line breaks', () => {
     await r.win.negoDeleteClause(r.c, r.parties.clauseId,
       { side: 'counterparty', author: 'Amara Njoroge' });
     const block = r.clause(r.open(), r.parties);
-    const del = block.querySelector('.nego-del');
-    assert.ok(del, 'every word stays on the page until the deletion is decided');
-    assert.match(del.textContent, /\n/, 'including the breaks between them');
+    const dels = [...block.querySelectorAll('.nego-del')];
+    assert.ok(dels.length, 'every word stays on the page until the deletion is decided');
+    /* Struck through line by line, for the same reason: a schedule being
+       deleted is still a schedule, and the reader deciding whether to lose it
+       needs to see its shape. */
+    const lines = r.parties.text.split('\n').filter(x => x.trim());
+    const flat = dels.map(d => d.textContent.replace(/\s+/g, ' ').trim()).join('\n');
+    for (const line of lines)
+      assert.ok(flat.includes(line.replace(/\s+/g, ' ').trim()),
+        `the struck-through clause lost a line: ${line.slice(0, 40)}`);
+    assert.ok(dels.length >= lines.length, 'each line is struck in a block of its own');
   });
 });
 
