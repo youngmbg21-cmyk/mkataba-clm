@@ -43,10 +43,12 @@ worth a glance for wrapping.
 | `rel_days` | {n}d ago | för {n} dgr sedan | +113% |
 | `rel_months` | {n}mo ago | för {n} mån sedan | +89% |
 | `cp_kind_folder` | folder | värdeflöde | +67% |
+| `report_metric_avg_risk` | Avg risk score | Genomsnittlig riskpoäng | +64% |
+| `report_metric_age_review` | Avg age · in review | Snittålder · under granskning | +53% |
 | `cal_note_decide_by` | decide by | beslut senast | +44% |
 | `cal_agenda_title` | Next 60 days | Kommande 60 dagar | +42% |
 
 ---
 
-**22** of 181 keys exceed the
+**24** of 223 keys exceed the
 threshold; **15** of them are width-constrained.

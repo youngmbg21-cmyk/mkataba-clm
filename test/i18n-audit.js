@@ -26,7 +26,7 @@ const CONVERTED = [
   'js/app.js',
   'js/views/queue.js',
   'js/views/calendar.js',
-
+  'js/views/reports.js',
 ];
 
 /* Text that looks like a user-visible string to the matcher but is not.
@@ -61,6 +61,11 @@ const NOT_UI = [
    headers (a file format downstream tools parse by column name) and for
    defaults that are written into a stored record. */
 const EXEMPT = /i18n-exempt:/;
+/* Block form, for a run of lines that are all one deliberate decision — a CSV
+   body, say. `i18n-exempt-begin: <reason>` … `i18n-exempt-end`. The reason is
+   still required on the opening marker. */
+const EXEMPT_BEGIN = /i18n-exempt-begin:/;
+const EXEMPT_END = /i18n-exempt-end/;
 
 const isUiString = s => {
   const v = String(s).trim();
@@ -122,10 +127,14 @@ function strayStrings(rel) {
   const hits = [];
   const push = (line, text) => hits.push({ line, text });
   const rawLines = src.split('\n');
+  let inBlock = false;
   body.split('\n').forEach((line, i) => {
+    const raw = rawLines[i] || '';
+    if (EXEMPT_BEGIN.test(raw)) { inBlock = true; return; }
+    if (inBlock) { if (EXEMPT_END.test(raw)) inBlock = false; return; }
     // marker may sit on the line itself or the line above, so a long reason
     // can be written as its own comment line
-    if (EXEMPT.test(rawLines[i] || '') || EXEMPT.test(rawLines[i - 1] || '')) return;
+    if (EXEMPT.test(raw) || EXEMPT.test(rawLines[i - 1] || '')) return;
     // quoted literals
     for (const v of quotedOn(line)) {
       // a fragment left behind by stripping a t('key') call out of a template
@@ -145,6 +154,12 @@ function strayStrings(rel) {
   });
   return hits;
 }
+
+/* Required by test/i18n-verify.js for the converted-module list, so the two
+   harnesses cannot disagree about what counts as done. Only the CLI below is
+   skipped on require. */
+module.exports = { CONVERTED, strayStrings };
+if (require.main !== module) return;
 
 const args = process.argv.slice(2);
 const layoutOnly = args.includes('--layout');

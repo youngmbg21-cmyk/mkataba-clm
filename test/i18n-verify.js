@@ -88,18 +88,29 @@ console.log('\n--- dictionary integrity ---');
   const blanks = en.filter(k => !String(s.STRINGS.sv[k] ?? '').trim());
   ok('no Swedish value is blank', blanks.length === 0, blanks.join(', '));
   // every key referenced anywhere in the converted code resolves
-  const files = ['js/app.js', 'js/core.js', 'js/api.js', 'js/views/queue.js', 'js/views/calendar.js', 'index.html'];
+  /* Taken from the audit's CONVERTED list plus the two shared modules that were
+     converted in place, so this check grows automatically as modules land and
+     the two harnesses cannot disagree about what is done. */
+  const files = [...new Set([...require('./i18n-audit.js').CONVERTED, 'js/core.js', 'js/api.js'])];
   const refs = new Set();
+  const missingPrefixes = [];
   for (const f of files) {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
     [...src.matchAll(/\bt\('([a-z0-9_]+)'/g)].forEach(m => refs.add(m[1]));
     [...src.matchAll(/\btn\('([a-z0-9_]+)'/g)].forEach(m => { refs.add(m[1] + '_one'); refs.add(m[1] + '_many'); });
     [...src.matchAll(/data-i18n(?:-placeholder|-title|-aria)?="([^"]+)"/g)].forEach(m => refs.add(m[1]));
   }
-  // prefixes used with runtime concatenation, e.g. t('cp_kind_'+r.kind)
-  ['cp_kind_', 'status_', 'role_', 'stream_', 'cal_wd_', 'cal_ev_', 'share_', 'approval_'].forEach(p => refs.delete(p));
+  /* A reference ending in '_' is a runtime-concatenation prefix, e.g.
+     t('cp_kind_' + r.kind) or t('risk_' + band). The literal prefix is not
+     itself a key; the keys it builds are covered by the parity and blank
+     checks above. Detected by shape so the list cannot go stale. */
+  [...refs].filter(k => k.endsWith('_')).forEach(p => {
+    refs.delete(p);
+    if (!en.some(k => k.startsWith(p))) missingPrefixes.push(p);
+  });
   const missing = [...refs].filter(k => !en.includes(k));
   ok('every key referenced in converted code exists', missing.length === 0, missing.join(', ') || `${refs.size} referenced`);
+  ok('every concatenation prefix has at least one key behind it', missingPrefixes.length === 0, missingPrefixes.join(', ') || 'all resolve');
   // the English text left in index.html must match the dictionary's English
   const drift = [];
   [...html.matchAll(/data-i18n="([^"]+)"[^>]*>([^<]*)</g)].forEach(m => {

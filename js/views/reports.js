@@ -1,5 +1,11 @@
 // HaTi — E7 analytics & reporting. Globals window-attached.
 
+/* Bucket key for contracts whose folder has no name. It is an internal map
+   key that also reaches the CSV export, so it stays a stable English token;
+   the chart renders it through t('report_folder_other'). */
+const OTHER_BUCKET='Other';   // i18n-exempt: internal bucket key + CSV cell, translated at render via folderBarLabel()
+const folderBarLabel = k => k===OTHER_BUCKET ? t('report_folder_other') : k;
+
 /* ---- E7-T1: lifecycle events derived from the audit trail ---- */
 function lifecycleEvents(c){
   return (c.audit||[]).map(a=>({ at:a.at, action:a.action, detail:a.detail }));
@@ -29,7 +35,7 @@ function computeReports(){
   cs.forEach(c=>{ const k=cKind(c); const r=(c.rounds||[]).length; if(!roundsByType[k]) roundsByType[k]={n:0,rounds:0}; roundsByType[k].n++; roundsByType[k].rounds+=r; });
   // value by folder
   const byFolder={};
-  active.forEach(c=>{ const k=FOLDERS[c.folder]?.name||'Other'; byFolder[k]=(byFolder[k]||0)+Number(c.value||0); });
+  active.forEach(c=>{ const k=FOLDERS[c.folder]?.name||OTHER_BUCKET; byFolder[k]=(byFolder[k]||0)+Number(c.value||0); });
   // value by counterparty (top 8)
   const byParty={};
   active.forEach(c=>{ if(c.counterparty) byParty[c.counterparty]=(byParty[c.counterparty]||0)+Number(c.value||0); });
@@ -51,7 +57,7 @@ function computeReports(){
   const byStatus={};
   cs.forEach(c=>{ byStatus[c.status]=(byStatus[c.status]||0)+1; });
   const countByFolder={};
-  cs.forEach(c=>{ const k=FOLDERS[c.folder]?.name||'Other'; countByFolder[k]=(countByFolder[k]||0)+1; });
+  cs.forEach(c=>{ const k=FOLDERS[c.folder]?.name||OTHER_BUCKET; countByFolder[k]=(countByFolder[k]||0)+1; });
   const riskBands={Low:0,Medium:0,High:0};
   cs.forEach(c=>{ const b=riskBand(contractRisk(c)); riskBands[b==='ruby'?'High':b==='amber'?'Medium':'Low']++; });
   const obByState={Overdue:overdueOb, Open:Math.max(0,openOb-overdueOb), Completed:0};
@@ -73,16 +79,19 @@ function bar(label, value, max, valStr, color){
 /* Metric catalogue for the top stat cards. Each customer follows what matters
    to them — value isn't forced. `get(r)` returns {val, sub} from the computed
    report object; grad/ic set the card's look. */
+/* `lk` names the dictionary entry for the card's label; every `sub` is a whole
+   sentence with the number dropped in at {n}, never a count glued to a
+   fragment, so Swedish can order it its own way. */
 const REPORT_METRICS=[
-  {k:'avgCycle',   label:'Avg cycle · draft→signed', grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
-  {k:'ageReview',  label:'Avg age · in review',       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', sub:'time on counterparty'})},
-  {k:'ageDraft',   label:'Avg age · drafting',        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
-  {k:'renewal',    label:'Renewal pipeline · 12mo',   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtKESshort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
-  {k:'totalValue', label:'Total portfolio value',     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtKESshort(r.totalValue), sub:r.active+' active contracts'})},
-  {k:'count',      label:'Contracts · total',         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
-  {k:'expiring',   label:'Expiring ≤ 90 days',        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
-  {k:'avgRisk',    label:'Avg risk score',            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
-  {k:'openOb',     label:'Open obligations',          grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:r.overdueOb+' overdue'})},
+  {k:'avgCycle',   lk:'report_metric_avg_cycle',   grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?t('report_days',{n:Math.round(r.avgCycle)}):t('value_none'), sub:t('report_metric_avg_cycle_sub',{n:r.cycleN})})},
+  {k:'ageReview',  lk:'report_metric_age_review',  grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:t('report_days',{n:Math.round(r.stageAge['Under Review']||0)}), sub:t('report_metric_age_review_sub')})},
+  {k:'ageDraft',   lk:'report_metric_age_draft',   grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:t('report_days',{n:Math.round(r.stageAge['Draft']||0)}), sub:t('report_metric_age_draft_sub')})},
+  {k:'renewal',    lk:'report_metric_renewal',     grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtKESshort(r.pipeTotal), sub:t('report_metric_renewal_sub',{n:r.pipeMonthsN})})},
+  {k:'totalValue', lk:'report_metric_total_value', grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtKESshort(r.totalValue), sub:t('report_metric_total_value_sub',{n:r.active})})},
+  {k:'count',      lk:'report_metric_count',       grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:t('report_metric_count_sub',{n:r.active})})},
+  {k:'expiring',   lk:'report_metric_expiring',    grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:t('report_metric_expiring_sub')})},
+  {k:'avgRisk',    lk:'report_metric_avg_risk',    grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):t('value_none'), sub:t('report_metric_avg_risk_sub',{n:r.highRisk})})},
+  {k:'openOb',     lk:'report_metric_open_ob',     grad:'var(--grad-amber)',   ic:'list',  get:r=>({val:String(r.openOb), sub:t('report_metric_open_ob_sub',{n:r.overdueOb})})},
 ];
 const DEFAULT_REPORT_METRICS=['avgCycle','ageReview','ageDraft','renewal'];
 function reportMetricSel(){
@@ -90,39 +99,43 @@ function reportMetricSel(){
   for(let i=0;i<4;i++) if(!REPORT_METRICS.some(m=>m.k===s[i])) s[i]=DEFAULT_REPORT_METRICS[i];
   return s;
 }
-const emptyMsg = t => `<p style="font-size:12px;color:var(--color-neutral-600)">${_esc(t)}</p>`;
+// param renamed from `t` to `msg`: `t` is the translation helper
+const emptyMsg = msg => `<p style="font-size:12px;color:var(--color-neutral-600)">${_esc(msg)}</p>`;
 /* Chart catalogue for the four lower cards. Like the hero stat cards, each card
    follows a KPI the user picks — value isn't forced. `render(r)` returns the bar
    HTML from the computed report object. */
+/* `lk` names the dictionary entry for the card's title. Bar labels that are
+   DATA (a folder name, a counterparty, a contract type) stay as they are;
+   only the app's own words go through t(). */
 const REPORT_CHARTS=[
-  {k:'streamValue', label:'Portfolio value by value stream', render:r=>{
+  {k:'streamValue', lk:'report_chart_stream_value', render:r=>{
     const e=Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
-    return e.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent)')).join('')||emptyMsg('No data.'); }},
-  {k:'partyValue', label:'Top counterparties by value', render:r=>{
+    return e.map(([k,v])=>bar(folderBarLabel(k),v,mx,fmtKESshort(v),'var(--color-accent)')).join('')||emptyMsg(t('report_no_data')); }},
+  {k:'partyValue', lk:'report_chart_party_value', render:r=>{
     const mx=Math.max(1,...r.topParty.map(x=>x[1]));
-    return r.topParty.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
-  {k:'renewalPipe', label:'Renewal pipeline · next 12 months', render:r=>{
+    return r.topParty.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent-700)')).join('')||emptyMsg(t('report_no_data')); }},
+  {k:'renewalPipe', lk:'report_chart_renewal_pipe', render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
-    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtKESshort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
-  {k:'roundsType', label:'Negotiation rounds by type (avg)', render:r=>{
+    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString(langLocale('en-KE'),{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtKESshort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg(t('report_no_expiring')); }},
+  {k:'roundsType', lk:'report_chart_rounds_type', render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
-    return e.length?e.map(([k,v])=>bar(k+` (${v.n})`, v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'#b8862b')).join(''):emptyMsg('No negotiation data.'); }},
-  {k:'stageCount', label:'Contracts by stage', render:r=>{
+    return e.length?e.map(([k,v])=>bar(t('report_rounds_label',{kind:k,n:v.n}), v.rounds/v.n, mx, (v.rounds/v.n).toFixed(1),'#b8862b')).join(''):emptyMsg(t('report_no_negotiation')); }},
+  {k:'stageCount', lk:'report_chart_stage_count', render:r=>{
     const order=['Draft','Under Review','Signed','Declined']; const e=order.filter(k=>r.byStatus[k]).map(k=>[k,r.byStatus[k]]);
     const mx=Math.max(1,...e.map(x=>x[1]));
-    return e.length?e.map(([k,v])=>bar(statusLabel(k),v,mx,String(v),(STATUS_META[k]||{}).dot||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'streamCount', label:'Contract count by value stream', render:r=>{
+    return e.length?e.map(([k,v])=>bar(statusLabel(k),v,mx,String(v),(STATUS_META[k]||{}).dot||'var(--color-accent)')).join(''):emptyMsg(t('report_no_data')); }},
+  {k:'streamCount', lk:'report_chart_stream_count', render:r=>{
     const e=Object.entries(r.countByFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
-    return e.length?e.map(([k,v])=>bar(k,v,mx,String(v),'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'riskBand', label:'Contracts by risk band', render:r=>{
+    return e.length?e.map(([k,v])=>bar(folderBarLabel(k),v,mx,String(v),'var(--color-accent)')).join(''):emptyMsg(t('report_no_data')); }},
+  {k:'riskBand', lk:'report_chart_risk_band', render:r=>{
     const e=Object.entries(r.riskBands); const mx=Math.max(1,...e.map(x=>x[1]));
     const col={Low:'#2e8763',Medium:'#b8862b',High:'#b0453c'};
-    return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No data.'); }},
-  {k:'obState', label:'Obligations by status', render:r=>{
+    return e.some(x=>x[1])?e.map(([k,v])=>bar(t('risk_'+k.toLowerCase()),v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg(t('report_no_data')); }},
+  {k:'obState', lk:'report_chart_ob_state', render:r=>{
     const e=Object.entries(r.obByState); const mx=Math.max(1,...e.map(x=>x[1]));
     const col={Overdue:'#b0453c',Open:'#b8862b',Completed:'#2e8763'};
-    return e.some(x=>x[1])?e.map(([k,v])=>bar(k,v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg('No obligations tracked yet.'); }},
+    return e.some(x=>x[1])?e.map(([k,v])=>bar(t('ob_'+k.toLowerCase()),v,mx,String(v),col[k]||'var(--color-accent)')).join(''):emptyMsg(t('report_no_obligations')); }},
 ];
 const DEFAULT_REPORT_CHARTS=['streamValue','partyValue','renewalPipe','roundsType'];
 function reportChartSel(){
@@ -142,10 +155,12 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
     ? 'background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.42);color:#fff;font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:14px;font-weight:600';
   const chev=hero?'#fff':'var(--color-neutral-500)';
-  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');
+  const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:12.5px;padding:7px 11px;border-radius:6px;cursor:pointer;white-space:nowrap">${_esc(t(x.lk))}</button>`).join('');
+  // two whole sentences, not "Choose the " + a word — Swedish orders it differently
+  const trigTitle=hero?t('report_pick_metric_title'):t('report_pick_chart_title');
   return `<div class="rd" style="position:relative;max-width:100%;${hero?'flex:1;min-width:0':'margin:0 0 10px'}">
-    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="Choose the ${hero?'metric':'chart'} this card follows" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
-      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(cur.label)}</span>
+    <button type="button" data-rd-trigger="${kind}:${idx}" class="rd-trigger rd-trigger-${hero?'hero':'card'}" title="${trigTitle}" style="display:inline-flex;align-items:center;gap:8px;max-width:100%;border-radius:999px;padding:4px 9px 4px 12px;cursor:pointer;line-height:1.25;transition:background .12s,border-color .12s;${trig}">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_esc(t(cur.lk))}</span>
       <span aria-hidden="true" class="rd-chev" style="flex:none;color:${chev};pointer-events:none">▾</span>
     </button>
     <div data-rd-menu="${kind}:${idx}" class="rd-menu" style="display:none;position:absolute;left:0;top:calc(100% + 6px);z-index:50;min-width:220px;max-width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:10px;padding:5px">${opts}</div>
@@ -235,6 +250,10 @@ function renderReports(){
 function exportReportsCsv(r){
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
   const lines=[];
+  /* i18n-exempt-begin: everything pushed below is CSV CONTENT — column names
+     and row labels a spreadsheet or downstream tool reads by name. Translating
+     them would change the file's shape depending on who clicked Export. Same
+     policy as exportWorkingSetCsv() in js/app.js. */
   lines.push(['Metric','Value'].map(esc).join(','));
   lines.push(['Contracts total', r.total].map(esc).join(','));
   lines.push(['Active contracts', r.active].map(esc).join(','));
@@ -249,8 +268,9 @@ function exportReportsCsv(r){
   lines.push([].join(','));
   lines.push(['Renewal pipeline month','KES'].map(esc).join(','));
   Object.keys(r.pipeline).sort().forEach(m=>lines.push([m,Math.round(r.pipeline[m])].map(esc).join(',')));
+  /* i18n-exempt-end */
   downloadFile(`hati-reports-${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'), 'text/csv');
-  toast('Reports exported to CSV');
+  toast(t('report_toast_exported'));
 }
 
 Object.assign(window,{lifecycleEvents,firstAuditAt,computeReports,renderReports,exportReportsCsv});
