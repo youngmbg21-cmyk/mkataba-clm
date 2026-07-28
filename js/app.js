@@ -31,6 +31,9 @@ import './dedupe.js';
 import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
+// the sandbox beside the Doc page: internal-vs-shared tried on a page that
+// cannot write to a contract or reach a share payload (see views/doclab.js)
+import './views/doclab.js';
 import './pdfrich.js';
 import './views/intelligence.js';
 import './ai.js';
@@ -90,6 +93,10 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
     }
+    case 'doclab': {
+      const c=getContract(state.activeId);
+      return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
+    }
     default: return ['HaTi', ''];
   }
 }
@@ -125,7 +132,7 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
-  team:'Team & settings', workspace:'the contract workspace' };
+  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -174,6 +181,7 @@ function setView(view){
     else if(view==='templates') renderTemplatesPage();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
+    else if(view==='doclab') renderDocLab();
     else renderWorkspace();
   }catch(e){
     /* The id, when the record can be named. An error raised deep in a helper
