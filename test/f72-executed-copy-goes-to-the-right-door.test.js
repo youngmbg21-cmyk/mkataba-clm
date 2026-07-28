@@ -1,5 +1,5 @@
 /* ============================================================
-   F70 — the counterparty's copy is the contract, not the front door
+   F72 — the counterparty's copy is the contract, not the front door
    ============================================================
    When a contract is fully executed, HaTi emails every party their copy for
    safe keeping. The email carried one line for everybody:
@@ -32,7 +32,7 @@ const { startHati, seedWorkspace, FOLDER_A } = require('./helpers');
 
 const APP = 'https://hati-clm.example/';
 
-describe('F70 — an executed copy sends each party to the door that is theirs', () => {
+describe('F72 — an executed copy sends each party to the door that is theirs', () => {
   let h, W;
   const signed = id => ({
     id, name: 'WH — ' + id, counterparty: 'Nordfrakt Logistik AB', folder: FOLDER_A,

@@ -1,5 +1,5 @@
 /* ============================================================
-   F69 — nothing gets sealed while a change is still on the table
+   F71 — nothing gets sealed while a change is still on the table
    ============================================================
    The most serious kind of fault this product can have: a contract was executed
    — frozen, sealed with a tamper-evident fingerprint, distributed to both
@@ -81,7 +81,7 @@ const fileChange = async (w, c, num, side) => {
       summary: F.PROTO_ASKS[num].summary });
 };
 
-describe('F69 — the signing panel asks whether the parties are actually agreed', () => {
+describe('F71 — the signing panel asks whether the parties are actually agreed', () => {
   let w;
   beforeEach(() => { w = buildWorld({ contractView: true, negotiationView: true });
     installFileReader(w.win); clearTheOtherGates(w); });

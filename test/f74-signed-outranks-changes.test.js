@@ -1,5 +1,5 @@
 /* ============================================================
-   F72 — a signed contract must not be filed under "Changes"
+   F74 — a signed contract must not be filed under "Changes"
    ============================================================
    Two faults, stacked, and together they hide finished work behind unfinished
    work that is not even unfinished.
@@ -27,7 +27,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startHati, seedWorkspace, FOLDER_A, Client } = require('./helpers');
 
-describe('F72 — the dashboard reads the negotiation the room actually writes', () => {
+describe('F74 — the dashboard reads the negotiation the room actually writes', () => {
   let h, W;
   const anon = () => new Client(h.base, 'anon');
 

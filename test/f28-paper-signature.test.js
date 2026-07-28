@@ -115,7 +115,7 @@ describe('F28 — what it refuses to do', () => {
 
     assert.equal(await w.win.attachPaperSignature(c, scanFile()), null);
     assert.notEqual(c.status, 'Signed');
-    /* F69 put both generations of the negotiation behind one helper, so the
+    /* F71 put both generations of the negotiation behind one helper, so the
        refusal now names what is outstanding rather than saying "proposed
        edits" whatever it found. The fact under test is unchanged: a scan of a
        signature page does not get filed over a live disagreement. */

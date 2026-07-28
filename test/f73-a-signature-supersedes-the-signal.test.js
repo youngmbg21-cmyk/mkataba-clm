@@ -1,5 +1,5 @@
 /* ============================================================
-   F71 — "Nothing is signed yet" said over a signature
+   F73 — "Nothing is signed yet" said over a signature
    ============================================================
    The counterparty signs. Their own screen, and the owner's, go on showing a
    green strip reading:
@@ -44,7 +44,7 @@ function negotiated(w, over = {}) {
 const cpSignature = () => ({ party: 'counterparty', name: 'Young Mbagaya',
   email: 'young@example.co.ke', at: AT });
 
-describe('F71 — a signature supersedes the signal to sign', () => {
+describe('F73 — a signature supersedes the signal to sign', () => {
   test('before anyone signs, the signal stands', () => {
     const w = buildWorld({ negotiationView: true, contractView: true });
     const c = negotiated(w);

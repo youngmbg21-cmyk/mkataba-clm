@@ -302,7 +302,7 @@ describe('F55 — the executed copy waits for every signature', () => {
       assert.match(m.subject, /^Fully executed —/);
       assert.ok(m.text.includes(SEAL), 'now the seal travels with it');
     }
-    /* F70: the two parties are sent to DIFFERENT doors, and used to be sent to
+    /* F72: the two parties are sent to DIFFERENT doors, and used to be sent to
        the same one. Ours has an account and gets the platform. Theirs does not,
        and being handed the workspace's front door put a sign-in wall where the
        message had promised them a contract — they get their own share link, or,
