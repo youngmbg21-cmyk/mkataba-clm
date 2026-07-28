@@ -667,7 +667,7 @@ function aiContractCard(c){
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
       <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
     </span>
-    ${statusChip(c.status)}
+    ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
   </button>`;
 }
 /* Card lists lead with at most 3; the rest sit behind a "Show all" expander so
