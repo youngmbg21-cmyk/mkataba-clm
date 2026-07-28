@@ -1,5 +1,6 @@
 // HaTi — entry module (E0): imports every module in original
 // execution order, then nav + shell wiring + boot.
+import './i18n.js';   // EN/SV dictionary + t(): imported first so every module below can call it
 import './components.js';
 import './templates.js';
 import './core.js';
@@ -408,6 +409,9 @@ function wireShell(){
 
   // global jump palette (⌘K hint button in the search box)
   document.getElementById('cmd-k-hint')?.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); openCommandPalette(); });
+
+  // language toggle (EN ⇄ SV)
+  document.getElementById('langToggleBtn')?.addEventListener('click',()=>toggleLanguage());
 
   // export
   document.getElementById('cmd-export')?.addEventListener('click',exportWorkingSetCsv);

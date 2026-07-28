@@ -106,7 +106,14 @@ function loadViews(files, overrides = {}) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  for (const f of files) {
+  /* js/i18n.js loads before every other module in js/app.js, so t() is
+     defined by the time any view's top-level code runs. The sandbox has to
+     mirror that: a view module that renders a label through t() would
+     otherwise throw ReferenceError here but work fine in the browser.
+     Prepended rather than added to each test's file list so it stays true
+     for tests written later. */
+  const withI18n = files.includes('js/i18n.js') ? files : ['js/i18n.js', ...files];
+  for (const f of withI18n) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     vm.runInContext(src, sandbox, { filename: f });
   }
