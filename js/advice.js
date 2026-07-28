@@ -15,12 +15,26 @@
 /* The contract-support catalog. Labels/blurbs live client-side only;
    the DEFAULT numbers are mirrored in server/server.js (ADVICE_DEFAULT_RATES)
    so the server can quote without trusting the browser — keep both in sync. */
+/* `lk` names the dictionary entry the interface renders. `name` stays as the
+   English fallback for anything still reading it directly. The object KEYS
+   (review/draft/…) are stored on the request and never move.
+
+   `blurb` here and `desc` on ADVICE_STAGES below are NOT keyed: both render
+   only in js/views/adviceportal.js, the public advice portal, which this build
+   leaves alone along with the rest of the counterparty share-link surface.
+   They stay English until that surface is taken on. */
+/* The description the demo seed writes onto a sample request. It is STORED
+   record text and a sentinel the interface compares against, so it stays a
+   fixed English token in both languages — translating it would both rewrite a
+   record and break the comparison. */
+const ADVICE_SEED_DESC='Seeded as sample data';   // i18n-exempt: stored record text used as a sentinel
+
 const ADVICE_SERVICES = {
-  review:      { id:'review',      name:'Contract Review & Risk Report', ic:'scan',   blurb:'Clause-by-clause review of a contract you received, with a plain-language risk report and recommended redlines.' },
-  draft:       { id:'draft',       name:'Contract Drafting',             ic:'pencil', blurb:'A new contract drafted from your instructions, ready to negotiate and sign.' },
-  advice:      { id:'advice',      name:'Contract Advice Session',       ic:'msg',    blurb:'A focused written opinion on a specific contract question — obligations, termination, renewal, disputes.' },
-  negotiation: { id:'negotiation', name:'Negotiation & Redline Support', ic:'users',  blurb:'Counsel works the counterparty’s markup with you — positions, counter-redlines and settlement wording.' },
-  compliance:  { id:'compliance',  name:'Regulatory & Compliance Check', ic:'shield', blurb:'A contract or template checked against Kenyan regulatory requirements for your sector.' },
+  review:      { id:'review',      lk:'advice_svc_review', name:'Contract Review & Risk Report', ic:'scan',   blurb:'Clause-by-clause review of a contract you received, with a plain-language risk report and recommended redlines.' },
+  draft:       { id:'draft',       lk:'advice_svc_draft', name:'Contract Drafting',             ic:'pencil', blurb:'A new contract drafted from your instructions, ready to negotiate and sign.' },
+  advice:      { id:'advice',      lk:'advice_svc_advice', name:'Contract Advice Session',       ic:'msg',    blurb:'A focused written opinion on a specific contract question — obligations, termination, renewal, disputes.' },
+  negotiation: { id:'negotiation', lk:'advice_svc_negotiation', name:'Negotiation & Redline Support', ic:'users',  blurb:'Counsel works the counterparty’s markup with you — positions, counter-redlines and settlement wording.' },
+  compliance:  { id:'compliance',  lk:'advice_svc_compliance', name:'Regulatory & Compliance Check', ic:'shield', blurb:'A contract or template checked against Kenyan regulatory requirements for your sector.' },
 };
 const ADVICE_DEFAULT_RATES = {
   review:      { rate:8500,  hoursMin:3, hoursMax:6, days:3 },
@@ -33,16 +47,20 @@ const ADVICE_DEFAULT_RATES = {
 /* Pipeline stages — same treatment as the contract queue. Submitted →
    Delivered is the promise a customer can watch; Closed is the exit lane. */
 const ADVICE_STAGES = [
-  { k:'Submitted',   label:'Submitted',   color:'#98989b', desc:'Received — awaiting triage by the legal team' },
-  { k:'Scoping',     label:'Scoping',     color:'#b8862b', desc:'Counsel is confirming scope and the fee estimate' },
-  { k:'In Progress', label:'In Progress', color:'#5980a6', desc:'Counsel is working on the matter' },
-  { k:'Delivered',   label:'Delivered',   color:'#2e8763', desc:'Feedback delivered to the customer' },
-  { k:'Closed',      label:'Closed',      color:'#b0453c', desc:'Withdrawn or declined' },
+  { k:'Submitted',   lk:'advice_stage_submitted',   label:'Submitted',   color:'#98989b', desc:'Received — awaiting triage by the legal team' },
+  { k:'Scoping',     lk:'advice_stage_scoping',     label:'Scoping',     color:'#b8862b', desc:'Counsel is confirming scope and the fee estimate' },
+  { k:'In Progress', lk:'advice_stage_in_progress', label:'In Progress', color:'#5980a6', desc:'Counsel is working on the matter' },
+  { k:'Delivered',   lk:'advice_stage_delivered',   label:'Delivered',   color:'#2e8763', desc:'Feedback delivered to the customer' },
+  { k:'Closed',      lk:'advice_stage_closed',      label:'Closed',      color:'#b0453c', desc:'Withdrawn or declined' },
 ];
+/* Stage and service names, for display. adviceStageLabel() is what the
+   interface calls; `.label` / `.name` remain the English fallback. */
+const adviceStageLabel = k => t(adviceStage(k).lk);
+const adviceServiceName = svc => svc && svc.lk ? t(svc.lk) : (svc && svc.name) || '';
 const adviceStage = k => ADVICE_STAGES.find(s=>s.k===k) || ADVICE_STAGES[0];
 const ADVICE_ACTIVE = ['Submitted','Scoping','In Progress'];
 const adviceStageChip = k => { const s=adviceStage(k);
-  return `<span class="badge" style="background:color-mix(in srgb,${s.color} 14%,#fff);color:${s.color}"><span class="dot" style="background:${s.color}"></span>${s.label}</span>`; };
+  return `<span class="badge" style="background:color-mix(in srgb,${s.color} 14%,#fff);color:${s.color}"><span class="dot" style="background:${s.color}"></span>${t(s.lk)}</span>`; };
 
 /* ---------- rates: published defaults + workspace overrides ----------
    Overrides live in the ordinary settings object (settings.adviceRates),
@@ -95,7 +113,7 @@ function hydrateAdvice(){
   if(d && Array.isArray(d.requests)){ state.advice=d.requests; adviceUid=d.uid||adviceUid; return; }
   // First run on a demo workspace: seed a few requests so the pipeline reads
   // at a glance (only when the sample portfolio itself was loaded).
-  const sampled=(state.contracts||[]).some(c=>(c.audit&&c.audit[0]&&c.audit[0].detail)==='Seeded as sample data');
+  const sampled=(state.contracts||[]).some(c=>(c.audit&&c.audit[0]&&c.audit[0].detail)===ADVICE_SEED_DESC);
   state.advice = sampled ? adviceSeed() : [];
   persistAdvice();
 }
@@ -111,7 +129,7 @@ function adviceSeed(){
     for(let i=1;i<=order.indexOf(status);i++) hist.push({at:at(offDays-i),to:order[i],by:'Wanjiku Kamau'});
     return { id:nextAdviceId(), token:generatePseudo('adv'+adviceUid).slice(0,24),
       service, status, urgency, name, email:name.toLowerCase().replace(/[^a-z]+/g,'.')+'@example.co.ke',
-      company, contractName, description:'Seeded as sample data',
+      company, contractName, description:ADVICE_SEED_DESC,
       submittedAt, eta:adviceEta(service,urgency,2,submittedAt),
       quote:q, assignee:null, notes:[], history:hist };
   };
@@ -180,4 +198,4 @@ async function updateAdviceRequest(id, patch){
 const adviceIntakeLink = () => location.origin+location.pathname+'#advice=new';
 const adviceTrackLink = r => location.origin+location.pathname+'#advice='+(API_MODE()?'t:':'')+r.token;
 
-Object.assign(window,{ADVICE_DEFAULT_RATES,ADVICE_SERVICES,ADVICE_STAGES,ADVICE_ACTIVE,addBusinessDays,adviceActiveCount,adviceDaysLeft,adviceEta,adviceIntakeLink,adviceLoadDays,adviceQuote,adviceRateFor,adviceSeed,adviceStage,adviceStageChip,adviceTrackLink,adviceUrgencyDays,adviceUrgencyRate,createAdviceRequest,fmtDay,getAdviceRequest,hydrateAdvice,loadAdviceRequests,nextAdviceId,persistAdvice,updateAdviceRequest});
+Object.assign(window,{ADVICE_SEED_DESC,ADVICE_DEFAULT_RATES,ADVICE_SERVICES,ADVICE_STAGES,ADVICE_ACTIVE,addBusinessDays,adviceActiveCount,adviceStageLabel,adviceServiceName,adviceDaysLeft,adviceEta,adviceIntakeLink,adviceLoadDays,adviceQuote,adviceRateFor,adviceSeed,adviceStage,adviceStageChip,adviceTrackLink,adviceUrgencyDays,adviceUrgencyRate,createAdviceRequest,fmtDay,getAdviceRequest,hydrateAdvice,loadAdviceRequests,nextAdviceId,persistAdvice,updateAdviceRequest});

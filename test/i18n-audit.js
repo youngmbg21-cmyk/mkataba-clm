@@ -27,6 +27,7 @@ const CONVERTED = [
   'js/views/queue.js',
   'js/views/calendar.js',
   'js/views/reports.js',
+  'js/views/advice.js',
 ];
 
 /* Text that looks like a user-visible string to the matcher but is not.
