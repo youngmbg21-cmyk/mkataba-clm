@@ -29,7 +29,7 @@
 // An OPS ARRAY: [{op:'keep'|'del'|'ins', text}, …], merged into maximal runs.
 //
 // That is not a shape invented here — it is OOXML tracked changes, which this
-// repo already reads (js/docx.js) and writes (js/docxwrite.js): a run of text
+// repo already reads (js/docx.js): a run of text
 // is plain, or wrapped in w:ins, or wrapped in w:del with its w:delText kept.
 // Deleted wording is RETAINED until someone accepts the deletion, exactly as
 // Word retains it, which is the whole reason a redline can be reviewed.

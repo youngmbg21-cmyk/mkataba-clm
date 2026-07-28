@@ -1210,7 +1210,6 @@ function openEditDocModal(c){
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
   // the Word-review soft lock: edits made here while the file is out would
   // silently lose to (or clobber) the wording coming back from Word
-  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review first','err'); return; }
   const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
   const cur=wasRich ? docPlainText(c)
     : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
@@ -1351,53 +1350,6 @@ async function loadDiscussion(c){
   renderDiscussSection(c);
 }
 
-function openWordExportModal(c){
-  if(!canEdit()){ toast('Viewers cannot export documents','err'); return; }
-  if(window.wordReviewOut&&wordReviewOut(c)){
-    toast('This document is already out for Word review — upload the returned file or cancel the review first','err'); return;
-  }
-  /* Will this copy carry markup? A Word user reads a document by its red ink,
-     so which of the two files is going out is the most important thing on this
-     screen — and it is knowable before the file is built. */
-  let plan=null;
-  try{ plan=window.redlinePlan?redlinePlan(c):null; }catch(err){ plan=null; }
-  const who=(c.counterparty||'the counterparty').replace(/</g,'&lt;');
-  openModal(`
-    <div style="padding:22px 24px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('download')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Download as Word</h2></div>
-      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
-        You'll get a <b>.docx</b> of the wording as it reads right now — headings, clause numbers and all — for a counterparty who works in Word. When their marked-up copy comes back, upload it on the contract and HaTi files it as a negotiation round.</p>
-      ${plan?`
-      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid #bcd9ca;background:#e4f1ea;border-radius:5px;padding:10px 12px;cursor:pointer;margin-bottom:8px">
-        <input type="checkbox" id="we-track" checked style="margin-top:2px;flex:none"/>
-        <span style="font-size:12.5px;line-height:1.55"><b>Mark your changes in red (tracked changes).</b>
-        <span style="display:block;color:var(--color-neutral-700);margin-top:2px">${who} opens the file and sees exactly what you changed since the copy they last had, marked in the name of <b>${(window.FIRST_PARTY||'this workspace').replace(/</g,'&lt;')}</b> — insertions underlined, removals struck through, the way Word does it. Untick to send clean text they'd have to compare by hand.</span></span>
-      </label>`:`
-      <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;margin-bottom:8px;font-size:12px;line-height:1.55;color:var(--color-neutral-700)">
-        This copy goes out as <b>clean text</b> — ${who} has not seen an earlier wording of this document, so there is nothing to mark. Once they return a copy and you decide it, later exports carry your changes in red automatically.</div>`}
-      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;cursor:pointer">
-        <input type="checkbox" id="we-lock" checked style="margin-top:2px;flex:none"/>
-        <span style="font-size:12.5px;line-height:1.55"><b>Pause editing here until the file comes back.</b>
-        <span style="display:block;color:var(--color-neutral-600);margin-top:2px">Recommended while a copy is out with the other side: changes made here in the meantime would clash with the wording coming back. You can lift it at any time from the Word panel on the contract.</span></span>
-      </label>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button id="we-cancel" class="ui-btn">Cancel</button>
-        <button id="we-go" class="ui-btn ui-btn-primary">${icon('download','w-3.5 h-3.5')} Download</button>
-      </div>
-    </div>`);
-  document.getElementById('we-cancel').addEventListener('click',closeModal);
-  document.getElementById('we-go').addEventListener('click',async e=>{
-    const lock=!!document.getElementById('we-lock')?.checked;
-    const trackEl=document.getElementById('we-track');
-    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    try{
-      await startWordReview(c, null, { lock, tracked:trackEl?!!trackEl.checked:undefined });
-      closeModal();
-    }catch(err){ toast('Could not build the Word file — '+err.message,'err'); btn.disabled=false; btn.innerHTML='Download'; }
-  });
-}
-
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
@@ -1438,7 +1390,6 @@ function uploadDocBody(c){
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
-    ${window.wordControlsHtml?wordControlsHtml(c):''}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
@@ -1479,17 +1430,10 @@ async function rereadUploadText(c, btn){
   const restore=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
   try{
-    // once Word rounds have been adopted, the CURRENT file is the latest
-    // version — re-reading the v1 original would silently roll the text back
-    const cur=(window.wordCurrentFile&&window.wordFileEntries)?wordCurrentFile(c):null;
-    if(cur&&cur.key!=='v1'){
-      const dataUrl=await wordEntryDataUrl(c, cur);
-      const text=(await extractWordText(dataUrl)).text;
-      if(!text || text.length<40) throw new Error('no machine-readable text in this file');
-      const before=Number(u.textChars||0);
-      u.extractedText=text; u.textChars=text.length;
-      c.lastAction=todayStr();
-      logAudit(c,'Document',`Re-read ${cur.key} (“${cur.fileName}”) — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+    /* There is one file on an upload now — the original. The branch that
+       re-read the newest adopted Word version went when the round trip did. */
+    const cur=null;
+    if(cur){
       persist(c);
       toast(`Document re-read from ${cur.key} — ${text.length.toLocaleString()} characters`);
       renderWorkspace();
@@ -2548,7 +2492,6 @@ function renderWorkspace(){
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
             <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
-            ${(window.wordReviewOut&&wordReviewOut(c))?`<span title="Downloaded for external review in Microsoft Word — online editing is paused until the file comes back or the review is cancelled" style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:999px;background:#fbf4e3;color:#7d5a14;border:1px solid #f1e6cd"><span style="width:6px;height:6px;border-radius:50%;background:#b8862b"></span>Out for Word review · ${wordReviewDays(c)}d</span>`:''}
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
@@ -2563,7 +2506,6 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
-          ${window.downloadContractDocx?`<button id="ws-word" title="Download as a Word .docx — for a counterparty who negotiates in Word" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Word</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
         </div>
         ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
@@ -2617,11 +2559,6 @@ function renderWorkspace(){
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
-          <!-- The Word round-trip panel. An uploaded document renders it inside
-               uploadDocBody (beside the file it arrived as); a DRAFTED contract
-               has no such block, which is why the whole round trip used to be
-               invisible on exactly the contracts an SME writes itself. -->
-          ${(!isUpload(c)&&window.wordControlsHtml)?`<div style="max-width:${DOC_PAGE_W}px;margin:0 auto">${wordControlsHtml(c)}</div>`:''}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px">
             
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
@@ -2772,7 +2709,7 @@ function renderWorkspace(){
   }
   wireKeyTerms(c);
   wireActionBar(c);
-  wireDocCanvas(c);   // expand / re-read / Word round-trip buttons (inside #doc-canvas)
+  wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
@@ -2794,7 +2731,6 @@ function renderWorkspace(){
   // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));
   setActiveNav('workspace');
 }
 
@@ -2807,7 +2743,6 @@ function renderWorkspace(){
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
-  if(window.wireWordControls) wireWordControls(c);
 }
 
 /* -------- doc field sync --------
@@ -3054,7 +2989,6 @@ async function signDocument(c){
   if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
   // The document is out in Word: the counterparty may be mid-edit on wording
   // this signature would seal. Bring the file back (or cancel) before signing.
-  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review before signing','err'); return; }
   /* E2-T5: don't seal over an unsettled negotiation. Admin/Legal may override.
 
      Through negoSigningBlockers, which asks BOTH generations of the
@@ -3155,8 +3089,6 @@ async function attachPaperSignature(c, file, opts={}){
     (window.unresolvedRedlines&&unresolvedRedlines(c)?['there are still open proposed edits']:[]));
   if(paperBlockers.length){
     toast(`${paperBlockers.join('; ')} — settle the negotiation before recording a signature`,'err'); return null; }
-  if(window.wordReviewOut && wordReviewOut(c)){
-    toast('This document is out for Word review — bring it back or cancel the review first','err'); return null; }
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return null; }
 
   let dataUrl;
@@ -3377,5 +3309,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

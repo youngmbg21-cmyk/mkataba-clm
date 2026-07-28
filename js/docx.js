@@ -1,4 +1,4 @@
-// HaTi — .docx reading (Word round-trip, phase 1). Globals are
+// HaTi — .docx reading. Globals are
 // window-attached like every module (see components.js); the module also
 // exports for node:test, because the extractor is pure computation and the
 // tests must run it on real fixture bytes, not a paraphrase of it.
@@ -8,6 +8,14 @@
 // central directory locates the entry, the platform's own DecompressionStream
 // inflates it (browser and Node both ship it), and a small XML walk projects
 // the text. Legacy .doc (OLE2) stays refused — there is no XML inside to read.
+
+/* ---- recognising a Word document ----
+   Moved here when the Word round trip was removed. Knowing that an upload
+   arrived as a .docx is INTAKE — it decides how the document is read and
+   rendered — and has nothing to do with sending one out to be marked up. */
+const DOCX_MIME='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const isWordDoc = c => !!(c && c.source==='upload' && c.upload && (c.upload.docKind==='docx'
+  || /wordprocessingml/.test(c.upload.mime||'') || /\.docx$/i.test(c.upload.fileName||'')));
 
 /* ---- ZIP central directory ----
    The directory at the END of the archive is the truth about what the archive
@@ -325,7 +333,7 @@ function docRichFromText(text){
   return out.join('');
 }
 
-if(typeof window!=='undefined') Object.assign(window,{docxExtract,docxXmlToText,docLineKind,docClausePrefix,
+if(typeof window!=='undefined') Object.assign(window,{DOCX_MIME,isWordDoc,docxExtract,docxXmlToText,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps,DOC_FURNITURE,DOC_BULLET,DOC_NUMBERED});
 if(typeof module!=='undefined'&&module.exports) module.exports={zipEntries,zipEntryBytes,inflateRawBytes,decodeXmlEntities,docxXmlToText,docxExtract,docLineKind,docClausePrefix,
   docTextIsRunOn,docBreakRunOn,docBlocksFromText,docRichFromText,docLineWraps};

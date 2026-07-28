@@ -132,14 +132,6 @@ describe('F28 — what it refuses to do', () => {
     assert.equal(c.hash, firstHash, 'the original seal must be untouched');
   });
 
-  test('it will not run while the document is out in Word', async () => {
-    const w2 = buildWorld({ contractView: true }); installFileReader(w2.win);
-    const c = negotiated(w2);
-    c.wordReview = { out: true, since: w2.win.nowISO(), by: 'Wanjiru Kamau' };
-    assert.equal(await w2.win.attachPaperSignature(c, scanFile()), null);
-    assert.notEqual(c.status, 'Signed');
-  });
-
   test('a viewer cannot execute a contract', async () => {
     const v = buildWorld({ canEdit: false, contractView: true }); installFileReader(v.win);
     const c = supplyContract();

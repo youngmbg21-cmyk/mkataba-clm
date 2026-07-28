@@ -8,230 +8,10 @@ window.PORTAL_OPTS={};
    proposed edits and the other side has ruled on them, the reshared link used to
    arrive looking like any other first-time share — leaving them to diff two
    documents by eye to find out what happened to their proposal. */
-/* C1 + C2 — the Word round-trip, mirrored to the counterparty.
-
-   Nothing about this uploads a file. The .docx they send back is opened and
-   read IN THEIR OWN BROWSER, and only the extracted wording is submitted — down
-   the same route as text typed into the box. So a public share link gains no
-   file-upload surface, no size limit to police and no new way in; the returned
-   file never leaves their machine. What they get in exchange is the flow their
-   counsel actually works in.
-
-   Only offered where the contract arrived as a .docx, because HaTi has no Word
-   writer: a template-drafted contract has no file to hand over. */
-const portalWordFile = c => { const u=c&&c.upload;
-  return (u && (u.docKind==='docx' || /wordprocessingml/.test(u.mime||'') || /\.docx$/i.test(u.fileName||''))) ? u : null; };
-/* Word cannot be written by HaTi, so the .docx on record is the file that was
-   uploaded — and it does NOT contain any wording edited in HaTi since. Handing
-   that over silently is the worst outcome: counsel marks up a superseded draft
-   in good faith. Where the wording has moved, the card says so and offers the
-   CURRENT text as a document Word opens (an HTML body under a .doc name, which
-   Word has always read) so the round trip is against the live wording. */
-const portalFileHref = u => u && u.dataUrl ? u.dataUrl : null;
-function portalUploadDiverged(c){
-  const u=c&&c.upload; if(!u) return false;
-  const filed=String(u.extractedText||'').replace(/\s+/g,' ').trim();
-  const live=String(portalCurrentText()||'').replace(/\s+/g,' ').trim();
-  return !!(filed && live && filed!==live);
-}
-function portalDownloadCurrentAsDoc(c){
-  const text=portalCurrentText()||docPlainText(c)||'';
-  const name=String(c.name||c.id||'contract').replace(/[^\w \-]/g,'').trim()||'contract';
-  const body=text.split(/\n{2,}/).map(par=>
-    `<p style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5">${esc(par).replace(/\n/g,'<br/>')}</p>`).join('');
-  const html=`<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(name)}</title></head><body>${body}</body></html>`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/msword'}));
-  a.download=name+' (current wording).doc';
-  a.click(); URL.revokeObjectURL(a.href);
-}
-/* Any uploaded document, not only Word: a counterparty sent a PDF still needs
-   the file itself, and the portal is now the only place offering it. */
-function portalWordCard(c){
-  const u=c&&c.upload;
-  /* HaTi can now WRITE a .docx (js/docxwrite.js), so "work in Word" no longer
-     depends on the contract having arrived as one. Every reader gets the
-     current wording as a real Word file and can bring their marked-up copy
-     back; a reader whose own paper is on file additionally gets that original.
-     Before this, a counterparty reviewing a HaTi-drafted contract had no Word
-     route at all — the card returned '' and they were left with the textarea. */
-  if(!u||!portalFileHref(u)) return portalGeneratedWordCard(c);
-  const isWord=!!portalWordFile(c);
-  const diverged=portalUploadDiverged(c);
-  const kb=u.size?(u.size>1048576?(u.size/1048576).toFixed(1)+' MB':Math.round(u.size/1024)+' KB'):'';
-  if(!isWord) return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:13px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('file','w-4 h-4')}</span>
-      <span style="flex:1;min-width:160px;font-size:12.5px;color:var(--color-neutral-700)">The original file as it was filed${diverged?' — note the wording below has been revised since':''}.
-        <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500);margin-top:2px">${esc(u.fileName||'document')}${kb?' · '+kb:''}</span></span>
-      <button id="pt-word-dl" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">${icon('download','w-3.5 h-3.5')} Download original</button>
-    </div>`;
-  return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
-        <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Mark the contract up in Word with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
-        </span>
-      </div>
-      ${diverged?`<div style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:5px;padding:9px 12px;margin:0 0 11px;font-size:11.5px;line-height:1.55;color:#7d5a14">
-        <b>The .docx on file is the original.</b> The wording below has been revised since it was uploaded, and those revisions are not in that file. Work from <b>the current wording</b> unless you specifically need the original paper.</div>`:''}
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button id="pt-word-current" class="ui-btn ${diverged?'ui-btn-primary':''}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the current wording</button>
-        <button id="pt-word-dl" class="ui-btn ${diverged?'':'ui-btn-primary'}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the original .docx</button>
-        <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
-        <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
-      </div>
-      <div style="margin-top:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-neutral-500)">${esc(u.fileName||'contract.docx')}${kb?' · '+kb:''}</div>
-      <div id="pt-word-out" style="margin-top:12px"></div>
-    </div>`;
-}
-/* The Word card for a contract with no file of its own — everything drafted in
-   HaTi. The .docx is generated from the wording on this page, so what counsel
-   marks up is exactly what the reader is looking at. */
-function portalGeneratedWordCard(c){
-  if(typeof contractDocxBytes!=='function') return '';
-  if(!portalCurrentText() && !(c&&c.redlineText)) return '';
-  return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
-        <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Download this contract as a Word document, mark it up with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
-        </span>
-      </div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button id="pt-word-gen" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download as Word (.docx)</button>
-        <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
-        <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
-      </div>
-      <div id="pt-word-out" style="margin-top:12px"></div>
-    </div>`;
-}
-function wireportalWord(c, p){
-  const u=c&&c.upload;
-  const generated=!u||!portalFileHref(u);
-  if(generated && typeof contractDocxBytes!=='function') return;
-  document.getElementById('pt-word-gen')?.addEventListener('click',async e=>{
-    const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    /* NEVER label plain text as formatted. This handed the writer the plain
-       text projection while keeping format:'rich', so the writer parsed it as
-       markup, found none, and produced the whole contract as ONE paragraph —
-       while the owner's identical button produced a properly structured file.
-       The descriptor now says what the content actually is. */
-    try{
-      const live=portalCurrentText();
-      const richBody=c.redlineText && window.isRich && isRich(c.format);
-      const same=richBody && normText(richToText(c.redlineText))===normText(live||'');
-      const doc = (richBody && (same || !live))
-        ? c                                              // the formatted document itself
-        : { ...c, redlineText:(live||c.redlineText||''), format:TEXT_FORMAT };
-      await downloadContractDocx(doc);
-    }
-    catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
-    btn.disabled=false; btn.innerHTML=restore;
-  });
-  document.getElementById('pt-word-current')?.addEventListener('click',()=>portalDownloadCurrentAsDoc(c));
-  document.getElementById('pt-word-dl')?.addEventListener('click',()=>{
-    // wordTriggerDownload turns the data URL back into bytes; downloadFile
-    // takes (name, content) and would have written the URL string as the file.
-    if(typeof wordTriggerDownload!=='function'){ toast('Word download is unavailable on this page','err'); return; }
-    try{ wordTriggerDownload(u.dataUrl, u.fileName||'contract.docx', u.mime); }
-    catch(e){ toast('Could not start the download','err'); }
-  });
-  const input=document.getElementById('pt-word-file');
-  document.getElementById('pt-word-up')?.addEventListener('click',()=>input&&input.click());
-  input?.addEventListener('change',async()=>{
-    const f=input.files&&input.files[0]; if(!f) return;
-    const out=document.getElementById('pt-word-out');
-    // A courtesy bound, not a security one — nothing is transmitted either way.
-    if(f.size>25*1024*1024){ out.innerHTML=portalWordError('That file is larger than 25 MB. Save it again from Word and try once more.'); input.value=''; return; }
-    out.innerHTML=`<div style="font-size:12px;color:var(--color-neutral-600)">Reading ${esc(f.name)}…</div>`;
-    let res=null;
-    try{ res=await docxExtract(new Uint8Array(await f.arrayBuffer())); }
-    catch(e){ res=null; }
-    input.value='';
-    if(!res||!res.text||!res.text.trim()){
-      out.innerHTML=portalWordError('No wording could be read out of that file. It may not be a Word .docx, or it may be a scan. You can still type your edits into the box below.');
-      return;
-    }
-    portalWordPreview(c, p, f.name, res);
-  });
-}
-const portalWordError = msg => `<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:10px 12px;font-size:12px;line-height:1.55;color:#8f322b">${esc(msg)}</div>`;
-/* C2 — what came out of their file, shown against the current wording, before
-   anything is sent. The question every Word user has is whether the system
-   actually picked their changes up; this answers it while they can still act. */
-function portalWordPreview(c, p, fileName, res){
-  const base=portalCurrentText()||docPlainText(c);
-  const st=(window.diffStats?diffStats(base,res.text):{add:0,del:0});
-  const tracked=res.tracked||{ins:0,del:0};
-  const out=document.getElementById('pt-word-out');
-  out.innerHTML=`
-    <div style="border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:6px;padding:13px 16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <span style="flex:none;display:inline-flex;color:#1e6b4d">${icon('check2','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--color-accent-800)">Your marked-up copy has been read</span>
-      </div>
-      <div style="font-size:12px;line-height:1.65;color:var(--color-neutral-800)">
-        ${tracked.ins||tracked.del
-          ? `HaTi found <b>${tracked.ins} tracked insertion${tracked.ins===1?'':'s'}</b> and <b>${tracked.del} tracked deletion${tracked.del===1?'':'s'}</b> in <span style="font-family:var(--font-mono);font-size:11px">${esc(fileName)}</span>.`
-          : `<span style="font-family:var(--font-mono);font-size:11px">${esc(fileName)}</span> carries no Word tracked changes, so the whole document is compared as it stands.`}
-        Against the wording you were sent that is <b>+${st.add} added</b> and <b>−${st.del} removed</b>.
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:11.5px;color:var(--color-neutral-700);flex:1;min-width:120px">Nothing has been sent yet.</span>
-        <button id="pt-word-view" class="ui-btn" style="font-size:12px;padding:7px 13px">See the redline</button>
-        <button id="pt-word-send" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 13px">Send these edits</button>
-      </div>
-    </div>`;
-  document.getElementById('pt-word-view').addEventListener('click',()=>portalWordDiffModal(base,res.text,fileName,st));
-  document.getElementById('pt-word-send').addEventListener('click',()=>{
-    const ta=document.getElementById('pt-redline-text');
-    if(ta) ta.value=res.text;                       // reuse the redline route wholesale
-    // a returned Word file IS a whole-document edit, so the plain surface is
-    // the one that must be live when portalProposedText reads it back
-    document.getElementById('portal-plain')?.classList.remove('hidden');
-    document.getElementById('pt-clause-editor')?.classList.add('hidden');
-    if(!fval('pt-comment')){
-      const el=document.getElementById('pt-comment');
-      if(el) el.value=`Edits returned in Word (${fileName}).`;
-    }
-    portalRespond(p,'redline');
-  });
-}
-function portalWordDiffModal(base, next, fileName, st){
-  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
-  openModal(`
-    <div style="height:100%;display:flex;flex-direction:column;min-height:0">
-      <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
-        <div style="${COL}">
-          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Your edits, read out of ${esc(fileName)}</h3>
-          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
-            <span style="background:#dff0e6;color:#1e6b4d;padding:0 4px;border-radius:2px">added</span>
-            <span style="background:#fbe3e1;color:#b0453c;text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span></p>
-        </div>
-      </div>
-      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
-        <div style="${COL};background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base,next)}</div>
-      </div>
-      <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
-        <div style="${COL};display:flex;align-items:center;gap:9px">
-          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">Close to go back — nothing is sent from here.</span>
-          <button id="pw-close" class="ui-btn">Close</button>
-        </div>
-      </div>
-    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
-  document.getElementById('pw-close').addEventListener('click',closeModal);
-}
-/* A1 — the wording moved since the copy this reader last opened. The baseline
-   comes from the server (the previous link they actually opened); the current
-   text is what this link carries. Identical in kind to the owner's strip: a
-   notice is only worth showing if it opens onto the thing it is about, so the
-   button is not optional furniture. */
+/* The Word round-trip is gone from both sides. A counterparty reads, marks
+   up and answers the contract on this page; there is no file to take away and
+   none to bring back. js/docx.js still READS a .docx, because a contract can
+   still ARRIVE as one — that is intake, and a different thing entirely. */
 function portalVersions(){
   const p=PORTAL_OPTS.payload;
   return (p&&p.contract&&Array.isArray(p.contract.versions))?p.contract.versions:[];
@@ -424,7 +204,7 @@ function openPortalVersionCompare(p){
    round trip, which reads as nothing having happened and invites a second and
    third press on a contract response. */
 const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-decline',
-  'pt-redline-submit','pt-word-send','pc-accept','pc-counter','pc-decline','pt-nego-send',
+  'pt-redline-submit','pc-accept','pc-counter','pc-decline','pt-nego-send',
   /* The room's own controls. On a negotiation link the room IS the page, so a
      press that left THESE live while the request was in flight would look like
      nothing had happened — the exact invitation to press twice this list
@@ -1581,7 +1361,6 @@ function renderSharePortal(p, opts={}){
                Removed rather than hidden. The message route it used still
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
-        ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
 
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
@@ -1676,7 +1455,6 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
-  wireportalWord(c, p);
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
   if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
@@ -1869,8 +1647,7 @@ async function portalRespond(p, action, extra){
   const label={sign:'signature',accept:'acceptance',changes:'change request',decline:'decline notice'}[sendAction];
   // Which control the reader actually pressed, so it is the one that reports back.
   const pressed={sign:'pt-sign',accept:'pt-accept',redline:'pt-redline-submit',
-    changes:'pt-changes',decline:'pt-decline'}[action]
-    || (document.getElementById('pt-word-send')?'pt-word-send':null);
+    changes:'pt-changes',decline:'pt-decline'}[action] || null;
   const doneLabel={sign:'Signed and sent',accept:'Acceptance sent',
     changes:'Change request sent',decline:'Decline sent'}[sendAction]||'Sent';
   if(PORTAL_OPTS.token){
@@ -2197,4 +1974,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

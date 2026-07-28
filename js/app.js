@@ -7,7 +7,6 @@ import './docx.js';
 import './richdoc.js';
 import './clausemodel.js'; // what a clause IS: read from the DOM, identified by a durable id
 import './redline.js';   // the negotiation's diff: Myers ops, stored and rendered from storage
-import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';
 import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input
@@ -17,7 +16,6 @@ import './metadata.js';
 import './versioning.js';
 import './discuss.js';    // the light channel: talking about a point, not redrafting it
 import './negotiation.js'; // the fingerprinted change model every intake path converges on
-import './wordflow.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';

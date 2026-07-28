@@ -758,21 +758,12 @@ function acceptProposedRound(c, n, opts={}){
   // view all follow the adopted wording), and refreshes the clause scan so the
   // risk flags describe the document as it now reads — through the same
   // scanner the upload ran, Copilot or heuristic alike.
+  /* A round that arrived as a returned Word file used to file that file as a
+     new document version here. Nothing can produce `via:'word'` since the Word
+     round trip was removed, so the block went with it. Rounds themselves are
+     untouched: a redline from the counterparty's own page still adopts exactly
+     as it did. */
   if(r.via==='word' && r.file){
-    /* Which ledger the returned file goes into depends on where the contract
-       came from — a received document stacks versions on its original, a
-       drafted one has no original to stack on — and wordVersionLedger() owns
-       that decision. Before this, the whole block was skipped unless c.upload
-       existed, so a drafted contract adopted the WORDING but dropped the FILE. */
-    const vs=(window.wordVersionLedger?wordVersionLedger(c):(c.upload?(c.upload.versions=c.upload.versions||[]):(c.wordVersions=c.wordVersions||[])));
-    const hasOriginal=!!(isUpload(c)&&c.upload&&(c.upload.fileId||c.upload.dataUrl));
-    const fileVer=(vs.length?vs[vs.length-1].n:(hasOriginal?1:0))+1;
-    vs.push({ n:fileVer, roundN:n, fileName:r.file.fileName, size:r.file.size, fileHash:r.file.fileHash,
-      fileId:r.file.fileId, dataUrl:r.file.dataUrl, tracked:r.file.tracked, text:r.file.text,
-      at:r.file.at, by:r.file.by, adoptedAs:c.versions.length });
-    // an uploaded document's extracted text IS its reading view, so it follows
-    // the adopted wording; a drafted contract's wording is c.redlineText, above
-    if(c.upload){ c.upload.extractedText=adopted; c.upload.textChars=adopted.length; }
     if(window.runScan && c.scan) runScan(c);   // stale findings would describe the OLD wording
   }
   // Name BOTH sides. The entry used to record only who decided, so a trail read

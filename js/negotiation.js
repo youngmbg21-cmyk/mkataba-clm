@@ -84,7 +84,7 @@ const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : 
 /* ---------- the negotiation record ----------
    c.negotiation holds the BASELINE for the round in flight: the wording both
    sides are measuring this round's proposals against. It is a snapshot of the
-   document, not a pointer to a version, for the same reason recordWordSent()
+   document, not a pointer to a version, for the same reason the round record
    keeps one — a version can be superseded, but what the parties were arguing
    about cannot un-happen.
 
@@ -754,7 +754,7 @@ function negoCommitBody(c, body){
   }
   return { flattened: false, text };
 }
-/* Kept for callers that still speak text (js/wordflow.js, the round model). */
+/* Kept for callers that still speak text (the round model). */
 function negoCommitText(c, text){
   const wasRich = !!(window.isRich && isRich(c.format) && c.redlineText);
   let flattened = false;
@@ -800,7 +800,13 @@ function negoResolve(c, id, status, opts = {}){
     if (window.toast) toast('You cannot decide your own proposal', 'err');
     return null;
   }
-  if (c.status === 'Signed' || (window.wordDoorClosed && wordDoorClosed(c))){
+  /* THE SIGNED DOOR, inlined when the Word round trip was removed. It used to
+     live in js/wordflow.js as wordDoorClosed(), and losing that file would have
+     quietly reduced this to `status === 'Signed'` — dropping the seal and the
+     execution stamp from the test. An executed record takes no new decisions,
+     however it came to be executed. */
+  const executed = !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
+  if (executed){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
