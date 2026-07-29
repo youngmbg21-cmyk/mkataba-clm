@@ -988,15 +988,31 @@ async function labAiPropose(ctx){
   pop.setAttribute('role','dialog');
   pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
   pop.innerHTML = `<header><span style="flex:1">${esc(action.label)}</span>
-      <button class="ui-btn" data-ai-x style="font-size:11px;padding:3px 9px">Close</button></header>
+      <button class="ui-btn" id="ai-popover-close" data-ai-x style="font-size:11px;padding:3px 9px">Close</button></header>
     <div class="lab-aiwait"><span class="lab-aispin"></span>Reading the clause…</div>`;
-  /* EVENTS INSIDE THE POPOVER STOP HERE. The dismiss listener is on the
-     document in the capture phase, so without this it runs BEFORE the button
-     that was actually pressed — the popover is removed and the click lands on
-     nothing. Typing in the textarea is the same story: a mousedown to place the
-     cursor would close the box being typed into. */
-  for(const evt of ['mousedown', 'mouseup', 'click']){
-    pop.addEventListener(evt, e => { e.stopPropagation(); }, true);
+  /* EVENTS INSIDE THE POPOVER STOP AT THE POPOVER — in the BUBBLE phase, and
+     the phase is the whole point.
+
+     This was written with `true` for capture, which broke every control in the
+     box. Capture runs top-down, so a capture listener on the container fires
+     BEFORE the event reaches the button inside it; stopping propagation there
+     means the button's own click handler never runs at all. Close, Discard and
+     Apply Redline all did nothing, silently. Typing still worked, which made it
+     look like a button problem rather than an event-routing one — keystrokes
+     are not mouse events and were never being intercepted.
+
+     The reasoning behind the capture flag was also wrong on its own terms: a
+     capture listener here could never beat one on `document`, which is higher
+     in the tree and therefore always runs first. It bought nothing.
+
+     Bubble phase is what was wanted. The event reaches the target, the control
+     does its job, and propagation stops here rather than continuing to the
+     document. The dismiss listeners are on the document in the CAPTURE phase
+     and so still see it — which is fine, because they ask whether the target is
+     inside #ai-copilot-popover and leave it alone when it is. That guard, not
+     this call, is what keeps the popover open. */
+  for(const evt of ['pointerdown', 'mousedown', 'mouseup', 'click']){
+    pop.addEventListener(evt, e => { e.stopPropagation(); });
   }
   document.body.appendChild(pop);
   const place = () => {
@@ -1005,7 +1021,13 @@ async function labAiPropose(ctx){
     pop.style.left = at.left + 'px'; pop.style.top = at.top + 'px';
   };
   place();
-  pop.querySelector('[data-ai-x]').addEventListener('click', () => pop.remove());
+  /* ONE WAY OUT, used by Close, Discard and Escape alike. Leaving without
+     applying must leave nothing behind: the popover goes, the held selection is
+     released, and the floating menu that opened this closes with it. The
+     document text is never touched on this path — nothing has been written to
+     it up to this point, and nothing is written now. */
+  const dismiss = () => { pop.remove(); labKillSel(); labClearSel(); };
+  pop.querySelector('[data-ai-x]').addEventListener('click', dismiss);
   const fail = msg => {
     pop.querySelector('.lab-aiwait')?.remove();
     const d = document.createElement('div');
@@ -1122,8 +1144,8 @@ async function labAiPropose(ctx){
     <div class="lab-aipreview" id="lab-ai-preview"></div>`;
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
   const foot = document.createElement('footer');
-  foot.innerHTML = `<button class="ui-btn ui-btn-primary" data-ai-apply style="font-size:12px">Apply Redline</button>
-    <button class="ui-btn" data-ai-discard style="font-size:12px">Discard</button>
+  foot.innerHTML = `<button class="ui-btn ui-btn-primary" id="ai-apply-redline" data-ai-apply style="font-size:12px">Apply Redline</button>
+    <button class="ui-btn" id="ai-discard-redline" data-ai-discard style="font-size:12px">Discard</button>
     <span style="flex:1"></span>
     <span class="lab-aistate" data-ai-state>Nothing has changed yet</span>`;
   pop.appendChild(foot);
@@ -1172,8 +1194,14 @@ async function labAiPropose(ctx){
   box.focus();
   box.setSelectionRange(box.value.length, box.value.length);
 
-  foot.querySelector('[data-ai-discard]').addEventListener('click', () => pop.remove());
+  foot.querySelector('[data-ai-discard]').addEventListener('click', dismiss);
   applyBtn.addEventListener('click', () => {
+    /* THE HELD SELECTION, NOT THE LIVE ONE. `working`, `at` and `spliceLen`
+       were all resolved when this popover opened, from the range cloned at the
+       moment of selection. By now the document selection is long gone — focus
+       moved into the textarea the instant the box appeared — so anything that
+       consulted window.getSelection() here would find nothing and have no idea
+       where the wording belonged. Nothing on this path reads it. */
     const proposed = proposedFrom(box.value);
     if(proposed === base || proposed === working) return;
     /* Filed as an ordinary tracked change — same model, same id series, same
@@ -1195,7 +1223,10 @@ async function labAiPropose(ctx){
     const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
       before: base, after: proposed, side, authorRef,
       author: `${authorRef.name} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
-    pop.remove();
+    /* Down in one move: the popover goes, the floating menu goes, and the held
+       selection is released. Leaving the range behind would let a later gesture
+       act on wording the reader had already finished with. */
+    dismiss();
     if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
     labPut(c.id, lab);
     if(window.toast) toast(

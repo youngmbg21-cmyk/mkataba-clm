@@ -264,6 +264,97 @@ function check(name, ok, detail){
     }
     await page.evaluate(() => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove()));
 
+    /* ---- the popover's own controls actually work ----
+       Reported from real use: Close, Apply Redline and Discard did nothing.
+
+       The Copilot is STUBBED so this exercises the popover rather than a
+       network call — the flow under test is the buttons, not the model. */
+    await page.evaluate(() => {
+      window.copilotAvailable = () => true;
+      window.copilotAsk = async () => 'THE STUBBED REPLACEMENT WORDING';
+    });
+    /* Opens the popover on the first clause and waits for the editable box. */
+    const openPopover = async () => {
+      await page.evaluate(() => {
+        document.querySelectorAll('.lab-selmenu, #ai-copilot-popover').forEach(n => n.remove());
+      });
+      await page.click('[data-lab-assist]');
+      await page.waitForSelector('.lab-selmenu [data-lab-ai]', { timeout: 4000 });
+      await page.click('.lab-selmenu [data-lab-ai="shorten"]');
+      await page.waitForSelector('#ai-copilot-popover .ai-suggestion-editor', { timeout: 6000 });
+    };
+
+    let popover = { skipped: true };
+    try {
+      await openPopover();
+      const opened = await page.evaluate(() => {
+        const p = document.getElementById('ai-copilot-popover');
+        return { present: !!p, hasEditor: !!p.querySelector('.ai-suggestion-editor'),
+          hasApply: !!p.querySelector('#ai-apply-redline, [data-ai-apply]'),
+          hasDiscard: !!p.querySelector('#ai-discard-redline, [data-ai-discard]'),
+          hasClose: !!p.querySelector('#ai-popover-close, [data-ai-x]') };
+      });
+      await page.screenshot({ path: path.join(OUT, 'doclab-popover.png') });
+
+      /* DISCARD — a real press, and the popover must be gone afterwards. */
+      await page.click('#ai-copilot-popover [data-ai-discard]');
+      await page.waitForTimeout(200);
+      const afterDiscard = await page.evaluate(() => !document.getElementById('ai-copilot-popover'));
+
+      /* CLOSE */
+      await openPopover();
+      await page.click('#ai-copilot-popover [data-ai-x]');
+      await page.waitForTimeout(200);
+      const afterClose = await page.evaluate(() => !document.getElementById('ai-copilot-popover'));
+
+      /* TYPING must not dismiss it, and must reach the textarea. */
+      await openPopover();
+      await page.click('#ai-copilot-popover .ai-suggestion-editor');
+      await page.keyboard.type(' EDITED');
+      await page.waitForTimeout(150);
+      const afterTyping = await page.evaluate(() => {
+        const p = document.getElementById('ai-copilot-popover');
+        const t = p && p.querySelector('.ai-suggestion-editor');
+        return { stillOpen: !!p, value: t ? t.value : '' };
+      });
+
+      /* APPLY — the change must actually be filed. */
+      const before = await page.evaluate(() => (labFor(state.activeId).changes || []).length);
+      await page.click('#ai-copilot-popover [data-ai-apply]');
+      await page.waitForTimeout(400);
+      const applied = await page.evaluate(prev => {
+        const lab = labFor(state.activeId);
+        const mine = (lab.changes || []).filter(x => String(x.after || '').includes('THE STUBBED REPLACEMENT WORDING'));
+        return {
+          gone: !document.getElementById('ai-copilot-popover'),
+          filed: (lab.changes || []).length > prev || mine.length > 0,
+          carriesEdit: mine.some(x => x.after.includes('EDITED')),
+          badge: !!document.querySelector('.change-tag-badge[data-change-id]')
+        };
+      }, before);
+
+      popover = { skipped: false, opened, afterDiscard, afterClose, afterTyping, applied };
+    } catch (e) {
+      popover = { skipped: false, error: (e && e.message) || String(e) };
+    }
+
+    if (popover.error){
+      check('the AI popover flow ran', false, popover.error);
+    } else if (!popover.skipped){
+      check('the popover opens with an editable suggestion', popover.opened.hasEditor);
+      check('and carries Apply, Discard and Close',
+        popover.opened.hasApply && popover.opened.hasDiscard && popover.opened.hasClose);
+      check('DISCARD closes the popover', popover.afterDiscard);
+      check('CLOSE closes the popover', popover.afterClose);
+      check('typing in the suggestion box does not dismiss it', popover.afterTyping.stillOpen);
+      check('and the keystrokes reach the box', /EDITED$/.test(popover.afterTyping.value),
+        JSON.stringify(popover.afterTyping.value.slice(-40)));
+      check('APPLY REDLINE files the change', popover.applied.filed);
+      check('and applies the wording as edited by hand', popover.applied.carriesEdit);
+      check('and closes the popover afterwards', popover.applied.gone);
+      check('and the clause carries a change badge', popover.applied.badge);
+    }
+
     /* ---- a note is drawn ONCE ----
        Also reported from real use: notes appeared under the clause AND on the
        change's card, which reads as two notes rather than one shown twice. */
