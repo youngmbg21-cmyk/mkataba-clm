@@ -293,6 +293,47 @@ function labWorkingText(clause, changes, side){
   return { base, working: pending ? pending.after : base, pending };
 }
 
+/* ---------- IS THIS CLAUSE STILL OURS ALONE? ----------
+   The question that decides whether struck-out wording can be rewritten.
+
+   A deletion in an UNSENT draft is a proposal we have not made yet. Nobody
+   outside this office has seen it, nothing depends on it, and changing our mind
+   about it — "actually, don't cut that, replace it" — is ordinary drafting.
+   Refusing it forces a person to discard their own draft to alter their own
+   draft, which is the bug this rule exists to remove.
+
+   A deletion that has been SENT is a different object entirely. The
+   counterparty has read it, may have answered it, and may be relying on it. It
+   is a position, and positions are withdrawn or superseded openly rather than
+   quietly rewritten underneath the person answering them.
+
+   The test runs over the WHOLE VISIBLE STACK, not just its head. A colleague
+   can stack an unsent pass on top of an ask that already went out; the head is
+   then unsent while the deletion under it is very much on the table. Asking
+   only the head would call that clause private when it is not. */
+function labDraftOnlyStack(changes, clauseId, side){
+  const stack = labStackOn(changes, clauseId, side);
+  if(!stack.length) return false;
+  return stack.every(x => x.sent !== true
+    && x.status === 'pending'
+    && x.stage === LAB_STAGE_DRAFT);
+}
+
+/* Where a rewrite of struck-out wording should be placed, or null if it should
+   not be allowed at all.
+
+   Returns the seam the deleted run left in the working text. Splicing there
+   turns a bare deletion into a replacement: the wording still goes, and the new
+   wording arrives where it was — which is what a person selecting struck text
+   and asking for a rewrite is asking for. */
+function labStruckTarget(base, working, text, changes, clauseId, side, hint){
+  if(working === base) return null;                 // nothing is struck
+  if(!window.redlineDeletionCovering) return null;  // engine too old to place it
+  if(!labDraftOnlyStack(changes, clauseId, side)) return null;
+  const span = redlineDeletionCovering(base, working, text, hint);
+  return span ? { at: span.at, span } : null;
+}
+
 /* WHICH OCCURRENCE OF THE SELECTED WORDING THE PERSON ACTUALLY POINTED AT.
 
    Splicing by string — working.replace(text, …) — always hits the FIRST match,
@@ -992,14 +1033,35 @@ async function labAiPropose(ctx){
   const pendingOn = clause.pending || null;
   /* Not "is this string present" but "WHICH ONE OF THEM DID YOU MEAN" — the
      answer is an offset, and everything downstream splices at it. */
-  const at = labPickOccurrence(working, text, ctx.hint);
+  let at = labPickOccurrence(working, text, ctx.hint);
+  /* How the splice behaves. REPLACE swaps the selected wording for the new
+     wording. RESTORE is for a passage already marked for deletion in our own
+     unsent draft: the run stays struck and the new wording lands at the seam it
+     left, which turns a bare cut into a replacement. */
+  let mode = 'replace', spliceLen = text.length;
+  let struck = null;
+  if(at < 0){
+    struck = labStruckTarget(base, working, text, lab.changes, clause.clauseId, side, ctx.hint);
+    if(struck){
+      mode = 'restore';
+      at = struck.at;
+      spliceLen = 0;                    // the wording is already gone; this inserts
+    }
+  }
   if(at < 0){
     /* Three ways to miss, and they are not the same problem to the person
        holding the mouse. Saying "that spans a change" to someone who selected
        wording already struck out sends them looking for a seam that is not
        there. */
-    fail(working !== base && base.includes(text)
-      ? `That wording is already struck out by ${pendingOn ? pendingOn.id : 'the pending change'} — it is on its way out of the clause, so there is nothing to rewrite. Select from the wording that would remain. Nothing was changed.`
+    const isStruck = working !== base && base.includes(text);
+    fail(isStruck
+      /* Reached only once the draft is on the table. While it is ours the
+         branch above handles it, so this now says the thing that is actually
+         true — it is not that struck wording cannot be rewritten, it is that
+         THIS struck wording has already been shown to somebody. */
+      /* Not esc()'d — fail() writes textContent, so escaping here would put a
+         literal &amp; on the screen for a counterparty called "Björn & Co". */
+      ? `That wording is struck out by ${pendingOn ? pendingOn.id : 'a change'}, which has already gone to ${c.counterparty || 'the counterparty'}. Rewriting it underneath them would change a question they are part-way through answering. Withdraw or supersede ${pendingOn ? pendingOn.id : 'it'} first. Nothing was changed.`
       : working !== base
         ? 'That selection crosses a redline — it picks up both struck-through wording and the wording that replaced it, so it matches no version of the clause. Select inside the wording as it would read once the pending change is accepted. Nothing was changed.'
         : 'That selection could not be found in the clause — it reaches outside the clause body or spans wording that is marked up rather than written, so a rewrite has nowhere to go back to. Nothing was changed.');
@@ -1041,8 +1103,21 @@ async function labAiPropose(ctx){
     <label class="lab-ailabel" for="lab-ai-text">Suggested wording — edit it before you apply</label>
     <textarea id="lab-ai-text" class="ai-suggestion-editor lab-aitext w-full p-2 border rounded text-sm mb-2"
       spellcheck="true" rows="4"></textarea>
-    <div class="lab-aisub">Replacing: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
-    ${working === base ? '' : `<div class="lab-aistack">Stacking on ${esc(pendingOn ? pendingOn.id : 'the pending change')} — the redline below is measured from the settled baseline, so it shows that change and this one together.</div>`}
+    <div class="lab-aisub">${mode === 'restore' ? 'In place of wording your draft currently deletes' : 'Replacing'}: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
+    ${mode === 'restore'
+      ? `<div class="lab-aistack">${esc(pendingOn ? pendingOn.id : 'Your draft')} currently cuts this wording. Applying turns that cut into a replacement — the old wording still goes, and this takes its place. Nothing has been sent, so ${esc(c.counterparty || 'the counterparty')} has seen neither.${
+          /* THE SPLICE ONLY EVER INSERTS. Where the draft already replaced this
+             passage, the replacement stays and the new wording joins it, which
+             is rarely what was meant — so say so, and point at the route that
+             does the right thing. Selecting the green wording puts this back on
+             the ordinary replace path, where the stand-in is what gets
+             rewritten. Guessing instead would mean deleting wording the person
+             did not select, and a wrong guess drops words from a contract. */
+          struck && struck.span && struck.span.at !== struck.span.seam
+            ? ` <b>Your draft already replaces this passage.</b> The new wording will be added alongside that replacement rather than instead of it — to rewrite the replacement itself, discard this and select the green wording.`
+            : ''}</div>`
+      : working === base ? ''
+      : `<div class="lab-aistack">Stacking on ${esc(pendingOn ? pendingOn.id : 'the pending change')} — the redline below is measured from the settled baseline, so it shows that change and this one together.</div>`}
     <div class="lab-ailabel" style="margin-top:11px">How the clause would read</div>
     <div class="lab-aipreview" id="lab-ai-preview"></div>`;
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
@@ -1069,7 +1144,7 @@ async function labAiPropose(ctx){
      has neither behaviour. */
   const proposedFrom = v => {
     const t = String(v == null ? '' : v).trim();
-    return t ? working.slice(0, at) + t + working.slice(at + text.length) : working;
+    return t ? working.slice(0, at) + t + working.slice(at + spliceLen) : working;
   };
   const refresh = () => {
     const proposed = proposedFrom(box.value);
@@ -1111,15 +1186,28 @@ async function labAiPropose(ctx){
        settled text, so rejecting it returns the original exactly. */
     const edited = box.value.trim() !== suggestion;
     const authorRef = labAuthorOf(window.currentUser ? currentUser() : null, side, c);
+    /* Which record this lands on is decided by labFileChange, on the rule it
+       has always used: the same hand revises its own ask, a different hand
+       stacks. Restoring struck wording is not an exception to that — it is the
+       same person editing the same draft, so it revises L-001 in place and the
+       card, its notes and its threads all survive. */
+    const wasOn = pendingOn ? pendingOn.id : null;
     const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
       before: base, after: proposed, side, authorRef,
       author: `${authorRef.name} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
     pop.remove();
     if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
     labPut(c.id, lab);
-    if(window.toast) toast(ch.parentChangeId
-      ? `${ch.id} filed on top of ${ch.parentChangeId} — ${labAuthorName(ch)}'s pass over a colleague's wording`
-      : `${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
+    if(window.toast) toast(
+      ch.parentChangeId
+        ? `${ch.id} filed on top of ${ch.parentChangeId} — ${labAuthorName(ch)}'s pass over a colleague's wording`
+      /* Said plainly, because the record the person was looking at is the one
+         that moved and they should not have to go and check. */
+      : mode === 'restore' && wasOn === ch.id
+        ? `${ch.id} updated — that cut is now a replacement, and the new wording sits where the old wording was`
+      : mode === 'restore'
+        ? `${ch.id} filed — that cut is now a replacement`
+        : `${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
     if(typeof again === 'function') again();
   });
   place();
@@ -2158,6 +2246,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   LAB_STAGE_DRAFT, LAB_STAGE_PUBLISHED, LAB_STAGE_FOLDED, LAB_ROLES,
   labClauseText, labWorkingText, labPickOccurrence, labWorkingOffset,
   labPendingOn, labStackOn, labCanDecide, labMigrateChanges,
+  labDraftOnlyStack, labStruckTarget,
   labAuthorOf, labInitials, labAuthorName, labChainOf, labPublishRound,
   labAuthorPillHtml, labStackTrailHtml, labTagHtml, labRedlineAttributedHtml,
   labCaptureSel, labClearSel,

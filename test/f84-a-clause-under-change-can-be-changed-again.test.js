@@ -234,7 +234,9 @@ describe('F84d — the guard and the anchor are in the shipped file', () => {
   /* The splice itself is pinned in f85, which is where the offset it uses comes
      from. What matters here is only that it runs against the WORKING text. */
   test('the replacement is spliced into the working text', () => {
-    assert.ok(/working\.slice\(0, at\) \+ t \+ working\.slice\(at \+ text\.length\)/.test(src));
+    assert.ok(/working\.slice\(0, at\) \+ t \+ working\.slice\(at \+ spliceLen\)/.test(src),
+      'spliceLen rather than text.length: a restored deletion inserts at a seam '
+      + 'instead of overwriting, and both paths share the one splice');
   });
 
   /* Found while moving this line, and it predates the guard entirely. A

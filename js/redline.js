@@ -588,6 +588,78 @@ function redlineOpsBlocksHtml(ops, opts = {}){
 }
 
 /* ============================================================
+   WHERE DELETED WORDING USED TO SIT
+   ============================================================
+   Struck-through text is on the screen and is not in the new text. That is the
+   whole point of a redline, and it is also why a passage marked for deletion
+   cannot be located the way ordinary wording is: searching the proposed text
+   for it fails by construction.
+
+   What a caller needs, to offer "replace this rather than just delete it", is
+   the POINT IN THE NEW TEXT where the deleted run was taken out. Every ops
+   array already carries it. The two reconstruction invariants at the top of
+   this file — keep+del rebuilds the old text, keep+ins rebuilds the new — mean
+   a position can be tracked through both sides at once, advancing the old
+   cursor on keep and del and the new cursor on keep and ins. Where a del run
+   sits, the new cursor IS the seam it left behind.
+
+   An entire deleted run collapses to ONE point in the new text. That is not a
+   loss of precision to apologise for: once the wording is gone there is no
+   finer position to have, so a caller replacing part of a struck run puts its
+   wording at the seam, which is the only well-defined answer there is. */
+function redlineDeletedSpans(before, after){
+  const ops = redlineOpsStructured(before, after);
+  const spans = [];
+  let bPos = 0, aPos = 0;
+  for (let i = 0; i < ops.length; i++){
+    const o = ops[i];
+    const n = o.text.length;
+    if (o.op === 'keep'){ bPos += n; aPos += n; continue; }
+    if (o.op === 'ins'){ aPos += n; continue; }
+    /* The raw seam is where the run was taken out. That is the right anchor for
+       a plain deletion and the WRONG one where the deletion was part of a
+       replacement — a del followed by an ins is one edit, and its new wording
+       runs from the seam. Splicing at the seam would land in the middle of it:
+
+           "…thirty (30) [del: days and shall provide accounts.][ins: days.]"
+
+       anchored at the seam puts the new wording between "(30) " and "days.",
+       which is not a sentence. So the anchor walks past the replacement to the
+       end of the changed region, where wording taking the deletion's place
+       actually belongs. */
+    let at = aPos;
+    for (let j = i + 1; j < ops.length && ops[j].op !== 'keep'; j++)
+      if (ops[j].op === 'ins') at += ops[j].text.length;
+    spans.push({ text: o.text, beforeStart: bPos, beforeEnd: bPos + n, at, seam: aPos });
+    bPos += n;
+  }
+  return spans;
+}
+
+/* The deleted run that WHOLLY contains a passage, or null.
+
+   Wholly is the load-bearing word. A selection that starts inside a deletion
+   and ends outside it spans the seam of the redline: it exists in neither
+   version of the clause, and there is nowhere honest to put an answer back.
+   Returning null there rather than the nearest run is what keeps a caller's
+   refusal correct in the one case that still deserves refusing.
+
+   `hint` disambiguates the same wording struck out in two places, on the same
+   nearest-match reasoning the ordinary occurrence lookup uses. */
+function redlineDeletionCovering(before, after, text, hint){
+  const needle = String(text == null ? '' : text).trim();
+  if (!needle) return null;
+  const want = (typeof hint === 'number' && isFinite(hint)) ? hint : 0;
+  let best = null, bestGap = Infinity;
+  for (const s of redlineDeletedSpans(before, after)){
+    if (s.text.indexOf(needle) === -1) continue;
+    const gap = Math.abs(s.at - want);
+    if (gap < bestGap){ bestGap = gap; best = s; }
+  }
+  return best;
+}
+
+/* ============================================================
    WHOSE WORDS ARE THESE — attribution across a stack of edits
    ============================================================
    Three colleagues pass a clause between them and it arrives at the counterparty
@@ -673,6 +745,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
+  redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
@@ -680,5 +753,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
+  redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
 };
