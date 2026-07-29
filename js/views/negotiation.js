@@ -2806,15 +2806,26 @@ async function negoBatchConfirm(c, kind, split){
 /* ============================================================
    THE SELECTION MENU AND THE AI PROPOSAL
    ============================================================
-   Four things a person wants done to wording they have just read, offered where
-   they read it. Every one of them ends at a PROPOSAL — a redline shown against
-   the current clause with Apply or Cancel — and never at an edit. The document
-   does not move because a model suggested something. */
+   Three things a person wants done to wording they have just read, offered
+   where they read it. Every one of them ends at a PROPOSAL — a redline shown
+   against the current clause with Apply or Cancel — and never at an edit. The
+   document does not move because a model suggested something.
+
+   "⚖️ ALIGN WITH CORPORATE PLAYBOOK" WAS THE FOURTH AND IS GONE, from here for
+   the same reason it went from the Doc Lab's menu: the playbook holds category
+   VERDICTS on a contract — liability cap, governing law, payment terms — and no
+   preferred wording for any of them. The action asked a model to match a
+   formulation that does not exist, so the model supplied its own and it arrived
+   wearing the playbook's authority. A reviewer who reads "aligned with
+   playbook" on a redline stops checking it, which is the point at which a
+   confident guess becomes a term of the agreement.
+
+   The playbook still reaches the model on every ask as context, and still
+   drives the risk signals that hold a change back from a batch accept. What has
+   gone is the claim that it can draft. */
 const NEGO_AI_ACTIONS = [
   { id: 'advantage', label: '🪄 Rephrase for Buyer/Supplier Advantage',
     ask: 'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
-  { id: 'playbook', label: '⚖️ Align with Corporate Playbook',
-    ask: 'Rewrite this contract wording so it matches our corporate playbook position. If the playbook has a preferred formulation for this category, use it.' },
   { id: 'risk', label: '🔍 Explain Legal Risk',
     ask: 'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain: true },
   { id: 'shorten', label: '✂️ Shorten Wording',

@@ -505,7 +505,12 @@ function check(name, ok, detail){
       check('AI Assist opens the action menu', assist.immediately);
       check('and the menu SURVIVES the selection settle — the flash-and-vanish bug',
         assist.stillThere);
-      check('it offers the four actions', assist.actions.length === 4, assist.actions.join(' | '));
+      check('it offers the three actions', assist.actions.length === 3, assist.actions.join(' | '));
+      /* The playbook action was deleted, not hidden. A menu item that asks a
+         model to match a formulation the playbook does not hold produces a
+         house style the model invented, wearing the playbook's authority. */
+      check('and Align with Corporate Playbook is not among them',
+        !assist.actions.some(a => /playbook/i.test(a)), assist.actions.join(' | '));
       check('and it is drawn on screen with real size', assist.onScreen);
       await page.screenshot({ path: path.join(OUT, 'doclab-assist-menu.png') });
     }
