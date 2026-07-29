@@ -558,7 +558,10 @@ function check(name, ok, detail){
         proposedText: 'THE STUBBED REPLACEMENT WORDING'
       });
     });
-    /* Opens a proposal from the first clause and waits for the card. */
+    /* Opens a proposal from the first clause and waits for the card. Uses the
+       SHORTEN action, which carries its own instruction and so goes straight to
+       a proposal; the open-ended Rephrase action is a conversation and is
+       exercised separately below. */
     const openProposal = async () => {
       await page.evaluate(() => {
         document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
@@ -570,9 +573,31 @@ function check(name, ok, detail){
       await page.waitForSelector('#ai-panel.open .ai-proposal [data-ai-prop-apply]', { timeout: 6000 });
     };
 
+    /* ---- the layout BEHIND the drawer ----
+       The drawer must be a layer, not a column. Anything that narrows the shell
+       re-lays-out this whole page — every clause frame moves left, every line
+       re-wraps — at the exact moment the reader has pressed a button about a
+       phrase they just selected. Measured with the drawer shut and again with
+       it open, from a settled page both times: the panel slides in over 300ms,
+       and reading its box mid-transition measures where it was, not where it is. */
+    const measure = () => page.evaluate(() => {
+      const canvas = document.getElementById('lab-canvas');
+      const frame = document.querySelector('[data-lab-clause]');
+      const shell = document.getElementById('app-shell');
+      return { canvas: Math.round(canvas.getBoundingClientRect().width),
+        frameLeft: Math.round(frame.getBoundingClientRect().left),
+        shell: Math.round(shell.getBoundingClientRect().width) };
+    });
+    await page.evaluate(() => { if (window.closeAI) closeAI(); });
+    await page.waitForTimeout(450);
+    const beforeDrawer = await measure();
+
     let panel = { skipped: true };
     try {
       await openProposal();
+      /* Past the 300ms slide, so the box being measured is where the drawer
+         actually rests. */
+      await page.waitForTimeout(450);
       const opened = await page.evaluate(() => {
         const p = document.getElementById('ai-panel');
         const feed = document.getElementById('ai-feed');
@@ -583,12 +608,25 @@ function check(name, ok, detail){
              reader deciding on wording has to see the clauses around it. */
           docked: !!(p && p.classList.contains('docked')),
           scrimOpen: !!document.getElementById('ai-scrim').classList.contains('open'),
-          documentVisible: (() => {
+          /* An OVERLAY: pinned to the viewport, full height, above everything,
+             and carrying the shadow that separates it from the page now that no
+             scrim does. */
+          overlay: (() => {
+            const cs = getComputedStyle(p);
+            const r = p.getBoundingClientRect();
+            return { position: cs.position, z: Number(cs.zIndex),
+              top: Math.round(r.top), right: Math.round(window.innerWidth - r.right),
+              fullHeight: Math.abs(r.height - window.innerHeight) <= 1,
+              shadow: /-5px/.test(cs.boxShadow) };
+          })(),
+          /* NOTHING BEHIND IT MOVED. */
+          layout: (() => {
             const canvas = document.getElementById('lab-canvas');
-            if (!canvas) return false;
-            const r = canvas.getBoundingClientRect();
-            const pr = p.getBoundingClientRect();
-            return r.width > 100 && r.right <= pr.left + 2;
+            const frame = document.querySelector('[data-lab-clause]');
+            const shell = document.getElementById('app-shell');
+            return { canvas: Math.round(canvas.getBoundingClientRect().width),
+              frameLeft: Math.round(frame.getBoundingClientRect().left),
+              shell: Math.round(shell.getBoundingClientRect().width) };
           })(),
           /* BUBBLE ONE — the reasoning, in the ordinary chat stream. */
           hasAdvice: !!(feed && /STUBBED ADVICE ABOUT THE CLAUSE/.test(feed.textContent)),
@@ -652,10 +690,22 @@ function check(name, ok, detail){
       check('the side-panel proposal flow ran', false, panel.error);
     } else if (!panel.skipped){
       check('an AI action opens the Copilot side panel', panel.opened.panelOpen);
-      check('and docks it beside the document rather than over a scrim',
+      check('and opens it as a drawer rather than behind a scrim',
         panel.opened.docked && !panel.opened.scrimOpen);
-      check('so the document is still readable next to it',
-        panel.opened.documentVisible);
+      check('the drawer is a fixed full-height overlay above the page',
+        panel.opened.overlay.position === 'fixed' && panel.opened.overlay.z >= 100
+        && panel.opened.overlay.top === 0 && panel.opened.overlay.right === 0
+        && panel.opened.overlay.fullHeight && panel.opened.overlay.shadow,
+        JSON.stringify(panel.opened.overlay));
+      check('and NOTHING behind it moved — the canvas keeps its width',
+        panel.opened.layout.canvas === beforeDrawer.canvas,
+        `${beforeDrawer.canvas}px → ${panel.opened.layout.canvas}px`);
+      check('and no clause frame was pushed left',
+        panel.opened.layout.frameLeft === beforeDrawer.frameLeft,
+        `${beforeDrawer.frameLeft} → ${panel.opened.layout.frameLeft}`);
+      check('and the shell was never narrowed to make room',
+        panel.opened.layout.shell === beforeDrawer.shell,
+        `${beforeDrawer.shell}px → ${panel.opened.layout.shell}px`);
       check('BUBBLE ONE carries the advice', panel.opened.hasAdvice);
       check('BUBBLE TWO is a proposal card carrying the wording',
         panel.opened.hasCard && panel.opened.cardCarriesWording);
@@ -673,6 +723,111 @@ function check(name, ok, detail){
       check('and the card says it was applied', panel.applied.cardClosed && panel.applied.saysApplied);
       check('and the clause carries a change badge', panel.applied.badge);
     }
+
+    /* ---- "✨ REPHRASE WITH COPILOT" ASKS BEFORE IT DRAFTS ----
+       The open-ended action is the one that used to decide, on the reader's
+       behalf, that "rephrase" meant "favour my side". It now opens the drawer,
+       shows the passage, and asks. Nothing may be spent on a model until the
+       reader has answered — so the stub counts its own calls. */
+    const converse = await page.evaluate(async () => {
+      window.__askCalls = 0;
+      /* A cleared panel, because cards from earlier turns stay in the
+         transcript and "is there a card yet" has to mean "for THIS ask". */
+      if (window.clearAIHistory) clearAIHistory();
+      window.copilotAsk = async () => {
+        window.__askCalls++;
+        return JSON.stringify({
+          advice: 'SESSION ADVICE — softened, and the cap is untouched.',
+          proposedText: 'THE SOFTENED WORDING'
+        });
+      };
+      document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
+      if (window.closeAI) closeAI();
+      const label = document.querySelector('[data-lab-assist]');
+      if (!label) return { skipped: true };
+      label.click();
+      await new Promise(r => setTimeout(r, 300));
+      const item = document.querySelector('.lab-selmenu [data-lab-ai="advantage"]');
+      const menuLabel = item ? item.textContent.trim() : '';
+      if (!item) return { skipped: true };
+      item.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 500));
+      const feed = document.getElementById('ai-feed');
+      const seeded = {
+        menuLabel,
+        panelOpen: !!document.querySelector('#ai-panel.open'),
+        targetShown: !!feed.querySelector('.ai-target'),
+        targetCarriesPassage: !!(feed.querySelector('.ai-target-body')
+          && feed.querySelector('.ai-target-body').textContent.trim().length > 20),
+        greeting: /How would you like me to help rephrase this passage\?/.test(feed.textContent),
+        noCardYet: !feed.querySelector('.ai-proposal [data-ai-prop-apply]'),
+        callsBeforeAnswering: window.__askCalls
+      };
+      /* Answer the question through the panel's own input, which is the whole
+         point of seeding a session rather than firing a request. */
+      document.getElementById('ai-input').value = 'Soften it so we can send it today.';
+      document.getElementById('ai-send').click();
+      await new Promise(r => setTimeout(r, 700));
+      const cards = document.querySelectorAll('.ai-proposal');
+      const card = cards[cards.length - 1];
+      return { skipped: false, seeded,
+        callsAfterAnswering: window.__askCalls,
+        cardAppeared: !!card,
+        cardCarriesWording: !!(card && /THE SOFTENED WORDING/.test(card.textContent)),
+        adviceOutsideCard: !!(card && !/SESSION ADVICE/.test(card.textContent)),
+        adviceShown: /SESSION ADVICE/.test(document.getElementById('ai-feed').textContent) };
+    });
+    if (converse.skipped){
+      check('the rephrase action is in the menu', false);
+    } else {
+      check('the rephrase button reads "✨ Rephrase with Copilot"',
+        converse.seeded.menuLabel === '✨ Rephrase with Copilot', converse.seeded.menuLabel);
+      check('pressing it opens the drawer', converse.seeded.panelOpen);
+      check('and seeds the session with the target text',
+        converse.seeded.targetShown && converse.seeded.targetCarriesPassage);
+      check('and asks how it should help', converse.seeded.greeting);
+      check('with NO proposal card yet — it has not been told what to do',
+        converse.seeded.noCardYet);
+      check('and nothing was spent on a model before the reader answered',
+        converse.seeded.callsBeforeAnswering === 0,
+        `${converse.seeded.callsBeforeAnswering} calls`);
+      check('answering in the panel input produces the proposal',
+        converse.cardAppeared && converse.cardCarriesWording);
+      check('exactly one model call, made after the instruction',
+        converse.callsAfterAnswering === 1, `${converse.callsAfterAnswering} calls`);
+      check('the advice is a bubble, not part of the wording',
+        converse.adviceShown && converse.adviceOutsideCard);
+    }
+
+    /* ---- A REFUSAL IS NOT A REDLINE ----
+       The single worst failure this flow has available: a model that answers
+       conversationally, and the apology gets filed as contract wording. It is
+       silent, it looks like wording, and it survives to a signature. */
+    const refusal = await page.evaluate(async () => {
+      if (window.clearAIHistory) clearAIHistory();
+      window.copilotAsk = async () =>
+        "I'm sorry, I can't help rewrite that clause without seeing the definitions schedule.";
+      document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
+      if (window.closeAI) closeAI();
+      document.querySelector('[data-lab-assist]').click();
+      await new Promise(r => setTimeout(r, 300));
+      document.querySelector('.lab-selmenu [data-lab-ai="shorten"]')
+        .dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 700));
+      const feed = document.getElementById('ai-feed');
+      const card = feed.querySelector('.ai-proposal [data-ai-prop-apply]');
+      return {
+        saidIt: /can't help rewrite that clause/.test(feed.textContent),
+        noCard: !card,
+        noApplyButton: !feed.querySelector('[data-ai-prop-apply]')
+      };
+    });
+    await page.evaluate(() => { if (window.closeAI) closeAI(); });
+    await page.waitForTimeout(400);
+    check('a conversational refusal is still shown to the reader', refusal.saidIt);
+    check('but it gets NO proposal card', refusal.noCard);
+    check('and no Apply Redline button that would splice an apology into a clause',
+      refusal.noApplyButton);
 
     /* ---- a note is drawn ONCE ----
        Also reported from real use: notes appeared under the clause AND on the

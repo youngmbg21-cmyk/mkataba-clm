@@ -889,8 +889,26 @@ function labBatchSplit(c, lab, side){
    Defined here rather than borrowed from the negotiation tab: the lab has to
    keep working if that tab is ever removed. */
 const LAB_AI_ACTIONS = [
-  { id:'advantage', label:'🛡️ Rephrase for Buyer Advantage',
-    ask:'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
+  /* ---------- THE OPEN ASK, AND WHY IT NO LONGER NAMES A DIRECTION ----------
+     This was "Rephrase for Buyer Advantage", then "Rephrase for <party>'s
+     Advantage" once it started naming the side actually being acted for. Both
+     were the same mistake in different words: the button decided what the
+     rewrite was FOR before the person who selected the wording had said.
+
+     "Rephrase" on its own is not an instruction, and pretending it is meant the
+     model got one — favour my side — whether or not that was the job. Half the
+     real uses are not that at all: soften it so it can be sent, make it match
+     the schedule, take the ambiguity out of "reasonable endeavours". Every one
+     of those arrived as an advantage-grab and then had to be argued back.
+
+     So this action asks. It opens the Copilot with the passage in front of it
+     and one question, and the answer is the instruction. The two actions below
+     keep going straight to a proposal because they ALREADY carry an
+     instruction — "align with the playbook" and "shorten and simplify" say what
+     they want, and asking a person to retype that would be a step for nothing. */
+  { id:'advantage', label:'✨ Rephrase with Copilot', converse:true,
+    ask:'Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    greeting:'How would you like me to help rephrase this passage?' },
   { id:'playbook', label:'⚖️ Align with Corporate Playbook',
     ask:'Rewrite this contract wording so it matches our corporate playbook position. If the playbook has a preferred formulation for this category, use it.' },
   { id:'shorten', label:'✂️ Shorten & Simplify',
@@ -901,32 +919,20 @@ const LAB_AI_ACTIONS = [
      a note ends up attached to the wrong clause. */
   { id:'tag', label:'🏷️ Tag with Internal Note', tag:true }
 ];
-/* ---------- WHOSE ADVANTAGE, SAID OUT LOUD ----------
-   The first action was labelled "Rephrase for Buyer Advantage" whichever side
-   the reader had switched to. On this page that is not a cosmetic slip: the
-   whole point of "Acting as them" is to sit on the other side of the table and
-   see what they would ask for, and a menu that still says Buyer while you are
-   acting for the supplier is offering to argue against the party you are
-   playing. The instruction sent to the model was always right — "the party I
-   act for" — so the label was the only thing lying.
-
-   Named parties where there is a name to use, because "Rephrase for Kabras
-   Sugar's Advantage" is unmistakable in a way that "for their advantage" is
-   not, and a long name is trimmed rather than allowed to reflow the menu. */
+/* WHO THE REWRITE IS FOR, still told to the model even though the button no
+   longer announces it. "Acting as them" exists so a negotiator can sit on the
+   other side of the table and see what they would ask for, and a prompt that
+   silently assumed our side would answer the wrong question in that mode. */
 function labActingParty(c, side){
   const raw = side === LAB_THEM
     ? ((c && c.counterparty) || 'the counterparty')
     : (window.FIRST_PARTY || 'us');
   return String(raw);
 }
-function labAiActions(c, side){
-  const who = labActingParty(c, side);
-  const short = who.length > 26 ? who.slice(0, 25).replace(/\s+\S*$/, '') + '…' : who;
-  const label = who === 'us' || who === 'the counterparty'
-    ? `🛡️ Rephrase for ${who === 'us' ? 'Our' : 'Their'} Advantage`
-    : `🛡️ Rephrase for ${short}'s Advantage`;
-  return LAB_AI_ACTIONS.map(a => a.id === 'advantage' ? { ...a, label } : a);
-}
+/* One builder for both entry points, kept as a function rather than the bare
+   constant so a label can still be made to depend on context without every call
+   site having to learn about it. */
+function labAiActions(){ return LAB_AI_ACTIONS.slice(); }
 const labKillSel = () => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
 /* The note composer is now the only floating layer this page opens — the AI
    proposal moved into the Copilot panel, which closes by its own rules. The
@@ -1213,17 +1219,18 @@ async function labAiPropose(ctx){
      let go of the new one. */
   labKillPop(); labKillSel(); labClearSel();
 
-  /* DOCKED. The whole reason this moved out of a popover is that a reader
-     deciding on proposed wording has to be able to see the clauses either side
-     of it, and the panel's ordinary scrim would put a blurred sheet over
-     exactly that. */
+  /* THE DRAWER OPENS FIRST, before anything is asked and before anything can
+     fail. Pressing a menu item has to do something visible on the same gesture;
+     a button that opens a panel only once a model has answered reads as broken
+     for as long as the round trip takes, and reads as broken permanently if the
+     round trip fails. */
   if(window.openAI) openAI(null, { docked: true });
   /* WHAT WAS ASKED, IN THE READER'S OWN STREAM. Without this the panel answers
      a question it never shows, and a conversation whose first turn is missing
      reads as the Copilot volunteering wording nobody asked for. */
   if(window.aiPush) aiPush('user', { text: `${esc(action.label)}<div class="text-[11px] mt-1 opacity-80" style="font-style:italic">“${
     esc(text.length > 140 ? text.slice(0, 139) + '…' : text)}”</div>` });
-  if(window.renderAIFeed) renderAIFeed(true);
+  if(window.renderAIFeed) renderAIFeed(action.converse ? false : true);
 
   if(!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
     labSayInPanel(labProposeRefusal('no-copilot'));
@@ -1340,17 +1347,6 @@ async function labAiPropose(ctx){
       onApply: applyWording, onRefine: refine };
   };
 
-  let made;
-  try{
-    made = await copilotPropose({ ask: action.ask, passage: text, party, playbook: pbLine });
-  }catch(err){
-    labSayInPanel(`The Copilot could not answer: ${(err && err.message) || String(err)}. Nothing was changed.`);
-    return;
-  }
-  if(!made){
-    labSayInPanel('The Copilot returned nothing usable. Nothing was changed.');
-    return;
-  }
   if(!window.aiOpenProposal){
     labSayInPanel('The Copilot panel is not loaded on this page, so there is nowhere to put the proposal.');
     return;
@@ -1377,9 +1373,50 @@ async function labAiPropose(ctx){
       ? `Stacking on ${(first.pending && first.pending.id) || 'the pending change'} — the redline is measured from the `
         + 'settled baseline, so it will show that change and this one together.'
       : '';
-  aiOpenProposal({ advice: made.advice, proposedText: made.proposedText, strict: made.strict,
-    clauseLabel: clause.label, replacing: text, note,
-    onApply: applyWording, onRefine: refine });
+  /* One way in for both shapes of action, so a proposal that arrived after a
+     conversation and a proposal that arrived straight from a named action are
+     the same object with the same verbs on it. */
+  /* Returns whether anything was RENDERED, which is not the same question as
+     whether a card appeared. A model that answered in prose rather than wording
+     produces an advice bubble and no card — that is an answer, and reporting it
+     as a failure would talk over the thing it just said. Only a reply with
+     nothing usable in it at all comes back false. */
+  const propose = async instruction => {
+    const made = await copilotPropose({ ask: action.ask, passage: text, party,
+      playbook: pbLine, instruction: instruction || '' });
+    if(!made) return false;
+    const card = aiOpenProposal({ advice: made.advice, proposedText: made.proposedText,
+      strict: made.strict, clauseLabel: clause.label, replacing: text, note,
+      onApply: applyWording, onRefine: refine });
+    /* The session hands over to the card once there IS a card: the next
+       sentence typed is then a note about the proposal rather than a second
+       answer to a question that has already been answered. Where no card came
+       back the session STAYS open, because the Copilot has just asked for
+       something and the reader still has to give it. */
+    if(card && window.aiCloseRephraseSession) aiCloseRephraseSession();
+    return true;
+  };
+
+  /* ---------- THE TWO SHAPES OF ACTION ----------
+     An action that CARRIES an instruction — align with the playbook, shorten
+     and simplify — goes straight to a proposal, because asking a person to
+     retype what they just pressed is a step for nothing.
+
+     An action that does NOT — "✨ Rephrase with Copilot" — seeds the session
+     and stops. The passage goes up as a target card, the Copilot asks how it
+     should help, and the answer typed into the panel's own input becomes the
+     instruction. Nothing is spent until the person has said what they want. */
+  if(action.converse && window.aiOpenRephraseSession){
+    aiOpenRephraseSession({ passage: text, clauseLabel: clause.label,
+      greeting: action.greeting,
+      onPropose: instruction => propose(instruction) });
+    return;
+  }
+  try{
+    if(!await propose('')) labSayInPanel('The Copilot returned nothing usable. Nothing was changed.');
+  }catch(err){
+    labSayInPanel(`The Copilot could not answer: ${(err && err.message) || String(err)}. Nothing was changed.`);
+  }
 }
 
 /* The floating menu itself, built once and opened from two places: a text
@@ -1391,7 +1428,7 @@ function labSelMenu(ctx){
   /* Named for the side the reader is currently acting as, not for a fixed
      party. Both entry points build the menu here, so neither can offer to
      argue against the party the other one is playing. */
-  const actions = labAiActions(c, side);
+  const actions = labAiActions();
   labKillSel();
   const menu = document.createElement('div');
   menu.className = 'lab-selmenu';
@@ -2237,6 +2274,45 @@ function renderDocLab(){
 
     /* ---- discarding a draft ---- */
     .discuss-discard:hover{background:#f9dedb;border-color:rgba(143,50,43,.5)}
+
+    /* ============================================================
+       THE COPILOT DRAWER FLOATS. NOTHING UNDER IT MOVES.
+       ============================================================
+       Stated here as well as beside the element in index.html, and the
+       duplication is deliberate: this is the page that would notice. The Doc Lab
+       is a two-column grid whose height is measured from its own top and whose
+       columns are fractions of whatever width it is given, so anything that
+       narrows the shell re-lays-out the entire document — every clause frame
+       moves left, every line re-wraps, and the two panes re-measure. Doing that
+       at the moment a drawer opens means a reader who selected a phrase and
+       pressed a button loses the phrase, on the one screen where the whole point
+       is comparing proposed wording against the wording beside it.
+
+       So the drawer is a LAYER. It is taken out of flow, pinned to the right of
+       the viewport and lifted above everything, and the shadow does the work the
+       scrim used to do — it separates the layer from the page without hiding the
+       page. Below it the canvas keeps the width, the line breaks and the scroll
+       position it had a moment before.
+
+       The selectors cover both names the drawer is known by: #ai-panel, which is
+       what index.html calls it, and .hati-copilot-panel, which is what it is
+       called out here. */
+    #ai-panel.docked, .hati-copilot-panel.docked{
+      position:fixed; top:0; right:0; height:100vh; z-index:100;
+      box-shadow:-5px 0 25px rgba(0,0,0,.15);
+    }
+    /* THE GUARANTEE, written as a rule rather than trusted to a call site: the
+       shell may not be narrowed to make room for the drawer, whatever else on
+       the page thinks it is doing.
+
+       It is ONE rule, and deliberately. The first draft of this also reset
+       margins, padding and widths on the split and both panes "to be safe", and
+       that block moved the canvas 9px on its own — padding-right:inherit made
+       the doc pane inherit its parent's padding, which is not the same as
+       leaving it alone. A guard that changes the layout it is guarding is worse
+       than no guard: the panes are sized from the shell, so keeping the shell
+       still is the whole of the job. */
+    #app-shell{right:0 !important}
   </style>
   <div class="view-enter" style="padding:0 0 24px;display:flex;flex-direction:column;gap:0">
 

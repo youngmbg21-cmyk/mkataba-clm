@@ -115,6 +115,59 @@ describe('F88a — the model is asked for a shape, and the parse survives missin
   });
 });
 
+describe('F88a2 — a remark is never filed as wording', () => {
+  let ai;
+  beforeEach(() => { ai = loadAi(); });
+
+  /* The worst failure this flow has available, because it is the quiet one: a
+     model answers conversationally, the reply is treated as the replacement
+     string, and an apology is spliced into a clause under an Apply Redline
+     button. It looks like wording, nothing errors, and it survives to a
+     signature. */
+  const refusals = [
+    "I'm sorry, I can't help rewrite that clause without the definitions schedule.",
+    'I cannot provide legal advice on enforceability under Kenyan law.',
+    'As an AI, I am not able to advise on the indemnity cap.',
+    "Sure! Here's a rewrite you might consider.",
+    'Note: this is not legal advice and you should consult a qualified advocate.',
+    'I would recommend seeking counsel before changing this limb.',
+  ];
+  for (const r of refusals){
+    test(`"${r.slice(0, 34)}…" is advice, not a proposal`, () => {
+      const p = ai.aiParseProposal(r);
+      assert.equal(p.proposedText, '', 'nothing to put an Apply Redline button on');
+      assert.ok(p.advice.includes(r.slice(0, 20)), 'and the reader still gets to read it');
+    });
+  }
+
+  test('a disclaimer in FRONT of good wording is moved to the advice, not filed', () => {
+    const p = ai.aiParseProposal(JSON.stringify({ advice: 'Narrows it.',
+      proposedText: 'Please note this is not legal advice. The Supplier shall pay within sixty (60) days.' }));
+    assert.equal(p.proposedText, 'The Supplier shall pay within sixty (60) days.',
+      'the clause is what gets spliced');
+    assert.match(p.advice, /Narrows it\./);
+    assert.match(p.advice, /not legal advice/, 'and the caveat is still said, in the bubble');
+  });
+
+  test('real wording that merely contains a cautious word is left alone', () => {
+    /* The patterns are anchored for this reason: a contract genuinely can say
+       "cannot" or "sorry", and stripping real wording is the same harm in the
+       other direction. */
+    const clause = 'The Supplier cannot assign this Agreement without prior written consent, '
+      + 'and no delay in enforcement shall be treated as a waiver.';
+    const p = ai.aiParseProposal(clause);
+    assert.equal(p.proposedText, clause);
+    assert.equal(p.advice, '');
+    assert.equal(ai.aiLooksConversational(clause), false);
+  });
+
+  test('a proposal with nothing but a remark in it yields no proposal at all', () => {
+    const p = ai.aiParseProposal(JSON.stringify({ advice: '', proposedText: "I'm afraid I can't." }));
+    assert.equal(p.proposedText, '');
+    assert.match(p.advice, /can(?:'|’)t/);
+  });
+});
+
 describe('F88b — typography survives the rewrite', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
@@ -318,6 +371,68 @@ describe('F88e — the export is a Word file, not a picture of one', () => {
     const out = D.docxExportTracked('<p>The parties agree as follows.</p>');
     assert.deepEqual(out.tracked, { ins: 0, del: 0 });
     assert.match(out.xml, /The parties agree as follows\./);
+  });
+});
+
+describe('F88g — the rephrase action asks before it drafts', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
+
+  test('the button says what it does and nothing about a direction', () => {
+    assert.match(src, /label:'✨ Rephrase with Copilot'/,
+      'the label the reader presses');
+    assert.ok(!/Rephrase for Buyer Advantage/.test(src.replace(/\/\*[\s\S]*?\*\//g, '')),
+      'and it no longer decides, on their behalf, that rephrase means favour my side');
+  });
+
+  test('it is marked as the conversational one, and carries the question it asks', () => {
+    const block = src.slice(src.indexOf('const LAB_AI_ACTIONS'), src.indexOf('function labActingParty'));
+    assert.match(block, /converse:true/);
+    assert.match(block, /greeting:'How would you like me to help rephrase this passage\?'/);
+    /* The two named actions stay immediate: they already carry an instruction,
+       and asking a person to retype what they just pressed is a step for
+       nothing. */
+    assert.equal((block.match(/converse:true/g) || []).length, 1);
+  });
+
+  test('a conversational action seeds a session instead of asking a model', () => {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(/if\(action\.converse && window\.aiOpenRephraseSession\)\{/.test(code),
+      'the branch exists');
+    const branch = code.slice(code.indexOf('if(action.converse'));
+    assert.ok(branch.indexOf('return;') < branch.indexOf('propose(\'\')'),
+      'and it returns before the direct-proposal path — nothing is spent until '
+      + 'the reader has said what they want');
+  });
+});
+
+describe('F88h — the drawer floats and nothing under it moves', () => {
+  const lab = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'doclab.js'), 'utf8');
+  const shell = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const ai = fs.readFileSync(path.join(__dirname, '..', 'js', 'ai.js'), 'utf8');
+
+  test('the drawer is a fixed, full-height, top-of-stack overlay', () => {
+    for (const [name, src] of [['doclab.js', lab], ['index.html', shell]]){
+      const rule = src.slice(src.indexOf('.docked{'), src.indexOf('.docked{') + 400);
+      assert.match(rule, /position:\s*fixed/, `${name}: taken out of flow`);
+      assert.match(rule, /top:\s*0/, name);
+      assert.match(rule, /right:\s*0/, name);
+      assert.match(rule, /height:\s*100vh/, `${name}: full height`);
+      assert.match(rule, /z-index:\s*100/, `${name}: above the page`);
+      assert.match(rule, /box-shadow:\s*-5px 0 25px rgba\(0,0,0,\.?0?\.?15\)/,
+        `${name}: the shadow does what the scrim used to`);
+    }
+  });
+
+  test('nothing narrows the shell to make room for it', () => {
+    const code = ai.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!/shell\.style\.right\s*=\s*[^']/.test(code)
+      || /shell\.style\.right\s*=\s*''/.test(code),
+      'aiSyncDock may only CLEAR the shell offset, never set one');
+    assert.ok(!/AI_DOCK_MIN_WIDTH/.test(code),
+      'and the two-column fallback threshold is gone with the two-column mode');
+    assert.match(lab, /#app-shell\{right:0 !important\}/,
+      'with a rule on the page that would notice, so a reintroduced dock fails '
+      + 'loudly rather than silently reflowing a contract');
   });
 });
 

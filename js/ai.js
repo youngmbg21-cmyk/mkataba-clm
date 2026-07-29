@@ -557,37 +557,48 @@ function toggleAIExpand(force){
       :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></svg>';
   }
 }
-/* ---------- DOCKED, NOT ON TOP ----------
+/* ---------- AN OVERLAY DRAWER, AND NOTHING UNDER IT MOVES ----------
    The panel has always opened over a scrim: a dimmed, blurred sheet across the
    page, because the questions it was built for — "what expires in 90 days" —
    are asked instead of reading the screen, not alongside it.
 
    A rewrite is the opposite kind of exchange. The reader is deciding whether
-   proposed wording fits the clauses either side of it, so covering the document
-   to show them the proposal makes the proposal undecidable. Docked mode drops
-   the scrim and gives the panel its own column: the shell's right edge moves in
-   by the panel's width, so the document reflows beside it rather than under it.
+   proposed wording fits the clauses either side of it, so a sheet over the
+   document makes the proposal undecidable. Docked mode drops the scrim.
 
-   Below 900px there is no room for two columns and this falls back to the
-   overlay — which is the correct answer on a phone, where a side-by-side of a
-   contract and a chat is two unreadable things instead of one readable one. */
-const AI_DOCK_MIN_WIDTH = 900;
+   WHAT IT NO LONGER DOES IS MOVE THE PAGE. This briefly narrowed the shell by
+   the panel's width so the document reflowed into what was left, and reflow is
+   the problem: the clause a reader had their eye on jumps left and re-wraps at
+   the moment the drawer opens, every line breaks somewhere new, and the two-pane
+   split re-measures under them. A reader who selected a phrase and pressed a
+   button then has to find that phrase again on a page that has rearranged
+   itself — while a drawer sits over the part of the screen they were told to
+   compare against.
+
+   So the drawer FLOATS. Nothing behind it is resized, re-laid-out or scrolled;
+   the document keeps the width and the line breaks it had a moment ago, and the
+   panel is simply a layer on top of the right-hand side of it. The CSS that
+   guarantees this lives with the element (index.html) and is restated on the
+   Doc Lab page (js/views/doclab.js), which is the layout that would notice. */
 function aiSyncDock(){
   const shell=document.getElementById('app-shell');
   const panel=document.getElementById('ai-panel');
   /* Guarded rather than assumed: this module is evaluated on a cut-down stage
      in the node tests, where the elements are stand-ins without a box model. */
-  if(!shell||!panel||typeof panel.getBoundingClientRect!=='function') return;
-  const on=!!(ai.open&&ai.docked&&window.innerWidth>AI_DOCK_MIN_WIDTH);
-  shell.style.right=on
-    ? Math.min(panel.getBoundingClientRect().width||430, Math.round(window.innerWidth*0.7))+'px'
-    : '';
+  if(!panel||!panel.classList) return;
+  const on=!!(ai.open&&ai.docked);
   panel.classList.toggle('docked',on);
+  /* The shell's own width is never touched. Cleared rather than ignored so a
+     session that ran an older build — which did set it — hands the column back
+     the first time this runs instead of keeping a gutter for a drawer that no
+     longer reserves one. */
+  if(shell&&shell.style) shell.style.right='';
   if(document.body&&document.body.classList) document.body.classList.toggle('ai-docked',on);
 }
-/* `opts.docked` opens it beside the page. Kept as an option rather than a mode
-   switch, because the command-bar entry point is still asking a question about
-   the portfolio and still wants the page out of the way. */
+/* `opts.docked` opens it as a drawer over the page rather than behind a scrim.
+   Kept as an option rather than a mode switch, because the command-bar entry
+   point is still asking a question about the portfolio and still wants the rest
+   of the screen dimmed out of the way. */
 function openAI(prefill,opts){
   const o=opts||{};
   ai.docked=!!o.docked;
@@ -614,7 +625,13 @@ function closeAI(){
   document.getElementById('ai-panel').classList.remove('open');
   document.getElementById('ai-scrim').classList.remove('open');
   ai.open=false;
-  aiSyncDock();                          // hand the column back to the page
+  aiSyncDock();
+  /* A seeded rephrase ends with the drawer. Left open, the next thing typed
+     into the panel — which by then is an ordinary question about the portfolio
+     — would be read as an instruction about a passage the reader has long since
+     stopped looking at. Minimize deliberately does NOT do this: that is "keep
+     this going, I will be back". */
+  if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
   ai.minimized=false; updateAIBadge();   // full close: no minimized dot (unread glow may still arrive)
 }
 /* Minimize: hide the panel but keep the conversation "live" — the launcher
@@ -637,6 +654,7 @@ function clearAIHistory(){
      against a passage nobody is looking at any more. */
   if(typeof aiProposals!=='undefined') aiProposals.clear();
   ai.activeProposal=null;
+  if(typeof aiCloseRephraseSession==='function') aiCloseRephraseSession();
   aiPush('assistant',{text:`Habari! I'm <b>HaTi Copilot</b>. Ask me anything about your contracts — I can search, summarize and compare them, read what changed in a negotiation and who asked for it, and I know what's on your screen.<div class="text-[11px] mt-2 leading-relaxed" style="color:var(--color-neutral-600)">I give <b>guidance, not legal advice</b> — I'll tell you what a contract says and what moved, and say when something needs your lawyer.</div>`});
   renderAIFeed();
   toast('Conversation deleted');
@@ -1420,11 +1438,73 @@ function aiPreserveTypography(original, proposed){
   return aiRestoreEmphasis(src, out);
 }
 
+/* ---------- WHAT IS NOT CONTRACT WORDING ----------
+   The proposal card exists to hold one thing: the string that will be spliced
+   into a clause. Everything a model says AROUND that — "I'd be happy to help",
+   "I can't advise on enforceability", "Note that this is not legal advice" — is
+   a remark to the reader, and a remark to the reader filed as a redline is a
+   sentence in a contract that nobody drafted and the counterparty is asked to
+   accept. That is the worst failure available here: it is silent, it looks like
+   wording, and it survives all the way to a signature.
+
+   Two places it can get in, and both are covered. A model that answers in prose
+   instead of JSON hands its whole reply to the fallback, which used to treat
+   the lot as wording. And a model that answers in JSON can still open
+   proposedText with a disclaimer sentence before the clause.
+
+   The patterns below are ANCHORED — first person, or an opener at the very
+   start of the string. A contract genuinely can contain the word "sorry" or
+   "cannot"; what it does not contain is a sentence beginning "I'm sorry, I
+   cannot". Matching loosely here would strip real wording, which is the same
+   class of harm in the other direction. */
+const AI_NOT_WORDING = [
+  /^(?:i|we)\s+(?:can(?:'|’)?t|cannot|am\s+unable|won(?:'|’)?t|must\s+decline|do\s+not|don(?:'|’)?t)\b/i,
+  /^(?:i|we)\s*(?:'|’)?m?\s*(?:am\s+)?(?:sorry|afraid|happy\s+to|glad\s+to)\b/i,
+  /^(?:as\s+an\s+ai|i\s+am\s+an\s+ai|as\s+a\s+language\s+model)\b/i,
+  /^(?:sure|certainly|of\s+course|here(?:'|’)?s|here\s+is|absolutely)\b[,!:. ]/i,
+  /^(?:note|please\s+note|disclaimer|important|caveat)\s*[:—-]/i,
+  /^(?:please\s+note|disclaimer|caveat)\b/i,
+  /* The disclaimer itself, wherever it sits in the sentence. Tested only
+     against a candidate opening sentence, and no clause in a contract opens by
+     announcing that it is not legal advice — so this cannot reach real wording
+     while catching the phrasing a model actually uses ("Please note this is not
+     legal advice", "The above is not legal advice"). */
+  /\b(?:is|are|does|do)\s+not\s+(?:constitute\s+)?legal\s+advice\b/i,
+  /^(?:i|we)\s+(?:would\s+)?(?:recommend|suggest|advise)\b/i,
+];
+const aiLooksConversational = s => {
+  const t = String(s == null ? '' : s).trim();
+  if (!t) return false;
+  return AI_NOT_WORDING.some(re => re.test(t));
+};
+/* Take a disclaimer off the FRONT of otherwise good wording and hand it back
+   separately, so it lands in the advice bubble where it belongs. Only ever the
+   first sentence, and only when what is left still reads like a clause — a
+   model that answered entirely in prose is handled by the caller instead. */
+function aiSplitDisclaimer(text){
+  const t = String(text == null ? '' : text).trim();
+  if (!t) return { advice: '', wording: '' };
+  const m = /^([^.!?\n]{0,240}[.!?])\s+([\s\S]+)$/.exec(t);
+  if (!m || !aiLooksConversational(m[1])) {
+    return aiLooksConversational(t) ? { advice: t, wording: '' } : { advice: '', wording: t };
+  }
+  const rest = m[2].trim();
+  /* If the remainder is conversational too it was never wording, so the whole
+     thing goes to the advice bubble rather than half of it being filed. */
+  if (!rest || aiLooksConversational(rest)) return { advice: t, wording: '' };
+  return { advice: m[1].trim(), wording: rest };
+}
+
 /* ---------- reading the model's JSON ----------
    Written to survive the three ways a model misses the shape, because the
    alternative is showing a reader "the Copilot returned nothing usable" over an
    answer that was perfectly good and merely fenced. `strict` records which
-   happened, so a caller can say so rather than pretending the parse was clean. */
+   happened, so a caller can say so rather than pretending the parse was clean.
+
+   `proposedText` comes back EMPTY rather than approximate when what the model
+   sent is not wording. A caller that gets no proposedText renders the advice
+   and no card, which is the honest rendering of "it talked instead of
+   drafting" — and, unlike a card holding an apology, it cannot be applied. */
 function aiParseProposal(raw){
   const src = String(raw == null ? '' : raw).trim();
   if (!src) return null;
@@ -1433,8 +1513,15 @@ function aiParseProposal(raw){
     if (!obj || typeof obj !== 'object') return null;
     const advice = obj.advice ?? obj.reasoning ?? obj.rationale ?? obj.explanation;
     const text = obj.proposedText ?? obj.proposed_text ?? obj.proposal ?? obj.text ?? obj.replacement;
-    if (typeof text !== 'string' || !text.trim()) return null;
-    return { advice: String(advice == null ? '' : advice).trim(), proposedText: text.trim(), strict: true };
+    if (typeof text !== 'string') return null;
+    const said = String(advice == null ? '' : advice).trim();
+    /* The model kept the shape but put a remark in the wording field. Move it
+       across rather than filing it: the two bubbles exist precisely so this
+       sentence has somewhere else to go. */
+    const split = aiSplitDisclaimer(text);
+    const merged = [said, split.advice].filter(Boolean).join(' ');
+    if (!split.wording && !merged) return null;
+    return { advice: merged, proposedText: split.wording, strict: true };
   };
   try{ const hit = pick(JSON.parse(unfenced)); if (hit) return hit; }catch(_){}
   /* JSON with prose either side of it — take the widest balanced object and try
@@ -1443,10 +1530,14 @@ function aiParseProposal(raw){
   if (a >= 0 && b > a){
     try{ const hit = pick(JSON.parse(unfenced.slice(a, b + 1))); if (hit) return hit; }catch(_){}
   }
-  /* No JSON at all. The wording is still the answer; what is missing is the
-     reasoning, and saying so is more honest than inventing one. */
+  /* No JSON at all. Either the model answered with wording and skipped the
+     wrapper — in which case the wording is still the answer and only the
+     reasoning is missing — or it answered conversationally, in which case there
+     is no proposal and the reply belongs in the advice bubble entire. */
   const text = unfenced.replace(/^["“]([\s\S]*)["”]$/, '$1').trim();
-  return text ? { advice: '', proposedText: text, strict: false } : null;
+  if (!text) return null;
+  const split = aiSplitDisclaimer(text);
+  return { advice: split.advice, proposedText: split.wording, strict: false };
 }
 
 /* Ask for a rewrite and get the structure back. One call, used by every entry
@@ -1492,6 +1583,11 @@ async function copilotPropose(opts){
     : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
   const parsed = aiParseProposal(raw);
   if (!parsed) return null;
+  /* No wording came back — the model answered rather than drafted. Returned as
+     advice with an empty proposal so the caller renders one bubble and no card;
+     running an empty string through the typography repair would only manufacture
+     an empty proposal to put buttons on. */
+  if (!parsed.proposedText) return { ...parsed, proposedText: '' };
   return { ...parsed, proposedText: aiPreserveTypography(passage, parsed.proposedText) };
 }
 
@@ -1554,6 +1650,18 @@ function aiOpenProposal(opts){
      file a redline the reader believed they had replaced. */
   for (const p of aiProposals.values())
     if (p.status === AI_PROPOSAL_OPEN) p.status = 'superseded';
+  /* NO WORDING, NO CARD. The model answered instead of drafting — it asked a
+     question back, refused, or gave a caveat — and the answer is worth reading.
+     What it is not is something to put an Apply Redline button on: a card is a
+     promise that what it holds can go into the contract, and a button offering
+     to splice an apology into a clause is a defect that files itself. So the
+     reply lands as one ordinary bubble and the conversation stays open. */
+  if (!String(o.proposedText == null ? '' : o.proposedText).trim()){
+    aiPush('assistant', { text: aiFmt(o.advice
+      || 'I could not turn that into replacement wording. Tell me what you would like changed and I will draft it.') });
+    renderAIFeed();
+    return null;
+  }
   const p = { id, status: AI_PROPOSAL_OPEN, editing: false,
     text: String(o.proposedText == null ? '' : o.proposedText),
     original: String(o.proposedText == null ? '' : o.proposedText),
@@ -1658,6 +1766,52 @@ async function aiRefineProposal(p, instruction){
     onRefine: next.onRefine || p.onRefine });
 }
 
+/* ============================================================
+   A REPHRASE THAT ASKS FIRST — the seeded session
+   ============================================================
+   Pressing "✨ Rephrase with Copilot" does not send anything to a model. It
+   opens the panel, puts the passage on the screen as a context card, and asks
+   one question: how would you like me to help rephrase this passage?
+
+   The reason is that "rephrase" is not an instruction. The button used to
+   supply one on the reader's behalf — favour my side — and half the time that
+   was the wrong job: the passage needed softening so it could be sent, or
+   aligning with a schedule, or the ambiguity taking out of "reasonable
+   endeavours". Guessing meant every one of those arrived as an advantage-grab
+   that then had to be argued back, which is slower than being asked.
+
+   So the session sits open with the passage attached, and the NEXT thing typed
+   into the panel's own input is the instruction. That input has always been
+   there; what was missing was anything listening to it at this point in the
+   flow. Nothing is spent until the person has said what they want. */
+const aiRephrase = { active: null };
+function aiOpenRephraseSession(opts){
+  const o = opts || {};
+  const passage = String(o.passage == null ? '' : o.passage);
+  if (!passage.trim()) return null;
+  /* One at a time, and it replaces rather than stacks: two open sessions would
+     make the next sentence typed ambiguous about which passage it is about. */
+  aiRephrase.active = {
+    id: 'rsn_' + (++_aiProposalSeq),
+    passage, clauseLabel: o.clauseLabel || '',
+    onPropose: typeof o.onPropose === 'function' ? o.onPropose : null
+  };
+  /* THE PASSAGE, SHOWN RATHER THAN REMEMBERED. A session that carried the
+     target silently would let a reader answer the question with the wrong
+     clause in their head — they select, the panel slides in, and by the time
+     they have typed a sentence the document is behind a drawer. */
+  aiPush('assistant', { text: `
+    <div class="ai-target">
+      <div class="ai-target-head">Target text${o.clauseLabel ? ` · ${_aiEsc(o.clauseLabel)}` : ''}</div>
+      <div class="ai-target-body">${_aiEsc(passage.length > 600 ? passage.slice(0, 599) + '…' : passage)}</div>
+    </div>
+    <div class="ai-target-ask">${_aiEsc(o.greeting || 'How would you like me to help rephrase this passage?')}</div>` });
+  renderAIFeed();
+  return aiRephrase.active;
+}
+const aiActiveRephrase = () => aiRephrase.active;
+function aiCloseRephraseSession(){ aiRephrase.active = null; }
+
 async function aiSubmit(){
   const inp=document.getElementById('ai-input');
   const q=inp.value.trim(); if(!q||ai.busy) return;
@@ -1669,6 +1823,26 @@ async function aiSubmit(){
      asks how many drafts they have — so it goes back to the model with the
      passage and the exchange attached rather than to the portfolio engine. */
   const live=aiActiveProposal();
+  /* A seeded session owns it for the same reason, one step earlier: the panel
+     has just asked a question and this is the answer to it. */
+  const session=!live && aiActiveRephrase();
+  if(session && session.onPropose){
+    renderAIFeed(true);
+    try{
+      const made=await session.onPropose(q,session);
+      ai.busy=false;
+      if(!made){
+        aiPush('assistant',{text:'<div>I could not turn that into a proposal. Say it another way, or decline and select the passage again.</div>'});
+        renderAIFeed();
+      }
+    }catch(e){
+      ai.busy=false;
+      aiPush('assistant',{text:`<div>That did not come back: ${_aiEsc((e&&e.message)||'the Copilot could not answer')}. Nothing was changed.</div>`});
+      renderAIFeed();
+    }
+    if(!ai.open){ ai.unread=true; updateAIBadge(); }
+    return;
+  }
   if(live && live.onRefine){
     renderAIFeed(true);
     try{
@@ -1738,7 +1912,9 @@ if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
 Object.assign(window,{
-  AI_PROPOSAL_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,AI_DOCK_MIN_WIDTH,
+  AI_PROPOSAL_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
+  AI_NOT_WORDING,aiLooksConversational,aiSplitDisclaimer,
+  aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,

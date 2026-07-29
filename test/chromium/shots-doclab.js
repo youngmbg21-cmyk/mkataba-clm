@@ -198,9 +198,18 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(500);
   await shot('05-selection-menu');
 
-  /* the proposal, in the Copilot side panel */
+  /* the seeded session: the drawer opens, shows the passage and asks */
   await page.evaluate(() => document.querySelector('[data-lab-ai="advantage"]')
     ?.dispatchEvent(new MouseEvent('mousedown', { bubbles:true })));
+  await pause(900);
+  const seed = await page.$('#ai-feed .ai-target');
+  if(seed) await shot('06a-rephrase-asks', seed);
+
+  /* …and the proposal the answer produces */
+  await page.evaluate(() => {
+    document.getElementById('ai-input').value = 'Soften it so we can send it today.';
+    document.getElementById('ai-send').click();
+  });
   await pause(1100);
   const pop = await page.$('.ai-proposal');
   if(pop) await shot('06-ai-proposal', pop);
