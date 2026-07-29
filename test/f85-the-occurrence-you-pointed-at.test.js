@@ -325,7 +325,17 @@ describe('F85d — the shipped file splices by offset', () => {
   });
 
   test('the hint is carried from the selection through the menu to the proposal', () => {
-    assert.ok(/labSelMenu\(\{ c, lab, side, again: againLab, rect, clause, text, hint \}\)/.test(code));
-    assert.ok(/hint: ctx\.hint/.test(code), 'the menu must pass it on, or it stops at the menu');
+    /* Asserted as a CHAIN rather than as one literal call, because the exact
+       argument list is refactored routinely and pinning its spelling makes this
+       a test of formatting. What must hold is that the offset is measured, and
+       then survives each hop to the splice. */
+    assert.ok(/const hint = labWorkingOffset\(/.test(code),
+      'the offset is measured off the DOM at the point of selection');
+    assert.ok(/labSelMenu\(\{[^}]*\bhint\b[^}]*\}\)/.test(code),
+      'and handed to the menu');
+    assert.ok(/hint: ctx\.hint/.test(code),
+      'the menu must pass it on, or it stops at the menu');
+    assert.ok(/labPickOccurrence\(working, text, ctx\.hint\)/.test(code),
+      'and the proposal resolves the occurrence with it');
   });
 });

@@ -576,7 +576,85 @@ function redlineOpsBlocksHtml(ops, opts = {}){
     const cls = [`${pre}-line`, `${pre}-${kind}`, hang,
       allDel ? `${pre}-line-del` : allIns ? `${pre}-line-ins` : '']
       .filter(Boolean).join(' ');
-    return `<${tag} class="${cls}">${redlineOpsHtml(group, opts)}</${tag}>`;
+    /* Attribution rides INSIDE the block renderer rather than replacing it.
+       Rendering attributed ops through the flat renderer instead would answer
+       "who wrote this" at the cost of the clause's numbering and indents —
+       trading one thing a reader needs for another. */
+    const inner = opts.attributed
+      ? redlineAttributedHtml(group, opts)
+      : redlineOpsHtml(group, opts);
+    return `<${tag} class="${cls}">${inner}</${tag}>`;
+  }).join('');
+}
+
+/* ============================================================
+   WHOSE WORDS ARE THESE — attribution across a stack of edits
+   ============================================================
+   Three colleagues pass a clause between them and it arrives at the counterparty
+   as one diff, which is right: they have to answer what it says now, not watch
+   us argue. At HOME the opposite is true. An approver signing the round off
+   needs to know that the indemnity carve-out came from Legal and the payment
+   term from Commercial, because those are two different conversations to have
+   before it goes out — and a single flat redline cannot tell them apart.
+
+   So: given the settled baseline and the ordered steps that were stacked on it,
+   mark each insertion in the final diff with the step that introduced it.
+
+   WHAT THIS DELIBERATELY WILL NOT DO IS GUESS. An insertion is attributed only
+   when exactly one step can account for it — the first step whose wording
+   contains it where the step before did not. Short fragments are left
+   unattributed on purpose: a two-character run appears in everybody's text, and
+   an attribution that is right most of the time is worse than none, because a
+   reader cannot tell which case they are looking at. Unattributed insertions
+   render exactly as they do today. */
+const REDLINE_ATTRIB_MIN = 3;
+function redlineAttributeOps(base, steps){
+  const b = String(base == null ? '' : base);
+  const list = (steps || []).filter(s => s && typeof s.text === 'string');
+  if (!list.length) return redlineOpsStructured(b, b);
+  const final = list[list.length - 1].text;
+  const ops = redlineOpsStructured(b, final);
+  return ops.map(o => {
+    if (o.op !== 'ins') return o;
+    const frag = o.text.trim();
+    /* Too short to identify. Everything contains "of". */
+    if (frag.length < REDLINE_ATTRIB_MIN) return o;
+    let owner = null, hits = 0;
+    for (let i = 0; i < list.length; i++){
+      const prev = i === 0 ? b : list[i - 1].text;
+      if (list[i].text.includes(frag) && !prev.includes(frag)){
+        if (hits === 0) owner = list[i].author || null;
+        hits++;
+      }
+    }
+    /* Introduced, removed and reintroduced by a different hand — the history is
+       real but the authorship is genuinely ambiguous, so it is left blank
+       rather than resolved by picking one. */
+    return hits === 1 && owner ? Object.assign({}, o, { author: owner }) : o;
+  });
+}
+
+/* The attributed ops as HTML: the same redline, with each identified insertion
+   carrying the initials of whoever wrote it. Insertions nobody can be sure
+   about are drawn exactly as an ordinary redline draws them. */
+function redlineAttributedHtml(ops, opts = {}){
+  const e = (typeof window !== 'undefined' && window.esc)
+    || (s => String(s == null ? '' : s).replace(/[&<>"]/g,
+      ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])));
+  const insCls = opts.insClass || REDLINE_INS_CLASS;
+  const delCls = opts.delClass || REDLINE_DEL_CLASS;
+  const initials = opts.initials || (name => {
+    const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+    return !p.length ? '' : p.length === 1 ? p[0].slice(0, 2).toUpperCase()
+      : (p[0][0] + p[p.length - 1][0]).toUpperCase();
+  });
+  return (ops || []).map(o => {
+    if (o.op === 'keep') return e(o.text);
+    if (o.op === 'del') return `<del class="${delCls}">${e(o.text)}</del>`;
+    const who = o.author && (o.author.name || o.author);
+    if (!who) return `<ins class="${insCls}">${e(o.text)}</ins>`;
+    return `<ins class="${insCls}" data-author="${e(who)}" title="Added by ${e(who)}">${e(o.text)}`
+      + `<span class="rl-authormark">${e(initials(who))}</span></ins>`;
   }).join('');
 }
 
@@ -594,11 +672,13 @@ if (typeof window !== 'undefined') Object.assign(window, {
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
+  redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineLineKind, redlineSplitMarker,
 });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineTokens, redlineOps, redlineOldText, redlineNewText, redlineIsNoop, redlineStats,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
+  redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
 };
