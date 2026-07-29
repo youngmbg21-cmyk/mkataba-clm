@@ -885,7 +885,7 @@ function labBatchSplit(c, lab, side){
   return { pending, clear, held, theirs };
 }
 
-/* ---------- the four things a person wants done to wording ----------
+/* ---------- the three things a person wants done to wording ----------
    Defined here rather than borrowed from the negotiation tab: the lab has to
    keep working if that tab is ever removed. */
 const LAB_AI_ACTIONS = [
@@ -902,15 +902,32 @@ const LAB_AI_ACTIONS = [
      of those arrived as an advantage-grab and then had to be argued back.
 
      So this action asks. It opens the Copilot with the passage in front of it
-     and one question, and the answer is the instruction. The two actions below
-     keep going straight to a proposal because they ALREADY carry an
-     instruction — "align with the playbook" and "shorten and simplify" say what
-     they want, and asking a person to retype that would be a step for nothing. */
+     and one question, and the answer is the instruction. "Shorten & Simplify"
+     below keeps going straight to a proposal because it ALREADY carries an
+     instruction — it says what it wants, and asking a person to retype that
+     would be a step for nothing. */
   { id:'advantage', label:'✨ Rephrase with Copilot', converse:true,
     ask:'Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
     greeting:'How would you like me to help rephrase this passage?' },
-  { id:'playbook', label:'⚖️ Align with Corporate Playbook',
-    ask:'Rewrite this contract wording so it matches our corporate playbook position. If the playbook has a preferred formulation for this category, use it.' },
+  /* ---------- "ALIGN WITH CORPORATE PLAYBOOK" IS GONE ----------
+     It read as the most authoritative item on the menu and was the least: the
+     playbook is a set of category verdicts on the CONTRACT — liability cap,
+     governing law, payment terms — and it holds no preferred wording for any
+     of them. So the action asked a model to match a formulation that does not
+     exist, and the model, asked for something unavailable, produced its own
+     idea of a house style and presented it as the house position. A redline
+     filed from that carries the authority of the playbook and none of its
+     content, which is worse than having no button at all — a reviewer who sees
+     "aligned with playbook" on a change stops checking.
+
+     Nothing is lost that the menu still cannot do. The playbook's actual
+     verdicts already reach the model on every ask, as the pbLine below; and
+     "✨ Rephrase with Copilot" takes the instruction in words, so "put this on
+     our standard indemnity position" is a sentence somebody can type and mean.
+
+     The playbook itself is untouched — it still drives the risk signals that
+     hold changes back from a batch accept. What has gone is the claim that it
+     can draft. */
   { id:'shorten', label:'✂️ Shorten & Simplify',
     ask:'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
   /* Not an AI action at all, and deliberately in the same menu: the thing a
@@ -1398,9 +1415,9 @@ async function labAiPropose(ctx){
   };
 
   /* ---------- THE TWO SHAPES OF ACTION ----------
-     An action that CARRIES an instruction — align with the playbook, shorten
-     and simplify — goes straight to a proposal, because asking a person to
-     retype what they just pressed is a step for nothing.
+     An action that CARRIES an instruction — "✂️ Shorten & Simplify" — goes
+     straight to a proposal, because asking a person to retype what they just
+     pressed is a step for nothing.
 
      An action that does NOT — "✨ Rephrase with Copilot" — seeds the session
      and stops. The passage goes up as a target card, the Copilot asks how it

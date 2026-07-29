@@ -388,10 +388,33 @@ describe('F88g — the rephrase action asks before it drafts', () => {
     const block = src.slice(src.indexOf('const LAB_AI_ACTIONS'), src.indexOf('function labActingParty'));
     assert.match(block, /converse:true/);
     assert.match(block, /greeting:'How would you like me to help rephrase this passage\?'/);
-    /* The two named actions stay immediate: they already carry an instruction,
-       and asking a person to retype what they just pressed is a step for
-       nothing. */
+    /* Shorten & Simplify stays immediate: it already carries an instruction, and
+       asking a person to retype what they just pressed is a step for nothing. */
     assert.equal((block.match(/converse:true/g) || []).length, 1);
+  });
+
+  /* The playbook holds category VERDICTS on a contract and no preferred wording
+     for any of them, so an action asking a model to match "our playbook
+     formulation" asks for something that does not exist — and gets the model's
+     own house style back, wearing the playbook's authority. A reviewer who
+     reads "aligned with playbook" on a redline stops checking it. */
+  test('"Align with Corporate Playbook" is deleted from every selection menu', () => {
+    for (const rel of ['js/views/doclab.js', 'js/views/negotiation.js']){
+      const file = fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
+      const code = file.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+      assert.ok(!/Align with Corporate Playbook/.test(code),
+        `${rel}: the label is gone from the code, not merely from a comment`);
+      assert.ok(!/id:\s*'playbook'/.test(code),
+        `${rel}: and so is the action it labelled`);
+    }
+  });
+
+  test('but the playbook itself still reaches the model and still holds changes back', () => {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.match(code, /Our playbook flags this contract for:/,
+      'the verdicts are still sent as context on every ask');
+    assert.match(code, /playbook deviation —/,
+      'and still hold a change back from a batch accept');
   });
 
   test('a conversational action seeds a session instead of asking a model', () => {
