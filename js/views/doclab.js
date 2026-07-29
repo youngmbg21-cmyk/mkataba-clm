@@ -202,6 +202,99 @@ function labWorkingText(clause, changes, side){
   const pending = labPendingOn(changes, clause.clauseId, side);
   return { base, working: pending ? pending.after : base, pending };
 }
+
+/* WHICH OCCURRENCE OF THE SELECTED WORDING THE PERSON ACTUALLY POINTED AT.
+
+   Splicing by string — working.replace(text, …) — always hits the FIRST match,
+   and clause wording repeats. "within thirty (30) days" can appear twice in one
+   payment clause, once for invoices and once for the cure period. Select the
+   second, and a string splice rewrites the first: the wrong sentence changes,
+   the right one does not, and the redline looks plausible either way. Nobody
+   proposed that edit. It is the same failure the selection guard exists to
+   prevent, arriving through a different door.
+
+   So the caller supplies a HINT — roughly where in the working text the
+   selection began, measured off the DOM — and this picks the occurrence nearest
+   to it. Nearest rather than exact on purpose: the hint is reconstructed from a
+   marked-up rendering, so it can drift by a few characters around whitespace,
+   and being approximately right is enough to tell two occurrences apart while
+   staying immune to that drift. With one occurrence the hint cannot change the
+   answer at all. */
+function labPickOccurrence(haystack, needle, hint){
+  const h = String(haystack == null ? '' : haystack);
+  const n = String(needle == null ? '' : needle);
+  if(!n) return -1;
+  const want = (typeof hint === 'number' && isFinite(hint)) ? hint : 0;
+  let best = -1, bestGap = Infinity;
+  for(let i = h.indexOf(n); i !== -1; i = h.indexOf(n, i + 1)){
+    const gap = Math.abs(i - want);
+    if(gap < bestGap){ bestGap = gap; best = i; }
+    /* Past the hint the gap only grows, so the first non-improvement is the
+       answer. */
+    else if(i > want) break;
+  }
+  return best;
+}
+
+/* The hint itself: where a DOM position falls in the WORKING text.
+
+   The rendering is a redline, so what is on screen is not the string a splice
+   will run against. Struck-through wording is on the page and is not in the
+   working text, so it must count for nothing; and each line is its own block
+   element, so the newline between two lines exists in the string but appears in
+   the DOM only as a block boundary. Walking the text nodes with those two rules
+   reconstructs the offset.
+
+   It is deliberately forgiving. An empty line the renderer drops, or a stray
+   space, shifts the count slightly — and slightly is fine, because the only
+   thing the number has to do is tell one occurrence of a phrase from another. */
+function labWorkingOffset(host, node, nodeOffset){
+  if(!host || !node) return 0;
+  const upTo = (el, test) => {
+    for(let p = el; p && p !== host; p = p.parentElement) if(test(p)) return p;
+    return null;
+  };
+  const blockOf = el => upTo(el, p => /^(P|H[1-6]|DIV|LI|BLOCKQUOTE|TR)$/.test(p.tagName || '')) || host;
+  const struck = el => !!upTo(el, p => p.tagName === 'DEL'
+    || (p.classList && p.classList.contains('lab-del')));
+
+  let seen = 0, lastBlock = null, found = null;
+  const walk = n => {
+    if(found !== null) return;
+    if(n.nodeType === 3){
+      const parent = n.parentElement;
+      const counts = !struck(parent);
+      if(counts){
+        const blk = blockOf(parent);
+        if(lastBlock && blk !== lastBlock) seen += 1;      // the newline between two lines
+        lastBlock = blk;
+      }
+      if(n === node){
+        found = seen + (counts ? Math.min(nodeOffset || 0, (n.nodeValue || '').length) : 0);
+        return;
+      }
+      if(counts) seen += (n.nodeValue || '').length;
+      return;
+    }
+    /* A range can start on an ELEMENT, where the offset is a child index rather
+       than a character index. Count the children it sits after. */
+    if(n === node){
+      const kids = n.childNodes || [];
+      for(let i = 0; i < Math.min(nodeOffset || 0, kids.length); i++){
+        walk(kids[i]);
+        if(found !== null) return;
+      }
+      found = seen;
+      return;
+    }
+    for(const kid of (n.childNodes || [])){
+      walk(kid);
+      if(found !== null) return;
+    }
+  };
+  walk(host);
+  return found === null ? seen : found;
+}
 /* Can this side decide this change? Two conditions, both in the model rather
    than in the buttons so a new control cannot route around them. */
 function labCanDecide(change, side){
@@ -583,7 +676,10 @@ async function labAiPropose(ctx){
   const base = clause.text;
   const working = clause.working == null ? base : clause.working;
   const pendingOn = clause.pending || null;
-  if(!working.includes(text)){
+  /* Not "is this string present" but "WHICH ONE OF THEM DID YOU MEAN" — the
+     answer is an offset, and everything downstream splices at it. */
+  const at = labPickOccurrence(working, text, ctx.hint);
+  if(at < 0){
     /* Three ways to miss, and they are not the same problem to the person
        holding the mouse. Saying "that spans a change" to someone who selected
        wording already struck out sends them looking for a seam that is not
@@ -649,14 +745,16 @@ async function labAiPropose(ctx){
      there is no pending change the two are the same string and this is the
      plain case.
 
-     THE REPLACEMENT IS PASSED AS A FUNCTION, which is not a style choice.
-     String.replace honours $&, $`, $' and $$ inside a replacement STRING even
-     when the pattern is a plain string, so wording that reads "a deposit of
-     US$$500" would be filed as "US$500" — money silently altered by a
-     substitution nobody wrote. A function replacement is returned verbatim. */
+     SPLICED AT AN OFFSET, not by String.replace. Two reasons, and both of them
+     put wrong words into a contract. replace() takes the first match, which is
+     the wrong sentence whenever the selected phrase repeats in the clause; and
+     a replacement passed as a STRING has $&, $`, $' and $$ expanded inside it,
+     so wording reading "a deposit of US$$500" would be filed as "US$500" —
+     money altered by a substitution nobody wrote. slice() around a known index
+     has neither behaviour. */
   const proposedFrom = v => {
     const t = String(v == null ? '' : v).trim();
-    return t ? working.replace(text, () => t) : working;
+    return t ? working.slice(0, at) + t + working.slice(at + text.length) : working;
   };
   const refresh = () => {
     const proposed = proposedFrom(box.value);
@@ -738,7 +836,7 @@ function labSelMenu(ctx){
       labNoteCompose({ c, lab, changeId: live ? live.id : null, rect, again, quote: text });
       return;
     }
-    labAiPropose({ c, lab, action, text, clause, rect, side, again });
+    labAiPropose({ c, lab, action, text, clause, rect, side, again, hint: ctx.hint });
   }));
   return menu;
 }
@@ -1429,14 +1527,20 @@ function wireDocLab(c, lab, side, external){
     const openSel = () => {
       const sel = window.getSelection && window.getSelection();
       if(!sel || sel.isCollapsed){ labKillSel(); return; }
-      const text = String(sel.toString() || '').trim();
+      const raw = String(sel.toString() || '');
+      const text = raw.trim();
       if(text.length < 3){ labKillSel(); return; }
-      const node = sel.anchorNode;
+      let range;
+      try{ range = sel.getRangeAt(0); }catch(_){ return; }
+      /* THE RANGE'S START, not the selection's anchor. Dragging right-to-left
+         puts the anchor at the END of the passage, and an offset measured from
+         there would point past the words it is meant to locate. A range's start
+         is always the earlier of the two in document order. */
+      const node = range.startContainer;
       const el = node && (node.nodeType === 1 ? node : node.parentElement);
       const host = el && el.closest('[data-lab-clause]');
       if(!host || !document.getElementById('lab-canvas')?.contains(host)){ labKillSel(); return; }
-      let rect;
-      try{ rect = sel.getRangeAt(0).getBoundingClientRect(); }catch(_){ return; }
+      const rect = range.getBoundingClientRect();
       if(!rect || (!rect.width && !rect.height)) return;
       const clauseId = host.getAttribute('data-lab-clause');
       const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
@@ -1444,7 +1548,13 @@ function wireDocLab(c, lab, side, external){
       const { base, working, pending } = labWorkingText(cl, lab.changes, side);
       const clause = { clauseId, label: host.getAttribute('data-lab-clause-label') || clauseId,
         text: base, working, pending };
-      labSelMenu({ c, lab, side, again: againLab, rect, clause, text });
+      /* Where this selection starts in the working text, so a phrase that
+         appears twice in the clause is rewritten where it was pointed at. The
+         leading whitespace trimmed off `text` is added back, because the offset
+         has to describe the trimmed string. */
+      const hint = labWorkingOffset(host.querySelector('.clause-body') || host,
+        node, range.startOffset) + (raw.length - raw.replace(/^\s+/, '').length);
+      labSelMenu({ c, lab, side, again: againLab, rect, clause, text, hint });
     };
     const canvas = document.getElementById('lab-canvas');
     if(canvas){
@@ -1585,7 +1695,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   LAB_KEY, LAB_INTERNAL, LAB_SHARED, LAB_US, LAB_THEM,
   labLoad, labFor, labPut, labClear, labUid,
   labSharePayload, labShareChanges, labWithheld,
-  labClauseText, labWorkingText, labPendingOn, labCanDecide,
+  labClauseText, labWorkingText, labPickOccurrence, labWorkingOffset,
+  labPendingOn, labCanDecide,
   labFileChange, labSendChange, labDecide, labResolveLinked,
   labBaseline, labClausesOf, labTopics, labSeed,
   renderDocLab, wireDocLab

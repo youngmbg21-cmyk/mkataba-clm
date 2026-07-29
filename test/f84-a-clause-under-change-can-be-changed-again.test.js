@@ -223,19 +223,26 @@ describe('F84d — the guard and the anchor are in the shipped file', () => {
   test('the AI path anchors on the working text, not the baseline', () => {
     assert.ok(!/if\(!clause\.text\.includes\(text\)\)/.test(src),
       'the baseline-anchored guard is retired');
-    assert.ok(/if\(!working\.includes\(text\)\)/.test(src),
-      'the guard now asks whether the selection is in the wording it would replace');
+    /* The guard resolves an offset in the working text and refuses when there
+       is none. f85 covers which occurrence that offset lands on; what is
+       asserted here is only that `working` is what it searches. */
+    assert.ok(/labPickOccurrence\(working, text, ctx\.hint\)/.test(src),
+      'the guard now asks where in the wording it would replace the selection sits');
+    assert.ok(/if\(at < 0\)\{/.test(src), 'and refuses when the answer is nowhere');
   });
 
+  /* The splice itself is pinned in f85, which is where the offset it uses comes
+     from. What matters here is only that it runs against the WORKING text. */
   test('the replacement is spliced into the working text', () => {
-    assert.ok(/working\.replace\(text, \(\) => t\)/.test(src));
+    assert.ok(/working\.slice\(0, at\) \+ t \+ working\.slice\(at \+ text\.length\)/.test(src));
   });
 
   /* Found while moving this line, and it predates the guard entirely. A
      replacement passed to String.replace as a STRING is scanned for $&, $` and
      $$ even when the pattern is a plain string. Contract wording carries money.
-     A function replacement is taken verbatim, so it cannot happen. */
-  test('a suggestion containing $$ is filed exactly as written', () => {
+     Splicing with slice() has no substitution behaviour at all, so the class of
+     bug is gone rather than avoided. */
+  test('a suggestion containing $$ would have been corrupted by the string form', () => {
     const clause = 'The Customer shall pay the sum on signature.';
     const selected = 'the sum';
     const suggestion = 'a deposit of US$$500';
@@ -245,14 +252,16 @@ describe('F84d — the guard and the anchor are in the shipped file', () => {
       'precondition: the string form corrupts it — this is the bug being pinned');
     assert.match(naive, /US\$500/, 'and it does so by silently halving the dollar signs');
 
-    const safe = clause.replace(selected, () => suggestion);
+    const at = clause.indexOf(selected);
+    const safe = clause.slice(0, at) + suggestion + clause.slice(at + selected.length);
     assert.match(safe, /a deposit of US\$\$500/,
-      'the function form files the wording the person actually approved');
+      'the splice files the wording the person actually approved');
   });
 
-  test('and the string form is not used anywhere else in the AI path', () => {
-    assert.ok(!/\.replace\(text, t\)/.test(src),
-      'a second splice site with the string form would reopen it');
+  test('and no String.replace splice remains in the AI path', () => {
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!/\.replace\(text[,)]/.test(code),
+      'a splice site using replace() would reopen both this and the wrong-occurrence bug');
   });
 
   test('but the change is still filed from the baseline', () => {
