@@ -216,6 +216,84 @@ function check(name, ok, detail){
     check('the owner sees the shared wording', owner.showsSharedWording);
     await page.screenshot({ path: path.join(OUT, 'doclab-owner.png'), fullPage: true });
 
+    /* ---- the clause toolbar actually opens, and STAYS open ----
+       Reported from real use: AI Assist flashed and vanished. The toolbar sits
+       inside the canvas, so pressing it fired the canvas mouseup handler, which
+       10ms later looked for a text selection, found none — a click collapses
+       one — and dismissed the menu the button had just opened.
+
+       This is the shape of bug jsdom cannot see: it needs a real click, real
+       event ordering and a real timer. So the wait here is deliberately LONGER
+       than the settle delay. Checking immediately would pass against the very
+       bug being pinned. */
+    const hasAssist = await page.evaluate(() => !!document.querySelector('[data-lab-assist]'));
+    let assist = { skipped: true };
+    if (hasAssist){
+      /* page.click, NOT element.click(). A scripted element.click() dispatches
+         only a click event — no mousedown, no mouseup — so it never reaches the
+         canvas handler that causes this bug, and a check written that way
+         passes against the very defect it claims to pin. This drives the real
+         input stack: press, release, then click, in that order. */
+      await page.click('[data-lab-assist]');
+      const immediately = await page.evaluate(() => !!document.querySelector('.lab-selmenu'));
+      await page.waitForTimeout(250);                 // well past the 10ms settle
+      assist = await page.evaluate(im => {
+        const menu = document.querySelector('.lab-selmenu');
+        return {
+          immediately: im,
+          stillThere: !!menu,
+          actions: menu ? Array.from(menu.querySelectorAll('[data-lab-ai]'))
+            .map(b => b.textContent.trim()) : [],
+          onScreen: menu ? (() => {
+            const r = menu.getBoundingClientRect();
+            return r.width > 40 && r.height > 20
+              && r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth;
+          })() : false
+        };
+      }, immediately);
+    }
+    if (assist.skipped){
+      check('the clause toolbar offers AI Assist', false, 'no [data-lab-assist] button rendered');
+    } else {
+      check('AI Assist opens the action menu', assist.immediately);
+      check('and the menu SURVIVES the selection settle — the flash-and-vanish bug',
+        assist.stillThere);
+      check('it offers the four actions', assist.actions.length === 4, assist.actions.join(' | '));
+      check('and it is drawn on screen with real size', assist.onScreen);
+      await page.screenshot({ path: path.join(OUT, 'doclab-assist-menu.png') });
+    }
+    await page.evaluate(() => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove()));
+
+    /* ---- a note is drawn ONCE ----
+       Also reported from real use: notes appeared under the clause AND on the
+       change's card, which reads as two notes rather than one shown twice. */
+    const notes = await page.evaluate(() => {
+      const cid = state.activeId;
+      const lab = labFor(cid);
+      const live = (lab.changes || []).find(x => x.status === 'pending');
+      if (!live) return { skipped: true };
+      labTagChange(lab, live.id, 'UNIQUEINTERNALNOTEMARKER', { visibility: 'internal', side: 'owner' });
+      labPut(cid, lab);
+      renderDocLab();
+      return new Promise(r => setTimeout(() => {
+        const canvas = document.getElementById('lab-canvas');
+        const count = s => (document.getElementById('content').innerHTML.match(new RegExp(s, 'g')) || []).length;
+        r({
+          inCanvas: canvas ? canvas.innerHTML.includes('UNIQUEINTERNALNOTEMARKER') : null,
+          timesOnPage: count('UNIQUEINTERNALNOTEMARKER'),
+          badgeStillLinks: !!document.querySelector('.change-tag-badge[data-change-id]')
+        });
+      }, 250));
+    });
+    if (notes.skipped){
+      check('a pending change exists to hang a note on', false);
+    } else {
+      check('a note is NOT duplicated onto the contract', notes.inCanvas === false);
+      check('and appears exactly once on the page', notes.timesOnPage === 1, String(notes.timesOnPage));
+      check('while the clause still carries the badge that links to it',
+        notes.badgeStillLinks);
+    }
+
     /* ---- the counterparty view: the material must be ABSENT, not hidden ---- */
     await page.click('#lab-ext');
     await page.waitForTimeout(300);

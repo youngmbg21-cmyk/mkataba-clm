@@ -1400,13 +1400,18 @@ function labDocHtml(c, lab, side, external){
         <button type="button" class="clause-tool" data-lab-edit="${esc(cl.clauseId)}"
           title="Edit this clause's wording directly">✏️ Direct Edit</button>
       </div>`;
-    /* Tags already pinned to the live change on this clause, shown where the
-       change is rather than only in the sidebar. Internal ones are marked, and
-       on the counterparty's side they are not in the payload to begin with. */
-    const tags = (pending && Array.isArray(pending.tags) && pending.tags.length)
-      ? `<div class="clause-tags">${pending.tags.map(t =>
-          labTagHtml(t, { external, changeId: pending.id })).join('')}</div>`
-      : '';
+    /* NOTES BELONG TO THE CHANGE, AND ARE DRAWN ONCE — on the change's card in
+       the sidebar, not here as well.
+
+       Printing them under the clause too seemed helpful and was not: a note is
+       attached to a change, the change already has a card, and the same words
+       appearing in two places reads as two notes. The reader then has to work
+       out whether the document copy and the sidebar copy are the same thing,
+       which is exactly the doubt a contract screen must not create.
+
+       What stays on the clause is the #L-002 badge, which is a POINTER rather
+       than a copy — one click and the sidebar scrolls to the card and lights
+       it. The link is the connection; the duplicate was noise. */
     return `
     <div class="clause-frame bg-white border border-slate-200 rounded-lg p-4 mb-4 shadow-sm hover:border-indigo-300 transition-all"
       data-clause-id="${esc(cl.clauseId)}" data-lab-clause="${esc(cl.clauseId)}"
@@ -1419,7 +1424,6 @@ function labDocHtml(c, lab, side, external){
       </div>
       <div class="clause-body">${body}</div>
       ${external ? '' : labStackTrailHtml(lab.changes, pending && pending.id)}
-      ${tags}
     </div>`;
   }).join('');
 }
@@ -1448,7 +1452,10 @@ function labChangeCardHtml(ch, side, external){
         ? ' · consolidated from ' + esc(ch.roundHands.join(', ')) : ''}${
       !external && ch.parentChangeId ? ' · stacked on ' + esc(ch.parentChangeId) : ''}</div>
     ${(Array.isArray(ch.tags) && ch.tags.length) ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${
-      ch.tags.map(t => labTagHtml(t, { external })).join('')}</div>` : ''}
+      /* changeId, so the × to remove a note lives here now. It used to be on
+         the document copy only, and deleting that copy would otherwise have
+         taken the only way to take a note off with it. */
+      ch.tags.map(t => labTagHtml(t, { external, changeId: ch.id })).join('')}</div>` : ''}
     ${external ? '' : `<div><button class="ui-btn" data-lab-tagadd="${esc(ch.id)}" style="font-size:10.5px;padding:3px 8px">💬 Add note</button></div>`}
     ${ch.decidedAt ? `<div style="font-size:10.5px;color:var(--color-neutral-600)">Decided by ${esc(
       /* Their copy names the ORGANISATION — decidedByOrg is the only name in
@@ -2081,9 +2088,32 @@ function wireDocLab(c, lab, side, external){
          same-tick read gets a collapsed selection or the previous one — which
          is what made the menu flash. A macrotask is enough for the range to
          stabilise and is still faster than the eye. */
-      canvas.addEventListener('mouseup', () => setTimeout(openSel, 10));
+      /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as
+         one is what made the clause toolbar's AI Assist flash and vanish.
+
+         The toolbar sits inside the canvas, so pressing it fires this handler
+         too. Ten milliseconds later openSel looked for a selection, found none
+         — a click collapses one — and dismissed the menu that the button's own
+         click handler had just opened. The menu appeared and was removed by the
+         gesture that asked for it. At the old zero-delay this was a race
+         between two tasks that the menu sometimes won; making the delay long
+         enough to be correct for selections made it reliably lose.
+
+         So the gesture is read first: pressing a button, a badge, a link or a
+         field is somebody operating the page, not selecting words in it. */
+      const fromControl = t => !!(t && t.closest && t.closest(
+        '.clause-tools, .clause-tool, .change-tag-badge, .lab-selmenu, ' +
+        '#ai-copilot-popover, [data-lab-editor], button, a, input, textarea, select'));
+      canvas.addEventListener('mouseup', e => {
+        if(fromControl(e.target)) return;
+        setTimeout(openSel, 10);
+      });
       canvas.addEventListener('keyup', e => {
-        if(e.shiftKey || e.key === 'Shift') setTimeout(openSel, 10);
+        if(!(e.shiftKey || e.key === 'Shift')) return;
+        /* Shift-selecting inside the Direct Edit box is editing that box, not
+           selecting document text. */
+        if(fromControl(e.target)) return;
+        setTimeout(openSel, 10);
       });
     }
     /* ---- dismissal, bound ONCE for the life of the page ----
