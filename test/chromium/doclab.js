@@ -356,25 +356,107 @@ function check(name, ok, detail){
       await page.screenshot({ path: path.join(OUT, 'doclab-paired.png') });
     }
 
+    /* ---- clicking a clause must not throw away where you were reading ----
+       Reported from real use: reading clause 14, clicking it, and the contract
+       snapping back to clause 1. That was not the scroll-into-view — it was the
+       repaint replacing #lab-canvas with a fresh element whose scrollTop is 0,
+       which had been quietly happening on every send, accept and note as well.
+
+       At a laptop-height window, where the contract actually overflows. */
+    await page.setViewportSize({ width: 1280, height: 620 });
+    await page.waitForTimeout(250);
+    const place = await page.evaluate(async () => {
+      const canvas = document.getElementById('lab-canvas');
+      if (!canvas || canvas.scrollHeight <= canvas.clientHeight + 20) return { skipped: true };
+      document.querySelectorAll('.clause-frame.is-focus').forEach(n => n.classList.remove('is-focus'));
+
+      /* Scroll down, then click a clause that is in view down there. */
+      canvas.scrollTop = Math.min(240, canvas.scrollHeight - canvas.clientHeight);
+      await new Promise(r => setTimeout(r, 120));
+      const was = canvas.scrollTop;
+
+      const frames = Array.from(document.querySelectorAll('[data-lab-clause]'));
+      const cp = document.querySelector('.lab-sidepane');
+      /* A clause with NO card on the right — the case that must not move me. */
+      const bare = frames.find(f => !document.querySelector(
+        `[data-lab-card-clause="${f.getAttribute('data-lab-clause')}"]`));
+      if (!bare) return { skipped: true, why: 'every clause has a card' };
+
+      bare.querySelector('.clause-body').click();
+      await new Promise(r => setTimeout(r, 400));
+      const after = document.getElementById('lab-canvas');
+      return {
+        skipped: false,
+        was, now: after.scrollTop,
+        lit: !!document.querySelector('.clause-frame.is-focus'),
+        sideMoved: cp ? cp.scrollTop : 0
+      };
+    });
+    if (!place.skipped){
+      check('clicking a clause with no card leaves the contract where it was',
+        Math.abs(place.now - place.was) <= 4, `was ${place.was}, now ${place.now}`);
+      check('and still marks the clause', place.lit);
+    }
+
+    /* And a repaint from an ordinary action keeps the place too. */
+    const afterAction = await page.evaluate(async () => {
+      const canvas = document.getElementById('lab-canvas');
+      if (!canvas || canvas.scrollHeight <= canvas.clientHeight + 20) return { skipped: true };
+      canvas.scrollTop = Math.min(200, canvas.scrollHeight - canvas.clientHeight);
+      await new Promise(r => setTimeout(r, 100));
+      const was = canvas.scrollTop;
+      renderDocLab();                                  // the repaint every action does
+      await new Promise(r => setTimeout(r, 250));
+      return { skipped: false, was, now: document.getElementById('lab-canvas').scrollTop };
+    });
+    if (!afterAction.skipped){
+      check('a repaint does not send the contract back to the top',
+        Math.abs(afterAction.now - afterAction.was) <= 4,
+        `was ${afterAction.was}, now ${afterAction.now}`);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.waitForTimeout(200);
+    /* Released through the real interaction, not by stripping the class. Focus
+       lives in module state, so a repaint would simply draw it again — which is
+       what left the next check looking at a clause it thought it had cleared. */
+    await page.evaluate(async () => {
+      const lit = document.querySelector('.clause-frame.is-focus .clause-body');
+      if (lit){ lit.click(); await new Promise(r => setTimeout(r, 250)); }
+      const c = document.getElementById('lab-canvas'); if (c) c.scrollTop = 0;
+    });
+
     /* Selecting text inside a clause must NOT pair — the repaint would throw
        the selection away, and selecting wording is how the AI actions start. */
     const dragKeepsSelection = await page.evaluate(async () => {
       document.querySelectorAll('.clause-frame.is-focus').forEach(n => n.classList.remove('is-focus'));
       const body = document.querySelector('.clause-frame .clause-body');
-      const node = body && body.querySelector('p, div') || body;
-      if (!node || !node.firstChild) return { skipped: true };
+      if (!body) return { skipped: true };
+      /* A real TEXT node. Reaching for firstChild found the <p> element wrapping
+         the line, whose .length is undefined — so the range came out empty, no
+         selection existed, and this check was only ever passing because the
+         clause it clicked was already focused and the click toggled it off. */
+      const textNode = (function find(n){
+        if (n.nodeType === 3) return n.nodeValue.trim().length > 10 ? n : null;
+        for (const kid of n.childNodes){ const hit = find(kid); if (hit) return hit; }
+        return null;
+      })(body);
+      if (!textNode) return { skipped: true, why: 'no text node long enough' };
       const r = document.createRange();
-      r.setStart(node.firstChild, 0);
-      r.setEnd(node.firstChild, Math.min(24, node.firstChild.length || 0));
+      r.setStart(textNode, 0);
+      r.setEnd(textNode, Math.min(24, textNode.nodeValue.length));
       const sel = window.getSelection();
       sel.removeAllRanges(); sel.addRange(r);
+      const selLen = String(sel).trim().length;
+      const focusBefore = !!document.querySelector('.clause-frame.is-focus');
       body.click();                                  // the mouseup at the end of a drag
       await new Promise(res => setTimeout(res, 220));
-      return { skipped: false, stillFocused: !!document.querySelector('.clause-frame.is-focus') };
+      return { skipped: false, selLen, focusBefore,
+        stillFocused: !!document.querySelector('.clause-frame.is-focus') };
     });
     if (!dragKeepsSelection.skipped){
       check('finishing a text drag does not pair and repaint the clause away',
-        !dragKeepsSelection.stillFocused);
+        !dragKeepsSelection.stillFocused,
+        `selection ${dragKeepsSelection.selLen} chars, focus before ${dragKeepsSelection.focusBefore}`);
     }
     await page.evaluate(() => {
       const s = window.getSelection(); if (s) s.removeAllRanges();
