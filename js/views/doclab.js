@@ -912,6 +912,7 @@ function labClearSel(){ _labSel = null; }
    wire. Binding them per-wire instead stacked a fresh pair on every repaint. */
 let _labCtx = null;
 let _labDismissWired = false;
+let _labFitWired = false;
 
 /* Read the live selection into that record, or clear it. Returns the record so
    a caller can act on it directly. */
@@ -946,6 +947,64 @@ function labCaptureSel(canvas){
   };
   return _labSel;
 }
+/* ---------- KEEPING A FLOATING LAYER WITH ITS WORDING ----------
+   The menu and the popover are position:fixed, at viewport coordinates worked
+   out when they opened. That was fine while the whole page scrolled as one
+   piece. Now that the document pane scrolls on its own, the wording slides and
+   a fixed layer does not — leaving a menu pointing at a clause that has moved,
+   or worse, at a different clause.
+
+   So an anchor is remembered and the position recomputed on scroll. The RANGE
+   is preferred, because it tracks the exact words; the element is the fallback
+   for a menu opened from the clause toolbar, where there is no selection. */
+function labSetAnchor(node, opts){
+  node.__labAnchor = {
+    range: (opts && opts.range) || null,
+    el: (opts && opts.el) || null
+  };
+}
+function labAnchorRect(node){
+  const a = node && node.__labAnchor;
+  if(!a) return null;
+  if(a.range){
+    /* A cloned range still resolves against live nodes — until a repaint
+       replaces them, at which point it measures as zero and the element takes
+       over. */
+    try{
+      const r = a.range.getBoundingClientRect();
+      if(r && (r.width || r.height)) return r;
+    }catch(_){}
+  }
+  if(a.el && a.el.isConnected){
+    const r = a.el.getBoundingClientRect();
+    if(r && (r.width || r.height)) return r;
+  }
+  return null;
+}
+/* Re-place every open layer, and hide any whose wording has been scrolled out
+   of the pane. Hidden rather than removed: the popover may hold wording someone
+   has been editing by hand, and scrolling up to re-read the clause must not
+   throw that away. It comes back when its anchor does. */
+function labRefloat(){
+  const pane = document.getElementById('lab-canvas');
+  const p = pane ? pane.getBoundingClientRect() : null;
+  for(const node of [document.querySelector('.lab-selmenu'),
+                     document.getElementById('ai-copilot-popover')]){
+    if(!node) continue;
+    const rect = labAnchorRect(node);
+    if(!rect) continue;                       // nothing to follow; leave it be
+    if(p && (rect.bottom < p.top + 2 || rect.top > p.bottom - 2)){
+      node.style.visibility = 'hidden';
+      continue;
+    }
+    node.style.visibility = '';
+    const b = node.getBoundingClientRect();
+    const at = labAnchor(rect, b.width, b.height);
+    node.style.left = at.left + 'px';
+    node.style.top = at.top + 'px';
+  }
+}
+
 /* Anchored to the selection's own rectangle and clamped to the viewport, so a
    clause selected at the bottom of the window does not put its menu off-screen. */
 function labAnchor(rect, w, h){
@@ -1021,6 +1080,12 @@ async function labAiPropose(ctx){
     pop.style.left = at.left + 'px'; pop.style.top = at.top + 'px';
   };
   place();
+  /* What this popover is about, so it follows the clause when the document
+     pane scrolls and hides rather than lying when the clause leaves view. */
+  labSetAnchor(pop, {
+    range: (_labSel && _labSel.range) || null,
+    el: document.querySelector(`[data-lab-clause="${clause && clause.clauseId}"]`)
+  });
   /* ONE WAY OUT, used by Close, Discard and Escape alike. Leaving without
      applying must leave nothing behind: the popover goes, the held selection is
      released, and the floating menu that opened this closes with it. The
@@ -1261,6 +1326,14 @@ function labSelMenu(ctx){
   const box = menu.getBoundingClientRect();
   const at = labAnchor(rect, box.width, box.height);
   menu.style.left = at.left + 'px'; menu.style.top = at.top + 'px';
+  /* What this menu is about, so it follows when the document pane scrolls: the
+     range where there was a selection, the clause frame where the toolbar
+     opened it. */
+  labSetAnchor(menu, {
+    range: (_labSel && _labSel.range) || null,
+    el: ctx.anchorEl
+      || document.querySelector(`[data-lab-clause="${clause && clause.clauseId}"]`)
+  });
   menu.querySelectorAll('[data-lab-ai]').forEach(btn => btn.addEventListener('mousedown', ev => {
     /* mousedown, not click: clicking first collapses the selection, and the
        proposal needs the words that were chosen. */
@@ -1785,6 +1858,38 @@ function renderDocLab(){
       background:var(--color-bg);color:var(--color-neutral-800)}
 
     /* ---- the selection menu ---- */
+    /* ---------- TWO PANES, TWO SCROLLBARS ----------
+       A contract is long and the argument about it is long, and they are not
+       the same length. On one page scroll, reading clause 14 puts the change
+       cards for clause 14 somewhere off the bottom of the screen — so answering
+       a redline meant scrolling down to read it, up to find the card, and back
+       down to check you had the right one. The two things a negotiator holds
+       side by side have to move independently, or they are not side by side.
+
+       The grid's height is set from JS against its own measured top rather than
+       guessed at here with a magic offset, because the banner above it changes
+       height with what it has to say. */
+    .lab-split{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,1fr);
+      gap:12px;align-items:stretch}
+    /* min-height:0 on both, or a grid child refuses to shrink below its content
+       and the panes grow the page instead of scrolling inside it. */
+    .lab-split > *{min-height:0}
+    .lab-docpane{display:flex;flex-direction:column;min-height:0}
+    /* The heading stays put and the document moves under it, so a reader who
+       has scrolled to clause 14 can still see which copy they are looking at —
+       the lab's own or the counterparty's. Getting that wrong is how internal
+       wording gets read as though it had been sent. */
+    .lab-docpane #lab-canvas{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+      padding-bottom:22px;scrollbar-gutter:stable}
+    .lab-sidepane{overflow-y:auto;overflow-x:hidden;padding-right:2px;scrollbar-gutter:stable}
+    /* NARROW SCREENS GET THE PAGE BACK. Two independently scrolling panes
+       stacked vertically on a phone is a trap — the inner scroll swallows the
+       gesture and the page underneath will not move. */
+    @media (max-width: 900px){
+      .lab-split{grid-template-columns:minmax(0,1fr);height:auto !important}
+      .lab-docpane #lab-canvas, .lab-sidepane{overflow:visible;max-height:none}
+    }
+
     .lab-selmenu{position:fixed;z-index:80;display:flex;flex-direction:column;gap:1px;
       min-width:246px;padding:5px;border-radius:9px;background:var(--color-surface);
       border:1px solid var(--color-divider);box-shadow:0 12px 32px -8px rgba(20,32,48,.34)}
@@ -1890,14 +1995,14 @@ function renderDocLab(){
 
     ${labModeBannerHtml(c, lab, side, external)}
 
-    <div style="display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,1fr);gap:12px;align-items:start">
+    <div class="lab-split">
 
-      <section style="${LAB_CARD};padding:18px 22px 26px;min-width:0">
+      <section class="lab-docpane" style="${LAB_CARD};padding:18px 22px 0;min-width:0">
         <h6 style="${LAB_H6};margin-bottom:14px">Working document${external ? ' · as they see it' : ' · the lab’s own copy'}</h6>
         <div id="lab-canvas" class="document-canvas" style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
       </section>
 
-      <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="lab-sidepane" style="display:flex;flex-direction:column;gap:12px;min-width:0">
 
         <section style="${LAB_CARD};padding:14px 16px">
           <h6 style="${LAB_H6};margin-bottom:10px">Changes${external ? ' on the table' : ''}</h6>
@@ -2015,7 +2120,11 @@ function wireDocLab(c, lab, side, external){
        clause as it would READ, pending change included, because that is the
        wording on screen. Offering the same menu keeps one mental model: pick a
        passage, pick an action. */
-    labSelMenu({ c, lab, side, again: againLab, rect, clause, text: clause.working, whole: true });
+    /* anchorEl is the BUTTON, not the clause frame. The menu was placed against
+       the button, so that is what it has to come back to when the pane scrolls
+       — re-anchoring to the whole frame would move it on the way back. */
+    labSelMenu({ c, lab, side, again: againLab, rect, clause, text: clause.working,
+      whole: true, anchorEl: b });
   }));
   document.querySelectorAll('[data-lab-note]').forEach(b => b.addEventListener('click', () => {
     const clauseId = b.getAttribute('data-lab-note');
@@ -2091,6 +2200,45 @@ function wireDocLab(c, lab, side, external){
      Bound on mouseup and on keyup rather than on selectionchange: the latter
      fires on every character of a drag and would flicker a menu under the
      pointer the whole way across the clause. */
+  /* ---------- the two panes, sized and scrolling ----------
+     The height is MEASURED, not guessed. The banner above the split changes
+     height with what it has to report — how many drafts are on the desk, what a
+     batch held back — so any constant here would be wrong most of the time,
+     leaving either a gap under the panes or a page that scrolls as well as the
+     panes inside it. Reading the split's own top gives the right answer for
+     whatever is above it today.
+
+     Applied to both views: the counterparty's copy is just as long as ours. */
+  const split = document.querySelector('.lab-split');
+  if(split){
+    const fitPanes = () => {
+      /* The media query hands narrow screens back to the page, and a height in
+         a style attribute would win against it. */
+      if(window.innerWidth <= 900){ split.style.height = ''; return; }
+      const top = split.getBoundingClientRect().top;
+      split.style.height = Math.max(360, window.innerHeight - top - 18) + 'px';
+    };
+    fitPanes();
+    /* Once for the page, not once per repaint — wireDocLab runs on every
+       render, and a listener added each time would pile up. */
+    if(!_labFitWired){
+      _labFitWired = true;
+      window.addEventListener('resize', () => {
+        const el = document.querySelector('.lab-split');
+        if(!el) return;
+        if(window.innerWidth <= 900){ el.style.height = ''; return; }
+        el.style.height = Math.max(360, window.innerHeight - el.getBoundingClientRect().top - 18) + 'px';
+        labRefloat();
+      });
+    }
+    /* A fixed-position layer does not move with a pane that scrolls under it,
+       so anything open is re-placed against its own wording. */
+    for(const pane of [document.getElementById('lab-canvas'),
+                       document.querySelector('.lab-sidepane')]){
+      if(pane) pane.addEventListener('scroll', labRefloat, { passive: true });
+    }
+  }
+
   if(!external){
     /* Opened from the STORED selection, never from the live one. By the time a
        menu button is pressed the document selection may well be gone. */
@@ -2310,7 +2458,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   labDraftOnlyStack, labStruckTarget,
   labAuthorOf, labInitials, labAuthorName, labChainOf, labPublishRound,
   labAuthorPillHtml, labStackTrailHtml, labTagHtml, labRedlineAttributedHtml,
-  labCaptureSel, labClearSel,
+  labCaptureSel, labClearSel, labRefloat, labSetAnchor, labAnchorRect,
   labFileChange, labSendChange, labDecide, labResolveLinked,
   labTagChange, labUntagChange,
   labBaseline, labClausesOf, labTopics, labSeed,

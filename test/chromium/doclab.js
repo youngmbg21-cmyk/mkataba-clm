@@ -216,6 +216,72 @@ function check(name, ok, detail){
     check('the owner sees the shared wording', owner.showsSharedWording);
     await page.screenshot({ path: path.join(OUT, 'doclab-owner.png'), fullPage: true });
 
+    /* ---- the two panes scroll independently ----
+       A contract and the argument about it are not the same length, so on one
+       page scroll reading clause 14 puts its change cards off the bottom of the
+       screen. Measured from the live layout, because a stylesheet rule proves
+       nothing about whether a pane actually became a scroll container. */
+    const panes = await page.evaluate(() => {
+      const canvas = document.getElementById('lab-canvas');
+      const sideEl = document.querySelector('.lab-sidepane');
+      const split = document.querySelector('.lab-split');
+      if (!canvas || !sideEl || !split) return { skipped: true };
+      const cs = getComputedStyle(canvas), ss = getComputedStyle(sideEl);
+      return {
+        canvasOverflow: cs.overflowY,
+        sideOverflow: ss.overflowY,
+        /* Bounded height is what makes overflow mean anything — a pane as tall
+           as its content scrolls nothing however the rule reads. */
+        canvasBounded: canvas.clientHeight > 0 && canvas.clientHeight < window.innerHeight,
+        sideBounded: sideEl.clientHeight > 0 && sideEl.clientHeight < window.innerHeight,
+        splitFitsViewport: split.getBoundingClientRect().bottom <= window.innerHeight + 2,
+        splitHeight: Math.round(split.getBoundingClientRect().height)
+      };
+    });
+    if (panes.skipped){
+      check('the lab draws two panes', false, 'no .lab-split / .lab-sidepane');
+    } else {
+      check('the document pane is its own scroll container',
+        panes.canvasOverflow === 'auto' && panes.canvasBounded,
+        `overflow-y ${panes.canvasOverflow}, bounded ${panes.canvasBounded}`);
+      check('the side panel is its own scroll container',
+        panes.sideOverflow === 'auto' && panes.sideBounded,
+        `overflow-y ${panes.sideOverflow}, bounded ${panes.sideBounded}`);
+      check('and the split is sized to the viewport rather than overflowing it',
+        panes.splitFitsViewport, `${panes.splitHeight}px tall`);
+    }
+
+    /* Scrolling one pane must move that pane and nothing else.
+
+       Measured at a SHORTER viewport on purpose. At 1000px tall the sample's
+       six clauses fit inside the pane, so nothing scrolls and a check run there
+       would pass without exercising anything. 620px is an ordinary laptop
+       window with browser chrome, and it is where this feature earns its keep. */
+    await page.setViewportSize({ width: 1280, height: 620 });
+    await page.waitForTimeout(200);
+    const scrolled = await page.evaluate(async () => {
+      const canvas = document.getElementById('lab-canvas');
+      const sideEl = document.querySelector('.lab-sidepane');
+      const pageBefore = window.scrollY;
+      const sideBefore = sideEl.scrollTop;
+      canvas.scrollTop = 99999;
+      await new Promise(r => setTimeout(r, 60));
+      const out = {
+        canvasCanScroll: canvas.scrollHeight > canvas.clientHeight + 4,
+        canvasMoved: canvas.scrollTop > 0,
+        pageStayed: window.scrollY === pageBefore,
+        sideStayed: sideEl.scrollTop === sideBefore
+      };
+      canvas.scrollTop = 0;
+      return out;
+    });
+    check('at a laptop-height window the contract overflows its pane',
+      scrolled.canvasCanScroll);
+    check('scrolling the contract moves the contract', scrolled.canvasMoved);
+    check('and does not move the page', scrolled.pageStayed);
+    check('and does not move the side panel', scrolled.sideStayed);
+    await page.screenshot({ path: path.join(OUT, 'doclab-panes.png') });
+
     /* ---- the clause toolbar actually opens, and STAYS open ----
        Reported from real use: AI Assist flashed and vanished. The toolbar sits
        inside the canvas, so pressing it fired the canvas mouseup handler, which
@@ -261,6 +327,36 @@ function check(name, ok, detail){
       check('it offers the four actions', assist.actions.length === 4, assist.actions.join(' | '));
       check('and it is drawn on screen with real size', assist.onScreen);
       await page.screenshot({ path: path.join(OUT, 'doclab-assist-menu.png') });
+    }
+    /* ---- an open menu follows its wording when the pane scrolls ----
+       Both floating layers are position:fixed at viewport coordinates. Once the
+       document pane scrolls on its own, a layer that does not move is a menu
+       pointing at a clause that has gone — or at a different one. */
+    if (!assist.skipped && assist.stillThere){
+      const follow = await page.evaluate(async () => {
+        const menu = document.querySelector('.lab-selmenu');
+        const canvas = document.getElementById('lab-canvas');
+        if (!menu || !canvas || canvas.scrollHeight <= canvas.clientHeight + 4)
+          return { skipped: true };
+        const before = menu.getBoundingClientRect().top;
+        canvas.scrollTop = canvas.scrollHeight;         // clause well out of view
+        await new Promise(r => setTimeout(r, 120));
+        const hidden = getComputedStyle(menu).visibility === 'hidden';
+        const moved = Math.abs(menu.getBoundingClientRect().top - before) > 2;
+        canvas.scrollTop = 0;
+        await new Promise(r => setTimeout(r, 120));
+        return {
+          skipped: false, hidden, moved,
+          backAfterReturn: getComputedStyle(menu).visibility !== 'hidden',
+          backNearStart: Math.abs(menu.getBoundingClientRect().top - before) <= 3
+        };
+      });
+      if (!follow.skipped){
+        check('scrolling the clause away moves or hides its open menu',
+          follow.hidden || follow.moved, `hidden ${follow.hidden}, moved ${follow.moved}`);
+        check('and scrolling back brings it to where its wording is',
+          follow.backAfterReturn && follow.backNearStart);
+      }
     }
     await page.evaluate(() => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove()));
 
