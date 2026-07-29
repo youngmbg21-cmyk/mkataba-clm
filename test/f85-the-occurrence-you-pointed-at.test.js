@@ -306,7 +306,7 @@ describe('F85d — the shipped file splices by offset', () => {
   });
 
   test('the guard resolves an occurrence rather than testing for presence', () => {
-    assert.ok(/const at = labPickOccurrence\(working, text, ctx\.hint\)/.test(code));
+    assert.ok(/\bat = labPickOccurrence\(working, text, ctx\.hint\)/.test(code));
     assert.ok(/if\(at < 0\)\{/.test(code));
     assert.ok(!/if\(!working\.includes\(text\)\)/.test(code),
       'the presence test cannot survive alongside it — it would take the first match');
@@ -315,7 +315,8 @@ describe('F85d — the shipped file splices by offset', () => {
   test('no String.replace splice remains in the AI path', () => {
     assert.ok(!/working\.replace\(text/.test(code),
       'replace() takes the first match, which is the bug this file exists for');
-    assert.ok(/working\.slice\(0, at\) \+ t \+ working\.slice\(at \+ text\.length\)/.test(code));
+    assert.ok(/working\.slice\(0, at\) \+ t \+ working\.slice\(at \+ spliceLen\)/.test(code),
+      'one splice serves both the ordinary replace and the restored deletion');
   });
 
   test('the selection is measured from the range START, not the anchor', () => {
@@ -337,5 +338,8 @@ describe('F85d — the shipped file splices by offset', () => {
       'the menu must pass it on, or it stops at the menu');
     assert.ok(/labPickOccurrence\(working, text, ctx\.hint\)/.test(code),
       'and the proposal resolves the occurrence with it');
+    assert.ok(/labStruckTarget\(base, working, text, lab\.changes, clause\.clauseId, side, ctx\.hint\)/.test(code),
+      'and the struck-wording fallback is given the same hint, or it would pick '
+      + 'the wrong one of two identical deletions');
   });
 });
