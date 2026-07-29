@@ -1731,9 +1731,56 @@ function labLinkedBarHtml(threads){
   </div>`;
 }
 
+/* ---------- KEEPING YOUR PLACE ACROSS A REPAINT ----------
+   Every action in the lab repaints the whole view, which replaces #lab-canvas
+   with a brand-new element — and a new element's scrollTop is 0. So reading
+   clause 14, clicking it, and having the contract snap back to clause 1 was not
+   the scroll-into-view doing it. It was the repaint, and it had been happening
+   on every send, accept, reject, note and tag as well.
+
+   Both panes are read before the rebuild and put back after it. Keyed to the
+   contract, because a position measured in one document means nothing in
+   another — switching contracts should start at the top, and does. */
+/* Centre an element inside ONE pane, touching nothing else.
+
+   scrollIntoView scrolls every scrollable ancestor it can find, so asking it to
+   bring a card into view can move the shell's content area and the other pane
+   with it. Computing the offset and setting scrollTop on the pane itself can
+   only move that pane, which is the whole promise of "click here, the other
+   side follows". */
+function labScrollWithin(pane, el){
+  if(!pane || !el) return false;
+  const p = pane.getBoundingClientRect();
+  const e = el.getBoundingClientRect();
+  const top = pane.scrollTop + (e.top - p.top) - (p.height / 2) + (e.height / 2);
+  const max = Math.max(0, pane.scrollHeight - pane.clientHeight);
+  pane.scrollTo({ top: Math.min(Math.max(0, top), max), behavior: 'smooth' });
+  return true;
+}
+
+function labKeepScroll(cid){
+  const doc = document.getElementById('lab-canvas');
+  const side = document.querySelector('.lab-sidepane');
+  if(!doc && !side) return null;
+  return { cid, doc: doc ? doc.scrollTop : null, side: side ? side.scrollTop : null };
+}
+function labRestoreScroll(keep, cid){
+  if(!keep || keep.cid !== cid) return;
+  const doc = document.getElementById('lab-canvas');
+  const side = document.querySelector('.lab-sidepane');
+  /* Setting scrollTop on an element that is not yet scrollable clamps to 0, so
+     the panes must already have been given their height — wireDocLab does that
+     synchronously before this runs. */
+  if(doc && keep.doc) doc.scrollTop = keep.doc;
+  if(side && keep.side) side.scrollTop = keep.side;
+}
+
 function renderDocLab(){
   const content = document.getElementById('content');
   const c = getContract(state.activeId);
+  /* Read BEFORE the rebuild — after it the old elements are gone and their
+     positions with them. */
+  const keptScroll = labKeepScroll(c && c.id);
 
   if(!c){
     content.innerHTML = `
@@ -2118,6 +2165,9 @@ function renderDocLab(){
   </div>`;
 
   wireDocLab(c, lab, side, external);
+  /* After wiring, because wireDocLab is what gives the panes their height and
+     an element with no height cannot hold a scroll position. */
+  labRestoreScroll(keptScroll, c.id);
 }
 
 function wireDocLab(c, lab, side, external){
@@ -2146,7 +2196,10 @@ function wireDocLab(c, lab, side, external){
     if(!_labLinked) return;
     const card = document.querySelector(`[data-lab-card="${_labLinked}"]`);
     const thread = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
-    (card || thread)?.scrollIntoView({ block:'center', behavior:'smooth' });
+    /* Within the sidebar only, for the same reason the clause pairing is: the
+       badge's job is to bring the card into view, not to move the contract the
+       reader is looking at. */
+    labScrollWithin(document.querySelector('.lab-sidepane'), card || thread);
   };
   /* ---------- PAIRING THE TWO SIDES ----------
      Click a clause and its cards and threads light up beside it; click a card
@@ -2163,16 +2216,21 @@ function wireDocLab(c, lab, side, external){
     _labFocus = (_labFocus === clauseId) ? null : clauseId;
     againLab();
     if(!_labFocus) return;
-    /* Only the OPPOSITE side is scrolled. Moving the pane that was just clicked
-       pulls the thing under the pointer out from under it. */
+    /* Only the OPPOSITE side moves. Scrolling the pane that was just clicked
+       pulls the thing out from under the pointer that pressed it.
+
+       AND ONLY IF THERE IS SOMETHING TO MOVE TO. A clause with no redline has
+       no card to pair with, so nothing scrolls and the reader stays exactly
+       where they were — which is the right answer to "I clicked this to see if
+       anything was filed against it". */
     if(from !== 'doc'){
-      document.querySelector(`[data-lab-clause="${_labFocus}"]`)
-        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      labScrollWithin(document.getElementById('lab-canvas'),
+        document.querySelector(`[data-lab-clause="${_labFocus}"]`));
     }
     if(from !== 'side'){
       const mate = document.querySelector(`[data-lab-card-clause="${_labFocus}"]`)
         || document.querySelector(`[data-lab-thread-clause="${_labFocus}"]`);
-      mate?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      labScrollWithin(document.querySelector('.lab-sidepane'), mate);
     }
   };
 
@@ -2568,6 +2626,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   labAuthorOf, labInitials, labAuthorName, labChainOf, labPublishRound,
   labAuthorPillHtml, labStackTrailHtml, labTagHtml, labRedlineAttributedHtml,
   labCaptureSel, labClearSel, labRefloat, labSetAnchor, labAnchorRect,
+  labKeepScroll, labRestoreScroll, labScrollWithin,
   labFileChange, labSendChange, labDecide, labResolveLinked,
   labTagChange, labUntagChange,
   labBaseline, labClausesOf, labTopics, labSeed,
