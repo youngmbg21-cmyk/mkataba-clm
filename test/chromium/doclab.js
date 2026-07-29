@@ -282,6 +282,83 @@ function check(name, ok, detail){
     check('and does not move the side panel', scrolled.sideStayed);
     await page.screenshot({ path: path.join(OUT, 'doclab-panes.png') });
 
+    /* ---- clicking either side pairs it with the other ----
+       The panes scroll independently, which is what loses a reader their place:
+       the contract is on clause 14 and the cards are wherever they were left.
+       Clicking one side has to take the other side with it. */
+    const pairing = await page.evaluate(async () => {
+      const lab = labFor(state.activeId);
+      const live = (lab.changes || []).find(x => x.clauseId);
+      if (!live) return { skipped: true };
+      const clauseId = live.clauseId;
+      const frame = document.querySelector(`[data-lab-clause="${clauseId}"]`);
+      const card = () => document.querySelector(`[data-lab-card-clause="${clauseId}"]`);
+      if (!frame || !card()) return { skipped: true, why: 'no frame or card for ' + clauseId };
+
+      /* FROM THE DOCUMENT. Click the clause body — not a button, not the badge. */
+      frame.querySelector('.clause-body').click();
+      await new Promise(r => setTimeout(r, 260));
+      const fromDoc = {
+        frameLit: !!document.querySelector(`[data-lab-clause="${clauseId}"].is-focus`),
+        cardLit: !!document.querySelector(`[data-lab-card-clause="${clauseId}"].is-focus`)
+      };
+
+      /* Clicking it again releases — a mark you cannot clear is a mark on the
+         document for good. */
+      document.querySelector(`[data-lab-clause="${clauseId}"] .clause-body`).click();
+      await new Promise(r => setTimeout(r, 260));
+      const released = !document.querySelector('.clause-frame.is-focus');
+
+      /* FROM THE SIDEBAR, the same pairing in reverse. */
+      card().click();
+      await new Promise(r => setTimeout(r, 260));
+      const fromSide = {
+        frameLit: !!document.querySelector(`[data-lab-clause="${clauseId}"].is-focus`),
+        cardLit: !!document.querySelector(`[data-lab-card-clause="${clauseId}"].is-focus`)
+      };
+
+      /* And only the matching clause is marked, not every clause. */
+      const litFrames = document.querySelectorAll('.clause-frame.is-focus').length;
+      return { skipped: false, clauseId, fromDoc, released, fromSide, litFrames };
+    });
+    if (pairing.skipped){
+      check('a clause with a change exists to pair', false, pairing.why || '');
+    } else {
+      check('clicking a clause lights that clause', pairing.fromDoc.frameLit);
+      check('and lights its card on the other side', pairing.fromDoc.cardLit);
+      check('clicking it again releases the pairing', pairing.released);
+      check('clicking the card lights the clause in the contract', pairing.fromSide.frameLit);
+      check('and lights the card itself', pairing.fromSide.cardLit);
+      check('exactly one clause is marked, not all of them',
+        pairing.litFrames === 1, `${pairing.litFrames} lit`);
+      await page.screenshot({ path: path.join(OUT, 'doclab-paired.png') });
+    }
+
+    /* Selecting text inside a clause must NOT pair — the repaint would throw
+       the selection away, and selecting wording is how the AI actions start. */
+    const dragKeepsSelection = await page.evaluate(async () => {
+      document.querySelectorAll('.clause-frame.is-focus').forEach(n => n.classList.remove('is-focus'));
+      const body = document.querySelector('.clause-frame .clause-body');
+      const node = body && body.querySelector('p, div') || body;
+      if (!node || !node.firstChild) return { skipped: true };
+      const r = document.createRange();
+      r.setStart(node.firstChild, 0);
+      r.setEnd(node.firstChild, Math.min(24, node.firstChild.length || 0));
+      const sel = window.getSelection();
+      sel.removeAllRanges(); sel.addRange(r);
+      body.click();                                  // the mouseup at the end of a drag
+      await new Promise(res => setTimeout(res, 220));
+      return { skipped: false, stillFocused: !!document.querySelector('.clause-frame.is-focus') };
+    });
+    if (!dragKeepsSelection.skipped){
+      check('finishing a text drag does not pair and repaint the clause away',
+        !dragKeepsSelection.stillFocused);
+    }
+    await page.evaluate(() => {
+      const s = window.getSelection(); if (s) s.removeAllRanges();
+      document.querySelectorAll('.lab-selmenu, #ai-copilot-popover').forEach(n => n.remove());
+    });
+
     /* ---- the clause toolbar actually opens, and STAYS open ----
        Reported from real use: AI Assist flashed and vanished. The toolbar sits
        inside the canvas, so pressing it fired the canvas mouseup handler, which
