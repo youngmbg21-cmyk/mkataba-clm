@@ -130,8 +130,10 @@ describe('the room takes the window', () => {
     assert.ok(left && right, 'each pane picks its own version');
     assert.equal(left.value, 'baseline');
     assert.equal(right.value, 'working');
-    assert.match(left.options[left.selectedIndex].textContent, /Original Baseline · round 1/);
-    assert.match(right.options[right.selectedIndex].textContent, /Working Version · round 1/);
+    /* ROUND FIRST — see f69. The round is what orders a list spanning several
+       of them, so it leads the label rather than trailing it. */
+    assert.match(left.options[left.selectedIndex].textContent, /Round 1 - Baseline/);
+    assert.match(right.options[right.selectedIndex].textContent, /Round 1 - Working Version/);
     assert.match(r.$('.nego-pane.baseline .nego-pane-head').textContent, /read-only reference/);
     assert.match(r.$('.nego-pane.working .nego-pane-head').textContent,
       /— Proposed Redline · fingerprints anchor in the margin/);
@@ -183,8 +185,12 @@ describe('the top bar, and the way out', () => {
 
   test('the owner gets the prototype\'s actions', async () => {
     const r = await room();
-    for (const id of ['nego-save-draft', 'nego-share-link', 'nego-all-acc', 'nego-all-rej', 'nego-export'])
+    for (const id of ['nego-save-draft', 'nego-all-acc', 'nego-all-rej', 'nego-export'])
       assert.ok(r.$('#' + id), 'missing top-bar action: ' + id);
+    /* Share Link is NOT among them any more — see f70. "Send to <them>" in
+       the turn banner opens the same dialog by the same route, and two ghost
+       buttons minting the same link is one too many. */
+    assert.equal(r.$('#nego-share-link'), null);
     assert.equal(r.$('#nego-export').textContent.trim(), 'Export Clean PDF');
     // and a way to put wording forward, which the prototype's bar has no control for
     /* "Propose edits" is GONE, deliberately. It opened a modal holding the

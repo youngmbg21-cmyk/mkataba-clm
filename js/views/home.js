@@ -16,11 +16,12 @@ const KPI_META={
   expiring30:  'Expiring < 30 days',
   expiring60:  'Expiring < 60 days',
   expiring90:  'Expiring < 90 days',
+  expired:     'Term already ended',
   highrisk:    'High-risk findings',
   avgcycle:    'Avg cycle · draft→signed',
 };
-const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','highrisk','avgcycle'];
-const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','highrisk','avgcycle'];
+const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','expired','highrisk','avgcycle'];
+const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','expired','highrisk'];
 /* Money-bearing metrics. A member without can_view_values receives no value
    from the server at all, so these cards would read "KES 0" — a wrong number,
    not a hidden one. They are removed from the catalog entirely rather than
@@ -165,6 +166,10 @@ function renderDashboard(){
   const stalled=awaiting.filter(s=>{ const t=Date.parse(s.at); return !isNaN(t)&&(Date.now()-t)>14*864e5; }).length;
   const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
   // Expiry views: nearest-first buckets at 30 / 60 / 90 days (expiring is 0–90, sorted).
+  /* Executed agreements whose term has already run out — the same read the
+     status chip uses, so a row badged "Expired" is a row counted here. */
+  const lapsed=agreementsIn(cs).filter(c=>!!(window.contractExpired&&contractExpired(c)))
+    .sort((a,b)=>{ const ea=effectiveExpiry(a)||'', eb=effectiveExpiry(b)||''; return String(ea).localeCompare(String(eb)); });
   const expWithin=n=>expiring.filter(x=>x.d<=n);
   const exp30=expWithin(30), exp60=expWithin(60), exp90=expiring;
   const expVal=arr=>valOf(arr.map(x=>x.c));
@@ -190,6 +195,10 @@ function renderDashboard(){
     expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),                                               grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
     expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
     expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
+       `days >= 0`, so a contract dropped out of all three on the morning its
+       term ended — the one day it most needed somebody to look at it. */
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtKESshort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`,                              grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
@@ -224,7 +233,7 @@ function renderDashboard(){
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
       <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
       ${riskChip(x.r)}
-      ${statusChip(c.status)}
+      ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
     </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
 
   // ---- renewal pipeline (6 mo) ----
@@ -441,6 +450,59 @@ function renderDashboard(){
       </div>
     </details>`;
 
+  /* ---- OBLIGATIONS, ON THE SCREEN PEOPLE ACTUALLY OPEN ----
+
+     The dashboard had no obligations panel at all. Every deliverable a contract
+     carries — the quarterly report, the insurance certificate, the payment
+     window — could only be seen by opening that contract and scrolling to its
+     own panel. So the answer to "what do we owe this month, and what should we
+     be chasing them for" lived in n places, one per contract, and nobody read
+     it.
+
+     Split ours from theirs, because they are different jobs. One is a task
+     list; the other is a set of phone calls. */
+  const obsAll=(window.openObligations?openObligations(45):[]);
+  const obsOverdue=obsAll.filter(o=>o.days!=null&&o.days<0);
+  const obsOurs=(window.obligationsOurs?obligationsOurs(obsAll):obsAll);
+  const obsTheirs=(window.obligationsTheirs?obligationsTheirs(obsAll):[]);
+  const obRow=o=>{
+    const late=o.days!=null&&o.days<0;
+    const when=o.days==null?'no date':late?`${Math.abs(o.days)}d ago`:`${o.days}d`;
+    /* allObligations carries the counterparty along with each record, so a row
+       from any contract can name who owes a "theirs" without looking it up —
+       and cannot name the wrong one. */
+    const owner=(window.obligationIsTheirs&&obligationIsTheirs(o))
+      ? (o.counterparty||'the counterparty') : (o.assignee||'unassigned');
+    return `<div style="display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(29,31,32,.07)">
+      <button data-sel="${esc(o.cid)}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">
+        <span style="flex:none;width:7px;height:7px;border-radius:50%;background:${late?'#b0453c':'#2e8763'}"></span>
+        <span style="flex:1;min-width:0">
+          <span style="display:block;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.desc||'Obligation')}</span>
+          <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.cname||o.cid)} · ${esc(owner)}</span>
+        </span>
+      </button>
+      ${(window.toggleObligationById&&o.id&&(!window.canEdit||canEdit()))
+        ? `<button data-ob-done="${esc(o.id)}" data-ob-cid="${esc(o.cid)}" title="Mark this obligation complete" style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Done</button>` : ''}
+      <span style="flex:none;font-size:10px;font-weight:600;font-family:var(--font-mono);color:${late?'#8f322b':'var(--color-neutral-600)'};padding-right:2px">${when}</span>
+    </div>`;
+  };
+  const obGroup=(title,list,empty)=>`
+    <div style="margin-top:6px">
+      <div style="display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--color-neutral-700);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">${title}<span style="flex:1"></span><span style="font-family:var(--font-mono);letter-spacing:0">${list.length}</span></div>
+      ${list.length?list.slice(0,6).map(obRow).join(''):`<div style="font-size:11px;color:var(--color-neutral-600);padding:5px 2px">${empty}</div>`}
+    </div>`;
+  const obligationsSection=`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
+        <h4 style="font-size:15px;margin:0;">Obligations · next 45 days</h4>
+        <span style="font-size:11px;color:${obsOverdue.length?'#8f322b':'var(--color-neutral-600)'};font-weight:${obsOverdue.length?600:400}">${obsOverdue.length?`${obsOverdue.length} overdue`:'nothing overdue'}<span style="color:var(--color-neutral-500);font-weight:400"> · </span><button id="ob-open-cal" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-accent-700);font-weight:500;cursor:pointer">Open the calendar &rarr;</button></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        ${obGroup('Ours to do', obsOurs, 'Nothing of ours is due.')}
+        ${obGroup('Theirs to chase', obsTheirs, 'Nothing to chase them for.')}
+      </div>
+    </section>`;
+
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
@@ -461,6 +523,9 @@ function renderDashboard(){
 
     <!-- Decisions due — renewal decisions + shares out with counterparties, one collapsible card -->
     ${decisionsSection}
+
+    <!-- What the parties actually owe each other, split ours / theirs -->
+    ${obligationsSection}
 
     <!-- Stage + pipeline row. align-items:stretch + the absolutely-filled right
          column make the right side exactly as tall as the Portfolio card, so the
@@ -532,6 +597,15 @@ function renderDashboard(){
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
   document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
+  document.getElementById('ob-open-cal')?.addEventListener('click',e=>{ e.stopPropagation(); setView('calendar'); });
+  /* Through the shared verb in js/obligations.js, exactly as the calendar does:
+     one place decides what completing means, and one refresh puts every surface
+     that counts them back in step — this panel included. */
+  document.querySelectorAll('[data-ob-done]').forEach(el=>el.addEventListener('click',e=>{
+    e.stopPropagation();
+    const o=toggleObligationById(el.getAttribute('data-ob-cid'), el.getAttribute('data-ob-done'), { from:'dashboard' });
+    if(o) toast(`Marked complete: ${o.desc}`);
+  }));
   // Decisions due opens on arrival; closing it is remembered, so the preference
   // belongs to the reader rather than being re-imposed on every render.
   document.querySelector('.dd-card')?.addEventListener('toggle',e=>{

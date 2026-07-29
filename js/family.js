@@ -84,7 +84,23 @@ function clearParentLink(c, actor){
    the renewal reminders, contractRisk, the Home attention snapshot, the
    Register, the Calendar and Reports. A partial rollout leaves the reminders
    wrong, which is the defect this exists to fix. */
-const ownExpiry = c => (c && ((c.metadata&&c.metadata.expiryDate) || c.expiry)) || null;
+/* NORMALISED HERE, because here is where everything reads it.
+
+   The header above says every consumer must come through this funnel, and they
+   do — and the funnel was handing out whatever was typed. A migration that
+   filed "30 September 2026" therefore reached the Register as `new Date(…)`
+   Invalid, and the expiry column on an otherwise ordinary row printed the words
+   "Invalid Date". Everywhere the value met `daysUntil` it became NaN instead,
+   and NaN compares false against everything: the contract fell out of Home's
+   expiring-in-30/60/90 buckets, out of the twelve-month renewal pipeline in
+   Reports, and sorted behind contracts with no expiry at all.
+
+   dateOnly() is the same normaliser the renewal decision and the calendar grid
+   already use, so all of them are now working on one value. Null — "we do not
+   know when this ends" — is a real answer that every caller here handles. */
+const ownExpiry = c => (window.dateOnly
+  ? dateOnly(c && ((c.metadata&&c.metadata.expiryDate) || c.expiry))
+  : ((c && ((c.metadata&&c.metadata.expiryDate) || c.expiry)) || null));
 /* When an amendment took effect — used to order them. Falls back through the
    dates a migrated document actually tends to carry. */
 const amendmentDate = c => (c&&((c.metadata&&c.metadata.effectiveDate) || (c.fields&&c.fields.effDate) ||

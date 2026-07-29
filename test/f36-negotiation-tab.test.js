@@ -125,9 +125,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
      readable. Rewrite a clause and LCS latches onto whatever words the two
      versions happen to share — "the", "of", "value" — and interleaves them, so
      the passage is in the right boxes and cannot be read. */
+  /* ins and del are ELEMENTS now, carrying the nego-* hooks on their class list
+     alongside the utility names — see js/redline.js. */
   const strip = html => html
-    .replace(/<span class="nego-ins">/g, '[+').replace(/<span class="nego-del">/g, '[-')
-    .replace(/<\/span>/g, ']');
+    .replace(/<ins class="[^"]*nego-ins[^"]*">/g, '[+').replace(/<del class="[^"]*nego-del[^"]*">/g, '[-')
+    .replace(/<\/(ins|del|span)>/g, ']');
 
   test('a small edit marks only the words that moved, as one decision', async () => {
     const m = await mounted();
@@ -165,9 +167,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
     const before = 'The cap shall not exceed the full replacement value of the affected goods.';
     const after = 'The cap shall not exceed EUR 250,000 in the aggregate per contract year.';
     const html = m.win.negoDiffHtml(before, after);
-    const dels = [...html.matchAll(/<span class="nego-del">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const inss = [...html.matchAll(/<span class="nego-ins">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const eq = html.replace(/<span class="nego-(ins|del)">[^<]*<\/span>/g, '').trim();
+    /* <del> and <ins> elements now, carrying the nego-* hooks in their class
+       list — the reconstruction invariant is unchanged and is what this asserts. */
+    const dels = [...html.matchAll(/<del class="[^"]*">([^<]*)<\/del>/g)].map(x => x[1]).join(' ');
+    const inss = [...html.matchAll(/<ins class="[^"]*">([^<]*)<\/ins>/g)].map(x => x[1]).join(' ');
+    const eq = html.replace(/<(ins|del) class="[^"]*">[^<]*<\/\1>/g, '').trim();
     // nothing invented, nothing lost: context + deletions reconstructs the old
     assert.equal((eq + ' ' + dels).replace(/\s+/g, ' ').trim(), before.replace(/\s+/g, ' ').trim());
     assert.equal((eq + ' ' + inss).replace(/\s+/g, ' ').trim(), after.replace(/\s+/g, ' ').trim());
@@ -294,7 +298,10 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.equal(card.querySelector('[data-nego-accept]'), null,
       'a party must not be able to mark its own wording adopted');
     assert.ok(card.querySelector('[data-nego-discuss]'), 'but they can still discuss it');
-    assert.match(card.textContent, /\(your side\)/);
+    /* The marker moved out of the grey italic beside the author and into a
+       pill in the top row of the card — see f70. */
+    assert.match(card.textContent, /Your ask/);
+    assert.match(card.className, /is-mine/, 'and the card carries an edge, so it reads without being read');
   });
 });
 
@@ -371,7 +378,8 @@ describe('accept, reject and undo do what they say to the document', () => {
     assert.ok(!/ninety \(90\)/.test(m.win.docPlainText(m.c)),
       'the refused wording must not be in the contract');
     const clause = m.work(ch.clauseId);
-    assert.match(clause.textContent, /Rejected — baseline kept/);
+    // the label names the change it belongs to — see f58
+    assert.match(clause.textContent, /#CHG-\d+ rejected — baseline kept/);
     assert.match(clause.textContent, /one hundred and twenty \(120\) days/);
   });
 
@@ -613,7 +621,9 @@ describe('the one transition out', () => {
   test('the hand-off closes the round and makes the agreed wording the baseline', async () => {
     const m = await mounted();
     m.click('#nego-bulk-acc');
+    /* It asks before it closes the round — see f69. The stage confirms. */
     m.click('#nego-to-docs');
+    for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r));
     assert.equal(m.win.negoRound(m.c), 2);
     assert.match(m.win.negoBaseText(m.c), /forty-five \(45\) days/);
     assert.equal(m.win.negoChanges(m.c).length, 0, 'the decided set is archived onto the round');

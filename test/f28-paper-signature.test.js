@@ -115,7 +115,12 @@ describe('F28 — what it refuses to do', () => {
 
     assert.equal(await w.win.attachPaperSignature(c, scanFile()), null);
     assert.notEqual(c.status, 'Signed');
-    assert.match(w.toastText(), /open proposed edits/i);
+    /* F71 put both generations of the negotiation behind one helper, so the
+       refusal now names what is outstanding rather than saying "proposed
+       edits" whatever it found. The fact under test is unchanged: a scan of a
+       signature page does not get filed over a live disagreement. */
+    assert.match(w.toastText(), /still open/i);
+    assert.match(w.toastText(), /settle the negotiation/i);
   });
 
   test('it will not execute a contract twice', async () => {
@@ -125,14 +130,6 @@ describe('F28 — what it refuses to do', () => {
     const firstHash = c.hash;
     assert.equal(await w2.win.attachPaperSignature(c, scanFile('another.pdf')), null);
     assert.equal(c.hash, firstHash, 'the original seal must be untouched');
-  });
-
-  test('it will not run while the document is out in Word', async () => {
-    const w2 = buildWorld({ contractView: true }); installFileReader(w2.win);
-    const c = negotiated(w2);
-    c.wordReview = { out: true, since: w2.win.nowISO(), by: 'Wanjiru Kamau' };
-    assert.equal(await w2.win.attachPaperSignature(c, scanFile()), null);
-    assert.notEqual(c.status, 'Signed');
   });
 
   test('a viewer cannot execute a contract', async () => {

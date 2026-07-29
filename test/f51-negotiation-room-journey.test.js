@@ -184,8 +184,10 @@ describe('the link they were sent is the room, and the room is all there is', ()
   test('the owner-only controls are still absent, and the bulk verbs still present', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'])
+    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib'])
       assert.equal(v.$('#nego-room #' + id), null, id + ' is ours');
+    assert.equal(v.$('#nego-room #nego-share-link'), null,
+      'and Share Link is on neither bar now — see f70');
     assert.ok(v.$('#nego-room #nego-bulk-acc'), '"I agree to all of it" is a real answer');
     assert.ok(v.$('#nego-room #nego-bulk-rej'));
   });
@@ -247,11 +249,20 @@ describe('they work through the changes', () => {
      document.getElementById, which returns the FIRST match in the document:
      always the hidden one. So on their page the room's bulk verbs, index fold,
      drawer and per-change reply boxes had no handlers on them at all. */
-  test('the room\'s own bulk verbs are wired to the room, not to the copy underneath', async () => {
+  test('there is only ONE copy of the negotiation on the page, and the verbs reach it', async () => {
+    /* This used to assert there were TWO — the room, and a hidden embedded
+       mount underneath it — and then prove that a press reached the visible
+       one. The right answer was never "make sure the duplicate loses"; it was
+       to stop rendering the duplicate. Two copies meant two elements for every
+       id the room uses, and portalRespond picked the button it reports
+       progress on with getElementById — so "Sending…" was being written onto a
+       copy nobody could see. On a negotiation link the room IS the page, so
+       the embedded mount is skipped and every id is unique again. */
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 2,
-      'the fixture must really have two copies, or this proves nothing');
+    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 1,
+      'exactly one negotiation on the page');
+    assert.equal(v.$$('[id="nego-cards"]').length, 1, 'and one change index');
     await v.press('#nego-bulk-acc');
     assert.match(v.$('#nego-send-decisions').textContent,
       new RegExp(`Send ${filed.length} decisions`), 'the press must reach the room');
@@ -814,18 +825,24 @@ describe('the mirror: we refuse their ask, and they withdraw it', () => {
    The awkward cases, tested because they are where this breaks
    ============================================================ */
 describe('the awkward cases', () => {
-  test('a refresh mid-journey loses UNSENT decisions, and the page says they are unsent', async () => {
+  /* THIS STAGE HAS NO ORIGIN, so every localStorage call in it throws — which
+     is a fair stand-in for private browsing, a locked-down device or a full
+     quota. On a browser that CAN remember, an unsent answer now survives the
+     reload; see f63. What must hold either way is the line below: the page
+     never claims an answer has travelled when it has not. */
+  test('an unsent decision is never reported as having travelled', async () => {
     const { c, filed } = await ownerProposed();
     const v1 = theirLink(c);
     await v1.press(`[data-nego-accept="${filed[0].id}"]`);
     assert.match(v1.$('#nego-send-decisions').parentElement.textContent.replace(/\s+/g, ' '),
       /Nothing has reached .* yet/, 'the page never claims a decision has travelled');
-    // reload: a fresh page on the same unchanged payload
+    assert.ok(v1.$(`[data-unsent="${filed[0].id}"]`), 'and the card itself says so');
+    // and where the browser cannot remember, the answer is simply not there
     const v2 = theirLink(c);
     assert.equal(v2.$('#nego-send-decisions'), null,
-      'they were held in the browser, and the browser is what was refreshed');
+      'nothing half-answered is left behind claiming to be ready to send');
     assert.equal(v2.$(`[data-nego-accept="${filed[0].id}"]`) != null, true,
-      'so the change is back to undecided rather than silently half-answered');
+      'the change is an open question again rather than a silent half-answer');
   });
 
   /* The send succeeds, the room repaints — and the room repaints from a payload
@@ -846,11 +863,20 @@ describe('the awkward cases', () => {
     assert.equal(v.$('#nego-send-decisions'), null, 'with nothing left waiting to go');
   });
 
-  test('but changing their mind is still allowed, and travels as a new decision', async () => {
+  /* Still allowed, and now a DELIBERATE act rather than the default state of
+     the card. Accept and Reject used to stay on a sent decision, so pressing
+     Send made the verbs reappear a moment later and there was no way to tell
+     from the card whether anything had gone — while the owner's copy of the
+     same change settled. See f59: the two sides render the same. */
+  test('but changing their mind is still allowed, behind Change decision', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
+    assert.equal(v.$(`[data-nego-reject="${filed[0].id}"]`), null,
+      'a sent decision is a decision, not a question still on the table');
+
+    await v.press(`[data-nego-redecide="${filed[0].id}"]`);
     v.win.promptDialog = async () => 'On reflection, no.';
     await v.press(`[data-nego-reject="${filed[0].id}"]`);
     assert.ok(v.$('#nego-send-decisions'), 'a new answer is a new thing to send');

@@ -224,8 +224,12 @@ describe('what is ours stays ours', () => {
     const { win, c } = await negotiated();
     win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
     const d = win.document;
-    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'])
+    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib'])
       assert.ok(d.getElementById(id), `${id} must still be on the owner's bar`);
+    /* Share Link left the bar in f70 — for both sides, and for a different
+       reason than the one this suite is about: it was a second way to do
+       what "Send to <them>" already does. Distribution is still ours. */
+    assert.equal(d.getElementById('nego-share-link'), null);
     assert.match(d.getElementById('nego-status').textContent, /Email:/);
     assert.match(d.querySelector('.nego-crumbs').textContent, /Contract Workspace/);
   });
@@ -308,11 +312,26 @@ describe('a SIGNING link is the signature — and it is a different link', () =>
     assert.ok(v.$('#nego-room #nego-exit'), 'and it can be left, because there is a page behind it');
   });
 
-  test('the signing verbs are on the page', async () => {
+  test('the signing verbs are on the page — one act, the rest behind a door', async () => {
+    /* There were five, rendered as equals: Approve & sign, Accept the wording
+       (without signing), Propose edits (redline), Request changes, Decline.
+       Three of them are the same sentence in a first-time reader's head, and
+       every one was named after what the system does rather than what the
+       person does. The link already knows it is for signing, so that is the
+       button; the other four keep their ids and their behaviour behind one
+       line of plain English, each relabelled as an act. */
     const v = theirPage(contract(), { purpose: 'sign' });
     const t = v.text();
-    for (const verb of ['Approve & sign', 'Accept the wording', 'Decline'])
-      assert.ok(t.includes(verb), `"${verb}" must be available on a signing link`);
+    assert.ok(t.includes('Sign this contract'), 'the one act the link is for');
+    assert.ok(t.includes('Not ready to sign?'), 'and a way to the alternatives');
+    const others = v.$('#pt-other');
+    assert.ok(others, 'the alternatives are on the page');
+    assert.ok(others.className.includes('hidden'), 'but not competing with the signature');
+    for (const id of ['pt-accept', 'pt-redline', 'pt-changes', 'pt-decline'])
+      assert.ok(v.$('#' + id), `${id} must still exist and still work`);
+    for (const label of ['Change the wording yourself', 'Tell them what you want changed',
+                         'Decline this contract'])
+      assert.ok(others.textContent.includes(label), `"${label}" names the act, not the mechanism`);
   });
 
   /* The fallback, kept because links created before purposes existed are still

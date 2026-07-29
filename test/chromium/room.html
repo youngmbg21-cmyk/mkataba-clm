@@ -166,6 +166,11 @@ window.READY = (async () => {
     await negoEditClause(c, cl.clauseId, body,
       { side:'counterparty', author:'Erik Lindqvist · Nordfrakt Logistik AB', summary });
   }
+  /* A NAMED VERSION, taken the way a person now takes one. A version is no
+     longer a side-effect of accepting a change, so a contract nobody has
+     snapshotted has nothing to compare against — which is correct, and means
+     this harness has to take one to exercise the compare screen at all. */
+  captureVersion(c, 'Before the redline went out', 'Wanjiru Kamau');
   negoPostComment(c, negoChanges(c)[0].id,
     'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments. Net-45 matches every other supplier we run.',
     { side:'counterparty', author:'Erik Lindqvist' });

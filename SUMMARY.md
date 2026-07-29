@@ -2904,3 +2904,917 @@ four; `f44` and `f49` rewritten where "Add a clause" was asserted.
 
 The version-list naming question above — that's the one thing from these five I
 handed back rather than guessed at.
+
+## Follow-up: snapshots are now named
+
+You take a snapshot, you name it, it saves. That's the model now, and it
+answers the version-list question I'd handed back.
+
+**What counts as a version:** the ones you name, plus three milestones nobody
+should have to remember — the original wording, a negotiation round closing, and
+signing. That's it. Accepting a single change, sharing the contract, or handing
+the turn over no longer creates something in the list.
+
+**What the list looks like now** on a contract negotiated in the room:
+
+- Original Baseline
+- Working Version
+- v1 · Round 1 closed
+
+instead of `#CHG-001 accepted — Clause 4`, `Shared for review` and
+`Round 1 — sent to Juno Limited`.
+
+**The copies still get taken behind the scenes**, they're just not shown. That
+isn't tidiness — two things genuinely need them. The copy taken before your
+first edit is **the only record of the original wording**, and reviewing a
+returned redline compares against the most recent copy when the response doesn't
+carry its own starting point. Deleting those would have lost real things
+quietly.
+
+**One bug I hit building it, worth knowing about.** A round closes seconds after
+its last change was accepted, so the wording is identical and HaTi refuses a
+duplicate — which meant the *invisible* per-change copy stayed and the "Round 1
+closed" milestone never appeared. A milestone now takes over the copy that's
+already there and renames it. The existing tests caught this on the first
+attempt.
+
+**Naming is required.** Cancel or leave it blank and nothing is saved — better
+no version than one you can't identify in six weeks, which is what "Manual
+snapshot" filed three times over gave you. And a snapshot of wording that hasn't
+changed is refused with a reason rather than filed as a duplicate.
+
+**Old versions are untouched.** Anything already stored still appears — changing
+how versions are taken shouldn't retire the ones you already have.
+
+**One thing that still doesn't exist:** you can look at and compare old versions,
+but you can't roll a contract back to one. I checked the code before saying so.
+
+**990 tests passing, 72 of 72 browser checks.**
+
+---
+
+# Negotiation loop — Wanjiru & Erik
+
+## In one line
+
+Two people can now negotiate a contract inside HaTi across six rounds without
+anything falling on the floor. Before this loop, three separate things stopped
+them — and one of them was losing a whole round of work in silence.
+
+**Final score: 8 out of 10.** Cycles run: 2 (4/10 → 8/10). I stopped at two
+because the session budget ran out, not because it reached 10. What still
+blocks a 10 is listed at the bottom, plainly.
+
+## What was wrong, in plain words
+
+**1. The very first send was labelled "sign".** Wanjiru presses Share on a fresh
+draft. HaTi decided, on its own and without saying so, that a contract nobody
+had discussed must be one that is ready for signature. Erik opened the link and
+saw a green tick and the words "Ready to sign". Nothing on his screen offered to
+negotiate. The negotiation never started.
+
+**2. Erik could ask for a change, and then had nowhere to send it.** He pressed
+the button on a clause, typed what he wanted, saved it. HaTi recorded it
+properly — numbered it, fingerprinted it, showed it in the list. And there was
+no Send button anywhere on the page. If he closed the tab, the work was gone.
+Wanjiru's app never knew he had asked.
+
+**3. When he did get an answer through, it disappeared.** Erik accepted
+Wanjiru's counter-wording and withdrew the point she had refused. His screen
+said sent. HaTi's server marked it done. Wanjiru's contract showed neither. The
+cause was a race in the code: the answers were written into memory and then a
+screen refresh loaded the older copy back over them a fraction of a second
+before they were saved. Because the server thought the message had been
+delivered, it never sent it again. A whole round, gone, with no error anywhere.
+
+## What changed
+
+- **The Share screen asks what the link is for** — Negotiate or Sign — with one
+  sentence each saying which screen the other side will land on. The default
+  now reads whether the deal is finished, not whether it has started.
+- **The counterparty can send the changes they ask for.** The button in the
+  change list counts them, names them, and posts them. Wanjiru's copy re-files
+  each one itself, so the fingerprint and its place in the chain are minted on
+  the record rather than taken on trust from a public page.
+- **The button is called "Change", not "Edit"**, and the screen says where to
+  press before anything has been proposed.
+- **Answers are saved before anything redraws.** That is the fix for the lost
+  round.
+- **A withdrawal now counts whichever button sends it.** Before, taking a
+  refused point off the table only worked if you pressed "Ready to sign"; press
+  "Send" instead and it was thrown away.
+- **One person, one link.** Sending the next round refreshes the link Erik
+  already has instead of quietly minting a second one and leaving the first
+  live. The screen says so.
+- **One next action, not two.** With changes waiting, the contract page says
+  "Nordfrakt AB is waiting on you — 2 changes to decide" instead of offering an
+  unrelated step.
+- **You can go back to an earlier version.** Restore saves the wording you have
+  now as its own version first, so nothing is lost and the history stays honest.
+  It refuses while a change is still open, and says why.
+- **The version list is no longer empty.** Sending a draft, and handing a turn
+  over, now file a version a person can name and come back to.
+
+## What was verified, and how
+
+Everything above was walked in a real browser against a running server, with two
+pages open — Wanjiru's workspace and Erik's link — clicking the actual controls.
+Not one item was marked fixed on the strength of reading the code.
+
+The full six-round walk now ends with Wanjiru's page showing: *"Ready to sign —
+Erik Lindqvist signalled they are ready to sign · 3 changes settled, 2 adopted
+into the wording, 1 ask withdrawn. Nothing is signed yet. [Issue a signing
+link]"* — and that survives reloading the page.
+
+**990 automated tests, 0 failures.**
+
+## What is still open
+
+- **Signing itself was not driven to a finished, executed contract.** The
+  readiness signal, the "Issue a signing link" route and the signing panel are
+  all present and correct. The signature pad and the one-time-code step were not
+  walked. Round 6 is verified up to the signature and no further. This alone
+  keeps the score off 10.
+- **The counterparty's signing page still offers five overlapping choices** —
+  approve and sign, accept the wording, propose edits, request changes, decline
+  — with nothing saying which is which. Negotiation links now open the room
+  instead, so it is no longer the first thing anyone meets, but it is still a
+  fork with no signpost.
+- **Nothing on the owner's screen updates itself.** An answer appears when she
+  reloads, or up to 45 seconds later. Correct, but late.
+- **Two copies of the negotiation screen exist in the counterparty's page** —
+  one hidden behind the other — which duplicates every internal name the visible
+  one uses. Not visible to a user today. It cost an hour of this session's
+  debugging and it is the kind of thing that causes a silent fault later.
+- **The contract still says "Drafting"** all the way through a negotiation.
+- **Layout was not checked.** This container has no internet access to the
+  stylesheet the app loads from a CDN, so every screen rendered unstyled.
+  Wording, controls and behaviour were testable; spacing and tap targets were
+  not, and nothing here claims they were.
+
+## Update — round 6 driven to the end
+
+The one thing left open above has been closed. Signing was walked all the way
+through in the browser, both sides, to an executed and sealed contract.
+
+**It works.** Wanjiru issues the signing link from the readiness message; Erik
+opens it, types his signature, is told plainly that this workspace cannot check
+his email address and that the record will say so, and signs; she is told her
+signature is all that is left; she signs; the contract is sealed and a copy goes
+to both parties.
+
+Getting there found four more faults, all now fixed and re-checked:
+
+1. **Erik signed and the top of his page still said "Ready to sign."** The
+   buttons were correctly spent, but the biggest words on the screen went on
+   telling him to do what he had just done.
+2. **Wanjiru was never told he had signed.** Her page still offered "Send for
+   review" — a step the contract had passed three rounds earlier — when the only
+   thing left in the whole deal was her signature.
+3. **The signed copies were never actually sent, and the reason given was
+   nonsense.** The app asked the server to email the executed contract a
+   fraction of a second before it had finished saving the fact that it was
+   signed. The server, reading the older saved copy, replied *"Contract is not
+   executed yet"* — and that sentence was then printed in the signature panel of
+   a contract the same panel had just marked *Executed and sealed*, with both
+   parties shown as **Failed**. This is the same underlying mistake as the lost
+   round, in a different place. Both recipients now show **Sent**.
+4. **The final screen did not refresh.** After signing, the page kept saying
+   "your signature is the only thing left" on a contract that was already
+   sealed, until you reloaded.
+
+**Score after this cycle: 9 out of 10.** Three cycles: 4 → 8 → 9. 990 tests, 0
+failures.
+
+**Why not 10.** Four things are still true, and a strict reviewer would mark all
+four: the counterparty's signing page still offers five overlapping choices with
+no signpost; nothing on the owner's screen updates itself; there are two copies
+of the negotiation screen in the counterparty's page sharing the same internal
+names; and the contract calls itself "Drafting" through an entire negotiation.
+On top of that, **the layout has never been checked** — this machine cannot
+download the app's stylesheet, so every screen was tested unstyled. A ten would
+mean someone had looked at it properly on a real screen. Nobody has.
+
+## Update — the four open items are now closed
+
+Fair challenge: three of the four things I had been listing as reasons for the
+score were things I *chose* not to fix, not things I couldn't. All four are
+done, and each was re-checked in a live browser.
+
+**The contract no longer calls itself "Drafting" all the way through.** Sending
+it to the other side is what moves it to "In Review" — that is the moment it
+stops being a draft. Re-walking this immediately caught something worse hiding
+behind it: once the status moved, the page started offering Wanjiru a **Sign**
+button on a contract she had sent out ten seconds earlier for the buyer to argue
+with. Her page now says *"It is with Nordfrakt AB. Nothing needs you until they
+answer"*, and switches to *"Nordfrakt AB is waiting on you"* when they do.
+
+**Erik's signing page now asks one question.** It was five buttons that all
+sounded alike. It is now one — **Sign this contract** — with a single line
+underneath, *"Not ready to sign?"*, that opens the other four. Each of those is
+renamed to describe what he is doing rather than what the software calls it:
+*Change the wording yourself*, *Tell them what you want changed*, *Agree to the
+wording but don't sign yet*, *Decline this contract* — each with one sentence
+saying what happens.
+
+**The duplicate hidden screen is gone.** Erik's page was building the whole
+negotiation twice, one copy invisible behind the other, and both copies used the
+same internal names for the same parts. This was causing a real fault: when he
+pressed Send, the word "Sending…" was being written onto the invisible copy
+while the button he was looking at said nothing. There is now one copy. It was
+being kept only because a test read it; the test now reads the copy a person can
+actually see, which is a better test.
+
+**Her screen keeps up on its own now.** It used to check for news every 45
+seconds regardless. It now checks every 12 seconds while she is looking at a
+contract that is out with the other side, and immediately when she returns to
+the browser tab. Measured: Erik sends a proposed change, and her page updates
+itself **17 seconds later without her touching anything**.
+
+**990 tests, 0 failures.** Two tests were rewritten, with the reason written
+into them.
+
+## What is left
+
+One thing, and I cannot fix it from here: **nobody has seen any of this on a
+properly styled screen.** The app downloads the file that gives it its colours,
+spacing and button sizes from the internet, and this machine has no access to
+it. Every screen in every cycle came up as plain text. So I can tell you the
+steps work — I have driven them end to end, twice over — but not that they
+*look* right, are readable, or are usable on a phone. Someone needs to open it
+on a normal computer and look.
+
+---
+
+# Round 8 — the conversation on a change, and the signals around it
+
+Five things. One was a real bug that was losing people's words; the rest are the
+screen saying out loud what it already knew.
+
+## The bug: replies were disappearing
+
+Erik types an answer under a proposed change. He sees it appear. He presses
+Accept on that same change a moment later — and his own words are gone.
+
+**They were never lost.** They were on the server the whole time, and they were
+in the discussion panel. But a page that shows you your comment and then takes
+it away has told you it was lost, and there is no difference to the person
+reading it.
+
+Why it happened: a comment on a change has two places it can live. On our side
+it goes onto the contract record itself. On Erik's side it cannot — his page
+holds a *copy* of the contract built fresh from the link every time anything on
+the screen moves, so anything written onto it is thrown away seconds later. His
+replies therefore go to a separate message store, and that store was never being
+read back in when the page rebuilt itself.
+
+Three parts to the fix.
+
+**The two stores are read as one thread**, on both sides, with the same piece of
+code. A comment written in both places — which is what happens every time *we*
+post one — counts once, not twice. They read in the order they were said.
+
+**Erik's page puts them back** every time it rebuilds. Same treatment his
+proposed changes already had, for exactly the same reason.
+
+**Our side now fetches them**, on opening the negotiation and again on the same
+12-second beat that already watches for his answers. Before, a reply sat on the
+server until somebody reloaded the page. The screen only repaints when something
+has actually arrived — repainting on every beat would rebuild the room under you
+and take the reply box you were typing into with it.
+
+**And found while fixing it:** the reply was posted and the screen repainted at
+the same moment, without waiting. So the repaint often read the message store a
+fraction of a second before the reply reached it. It now waits.
+
+## Discuss flashes amber when somebody is waiting
+
+"Discuss (2)" reads exactly the same whether the last word was theirs an hour
+ago or yours a moment ago. A question addressed to you sat on a card looking
+identical to a settled conversation.
+
+The button now pulses amber when **the last word is theirs and it arrived since
+you last opened that thread** — both halves, because either one alone is wrong.
+"Their word is last" nags for ever once you have read it and chosen not to
+reply; "newer than my last look" lights up over your own comment.
+
+Opening the thread stops it. So does answering. Which threads you have read is
+kept in your own browser and never travels with the contract: it is a fact about
+you, not about the agreement, and the other side can neither see it nor change
+it.
+
+## "Send N decisions" pulses until you press it
+
+Decisions you have taken and not sent are the one state on that screen with
+nothing to show for themselves — you have answered, they have heard none of it,
+and the page looks finished. The button now pulses between the room's two blues
+until it is pressed. On both sides. Nothing to switch off afterwards: the button
+stops being drawn the moment there is nothing held.
+
+Both flashes stop, and hold a static colour instead, for anyone whose device is
+set to reduce motion. Someone who asked for less movement did not ask to be told
+less.
+
+## The reply button now says "Save"
+
+It said "Send", a few inches from another button reading "Send 2 decisions" that
+does something completely different. Same behaviour, including Enter — only the
+word changed, and only on the reply box.
+
+## Accepted / Rejected moved onto the buttons' line — and now names the change
+
+The status was being pushed inside the clause's own heading, so a clause read
+"Clause 4 · Payment Terms Accepted" — the status looked like part of the title,
+and on a narrow pane it pushed the heading onto two lines. It now sits on the
+same row as Change and Delete, immediately before them, where the controls for
+that clause already are. On read-only screens, which have no button row, it
+stays exactly where it was.
+
+**And it names the change: "#CHG-001 accepted", not a bare "Accepted".** Raised
+after the first pass, and right. A clause block is whatever sits between two
+headings, and in a real contract that can be a great deal — in the WH document
+the heading "AND" swallows the parties, the RECITALS line, three WHEREAS
+paragraphs and "NOW, THEREFORE" into a single block. One bare "Accepted" over a
+slab like that reads as a verdict on every paragraph beneath it, and the reader
+has no way to tell which part of it the word is about.
+
+The wider practice worth recording, because it decided this: in Word, Google
+Docs and the serious contract tools, **the marking IS the status in the
+document** — accept a change and the mark-up simply disappears, leaving ordinary
+text. No permanent "Accepted" sticker is left in the body; the written record
+lives in the review panel. Measured against that, this app was saying the same
+thing three times: the margin fingerprint turns green with a tick, the change
+index says "accepted", and now the document said it too.
+
+Removing it from the document altogether would be the more orthodox answer, and
+was offered. It was not taken because the margin fingerprint signals status
+largely by colour, and colour alone is a poor signal for a reader who cannot
+easily tell green from red. Naming the change keeps a readable label and removes
+the ambiguity for the cost of one word.
+
+Still open, and deliberately not touched: the real cause of the oversized block
+is that "AND" is read as a clause heading. Fixing that means changing where one
+clause ends and the next begins — which is the anchor the fingerprints are
+attached to, so it moves hashes. A separate conversation.
+
+## What was deliberately not touched
+
+The comparison engine, the fingerprints and the change model — none of this
+changes what is compared or what is signed. Accept All and Reject All are
+untouched. The mobile/WhatsApp counterparty portal is untouched; the two changes
+inside `js/views/portal.js` are the ones named in the brief — putting replies
+back on the rebuilt page, and the pulse on that page's own send button.
+
+**1067 tests, 0 failures.** 25 new ones covering all five, including the two
+faults found while fixing the first. Three existing tests were updated to the
+new label wording, and two were rewritten off the wall clock — they stamped a
+comment with "now" and compared it against a fixed fixture time, so whether they
+passed depended on the hour the suite happened to run.
+
+## Still true from earlier rounds
+
+**Nobody has seen any of this on a properly styled screen.** This machine cannot
+reach the file that gives the app its colours and spacing, so every screen comes
+up as plain text. The behaviour is driven end to end and tested. Whether the
+amber flash reads as urgent rather than broken, and whether the blue pulse is
+noticeable without being irritating, are judgements that need a person looking at
+a real screen.
+
+---
+
+# Round 9 — a decision that has gone is a decision
+
+## The bug: the counterparty's cards would not settle
+
+Erik answers every change, presses "Send 2 decisions" — and Accept and Reject
+come straight back onto the cards. Meanwhile Wanjiru's copy of those same
+changes settles into its answered state. Two people looking at one negotiation
+and reading different screens about the same answers.
+
+The reasoning behind it was sound and the effect was not. Changing your mind
+after sending IS a real thing to be able to do, so the verbs were left on a sent
+card. But that made the exception the normal state of every card, and left Erik
+with no way to tell whether anything had left his browser at all.
+
+**A sent decision now looks like a decision**: the answer, a "sent" mark, and
+Discuss. Same as Wanjiru's.
+
+### A second cause, found while fixing the first
+
+The same fault wearing a different coat, and worth reporting because nobody
+would have noticed it from the screenshot. Erik's page was re-filing every
+decided change as *unsent* on every redraw — including redraws that decided
+nothing. So merely opening a Discuss thread on a change he had already answered
+brought back "Send 1 decision", removed the "sent" mark and restored Undo. One
+click that touched nothing, and the page had forgotten the answer ever left.
+
+A held decision is now one that actually *differs* from what was sent.
+
+### Changing your mind is kept, behind one click
+
+On a sent, answered card there is now a small **"Change decision"** link. Press
+it and Accept / Reject come back for that one card. Answering again files a new
+decision and it travels exactly as the first did.
+
+Nothing about the change itself moves when you press it — not its status, not
+its fingerprint, not what the other side is holding. It only puts the buttons
+back on your own screen, and only until you use them. Which cards you have
+re-opened is where you are looking, not a fact about the agreement: it never
+reaches the record or the link.
+
+## Two buttons renamed
+
+**"Read as agreed" → "Clean Read".** The old label described the *arrangement*
+rather than the *view*, on the one screen where what has and has not been agreed
+is the entire question. The tooltip no longer implies agreement either: "Read
+both documents clean — removed wording out, proposed wording in. Nothing is
+accepted."
+
+**"Show the redline" → "Show changes."** Same button, other state. Its tooltip
+is now "Put the change marks back", and the banner that appears in clean read
+was brought into line with both — it is headed "Clean read" and its way out
+reads "Show changes".
+
+## What was deliberately not touched
+
+The comparison engine, the fingerprints and the change model. Accept All and
+Reject All are unchanged. The mobile/WhatsApp portal is out of scope; the two
+edits inside `js/views/portal.js` are the second cause of the reported bug.
+
+**1079 tests, 0 failures.** 12 new. One existing test — the counterparty
+changing their mind after sending — now presses "Change decision" first, which
+is the behaviour change itself.
+
+---
+
+# Round 10 — arriving at a negotiation shows what is being negotiated
+
+Reported from a screenshot: the negotiation opened on a **clean document** — no
+marks, no changes visible, and a button reading "Show changes" — with no memory
+of having asked for that. Two faults behind it.
+
+## Two buttons saying "Show changes"
+
+The grey bar across the top carried its own exit, and the working document pane
+carried the toggle. Two buttons a few inches apart, doing exactly the same
+thing — and the one further from the document was the more prominent of the two.
+
+The bar's button is gone. The bar itself stays, because the sentence on it is
+the whole point of it: *"Nothing has been accepted — 1 change is still open."*
+The way out is now the same control that opened the mode, in the place you
+pressed to get there.
+
+## Clean Read was outliving the room
+
+This is what the screenshot was actually showing, and it is worth stating
+plainly because nothing on screen said it.
+
+Clean Read — and version comparison alongside it — were remembered for as long
+as the browser tab was open. Take a clean read, step out to the Docs page, come
+back to the negotiation, and it opened clean: every change invisible, on the one
+screen you go to in order to look at them.
+
+Nothing was broken, and nothing said so. The screen simply was not the screen
+you expected, and the single thing you had come to do was the single thing you
+could not see.
+
+**Arriving now always shows the changes.** Every entry starts on the redline,
+with every change across every clause marked up and fingerprinted. A version
+comparison left open behaves the same way — you arrive at the live round, not at
+wherever the last visit was abandoned.
+
+**Repaints deliberately do not reset it.** If you are reading the contract clean
+and accept something as you read, you stay in Clean Read. A mode that switched
+itself off every time you decided something would fight you the whole way
+through.
+
+## The flow, as it now runs
+
+1. Open Negotiation → every change, across every clause, marked up in the
+   document with its fingerprint in the margin
+2. Click a card in the right-hand panel → both documents jump to that clause and
+   highlight it; Accept, Reject and Discuss are on the card *(unchanged)*
+3. Click **Clean Read** → the contract as it would read if every change were
+   agreed, with the bar saying plainly that none of them has been
+4. Click **Show changes** → back to the redline
+
+## What was not touched
+
+The comparison engine, the fingerprints and the change model. Accept All and
+Reject All. The mobile/WhatsApp portal.
+
+**1087 tests, 0 failures.** 8 new. Two existing tests asserted the bar's button
+existed; both now assert there is exactly one way back, which is the change.
+
+---
+
+# Round 11 — an answer lands on both screens
+
+Reported as one bug. It was two, one on each side of the wire, and both were
+real.
+
+## Bug 1 — the owner's screen did not move
+
+Erik accepts a change and sends it. The answer arrives, and it is applied to the
+contract correctly. Wanjiru, sitting in the negotiation at that moment, goes on
+reading **PENDING**.
+
+The negotiation room is a full-window layer that sits *over* the normal page.
+The refresh that runs when an answer arrives rebuilds the page **underneath**
+it, and never touches the room. So the record was right, the screen she was
+reading was wrong, and nothing on it said so. Leaving the negotiation and coming
+back showed the truth — which is the worst kind of fix, because only somebody
+who already suspects a problem ever finds it.
+
+The room now repaints when an answer lands on the contract it is showing. Only
+that contract: somebody else's deal moving must not rebuild the screen you are
+standing in.
+
+## Bug 2 — their link served a photocopy
+
+Proved end to end against a real server. Erik accepts, sends, we receive and
+apply it — and then he reloads his link:
+
+    what his link still serves:  CHG-001, pending
+
+The link hands out a copy of the contract taken **when the link was made**.
+Nothing updated that copy when his own answers were applied. So reloading
+replayed the negotiation as it stood before he touched it: decision needed,
+Accept and Reject, on a change he had already answered. From where he sits that
+is indistinguishable from his answer having been thrown away.
+
+His link is now caught up quietly whenever an answer is applied — and *quietly*
+is the whole design of it:
+
+- **no email.** The existing "Send updated version" emails him. Firing that
+  every time he answered something would put "we have updated the contract" in
+  his inbox in response to his own click.
+- **not counted as a send.** The history records what was sent, and this was not
+  sent to anybody.
+- **and it does not forget he opened it.** Whether he has seen the current
+  wording is a fact about him. Bookkeeping he never asked for must not reset it.
+
+Telling him something has changed stays a deliberate act. That button is
+untouched, and still emails, and still counts.
+
+## The reply button says "Send"
+
+It was briefly "Save", to keep it apart from the "Send N decisions" postbox
+below it. That was the wrong call: the comment goes to the other side the moment
+the button is pressed, and a button whose word does not match what it does is
+the worse of the two problems. The postbox keeps its own word.
+
+## Long discussions fold back up
+
+A thread of a dozen replies made one card fill the whole change index and push
+every other change off the screen. Discuss has always been the toggle — but on a
+long thread the toggle is above the top of the window, so closing what you had
+just read meant scrolling back past all of it.
+
+**Hide** now sits at the top of the discussion itself, next to its heading,
+reachable the moment the thread opens and however long it gets. Closing it
+counts as having read it, so it does not go back to nagging. And the messages
+have a ceiling of their own with their own scroll, so a card can be open without
+becoming the entire index.
+
+**1098 tests, 0 failures.** 11 new, including the round trip walked both ways:
+counterparty accepts and sends → the owner's open room shows it → the
+counterparty reloads and still sees their own answer. Two f58 tests were
+reversed to the new wording, with the reason written into them.
+
+---
+
+# Round 12 — an answer that has not left the browser says so
+
+*"Why would I have to send a decision if I have accepted?"*
+
+Because on the counterparty's page a decision is **held** until they post it,
+and that is deliberate: the negotiation tracks whose move it is, each response
+hands the turn back and emails you, and until an answer is posted it can be
+undone with nothing on the record. Answering five changes is one round, not five
+separate acts.
+
+**The step was not the problem. Its invisibility was.** Press Accept, and the
+card goes green and reads "accepted". The only thing anywhere saying you had not
+finished was a line of small print under a button at the bottom of the panel. So
+a reader answered, believed they were done, closed the tab, and lost the answer.
+
+## What a held answer looks like now
+
+Three signals, in the place the decision was made:
+
+- **"not sent yet"** in amber, beside the green "accepted" — because green
+  "accepted" is the half of this state the reader already believes
+- **the card itself** goes amber-edged, so five cards show at a glance which
+  have gone and which have not
+- **a line at the foot of the card** saying it in words: *"Not sent yet.
+  Highland Corporate Ltd has not seen this answer. Use the blue Send button
+  under the list to file it."*
+
+Sending clears all three and the "sent" mark takes their place.
+
+## A bug found before the badge could be trusted
+
+The badge could not be built until the page could tell **"held here"** from
+**"already filed"** — and it could not.
+
+Since round 11 the counterparty's link is caught up whenever their answer is
+applied. So reloading it serves a decided change. The page had no way to know
+that decision had come *from the record* rather than from this browser: it
+offered **Undo** on an answer the owner was already holding, and one harmless
+click — opening a discussion thread — brought back **"Send 1 decision"** for
+something that had been sent and applied twenty minutes earlier. A "not sent
+yet" badge on top of that would have lied on every reload.
+
+The page now keeps what the record says beside what this browser holds. An
+answer the record already carries is finished: no badge, no Undo, nothing to
+send. Answering *differently* is held again, and says so.
+
+## And the two sides answer differently, which is now stated rather than guessed
+
+The owner's decision is written to the record as it is made — no holding step,
+nothing to warn about, and Undo is simply theirs. The counterparty's is held
+until the round is sent, so their Undo lasts only while the answer is still in
+their browser, and after that changing it goes through "Change decision".
+
+That difference used to be inferred from a flag that is false on any reloaded
+page — which would have handed the owner's quiet Undo to an answer already filed
+with them. The page now says which of the two it is.
+
+**1117 tests, 0 failures.** 19 new across f62 and f63. One f51 test was
+rewritten: it asserted that a refresh loses unsent answers, which is now only
+true where the browser cannot remember — what it holds either way is that the
+page never claims an unsent answer has travelled.
+
+## And a reply in progress now survives closing the laptop
+
+The other half of the same complaint, done in the same round.
+
+Everything the counterparty had done and not yet sent lived only in the tab.
+Answer four changes, close the laptop, come back — and you had answered nothing.
+Wording typed into a Change went the same way, which is more work to lose than a
+click.
+
+It is now kept in their own browser, against the link it belongs to. Three
+things about that are deliberate:
+
+- **It is not a record.** Nothing in it has been agreed with anybody. It is a
+  draft of a reply, and every card goes on saying so until it is sent.
+- **It is keyed by the link.** A different link is a different negotiation, and
+  answers must never follow a reader from one deal to another.
+- **It expires after a month.** A reply nobody sent in March should not be put
+  back onto a link that has moved four rounds since.
+
+Sending it clears the draft, so reopening later never offers to send an answer
+that has already gone. And it degrades safely: a browser that will not remember
+— private browsing, a locked-down device, a full quota — behaves exactly as
+before, because every read and write is wrapped. A convenience that cannot
+remember must never be able to take the page down.
+
+---
+
+# Platform bug review — the second instance of each fault
+
+A sweep across the whole product for the *other* examples of the patterns the
+last few cycles each fixed once. The plain-English account is in `REVIEW.md`;
+the per-bug record is `BUGLOG.md` cycle 8. This is the tally.
+
+## Counts
+
+| | |
+|---|---|
+| Found | 12 |
+| Reproduced by a failing test | 12 |
+| Fixed | 12 |
+| Suspected, not reproduced — no code changed | 2 |
+| By design, not a bug | 2 |
+| Flagged as a product decision | 1 |
+
+## Test suite, before and after
+
+| | Tests | Suites | Pass | Fail |
+|---|---|---|---|---|
+| Before (clean checkout, `npm install` then `npm test`) | 1119 | 227 | 1119 | 0 |
+| After | 1151 | 233 | 1151 | 0 |
+
+32 new tests across five new files. No existing test was rewritten, weakened or
+deleted.
+
+- `test/f64-obligation-dates-and-stale-links.test.js` — obligation dates on the
+  calendar and in the agenda; the normaliser refusing free text; the owner's
+  decision reaching the counterparty's live link.
+- `test/f65-server-reminders-survive-bad-dates.test.js` — the server reminder
+  sweep, against a real server.
+- `test/f66-effective-expiry-is-a-date.test.js` — the expiry funnel, and the
+  Register, Home, Reports and sort order that read through it.
+- `test/f67-copilot-counts-obligations.test.js` — the portfolio snapshot and the
+  obligations chart.
+- `test/f68-obligation-counts-refresh.test.js` — the sidebar count following the
+  obligation it counts.
+
+**A note on the baseline.** The first attempt at a baseline run reported
+failures that had nothing to do with any of this: `node_modules` was absent, so
+every jsdom-backed test failed to load. `npm install` first; the numbers above
+are from a clean install.
+
+## What was found, in one line each
+
+1. One hand-typed expiry crashed the server's reminder sweep, and an empty catch
+   turned that into "every renewal reminder in the workspace stops, silently and
+   for good".
+2. Nothing caught the counterparty's live link up when *we* answered *them* —
+   the mirror of a fix already shipped for the other direction.
+3. The one function every screen reads an expiry through was never normalised:
+   `Invalid Date` printed in the Register, and the contract missing from Home's
+   expiring buckets, from the renewal pipeline and from the expiry sort.
+4. Obligation due dates were never normalised: invisible on the calendar,
+   missing from the agenda and the sidebar count, and never overdue.
+5. `dateOnly` handed unrecognised strings to `Date.parse`, which reads "Phase 2"
+   as 1 February 2001 — a confident wrong date where there should have been none.
+6. Copilot's portfolio summary counted completed obligations as open and
+   reported no overdue ones when there were.
+7. The obligations chart made the same two mistakes, drawn as fact.
+8. The sidebar count did not move when an obligation was completed, added or
+   removed.
+9. The server's renewal-decision deadline was a day early on any host east of
+   Greenwich.
+10–12. The silent halves of (1): milestone warnings, decision warnings and
+    obligation-overdue notices all skipped without a word, plus the empty catch
+    itself.
+
+## Judged too risky to fix here — for a supervised session
+
+**Day-first dates from a migration.** `2026/09/30` is read; `30/09/2026` — how a
+Kenyan or British spreadsheet writes it — is not, and becomes "we do not know".
+Reading it means deciding whether `03/04/2026` is 3 April or 4 March. That is a
+product decision about who the migration importer is for, and guessing it inside
+a bug fix would put a wrong date on a contract with nothing to say it was
+guessed. Left as "we do not know", which is at least honest, and raised in
+`REVIEW.md`.
+
+Nothing else was left unfixed. Two suspicions could not be made to fail and were
+therefore not treated as findings, and no code was changed for either: the
+handful of shell steps that run after a failed screen render are outside the
+error net but have no realistic failure on bad contract data, and the in-memory
+share list handed to the negotiation room has no refresh path but no
+demonstrable consequence.
+
+## Boundaries held
+
+The diff engine, the fingerprint/hash chain and the change model are untouched.
+The counterparty portal was read, walked and tested against, and not modified.
+No permission, folder-scope, money-masking or viewer-role check was weakened —
+none was touched at all. The link catch-up added here is the approved silent
+kind: it sends no email, creates no share record, marks nothing as re-sent and
+resets no opened-state, and the test asserts each of those.
+## Round 14 — the negotiation you can read back, and a round that asks first
+
+You sent a screenshot of a room reading "Round 2 · 0 of 0 changes resolved" and
+said the round you had just negotiated had disappeared. It had not — but you
+could not see it, and you could not get back to the wording it started from.
+Four changes.
+
+### The dropdown is named by round
+
+`Original Baseline · round 2` now reads **Round 2 - Baseline**. Round first,
+thing second, so the list reads as the sequence the deal actually went through:
+
+- Round 1 - Baseline
+- Round 2 - Baseline
+- Round 2 - Working Version
+
+Saved snapshots restart their numbering in each round, as you asked — the first
+snapshot of round 2 is **Round 2 - V1**, not V3. The app's own number for it
+(`v3`) is kept and shown in the small print under the pane, so nothing has two
+names you cannot connect.
+
+### The rounds that are over are on the list
+
+The wording round 1 started from was being stored the whole time and was never
+offered. It is now a row you can pick, so you can put the day-one contract on the
+left and today's working version on the right and see how far the deal has moved.
+
+One thing you will notice: **Round 1 - V1 · Round 1 closed** does not appear.
+That snapshot is word for word what "Round 2 - Baseline" says — closing a round
+is what makes the two identical — so it is one row, under the name you can always
+get back to. It is still in the version history; it is simply not a second answer
+to "which two documents do you want side by side".
+
+### The rounds that are over can be read
+
+Under the live changes there is now an **Earlier rounds** section, folded away.
+Open Round 1 and you get every change it settled: what was decided, why, who
+asked, the discussion, and the fingerprint.
+
+They are **read-only** and look it. No Accept, no Reject, no Undo, no reply box.
+A change settled in round 1 has already had its wording folded into the baseline
+— deciding it again would be inventing a second decision, and the fingerprints
+are sealed.
+
+The round in flight still comes first. The history sits underneath it, because
+the panel is what needs deciding, with the record below.
+
+### And a round no longer closes by surprise
+
+This is the one you spotted yourself. **"Send to Docs tab for signature"** is a
+button about signing that actually ends the round — archiving its decisions,
+making the agreed wording the new baseline, moving the counter and emptying the
+table. There is no way back; nothing in HaTi reopens a closed round.
+
+It now asks first:
+
+> **Close Round 1?**
+> This ends round 1 and starts round 2. The agreed wording becomes the new
+> baseline, so anything proposed from now on is measured against it. All 2
+> changes decided in this round (2 accepted) move into the history: still
+> readable, but no longer able to be changed, undone or decided again. A snapshot
+> is saved as "Round 1 closed". This cannot be undone — if they come back with
+> more asks, those open as round 2. Signing still happens on the Docs tab;
+> nothing here signs anything.
+>
+> [ Cancel ] [ Close round 1 and continue ]
+
+The counts are read off the contract, so you can check the sentence against the
+list in front of you. **Cancel means nothing happened** — not closed and
+reopened; the round never closed, the changes are still live, no snapshot, no
+audit line.
+
+**1142 tests, 0 failures.** 25 new in f69. Four existing tests were rewritten to
+the new names and the new list — they asserted the old labels and the old
+two-row dropdown, both of which were the thing being changed.
+
+Nothing here touched the diff engine, the fingerprints, the change model or the
+comparison text. Accept All / Reject All are exactly as they were, and the
+counterparty's page is unaffected.
+
+## Round 15 — the counterparty's screen catches up, and every card says whose it is
+
+Four things from your last sitting with it.
+
+### Their screen now shows what yours shows
+
+Their dropdown reads exactly like yours — `Round 1 - Baseline`, `Round 2 -
+Baseline`, `Round 2 - Working Version` — and they get the same **Earlier rounds**
+section, folded away and read-only.
+
+**And one thing you hadn't spotted.** Their page was putting *every change ever
+decided* into the live list. So a change you settled two rounds ago was sitting
+among this round's open questions, looking exactly as live as they did. Settled
+changes now move into the history where they belong, on their screen as on
+yours.
+
+The link carries about 4KB more per closed round. The limit is 15MB, so this is
+not close to a problem, and I chose not to cap it — capping would mean your
+oldest rounds silently disappear from their dropdown, which is the exact fault
+being fixed.
+
+### Every card says whose ask it is
+
+This is the answer to your "why do some cards have Change decision and some do
+not". Two markers, on purpose:
+
+- **A pill in the top row**, next to the change number: **`Your ask`** or
+  **`Nordfrakt Logistik AB's ask`** — their real name, not "the counterparty".
+- **A dark blue edge** down the left of your own cards, like the green edge on
+  your contract cards. Theirs are left plain.
+
+Words *and* colour, because colour alone fails on a printout, for a
+colour-blind reader, or on a phone. The old grey `(your side)` italic is gone —
+saying it twice in two places is how it got ignored the first time.
+
+I checked one thing before choosing the edge: the amber "not sent yet" edge can
+**never** land on the same card, because you can only hold a decision on the
+*other* side's ask. So the two never fight.
+
+Same code runs both screens, so the card you see as **Your ask** they see as
+**Wanjiru Catering Ltd's ask**. The two can't disagree.
+
+### Closed rounds in dark red
+
+On the dropdown rows and on the "Earlier rounds" heading, so the colour means
+one thing everywhere: *this is history, not live*. It's deliberately **not** the
+red used for a refused change — a closed round is finished, not rejected.
+
+On Safari and on phones the dropdown is drawn by the operating system and may
+ignore the colour. Every row still starts with `Round 1 -`, so nothing is lost
+where the colour doesn't land.
+
+### The send buttons, and Share Link
+
+**Send to Nordfrakt Logistik AB** and **Send to Docs tab for signature** are now
+bigger, filled and raised off the surface. They're the only two controls in the
+room that move the deal to its next state — everything else edits, reads or
+decides within it.
+
+**Share Link is removed.** It opened the very same dialog as "Send to
+Nordfrakt", from a spot next to Save Draft where nothing suggested it was how
+the contract reaches the other side. Sharing is still there from the contract
+workspace and the contracts list, for a third party or a re-send.
+
+One caution I flagged and you accepted: "Send to Nordfrakt" only appears when
+it's *your* turn. Once you've sent and are waiting on them, the room has no
+share button — you'd share from the workspace. Say the word if you'd rather that
+button stayed visible all the time.
+
+**1165 tests, 0 failures.** 23 new in f70. Six existing assertions were updated
+for the marker that moved and the button that went.

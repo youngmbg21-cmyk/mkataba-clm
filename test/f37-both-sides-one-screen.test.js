@@ -91,6 +91,22 @@ function counterpartyView(c, over = {}){
   };
 }
 
+/* WHERE THE COUNTERPARTY'S NEGOTIATION ACTUALLY IS.
+
+   On a negotiation link the room is the page, and the embedded mount under it
+   is no longer rendered — two copies of one component meant two elements for
+   every id the room uses, and everything reaching by id found the hidden one.
+   So the parity diff reads whichever copy is live: the room when the link is a
+   negotiation, the embedded host when it is a signing link the reader has
+   opened the room from. The claim under test is unchanged — one component,
+   both sides — and it is now diffed against the copy a person can actually
+   see. */
+function liveNego(win){
+  return win.document.querySelector('#nego-room-root .nego-work')
+      ? win.document.getElementById('nego-room-root')
+      : win.document.getElementById('pt-nego');
+}
+
 /* What a rendered negotiation says, reduced to the facts both sides must agree
    on. Read out of the DOM on each side, never out of the model — the point is
    that the two SCREENS match, and reading the model twice would prove nothing. */
@@ -146,7 +162,7 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     const o = await negotiated();
     const v = counterpartyView(o.c);
     const mine = readScreen(o.ownerDoc(), o.win);
-    const theirs = readScreen(v.$('#pt-nego'), v.p.win);
+    const theirs = readScreen(liveNego(v.p.win), v.p.win);
 
     assert.deepEqual([...theirs.clauses], [...mine.clauses], 'the same clauses');
     assert.deepEqual([...theirs.badges], [...mine.badges], 'the same fingerprints, in the same order');
@@ -160,7 +176,7 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     const o = await negotiated();
     const v = counterpartyView(o.c);
     const mine = readScreen(o.ownerDoc(), o.win);
-    const theirs = readScreen(v.$('#pt-nego'), v.p.win);
+    const theirs = readScreen(liveNego(v.p.win), v.p.win);
     assert.equal(theirs.inserted, mine.inserted);
     assert.equal(theirs.deleted, mine.deleted);
     // wordDiff segments per whitespace token, so a run is per word on both sides
@@ -172,10 +188,10 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
   test('the full SHA-256 travels — not a truncation they cannot quote back', async () => {
     const o = await negotiated();
     const v = counterpartyView(o.c);
-    for (const card of v.$$('#pt-nego .nego-hash'))
+    for (const card of Array.from(liveNego(v.p.win).querySelectorAll('.nego-hash')))
       assert.match(card.getAttribute('title'), /^0x[0-9a-f]{64}$/);
     // and it is the same digest the owner holds
-    const theirs = v.$$('#pt-nego .nego-hash').map(n => n.getAttribute('title'));
+    const theirs = Array.from(liveNego(v.p.win).querySelectorAll('.nego-hash')).map(n => n.getAttribute('title'));
     const ours = o.win.negoChanges(o.c).map(x => x.hash);
     assert.equal(theirs.join(','), ours.join(','));
   });
@@ -227,7 +243,7 @@ describe('the payload is what makes the two screens agree', () => {
     assert.equal(ch.status, 'accepted', 'the decision travels');
     assert.equal(ch.resolvedBy, undefined, 'the individual who made it does not');
     p.open(payload);
-    assert.ok(!/Wanjiru Kamau/.test(p.win.document.getElementById('pt-nego').textContent),
+    assert.ok(!/Wanjiru Kamau/.test(liveNego(p.win).textContent),
       'the organisation speaks, not a named employee');
   });
 });
@@ -240,7 +256,7 @@ describe('an action by one side shows up on the other', () => {
     // before: pending on both sides
     let v = counterpartyView(o.c);
     assert.match(v.$(`#nego-card-${ch.id}`).textContent, /pending/);
-    assert.match(v.$('#pt-nego').textContent, /thirty \(30\) days from the date of issue/);
+    assert.match(liveNego(v.p.win).textContent, /thirty \(30\) days from the date of issue/);
 
     // Wanjiru presses Accept in her own tab — the real control, not the model
     o.win.document.querySelector(`[data-nego-accept="${ch.id}"]`).click();
@@ -259,7 +275,7 @@ describe('an action by one side shows up on the other', () => {
     assert.ok(verdict.ok, `the chain Erik received must verify: ${verdict.detail}`);
     await v.p.win.negoRefreshVerification(o.c);
     assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✓/);
-    assert.match(v.$('#pt-nego').textContent, /forty-five \(45\) days/,
+    assert.match(liveNego(v.p.win).textContent, /forty-five \(45\) days/,
       'the agreed wording is on his page too');
   });
 
@@ -275,7 +291,7 @@ describe('an action by one side shows up on the other', () => {
     assert.match(card.textContent, /One hundred and twenty days is the whole point of the facility\./,
       'a refusal he cannot understand is a refusal he will send again');
     assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✕/);
-    assert.match(v.$('#pt-nego').textContent, /Rejected — baseline kept/);
+    assert.match(liveNego(v.p.win).textContent, /#CHG-\d+ rejected — baseline kept/);
     assert.ok(!/ninety \(90\)/.test(v.$('.nego-pane.baseline').textContent),
       'the refused wording is not in the document');
   });
@@ -337,7 +353,7 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const own = v2.$(`#nego-card-${o2.filed[0].id}`);
     assert.equal(own.querySelector('[data-nego-accept]'), null,
       'nobody rules on their own ask');
-    assert.match(own.textContent, /\(your side\)/);
+    assert.match(own.textContent, /Your ask/);          // f70 — a pill, not a grey italic
   });
 
   test('his decisions are held on the page until he sends them', async () => {
@@ -488,12 +504,12 @@ describe('the durable link keeps showing current state', () => {
     const p = buildPortal();
 
     p.open(sharePayloadFor(p, o.c));
-    assert.match(p.win.document.getElementById('pt-nego').textContent, /pending/);
+    assert.match(liveNego(p.win).textContent, /pending/);
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
     o.win.document.querySelector('#nego-bulk-acc').click();
     p.open(sharePayloadFor(p, o.c));
-    const txt = p.win.document.getElementById('pt-nego').textContent;
+    const txt = liveNego(p.win).textContent;
     assert.ok(!/pending/.test(txt), 'the old statuses must not survive the refresh');
     assert.match(txt, /accepted/);
     assert.match(txt, /Resolved: 3 \/ 3/);

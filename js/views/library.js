@@ -47,13 +47,15 @@ function createFromCustomTemplate(tid){
   buildFromCustomTemplate(t, {});
 }
 /* The actual creation, shared by the guided fill and the no-blanks path. */
-function buildFromCustomTemplate(t, values){
+function buildFromCustomTemplate(t, values, opts){
   const u=currentUser();
   const fs=templateFields(t);
   const tFmt=templateFormat(t);
   const body=fillTemplateBody(templateBody(t), values, tFmt);
   const cp=(()=>{ const f=fs.find(x=>x.maps==='counterparty'); return f?String(values[f.key]||''):''; })();
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'', value:0, status:'Draft',
+  const cpEmail=String((opts&&opts.counterpartyEmail)||'').trim();
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
+    counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
     template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{iprs:false,pki:false},
@@ -94,7 +96,16 @@ function openTemplateFillModal(t){
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(inp).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(inp).join('')}
+      ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
+             same act. Saved templates create contracts through their own fill
+             form, so adding the address to the guided wizard alone left every
+             contract made from "My templates" back where it started: asked in
+             the negotiation room, and again by the share dialog. */}
+      <label style="display:block">
+        <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
+        <input id="tf-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
+    </div>
     <div id="tf-err" style="font-size:11px;color:#8f322b;min-height:15px;margin-top:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">Cancel</button>
@@ -105,8 +116,11 @@ function openTemplateFillModal(t){
     const values={}, errs=[];
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
       const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+    const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
+    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
+      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
     if(errs.length){ document.getElementById('tf-err').textContent=errs[0]; return; }
-    closeModal(); buildFromCustomTemplate(t, values);
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim() });
   });
 }
 

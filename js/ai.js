@@ -667,7 +667,7 @@ function aiContractCard(c){
       <span class="block text-xs font-medium text-brand-900 truncate group-hover:text-brand-600 transition">${esc(c.name)}</span>
       <span class="block text-[10px] font-mono text-brand-800/65 truncate">${esc(c.counterparty||'—')} · ${!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):'no value')}</span>
     </span>
-    ${statusChip(c.status)}
+    ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
   </button>`;
 }
 /* Card lists lead with at most 3; the rest sit behind a "Show all" expander so
@@ -880,8 +880,16 @@ function aiPortfolioSnapshot(){
     .filter(Boolean).join(' · ');
   const parties=[...live.reduce((m,c)=>{ const k=(c.counterparty||'').trim(); if(k) m.set(k,(m.get(k)||0)+Number(c.value||0)); return m; },new Map())]
     .sort((a,b)=>b[1]-a[1]).slice(0,8).map(([k,v])=>`${k} ${money(v)}`).join(' · ');
-  const obs=(typeof allObligations==='function')?allObligations().filter(o=>!o.done):[];
-  const overdue=obs.filter(o=>o.due&&dU(o.due)<0);
+  /* THROUGH obState, WHICH IS WHAT COMPLETION MEANS HERE. This read `!o.done`,
+     and nothing in the product has ever written an obligation with a `done`
+     property — the workspace list, the overdue count and the calendar all read
+     `status === 'done'`. So the filter passed every obligation ever recorded,
+     and a customer who had ticked off nine of ten was told by Copilot that ten
+     were open. obligationDue for the same reason F64 exists: a due date typed
+     "31 March 2027" gave daysUntil NaN, and the overdue alarm went quiet. */
+  const _obState=(typeof obState==='function')?obState:(o=>(o&&o.status==='done')?'done':'open');
+  const obs=(typeof allObligations==='function')?allObligations().filter(o=>_obState(o)!=='done'):[];
+  const overdue=obs.filter(o=>_obState(o)==='overdue');
   const lines=live.slice()
     .sort((a,b)=>{ const ea=exp(a),eb=exp(b);
       if(ea&&eb) return String(ea).localeCompare(String(eb));
@@ -897,7 +905,13 @@ function aiPortfolioSnapshot(){
     parties?`Largest counterparties by value — ${parties}.`:'',
     `Expiring: ${win(30).length} within 30 days, ${win(60).length} within 60, ${win(90).length} within 90.`,
     win(90).length?`  Soonest: ${win(90).slice(0,6).map(c=>`${c.name} (${exp(c)})`).join('; ')}.`:'',
-    obs.length?`Open obligations: ${obs.length}${overdue.length?`, of which ${overdue.length} OVERDUE`:''}.`:'Open obligations: none recorded.',
+    /* Split ours from theirs, because the two are different answers to "what
+       is outstanding": one is our team's work, the other is what we should be
+       chasing them for. Counting them together was the reason a reader could
+       not act on the number. */
+    obs.length?`Open obligations: ${obs.length}${overdue.length?`, of which ${overdue.length} OVERDUE`:''}`
+      +`${(typeof obligationsOurs==='function')?` — ${obligationsOurs(obs).length} ours to do, ${obligationsTheirs(obs).length} theirs to chase`:''}.`
+      :'Open obligations: none recorded.',
     ``,
     `CONTRACTS (soonest to expire first; showing ${Math.min(live.length,AI_SNAPSHOT_CAP)} of ${live.length}):`,
     ...lines,

@@ -74,7 +74,17 @@ function openWizard(preTid){
       <button id="wz-back" style="font-size:11px;color:var(--color-accent-700);font-weight:600;font-family:var(--font-mono);background:none;border:0;cursor:pointer;margin-bottom:8px;padding:0;">← templates</button>
       <h3 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 3px;">${t.kind}</h3>
       <p style="font-size:12px;color:var(--color-neutral-600);margin:0 0 16px;line-height:1.5;">${t.blurb||''}</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${vars.map(input).join('')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">${vars.map(input).join('')}
+        ${''/* ASKED HERE, WHERE YOU ARE ALREADY NAMING THEM, AND NOWHERE ELSE.
+               The templates carry the counterparty's NAME; nothing carried the
+               address, so it was collected later — by a strip in the
+               negotiation room, and again by the share dialog when you pressed
+               Send. Three times for one fact, in one sitting. Once it is on the
+               contract the strip never appears and the send goes straight out. */}
+        <label style="display:block;">
+          <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Their email<span style="font-weight:400;color:var(--color-neutral-500);text-transform:none;letter-spacing:0"> → so you can send it to them</span></span>
+          <input id="wz-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">Cancel</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">Create draft</button>
@@ -102,6 +112,12 @@ function createFromWizard(tid, vars){
   // becomes the contract name, which every list truncates.
   if((values.counterparty||'').length>120)
     errs.push('The counterparty name is longer than 120 characters — use the registered name.');
+  /* Optional, and checked only if given: somebody drafting for their own file
+     may not know the address yet, and refusing to create the contract over it
+     would be worse than asking again later. */
+  const cpEmail=val('cpemail');
+  if(cpEmail && !/.+@.+\..+/.test(cpEmail))
+    errs.push(`"${cpEmail}" is not an email address — leave it blank if you do not have it yet.`);
   if(errs.length){ toast(errs[0],'err'); return; }
   const cp=values.counterparty||'';
   const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
@@ -113,6 +129,7 @@ function createFromWizard(tid, vars){
     signatures:[] };
   // the blanks ARE the database: every value lands on the contract AND in
   // c.metadata, with no separate data-entry step
+  if(cpEmail) c.counterpartyEmail=cpEmail;
   applyTemplateValues(c, vars, values);
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;

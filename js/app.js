@@ -7,7 +7,6 @@ import './docx.js';
 import './richdoc.js';
 import './clausemodel.js'; // what a clause IS: read from the DOM, identified by a durable id
 import './redline.js';   // the negotiation's diff: Myers ops, stored and rendered from storage
-import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';
 import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input
@@ -17,7 +16,6 @@ import './metadata.js';
 import './versioning.js';
 import './discuss.js';    // the light channel: talking about a point, not redrafting it
 import './negotiation.js'; // the fingerprinted change model every intake path converges on
-import './wordflow.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
@@ -33,6 +31,9 @@ import './dedupe.js';
 import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
+// the sandbox beside the Doc page: internal-vs-shared tried on a page that
+// cannot write to a contract or reach a share payload (see views/doclab.js)
+import './views/doclab.js';
 import './pdfrich.js';
 import './views/intelligence.js';
 import './ai.js';
@@ -92,6 +93,10 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
     }
+    case 'doclab': {
+      const c=getContract(state.activeId);
+      return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
+    }
     default: return ['HaTi', ''];
   }
 }
@@ -109,7 +114,11 @@ function updateSidebarCounts(){
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
-    calendar: (window.allObligations?allObligations().filter(o=>{ const d=window.daysUntil?daysUntil((o.due||'').slice(0,10)):null; return d!=null&&d>=0&&d<=60; }).length:0),
+    /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
+       2027" produces "31 March 2", which is not a date either — the count
+       simply left out every obligation whose date a person had typed. */
+    calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
+      const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
   };
@@ -120,24 +129,73 @@ function updateSidebarCounts(){
 }
 
 /* ============================================================ SHELL VIEW SWITCH */
+const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
+  calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
+  pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
+  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab' };
+
+/* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
+
+   A view is built from the whole portfolio, so one malformed record inside one
+   contract can take the screen down for every other contract on it. That is not
+   hypothetical — an expiry typed as "30 September 2026" made `toISOString()`
+   throw out of renewalDecisionDate, out of renderDashboard, and Home and
+   Calendar both went dead. And "dead" meant SILENT: the throw escaped before
+   setActiveNav ran, so the nav button never highlighted and pressing it looked
+   like a button that did nothing at all. Nothing on the screen, nothing in the
+   toast, nothing to report.
+
+   Two things follow, and the second matters more than the first. The render is
+   caught, so the rest of setView runs and the shell arrives in a coherent state
+   — the nav highlights, the sidebar counts update, the view is switched. And
+   the failure is SAID: named view, the error, and the record if the error
+   carries one. A screen that cannot draw itself must not pretend it was never
+   asked to. */
+function renderFailedHtml(view, e, cid){
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return `<div style="max-width:640px;margin:40px auto;border:1px solid #e6c9c1;border-left:4px solid #b0453c;
+      background:#fdf4f2;border-radius:8px;padding:16px 20px">
+    <div style="font-size:14px;font-weight:600;color:#8f322b;margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
+    <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">
+      Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
+      Every other screen still works, and nothing has been changed or lost.
+    </div>
+    <div style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:#8f322b;word-break:break-word">${esc((e&&e.message)||String(e))}</div>
+  </div>`;
+}
 function setView(view){
   // remember where the workspace was opened from, so its Back button returns
   // there (register, a folder, the queue, …) instead of always the folder view
   if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
   state.view=view;
-  if(view==='dashboard') renderDashboard();
-  else if(view==='folder') renderFolder();
-  else if(view==='intel') renderIntel();
-  else if(view==='calendar') renderCalendar();
-  else if(view==='reports') renderReports();
-  else if(view==='register') renderRegister();
-  else if(view==='migration') renderMigration();
-  else if(view==='pipeline') renderPipeline();
-  else if(view==='advice') renderAdviceDesk();
-  else if(view==='templates') renderTemplatesPage();
-  else if(view==='playbook') renderPlaybookPage();
-  else if(view==='team') renderTeam();
-  else renderWorkspace();
+  try{
+    if(view==='dashboard') renderDashboard();
+    else if(view==='folder') renderFolder();
+    else if(view==='intel') renderIntel();
+    else if(view==='calendar') renderCalendar();
+    else if(view==='reports') renderReports();
+    else if(view==='register') renderRegister();
+    else if(view==='migration') renderMigration();
+    else if(view==='pipeline') renderPipeline();
+    else if(view==='advice') renderAdviceDesk();
+    else if(view==='templates') renderTemplatesPage();
+    else if(view==='playbook') renderPlaybookPage();
+    else if(view==='team') renderTeam();
+    else if(view==='doclab') renderDocLab();
+    else renderWorkspace();
+  }catch(e){
+    /* The id, when the record can be named. An error raised deep in a helper
+       does not know which contract it was reading, so nothing is invented: the
+       id travels only when the thrower attached one, or when the view is about
+       a single contract and there is therefore no doubt which. */
+    const cid=(e&&e.contractId)||((view==='workspace'||view==='doc')?state.activeId:null);
+    try{ console.error('[hati] '+view+' failed to render', e); }catch(_){}
+    try{
+      const host=document.getElementById('content');
+      if(host) host.innerHTML=renderFailedHtml(view, e, cid);
+    }catch(_){}
+    if(window.toast) toast(`${VIEW_LABEL[view]||view} could not be drawn${cid?` — check ${cid}`:''}: ${(e&&e.message)||e}`,'err');
+  }
   setActiveNav(view);
   updateCommandBar(view);
   updateSidebarCounts();
@@ -145,6 +203,10 @@ function setView(view){
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+  /* Opening a contract that is out with the other side is the moment to start
+     watching closely, and leaving it is the moment to stop. */
+  if(window.schedulePolling) schedulePolling();
+  if(view==='workspace' && window.pollNow) pollNow('opened a contract');
   const sc=document.getElementById('content-scroll'); if(sc) sc.scrollTo({top:0});
 }
 function openFolder(fid){

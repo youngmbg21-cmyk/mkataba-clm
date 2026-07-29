@@ -81,6 +81,46 @@ db.exec(`
 `);
 
 const now = () => new Date().toISOString();
+/* ---- A DATE FIELD IS NOT ALWAYS A DATE, on this side of the wire too ----
+
+   The mirror of dateOnly()/isoDay() in js/obligations.js, and it has to exist
+   here for the same reason it had to exist there: an expiry or an obligation
+   due date can arrive from metadata extraction, a bulk migration or a
+   spreadsheet somebody typed, and then it reads "30 September 2026".
+
+   `new Date("30 September 2026" + "T00:00:00")` is an Invalid Date, and
+   `toISOString()` on one THROWS — which took the whole reminder sweep down.
+   The sweep is called on a twelve-hour timer inside a catch that swallows, so
+   one badly typed field on one contract stopped every renewal reminder for
+   every contract in the workspace, permanently and without a sound.
+
+   Only shapes a person actually writes a date in are offered to the parser:
+   outside the ISO grammar Date.parse falls back to a guesser that reads
+   "Phase 2" as 1 February 2001. Anything else is null — "we do not know", which
+   every caller handles by simply not firing. */
+const DATE_MONTH_RE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+const DATE_SHAPES = [
+  /^(\d{1,2})(?:st|nd|rd|th)?[ .\-]+([A-Za-z]{3,9})\.?,?[ .\-]+(\d{4})$/,   // 30 September 2026
+  /^([A-Za-z]{3,9})\.?[ .\-]+(\d{1,2})(?:st|nd|rd|th)?,?[ .\-]+(\d{4})$/,   // September 30, 2026
+];
+/* The calendar day a Date IS, read where the server stands. toISOString()
+   converts to UTC first, so midnight local on a Nairobi-hosted server came back
+   as the previous day — every decision deadline reported one day early. */
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function dateOnly(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : isoDay(v);
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  if (!/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s)) {
+    const shape = DATE_SHAPES.map(re => re.exec(s)).find(Boolean);
+    if (!shape || !DATE_MONTH_RE.test(shape[1].length > 2 ? shape[1] : shape[2])) return null;
+  }
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : isoDay(d);
+}
 const rid = (n=24) => crypto.randomBytes(n).toString('hex');
 const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 64).toString('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -1113,8 +1153,33 @@ app.get('/api/stats', auth, (req, res) => {
   const byFolder = db.prepare(`SELECT folder, COUNT(*) n,
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val,
       SUM(status='Under Review') pending FROM contracts ${w} GROUP BY folder`).all(...f.args);
+  /* ---- AND THE ONES WHOSE TERM HAS RUN OUT ----
+
+     "Active value" was every contract that was not Declined, so an agreement
+     that ended in 2023 kept its whole face value in the headline figure for
+     ever, and there was no count anywhere of how many had quietly lapsed. The
+     browser derives the same fact for the badge and the calendar
+     (contractExpired in js/core.js); this is the portfolio-wide answer, so the
+     dashboard's number and its chips cannot disagree.
+
+     Read in JS rather than compared in SQL because an expiry does not have to
+     be a clean YYYY-MM-DD — a bulk migration or a Copilot extraction can leave
+     "30 September 2026" in that column, and a string comparison against today
+     would silently call it expired. dateOnly is the same normalisation the
+     reminder sweep uses; a value that is no kind of date means "we do not know
+     when this ends", which is not a claim that it has ended. */
+  const today = isoDay(new Date());
+  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", f.sql)}`).all(...f.args);
+  let expired = 0, expiredValue = 0;
+  for (const r of signed) {
+    const day = dateOnly(r.expiry);
+    if (day && day < today) { expired++; expiredValue += Number(r.value) || 0; }
+  }
+  g.expired = expired;
+  g.expiredValue = expiredValue;
+  g.totalValue = Math.max(0, (Number(g.totalValue) || 0) - expiredValue);
   if (!canViewValues(req.user)) {
-    delete g.totalValue;
+    delete g.totalValue; delete g.expiredValue;
     return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
   }
   res.json({ ...g, byFolder });
@@ -2460,10 +2525,48 @@ app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
 });
 
-// Auto-distribution: email a sealed copy of the executed contract to every
-// party for their own records. The platform copy remains the source of truth;
-// this is a convenience copy (link + seal). Idempotency is enforced client-side
-// via c.distribution, but re-sends are allowed (Send again).
+/* ---------- WHO HAS ACTUALLY SIGNED ----------
+   Not the same question as "is the contract sealed", and reading one for the
+   other is how a notice went out saying a contract was "fully signed by all
+   parties" the moment ONE party had put a mark on it. A single-signer route
+   seals and freezes the wording on the first signature — which is correct, the
+   text has to stop moving — but sealing is a fact about the DOCUMENT and
+   execution is a fact about the PARTIES, and the email speaks about the
+   parties.
+
+   Fully executed means both named sides have signed. A contract with no
+   counterparty named has only one side to hear from; one filed as executed
+   outside HaTi carries the paper, which is already both. */
+function signedParties(c) {
+  const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const theirs = sigs.filter(isTheirs);
+  const ours = sigs.filter(s => s && !isTheirs(s));
+  const offPlatform = !!(c && ((c.execution && c.execution.offPlatform) || c.hash === 'MIGRATED'
+    || (c.migration && c.migration.executedOutside)));
+  const expectsCounterparty = !!String((c && c.counterparty) || '').trim();
+  const nameOf = list => String((list[0] && (list[0].name || list[0].email)) || '').trim();
+  return {
+    ours: ours.length, theirs: theirs.length,
+    ourName: nameOf(ours) || 'this workspace',
+    theirName: nameOf(theirs) || String((c && c.counterparty) || 'the counterparty'),
+    counterparty: String((c && c.counterparty) || '').trim(),
+    fully: offPlatform || (ours.length > 0 && (theirs.length > 0 || !expectsCounterparty)),
+  };
+}
+
+/* Distribution: email each party their copy of the executed contract. The
+   platform copy remains the source of truth; this is the convenience copy
+   (link + seal). Idempotency is enforced client-side via c.distribution, but
+   re-sends are allowed (Send again).
+
+   THE COPY GOES OUT ONLY WHEN BOTH PARTIES HAVE SIGNED, and that is the whole
+   point of the split below. A half-executed contract is not a document anybody
+   should be filing as their record of the deal: one side has committed and the
+   other has not, and a sealed copy with a fingerprint on it reads exactly like
+   a finished agreement. So while a signature is outstanding this sends a
+   PROGRESS NOTICE — who has signed, who has not — carrying no seal and no link
+   to the document. The copy itself follows when the last signature lands. */
 app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -2472,21 +2575,59 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
   const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
+  const st = signedParties(c);
+  const who = st.ours && !st.theirs ? st.ourName : st.theirs && !st.ours ? st.theirName : '';
+  const waitingFor = st.theirs ? st.ourName : (st.counterparty || st.theirName);
+  const subject = st.fully
+    ? `Fully executed — "${c.name}"`
+    : `Signed by ${who || 'one party'} — "${c.name}"`;
   const out = [];
   for (const r of recipients) {
     const email = String((r && r.email) || '').trim();
     if (!/.+@.+\..+/.test(email)) { out.push({ name: (r && r.name) || '', email, role: (r && r.role) || '', party: (r && r.party) || '', status: 'failed', at: now() }); continue; }
-    const subject = `Fully executed — "${c.name}"`;
-    const body = `Hello${r.name ? ' ' + r.name : ''},\n\n` +
-      `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
-      `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
-      `Document seal (SHA-256):\n${seal}\n\n` +
-      `Open it in HaTi:\n${appUrl}\n\n` +
-      `This is an automated notice from HaTi CLM.`;
-    const sent = await sendEmail(email, subject, body, `executed copy: ${c.id}`);
+    /* WHICH DOOR THIS PERSON IS ENTITLED TO.
+
+       Everybody used to get `appUrl` — the platform's own front door. For our
+       own people that is right: they have accounts and the master copy is what
+       they want. For the counterparty it was an invitation into the workspace
+       that holds every other deal we have. They cannot get in, so nothing
+       leaked; what they got was a sign-in wall where the message had promised
+       them a contract.
+
+       Their door is the share link they have been reading the contract through
+       all along, which now serves it executed. Where there is no live link,
+       they get the seal and no link at all — which is what the part-signed
+       notice already does, and is honest. */
+    const external = r.party === 'counterparty' || r.party === 'external';
+    let door = external ? '' : appUrl;
+    if (external) {
+      const own = db.prepare(`SELECT token FROM shares
+        WHERE contract_id=? AND revoked_at IS NULL AND LOWER(COALESCE(recipient_email,''))=?
+        ORDER BY created_at DESC LIMIT 1`).get(c.id, email.toLowerCase());
+      if (own && !shareExpired(db.prepare('SELECT * FROM shares WHERE token=?').get(own.token)))
+        door = `${appUrl}#share=${own.token}`;
+    }
+    const doorLine = door
+      ? (external ? `Your copy of the signed contract:\n${door}\n\n` : `Open it in HaTi:\n${door}\n\n`)
+      : '';
+    const body = st.fully
+      ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+        `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
+        `Document seal (SHA-256):\n${seal}\n\n` +
+        doorLine +
+        `This is an automated notice from HaTi CLM.`
+      : `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `${who || 'One party'} has signed "${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}. ` +
+        `It is NOT yet fully executed — ${waitingFor} has still to sign.\n\n` +
+        `No copy of the contract is attached to this message, and none will be sent until every party has signed. ` +
+        `This is a progress notice only.\n\n` +
+        `This is an automated notice from HaTi CLM.`;
+    const sent = await sendEmail(email, subject, body,
+      st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`);
     out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '', status: sent.sent ? 'delivered' : 'sent', via: sent.provider, at: now() });
   }
-  res.json({ at: now(), recipients: out });
+  res.json({ at: now(), fullyExecuted: st.fully, recipients: out });
 });
 
 // "It's your turn to sign" nudge to the next internal signer on a route.
@@ -2788,7 +2929,19 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
 // "hottest" state per contract (for register/folder dots) and recent items
 // (for the dashboard strip). Registered before /api/shares/:token.
-const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'reviewed', 'expired', 'revoked'];
+/* WHICH OF A CONTRACT'S LINKS SPEAKS FOR IT, when it has several.
+
+   The hottest state wins, and "hottest" used to mean "most in need of a
+   decision" — so `changes` led and `signed` came fifth. One stale negotiation
+   link therefore buried a real signature: a workspace full of executed
+   contracts read as a workspace full of outstanding change requests, and there
+   was no way to see which ones were done.
+
+   The two TERMINAL outcomes lead now. A contract that has been signed, or
+   declined, is finished; nothing any other link says about it can matter more
+   than that, and a person scanning the list is looking for exactly this. Then
+   the states that need somebody to act, then the ones that are merely waiting. */
+const SHARE_STATE_PRIORITY = ['signed', 'declined', 'changes', 'opened', 'sent', 'reviewed', 'expired', 'revoked'];
 /* A share whose returned changes have already been dealt with is finished
    business: the round it raised on the contract has been accepted or rejected.
    Leaving it labelled "changes" kept it on the home page's attention list
@@ -2798,22 +2951,44 @@ const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed',
 function shareStateResolved(s, cache) {
   const st = shareState(s);
   if (st !== 'changes' || !s.contract_id) return st;
-  let rounds = cache && cache.get(s.contract_id);
-  if (rounds === undefined) {
+  let full = cache && cache.get(s.contract_id);
+  if (full === undefined) {
     try {
       const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
-      rounds = row ? ((JSON.parse(row.json).rounds) || []) : null;
-    } catch (_) { rounds = null; }
-    if (cache) cache.set(s.contract_id, rounds);
+      full = row ? (JSON.parse(row.json) || null) : null;
+    } catch (_) { full = null; }
+    if (cache) cache.set(s.contract_id, full);
   }
-  if (!rounds || !rounds.length) return st;
+  if (!full) return st;
+  /* An executed contract is not waiting on a change request. applyResponse
+     already refuses to let a share response touch one — "already executed; a
+     share response cannot change it" — so a link still asking for a decision on
+     it is describing a conversation that can no longer happen. */
+  if (full.status === 'Signed' || (full.execution && full.execution.at)) return 'reviewed';
+  const rounds = full.rounds || [];
   // the round this response created carries the response's own timestamp
   let mine = null;
   try { const r = JSON.parse(s.response); mine = rounds.find(x => x.at === r.at) || null; } catch (_) {}
-  if (mine) return mine.status === 'open' ? st : 'reviewed';
-  // older data whose timestamps don't line up: once the response has been
-  // imported and no round on the contract is open, nothing is waiting
-  if (s.applied && !rounds.some(x => x.status === 'open')) return 'reviewed';
+  if (mine && mine.status === 'open') return st;
+  /* THE OTHER HALF OF THE NEGOTIATION, which this could not see at all.
+
+     Everything above reads `rounds` — the round-based model. The negotiation
+     ROOM works change by change on `c.changes`, and a counterparty answering
+     through the room creates NO ROUND. So a room negotiation, however
+     completely it was settled, said "Changes" on the dashboard for ever: there
+     was no path through this function that could clear it.
+
+     Settled means what negoAlignment means by it on the client, and the second
+     case is the one that gets missed: a refused ask nobody has withdrawn is
+     answered but not agreed, and is still outstanding between the parties. */
+  const live = (Array.isArray(full.changes) ? full.changes : []).filter(x => x && x.status !== 'superseded');
+  const outstanding = live.filter(x => x.status === 'pending'
+    || (x.status === 'rejected' && !x.withdrawn));
+  if (outstanding.length) return st;
+  if (mine) return 'reviewed';
+  if (rounds.some(x => x.status === 'open')) return st;
+  // no round of ours, none open, nothing outstanding in the change set
+  if (s.applied || live.length) return 'reviewed';
   return st;
 }
 app.get('/api/shares/overview', auth, (req, res) => {
@@ -2838,6 +3013,39 @@ app.get('/api/shares/overview', auth, (req, res) => {
   }
   res.json({ counts, byContract, items });
 });
+
+/* ---------- THE SIGNED DOOR, on the counterparty's side of it ----------
+
+   js/negotiation.js has one and documents it: an executed record takes no new
+   decisions, however it came to be executed. js/core.js has one in
+   applyResponse: a share response cannot change a contract that is already
+   signed. The public link had neither, and the two together are what made that
+   a silent failure rather than a refusal —
+
+     · the link took the answer and stored it, because nothing here asked;
+     · the owner's poller handed it to applyResponse, which refused it and
+       returned false, so the response was never marked applied and came round
+       again on the next poll, and the next, in silence.
+
+   The counterparty was told their round had gone. Nobody ever saw it.
+
+   Read from the STORED record and never from the share payload: the payload is
+   a copy taken before the signature, and it can only ever be out of date about
+   this. The three signals are the same three the negotiation model uses, and
+   for the same reason — a seal, an execution stamp or the status, any one of
+   which means the wording has stopped moving. */
+function contractExecution(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const at = (c.execution && c.execution.at) || null;
+  if (!(c.status === 'Signed' || c.hash || at)) return null;
+  /* WHEN, and nothing else. This is served on a public no-login endpoint, so
+     it carries the one fact the reader's page needs and not a word about who
+     signed, in what capacity, or under which seal. */
+  return { at: at || c.signedAt || null };
+}
 
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
@@ -2883,6 +3091,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     messages: s.contract_id ? contractMessages(s.contract_id) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
+    /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
+       link still opens — a counterparty is entitled to see what they were sent
+       — but their page has to be able to say that the wording is final, or it
+       goes on inviting redlines on a sealed contract. */
+    executed: contractExecution(s.contract_id),
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
@@ -3106,37 +3319,29 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
 });
 
-/* A question nobody is told about is a question nobody answers — which would
-   leave the lightweight channel quieter than the heavyweight one it exists to
-   replace. Both directions are notified. */
-function notifyMessage(s, m) {
-  try {
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
-    for (const to of shareOwnerEmails(s))
-      sendEmail(to, `Question on "${cName}"`,
-        `${m.author} wrote about "${cName}":\n\n${m.body}\n\n` +
-        `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-        `Nothing has changed in the contract — they are asking, not proposing. Reply in HaTi.`,
-        'discussion message');
-  } catch (_) {}
-}
-async function notifyCounterpartyMessage(contractId, m) {
-  try {
-    const s = db.prepare(
-      `SELECT * FROM shares WHERE contract_id=? AND revoked_at IS NULL AND recipient_email IS NOT NULL
-        ORDER BY created_at DESC LIMIT 1`).get(contractId);
-    const to = s && String(s.recipient_email || '').trim();
-    if (!to) return { sent: false, to: null };
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || contractId || 'your contract';
-    const r = await sendEmail(to, `Message about "${cName}"`,
-      `${m.author} at ${p.org || 'the sender'} wrote about "${cName}":\n\n${m.body}\n\n` +
-      `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-      `The wording of the contract has not changed. Open your link to reply.`,
-      'discussion message');
-    return { sent: !!(r && r.sent), to };
-  } catch (_) { return { sent: false, to: null }; }
+/* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------
+   Both of these used to send one, in both directions, on every sentence. That
+   made the lightest act in the product — asking a question about a clause —
+   generate as much inbox traffic as returning a redline, and a three-line
+   exchange about payment terms filled six slots in a mailbox with copies of
+   words both parties were already reading on the same screen.
+
+   Nothing is lost by keeping it quiet. A message reaches the owner through
+   /api/messages/waiting, which raises it on the screen they already work in;
+   it reaches the counterparty on the change's own card the next time they open
+   their link, beside the change it is about. Email is reserved for the two
+   things that cannot be seen without opening the app: wording that moved, and
+   a signature.
+
+   Both functions are kept rather than deleted so their callers, their return
+   shapes and the notification surfaces around them stay exactly as they were —
+   what changed is that neither one now posts. */
+function notifyMessage(_s, _m) { /* in-app only — see above */ }
+async function notifyCounterpartyMessage(_contractId, _m) {
+  /* `to: null` and not the recipient's address: the caller turns a non-null
+     `to` into "the email to <them> could not be sent", which would be a
+     failure report about a message that was never meant to go. */
+  return { sent: false, to: null };
 }
 
 /* Refresh a durable link to the current wording. The copy being replaced is
@@ -3153,11 +3358,32 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
     return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  /* ---- A SILENT REFRESH IS A DIFFERENT ACT FROM SENDING A ROUND ----
+
+     Two things want to write a payload, and only one of them is a message to
+     anybody.
+
+       SENDING a round — the owner presses "Send updated version". The wording
+       has moved, the other side needs to know, and an email goes.
+
+       CATCHING THE LINK UP — the counterparty answered, we applied it, and the
+       copy their link serves is now describing a negotiation that has moved on.
+       Nothing new is being asked of them; the link is simply being stopped from
+       lying. Emailing that would put "we have updated the contract" in their
+       inbox every time they themselves answered something.
+
+     A silent refresh therefore sends nothing, does not count as a send, and —
+     this matters — does not clear `first_opened_at`. Whether they have opened
+     the current wording is a fact about THEM, and it must not be reset by
+     bookkeeping they never asked for and cannot see. */
+  const silent = !!(req.body || {}).silent;
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
-  db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
-    .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
-  db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
+  if (!silent)
+    db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
+      .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
+  if (silent) db.prepare('UPDATE shares SET payload=? WHERE token=?').run(JSON.stringify(payload), s.token);
+  else db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
 
   /* TELL THEM. Refreshing the link used to be silent: the owner was shown
@@ -3167,7 +3393,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      A refresh is only "sent" once something has actually gone. */
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
-  if ((s.channel || 'link') === 'email' && s.recipient_email) {
+  if (!silent && (s.channel || 'link') === 'email' && s.recipient_email) {
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
@@ -3178,7 +3404,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
   }
-  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link',
+  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
@@ -3266,6 +3492,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
       : 'This copy of the contract has been superseded — a newer version was sent to you on '
         + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
     superseded: stale.at });
+  /* AND THE DEAL MAY SIMPLY BE OVER. Checked here, in front of every action,
+     rather than in the signing branch alone: a redline, an acceptance and a
+     decline are each as impossible on an executed contract as a second
+     signature, and each was being stored and then silently discarded. See
+     contractExecution above. */
+  const done = contractExecution(s.contract_id);
+  if (done) return res.status(409).json({
+    error: 'This contract has been executed and sealed'
+      + (done.at ? ' (' + String(done.at).slice(0, 10) + ')' : '')
+      + ' — it can no longer be answered from this link. If something has to change,'
+      + ' ask the sender to record an amendment.',
+    executed: done.at || true });
   const r = req.body || {};
   /* 'decisions' and 'ready' were missing from this list, and the portal had
      been sending 'decisions' for a whole release. Every batch of per-change
@@ -3315,10 +3553,35 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   res.json({ ok: true });
 });
 
-// Close the loop by email: the sender learns the outcome without opening HaTi,
-// and the counterparty gets a receipt of what they submitted.
+/* ---------- WHICH RESPONSES ARE WORTH AN EMAIL ----------
+   Every response used to send two: one to the sender and one back to the
+   responder as a receipt. Answering three changes over a morning therefore put
+   six messages in two inboxes, most of them saying that something had been
+   recorded which both parties could already see on the contract — and when the
+   two addresses belong to the same person, as they do in a workspace that
+   negotiates with itself, all six land in one inbox.
+
+   An email is now sent for exactly two kinds of event: WORDING MOVED (they
+   proposed something, decided something we proposed, or returned a redline or
+   a value), and THE DEAL ENDED (somebody signed, or declined). Everything else
+   — a readiness signal, an acceptance that changes no words, a receipt for the
+   sender's own act — is visible on the contract and does not need an inbox.
+
+   The receipt is gone entirely. It told the responder what the responder had
+   just done. */
+function responseIsWorthEmail(r) {
+  if (!r) return false;
+  if (r.action === 'sign' || r.action === 'decline') return true;   // the deal ended
+  const moved = (Array.isArray(r.negoDecisions) && r.negoDecisions.length)
+    || (Array.isArray(r.negoProposed) && r.negoProposed.length)
+    || !!r.proposedText || r.proposedValue != null;
+  return !!moved;                                                   // wording moved
+}
+
+// Close the loop by email: the sender learns the outcome without opening HaTi.
 function notifyShareResponse(s, r) {
   try {
+    if (!responseIsWorthEmail(r)) return;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const who = r.name + (r.title ? `, ${r.title}` : '');
@@ -3328,15 +3591,21 @@ function notifyShareResponse(s, r) {
       : r.action === 'decisions' ? `Decisions returned: "${cName}"`
       : `Changes requested: "${cName}"`;
     const n = Array.isArray(r.negoDecisions) ? r.negoDecisions.length : 0;
+    /* Wording of their own travels on the same response. An email that counted
+       only the decisions told an owner "answered 0 proposed changes" for a round
+       that was entirely new asks. */
+    const np = Array.isArray(r.negoProposed) ? r.negoProposed.length : 0;
+    const answered = [np ? `proposed ${np} change${np === 1 ? '' : 's'}` : '',
+      n ? `answered ${n} of yours` : ''].filter(Boolean).join(' and ') || 'replied';
     const detail = r.action === 'sign'
       ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
       : r.action === 'ready'
         ? `${who} has signalled they are ready to sign "${cName}".`
-          + `${n ? `\n\nThey answered ${n} proposed change${n === 1 ? '' : 's'} in the same step.` : ''}`
+          + `${(n || np) ? `\n\nThey ${answered} in the same step.` : ''}`
           + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`
       : r.action === 'decisions'
-        ? `${who} answered ${n} proposed change${n === 1 ? '' : 's'} on "${cName}".`
-          + `\n\nThe decisions have been recorded on the contract — open Negotiation to see where the deal stands.`
+        ? `${who} ${answered} on "${cName}".`
+          + `\n\nIt is recorded on the contract — open Negotiation to see where the deal stands.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
@@ -3344,13 +3613,6 @@ function notifyShareResponse(s, r) {
           `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
-    const rcpt = String(r.email || s.recipient_email || '').trim();
-    if (/.+@.+\..+/.test(rcpt)) {
-      const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
-      sendEmail(rcpt, `Your response to "${cName}" was delivered`,
-        `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`,
-        'share receipt');
-    }
   } catch (_) {}
 }
 
@@ -3442,7 +3704,13 @@ app.delete('/api/batches/:id', auth, editor, (req, res) => {
 
 /* ---------- outbox (admin can see what was emailed / dev codes) ---------- */
 app.get('/api/outbox', auth, admin, (req, res) => {
-  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
+  /* The body travels too. This is the sender's own outgoing mail on an
+     admin-only diagnostics route that already returns the recipient and the
+     subject — and what an email actually SAYS is the thing that turned out to
+     be wrong: the executed copy was telling counterparties to "open it in
+     HaTi" and handing them the platform's front door. What cannot be read
+     back cannot be checked. */
+  const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
   res.json({ emailConfigured: EMAIL_ON(), items: rows });
 });
 
@@ -3481,7 +3749,11 @@ function runReminders() {
   const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
   const parsed = new Map();
   for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
-  const ownExp = (r) => { const f = parsed.get(r.id) || {}; return (f.metadata && f.metadata.expiryDate) || r.expiry || null; };
+  /* Normalised at the one place the term is read, so every comparison, sort
+     and piece of arithmetic below it is working on a real calendar day or on
+     null — see dateOnly(). */
+  const ownExp = (r) => { const f = parsed.get(r.id) || {};
+    return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
   const amendDate = (r) => { const f = parsed.get(r.id) || {};
     return (f.metadata && f.metadata.effectiveDate) || (f.fields && f.fields.effDate) ||
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
@@ -3525,9 +3797,14 @@ function runReminders() {
       const termSetter = (kidsOf.get(c.id) || []).find(k => ownExp(k) === expiry);
       const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : meta;
       const notice = Number(termMeta.noticePeriodDays) || Number(meta.noticePeriodDays) || 0;
-      if (notice > 0) {
-        const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - notice);
-        const ddIso = dd.toISOString().slice(0, 10); const ddDays = daysTo(ddIso);
+      const dd = notice > 0 ? new Date(expiry + 'T00:00:00') : null;
+      if (dd) dd.setDate(dd.getDate() - notice);
+      // arithmetic can still land outside the range a Date can hold
+      if (dd && !isNaN(dd.getTime())) {
+        /* isoDay, not toISOString: the latter converts to UTC first, so on a
+           server standing east of Greenwich — Nairobi, the market this is built
+           for — the decision deadline came out a day early. */
+        const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
         if (dms != null && fire(`${c.id}:${ddIso}:decide:${dms}`,
           `Renewal decision due in ${dms} day${dms === 1 ? '' : 's'}: ${c.name}`,
@@ -3537,18 +3814,29 @@ function runReminders() {
     }
     // 3) obligations newly overdue (fire once per obligation)
     (full.obligations || []).forEach(o => {
-      if (o.status === 'done' || !o.due) return;
-      const od = daysTo(o.due);
-      if (od === -1 && fire(`${c.id}:ob:${o.id || o.due}:overdue`,
+      if (o.status === 'done') return;
+      // through the same normalisation: an obligation due "31 March 2027" gave
+      // daysTo NaN, NaN never equals -1, and the overdue notice was never sent
+      const due = dateOnly(o.due);
+      if (!due) return;
+      const od = daysTo(due);
+      if (od === -1 && fire(`${c.id}:ob:${o.id || due}:overdue`,
         `Obligation overdue: ${c.name}`,
-        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${o.due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
     });
   }
   return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
-setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
+/* Twice daily. The catch is deliberate — a sweep that throws must not take the
+   process with it — but it used to be EMPTY, and that is how one malformed
+   expiry switched every renewal reminder in a workspace off in perfect silence.
+   Whatever stops the sweep now says so where an operator can see it. */
+setInterval(() => {
+  try { runReminders(); }
+  catch (e) { console.warn('[reminders] sweep failed, no reminders went out this cycle:', (e && e.message) || e); }
+}, 12 * 60 * 60 * 1000);
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   // A durable link is never "used up", so marking it applied wholesale would
