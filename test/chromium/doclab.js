@@ -235,7 +235,22 @@ function check(name, ok, detail){
         canvasBounded: canvas.clientHeight > 0 && canvas.clientHeight < window.innerHeight,
         sideBounded: sideEl.clientHeight > 0 && sideEl.clientHeight < window.innerHeight,
         splitFitsViewport: split.getBoundingClientRect().bottom <= window.innerHeight + 2,
-        splitHeight: Math.round(split.getBoundingClientRect().height)
+        splitHeight: Math.round(split.getBoundingClientRect().height),
+        /* THE SPLIT'S OWN SCROLLING ANCESTOR, not documentElement. The app
+           shell scrolls its content area rather than the document, so measuring
+           the document reports 'no scroll' whatever is below the panes — a
+           check written that way passes in both states and proves nothing. */
+        outer: (() => {
+          for (let el = split.parentElement; el && el !== document.body; el = el.parentElement){
+            const cs = getComputedStyle(el);
+            if (/(auto|scroll)/.test(cs.overflowY)) return {
+              id: el.id || el.className.toString().slice(0, 30),
+              sh: el.scrollHeight, ch: el.clientHeight
+            };
+          }
+          return { id: 'document', sh: document.documentElement.scrollHeight,
+            ch: window.innerHeight };
+        })()
       };
     });
     if (panes.skipped){
@@ -249,6 +264,13 @@ function check(name, ok, detail){
         `overflow-y ${panes.sideOverflow}, bounded ${panes.sideBounded}`);
       check('and the split is sized to the viewport rather than overflowing it',
         panes.splitFitsViewport, `${panes.splitHeight}px tall`);
+      /* THREE SCROLLBARS IS ONE TOO MANY. With the panes sized to the viewport,
+         anything below them gives the page a scroll region of its own competing
+         with the two inside it — and whatever is down there is out of sight
+         anyway. */
+      check('and nothing below it gives the page a scrollbar of its own',
+        panes.outer.sh <= panes.outer.ch + 4,
+        `${panes.outer.id}: content ${panes.outer.sh} vs box ${panes.outer.ch}`);
     }
 
     /* Scrolling one pane must move that pane and nothing else.

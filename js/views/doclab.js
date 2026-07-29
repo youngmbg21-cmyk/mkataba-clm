@@ -2103,15 +2103,18 @@ function renderDocLab(){
       </div>
     </div>
 
-    <section style="${LAB_CARD};padding:14px 18px">
-      <h6 style="${LAB_H6};margin-bottom:8px">What this page is proving</h6>
-      <div style="font-size:12.5px;line-height:1.7;color:var(--color-neutral-800);max-width:78ch">
-        The counterparty column is rendered <b>from</b> the object <code style="font-family:var(--font-mono);font-size:11px">labSharePayload()</code> hands back, not from the full list with the internal material styled out of sight. If the filter were wrong the material would appear here, because there would be nothing left to hide it.
-        Two fields decide what travels, and both are explicit allow: a thread goes only if its visibility says <code style="font-family:var(--font-mono);font-size:11px">shared</code>, a change only once it has been sent. A field nobody set means it stays home.
-        The wording is rebuilt from the accepted changes on every read rather than written over the clause, so rejecting everything reproduces the original exactly — and the side that proposed a change cannot be the side that accepts it.
-      </div>
-    </section>
+    ${''/* The "what this page is proving" note lived here and is gone. It was
+          written when the lab was a page you read before trusting it, and it
+          had stopped being that: the panes are now sized to the viewport, so
+          the note sat below the fold and its only remaining effect was to give
+          the page a scrollbar of its own competing with the two inside it.
 
+          Nothing was lost by removing it. Every claim it made is stated at
+          length in this file's header, next to the code that has to keep it
+          true, and each one is pinned by a test — the explicit-allow filter in
+          f60, the rebuild-never-mutate rule in f84, nobody-rules-on-their-own
+          -ask in labCanDecide. Prose on a screen is the weakest place to keep a
+          promise about behaviour. */}
   </div>`;
 
   wireDocLab(c, lab, side, external);
