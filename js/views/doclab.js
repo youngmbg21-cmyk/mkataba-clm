@@ -184,6 +184,24 @@ function labPendingOn(changes, clauseId, side){
   return (changes || []).find(x => x.clauseId === clauseId && x.status === 'pending'
     && (x.sent === true || x.side === side)) || null;
 }
+/* THE WORDING A NEW EDIT LANDS ON — which is not the same thing as the wording
+   the clause currently HAS.
+
+   A clause under an undecided change reads, on screen, as a redline: kept words,
+   inserted words, struck-through words. The words a person is looking at and
+   would act on are the PROPOSED ones — the clause as it would read if the
+   pending change were accepted. Anchoring a rewrite to the baseline instead
+   would refuse every edit to a clause with an open ask, which is precisely the
+   clause most likely to need one more pass.
+
+   So: propose against `working`, but file against `base`. The change's own
+   before/after stays a diff from the settled baseline however many revisions it
+   takes, which is what keeps rejecting it a clean return to the original. */
+function labWorkingText(clause, changes, side){
+  const base = labClauseText(clause, changes);
+  const pending = labPendingOn(changes, clause.clauseId, side);
+  return { base, working: pending ? pending.after : base, pending };
+}
 /* Can this side decide this change? Two conditions, both in the model rather
    than in the buttons so a new control cannot route around them. */
 function labCanDecide(change, side){
@@ -552,13 +570,29 @@ async function labAiPropose(ctx){
     fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
     return;
   }
-  /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and this is checked before
-     a single token is spent. Selecting across already-marked-up text produces a
-     string that exists in no version of the clause, so there is nowhere to put
-     the answer back — and the old fallback for that was to replace the whole
-     clause, which loses wording nobody agreed to lose. */
-  if(!clause.text.includes(text)){
-    fail('That selection spans wording already marked as changed, so a rewrite cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+  /* THE SELECTION HAS TO BE FINDABLE IN THE WORDING IT WOULD REPLACE, and this
+     is checked before a single token is spent. The old fallback for a miss was
+     to replace the whole clause, which loses wording nobody agreed to lose.
+
+     `working` is the clause as it would read if the pending change were
+     accepted — so wording a person added in an earlier pass can be rewritten
+     again without first deciding the ask. What still cannot be placed is a
+     selection that CROSSES THE SEAM of a redline: picking up a struck-through
+     word together with the word that replaced it produces a string that exists
+     in neither version, and there is no honest place to put an answer back. */
+  const base = clause.text;
+  const working = clause.working == null ? base : clause.working;
+  const pendingOn = clause.pending || null;
+  if(!working.includes(text)){
+    /* Three ways to miss, and they are not the same problem to the person
+       holding the mouse. Saying "that spans a change" to someone who selected
+       wording already struck out sends them looking for a seam that is not
+       there. */
+    fail(working !== base && base.includes(text)
+      ? `That wording is already struck out by ${pendingOn ? pendingOn.id : 'the pending change'} — it is on its way out of the clause, so there is nothing to rewrite. Select from the wording that would remain. Nothing was changed.`
+      : working !== base
+        ? 'That selection crosses a redline — it picks up both struck-through wording and the wording that replaced it, so it matches no version of the clause. Select inside the wording as it would read once the pending change is accepted. Nothing was changed.'
+        : 'That selection could not be found in the clause — it reaches outside the clause body or spans wording that is marked up rather than written, so a rewrite has nowhere to go back to. Nothing was changed.');
     return;
   }
   const pbLine = (() => {
@@ -597,6 +631,7 @@ async function labAiPropose(ctx){
     <label class="lab-ailabel" for="lab-ai-text">Suggested wording — edit it before you apply</label>
     <textarea id="lab-ai-text" class="lab-aitext" spellcheck="true" rows="4"></textarea>
     <div class="lab-aisub">Replacing: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
+    ${working === base ? '' : `<div class="lab-aistack">Stacking on ${esc(pendingOn ? pendingOn.id : 'the pending change')} — the redline below is measured from the settled baseline, so it shows that change and this one together.</div>`}
     <div class="lab-ailabel" style="margin-top:11px">How the clause would read</div>
     <div class="lab-aipreview" id="lab-ai-preview"></div>`;
   pop.insertBefore(body, pop.querySelector('header').nextSibling);
@@ -610,19 +645,37 @@ async function labAiPropose(ctx){
   const box = pop.querySelector('#lab-ai-text');
   const preview = pop.querySelector('#lab-ai-preview');
   const applyBtn = foot.querySelector('[data-ai-apply]');
+  /* The replacement lands in `working`; the redline is drawn from `base`. Where
+     there is no pending change the two are the same string and this is the
+     plain case.
+
+     THE REPLACEMENT IS PASSED AS A FUNCTION, which is not a style choice.
+     String.replace honours $&, $`, $' and $$ inside a replacement STRING even
+     when the pattern is a plain string, so wording that reads "a deposit of
+     US$$500" would be filed as "US$500" — money silently altered by a
+     substitution nobody wrote. A function replacement is returned verbatim. */
   const proposedFrom = v => {
     const t = String(v == null ? '' : v).trim();
-    return t ? clause.text.replace(text, t) : clause.text;
+    return t ? working.replace(text, () => t) : working;
   };
   const refresh = () => {
     const proposed = proposedFrom(box.value);
-    const moved = !!box.value.trim() && proposed !== clause.text;
-    preview.innerHTML = moved
-      ? labRedlineHtml(clause.text, proposed)
-      : `<div class="lab-aiempty">${box.value.trim()
-          ? 'That is the wording the clause already has — there is nothing to file.'
-          : 'Write a replacement above to see the redline.'}</div>`;
-    applyBtn.disabled = !moved;
+    const typed = !!box.value.trim();
+    /* Two separate questions, and conflating them is what would let a person
+       file a revision that revises nothing. Did the edit MOVE anything off the
+       wording already on the table? And is there a redline against the baseline
+       left to file at all? Apply needs both to be yes. */
+    const moved   = typed && proposed !== working;
+    const filable = proposed !== base;
+    preview.innerHTML = moved && filable
+      ? labRedlineHtml(base, proposed)
+      : `<div class="lab-aiempty">${
+          !typed ? 'Write a replacement above to see the redline.'
+          : !moved ? (working === base
+              ? 'That is the wording the clause already has — there is nothing to file.'
+              : 'That is the wording already on the table — there is nothing new to file.')
+          : 'That takes the clause back to its original wording. A redline cannot say “no change”, so withdraw the pending change instead of filing this.'}</div>`;
+    applyBtn.disabled = !(moved && filable);
     place();
   };
   box.value = suggestion;
@@ -634,14 +687,18 @@ async function labAiPropose(ctx){
   foot.querySelector('[data-ai-discard]').addEventListener('click', () => pop.remove());
   applyBtn.addEventListener('click', () => {
     const proposed = proposedFrom(box.value);
-    if(proposed === clause.text) return;
+    if(proposed === base || proposed === working) return;
     /* Filed as an ordinary tracked change — same model, same id series, same
        card in the list. A suggestion that arrived from a model, and was then
        edited by a person, is not a different KIND of change. The author line
-       records both hands. */
+       records both hands.
+
+       `before` is the BASELINE, not the wording this edit was written on top of.
+       A clause revised three times still holds one change measured from the
+       settled text, so rejecting it returns the original exactly. */
     const edited = box.value.trim() !== suggestion;
     const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
-      before: clause.text, after: proposed, side,
+      before: base, after: proposed, side,
       author: `${(window.currentUser && currentUser()?.name) || 'You'} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
     pop.remove();
     if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
@@ -1119,6 +1176,12 @@ function renderDocLab(){
       background:var(--color-bg);max-height:190px;overflow:auto}
     .lab-aiempty{font-size:12px;color:var(--color-neutral-600);line-height:1.55;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    /* Says out loud that this edit is being written on top of an undecided one,
+       because the redline underneath will show both and a reader who did not
+       expect that would read someone else's wording as their own. */
+    .lab-aistack{font-size:11px;line-height:1.5;margin-top:7px;padding:6px 9px;border-radius:5px;
+      background:#f4ecd8;color:#8a6d1f;border:1px solid #e3d3a8;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
     .lab-aistate{font-size:10.5px;color:var(--color-neutral-500)}
     .lab-aipop footer .ui-btn[disabled]{opacity:.45;cursor:not-allowed}
 
@@ -1291,16 +1354,19 @@ function wireDocLab(c, lab, side, external){
     const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
     if(!cl) return null;
     const host = document.querySelector(`[data-clause-id="${clauseId}"]`);
+    const { base, working, pending } = labWorkingText(cl, lab.changes, side);
     return { clauseId, label: (host && host.getAttribute('data-lab-clause-label')) || clauseId,
-      text: labClauseText(cl, lab.changes) };
+      text: base, working, pending };
   };
   document.querySelectorAll('[data-lab-assist]').forEach(b => b.addEventListener('click', () => {
     const clause = clauseCtx(b.getAttribute('data-lab-assist'));
     if(!clause) return;
     const rect = b.getBoundingClientRect();
-    /* No selection, so the whole clause is the passage. Offering the same menu
-       keeps one mental model: pick a passage, pick an action. */
-    labSelMenu({ c, lab, side, again: againLab, rect, clause, text: clause.text });
+    /* No selection, so the whole clause is the passage — and the passage is the
+       clause as it would READ, pending change included, because that is the
+       wording on screen. Offering the same menu keeps one mental model: pick a
+       passage, pick an action. */
+    labSelMenu({ c, lab, side, again: againLab, rect, clause, text: clause.working, whole: true });
   }));
   document.querySelectorAll('[data-lab-note]').forEach(b => b.addEventListener('click', () => {
     const clauseId = b.getAttribute('data-lab-note');
@@ -1375,8 +1441,9 @@ function wireDocLab(c, lab, side, external){
       const clauseId = host.getAttribute('data-lab-clause');
       const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
       if(!cl) return;
+      const { base, working, pending } = labWorkingText(cl, lab.changes, side);
       const clause = { clauseId, label: host.getAttribute('data-lab-clause-label') || clauseId,
-        text: labClauseText(cl, lab.changes) };
+        text: base, working, pending };
       labSelMenu({ c, lab, side, again: againLab, rect, clause, text });
     };
     const canvas = document.getElementById('lab-canvas');
@@ -1518,7 +1585,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   LAB_KEY, LAB_INTERNAL, LAB_SHARED, LAB_US, LAB_THEM,
   labLoad, labFor, labPut, labClear, labUid,
   labSharePayload, labShareChanges, labWithheld,
-  labClauseText, labPendingOn, labCanDecide,
+  labClauseText, labWorkingText, labPendingOn, labCanDecide,
   labFileChange, labSendChange, labDecide, labResolveLinked,
   labBaseline, labClausesOf, labTopics, labSeed,
   renderDocLab, wireDocLab
