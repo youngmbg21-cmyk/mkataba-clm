@@ -303,7 +303,102 @@ function wireDiscussPanel(opts){
   });
 }
 
+/* ---------- TAKING BACK A DRAFT NOBODY HAS SEEN ----------
+   A conversation about a change and the change itself sit on the same card, and
+   until now that card had three verbs on it — send, accept, reject — none of
+   which is what somebody means by "forget I said that" about wording that has
+   never left the building.
+
+   The route that existed was to overwrite the draft with the original text,
+   which is not the same act and does not read as one: the change record stays,
+   the id stays in the series, the card stays in the sidebar, and the history
+   now says a clause was changed and changed back rather than that nothing was
+   ever proposed. On a clause somebody was thinking out loud on, that is a
+   fingerprint in the index nobody asked for.
+
+   SO THE BUTTON ONLY EXISTS WHERE DISCARDING IS THE HONEST ACT, and the test is
+   made of both locks the wall already uses. `stage === 'internal_draft'` says
+   this is work in progress; `sent !== true` says it has not travelled; and
+   `status === 'pending'` says nobody has ruled on it. All three, because any
+   one of them alone can be wrong in a record written by an older version, and
+   a Discard offered on wording the counterparty is part-way through answering
+   would delete a question out from under them.
+
+   The button is rendered here, beside the visibility badge, because this is the
+   module both sides draw a conversation from — the counterparty's copy runs the
+   same code and gets no button, since nothing of theirs is ever an internal
+   draft of ours. */
+const DISCUSS_DRAFT_STAGE = 'internal_draft';
+function discussIsDiscardable(change){
+  const ch = change || {};
+  return ch.stage === DISCUSS_DRAFT_STAGE && ch.sent !== true
+    && (ch.status || 'pending') === 'pending';
+}
+/* The button, or nothing. `viewer` guards the counterparty's copy explicitly
+   rather than trusting that their payload never carries a draft: the payload
+   filter is the wall, and this is a second reading of the same rule at the
+   place a reader would press. */
+function discussDiscardBtnHtml(change, opts){
+  const o = opts || {};
+  if (o.external || o.readOnly) return '';
+  if (!discussIsDiscardable(change)) return '';
+  const e = window.esc || (s => String(s == null ? '' : s));
+  const id = e(change.id);
+  return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
+    title="Discard ${id} — it has not been sent, so nothing is withdrawn from anyone"
+    aria-label="Discard draft change ${id}"
+    style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
+      border:1px solid rgba(143,50,43,.28);background:#fdf6f5;color:#8f322b;border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
+}
+
+/* Wire every Discard on the page. The three steps are in this order for a
+   reason a reader would notice if they were not:
+
+     1. the RECORD goes first, through Redline.removeChange(), which is the one
+        place the "may this be discarded" rule lives and the one place the
+        stacked children get re-parented. A refusal comes back as a message and
+        nothing else happens.
+     2. the MARKUP goes next, off the live canvas, so the struck-through wording
+        disappears on the same frame as the press. A repaint would do it a beat
+        later, and that beat reads as "the button did nothing".
+     3. the VIEW is rebuilt last, from the record that has already changed.
+
+   `persist` and `again` are supplied by the caller because this module knows
+   what a conversation looks like and deliberately knows nothing about where any
+   particular screen stores one. */
+function wireDiscussDiscard(opts){
+  const { store, persist, again, confirm: ask, onDiscarded } = opts || {};
+  document.querySelectorAll('[data-discuss-discard]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-discuss-discard');
+      const engine = window.Redline;
+      if (!engine || typeof engine.removeChange !== 'function'){
+        if (window.toast) toast('The redline engine is not loaded, so nothing was discarded', 'err');
+        return;
+      }
+      if (typeof ask === 'function' && ask(id) === false) return;
+      const res = engine.removeChange(store, id);
+      if (!res.ok){
+        if (window.toast) toast(res.message || 'That change cannot be discarded', 'err');
+        return;
+      }
+      if (typeof engine.clearMarkup === 'function')
+        try{ engine.clearMarkup(id, document.querySelector('.document-canvas') || document); }catch(_){}
+      if (typeof persist === 'function') persist();
+      if (typeof onDiscarded === 'function') onDiscarded(res);
+      if (typeof again === 'function') again();
+      if (window.toast) toast(res.reparented.length
+        /* Said out loud, because a colleague's pass surviving its parent is the
+           one outcome a reader would not predict from the word "discard". */
+        ? `${id} discarded — ${res.reparented.join(', ')} stacked on it and now stand${res.reparented.length === 1 ? 's' : ''} on their own`
+        : `${id} discarded — it was never sent, so nothing was withdrawn`);
+    });
+  });
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  DISCUSS_DRAFT_STAGE, discussIsDiscardable, discussDiscardBtnHtml, wireDiscussDiscard,
   DISCUSS_GENERAL, DISCUSS_SHARED, DISCUSS_INTERNAL, discussIsInternal, discussVisBadgeHtml,
   DISCUSS_NOTE_OWNER, DISCUSS_NOTE_COUNTERPARTY, discussNoteTone,
   discussTopics, discussTopicLabel, discussClauseKey, discussGroups,

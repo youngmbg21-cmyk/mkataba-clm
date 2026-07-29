@@ -738,7 +738,167 @@ function redlineStructuredHtml(oldText, newText, opts){
   return blocks ? redlineBlocksHtml(blocks, opts) : null;
 }
 
+/* ============================================================
+   STACKED REDLINES — an offset that survives the edit before it
+   ============================================================
+   A character offset is only meaningful against the exact string it was
+   measured on. The lab resolves "which occurrence of this phrase did you point
+   at" once, as an index into the clause's working text — and until the proposal
+   became a side-panel conversation, that index was consumed milliseconds later
+   and the two strings could not have differed.
+
+   They can now. The panel stays open while its author reads the clause, files a
+   different change, accepts a colleague's ask, or takes a second pass over the
+   same wording. Every one of those rebuilds labWorkingText(), and an offset
+   carried across it points at the wrong words — earlier by the length of an
+   insertion above it, later by the length of a deletion. A splice at a drifted
+   offset does not fail loudly; it files a redline that cuts a clause mid-word.
+
+   So an offset is REBASED before it is used: walked through the ops between the
+   string it was measured on and the string it is about to be spliced into. Keep
+   runs carry it along, insertions above it push it down, deletions above it
+   pull it up, and an offset that lands inside a deleted run collapses to the
+   seam that run left — the only well-defined answer once the wording is gone. */
+function redlineRebaseOffset(oldText, newText, offset){
+  const from = String(oldText == null ? '' : oldText);
+  const to   = String(newText == null ? '' : newText);
+  const at = Math.max(0, Math.min(Number(offset) || 0, from.length));
+  if (from === to) return at;
+  const ops = redlineOpsStructured(from, to);
+  let oPos = 0, nPos = 0;
+  for (const o of ops){
+    const n = o.text.length;
+    if (o.op === 'ins'){ nPos += n; continue; }
+    if (o.op === 'keep'){
+      if (at <= oPos + n) return nPos + (at - oPos);
+      oPos += n; nPos += n; continue;
+    }
+    /* A del run: the whole run collapses to one point in the new text, so an
+       offset anywhere inside it answers with that seam rather than pretending
+       to a precision the deletion destroyed. */
+    if (at <= oPos + n) return nPos;
+    oPos += n;
+  }
+  return nPos;
+}
+
+/* ============================================================
+   DISCARDING A DRAFT — Redline.removeChange()
+   ============================================================
+   Retracting an unsent draft has to be as ordinary as writing one. Until now
+   the only ways off a clause were to accept it, reject it or overwrite it, and
+   none of those is what somebody means by "I have thought better of this" about
+   wording that has never left the building.
+
+   TWO THINGS THIS REFUSES, both because the alternative rewrites history the
+   other side is relying on:
+
+     · A change that has been SENT. The counterparty has read it and may be
+       part-way through answering it. That is withdrawn or superseded openly,
+       not deleted from under them.
+     · A change that has been DECIDED. Accepted wording is in the working text
+       and rejected wording is a recorded answer; deleting either would make the
+       record disagree with the document.
+
+   AND ONE THING IT REPAIRS. A discarded draft may have a colleague's pass
+   stacked on top of it. Removing the record without relinking would leave that
+   pass pointing at an id that no longer exists — labChainOf would return a
+   chain of one and the internal drafting history would silently lose a step.
+   So its children are re-parented onto what the removed change was itself
+   stacked on, and their depth comes down with them. */
+const REDLINE_DRAFT_STAGE = 'internal_draft';
+function redlineChangesOf(store){
+  if (Array.isArray(store)) return store;
+  if (store && Array.isArray(store.changes)) return store.changes;
+  return null;
+}
+function redlineRemoveChange(store, id, opts = {}){
+  const changes = redlineChangesOf(store);
+  if (!changes) return { ok: false, reason: 'no-store', message: 'There is nothing to discard from.' };
+  const i = changes.findIndex(x => x && x.id === id);
+  if (i < 0) return { ok: false, reason: 'not-found', message: `${id} is not on this document.` };
+  const ch = changes[i];
+  if (ch.sent === true) return { ok: false, reason: 'sent',
+    message: `${ch.id} has already gone to the other side. Withdraw or supersede it openly rather than discarding it.` };
+  if (ch.status && ch.status !== 'pending') return { ok: false, reason: 'decided',
+    message: `${ch.id} has been ${ch.status}. A decided change is part of the record and cannot be discarded.` };
+  /* The stage is the second lock, checked independently of `sent` for the same
+     reason the wall checks both: a record with one field wrong must still be
+     refused by the other. `opts.anyStage` is for callers with their own rule. */
+  if (!opts.anyStage && ch.stage && ch.stage !== REDLINE_DRAFT_STAGE)
+    return { ok: false, reason: 'stage',
+      message: `${ch.id} is not an internal draft (${ch.stage}), so discarding it is not the way to take it back.` };
+  changes.splice(i, 1);
+  const reparented = [];
+  for (const x of changes){
+    if (!x || x.parentChangeId !== ch.id) continue;
+    x.parentChangeId = ch.parentChangeId || null;
+    x.depth = Math.max(0, (Number(x.depth) || 0) - 1);
+    reparented.push(x.id);
+  }
+  return { ok: true, removed: ch, reparented };
+}
+
+/* Take the discarded draft's markup off the canvas straight away.
+
+   A repaint follows and would do this anyway — but not on the same frame, and
+   the gap is long enough to see. Leaving struck-through wording on screen after
+   pressing Discard reads as "that did not work", which is the one thing a
+   destructive-looking button must never imply when it has in fact worked.
+
+   Scoped, and the scope matters: the badge for THIS change goes unconditionally,
+   and a clause's ins/del markup is unwound only once no badge is left on it. A
+   clause carrying a second, stacked draft keeps its markup, because that markup
+   is still true. */
+function redlineClearMarkup(id, root){
+  const doc = (root && root.querySelectorAll) ? root
+    : (typeof document !== 'undefined' ? document : null);
+  if (!doc) return 0;
+  let n = 0;
+  const sel = String(id == null ? '' : id).replace(/["\\]/g, '\\$&');
+  const badges = [
+    ...doc.querySelectorAll(`.change-tag-badge[data-change-id="${sel}"]`),
+    ...doc.querySelectorAll(`[id="${sel}"]`)
+  ];
+  const clauses = new Set();
+  for (const b of badges){
+    const frame = b.closest && b.closest('[data-lab-clause], .clause-frame');
+    if (frame) clauses.add(frame);
+    b.remove(); n++;
+  }
+  for (const frame of clauses){
+    if (frame.querySelector('.change-tag-badge')) continue;   // another draft still stands
+    for (const del of [...frame.querySelectorAll('del, .lab-del')]){ del.remove(); n++; }
+    for (const ins of [...frame.querySelectorAll('ins, .lab-ins')]){
+      /* Unwrapped, not removed: an insertion's words are the clause's words the
+         moment the markup around them stops being a proposal. */
+      const mark = ins.querySelector && ins.querySelector('.rl-authormark');
+      if (mark) mark.remove();
+      const text = (typeof doc.createTextNode === 'function' ? doc : document)
+        .createTextNode(ins.textContent || '');
+      ins.replaceWith(text); n++;
+    }
+  }
+  return n;
+}
+
+/* The namespace the callers name. Everything on it is the module's own
+   function — this is one object to reach for, not a second implementation. */
+const Redline = {
+  DRAFT_STAGE: REDLINE_DRAFT_STAGE,
+  removeChange: redlineRemoveChange,
+  clearMarkup: redlineClearMarkup,
+  rebaseOffset: redlineRebaseOffset,
+  ops: redlineOps,
+  opsStructured: redlineOpsStructured,
+  html: redlineOpsHtml,
+  deletedSpans: redlineDeletedSpans,
+  deletionCovering: redlineDeletionCovering,
+};
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  Redline, redlineRemoveChange, redlineClearMarkup, redlineChangesOf,
+  redlineRebaseOffset, REDLINE_DRAFT_STAGE,
   redlineTokens, redlineOps, redlineOpsHtml,
   redlineOldText, redlineNewText, redlineIsNoop, redlineStats, REDLINE_MAX_D,
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
@@ -755,4 +915,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
+  Redline, redlineRemoveChange, redlineClearMarkup, redlineChangesOf,
+  redlineRebaseOffset, REDLINE_DRAFT_STAGE,
 };

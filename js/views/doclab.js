@@ -901,8 +901,38 @@ const LAB_AI_ACTIONS = [
      a note ends up attached to the wrong clause. */
   { id:'tag', label:'🏷️ Tag with Internal Note', tag:true }
 ];
+/* ---------- WHOSE ADVANTAGE, SAID OUT LOUD ----------
+   The first action was labelled "Rephrase for Buyer Advantage" whichever side
+   the reader had switched to. On this page that is not a cosmetic slip: the
+   whole point of "Acting as them" is to sit on the other side of the table and
+   see what they would ask for, and a menu that still says Buyer while you are
+   acting for the supplier is offering to argue against the party you are
+   playing. The instruction sent to the model was always right — "the party I
+   act for" — so the label was the only thing lying.
+
+   Named parties where there is a name to use, because "Rephrase for Kabras
+   Sugar's Advantage" is unmistakable in a way that "for their advantage" is
+   not, and a long name is trimmed rather than allowed to reflow the menu. */
+function labActingParty(c, side){
+  const raw = side === LAB_THEM
+    ? ((c && c.counterparty) || 'the counterparty')
+    : (window.FIRST_PARTY || 'us');
+  return String(raw);
+}
+function labAiActions(c, side){
+  const who = labActingParty(c, side);
+  const short = who.length > 26 ? who.slice(0, 25).replace(/\s+\S*$/, '') + '…' : who;
+  const label = who === 'us' || who === 'the counterparty'
+    ? `🛡️ Rephrase for ${who === 'us' ? 'Our' : 'Their'} Advantage`
+    : `🛡️ Rephrase for ${short}'s Advantage`;
+  return LAB_AI_ACTIONS.map(a => a.id === 'advantage' ? { ...a, label } : a);
+}
 const labKillSel = () => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
-const labKillPop = () => document.querySelectorAll('.lab-aipop').forEach(n => n.remove());
+/* The note composer is now the only floating layer this page opens — the AI
+   proposal moved into the Copilot panel, which closes by its own rules. The
+   old popover's class is still swept so a page left holding one from a previous
+   build does not keep it forever. */
+const labKillPop = () => document.querySelectorAll('.lab-notepop, .lab-aipop').forEach(n => n.remove());
 
 /* ---------- THE SELECTION, HELD ON PURPOSE ----------
    The flashing menu was one bug wearing three coats.
@@ -1001,14 +1031,14 @@ function labAnchorRect(node){
   return null;
 }
 /* Re-place every open layer, and hide any whose wording has been scrolled out
-   of the pane. Hidden rather than removed: the popover may hold wording someone
-   has been editing by hand, and scrolling up to re-read the clause must not
-   throw that away. It comes back when its anchor does. */
+   of the pane. Hidden rather than removed: the note composer may hold a note
+   someone is part-way through writing, and scrolling up to re-read the clause
+   must not throw that away. It comes back when its anchor does. */
 function labRefloat(){
   const pane = document.getElementById('lab-canvas');
   const p = pane ? pane.getBoundingClientRect() : null;
   for(const node of [document.querySelector('.lab-selmenu'),
-                     document.getElementById('ai-copilot-popover')]){
+                     document.querySelector('.lab-notepop')]){
     if(!node) continue;
     const rect = labAnchorRect(node);
     if(!rect) continue;                       // nothing to follow; leave it be
@@ -1038,105 +1068,100 @@ function labAnchor(rect, w, h){
   return { left: Math.max(pad, left), top: Math.max(pad, top) };
 }
 
-/* Ask the Copilot for wording, then hand it to the person to finish.
+/* ============================================================
+   THE REWRITE HAPPENS IN THE SIDE PANEL, NOT OVER THE WORDING
+   ============================================================
+   This used to open a floating popover anchored to the selection. It worked,
+   and three things about it were wrong in ways that got worse the more the
+   feature was used.
 
-   The model's answer is a DRAFT IN A TEXTAREA, not a verdict. Two reasons, and
-   the second is the one that matters. A model gets contract wording nearly
-   right and wrong in one specific place — a defined term, a cross-reference, a
-   number — and a proposal you can only accept or reject whole forces a person
-   to throw away four good sentences to fix one word. And a redline is signed by
-   whoever files it: making the wording editable before it is filed is what
-   keeps the authorship honest.
+   IT COVERED THE DOCUMENT IT WAS ABOUT. A box wide enough to hold a rewritten
+   clause and a live redline preview is wide enough to sit on top of the clause
+   either side of the one being rewritten — so the reader deciding whether the
+   new wording fits could not see what it had to fit into. Every fix for that
+   made it worse: anchoring above meant it flipped below at the bottom of the
+   window, following the scroll meant it moved while being read, and hiding it
+   when its wording left view meant a box someone was typing into disappeared.
 
-   The preview under the box is live. Every keystroke re-renders the redline
-   that WOULD be filed against the clause as it currently stands, so a person is
-   never applying wording they have not seen marked up.
+   IT WAS A DEAD END. The model's answer arrived, and the only verbs were Apply
+   and Discard. "Make that stronger" — the second thing anybody says to a draft
+   — had nowhere to go. Selecting the passage again and re-asking started from
+   the baseline, so the second ask could not build on the first, and the reader
+   was doing the iterating in their head.
 
-   Nothing moves until Apply Redline. Discard, Escape and clicking away all
-   leave the document untouched. */
-async function labAiPropose(ctx){
-  const { c, lab, action, text, clause, rect, side, again } = ctx;
-  labKillPop();
-  const pop = document.createElement('div');
-  pop.className = 'lab-aipop';
-  /* One id, because there is only ever one of these open and the dismiss rule
-     names it. labKillPop() removes any stragglers before this is appended, so
-     the id cannot be duplicated. */
-  pop.id = 'ai-copilot-popover';
-  pop.setAttribute('role','dialog');
-  pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
-  pop.innerHTML = `<header><span style="flex:1">${esc(action.label)}</span>
-      <button class="ui-btn" id="ai-popover-close" data-ai-x style="font-size:11px;padding:3px 9px">Close</button></header>
-    <div class="lab-aiwait"><span class="lab-aispin"></span>Reading the clause…</div>`;
-  /* EVENTS INSIDE THE POPOVER STOP AT THE POPOVER — in the BUBBLE phase, and
-     the phase is the whole point.
+   AND IT THREW THE REASONING AWAY. The old prompt asked for "the replacement
+   wording and nothing else", which is asking a legal assistant for half of its
+   answer and discarding the half that says whether the wording is worth
+   proposing.
 
-     This was written with `true` for capture, which broke every control in the
-     box. Capture runs top-down, so a capture listener on the container fires
-     BEFORE the event reaches the button inside it; stopping propagation there
-     means the button's own click handler never runs at all. Close, Discard and
-     Apply Redline all did nothing, silently. Typing still worked, which made it
-     look like a button problem rather than an event-routing one — keystrokes
-     are not mouse events and were never being intercepted.
+   The Copilot panel already solves all three. It is a side panel: it slides in
+   beside the document rather than over it, it is as tall as the window, and it
+   has an input at the bottom that has always been a conversation. So a rewrite
+   is now a CONVERSATION IN THAT PANEL — the advice as one bubble, the wording
+   as a proposal card with Apply Redline, Decline and Edit on it, and the next
+   sentence typed underneath carrying the exchange forward.
 
-     The reasoning behind the capture flag was also wrong on its own terms: a
-     capture listener here could never beat one on `document`, which is higher
-     in the tree and therefore always runs first. It bought nothing.
+   WHAT IS RESOLVED WHEN, AND WHY IT MOVED
 
-     Bubble phase is what was wanted. The event reaches the target, the control
-     does its job, and propagation stops here rather than continuing to the
-     document. The dismiss listeners are on the document in the CAPTURE phase
-     and so still see it — which is fine, because they ask whether the target is
-     inside #ai-copilot-popover and leave it alone when it is. That guard, not
-     this call, is what keeps the popover open. */
-  for(const evt of ['pointerdown', 'mousedown', 'mouseup', 'click']){
-    pop.addEventListener(evt, e => { e.stopPropagation(); });
-  }
-  document.body.appendChild(pop);
-  const place = () => {
-    const b = pop.getBoundingClientRect();
-    const at = labAnchor(rect, b.width, b.height);
-    pop.style.left = at.left + 'px'; pop.style.top = at.top + 'px';
-  };
-  place();
-  /* What this popover is about, so it follows the clause when the document
-     pane scrolls and hides rather than lying when the clause leaves view. */
-  labSetAnchor(pop, {
-    range: (_labSel && _labSel.range) || null,
-    el: document.querySelector(`[data-lab-clause="${clause && clause.clauseId}"]`)
-  });
-  /* ONE WAY OUT, used by Close, Discard and Escape alike. Leaving without
-     applying must leave nothing behind: the popover goes, the held selection is
-     released, and the floating menu that opened this closes with it. The
-     document text is never touched on this path — nothing has been written to
-     it up to this point, and nothing is written now. */
-  const dismiss = () => { pop.remove(); labKillSel(); labClearSel(); };
-  pop.querySelector('[data-ai-x]').addEventListener('click', dismiss);
-  const fail = msg => {
-    pop.querySelector('.lab-aiwait')?.remove();
-    const d = document.createElement('div');
-    d.style.cssText = 'padding:14px;font-size:12.5px;line-height:1.6;color:#8f322b';
-    d.textContent = msg;
-    pop.insertBefore(d, pop.querySelector('header').nextSibling);
-    place();
-  };
-  if(!window.copilotAvailable || !copilotAvailable()){
-    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
-    return;
-  }
-  /* THE SELECTION HAS TO BE FINDABLE IN THE WORDING IT WOULD REPLACE, and this
-     is checked before a single token is spent. The old fallback for a miss was
-     to replace the whole clause, which loses wording nobody agreed to lose.
+   The old popover resolved the splice point once, when it opened, and consumed
+   it seconds later. A panel is open for as long as the conversation lasts, and
+   during that time the reader can file another change, accept a colleague's
+   ask, or take a second pass at the same clause — each of which rebuilds
+   labWorkingText() underneath the offset that was measured. So the offset is
+   re-resolved against the LIVE working text at the moment Apply is pressed, and
+   the remembered one is rebased through the ops between the two strings rather
+   than trusted. Splicing at a drifted offset does not fail loudly; it files a
+   redline that cuts a clause mid-sentence, which is why this is done at the end
+   rather than the beginning. */
 
-     `working` is the clause as it would read if the pending change were
-     accepted — so wording a person added in an earlier pass can be rewritten
-     again without first deciding the ask. What still cannot be placed is a
-     selection that CROSSES THE SEAM of a redline: picking up a struck-through
-     word together with the word that replaced it produces a string that exists
-     in neither version, and there is no honest place to put an answer back. */
-  const base = clause.text;
-  const working = clause.working == null ? base : clause.working;
-  const pendingOn = clause.pending || null;
+/* What is refused, and in the reader's words rather than the model's. Kept as
+   one function so the panel says the same thing however the refusal is reached. */
+function labProposeRefusal(kind, ctx){
+  const other = (ctx && ctx.counterparty) || 'the counterparty';
+  return {
+    'no-copilot': 'The Copilot is not connected on this workspace yet, so there is nothing to ask. '
+      + 'Connect it under Team & Settings and try again — the wording you selected is untouched.',
+    'sent': `That wording is struck out by ${(ctx && ctx.pendingId) || 'a change'}, which has already gone to ${other}. `
+      + `Rewriting it underneath them would change a question they are part-way through answering. `
+      + `Withdraw or supersede ${(ctx && ctx.pendingId) || 'it'} first. Nothing was changed.`,
+    'seam': 'That selection crosses a redline — it picks up both struck-through wording and the wording that '
+      + 'replaced it, so it matches no version of the clause. Select inside the wording as it would read once '
+      + 'the pending change is accepted. Nothing was changed.',
+    'missing': 'That selection could not be found in the clause — it reaches outside the clause body or spans '
+      + 'wording that is marked up rather than written, so a rewrite has nowhere to go back to. Nothing was changed.',
+    'gone': 'That clause is no longer in the lab document, so there is nowhere to file this. Nothing was changed.',
+    'moved': 'The clause has moved on since this was proposed — the wording it was written against is no longer '
+      + 'there. Nothing was changed. Select the passage again and the Copilot will work from what the clause says now.'
+  }[kind] || 'That could not be done. Nothing was changed.';
+}
+/* A refusal, said in the panel rather than in a box over the document. The
+   panel is opened for it deliberately: a refusal nobody sees is the same as a
+   silent failure, and the reader has just pressed a menu item and is expecting
+   something to happen somewhere.
+
+   It takes PLAIN TEXT and escapes it here. What it is given includes the
+   counterparty's own name out of the contract record, and the feed renders what
+   it is handed as markup. The popover this replaced wrote textContent, where
+   escaping would have shown a literal &amp; to a counterparty called
+   "Björn & Co"; the feed does the opposite, so the escaping moves here and the
+   ampersand comes out right at the other end. */
+function labSayInPanel(text){
+  if(window.openAI && !(window.ai && ai.open)) openAI(null, { docked: true });
+  if(window.aiPush){
+    aiPush('assistant', { text: `<div>${esc(text)}</div>` });
+    if(window.renderAIFeed) renderAIFeed();
+  } else if(window.toast) toast(String(text), 'err');
+}
+
+/* Where this passage sits in the clause as it stands NOW, and how a splice
+   there would behave. Called once when the proposal is asked for — to refuse
+   early, before a token is spent, on a selection that has nowhere to land — and
+   again at Apply, against whatever the clause has become in between. */
+function labResolvePassage(ctx){
+  const { lab, clause, text, side } = ctx;
+  const cl = labClausesOf(lab).find(x => x.clauseId === clause.clauseId);
+  if(!cl) return { error: 'gone' };
+  const { base, working, pending } = labWorkingText(cl, lab.changes, side);
   /* Not "is this string present" but "WHICH ONE OF THEM DID YOU MEAN" — the
      answer is an offset, and everything downstream splices at it. */
   let at = labPickOccurrence(working, text, ctx.hint);
@@ -1144,8 +1169,7 @@ async function labAiPropose(ctx){
      wording. RESTORE is for a passage already marked for deletion in our own
      unsent draft: the run stays struck and the new wording lands at the seam it
      left, which turns a bare cut into a replacement. */
-  let mode = 'replace', spliceLen = text.length;
-  let struck = null;
+  let mode = 'replace', spliceLen = text.length, struck = null;
   if(at < 0){
     struck = labStruckTarget(base, working, text, lab.changes, clause.clauseId, side, ctx.hint);
     if(struck){
@@ -1158,19 +1182,60 @@ async function labAiPropose(ctx){
     /* Three ways to miss, and they are not the same problem to the person
        holding the mouse. Saying "that spans a change" to someone who selected
        wording already struck out sends them looking for a seam that is not
-       there. */
+       there. Reached only once the draft is on the table: while it is ours
+       labStruckTarget handles it above, so 'sent' now says the thing that is
+       actually true — it is not that struck wording cannot be rewritten, it is
+       that THIS struck wording has already been shown to somebody. */
     const isStruck = working !== base && base.includes(text);
-    fail(isStruck
-      /* Reached only once the draft is on the table. While it is ours the
-         branch above handles it, so this now says the thing that is actually
-         true — it is not that struck wording cannot be rewritten, it is that
-         THIS struck wording has already been shown to somebody. */
-      /* Not esc()'d — fail() writes textContent, so escaping here would put a
-         literal &amp; on the screen for a counterparty called "Björn & Co". */
-      ? `That wording is struck out by ${pendingOn ? pendingOn.id : 'a change'}, which has already gone to ${c.counterparty || 'the counterparty'}. Rewriting it underneath them would change a question they are part-way through answering. Withdraw or supersede ${pendingOn ? pendingOn.id : 'it'} first. Nothing was changed.`
-      : working !== base
-        ? 'That selection crosses a redline — it picks up both struck-through wording and the wording that replaced it, so it matches no version of the clause. Select inside the wording as it would read once the pending change is accepted. Nothing was changed.'
-        : 'That selection could not be found in the clause — it reaches outside the clause body or spans wording that is marked up rather than written, so a rewrite has nowhere to go back to. Nothing was changed.');
+    return { base, working, pending,
+      error: isStruck ? 'sent' : working !== base ? 'seam' : 'missing' };
+  }
+  return { base, working, pending, at, mode, spliceLen, struck };
+}
+
+/* Ask the Copilot for wording, then hand it to the person to finish — in the
+   Copilot panel, as two bubbles and a card.
+
+   The model's answer is still a DRAFT, not a verdict, and for the same reason
+   it always was: a model gets contract wording nearly right and wrong in one
+   specific place — a defined term, a cross-reference, a number — and a proposal
+   you can only accept or reject whole forces a person to throw away four good
+   sentences to fix one word. Edit turns the card into a textarea; the wording
+   filed is whatever is in it when Apply is pressed.
+
+   Nothing moves until Apply Redline. Decline drops the panel's temporary state
+   and writes nothing to the baseline, because nothing was ever written to it —
+   the proposal lived in this conversation and only here. */
+async function labAiPropose(ctx){
+  const { c, lab, action, text, clause, side, again, hint } = ctx;
+  /* The floating layers go first. The reader asked for the panel; leaving a
+     selection menu behind over the document is the old interaction refusing to
+     let go of the new one. */
+  labKillPop(); labKillSel(); labClearSel();
+
+  /* DOCKED. The whole reason this moved out of a popover is that a reader
+     deciding on proposed wording has to be able to see the clauses either side
+     of it, and the panel's ordinary scrim would put a blurred sheet over
+     exactly that. */
+  if(window.openAI) openAI(null, { docked: true });
+  /* WHAT WAS ASKED, IN THE READER'S OWN STREAM. Without this the panel answers
+     a question it never shows, and a conversation whose first turn is missing
+     reads as the Copilot volunteering wording nobody asked for. */
+  if(window.aiPush) aiPush('user', { text: `${esc(action.label)}<div class="text-[11px] mt-1 opacity-80" style="font-style:italic">“${
+    esc(text.length > 140 ? text.slice(0, 139) + '…' : text)}”</div>` });
+  if(window.renderAIFeed) renderAIFeed(true);
+
+  if(!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
+    labSayInPanel(labProposeRefusal('no-copilot'));
+    return;
+  }
+  /* THE SELECTION HAS TO BE FINDABLE IN THE WORDING IT WOULD REPLACE, and this
+     is checked before a single token is spent. The old fallback for a miss was
+     to replace the whole clause, which loses wording nobody agreed to lose. */
+  const first = labResolvePassage({ lab, clause, text, side, hint: ctx.hint });
+  if(first.error){
+    labSayInPanel(labProposeRefusal(first.error,
+      { counterparty: c.counterparty, pendingId: first.pending && first.pending.id }));
     return;
   }
   const pbLine = (() => {
@@ -1179,115 +1244,51 @@ async function labAiPropose(ctx){
       return v.length ? `Our playbook flags this contract for: ${v.map(x => x.category).join(', ')}.` : '';
     }catch(_){ return ''; }
   })();
-  const messages = [{ role:'user', content:
-    `${action.ask}\n\nYou are helping negotiate a contract governed by Kenyan law. `
-    + `The party I act for is ${side === LAB_THEM ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
-    + (pbLine ? pbLine + ' ' : '')
-    + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
-    + 'Reply with the replacement wording for the selected passage and nothing else. No preamble, no quotation marks, no commentary.' }];
-  let raw;
-  try{
-    const res = await copilotAsk(messages, window.buildAssistantContext ? buildAssistantContext() : null);
-    raw = typeof res === 'string' ? res
-      : (res && (res.text || res.answer || res.content || res.reply || res.message)) || '';
-    raw = String(raw || '');
-  }catch(err){
-    fail(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
-    return;
-  }
-  if(!pop.isConnected) return;                     // closed while it was thinking
-  if(!raw.trim()){ fail('The Copilot returned nothing usable. Nothing was changed.'); return; }
-  /* A model that wrapped its answer in quotes or a fence is answering the
-     question; it is not proposing quotation marks into the contract. */
-  const suggestion = raw.trim().replace(/^```[a-z]*\s*/i,'').replace(/```\s*$/,'').trim()
-    .replace(/^["“]([\s\S]*)["”]$/,'$1').trim();
+  const party = side === LAB_THEM ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');
 
-  pop.querySelector('.lab-aiwait')?.remove();
-  const body = document.createElement('div');
-  body.className = 'lab-aibody';
-  body.innerHTML = `
-    <label class="lab-ailabel" for="lab-ai-text">Suggested wording — edit it before you apply</label>
-    <textarea id="lab-ai-text" class="ai-suggestion-editor lab-aitext w-full p-2 border rounded text-sm mb-2"
-      spellcheck="true" rows="4"></textarea>
-    <div class="lab-aisub">${mode === 'restore' ? 'In place of wording your draft currently deletes' : 'Replacing'}: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
-    ${mode === 'restore'
-      ? `<div class="lab-aistack">${esc(pendingOn ? pendingOn.id : 'Your draft')} currently cuts this wording. Applying turns that cut into a replacement — the old wording still goes, and this takes its place. Nothing has been sent, so ${esc(c.counterparty || 'the counterparty')} has seen neither.${
-          /* THE SPLICE ONLY EVER INSERTS. Where the draft already replaced this
-             passage, the replacement stays and the new wording joins it, which
-             is rarely what was meant — so say so, and point at the route that
-             does the right thing. Selecting the green wording puts this back on
-             the ordinary replace path, where the stand-in is what gets
-             rewritten. Guessing instead would mean deleting wording the person
-             did not select, and a wrong guess drops words from a contract. */
-          struck && struck.span && struck.span.at !== struck.span.seam
-            ? ` <b>Your draft already replaces this passage.</b> The new wording will be added alongside that replacement rather than instead of it — to rewrite the replacement itself, discard this and select the green wording.`
-            : ''}</div>`
-      : working === base ? ''
-      : `<div class="lab-aistack">Stacking on ${esc(pendingOn ? pendingOn.id : 'the pending change')} — the redline below is measured from the settled baseline, so it shows that change and this one together.</div>`}
-    <div class="lab-ailabel" style="margin-top:11px">How the clause would read</div>
-    <div class="lab-aipreview" id="lab-ai-preview"></div>`;
-  pop.insertBefore(body, pop.querySelector('header').nextSibling);
-  const foot = document.createElement('footer');
-  foot.innerHTML = `<button class="ui-btn ui-btn-primary" id="ai-apply-redline" data-ai-apply style="font-size:12px">Apply Redline</button>
-    <button class="ui-btn" id="ai-discard-redline" data-ai-discard style="font-size:12px">Discard</button>
-    <span style="flex:1"></span>
-    <span class="lab-aistate" data-ai-state>Nothing has changed yet</span>`;
-  pop.appendChild(foot);
-
-  const box = pop.querySelector('#lab-ai-text');
-  const preview = pop.querySelector('#lab-ai-preview');
-  const applyBtn = foot.querySelector('[data-ai-apply]');
-  /* The replacement lands in `working`; the redline is drawn from `base`. Where
-     there is no pending change the two are the same string and this is the
-     plain case.
-
-     SPLICED AT AN OFFSET, not by String.replace. Two reasons, and both of them
-     put wrong words into a contract. replace() takes the first match, which is
-     the wrong sentence whenever the selected phrase repeats in the clause; and
-     a replacement passed as a STRING has $&, $`, $' and $$ expanded inside it,
-     so wording reading "a deposit of US$$500" would be filed as "US$500" —
-     money altered by a substitution nobody wrote. slice() around a known index
-     has neither behaviour. */
-  const proposedFrom = v => {
-    const t = String(v == null ? '' : v).trim();
-    return t ? working.slice(0, at) + t + working.slice(at + spliceLen) : working;
-  };
-  const refresh = () => {
-    const proposed = proposedFrom(box.value);
-    const typed = !!box.value.trim();
+  /* ---------- APPLYING, AGAINST THE CLAUSE AS IT NOW STANDS ----------
+     `lab` in this closure is the record as it was when the panel opened, and
+     every repaint since has built a new one from storage. So the live record is
+     re-read here rather than reused, the passage is re-resolved against it, and
+     the remembered offset is rebased through whatever moved in between. Filing
+     against a stale object would write the intervening changes back out of
+     existence — the one failure that loses a colleague's work silently. */
+  const applyWording = (wording, card) => {
+    const live = labFor(c.id);
+    labBaseline(c, live);
+    const cl = labClausesOf(live).find(x => x.clauseId === clause.clauseId);
+    if(!cl) return { ok: false, message: labProposeRefusal('gone') };
+    /* The wording the clause reads as NOW, and the remembered offset carried
+       across to it. Where nothing has moved the two strings are identical and
+       the rebase is the identity; where something has, this is the difference
+       between splicing at the right words and at whatever is now that many
+       characters in. */
+    const nowWorking = labWorkingText(cl, live.changes, side).working;
+    const hintNow = window.redlineRebaseOffset
+      ? redlineRebaseOffset(first.working, nowWorking, first.at) : first.at;
+    const now = labResolvePassage({ lab: live, clause, text, side, hint: hintNow });
+    if(now.error) return { ok: false, message: labProposeRefusal(now.error === 'missing' ? 'moved' : now.error,
+      { counterparty: c.counterparty, pendingId: now.pending && now.pending.id }) };
+    /* SPLICED AT AN OFFSET, not by String.replace. Two reasons, and both of them
+       put wrong words into a contract. replace() takes the first match, which is
+       the wrong sentence whenever the selected phrase repeats in the clause; and
+       a replacement passed as a STRING has $&, $`, $' and $$ expanded inside it,
+       so wording reading "a deposit of US$$500" would be filed as "US$500" —
+       money altered by a substitution nobody wrote. slice() around a known index
+       has neither behaviour. */
+    const t = String(wording == null ? '' : wording).trim();
+    if(!t) return { ok: false, message: 'There is no wording to file.' };
+    const { working, at, spliceLen } = now;
+    const proposed = working.slice(0, at) + t + working.slice(at + spliceLen);
     /* Two separate questions, and conflating them is what would let a person
        file a revision that revises nothing. Did the edit MOVE anything off the
        wording already on the table? And is there a redline against the baseline
        left to file at all? Apply needs both to be yes. */
-    const moved   = typed && proposed !== working;
-    const filable = proposed !== base;
-    preview.innerHTML = moved && filable
-      ? labRedlineHtml(base, proposed)
-      : `<div class="lab-aiempty">${
-          !typed ? 'Write a replacement above to see the redline.'
-          : !moved ? (working === base
-              ? 'That is the wording the clause already has — there is nothing to file.'
-              : 'That is the wording already on the table — there is nothing new to file.')
-          : 'That takes the clause back to its original wording. A redline cannot say “no change”, so withdraw the pending change instead of filing this.'}</div>`;
-    applyBtn.disabled = !(moved && filable);
-    place();
-  };
-  box.value = suggestion;
-  box.addEventListener('input', refresh);
-  refresh();
-  box.focus();
-  box.setSelectionRange(box.value.length, box.value.length);
-
-  foot.querySelector('[data-ai-discard]').addEventListener('click', dismiss);
-  applyBtn.addEventListener('click', () => {
-    /* THE HELD SELECTION, NOT THE LIVE ONE. `working`, `at` and `spliceLen`
-       were all resolved when this popover opened, from the range cloned at the
-       moment of selection. By now the document selection is long gone — focus
-       moved into the textarea the instant the box appeared — so anything that
-       consulted window.getSelection() here would find nothing and have no idea
-       where the wording belonged. Nothing on this path reads it. */
-    const proposed = proposedFrom(box.value);
-    if(proposed === base || proposed === working) return;
+    if(proposed === now.working) return { ok: false, message: now.working === now.base
+      ? 'That is the wording the clause already has — there is nothing to file.'
+      : 'That is the wording already on the table — there is nothing new to file.' };
+    if(proposed === now.base) return { ok: false, message:
+      'That takes the clause back to its original wording. A redline cannot say “no change”, so withdraw the pending change instead of filing this.' };
     /* Filed as an ordinary tracked change — same model, same id series, same
        card in the list. A suggestion that arrived from a model, and was then
        edited by a person, is not a different KIND of change. The author line
@@ -1296,36 +1297,89 @@ async function labAiPropose(ctx){
        `before` is the BASELINE, not the wording this edit was written on top of.
        A clause revised three times still holds one change measured from the
        settled text, so rejecting it returns the original exactly. */
-    const edited = box.value.trim() !== suggestion;
+    /* WHOSE WORDING THIS IS, on the record. A suggestion a person took as it
+       came and a suggestion they rewrote in the card are not the same claim
+       about authorship, and the approver reading the card is entitled to know
+       which one they are looking at. */
+    const edited = !!(card && card.original != null && t !== String(card.original).trim());
     const authorRef = labAuthorOf(window.currentUser ? currentUser() : null, side, c);
     /* Which record this lands on is decided by labFileChange, on the rule it
        has always used: the same hand revises its own ask, a different hand
        stacks. Restoring struck wording is not an exception to that — it is the
        same person editing the same draft, so it revises L-001 in place and the
        card, its notes and its threads all survive. */
-    const wasOn = pendingOn ? pendingOn.id : null;
-    const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
+    const wasOn = now.pending ? now.pending.id : null;
+    const base = now.base;
+    const ch = labFileChange(live, { clauseId: clause.clauseId, clauseLabel: clause.label,
       before: base, after: proposed, side, authorRef,
-      author: `${authorRef.name} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
-    /* Down in one move: the popover goes, the floating menu goes, and the held
-       selection is released. Leaving the range behind would let a later gesture
-       act on wording the reader had already finished with. */
-    dismiss();
-    if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
-    labPut(c.id, lab);
+      author: `${authorRef.name} · Copilot (${action.label.replace(/^\S+\s/, '')})${edited ? ', edited' : ''}` });
+    if(!ch) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
+    labPut(c.id, live);
     if(window.toast) toast(
       ch.parentChangeId
         ? `${ch.id} filed on top of ${ch.parentChangeId} — ${labAuthorName(ch)}'s pass over a colleague's wording`
-      /* Said plainly, because the record the person was looking at is the one
-         that moved and they should not have to go and check. */
-      : mode === 'restore' && wasOn === ch.id
+      : now.mode === 'restore' && wasOn === ch.id
         ? `${ch.id} updated — that cut is now a replacement, and the new wording sits where the old wording was`
-      : mode === 'restore'
+      : now.mode === 'restore'
         ? `${ch.id} filed — that cut is now a replacement`
         : `${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
     if(typeof again === 'function') again();
-  });
-  place();
+    return { ok: true, change: ch };
+  };
+
+  /* The follow-up. Same passage, same party, same playbook line — plus what the
+     drafter just said and what was proposed before it, so "make that stronger"
+     strengthens the proposal on the screen rather than starting again from the
+     baseline. */
+  const refine = async (instruction, prev, extra) => {
+    const made = await copilotPropose({ ask: action.ask, passage: text, party,
+      playbook: pbLine, instruction, history: (extra && extra.history) || '' });
+    if(!made) return null;
+    return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
+      clauseLabel: clause.label, replacing: text,
+      onApply: applyWording, onRefine: refine };
+  };
+
+  let made;
+  try{
+    made = await copilotPropose({ ask: action.ask, passage: text, party, playbook: pbLine });
+  }catch(err){
+    labSayInPanel(`The Copilot could not answer: ${(err && err.message) || String(err)}. Nothing was changed.`);
+    return;
+  }
+  if(!made){
+    labSayInPanel('The Copilot returned nothing usable. Nothing was changed.');
+    return;
+  }
+  if(!window.aiOpenProposal){
+    labSayInPanel('The Copilot panel is not loaded on this page, so there is nowhere to put the proposal.');
+    return;
+  }
+  /* WHAT THE READER IS ABOUT TO STACK ON, said before they press Apply rather
+     than discovered afterwards. */
+  const note = first.mode === 'restore'
+    ? `${(first.pending && first.pending.id) || 'Your draft'} currently cuts this wording. Applying turns that cut `
+      + `into a replacement — the old wording still goes, and this takes its place. Nothing has been sent, so `
+      + `${c.counterparty || 'the counterparty'} has seen neither.`
+      /* THE SPLICE ONLY EVER INSERTS. Where the draft already replaced this
+         passage, the replacement stays and the new wording joins it, which is
+         rarely what was meant — so say so, and point at the route that does the
+         right thing. Selecting the green wording puts this back on the ordinary
+         replace path, where the stand-in is what gets rewritten. Guessing
+         instead would mean deleting wording the person did not select, and a
+         wrong guess drops words from a contract. */
+      + (first.struck && first.struck.span && first.struck.span.at !== first.struck.span.seam
+        ? ' Your draft already replaces this passage, so the new wording will be added alongside that '
+          + 'replacement rather than instead of it — to rewrite the replacement itself, decline this and '
+          + 'select the green wording.'
+        : '')
+    : first.working !== first.base
+      ? `Stacking on ${(first.pending && first.pending.id) || 'the pending change'} — the redline is measured from the `
+        + 'settled baseline, so it will show that change and this one together.'
+      : '';
+  aiOpenProposal({ advice: made.advice, proposedText: made.proposedText, strict: made.strict,
+    clauseLabel: clause.label, replacing: text, note,
+    onApply: applyWording, onRefine: refine });
 }
 
 /* The floating menu itself, built once and opened from two places: a text
@@ -1334,13 +1388,17 @@ async function labAiPropose(ctx){
    different verbs for the same job. */
 function labSelMenu(ctx){
   const { text, clause, rect, c, lab, side, again } = ctx;
+  /* Named for the side the reader is currently acting as, not for a fixed
+     party. Both entry points build the menu here, so neither can offer to
+     argue against the party the other one is playing. */
+  const actions = labAiActions(c, side);
   labKillSel();
   const menu = document.createElement('div');
   menu.className = 'lab-selmenu';
   menu.setAttribute('role','menu');
   menu.innerHTML = `<div class="lab-selhead">${ctx.whole ? 'This clause' : 'Selected wording'}</div>
     <div class="lab-selquote">${esc(text.length > 66 ? text.slice(0,65) + '…' : text)}</div>
-    ${LAB_AI_ACTIONS.map(a => `<button type="button" role="menuitem" data-lab-ai="${a.id}">${esc(a.label)}</button>`).join('')}`;
+    ${actions.map(a => `<button type="button" role="menuitem" data-lab-ai="${a.id}">${esc(a.label)}</button>`).join('')}`;
   document.body.appendChild(menu);
   const box = menu.getBoundingClientRect();
   const at = labAnchor(rect, box.width, box.height);
@@ -1357,7 +1415,7 @@ function labSelMenu(ctx){
     /* mousedown, not click: clicking first collapses the selection, and the
        proposal needs the words that were chosen. */
     ev.preventDefault(); ev.stopPropagation();
-    const action = LAB_AI_ACTIONS.find(a => a.id === btn.getAttribute('data-lab-ai'));
+    const action = actions.find(a => a.id === btn.getAttribute('data-lab-ai'));
     labKillSel();
     if(!action) return;
     if(action.tag){
@@ -1568,6 +1626,13 @@ function labChangeCardHtml(ch, side, external){
         : ch.status === 'folded' ? labChip('Folded into ' + (ch.foldedInto || 'a round'), 'quiet')
         : ch.sent ? labChip('Awaiting a decision', 'open') : labChip('Not sent', 'draft')}
       ${external ? '' : labAuthorPillHtml(ch)}
+      ${''/* ON THE HEADER, not down with Send it and Accept. Discard is the only
+             verb here that destroys a record rather than moving it along, and
+             sitting it beside the two that advance the negotiation is how a
+             tired thumb ends a draft it meant to send. The rule for when it
+             appears at all lives in js/discuss.js, so the lab and the product
+             cannot disagree about what "an unsent internal draft" means. */}
+      ${window.discussDiscardBtnHtml ? discussDiscardBtnHtml(ch, { external }) : ''}
     </div>
     <div style="font-size:12.5px;line-height:1.6">${labRedlineHtml(ch.before, ch.after)}</div>
     <div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(ch.author)}${ch.revised ? ' · revised ' + ch.revised + '×' : ''}${
@@ -1707,6 +1772,98 @@ function labModeBannerHtml(c, lab, side, external){
       ${split.held.length ? `<span style="font-size:11px;color:${LAB_GOLD};align-self:center">${split.held.length} held back for a person</span>` : ''}
     </div>` : '';
   return banner.replace('</div>', acts + '</div>');
+}
+
+/* ============================================================
+   ONE STATUS BAR, AND A WAY TO GET IT OUT OF THE WAY
+   ============================================================
+   Three cards used to stack above the split: the contract's name and the two
+   view toggles; a note about what was being withheld; and the mode banner with
+   Publish Round and the batch actions on it. Each was written on its own and
+   each was reasonable on its own. Together they were 150-odd pixels of chrome
+   above a document, on a screen whose whole job is reading a document — and
+   because the panes are sized from the split's measured top, every pixel the
+   header took came straight out of the wording and the argument about it.
+
+   They are one horizontal bar now. Nothing was dropped: the same facts are in
+   it, said once each instead of three times across three cards, with the counts
+   as chips rather than as sentences.
+
+   AND IT COLLAPSES. Even one bar is chrome, and there are stretches of this
+   work — reading a long clause, working down a stack of cards — where none of
+   it is being used. #toggle-header-btn takes it down to the ~40px identity
+   strip: which contract, which mode, and the way back. The preference is
+   remembered per browser, because somebody who wants the room wants it every
+   time and re-collapsing it on every visit is a tax on the person who most
+   needs the space.
+
+   WHAT NEVER COLLAPSES is the mode chip. "🔒 Internal sandbox drafting" against
+   "🌐 Counterparty published round" is the difference between a note nobody has
+   seen and a position that has left the building, and a reader must not have to
+   expand anything to know which one they are in. */
+const LAB_HEADER_KEY = 'doclab_header_collapsed';
+function labHeaderCollapsed(){
+  try{ return localStorage.getItem(LAB_HEADER_KEY) === 'true'; }catch(_){ return false; }
+}
+function labSetHeaderCollapsed(v){
+  try{ localStorage.setItem(LAB_HEADER_KEY, v ? 'true' : 'false'); }catch(_){}
+}
+function labStatusHeaderHtml(c, lab, side, external, held, payload){
+  const collapsed = labHeaderCollapsed();
+  const pending = (lab.changes || []).filter(x => x.status === 'pending');
+  const unsent  = pending.filter(x => !x.sent && x.side === side);
+  const sandbox = !external && unsent.length > 0;
+  const other = esc(c.counterparty || 'the counterparty');
+  const modeChip = external || !sandbox
+    ? `<span class="doclab-modechip is-published" title="Everything on the table has been sent">🌐 ${external ? 'Counterparty published round' : 'Published round'}</span>`
+    : `<span class="doclab-modechip is-sandbox" title="${unsent.length} draft${unsent.length === 1 ? '' : 's'} ${other} cannot see">🔒 Internal sandbox drafting</span>`;
+  const counts = [
+    pending.length ? `${pending.length} pending` : '',
+    !external && unsent.length ? `${unsent.length} unsent draft${unsent.length === 1 ? '' : 's'}` : '',
+    !external && held.threads ? `${held.threads} internal thread${held.threads === 1 ? '' : 's'} held` : '',
+    external ? `${payload.changes.length} change${payload.changes.length === 1 ? '' : 's'} · ${payload.threads.length} thread${payload.threads.length === 1 ? '' : 's'} shared` : ''
+  ].filter(Boolean);
+  return `
+  <div class="doclab-status-header flex items-center justify-between p-3 bg-slate-50 border-b${collapsed ? ' is-collapsed' : ''}"
+    id="doclab-status-header" role="region" aria-label="Doc Lab status">
+
+    <div class="doclab-status-row">
+      <div class="doclab-ident">
+        <span class="doclab-name" title="${esc(c.name)}">${esc(c.name)}</span>
+        <span class="doclab-id">${esc(c.id)}${c.counterparty ? ' · ' + esc(c.counterparty) : ''}</span>
+      </div>
+      ${modeChip}
+      ${counts.map(t => `<span class="doclab-count">${esc(t)}</span>`).join('')}
+
+      <div class="doclab-controls">
+        ${external ? '' : `
+        <div class="doclab-seg" role="group" aria-label="Which side you are acting as">
+          <button id="lab-side-us" class="ui-btn${side === LAB_US ? ' is-on' : ''}">Acting as us</button>
+          <button id="lab-side-them" class="ui-btn${side === LAB_THEM ? ' is-on' : ''}">Acting as them</button>
+        </div>`}
+        <div class="doclab-seg" role="group" aria-label="Whose view of the document">
+          <button id="lab-int" class="ui-btn${external ? '' : ' is-on is-accent'}">Your workspace</button>
+          <button id="lab-ext" class="ui-btn${external ? ' is-on is-accent' : ''}">Counterparty's view</button>
+        </div>
+        <button id="lab-export-docx" class="ui-btn" type="button"
+          title="Download the marked-up document as Word tracked changes. UI badges are stripped; every insertion and deletion arrives as w:ins / w:del.">⬇︎ Word</button>
+        <button id="toggle-header-btn" class="ui-btn" type="button"
+          aria-expanded="${collapsed ? 'false' : 'true'}" aria-controls="doclab-status-header"
+          title="${collapsed ? 'Show the full status bar' : 'Collapse the status bar and give the room to the document'}">${
+            collapsed ? '▾ Details' : '▴ Focus mode'}</button>
+      </div>
+    </div>
+
+    <div class="doclab-status-detail"${collapsed ? ' hidden' : ''}>
+      ${external ? `
+      <p class="doclab-detail-line">This is their view, drawn from what <code>labSharePayload()</code> returned. Internal notes and unsent drafts are not hidden here; they were never put in the object this page is rendering.</p>`
+      : `
+      <p class="doclab-detail-line">A copy of the document you can edit freely. Nothing here is saved to the contract or sent anywhere.${
+        (held.threads || held.drafts) ? ` Staying behind if this were shared right now: <b>${held.threads} internal thread${held.threads === 1 ? '' : 's'}</b> (${held.messages} message${held.messages === 1 ? '' : 's'})${
+          held.drafts ? ` and <b>${held.drafts} unsent draft change${held.drafts === 1 ? '' : 's'}</b>` : ''}. Switch to the counterparty's view to check.` : ''}</p>`}
+      ${labModeBannerHtml(c, lab, side, external)}
+    </div>
+  </div>`;
 }
 
 /* The bar that says the discussion is showing one change out of many, and the
@@ -1977,43 +2134,13 @@ function renderDocLab(){
     .lab-selquote{font-size:11px;color:var(--color-neutral-600);padding:0 9px 6px;font-style:italic;
       max-width:246px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-    /* ---- the AI proposal popover ---- */
-    .lab-aipop{position:fixed;z-index:81;width:min(470px,calc(100vw - 32px));border-radius:10px;
-      background:var(--color-surface);border:1px solid var(--color-divider);
-      box-shadow:0 20px 46px -12px rgba(20,32,48,.42);overflow:hidden}
-    .lab-aipop header{display:flex;align-items:center;gap:8px;padding:11px 14px;
-      border-bottom:1px solid var(--color-divider);background:var(--color-bg);font-size:12.5px;font-weight:700}
-    .lab-aibody{padding:12px 14px;max-height:42vh;overflow:auto;font-family:var(--font-doc);
-      font-size:13px;line-height:1.68}
-    .lab-aipop footer{display:flex;gap:8px;align-items:center;padding:10px 14px;
-      border-top:1px solid var(--color-divider);background:var(--color-bg);flex-wrap:wrap}
-    .lab-aiwait{display:flex;align-items:center;gap:9px;padding:16px 14px;font-size:12.5px;
-      color:var(--color-neutral-600)}
-    .lab-aispin{width:14px;height:14px;border-radius:50%;flex:none;border:2px solid var(--color-divider);
-      border-top-color:var(--color-neutral-700);animation:lab-spin .8s linear infinite}
-    @keyframes lab-spin{to{transform:rotate(360deg)}}
-
-    /* ---- the editable AI proposal ---- */
-    .lab-ailabel{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;
-      color:var(--color-neutral-500);margin:0 0 5px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-    .lab-aitext{width:100%;min-height:88px;resize:vertical;font-family:var(--font-doc);
-      font-size:13px;line-height:1.6;padding:9px 11px;border-radius:6px;
-      border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-900)}
-    .lab-aitext:focus{outline:2px solid #6366f1;outline-offset:1px;border-color:#6366f1}
-    .lab-aisub{font-size:11px;color:var(--color-neutral-600);margin-top:6px;line-height:1.5;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-    .lab-aipreview{border:1px solid var(--color-divider);border-radius:6px;padding:11px 13px;
-      background:var(--color-bg);max-height:190px;overflow:auto}
-    .lab-aiempty{font-size:12px;color:var(--color-neutral-600);line-height:1.55;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-    /* Says out loud that this edit is being written on top of an undecided one,
-       because the redline underneath will show both and a reader who did not
-       expect that would read someone else's wording as their own. */
-    .lab-aistack{font-size:11px;line-height:1.5;margin-top:7px;padding:6px 9px;border-radius:5px;
-      background:#f4ecd8;color:#8a6d1f;border:1px solid #e3d3a8;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-    .lab-aistate{font-size:10.5px;color:var(--color-neutral-500)}
-    .lab-aipop footer .ui-btn[disabled]{opacity:.45;cursor:not-allowed}
+    /* ---- the proposal's editor, now in the Copilot panel ----
+       The class name is unchanged on purpose: it is the handle the browser
+       checks reach for, and the box it names still does the same job — the
+       model's wording, editable by a person before it is filed — in a side
+       panel instead of a popover over the clause. */
+    .ai-suggestion-editor{font-family:var(--font-doc);font-size:13px;line-height:1.6}
+    .ai-suggestion-editor:focus{outline:2px solid #6366f1;outline-offset:1px;border-color:#6366f1}
 
     /* ---- a change badge in the document, and the thread it points at ---- */
     .lab-badge{font-family:var(--font-mono);font-size:10.5px;border-radius:999px;padding:2px 9px;
@@ -2051,43 +2178,71 @@ function renderDocLab(){
     .lab-mode.is-sandbox{border-left:4px solid #8a6a2a;background:#fffdf7;color:#7d5a14}
     .lab-mode.is-published{border-left:4px solid #33475c;background:#f5f8fb;color:var(--color-neutral-800)}
     .lab-mode b{font-size:12.5px}
+
+    /* ---- THE ONE STATUS BAR ----
+       The utility class names are the ones the spec asks for; these rules carry
+       the same look on their own, so the header holds its shape on a page where
+       the utility framework did not load — which is this app's offline stage. */
+    .doclab-status-header{display:flex;flex-direction:column;gap:0;
+      padding:12px 16px;background:#f8fafc;border-bottom:1px solid var(--color-divider)}
+    .doclab-status-row{display:flex;align-items:center;justify-content:space-between;
+      gap:10px;flex-wrap:wrap;min-height:26px}
+    /* ~40px once the detail row is out: 26px of content inside 7px of padding
+       either side. That is the identity strip and nothing more. */
+    .doclab-status-header.is-collapsed{padding:7px 16px}
+    .doclab-status-header.is-collapsed .doclab-status-detail{display:none}
+    /* Collapsed, the row must not WRAP — a bar that reflows onto two lines is
+       not 40px however little padding it has. So everything that is detail
+       stands down, and what remains is identity, mode and the way back.
+
+       THE SEGMENTED CONTROLS GO WITH THEM, and that is not tidiness. With the
+       row set to nowrap they cannot shrink, so on any narrow shell — a docked
+       Copilot panel takes 430px of one — they push the toggle itself off the
+       right-hand edge, and a reader in focus mode has no way out of it. A
+       control you have to expand for beats a control that is not there. */
+    .doclab-status-header.is-collapsed .doclab-status-row{flex-wrap:nowrap}
+    .doclab-status-header.is-collapsed .doclab-controls{flex-wrap:nowrap}
+    .doclab-status-header.is-collapsed .doclab-count,
+    .doclab-status-header.is-collapsed .doclab-seg,
+    .doclab-status-header.is-collapsed #lab-export-docx,
+    .doclab-status-header.is-collapsed .doclab-id{display:none}
+    .doclab-status-header.is-collapsed .doclab-name{font-size:13px}
+    .doclab-ident{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1 1 140px;overflow:hidden}
+    .doclab-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;
+      text-overflow:ellipsis;max-width:100%}
+    .doclab-id{font-family:var(--font-mono);font-size:10.5px;color:var(--color-neutral-600);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .doclab-modechip{flex:none;font-size:10.5px;font-weight:700;border-radius:999px;
+      padding:3px 10px;white-space:nowrap}
+    .doclab-modechip.is-sandbox{background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.3)}
+    .doclab-modechip.is-published{background:#eef2f7;color:#33475c;border:1px solid #cbd5e1}
+    .doclab-count{flex:none;font-size:10.5px;color:var(--color-neutral-600);
+      background:var(--color-surface);border:1px solid var(--color-divider);
+      border-radius:999px;padding:2px 9px;white-space:nowrap}
+    .doclab-controls{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-left:auto}
+    .doclab-seg{display:inline-flex;border:1px solid var(--color-divider);border-radius:5px;
+      overflow:hidden;flex:none}
+    .doclab-seg .ui-btn{border:0;border-radius:0;font-size:11.5px;padding:4px 10px}
+    .doclab-seg .ui-btn + .ui-btn{border-left:1px solid var(--color-divider)}
+    .doclab-seg .ui-btn.is-on{background:var(--color-neutral-800);color:#fff}
+    .doclab-seg .ui-btn.is-on.is-accent{background:var(--color-accent);color:#fff}
+    .doclab-controls > .ui-btn{font-size:11.5px;padding:4px 10px;flex:none}
+    .doclab-status-detail{display:flex;flex-direction:column;gap:9px;margin-top:10px}
+    /* An author display rule beats the UA sheet's [hidden] one whatever the
+       specificity, so the attribute has to be honoured explicitly or the markup
+       says hidden while the pixels say otherwise. */
+    .doclab-status-detail[hidden]{display:none}
+    .doclab-detail-line{margin:0;font-size:11.5px;line-height:1.55;color:var(--color-neutral-700)}
+    .doclab-detail-line code{font-family:var(--font-mono);font-size:11px}
+
+    /* ---- discarding a draft ---- */
+    .discuss-discard:hover{background:#f9dedb;border-color:rgba(143,50,43,.5)}
   </style>
-  <div class="view-enter" style="padding:14px 16px 24px;display:flex;flex-direction:column;gap:12px">
+  <div class="view-enter" style="padding:0 0 24px;display:flex;flex-direction:column;gap:0">
 
-    <section style="${LAB_CARD};padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div style="min-width:0;flex:1">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <h3 style="font-size:16px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
-          ${labChip('Sandbox', 'internal')}
-        </div>
-        <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px">${esc(c.id)}${c.counterparty ? ' · ' + esc(c.counterparty) : ''} — a copy of the document you can edit freely. Nothing here is saved to the contract or sent anywhere.</div>
-      </div>
-      ${external ? '' : `
-      <div style="display:inline-flex;border:1px solid var(--color-divider);border-radius:5px;overflow:hidden;flex:none">
-        <button id="lab-side-us" class="ui-btn" style="border:0;border-radius:0;font-size:12px;${side === LAB_US ? 'background:var(--color-neutral-800);color:#fff' : ''}">Acting as us</button>
-        <button id="lab-side-them" class="ui-btn" style="border:0;border-left:1px solid var(--color-divider);border-radius:0;font-size:12px;${side === LAB_THEM ? 'background:var(--color-neutral-800);color:#fff' : ''}">Acting as them</button>
-      </div>`}
-      <div style="display:inline-flex;border:1px solid var(--color-divider);border-radius:5px;overflow:hidden;flex:none">
-        <button id="lab-int" class="ui-btn" style="border:0;border-radius:0;font-size:12px;${external ? '' : 'background:var(--color-accent);color:#fff'}">Your workspace</button>
-        <button id="lab-ext" class="ui-btn" style="border:0;border-left:1px solid var(--color-divider);border-radius:0;font-size:12px;${external ? 'background:var(--color-accent);color:#fff' : ''}">Counterparty's view</button>
-      </div>
-    </section>
+    ${labStatusHeaderHtml(c, lab, side, external, held, payload)}
 
-    ${external ? `
-    <section style="${LAB_CARD};padding:11px 16px;background:var(--color-accent-100);border-color:var(--color-accent-300)">
-      <div style="font-size:12px;line-height:1.6;color:var(--color-accent-900)">
-        Drawn from what <code style="font-family:var(--font-mono);font-size:11px">labSharePayload()</code> returned — <b>${payload.changes.length} change${payload.changes.length === 1 ? '' : 's'}</b> and <b>${payload.threads.length} thread${payload.threads.length === 1 ? '' : 's'}</b>.
-        Internal notes and unsent drafts are not hidden here; they were never put in the object this page is rendering.
-      </div>
-    </section>` : ((held.threads || held.drafts) ? `
-    <section style="${LAB_CARD};padding:11px 16px;border-left:3px solid ${LAB_GOLD}">
-      <div style="font-size:12px;line-height:1.6;color:var(--color-neutral-800)">
-        Staying behind if this were shared right now: <b>${held.threads} internal thread${held.threads === 1 ? '' : 's'}</b> (${held.messages} message${held.messages === 1 ? '' : 's'})${held.drafts ? ` and <b>${held.drafts} unsent draft change${held.drafts === 1 ? '' : 's'}</b>` : ''}. Switch to the counterparty's view to check.
-      </div>
-    </section>` : '')}
-
-    ${labModeBannerHtml(c, lab, side, external)}
-
+    <div style="padding:12px 16px 0">
     <div class="lab-split">
 
       <section class="lab-docpane" style="${LAB_CARD};padding:18px 22px 0;min-width:0">
@@ -2148,6 +2303,7 @@ function renderDocLab(){
         </section>`}
 
       </div>
+    </div>
     </div>
 
     ${''/* The "what this page is proving" note lived here and is gone. It was
@@ -2449,7 +2605,7 @@ function wireDocLab(c, lab, side, external){
          field is somebody operating the page, not selecting words in it. */
       const fromControl = t => !!(t && t.closest && t.closest(
         '.clause-tools, .clause-tool, .change-tag-badge, .lab-selmenu, ' +
-        '#ai-copilot-popover, [data-lab-editor], button, a, input, textarea, select'));
+        '.lab-notepop, #ai-panel, [data-lab-editor], button, a, input, textarea, select'));
       canvas.addEventListener('mouseup', e => {
         if(fromControl(e.target)) return;
         setTimeout(openSel, 10);
@@ -2474,16 +2630,19 @@ function wireDocLab(c, lab, side, external){
         const t = e.target;
         const inside = sel => !!(t && t.closest && t.closest(sel));
         /* THE MENU goes on any click that is not on the menu itself or on the
-           popover it opens — including a click back into the document, which is
-           the start of a new selection. */
-        if(!inside('.lab-selmenu') && !inside('#ai-copilot-popover')) labKillSel();
-        /* THE POPOVER is stickier, and deliberately so. It holds wording the
-           person has been editing by hand, so clicking back into the document
-           to re-read the clause must not throw that away. It closes only on a
-           click outside BOTH the canvas and itself — or on Discard, Close or
-           Escape, which are the ways to say so on purpose. */
-        if(!inside('.document-canvas') && !inside('#ai-copilot-popover')
-          && !inside('.lab-selmenu')) labKillPop();
+           layer it opens — including a click back into the document, which is
+           the start of a new selection. The Copilot panel is excluded too: the
+           menu's AI actions now route into it, and killing the menu from a
+           press inside the panel would be the two halves of one gesture
+           fighting each other. */
+        if(!inside('.lab-selmenu') && !inside('.lab-notepop') && !inside('#ai-panel')) labKillSel();
+        /* THE NOTE COMPOSER is stickier, and deliberately so. It holds a note
+           the person has been typing, so clicking back into the document to
+           re-read the clause must not throw that away. It closes only on a
+           click outside BOTH the canvas and itself — or on Cancel or Escape,
+           which are the ways to say so on purpose. */
+        if(!inside('.document-canvas') && !inside('.lab-notepop')
+          && !inside('#ai-panel') && !inside('.lab-selmenu')) labKillPop();
       }, true);
       document.addEventListener('keydown', e => {
         if(e.key === 'Escape'){ labKillSel(); labKillPop(); labClearSel(); }
@@ -2495,6 +2654,75 @@ function wireDocLab(c, lab, side, external){
   const save = () => labPut(c.id, lab);
   const repaint = () => renderDocLab();
   const u = () => currentUser();
+
+  /* ---------- FOCUS MODE ----------
+     Toggled in place rather than through a repaint. A repaint rebuilds both
+     panes and would throw away the reader's position in a document they are
+     part-way down — which is exactly the person pressing this, since wanting
+     more room to read is what the button is for. The preference is written
+     immediately, so it survives a repaint from anywhere else. */
+  on('toggle-header-btn', () => {
+    const head = document.getElementById('doclab-status-header');
+    const btn = document.getElementById('toggle-header-btn');
+    if(!head) return;
+    const collapsed = !head.classList.contains('is-collapsed');
+    head.classList.toggle('is-collapsed', collapsed);
+    const detail = head.querySelector('.doclab-status-detail');
+    if(detail) detail.hidden = collapsed;
+    if(btn){
+      btn.textContent = collapsed ? '▾ Details' : '▴ Focus mode';
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      btn.title = collapsed
+        ? 'Show the full status bar'
+        : 'Collapse the status bar and give the room to the document';
+    }
+    labSetHeaderCollapsed(collapsed);
+    /* The panes are sized from the split's measured top, so the space the
+       header just gave up has to be handed to them or it becomes a gap. */
+    const el = document.querySelector('.lab-split');
+    if(el && window.innerWidth > 900)
+      el.style.height = Math.max(360, window.innerHeight - el.getBoundingClientRect().top - 18) + 'px';
+  });
+
+  /* ---------- DISCARDING A DRAFT ----------
+     The rule, the re-parenting and the markup sweep all live in js/discuss.js
+     and js/redline.js; what the lab supplies is where its record is kept and
+     what "update the view" means here. */
+  if(window.wireDiscussDiscard) wireDiscussDiscard({
+    store: lab,
+    persist: save,
+    again: repaint,
+    onDiscarded: res => {
+      /* A reader looking at the discarded change should not be left filtered to
+         a card that no longer exists. */
+      if(_labLinked === (res.removed && res.removed.id)){ _labLinked = null; _labOnly = false; }
+    }
+  });
+
+  /* ---------- EXPORT ----------
+     The redline as it stands, as a Word file a counterparty can accept and
+     reject in their own copy. The whole document, not one clause: a tracked-
+     changes file with three clauses in it is not the agreement. */
+  on('lab-export-docx', () => {
+    if(!window.docxExportTracked){ if(window.toast) toast('The Word writer is not loaded on this page', 'err'); return; }
+    const canvas = document.getElementById('lab-canvas');
+    const html = canvas ? canvas.innerHTML : labDocHtml(c, lab, side, external);
+    let out;
+    try{ out = docxExportTracked(html, { author: (u() && u().name) || 'HaTi' }); }
+    catch(e){ if(window.toast) toast('That document could not be written as Word: ' + (e.message || e), 'err'); return; }
+    const name = `${c.id}-redline.docx`;
+    try{
+      const blob = new Blob([out.bytes], { type: DOCX_MIME });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+    }catch(e){ if(window.toast) toast('The download could not start: ' + (e.message || e), 'err'); return; }
+    if(window.toast) toast(out.tracked.ins || out.tracked.del
+      ? `${name} — ${out.tracked.ins} insertion${out.tracked.ins === 1 ? '' : 's'} and ${out.tracked.del} deletion${out.tracked.del === 1 ? '' : 's'}, as Word tracked changes`
+      : `${name} — no redlines on this document, so it exports as clean wording`);
+  });
 
   on('lab-int', () => { state.labView = 'internal'; repaint(); });
   on('lab-ext', () => { state.labView = 'external'; repaint(); });
@@ -2621,6 +2849,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   labSharePayload, labShareChanges, labWithheld,
   LAB_STAGE_DRAFT, LAB_STAGE_PUBLISHED, LAB_STAGE_FOLDED, LAB_ROLES,
   labClauseText, labWorkingText, labPickOccurrence, labWorkingOffset,
+  LAB_AI_ACTIONS, labAiActions, labActingParty,
   labPendingOn, labStackOn, labCanDecide, labMigrateChanges,
   labDraftOnlyStack, labStruckTarget,
   labAuthorOf, labInitials, labAuthorName, labChainOf, labPublishRound,
@@ -2630,5 +2859,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   labFileChange, labSendChange, labDecide, labResolveLinked,
   labTagChange, labUntagChange,
   labBaseline, labClausesOf, labTopics, labSeed,
+  LAB_HEADER_KEY, labHeaderCollapsed, labSetHeaderCollapsed, labStatusHeaderHtml,
+  labResolvePassage, labProposeRefusal, labSayInPanel, labAiPropose,
   renderDocLab, wireDocLab
 });
