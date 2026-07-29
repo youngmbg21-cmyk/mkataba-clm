@@ -68,6 +68,22 @@ const LAB_SHARED   = 'shared';
 const LAB_US   = 'owner';
 const LAB_THEM = 'counterparty';
 
+/* ---------- the internal sandbox ----------
+   Where a team's work sits before it is a position. `internal_draft` is the
+   stage everything is born into and it is the one that must never travel.
+
+   It is a SECOND lock, not a replacement for the first. `sent === true` remains
+   the wall's authority — that is the property f60 pins and the one the sample
+   engine got wrong — and the stage has to agree with it. Two independent
+   conditions both saying yes is what makes a forgotten field harmless: a change
+   with a stage nobody set still fails the sent test, and a change wrongly
+   marked sent still fails the stage test. */
+const LAB_STAGE_DRAFT     = 'internal_draft';
+const LAB_STAGE_PUBLISHED = 'published';
+/* A change that was folded into a published round. It keeps the internal
+   micro-history readable without standing as an ask of its own. */
+const LAB_STAGE_FOLDED    = 'folded';
+
 function labLoad(){
   try{ return JSON.parse(localStorage.getItem(LAB_KEY) || '{}') || {}; }
   catch(e){ return {}; }
@@ -76,10 +92,26 @@ function labFor(cid){
   const rec = labLoad()[cid];
   return {
     threads:   (rec && rec.threads)   || [],
-    changes:   (rec && rec.changes)   || [],
+    changes:   labMigrateChanges((rec && rec.changes) || []),
     baseHtml:  (rec && rec.baseHtml)  || '',
     nextId:    (rec && rec.nextId)    || 1
   };
+}
+
+/* Records written before `stage` existed carry no stage at all, and the share
+   filter now requires one. Read as-is they would fail the second lock and a
+   negotiation already on the table would silently empty out — the counterparty
+   opening their link would find nothing had ever been sent.
+
+   So the stage is derived on read from the field that was authoritative when
+   the record was written. This reads the OLD truth rather than assuming the new
+   one: sent means published, and everything else is a draft. */
+function labMigrateChanges(changes){
+  for(const ch of (changes || [])){
+    if(!ch || ch.stage) continue;
+    ch.stage = ch.sent === true ? LAB_STAGE_PUBLISHED : LAB_STAGE_DRAFT;
+  }
+  return changes || [];
 }
 function labPut(cid, lab){
   const all = labLoad();
@@ -128,7 +160,12 @@ function labSharePayload(lab){
    is marked internal, but the half-written clause it is about is not. */
 function labShareChanges(changes){
   return (changes || [])
-    .filter(x => x.sent === true)
+    /* BOTH locks, and both of them explicit-allow. `sent === true` is the one
+       the wall has always turned on. The stage test is the second: anything
+       still in the internal sandbox, anything folded into a published round,
+       and anything whose stage was never set at all fails it. A change travels
+       only by being named published AND having been sent. */
+    .filter(x => x.sent === true && x.stage === LAB_STAGE_PUBLISHED)
     .map(x => ({
       id: x.id, clauseId: x.clauseId, clauseLabel: x.clauseLabel,
       before: x.before, after: x.after,
@@ -178,11 +215,64 @@ function labClauseText(clause, changes){
   const taken = (changes || []).filter(x => x.clauseId === clause.clauseId && x.status === 'accepted');
   return taken.length ? taken[taken.length - 1].after : clause.text;
 }
+/* ---------- WHO WROTE IT ----------
+   A negotiation is not two people. On one side of it there is a contracts
+   manager who drafts, a lawyer who tightens the indemnity, and a commercial
+   owner who decides what is worth conceding — and until now every one of them
+   filed changes signed with a single flat string. That is enough to print and
+   not enough to reason about: you cannot ask "what did Legal change" or "is
+   this waiting on an approver" of a sentence.
+
+   So authorship is a RECORD. The string is kept alongside it and kept accurate,
+   because it is what the counterparty's copy prints and what the older cards
+   already read. */
+const LAB_ROLES = { VIEWER: 'viewer', CONTRIBUTOR: 'contributor', APPROVER: 'approver' };
+function labAuthorOf(user, side, c){
+  const u = user || (window.currentUser ? currentUser() : null) || {};
+  const org = side === LAB_THEM
+    ? ((c && c.counterparty) || 'The counterparty')
+    : (window.FIRST_PARTY || 'This workspace');
+  /* Role decides who can publish a round, so an unknown role is the LEAST
+     capable one rather than the most. A missing field must not hand someone the
+     authority to send wording to the other side. */
+  const role = [LAB_ROLES.VIEWER, LAB_ROLES.CONTRIBUTOR, LAB_ROLES.APPROVER]
+    .includes(u.labRole) ? u.labRole : LAB_ROLES.CONTRIBUTOR;
+  return {
+    userId: u.id || u.userId || ('anon:' + (u.name || 'You')),
+    name: u.name || 'You',
+    organization: org,
+    role
+  };
+}
+/* Initials for the pill beside a redline. Two letters at most: it sits inline
+   in a document and has to stay smaller than the words around it. */
+function labInitials(name){
+  const parts = String(name == null ? '' : name).trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '??';
+  if(parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+const labAuthorName = ch => (ch && ch.authorRef && ch.authorRef.name)
+  || (typeof (ch && ch.author) === 'string' ? ch.author.split(' · ')[0] : '') || 'Someone';
+
+/* ---------- the stack on a clause ----------
+   Every pending change on one clause from one side, oldest first. More than one
+   means two colleagues have both worked on it, and the chain of parentChangeId
+   is the internal micro-history of how the wording got where it is. */
+function labStackOn(changes, clauseId, side){
+  return (changes || []).filter(x => x.clauseId === clauseId && x.status === 'pending'
+    && (x.sent === true || x.side === side));
+}
 /* The one change still awaiting a decision on a clause, as a given side can see
-   it. An unsent draft is visible only to the side that wrote it. */
+   it — the HEAD of the stack, which is the newest wording rather than the
+   oldest. An unsent draft is visible only to the side that wrote it.
+
+   Head, not first, and this matters the moment a second colleague edits: the
+   first entry is where the clause started this round, and rendering that would
+   show a reader the wording before their own team's latest pass. */
 function labPendingOn(changes, clauseId, side){
-  return (changes || []).find(x => x.clauseId === clauseId && x.status === 'pending'
-    && (x.sent === true || x.side === side)) || null;
+  const stack = labStackOn(changes, clauseId, side);
+  return stack.length ? stack[stack.length - 1] : null;
 }
 /* THE WORDING A NEW EDIT LANDS ON — which is not the same thing as the wording
    the clause currently HAS.
@@ -307,30 +397,71 @@ function labFileChange(lab, opts){
   const before = String(opts.before == null ? '' : opts.before);
   const after  = String(opts.after == null ? '' : opts.after);
   if(!after.trim() || after.trim() === before.trim()) return null;
-  /* One live ask per clause per side, as the real model does: re-editing a
-     clause you already have on the table revises that ask rather than opening
-     a second one, because two pending changes to the same words cannot both
-     be right. */
-  const live = lab.changes.find(x => x.clauseId === opts.clauseId
+  const authorRef = opts.authorRef || null;
+  /* THE HEAD OF THIS SIDE'S STACK on the clause. Whether a new pass revises it
+     or stacks on top of it turns on one question: is this the same person? */
+  const stack = (lab.changes || []).filter(x => x.clauseId === opts.clauseId
     && x.status === 'pending' && x.side === opts.side);
-  if(live){
+  const live = stack.length ? stack[stack.length - 1] : null;
+
+  /* SAME HAND — a revision. Coming back to wording you yourself put on the
+     table is not a second opinion, it is you changing your mind, and recording
+     it as two asks would put a disagreement in the history that never happened. */
+  const sameHand = live && authorRef && live.authorRef
+    ? live.authorRef.userId === authorRef.userId
+    : (live && !authorRef);
+  if(live && sameHand){
     live.after = after;
     live.at = nowISO();
     live.revised = (live.revised || 0) + 1;
     if(live.sent) live.sent = false;              // a revised ask goes back in hand
+    live.stage = live.sent ? live.stage : LAB_STAGE_DRAFT;
     return live;
   }
+  /* ANOTHER HAND — a stacked sub-change. Overwriting the colleague's ask, which
+     is what the single-live-change rule used to do, silently erased the fact
+     that somebody else had already taken a view on this clause. The lawyer
+     tightening the contracts manager's wording is a different event from the
+     contracts manager rewriting it, and the difference is exactly what an
+     approver needs to see before it goes out.
+
+     The chain is INTERNAL. It is folded into one clean diff at publish, so
+     stacking costs the counterparty nothing — they were never going to be shown
+     our drafting argument. */
   const ch = {
     id: 'L-' + String(lab.nextId++).padStart(3, '0'),
     clauseId: opts.clauseId,
     clauseLabel: opts.clauseLabel || opts.clauseId,
     before, after,
-    side: opts.side, author: opts.author,
+    side: opts.side,
+    author: opts.author,
+    authorRef,
+    /* What this is stacked on, and how deep. Depth is stored rather than walked
+       so a card can say "3rd pass" without rebuilding the chain to find out. */
+    parentChangeId: live ? live.id : null,
+    depth: live ? ((live.depth || 0) + 1) : 0,
     status: 'pending', sent: false,
+    stage: LAB_STAGE_DRAFT,
     at: nowISO()
   };
   lab.changes.push(ch);
   return ch;
+}
+
+/* The chain behind a change, oldest first, including the change itself. Bounded
+   rather than trusting the links: a corrupted record that pointed at itself
+   would otherwise hang the page that tried to draw its history. */
+function labChainOf(changes, id){
+  const byId = new Map((changes || []).map(x => [x.id, x]));
+  const out = [];
+  const seen = new Set();
+  let cur = byId.get(id);
+  while(cur && !seen.has(cur.id) && out.length < 200){
+    seen.add(cur.id);
+    out.unshift(cur);
+    cur = cur.parentChangeId ? byId.get(cur.parentChangeId) : null;
+  }
+  return out;
 }
 /* ---------- a note pinned to a change ----------
    Distinct from a thread: a thread is a conversation with turns, a tag is one
@@ -351,11 +482,37 @@ function labTagChange(lab, changeId, text, opts = {}){
     visibility: opts.visibility === LAB_SHARED ? LAB_SHARED : LAB_INTERNAL,
     at: nowISO(),
     author: (opts.author || (window.currentUser && currentUser()?.name) || 'You'),
+    /* WHICH SIDE WROTE IT, recorded at the moment it is written rather than
+       inferred later from the organisation string. The colour a reader uses to
+       tell a colleague's note from the counterparty's turns on this, and a
+       guess made at render time would be wrong the first time an organisation
+       was renamed. */
+    side: opts.side === LAB_THEM ? LAB_THEM : LAB_US,
     org: opts.org || (window.FIRST_PARTY || 'This workspace')
   };
   ch.tags.push(tag);
   return tag;
 }
+/* One note, coloured by the hand that wrote it. The tone comes from discuss.js
+   so the lab and the product cannot drift into two different colour schemes for
+   the same distinction. */
+function labTagHtml(t, opts){
+  const external = !!(opts && opts.external);
+  const tone = window.discussNoteTone
+    ? discussNoteTone(t, LAB_US)
+    : { classes: 'note-bubble note-owner', style: '', label: t.visibility === LAB_SHARED ? '🌐 Shared' : '🔒 Internal Note' };
+  /* Visibility is a SEPARATE mark from authorship — who can see it is not who
+     wrote it, and one badge cannot honestly carry both. */
+  const vis = t.visibility === LAB_SHARED ? '🌐 Shared' : '🔒 Internal';
+  return `<span class="lab-tag ${tone.classes}${t.visibility === LAB_SHARED ? ' is-shared' : ' is-internal'}"
+    style="${tone.style}">
+    <span class="lab-tagwho">${tone.label}</span>
+    <span class="lab-tagvis" title="${t.visibility === LAB_SHARED ? 'Travels with the change when it is sent' : 'Never leaves this organisation'}">${vis}</span>
+    ${esc(t.text)}
+    ${external || !opts || !opts.changeId ? '' : `<button type="button" class="lab-tag-x" data-lab-untag="${esc(opts.changeId)}|${esc(t.id)}" title="Remove this note" aria-label="Remove this note">×</button>`}
+  </span>`;
+}
+
 function labUntagChange(lab, changeId, tagId){
   const ch = (lab.changes || []).find(x => x.id === changeId);
   if(!ch || !Array.isArray(ch.tags)) return false;
@@ -364,11 +521,77 @@ function labUntagChange(lab, changeId, tagId){
   return ch.tags.length !== n;
 }
 
+/* Sending ONE change: the single-clause form of publishing. It moves the change
+   out of the internal sandbox, which is what actually puts it on the table —
+   marking it sent without moving the stage would leave it failing the second
+   lock and invisible to the side it was sent to. */
 function labSendChange(lab, id){
   const ch = lab.changes.find(x => x.id === id);
   if(!ch || ch.sent === true || ch.status !== 'pending') return null;
   ch.sent = true; ch.sentAt = nowISO();
+  ch.stage = LAB_STAGE_PUBLISHED;
   return ch;
+}
+
+/* ---------- PUBLISH ROUND / SEND TURN ----------
+   The team's internal argument is not the offer.
+
+   Three colleagues passing a clause between them leaves three stacked changes,
+   and sending them as they are hands the counterparty our drafting history:
+   what Legal wanted before Commercial overruled it, and in what order. That is
+   a negotiating position given away for nothing, and it is also just noise —
+   they have to answer one question, which is what the clause says now.
+
+   So publishing COLLAPSES each clause's stack into one change measured from the
+   last counterparty baseline: the head's wording, the whole team's authorship,
+   one diff. The ancestors stay in the record marked folded, so the internal
+   history is still readable at home and travels nowhere.
+
+   Nothing is decided here and nothing is rewritten — the wording that goes out
+   is the head's wording, unchanged. */
+function labPublishRound(lab, side, user, c){
+  const changes = lab.changes || [];
+  const clauses = [];
+  for(const ch of changes){
+    if(ch.status !== 'pending' || ch.side !== side || ch.sent === true) continue;
+    if(!clauses.includes(ch.clauseId)) clauses.push(ch.clauseId);
+  }
+  const published = [], folded = [];
+  for(const clauseId of clauses){
+    const stack = changes.filter(x => x.clauseId === clauseId && x.status === 'pending'
+      && x.side === side && x.sent !== true);
+    if(!stack.length) continue;
+    const head = stack[stack.length - 1];
+    /* MEASURED FROM THE BASELINE, not from the previous draft. The stack's
+       first entry already carries it — every change in the chain was filed as a
+       diff from the settled wording — so the head's `before` is right as it
+       stands and the collapse is a matter of retiring the others. */
+    const hands = [];
+    for(const s of stack){
+      const nm = labAuthorName(s);
+      if(nm && !hands.includes(nm)) hands.push(nm);
+    }
+    head.sent = true;
+    head.sentAt = nowISO();
+    head.stage = LAB_STAGE_PUBLISHED;
+    head.roundHands = hands;
+    head.foldedFrom = stack.slice(0, -1).map(s => s.id);
+    head.publishedBy = { name: (user && user.name) || 'You',
+      org: side === LAB_THEM ? ((c && c.counterparty) || 'The counterparty')
+        : (window.FIRST_PARTY || 'This workspace') };
+    for(const s of stack.slice(0, -1)){
+      /* Folded, not deleted. "Legal asked for X and it was overtaken" is worth
+         keeping; it is simply not an ask any more, so it leaves the pending set
+         and stops being something the other side could decide. */
+      s.status = 'folded';
+      s.stage = LAB_STAGE_FOLDED;
+      s.foldedInto = head.id;
+      s.foldedAt = nowISO();
+      folded.push(s.id);
+    }
+    published.push(head.id);
+  }
+  return { published, folded, clauses: clauses.length };
 }
 function labDecide(lab, id, decision, user, side){
   const ch = lab.changes.find(x => x.id === id);
@@ -446,7 +669,9 @@ function labSeed(c, lab){
     before: target.text,
     after: target.text.replace(/\bthirty \(30\) days\b/i, 'sixty (60) days')
          + (/(thirty \(30\) days)/i.test(target.text) ? '' : ' Either party may terminate on sixty (60) days written notice.'),
-    side: LAB_THEM, author: 'Amina Wanjiru · ' + cp
+    side: LAB_THEM, author: 'Amina Wanjiru · ' + cp,
+    authorRef: { userId: 'cp:amina', name: 'Amina Wanjiru', organization: cp,
+      role: LAB_ROLES.APPROVER }
   });
   if(ch) labSendChange(lab, ch.id);
   const at = nowISO();
@@ -498,6 +723,21 @@ function labChip(text, kind){
    so a sub-paragraph nobody touched is reported as untouched rather than struck
    out and re-inserted verbatim. redlineOpsBlocksHtml then gives each line its
    own block. Both degrade to the flat renderer where the engine is older. */
+/* The same redline, with each insertion marked with the colleague who wrote it,
+   for a clause more than one hand has been on. Internal only — the counterparty
+   is shown one diff by design and our drafting order is not theirs to read.
+   Falls back to the plain redline wherever attribution is unavailable or the
+   clause has a single author, because a chain of one has nothing to attribute. */
+function labRedlineAttributedHtml(changes, head){
+  const chain = labChainOf(changes, head && head.id);
+  if(chain.length < 2 || !window.redlineAttributeOps || !window.redlineOpsBlocksHtml)
+    return labRedlineHtml(head.before, head.after);
+  const steps = chain.map(s => ({ text: s.after, author: s.authorRef || { name: labAuthorName(s) } }));
+  const ops = redlineAttributeOps(chain[0].before, steps);
+  return `<div class="lab-redline">${redlineOpsBlocksHtml(ops,
+    { insClass: 'lab-ins', delClass: 'lab-del', attributed: true })}</div>`;
+}
+
 function labRedlineHtml(before, after){
   if(window.redlineOpsStructured && window.redlineOpsBlocksHtml){
     const ops = redlineOpsStructured(before, after);
@@ -603,6 +843,68 @@ const LAB_AI_ACTIONS = [
 ];
 const labKillSel = () => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
 const labKillPop = () => document.querySelectorAll('.lab-aipop').forEach(n => n.remove());
+
+/* ---------- THE SELECTION, HELD ON PURPOSE ----------
+   The flashing menu was one bug wearing three coats.
+
+   FIRST, the selection was read on the same tick as the event. A mouseup at the
+   end of a drag fires before the browser has settled the range it implies, so
+   the read either found a collapsed selection or the previous one, and the menu
+   opened, closed and reopened as the reader let go.
+
+   SECOND, nothing kept it. Every consumer went back to window.getSelection(),
+   and the moment focus moved to a control in the popover — a textarea most of
+   all — the document selection collapsed and took the coordinates with it. The
+   menu was positioned against a rectangle that no longer existed.
+
+   THIRD, the dismiss listener could not tell "clicked away" from "clicked the
+   thing I just opened", so pressing a button inside the popover raced the
+   handler that removes it.
+
+   So the range is CLONED and stored the instant it is stable. A cloned range
+   survives the live selection being collapsed by a focus change, which is what
+   makes the popover's own controls safe to use. Everything downstream reads
+   this record, never the live selection. */
+let _labSel = null;
+function labClearSel(){ _labSel = null; }
+/* The live context the once-bound document listeners read, refreshed on every
+   wire. Binding them per-wire instead stacked a fresh pair on every repaint. */
+let _labCtx = null;
+let _labDismissWired = false;
+
+/* Read the live selection into that record, or clear it. Returns the record so
+   a caller can act on it directly. */
+function labCaptureSel(canvas){
+  const sel = window.getSelection && window.getSelection();
+  if(!sel || sel.isCollapsed || sel.rangeCount < 1){ _labSel = null; return null; }
+  let range;
+  try{ range = sel.getRangeAt(0); }catch(_){ _labSel = null; return null; }
+  const raw = String(sel.toString() || '');
+  const text = raw.trim();
+  if(text.length < 3){ _labSel = null; return null; }
+  /* THE RANGE'S START, not the selection's anchor. Dragging right-to-left puts
+     the anchor at the END of the passage, and an offset measured from there
+     would point past the words it is meant to locate. */
+  const node = range.startContainer;
+  const el = node && (node.nodeType === 1 ? node : node.parentElement);
+  const host = el && el.closest && el.closest('[data-lab-clause]');
+  if(!host || (canvas && !canvas.contains(host))){ _labSel = null; return null; }
+  const rect = range.getBoundingClientRect();
+  if(!rect || (!rect.width && !rect.height)){ _labSel = null; return null; }
+  _labSel = {
+    /* cloneRange() is the whole point: this survives the live selection being
+       destroyed by focus moving into the popover. */
+    range: range.cloneRange(),
+    text, raw, host,
+    clauseId: host.getAttribute('data-lab-clause'),
+    startNode: node, startOffset: range.startOffset,
+    /* Copied out of the live rect rather than held as a reference, because a
+       DOMRect read later from a collapsed range is all zeroes. */
+    rect: { top: rect.top, bottom: rect.bottom, left: rect.left,
+      right: rect.right, width: rect.width, height: rect.height }
+  };
+  return _labSel;
+}
 /* Anchored to the selection's own rectangle and clamped to the viewport, so a
    clause selected at the bottom of the window does not put its menu off-screen. */
 function labAnchor(rect, w, h){
@@ -638,11 +940,23 @@ async function labAiPropose(ctx){
   labKillPop();
   const pop = document.createElement('div');
   pop.className = 'lab-aipop';
+  /* One id, because there is only ever one of these open and the dismiss rule
+     names it. labKillPop() removes any stragglers before this is appended, so
+     the id cannot be duplicated. */
+  pop.id = 'ai-copilot-popover';
   pop.setAttribute('role','dialog');
   pop.setAttribute('aria-label', action.label.replace(/^\S+\s/, ''));
   pop.innerHTML = `<header><span style="flex:1">${esc(action.label)}</span>
       <button class="ui-btn" data-ai-x style="font-size:11px;padding:3px 9px">Close</button></header>
     <div class="lab-aiwait"><span class="lab-aispin"></span>Reading the clause…</div>`;
+  /* EVENTS INSIDE THE POPOVER STOP HERE. The dismiss listener is on the
+     document in the capture phase, so without this it runs BEFORE the button
+     that was actually pressed — the popover is removed and the click lands on
+     nothing. Typing in the textarea is the same story: a mousedown to place the
+     cursor would close the box being typed into. */
+  for(const evt of ['mousedown', 'mouseup', 'click']){
+    pop.addEventListener(evt, e => { e.stopPropagation(); }, true);
+  }
   document.body.appendChild(pop);
   const place = () => {
     const b = pop.getBoundingClientRect();
@@ -725,7 +1039,8 @@ async function labAiPropose(ctx){
   body.className = 'lab-aibody';
   body.innerHTML = `
     <label class="lab-ailabel" for="lab-ai-text">Suggested wording — edit it before you apply</label>
-    <textarea id="lab-ai-text" class="lab-aitext" spellcheck="true" rows="4"></textarea>
+    <textarea id="lab-ai-text" class="ai-suggestion-editor lab-aitext w-full p-2 border rounded text-sm mb-2"
+      spellcheck="true" rows="4"></textarea>
     <div class="lab-aisub">Replacing: <i>${esc(text.length > 90 ? text.slice(0,89) + '…' : text)}</i></div>
     ${working === base ? '' : `<div class="lab-aistack">Stacking on ${esc(pendingOn ? pendingOn.id : 'the pending change')} — the redline below is measured from the settled baseline, so it shows that change and this one together.</div>`}
     <div class="lab-ailabel" style="margin-top:11px">How the clause would read</div>
@@ -795,13 +1110,16 @@ async function labAiPropose(ctx){
        A clause revised three times still holds one change measured from the
        settled text, so rejecting it returns the original exactly. */
     const edited = box.value.trim() !== suggestion;
+    const authorRef = labAuthorOf(window.currentUser ? currentUser() : null, side, c);
     const ch = labFileChange(lab, { clauseId: clause.clauseId, clauseLabel: clause.label,
-      before: base, after: proposed, side,
-      author: `${(window.currentUser && currentUser()?.name) || 'You'} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
+      before: base, after: proposed, side, authorRef,
+      author: `${authorRef.name} · Copilot (${action.label.replace(/^\S+\s/,'')})${edited ? ', edited' : ''}` });
     pop.remove();
     if(!ch){ if(window.toast) toast('That wording matches the clause already — nothing filed'); return; }
     labPut(c.id, lab);
-    if(window.toast) toast(`${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
+    if(window.toast) toast(ch.parentChangeId
+      ? `${ch.id} filed on top of ${ch.parentChangeId} — ${labAuthorName(ch)}'s pass over a colleague's wording`
+      : `${ch.id} filed as a draft redline${edited ? ' (you edited the suggestion)' : ''} — it is yours until you send it`);
     if(typeof again === 'function') again();
   });
   place();
@@ -833,7 +1151,7 @@ function labSelMenu(ctx){
     if(!action) return;
     if(action.tag){
       const live = (lab.changes || []).find(x => x.clauseId === clause.clauseId && x.status === 'pending');
-      labNoteCompose({ c, lab, changeId: live ? live.id : null, rect, again, quote: text });
+      labNoteCompose({ c, lab, side, changeId: live ? live.id : null, rect, again, quote: text });
       return;
     }
     labAiPropose({ c, lab, action, text, clause, rect, side, again, hint: ctx.hint });
@@ -900,7 +1218,7 @@ function labNoteCompose(ctx){
   const save = () => {
     const t = pop.querySelector('[data-note-text]').value;
     if(!String(t || '').trim()){ if(window.toast) toast('Write the note first', 'err'); return; }
-    const tag = labTagChange(lab, changeId, t, { visibility: vis });
+    const tag = labTagChange(lab, changeId, t, { visibility: vis, side: ctx.side });
     pop.remove();
     if(!tag) return;
     labPut(c.id, lab);
@@ -918,10 +1236,44 @@ function labNoteCompose(ctx){
    and clickable, so a reader looking at marked-up wording can get to the
    argument about it without hunting the sidebar for a matching card. */
 function labChangeTagHtml(id, extra){
-  return `<span class="change-tag-badge bg-indigo-100 text-indigo-800 text-xs px-1.5 py-0.5 rounded cursor-pointer"
+  return `<span class="change-tag-badge bg-indigo-100 text-indigo-800 text-xs px-1.5 py-0.5 rounded cursor-pointer ml-1"
     data-change-id="${esc(id)}" role="button" tabindex="0"
     aria-label="Show the discussion on change ${esc(id)}"
     title="Jump to ${esc(id)} in the sidebar">#${esc(id)}${extra ? esc(extra) : ''}</span>`;
+}
+
+/* ---------- whose hand is on this redline ----------
+   Initials, not a name: it sits inline beside contract wording, where a full
+   name would compete with the clause for the reader's eye. The name is in the
+   title and in the aria-label, so it costs a hover or a screen reader nothing.
+
+   Its whole job is to answer "who is asking for this" at a glance on a clause
+   three colleagues have touched. */
+function labAuthorPillHtml(ch, opts){
+  const name = labAuthorName(ch);
+  const ref = ch && ch.authorRef;
+  if(!name || name === 'Someone') return '';
+  const role = ref && ref.role ? ref.role : '';
+  const org = (ref && ref.organization) || '';
+  const depth = (opts && opts.depth) || ch.depth || 0;
+  return `<span class="lab-authorpill${depth ? ' is-stacked' : ''}"
+    title="${esc(name)}${org ? ' · ' + esc(org) : ''}${role ? ' · ' + esc(role) : ''}${
+      depth ? ` · pass ${depth + 1} on this clause` : ''}"
+    aria-label="Proposed by ${esc(name)}${role ? ', ' + esc(role) : ''}">${esc(labInitials(name))}${
+      depth ? `<span class="lab-pilldepth">${depth + 1}</span>` : ''}</span>`;
+}
+
+/* The internal micro-history of a clause, as a line of pills. Shown only where
+   there is more than one hand on it — a single author needs no chain drawn. */
+function labStackTrailHtml(changes, headId){
+  const chain = labChainOf(changes, headId);
+  if(chain.length < 2) return '';
+  return `<div class="lab-stacktrail" aria-label="Internal drafting history for this clause">
+    <span class="lab-stacklabel">🔒 Internal drafting history</span>
+    ${chain.map((s, i) => `<span class="lab-stackstep">
+      ${labAuthorPillHtml(s, { depth: 0 })}<span class="lab-stackid">${esc(s.id)}</span>${
+        i < chain.length - 1 ? '<span class="lab-stackarrow">→</span>' : ''}</span>`).join('')}
+  </div>`;
 }
 
 /* ---------- one clause, one frame ----------
@@ -945,7 +1297,8 @@ function labDocHtml(c, lab, side, external){
     const now = labClauseText(cl, changes);
     const pending = labPendingOn(changes, cl.clauseId, side);
     const body = pending
-      ? labRedlineHtml(pending.before, pending.after)
+      ? (external ? labRedlineHtml(pending.before, pending.after)
+                  : labRedlineAttributedHtml(lab.changes, pending))
       : labCleanHtml(now);
     /* THE COUNTERPARTY GETS NO TOOLBAR. Their view is a picture of what was
        sent; every one of these verbs ends in something being written to a lab
@@ -963,11 +1316,8 @@ function labDocHtml(c, lab, side, external){
        change is rather than only in the sidebar. Internal ones are marked, and
        on the counterparty's side they are not in the payload to begin with. */
     const tags = (pending && Array.isArray(pending.tags) && pending.tags.length)
-      ? `<div class="clause-tags">${pending.tags.map(t => `
-          <span class="lab-tag${t.visibility === LAB_SHARED ? ' is-shared' : ' is-internal'}">
-            ${t.visibility === LAB_SHARED ? '🌐' : '🔒'} ${esc(t.text)}
-            ${external ? '' : `<button type="button" class="lab-tag-x" data-lab-untag="${esc(pending.id)}|${esc(t.id)}" title="Remove this note" aria-label="Remove this note">×</button>`}
-          </span>`).join('')}</div>`
+      ? `<div class="clause-tags">${pending.tags.map(t =>
+          labTagHtml(t, { external, changeId: pending.id })).join('')}</div>`
       : '';
     return `
     <div class="clause-frame bg-white border border-slate-200 rounded-lg p-4 mb-4 shadow-sm hover:border-indigo-300 transition-all"
@@ -976,9 +1326,11 @@ function labDocHtml(c, lab, side, external){
       <div class="clause-head">
         <span class="clause-title">${esc(label)}</span>
         ${pending ? labChangeTagHtml(pending.id, pending.sent ? '' : ' · draft') : ''}
+        ${pending && !external ? labAuthorPillHtml(pending) : ''}
         ${tools}
       </div>
       <div class="clause-body">${body}</div>
+      ${external ? '' : labStackTrailHtml(lab.changes, pending && pending.id)}
       ${tags}
     </div>`;
   }).join('');
@@ -995,13 +1347,20 @@ function labChangeCardHtml(ch, side, external){
       ${labChip(ch.clauseLabel, 'quiet')}
       ${ch.status === 'accepted' ? labChip('Accepted', 'good')
         : ch.status === 'rejected' ? labChip('Rejected', 'bad')
+        : ch.status === 'folded' ? labChip('Folded into ' + (ch.foldedInto || 'a round'), 'quiet')
         : ch.sent ? labChip('Awaiting a decision', 'open') : labChip('Not sent', 'draft')}
+      ${external ? '' : labAuthorPillHtml(ch)}
     </div>
     <div style="font-size:12.5px;line-height:1.6">${labRedlineHtml(ch.before, ch.after)}</div>
-    <div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(ch.author)}${ch.revised ? ' · revised ' + ch.revised + '×' : ''}</div>
-    ${(Array.isArray(ch.tags) && ch.tags.length) ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${ch.tags.map(t => `
-      <span class="lab-tag${t.visibility === LAB_SHARED ? ' is-shared' : ' is-internal'}">${
-        t.visibility === LAB_SHARED ? '🌐' : '🔒'} ${esc(t.text)}</span>`).join('')}</div>` : ''}
+    <div style="font-size:10.5px;color:var(--color-neutral-500)">${esc(ch.author)}${ch.revised ? ' · revised ' + ch.revised + '×' : ''}${
+      /* Named on the card that went out, because "who is behind this wording"
+         is a different question from "who typed it" once a team has passed a
+         clause around, and an approver signing off wants both. */
+      !external && Array.isArray(ch.roundHands) && ch.roundHands.length > 1
+        ? ' · consolidated from ' + esc(ch.roundHands.join(', ')) : ''}${
+      !external && ch.parentChangeId ? ' · stacked on ' + esc(ch.parentChangeId) : ''}</div>
+    ${(Array.isArray(ch.tags) && ch.tags.length) ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${
+      ch.tags.map(t => labTagHtml(t, { external })).join('')}</div>` : ''}
     ${external ? '' : `<div><button class="ui-btn" data-lab-tagadd="${esc(ch.id)}" style="font-size:10.5px;padding:3px 8px">💬 Add note</button></div>`}
     ${ch.decidedAt ? `<div style="font-size:10.5px;color:var(--color-neutral-600)">Decided by ${esc(
       /* Their copy names the ORGANISATION — decidedByOrg is the only name in
@@ -1022,15 +1381,27 @@ function labThreadHtml(t, opts){
   const owner = !!(opts && opts.owner);
   const internal = t.visibility === LAB_INTERNAL;
   const resolved = t.status === 'resolved';
-  const msgs = (t.messages || []).map(m => `
-    <div style="display:flex;flex-direction:column;gap:3px">
+  /* THE SAME COLOUR RULE THE CANVAS USES, so a note does not change identity
+     between the clause it is about and the thread it lives in. A message with
+     no side recorded is matched against the organisation, which is how the
+     lab's seeded conversations identify themselves. */
+  const msgs = (t.messages || []).map(m => {
+    const side = m.side || ((m.org && window.FIRST_PARTY && m.org !== window.FIRST_PARTY)
+      ? LAB_THEM : LAB_US);
+    const tone = window.discussNoteTone
+      ? discussNoteTone({ side, visibility: t.visibility }, LAB_US)
+      : { style: '', label: '' };
+    return `
+    <div class="lab-msg" style="${tone.style}">
       <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
         <span style="font-size:12px;font-weight:600">${esc(m.author)}</span>
-        <span style="font-size:10.5px;color:var(--color-neutral-500)">· ${esc(m.org || '')}</span>
+        <span style="font-size:10.5px;opacity:.75">· ${esc(m.org || '')}</span>
+        ${tone.label ? `<span class="lab-tagwho">${tone.label}</span>` : ''}
       </div>
-      <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">${esc(m.body)}</div>
-      <div style="font-size:10px;color:var(--color-neutral-500)">${esc(fmtDT(m.at))}</div>
-    </div>`).join('');
+      <div style="font-size:12.5px;line-height:1.6">${esc(m.body)}</div>
+      <div style="font-size:10px;opacity:.7">${esc(fmtDT(m.at))}</div>
+    </div>`;
+  }).join('');
   return `
   <div class="lab-thread${t.changeId && t.changeId === _labLinked ? ' is-linked' : ''}" data-lab-thread="${esc(t.id)}"${
     t.changeId ? ` data-lab-thread-change="${esc(t.changeId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
@@ -1074,10 +1445,22 @@ function labModeBannerHtml(c, lab, side, external){
       <b>🌐 Counterparty published round</b>
       <span style="flex:1;min-width:180px">This is their view. Everything on it has been sent; nothing private is here, because internal work was never put in the object this page renders.</span>
     </div>`;
+  /* How many clauses the round would actually cover, as against how many drafts
+     it holds. Those differ the moment two colleagues work on the same clause,
+     and the difference is the whole point of consolidating: six drafts can be
+     three questions. */
+  const roundClauses = [];
+  for(const d of unsent) if(!roundClauses.includes(d.clauseId)) roundClauses.push(d.clauseId);
+  const stacked = unsent.length - roundClauses.length;
   const banner = unsent.length ? `
     <div class="lab-mode is-sandbox" role="status">
       <b>🔒 Internal sandbox drafting</b>
-      <span style="flex:1;min-width:180px">${unsent.length} draft${unsent.length === 1 ? '' : 's'} still on your desk. ${other} cannot see ${unsent.length === 1 ? 'it' : 'them'} and cannot answer until you send.</span>
+      <span style="flex:1;min-width:180px">${unsent.length} draft${unsent.length === 1 ? '' : 's'} still on your desk${
+        stacked > 0 ? `, across ${roundClauses.length} clause${roundClauses.length === 1 ? '' : 's'} — ${stacked} ${stacked === 1 ? 'is a colleague stacking on' : 'are colleagues stacking on'} another's wording` : ''}. ${other} cannot see ${unsent.length === 1 ? 'it' : 'them'} and cannot answer until you send.</span>
+      <button class="ui-btn ui-btn-primary" id="lab-publish-round"
+        style="font-size:11.5px;padding:4px 11px"
+        title="Collapses each clause's internal stack into one clean diff from the last agreed wording, and sends the lot as one turn">📤 Publish Round${
+          roundClauses.length ? ` (${roundClauses.length} clause${roundClauses.length === 1 ? '' : 's'})` : ''}</button>
     </div>` : `
     <div class="lab-mode is-published" role="status">
       <b>🌐 Counterparty published round</b>
@@ -1216,10 +1599,52 @@ function renderDocLab(){
     /* ---- notes pinned to a change ---- */
     .clause-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;
       padding-top:9px;border-top:1px dashed var(--color-divider)}
-    .lab-tag{display:inline-flex;align-items:center;gap:5px;font-size:11px;line-height:1.45;
-      border-radius:999px;padding:3px 9px}
-    .lab-tag.is-internal{background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.32)}
-    .lab-tag.is-shared{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+    /* A note is a BUBBLE now, not a pill: it carries two marks and a body, and
+       the rounded-pill shape stopped fitting the moment there was more than one
+       word in it. */
+    .lab-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;line-height:1.5;
+      border-radius:7px;padding:5px 9px;max-width:100%;flex-wrap:wrap}
+    /* WHO WROTE IT — the colour, set inline from discussNoteTone so the lab and
+       the product cannot drift apart. These are the fallback for a page where
+       that module did not load. */
+    .lab-tag.note-owner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
+    .lab-tag.note-counterparty{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
+    .lab-tagwho{font-weight:700;font-size:9.5px;letter-spacing:.04em;white-space:nowrap;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    /* WHO CAN SEE IT — a separate mark, because visibility and authorship are
+       independent and one badge cannot honestly carry both. */
+    .lab-tagvis{font-size:9px;letter-spacing:.04em;border-radius:999px;padding:1px 6px;
+      white-space:nowrap;background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.09);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    /* Kept for the older callers and for the counterparty's copy, which has no
+       authorship to colour by. */
+    .lab-tag.is-internal:not(.note-owner):not(.note-counterparty){background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.32)}
+    .lab-tag.is-shared:not(.note-owner):not(.note-counterparty){background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
+
+    /* ---- whose hand is on a redline ---- */
+    .lab-authorpill{display:inline-flex;align-items:center;gap:3px;font-family:var(--font-mono);
+      font-size:9.5px;font-weight:700;letter-spacing:.03em;border-radius:999px;padding:2px 7px;
+      background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe;white-space:nowrap}
+    /* A stacked pass is marked, because "the third person to touch this clause"
+       is a different thing to read than "the author". */
+    .lab-authorpill.is-stacked{background:#ede9fe;border-color:#ddd6fe;color:#5b21b6}
+    .lab-pilldepth{font-size:8.5px;opacity:.8}
+    .lab-stacktrail{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;
+      padding:6px 9px;border-radius:6px;background:#faf7ef;border:1px dashed rgba(138,106,42,.3)}
+    .lab-stacklabel{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#7d5a14;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+    .lab-stackstep{display:inline-flex;align-items:center;gap:5px}
+    .lab-stackid{font-family:var(--font-mono);font-size:9.5px;color:var(--color-neutral-600)}
+    .lab-stackarrow{color:var(--color-neutral-500);font-size:10px}
+    /* A message in a thread, tinted by the side that wrote it — the same rule
+       the notes on the canvas use, so one note reads as one thing wherever a
+       reader meets it. */
+    .lab-msg{display:flex;flex-direction:column;gap:3px;border-radius:6px;padding:7px 9px}
+    /* The initials welded to an insertion in the document itself. Superscript
+       and half-opacity: present for anyone looking for it, invisible to anyone
+       reading the clause for what it says. */
+    .rl-authormark{font-family:var(--font-mono);font-size:8px;vertical-align:super;
+      margin-left:2px;opacity:.65;letter-spacing:.02em}
     .lab-tag-x{border:0;background:none;cursor:pointer;font:inherit;font-size:13px;
       line-height:1;padding:0 1px;color:inherit;opacity:.55}
     .lab-tag-x:hover{opacity:1}
@@ -1343,7 +1768,7 @@ function renderDocLab(){
 
       <section style="${LAB_CARD};padding:18px 22px 26px;min-width:0">
         <h6 style="${LAB_H6};margin-bottom:14px">Working document${external ? ' · as they see it' : ' · the lab’s own copy'}</h6>
-        <div id="lab-canvas" style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
+        <div id="lab-canvas" class="document-canvas" style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
       </section>
 
       <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
@@ -1469,11 +1894,11 @@ function wireDocLab(c, lab, side, external){
   document.querySelectorAll('[data-lab-note]').forEach(b => b.addEventListener('click', () => {
     const clauseId = b.getAttribute('data-lab-note');
     const live = (lab.changes || []).find(x => x.clauseId === clauseId && x.status === 'pending');
-    labNoteCompose({ c, lab, changeId: live ? live.id : null,
+    labNoteCompose({ c, lab, side, changeId: live ? live.id : null,
       rect: b.getBoundingClientRect(), again: againLab });
   }));
   document.querySelectorAll('[data-lab-tagadd]').forEach(b => b.addEventListener('click', () => {
-    labNoteCompose({ c, lab, changeId: b.getAttribute('data-lab-tagadd'),
+    labNoteCompose({ c, lab, side, changeId: b.getAttribute('data-lab-tagadd'),
       rect: b.getBoundingClientRect(), again: againLab });
   }));
   document.querySelectorAll('[data-lab-untag]').forEach(b => b.addEventListener('click', () => {
@@ -1515,6 +1940,23 @@ function wireDocLab(c, lab, side, external){
   document.getElementById('lab-batch-acc')?.addEventListener('click', () => batch('accept'));
   document.getElementById('lab-batch-rej')?.addEventListener('click', () => batch('reject'));
 
+  /* ---- publish the round ----
+     One turn, one diff per clause, whatever the internal history behind it. */
+  document.getElementById('lab-publish-round')?.addEventListener('click', () => {
+    const out = labPublishRound(lab, side, u(), c);
+    if(!out.published.length){
+      if(window.toast) toast('Nothing to publish — no drafts of yours are waiting', 'err');
+      return;
+    }
+    save(); repaint();
+    if(window.toast) toast(out.folded.length
+      /* WHAT WAS FOLDED IS SAID. A round that quietly collapsed six drafts into
+         three reads as though three were all there ever was, and somebody's
+         work would look like it had vanished. */
+      ? `Round published — ${out.published.length} clause${out.published.length === 1 ? '' : 's'} sent, ${out.folded.length} internal draft${out.folded.length === 1 ? '' : 's'} folded into ${out.published.length === 1 ? 'it' : 'them'} and kept at home`
+      : `Round published — ${out.published.length} change${out.published.length === 1 ? '' : 's'} on ${esc(c.counterparty || 'the counterparty')}'s table`);
+  });
+
   /* ---------- highlight a passage, ask for something to be done to it ----------
      Offered on the lab's own copy only. The counterparty's view is a read-only
      picture of what was sent, so a menu there would end at a proposal nobody is
@@ -1524,49 +1966,65 @@ function wireDocLab(c, lab, side, external){
      fires on every character of a drag and would flicker a menu under the
      pointer the whole way across the clause. */
   if(!external){
+    /* Opened from the STORED selection, never from the live one. By the time a
+       menu button is pressed the document selection may well be gone. */
     const openSel = () => {
-      const sel = window.getSelection && window.getSelection();
-      if(!sel || sel.isCollapsed){ labKillSel(); return; }
-      const raw = String(sel.toString() || '');
-      const text = raw.trim();
-      if(text.length < 3){ labKillSel(); return; }
-      let range;
-      try{ range = sel.getRangeAt(0); }catch(_){ return; }
-      /* THE RANGE'S START, not the selection's anchor. Dragging right-to-left
-         puts the anchor at the END of the passage, and an offset measured from
-         there would point past the words it is meant to locate. A range's start
-         is always the earlier of the two in document order. */
-      const node = range.startContainer;
-      const el = node && (node.nodeType === 1 ? node : node.parentElement);
-      const host = el && el.closest('[data-lab-clause]');
-      if(!host || !document.getElementById('lab-canvas')?.contains(host)){ labKillSel(); return; }
-      const rect = range.getBoundingClientRect();
-      if(!rect || (!rect.width && !rect.height)) return;
-      const clauseId = host.getAttribute('data-lab-clause');
-      const cl = labClausesOf(lab).find(x => x.clauseId === clauseId);
-      if(!cl) return;
+      const canvas = document.getElementById('lab-canvas');
+      const s = labCaptureSel(canvas);
+      if(!s){ labKillSel(); return; }
+      const cl = labClausesOf(lab).find(x => x.clauseId === s.clauseId);
+      if(!cl){ labKillSel(); return; }
       const { base, working, pending } = labWorkingText(cl, lab.changes, side);
-      const clause = { clauseId, label: host.getAttribute('data-lab-clause-label') || clauseId,
+      const clause = { clauseId: s.clauseId,
+        label: s.host.getAttribute('data-lab-clause-label') || s.clauseId,
         text: base, working, pending };
       /* Where this selection starts in the working text, so a phrase that
          appears twice in the clause is rewritten where it was pointed at. The
-         leading whitespace trimmed off `text` is added back, because the offset
-         has to describe the trimmed string. */
-      const hint = labWorkingOffset(host.querySelector('.clause-body') || host,
-        node, range.startOffset) + (raw.length - raw.replace(/^\s+/, '').length);
-      labSelMenu({ c, lab, side, again: againLab, rect, clause, text, hint });
+         leading whitespace trimmed off the text is added back, because the
+         offset has to describe the trimmed string. */
+      const hint = labWorkingOffset(s.host.querySelector('.clause-body') || s.host,
+        s.startNode, s.startOffset) + (s.raw.length - s.raw.replace(/^\s+/, '').length);
+      labSelMenu({ c, lab, side, again: againLab, rect: s.rect, clause, text: s.text, hint });
     };
     const canvas = document.getElementById('lab-canvas');
     if(canvas){
-      canvas.addEventListener('mouseup', () => setTimeout(openSel, 0));
-      canvas.addEventListener('keyup', e => { if(e.shiftKey || e.key === 'Shift') setTimeout(openSel, 0); });
+      /* TEN MILLISECONDS, and the number is doing work. mouseup fires before
+         the browser has finished settling the range the drag implies, so a
+         same-tick read gets a collapsed selection or the previous one — which
+         is what made the menu flash. A macrotask is enough for the range to
+         stabilise and is still faster than the eye. */
+      canvas.addEventListener('mouseup', () => setTimeout(openSel, 10));
+      canvas.addEventListener('keyup', e => {
+        if(e.shiftKey || e.key === 'Shift') setTimeout(openSel, 10);
+      });
     }
-    document.addEventListener('mousedown', e => {
-      if(!e.target.closest || (!e.target.closest('.lab-selmenu') && !e.target.closest('.lab-aipop'))) labKillSel();
-    }, true);
-    document.addEventListener('keydown', e => {
-      if(e.key === 'Escape'){ labKillSel(); labKillPop(); }
-    });
+    /* ---- dismissal, bound ONCE for the life of the page ----
+       These used to be added on every wire, so a page repainted twenty times
+       carried twenty copies of each, and every one of them raced the others to
+       remove the menu. They read the live context out of _labCtx instead of
+       closing over the one they were created with. */
+    _labCtx = { c, lab, side };
+    if(!_labDismissWired){
+      _labDismissWired = true;
+      document.addEventListener('mousedown', e => {
+        const t = e.target;
+        const inside = sel => !!(t && t.closest && t.closest(sel));
+        /* THE MENU goes on any click that is not on the menu itself or on the
+           popover it opens — including a click back into the document, which is
+           the start of a new selection. */
+        if(!inside('.lab-selmenu') && !inside('#ai-copilot-popover')) labKillSel();
+        /* THE POPOVER is stickier, and deliberately so. It holds wording the
+           person has been editing by hand, so clicking back into the document
+           to re-read the clause must not throw that away. It closes only on a
+           click outside BOTH the canvas and itself — or on Discard, Close or
+           Escape, which are the ways to say so on purpose. */
+        if(!inside('.document-canvas') && !inside('#ai-copilot-popover')
+          && !inside('.lab-selmenu')) labKillPop();
+      }, true);
+      document.addEventListener('keydown', e => {
+        if(e.key === 'Escape'){ labKillSel(); labKillPop(); labClearSel(); }
+      });
+    }
   }
 
   const on = (id, fn) => { const el = document.getElementById(id); if(el) el.addEventListener('click', fn); };
@@ -1602,17 +2060,19 @@ function wireDocLab(c, lab, side, external){
     ta.value = current; ta.focus();
     box.querySelector('[data-lab-cancel]').addEventListener('click', () => box.remove());
     box.querySelector('[data-lab-save]').addEventListener('click', () => {
+      const authorRef = labAuthorOf(u(), side, c);
       const ch = labFileChange(lab, {
         clauseId, clauseLabel: label,
         before: labClauseText(cl, lab.changes),
         after: ta.value,
-        side,
-        author: (u() && u().name ? u().name : 'You') + ' · '
-          + (side === LAB_US ? (window.FIRST_PARTY || 'us') : (c.counterparty || 'the counterparty'))
+        side, authorRef,
+        author: authorRef.name + ' · ' + authorRef.organization
       });
       if(!ch){ if(window.toast) toast('Nothing changed in that clause', 'err'); return; }
       save(); repaint();
-      if(window.toast) toast(`${ch.id} filed — it is yours until you send it`);
+      if(window.toast) toast(ch.parentChangeId
+        ? `${ch.id} filed on top of ${ch.parentChangeId} — it stacks on a colleague's ask rather than replacing it`
+        : `${ch.id} filed — it is yours until you send it`);
     });
   }));
 
@@ -1695,9 +2155,14 @@ if (typeof window !== 'undefined') Object.assign(window, {
   LAB_KEY, LAB_INTERNAL, LAB_SHARED, LAB_US, LAB_THEM,
   labLoad, labFor, labPut, labClear, labUid,
   labSharePayload, labShareChanges, labWithheld,
+  LAB_STAGE_DRAFT, LAB_STAGE_PUBLISHED, LAB_STAGE_FOLDED, LAB_ROLES,
   labClauseText, labWorkingText, labPickOccurrence, labWorkingOffset,
-  labPendingOn, labCanDecide,
+  labPendingOn, labStackOn, labCanDecide, labMigrateChanges,
+  labAuthorOf, labInitials, labAuthorName, labChainOf, labPublishRound,
+  labAuthorPillHtml, labStackTrailHtml, labTagHtml, labRedlineAttributedHtml,
+  labCaptureSel, labClearSel,
   labFileChange, labSendChange, labDecide, labResolveLinked,
+  labTagChange, labUntagChange,
   labBaseline, labClausesOf, labTopics, labSeed,
   renderDocLab, wireDocLab
 });

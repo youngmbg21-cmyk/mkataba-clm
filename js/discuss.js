@@ -110,6 +110,51 @@ function discussVisBadgeHtml(m){
     internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;
 }
 
+/* ---------- WHO WROTE THIS NOTE, AS A COLOUR ----------
+   Reviewing a thread means reading a column of bubbles that all look alike, and
+   the single most important thing about any one of them — did this come from my
+   own side or from the people across the table — was carried only by a name in
+   small grey type. On a clause with nine notes on it that is a paragraph of
+   reading to answer a question the eye should answer instantly.
+
+   So the side owns the colour. OUR notes are blue/indigo, THEIRS are amber. The
+   two are far apart on the wheel and differ in lightness as well as hue, so the
+   distinction survives a mediocre screen and the commoner forms of colour
+   blindness — and the explicit label carries it for anyone the colour does not
+   reach, which is why every bubble is tagged in words as well.
+
+   Note that internal-versus-shared is a DIFFERENT question, answered by a
+   different mark. "Who wrote it" and "who can see it" are independent, and
+   collapsing them into one colour would make an internal note from our side
+   indistinguishable from a shared one. */
+const DISCUSS_NOTE_OWNER = 'owner';
+const DISCUSS_NOTE_COUNTERPARTY = 'counterparty';
+function discussNoteTone(note, viewerSide){
+  const n = note || {};
+  /* An unmarked note is treated as OURS. It is the safer default of the two:
+     mistaking our own note for theirs would have a reader answer a colleague as
+     though they were the opposition, and every note this product writes on our
+     behalf carries the side already. */
+  const side = n.side || n.authorSide || (n.authorRef && n.authorRef.side) || viewerSide || DISCUSS_NOTE_OWNER;
+  const theirs = side === DISCUSS_NOTE_COUNTERPARTY;
+  const internal = discussIsInternal(n);
+  return {
+    who: theirs ? DISCUSS_NOTE_COUNTERPARTY : DISCUSS_NOTE_OWNER,
+    theirs,
+    /* The utility classes the spec names, and inline colours saying the same
+       thing — the panel has to read correctly whether or not a utility
+       framework is on the page. */
+    classes: theirs
+      ? 'note-bubble note-counterparty bg-amber-50 border-amber-200 text-amber-900'
+      : 'note-bubble note-owner bg-blue-50 border-blue-200 text-blue-900',
+    style: theirs
+      ? 'background:#fffbeb;border:1px solid #fde68a;color:#78350f'
+      : 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a',
+    label: theirs ? '🌐 Counterparty Note'
+      : internal ? '🔒 Internal Note' : '👔 Owner Note'
+  };
+}
+
 function discussBubbleHtml(m, mine){
   const isMine = m.side === mine;
   const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
@@ -260,6 +305,7 @@ function wireDiscussPanel(opts){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   DISCUSS_GENERAL, DISCUSS_SHARED, DISCUSS_INTERNAL, discussIsInternal, discussVisBadgeHtml,
+  DISCUSS_NOTE_OWNER, DISCUSS_NOTE_COUNTERPARTY, discussNoteTone,
   discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
   discussUnansweredBy, discussBubbleHtml, discussPanelHtml, wireDiscussPanel, discussTrim,
   discussPointReplyHtml, wireDiscussPoints });
