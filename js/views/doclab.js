@@ -809,6 +809,25 @@ function labCleanHtml(text){
 let _labLinked = null;
 let _labOnly = false;
 
+/* ---------- WHICH CLAUSE BOTH SIDES ARE LOOKING AT ----------
+   The panes scroll independently now, which is what a negotiator wants and
+   also what loses them their place: the contract is on clause 14 and the cards
+   are wherever they were left. Reading a redline meant finding its card by
+   eye, and on a contract with four payment clauses that is a guess.
+
+   THE CLAUSE IS THE THING BOTH SIDES SHARE. A change card knows its clause, a
+   thread knows its change and therefore its clause, and a clause frame is the
+   clause. So one clause id is the whole pairing: click anything belonging to a
+   clause on either side and both sides go to it and mark it.
+
+   Kept apart from _labLinked, which is a CHANGE and drives "show only this
+   thread". They answer different questions — "what am I looking at" against
+   "what am I filtering to" — and folding them together would make selecting a
+   clause silently hide the other conversations. */
+let _labFocus = null;
+const labClauseOfChange = (changes, id) =>
+  (((changes || []).find(x => x.id === id)) || {}).clauseId || null;
+
 /* ---------- is this change safe to accept without reading it? ----------
    "Accept all non-risk redlines" moves wording without a person reading each
    one, so what counts as risk decides how much one click can do. The test is
@@ -1517,7 +1536,8 @@ function labDocHtml(c, lab, side, external){
        than a copy — one click and the sidebar scrolls to the card and lights
        it. The link is the connection; the duplicate was noise. */
     return `
-    <div class="clause-frame bg-white border border-slate-200 rounded-lg p-4 mb-4 shadow-sm hover:border-indigo-300 transition-all"
+    <div class="clause-frame bg-white border border-slate-200 rounded-lg p-4 mb-4 shadow-sm hover:border-indigo-300 transition-all${
+      cl.clauseId === _labFocus ? ' is-focus' : ''}"
       data-clause-id="${esc(cl.clauseId)}" data-lab-clause="${esc(cl.clauseId)}"
       data-lab-clause-label="${esc(label)}">
       <div class="clause-head">
@@ -1536,7 +1556,9 @@ function labChangeCardHtml(ch, side, external){
   const mine = ch.side === side;
   const canDecide = !external && labCanDecide(ch, side);
   return `
-  <div class="lab-card${ch.id === _labLinked ? ' is-linked' : ''}" data-lab-card="${esc(ch.id)}"
+  <div class="lab-card${ch.id === _labLinked ? ' is-linked' : ''}${
+    ch.clauseId && ch.clauseId === _labFocus ? ' is-focus' : ''}" data-lab-card="${esc(ch.id)}"
+    data-lab-card-clause="${esc(ch.clauseId || '')}"
     style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:8px">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-700)">${esc(ch.id)}</span>
@@ -1578,6 +1600,11 @@ function labChangeCardHtml(ch, side, external){
 
 function labThreadHtml(t, opts){
   const owner = !!(opts && opts.owner);
+  /* Which clause this conversation belongs to, resolved through the change it
+     is pinned to. A thread about the contract generally belongs to no clause
+     and simply never lights up — which is right, because there is nothing on
+     the other side for it to pair with. */
+  const clauseId = (opts && opts.clauseId) || null;
   const internal = t.visibility === LAB_INTERNAL;
   const resolved = t.status === 'resolved';
   /* THE SAME COLOUR RULE THE CANVAS USES, so a note does not change identity
@@ -1602,8 +1629,10 @@ function labThreadHtml(t, opts){
     </div>`;
   }).join('');
   return `
-  <div class="lab-thread${t.changeId && t.changeId === _labLinked ? ' is-linked' : ''}" data-lab-thread="${esc(t.id)}"${
-    t.changeId ? ` data-lab-thread-change="${esc(t.changeId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
+  <div class="lab-thread${t.changeId && t.changeId === _labLinked ? ' is-linked' : ''}${
+    clauseId && clauseId === _labFocus ? ' is-focus' : ''}" data-lab-thread="${esc(t.id)}"${
+    t.changeId ? ` data-lab-thread-change="${esc(t.changeId)}"` : ''}${
+    clauseId ? ` data-lab-thread-clause="${esc(clauseId)}"` : ''} style="border:1px solid ${internal ? 'rgba(138,106,42,.35)' : 'var(--color-divider)'};background:${internal ? '#faf5e9' : 'var(--color-surface)'};border-radius:6px;padding:11px 13px;display:flex;flex-direction:column;gap:9px;${resolved ? 'opacity:.66' : ''}">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${''/* SPELT OUT, not abbreviated. "Internal" and "Shared" read as
              categories; a person scanning a thread needs to know at a glance
@@ -1945,6 +1974,23 @@ function renderDocLab(){
       color:var(--color-neutral-700)}
     .lab-badge:hover{border-color:#8a6a2a;color:#8a6a2a}
     .lab-badge[aria-pressed="true"]{background:#8a6a2a;border-color:#8a6a2a;color:#fff}
+    /* ---- the clause both sides are looking at ----
+       A tint and a rule down the leading edge rather than a heavy border: this
+       marks a clause somebody is reading, and a box drawn around contract
+       wording reads as a change to it. The card and the thread carry the same
+       mark so the pairing is legible as one thing across the gap. */
+    .clause-frame.is-focus{border-color:#6366f1 !important;
+      box-shadow:0 0 0 3px rgba(99,102,241,.16);background:#fbfbff}
+    .lab-card.is-focus,.lab-thread.is-focus{border-color:#6366f1 !important;
+      box-shadow:0 0 0 3px rgba(99,102,241,.16)}
+    .clause-frame.is-focus,.lab-card.is-focus,.lab-thread.is-focus{
+      position:relative}
+    .clause-frame.is-focus::before,.lab-card.is-focus::before,.lab-thread.is-focus::before{
+      content:'';position:absolute;left:-1px;top:8px;bottom:8px;width:3px;
+      border-radius:2px;background:#6366f1}
+    /* A pointer on the frame, because it is now something you can press. */
+    .clause-frame{cursor:default}
+
     .lab-thread.is-linked,.lab-card.is-linked{box-shadow:0 0 0 3px rgba(99,102,241,.42);
       border-color:#6366f1 !important}
     .lab-filterbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:11.5px;
@@ -2017,7 +2063,8 @@ function renderDocLab(){
           <h6 style="${LAB_H6};margin-bottom:10px">Discussion${external ? ' · as they see it' : ''}</h6>
           ${labLinkedBarHtml(threadsToDraw)}
           ${threadsToDraw.length
-            ? `<div style="display:flex;flex-direction:column;gap:9px">${labVisibleThreads(threadsToDraw).map(t => labThreadHtml(t, { owner: !external })).join('')}</div>`
+            ? `<div style="display:flex;flex-direction:column;gap:9px">${labVisibleThreads(threadsToDraw).map(t => labThreadHtml(t, { owner: !external,
+                clauseId: labClauseOfChange(lab.changes, t.changeId) })).join('')}</div>`
             : `<div style="font-size:12px;color:var(--color-neutral-600);line-height:1.6">${external
                 ? 'Nothing has been shared with them yet.'
                 : 'No threads yet. Write one below, or seed a round.'}</div>`}
@@ -2083,14 +2130,73 @@ function wireDocLab(c, lab, side, external){
      being scrolled to — doing it the other way round scrolls to a node that is
      about to be thrown away. */
   const linkTo = id => {
-    if(_labLinked === id){ _labLinked = null; _labOnly = false; }
-    else _labLinked = id;
+    if(_labLinked === id){ _labLinked = null; _labOnly = false; _labFocus = null; }
+    else {
+      _labLinked = id;
+      /* The badge names a CHANGE, and a change sits on a clause — so pressing
+         it pairs the two sides as well as filtering the threads. Leaving focus
+         alone here would let the badge and a clause click disagree about what
+         is highlighted. */
+      _labFocus = labClauseOfChange(lab.changes, id);
+    }
     againLab();
     if(!_labLinked) return;
     const card = document.querySelector(`[data-lab-card="${_labLinked}"]`);
     const thread = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
     (card || thread)?.scrollIntoView({ block:'center', behavior:'smooth' });
   };
+  /* ---------- PAIRING THE TWO SIDES ----------
+     Click a clause and its cards and threads light up beside it; click a card
+     or a thread and the contract goes to the clause it is about. One state, set
+     from either direction, so there is no such thing as the two panes
+     disagreeing about what is being looked at.
+
+     Scrolling happens AFTER the repaint, against the freshly drawn nodes —
+     scrolling first would centre a node that is about to be thrown away. */
+  const focusClause = (clauseId, from) => {
+    if(!clauseId) return;
+    /* Clicking the focused clause again releases it. A highlight you cannot
+       turn off becomes a permanent mark on a document people are reading. */
+    _labFocus = (_labFocus === clauseId) ? null : clauseId;
+    againLab();
+    if(!_labFocus) return;
+    /* Only the OPPOSITE side is scrolled. Moving the pane that was just clicked
+       pulls the thing under the pointer out from under it. */
+    if(from !== 'doc'){
+      document.querySelector(`[data-lab-clause="${_labFocus}"]`)
+        ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    if(from !== 'side'){
+      const mate = document.querySelector(`[data-lab-card-clause="${_labFocus}"]`)
+        || document.querySelector(`[data-lab-thread-clause="${_labFocus}"]`);
+      mate?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  };
+
+  /* A clause frame is a big target and most clicks inside it are not a request
+     to pair — they are pressing a toolbar button, or finishing a drag over the
+     wording. Both are excluded, or selecting text would repaint the document
+     underneath the selection and throw it away. */
+  document.querySelectorAll('[data-lab-clause]').forEach(frame => {
+    frame.addEventListener('click', e => {
+      if(e.target.closest('button, a, input, textarea, select, .change-tag-badge, '
+        + '.clause-tools, .lab-tag, [data-lab-editor]')) return;
+      const sel = window.getSelection && window.getSelection();
+      if(sel && !sel.isCollapsed && String(sel).trim().length >= 3) return;
+      focusClause(frame.getAttribute('data-lab-clause'), 'doc');
+    });
+  });
+  /* The same verb from the other side. Buttons inside a card — Send it, Accept,
+     Reject, Add note — are the card's own business and must not be hijacked. */
+  const sideFocus = (sel, attr) => document.querySelectorAll(sel).forEach(el => {
+    el.addEventListener('click', e => {
+      if(e.target.closest('button, a, input, textarea, select, .lab-tag-x')) return;
+      focusClause(el.getAttribute(attr), 'side');
+    });
+  });
+  sideFocus('[data-lab-card-clause]', 'data-lab-card-clause');
+  sideFocus('[data-lab-thread-clause]', 'data-lab-thread-clause');
+
   document.querySelectorAll('.change-tag-badge[data-change-id]').forEach(b => {
     const go = e => { e.stopPropagation(); linkTo(b.getAttribute('data-change-id')); };
     b.addEventListener('click', go);
