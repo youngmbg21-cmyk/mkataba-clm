@@ -460,7 +460,7 @@ function check(name, ok, detail){
     }
     await page.evaluate(() => {
       const s = window.getSelection(); if (s) s.removeAllRanges();
-      document.querySelectorAll('.lab-selmenu, #ai-copilot-popover').forEach(n => n.remove());
+      document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
     });
 
     /* ---- the clause toolbar actually opens, and STAYS open ----
@@ -541,95 +541,137 @@ function check(name, ok, detail){
     }
     await page.evaluate(() => document.querySelectorAll('.lab-selmenu').forEach(n => n.remove()));
 
-    /* ---- the popover's own controls actually work ----
-       Reported from real use: Close, Apply Redline and Discard did nothing.
+    /* ---- THE PROPOSAL LIVES IN THE SIDE PANEL NOW ----
+       Reported from real use of the old popover: Close, Apply Redline and
+       Discard did nothing. The popover is gone and the flow moved into the
+       Copilot panel, but the shape of that bug has not — a card whose buttons
+       are drawn by a repaint and wired afterwards can lose its handlers the
+       same way. So the same three verbs are pressed for real.
 
-       The Copilot is STUBBED so this exercises the popover rather than a
-       network call — the flow under test is the buttons, not the model. */
+       The Copilot is STUBBED so this exercises the panel rather than a network
+       call, and it returns the STRUCTURED shape the panel now asks for: the
+       flow under test is the two bubbles and the card, not the model. */
     await page.evaluate(() => {
       window.copilotAvailable = () => true;
-      window.copilotAsk = async () => 'THE STUBBED REPLACEMENT WORDING';
+      window.copilotAsk = async () => JSON.stringify({
+        advice: 'STUBBED ADVICE ABOUT THE CLAUSE',
+        proposedText: 'THE STUBBED REPLACEMENT WORDING'
+      });
     });
-    /* Opens the popover on the first clause and waits for the editable box. */
-    const openPopover = async () => {
+    /* Opens a proposal from the first clause and waits for the card. */
+    const openProposal = async () => {
       await page.evaluate(() => {
-        document.querySelectorAll('.lab-selmenu, #ai-copilot-popover').forEach(n => n.remove());
+        document.querySelectorAll('.lab-selmenu').forEach(n => n.remove());
+        if (window.closeAI) closeAI();
       });
       await page.click('[data-lab-assist]');
       await page.waitForSelector('.lab-selmenu [data-lab-ai]', { timeout: 4000 });
       await page.click('.lab-selmenu [data-lab-ai="shorten"]');
-      await page.waitForSelector('#ai-copilot-popover .ai-suggestion-editor', { timeout: 6000 });
+      await page.waitForSelector('#ai-panel.open .ai-proposal [data-ai-prop-apply]', { timeout: 6000 });
     };
 
-    let popover = { skipped: true };
+    let panel = { skipped: true };
     try {
-      await openPopover();
+      await openProposal();
       const opened = await page.evaluate(() => {
-        const p = document.getElementById('ai-copilot-popover');
-        return { present: !!p, hasEditor: !!p.querySelector('.ai-suggestion-editor'),
-          hasApply: !!p.querySelector('#ai-apply-redline, [data-ai-apply]'),
-          hasDiscard: !!p.querySelector('#ai-discard-redline, [data-ai-discard]'),
-          hasClose: !!p.querySelector('#ai-popover-close, [data-ai-x]') };
+        const p = document.getElementById('ai-panel');
+        const feed = document.getElementById('ai-feed');
+        const card = feed && feed.querySelector('.ai-proposal');
+        return {
+          panelOpen: !!(p && p.classList.contains('open')),
+          /* Docked, not over a scrim: the whole reason it moved here is that a
+             reader deciding on wording has to see the clauses around it. */
+          docked: !!(p && p.classList.contains('docked')),
+          scrimOpen: !!document.getElementById('ai-scrim').classList.contains('open'),
+          documentVisible: (() => {
+            const canvas = document.getElementById('lab-canvas');
+            if (!canvas) return false;
+            const r = canvas.getBoundingClientRect();
+            const pr = p.getBoundingClientRect();
+            return r.width > 100 && r.right <= pr.left + 2;
+          })(),
+          /* BUBBLE ONE — the reasoning, in the ordinary chat stream. */
+          hasAdvice: !!(feed && /STUBBED ADVICE ABOUT THE CLAUSE/.test(feed.textContent)),
+          /* BUBBLE TWO — the wording, as a card with verbs on it. */
+          hasCard: !!card,
+          cardCarriesWording: !!(card && /THE STUBBED REPLACEMENT WORDING/.test(card.textContent)),
+          adviceOutsideCard: !!(card && !/STUBBED ADVICE/.test(card.textContent)),
+          hasApply: !!(card && card.querySelector('[data-ai-prop-apply]')),
+          hasDecline: !!(card && card.querySelector('[data-ai-prop-decline]')),
+          hasEdit: !!(card && card.querySelector('[data-ai-prop-edit-btn]'))
+        };
       });
-      await page.screenshot({ path: path.join(OUT, 'doclab-popover.png') });
+      await page.screenshot({ path: path.join(OUT, 'doclab-proposal-panel.png') });
 
-      /* DISCARD — a real press, and the popover must be gone afterwards. */
-      await page.click('#ai-copilot-popover [data-ai-discard]');
-      await page.waitForTimeout(200);
-      const afterDiscard = await page.evaluate(() => !document.getElementById('ai-copilot-popover'));
+      /* DECLINE — the card closes out and NOTHING is written to the document. */
+      const beforeDecline = await page.evaluate(() => (labFor(state.activeId).changes || []).length);
+      await page.click('.ai-proposal [data-ai-prop-decline]');
+      await page.waitForTimeout(250);
+      const declined = await page.evaluate(prev => ({
+        noButtons: !document.querySelector('.ai-proposal [data-ai-prop-apply]'),
+        saysSo: /Declined/.test(document.getElementById('ai-feed').textContent),
+        filedNothing: (labFor(state.activeId).changes || []).length === prev
+      }), beforeDecline);
 
-      /* CLOSE */
-      await openPopover();
-      await page.click('#ai-copilot-popover [data-ai-x]');
-      await page.waitForTimeout(200);
-      const afterClose = await page.evaluate(() => !document.getElementById('ai-copilot-popover'));
-
-      /* TYPING must not dismiss it, and must reach the textarea. */
-      await openPopover();
-      await page.click('#ai-copilot-popover .ai-suggestion-editor');
+      /* EDIT — the card becomes a textarea, and typing reaches it. */
+      await openProposal();
+      await page.click('.ai-proposal [data-ai-prop-edit-btn]');
+      await page.waitForSelector('.ai-proposal .ai-suggestion-editor', { timeout: 3000 });
+      await page.click('.ai-proposal .ai-suggestion-editor');
       await page.keyboard.type(' EDITED');
       await page.waitForTimeout(150);
-      const afterTyping = await page.evaluate(() => {
-        const p = document.getElementById('ai-copilot-popover');
-        const t = p && p.querySelector('.ai-suggestion-editor');
-        return { stillOpen: !!p, value: t ? t.value : '' };
+      const edited = await page.evaluate(() => {
+        const t = document.querySelector('.ai-proposal .ai-suggestion-editor');
+        return { hasEditor: !!t, value: t ? t.value : '',
+          stillOpen: !!document.querySelector('.ai-proposal [data-ai-prop-apply]') };
       });
 
-      /* APPLY — the change must actually be filed. */
+      /* APPLY — straight out of the edit, so the wording filed is what is on
+         the screen rather than what was there before it was typed into. */
       const before = await page.evaluate(() => (labFor(state.activeId).changes || []).length);
-      await page.click('#ai-copilot-popover [data-ai-apply]');
-      await page.waitForTimeout(400);
+      await page.click('.ai-proposal [data-ai-prop-apply]');
+      await page.waitForTimeout(500);
       const applied = await page.evaluate(prev => {
         const lab = labFor(state.activeId);
         const mine = (lab.changes || []).filter(x => String(x.after || '').includes('THE STUBBED REPLACEMENT WORDING'));
         return {
-          gone: !document.getElementById('ai-copilot-popover'),
           filed: (lab.changes || []).length > prev || mine.length > 0,
           carriesEdit: mine.some(x => x.after.includes('EDITED')),
+          cardClosed: !document.querySelector('.ai-proposal [data-ai-prop-apply]'),
+          saysApplied: /Applied as a redline/.test(document.getElementById('ai-feed').textContent),
           badge: !!document.querySelector('.change-tag-badge[data-change-id]')
         };
       }, before);
 
-      popover = { skipped: false, opened, afterDiscard, afterClose, afterTyping, applied };
+      panel = { skipped: false, opened, declined, edited, applied };
     } catch (e) {
-      popover = { skipped: false, error: (e && e.message) || String(e) };
+      panel = { skipped: false, error: (e && e.message) || String(e) };
     }
 
-    if (popover.error){
-      check('the AI popover flow ran', false, popover.error);
-    } else if (!popover.skipped){
-      check('the popover opens with an editable suggestion', popover.opened.hasEditor);
-      check('and carries Apply, Discard and Close',
-        popover.opened.hasApply && popover.opened.hasDiscard && popover.opened.hasClose);
-      check('DISCARD closes the popover', popover.afterDiscard);
-      check('CLOSE closes the popover', popover.afterClose);
-      check('typing in the suggestion box does not dismiss it', popover.afterTyping.stillOpen);
-      check('and the keystrokes reach the box', /EDITED$/.test(popover.afterTyping.value),
-        JSON.stringify(popover.afterTyping.value.slice(-40)));
-      check('APPLY REDLINE files the change', popover.applied.filed);
-      check('and applies the wording as edited by hand', popover.applied.carriesEdit);
-      check('and closes the popover afterwards', popover.applied.gone);
-      check('and the clause carries a change badge', popover.applied.badge);
+    if (panel.error){
+      check('the side-panel proposal flow ran', false, panel.error);
+    } else if (!panel.skipped){
+      check('an AI action opens the Copilot side panel', panel.opened.panelOpen);
+      check('and docks it beside the document rather than over a scrim',
+        panel.opened.docked && !panel.opened.scrimOpen);
+      check('so the document is still readable next to it',
+        panel.opened.documentVisible);
+      check('BUBBLE ONE carries the advice', panel.opened.hasAdvice);
+      check('BUBBLE TWO is a proposal card carrying the wording',
+        panel.opened.hasCard && panel.opened.cardCarriesWording);
+      check('and the reasoning is NOT inside the wording that gets spliced',
+        panel.opened.adviceOutsideCard);
+      check('the card offers Apply Redline, Decline and Edit',
+        panel.opened.hasApply && panel.opened.hasDecline && panel.opened.hasEdit);
+      check('DECLINE closes the card out', panel.declined.noButtons && panel.declined.saysSo);
+      check('and writes nothing to the document', panel.declined.filedNothing);
+      check('EDIT turns the card into a textarea', panel.edited.hasEditor);
+      check('and the keystrokes reach it', /EDITED$/.test(panel.edited.value),
+        JSON.stringify(panel.edited.value.slice(-40)));
+      check('APPLY REDLINE files the change', panel.applied.filed);
+      check('and applies the wording as edited by hand', panel.applied.carriesEdit);
+      check('and the card says it was applied', panel.applied.cardClosed && panel.applied.saysApplied);
+      check('and the clause carries a change badge', panel.applied.badge);
     }
 
     /* ---- a note is drawn ONCE ----
@@ -733,6 +775,140 @@ function check(name, ok, detail){
       check('the clause then reads the accepted wording', decided.clauseNowReadsTheNewWording);
       check('deciding a change closes the threads pinned to it',
         decided.before > 0 && decided.after === 0, `${decided.before} open → ${decided.after}`);
+    }
+
+    /* ---- ONE STATUS BAR, AND FOCUS MODE ----
+       The three stacked cards above the split were 150-odd pixels of chrome on
+       a screen whose job is reading a document, and because the panes are sized
+       from the split's measured top, every one of those pixels came out of the
+       wording. Measured here rather than asserted from a stylesheet: the
+       question is how much room the reader actually gets back. */
+    const header = await page.evaluate(async () => {
+      const head = document.querySelector('.doclab-status-header');
+      if (!head) return { skipped: true };
+      const split = document.querySelector('.lab-split');
+      const full = head.getBoundingClientRect().height;
+      const canvasFull = document.getElementById('lab-canvas').getBoundingClientRect().height;
+      const oldBanners = document.querySelectorAll('.doclab-status-header').length;
+      document.getElementById('toggle-header-btn').click();
+      await new Promise(r => setTimeout(r, 250));
+      const collapsed = head.getBoundingClientRect().height;
+      const canvasCollapsed = document.getElementById('lab-canvas').getBoundingClientRect().height;
+      const modeChipStillShown = !!(head.querySelector('.doclab-modechip')
+        && head.querySelector('.doclab-modechip').getBoundingClientRect().height > 4);
+      const stored = localStorage.getItem('doclab_header_collapsed');
+      /* And it survives a repaint, which is the whole point of storing it. */
+      renderDocLab();
+      await new Promise(r => setTimeout(r, 250));
+      const afterRepaint = document.querySelector('.doclab-status-header')
+        .classList.contains('is-collapsed');
+      document.getElementById('toggle-header-btn').click();
+      await new Promise(r => setTimeout(r, 250));
+      return { skipped: false, bars: oldBanners, full, collapsed, modeChipStillShown, stored,
+        afterRepaint, canvasFull, canvasCollapsed,
+        splitBottomInView: split.getBoundingClientRect().bottom <= window.innerHeight + 2 };
+    });
+    if (header.skipped){
+      check('the three banners are one status bar', false, 'no .doclab-status-header rendered');
+    } else {
+      check('the three banners are one status bar', header.bars === 1, `${header.bars} found`);
+      check('focus mode shrinks it to a compact strip',
+        header.collapsed < header.full && header.collapsed <= 48,
+        `${Math.round(header.full)}px → ${Math.round(header.collapsed)}px`);
+      check('and the room goes to the document',
+        header.canvasCollapsed > header.canvasFull,
+        `canvas ${Math.round(header.canvasFull)}px → ${Math.round(header.canvasCollapsed)}px`);
+      check('the split still ends inside the window', header.splitBottomInView);
+      check('the mode chip never collapses — it is the one fact you must not have to expand for',
+        header.modeChipStillShown);
+      check('the preference is written', header.stored === 'true', String(header.stored));
+      check('and survives a repaint', header.afterRepaint);
+    }
+
+    /* ---- DISCARDING AN UNSENT DRAFT ----
+       Filed fresh, because everything earlier in this run has been sent or
+       decided and neither of those may be discarded. */
+    const discard = await page.evaluate(async () => {
+      const cid = state.activeId;
+      const lab = labFor(cid);
+      const cl = labClausesOf(lab).find(x => !(lab.changes || [])
+        .some(ch => ch.clauseId === x.clauseId && ch.status === 'pending'));
+      if (!cl) return { skipped: true };
+      const ch = labFileChange(lab, { clauseId: cl.clauseId, clauseLabel: 'Discardable',
+        before: labClauseText(cl, lab.changes),
+        after: labClauseText(cl, lab.changes) + ' UNIQUEDISCARDMARKER.',
+        side: 'owner', authorRef: labAuthorOf(currentUser(), 'owner', getContract(cid)),
+        author: 'Test' });
+      labPut(cid, lab);
+      renderDocLab();
+      await new Promise(r => setTimeout(r, 250));
+      const btn = document.querySelector(`[data-discuss-discard="${ch.id}"]`);
+      const before = {
+        offered: !!btn,
+        /* Not offered on anything that has left the building. */
+        offeredOnSent: !!document.querySelector('[data-lab-card] [data-discuss-discard]')
+          && Array.from(document.querySelectorAll('[data-discuss-discard]'))
+            .every(b => { const c = labFor(cid).changes.find(x => x.id === b.getAttribute('data-discuss-discard'));
+              return c && c.sent !== true && c.stage === 'internal_draft'; }),
+        markup: document.getElementById('lab-canvas').innerHTML.includes('UNIQUEDISCARDMARKER'),
+        badge: !!document.querySelector(`.change-tag-badge[data-change-id="${ch.id}"]`)
+      };
+      if (!btn) return { skipped: false, before, pressed: false };
+      btn.click();
+      await new Promise(r => setTimeout(r, 350));
+      const rec = labFor(cid);
+      return { skipped: false, before, pressed: true, id: ch.id,
+        goneFromRecord: !(rec.changes || []).some(x => x.id === ch.id),
+        goneFromCanvas: !document.getElementById('lab-canvas').innerHTML.includes('UNIQUEDISCARDMARKER'),
+        goneFromSidebar: !document.querySelector(`[data-lab-card="${ch.id}"]`),
+        badgeGone: !document.querySelector(`.change-tag-badge[data-change-id="${ch.id}"]`) };
+    });
+    if (discard.skipped){
+      check('a clause was free to take a discardable draft', false);
+    } else {
+      check('an unsent draft offers a Discard', discard.before.offered);
+      check('and only unsent internal drafts do', discard.before.offeredOnSent);
+      check('the draft is on the canvas before it is discarded',
+        discard.before.markup && discard.before.badge);
+      check('pressing it removes the change from the record', !!discard.goneFromRecord);
+      check('and clears its markup from the canvas', !!discard.goneFromCanvas);
+      check('and takes its card and badge with it',
+        !!discard.goneFromSidebar && !!discard.badgeGone);
+    }
+
+    /* ---- THE WORD EXPORT ----
+       Run against the live canvas, which is the string the button hands the
+       writer. What is being checked is that the UI's own furniture does not
+       travel and the redline arrives as something a reviewer can decide. */
+    const wordOut = await page.evaluate(() => {
+      const canvas = document.getElementById('lab-canvas');
+      if (!canvas || typeof docxExportTracked !== 'function') return { skipped: true };
+      const html = canvas.innerHTML;
+      const out = docxExportTracked(html, { author: 'Amina Otieno', date: '2026-07-29T10:00:00Z' });
+      return { skipped: false,
+        hadBadgeOnScreen: /change-tag-badge/.test(html),
+        badgeInExport: /change-tag-badge|rl-authormark/.test(out.xml) || /#L-\d/.test(out.xml),
+        tracked: out.tracked,
+        hasWIns: /<w:ins /.test(out.xml),
+        hasWDel: /<w:del /.test(out.xml),
+        delTextKept: /<w:delText/.test(out.xml),
+        bytes: out.bytes.length,
+        zipMagic: out.bytes[0] === 0x50 && out.bytes[1] === 0x4B,
+        buttonThere: !!document.getElementById('lab-export-docx') };
+    });
+    if (wordOut.skipped){
+      check('the Word writer is on the page', false);
+    } else {
+      check('the lab offers a Word export', wordOut.buttonThere);
+      check('the canvas really carries UI badges to strip', wordOut.hadBadgeOnScreen);
+      check('and NONE of them reach the export', !wordOut.badgeInExport);
+      check('the redline arrives as native track changes',
+        wordOut.hasWIns && wordOut.hasWDel,
+        JSON.stringify(wordOut.tracked));
+      check('with struck wording kept, which is what makes Reject work',
+        wordOut.delTextKept);
+      check('and the bytes are a real ZIP', wordOut.zipMagic && wordOut.bytes > 1000,
+        `${wordOut.bytes} bytes`);
     }
 
     /* ---- and none of it reached the contract ---- */

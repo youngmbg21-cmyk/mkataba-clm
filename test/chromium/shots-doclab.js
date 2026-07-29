@@ -119,7 +119,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const m = /"""\n([\s\S]*?)\n"""/.exec((messages && messages[0] && messages[0].content) || '');
       const sel = (m && m[1] || '').trim();
       if(!sel) return 'No wording was supplied.';
-      return sel.replace(/\.$/, '') + ', provided that the Buyer\'s prior written approval shall not be unreasonably withheld.';
+      /* The structured shape the panel now asks for: the reasoning and the
+         wording as separate fields, so the shot shows two bubbles rather than
+         one. */
+      return JSON.stringify({
+        advice: 'This narrows the discretion to the Buyer and ties it to a reasonableness '
+          + 'standard, which is the ordinary Kenyan-practice formulation and hard to argue '
+          + 'is one-sided. Check the defined term for “Buyer” before proposing it.',
+        proposedText: sel.replace(/\.$/, '')
+          + ', provided that the Buyer\'s prior written approval shall not be unreasonably withheld.'
+      });
     };
     renderDocLab();
     return { change: ch.id, clause: cl.clauseId, clean: clean ? clean.clauseId : null };
@@ -189,14 +198,19 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await pause(500);
   await shot('05-selection-menu');
 
-  /* the proposal popover */
+  /* the proposal, in the Copilot side panel */
   await page.evaluate(() => document.querySelector('[data-lab-ai="advantage"]')
     ?.dispatchEvent(new MouseEvent('mousedown', { bubbles:true })));
-  await pause(900);
-  const pop = await page.$('.lab-aipop');
+  await pause(1100);
+  const pop = await page.$('.ai-proposal');
   if(pop) await shot('06-ai-proposal', pop);
+  /* The whole page, because the point of the move is that the document is
+     still readable beside the proposal rather than under it. */
   await shot('07-ai-proposal-in-page');
-  await page.evaluate(() => document.querySelector('.lab-aipop [data-ai-cancel]')?.click());
+  await page.evaluate(() => {
+    document.querySelector('[data-ai-prop-decline]')?.click();
+    if(window.closeAI) closeAI();
+  });
   await pause(250);
 
   /* the AI Assist button on the toolbar opens the same menu */

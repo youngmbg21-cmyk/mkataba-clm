@@ -319,6 +319,30 @@
   #ai-panel.expanded{max-width:clamp(430px,72vw,940px)!important;}
   #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
+  /* DOCKED: the panel takes a column of its own rather than covering the page,
+     so a proposal about a clause can be read next to the clause. The width is
+     set from JS (js/ai.js, aiSyncDock) because it follows the panel's own
+     expand state, which no CSS selector can reach from here. */
+  #app-shell{transition:right .3s cubic-bezier(.22,.61,.36,1);}
+  #ai-panel.docked{box-shadow:none;border-left:1px solid var(--color-divider);}
+  /* THE PANEL'S OWN LAYOUT, not borrowed from a utility framework.
+     Its column was carried entirely by Tailwind classes, so on a page where the
+     CDN does not answer — the offline stage this app is checked on — the header
+     grew to fit its content, the feed grew to fit the conversation, and a
+     proposal card three messages down sat a thousand pixels below the bottom of
+     the window with nothing to scroll. That is survivable for a chat you are
+     only reading; it is not survivable now that the panel carries buttons that
+     file redlines. These rules say the same thing the classes do, so they are a
+     no-op when the framework loads and the whole layout when it does not. */
+  /* width, not just max-width: a fixed-position element with only a maximum
+     shrinks to fit its content, so without the framework's w-full the panel
+     came out about a hundred pixels wide. */
+  #ai-panel{display:flex;flex-direction:column;width:100%;}
+  #ai-panel > *{flex:none;}
+  #ai-panel > header{display:flex;align-items:center;gap:12px;padding:16px 20px;}
+  #ai-feed{flex:1 1 0%;min-height:0;overflow-y:auto;padding:16px 20px;}
+  #ai-feed > * + *{margin-top:16px;}
+  #ai-panel > footer{padding:12px 20px 20px;}
   #ai-badge.pulse,.ai-badge-dot.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
   @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(89,128,166,.6);}50%{box-shadow:0 0 0 8px rgba(89,128,166,0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
