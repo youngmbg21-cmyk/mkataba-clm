@@ -3823,6 +3823,11 @@ function redlineLayoutCss(){
   .redline-page .rl-rej{background:var(--color-neutral-200);color:var(--color-neutral-700)}
 
   /* Tracked Changes head, and the discussion column */
+  /* WRAPS, and two things now depend on it. It stops the title collapsing to
+     zero when the row is over-subscribed, and it is what lets the send slot
+     below take flex-basis:100% and break onto a line of its own — on a nowrap
+     row that basis cannot break anything, it only makes the slot ask for the
+     whole width and shrink back, which is the crowding it is there to end. */
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;
     border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-head [hidden]{display:none!important}
@@ -3831,7 +3836,21 @@ function redlineLayoutCss(){
     font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);cursor:pointer}
   .redline-page .rl-disc-x{width:24px;height:24px;padding:0;line-height:1;font-size:13px;flex:none}
   .redline-page .rl-sendslot:empty{display:none}
-  .redline-page .rl-sendslot{margin-left:auto}
+  /* ---- THE SEND SLOT GETS ITS OWN LINE ----
+     #nego-send is hidden on this page (the design carries that act in the page
+     header as Publish Round), but the sentence underneath it — "Held on this
+     page until you send. Nothing has reached <them> yet." — is not, and it is
+     worth keeping: it is the only thing on the screen that says an unsent draft
+     exists. margin-left:auto put that whole sentence on the title's row, where
+     it squeezed "Tracked Changes" the moment there was a draft to describe.
+     flex-basis:100% breaks it onto a line of its own instead. */
+  .redline-page .rl-sendslot{flex-basis:100%;margin-left:0}
+  /* The slot's contents come from the room, where they sit at the foot of a
+     scrolling index and earn a rule and 9px of air above them. Here they are
+     already a separate row under a border, so the room's spacing doubles the
+     gap — and the rule itself is drawn in --n-line, a room token that does not
+     resolve on this page, so it was never painting anything anyway. */
+  .redline-page .rl-sendslot .nego-index-send{margin-top:0;padding-top:0;border-top:0}
 
   .redline-page .rl-thread{border:1px solid var(--color-divider);border-radius:10px;padding:11px 12px;
     margin-bottom:10px;background:var(--color-surface)}
@@ -3940,6 +3959,11 @@ function redlineLayoutCss(){
   .redline-page .rl-disc-head h3{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
   .redline-page .rl-disc-n{font-size:10.5px;font-weight:700;color:var(--color-accent-600)}
+  /* The collapse control sits at the right edge, not wherever the thread count
+     happens to end. #rl-thread-count renders empty on a contract with no
+     threads yet, and without this the chevron slid left to hug the title —
+     a different header on an empty contract than on a busy one. */
+  .redline-page .rl-disc-head .rl-disc-x{margin-left:auto}
   .redline-page .rl-disc-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
   .redline-page .rl-disc-empty{padding:14px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500)}
   `;

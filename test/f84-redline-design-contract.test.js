@@ -174,6 +174,68 @@ describe('F84 — twelve columns, six/three/three, folding to eight/four', () =>
   });
 });
 
+describe('F84 — the Tracked Changes head gives the send slot its own line', () => {
+  /* WHAT THIS IS PINNING, and why it is worth a test rather than an eyeball.
+
+     #nego-send is hidden on this page — the design carries that act in the page
+     header as Publish Round — but the sentence under it is not, and that
+     sentence only exists when there IS an unsent draft. So the header had one
+     layout on an idle contract and another the moment somebody filed a change,
+     and only the second one was broken.
+
+     It was broken badly rather than untidily. The row was nowrap, the title
+     carries flex:1 with min-width:0 (flex-basis 0), and the slot was pushed
+     over with margin-left:auto at its content width. Shrinkage in flexbox is
+     weighted by flex-basis, so a basis of 0 takes none of it: the sentence kept
+     its full width, the title absorbed the entire deficit, and "Tracked
+     Changes" laid out at ZERO PIXELS — measured, not guessed. The column header
+     simply vanished while a draft was pending.
+
+     flex-basis:100% is the fix, and it is inert without flex-wrap on the
+     parent — on a nowrap row it would make the sentence ask for the whole width
+     and squeeze the title harder still. The two declarations are one change and
+     are tested as one. */
+  test('the head wraps, so a full-basis child can break the line', async () => {
+    const css = (await page()).css();
+    assert.match(css, /\.redline-page \.rl-idx-head\{[^}]*flex-wrap:wrap/,
+      'without flex-wrap the send slot cannot take a row of its own');
+  });
+
+  test('the send slot claims a whole row instead of riding the title\'s', async () => {
+    const css = (await page()).css();
+    const m = /\.redline-page \.rl-sendslot\{([^}]*)\}/.exec(css);
+    assert.ok(m, 'the send slot must carry its own rule');
+    assert.match(m[1], /flex-basis:100%/, 'the slot takes the full line');
+    assert.ok(!/margin-left:auto/.test(m[1]),
+      'margin-left:auto is what pinned the sentence to the title\'s row');
+  });
+
+  test('an empty slot leaves no phantom row behind', async () => {
+    // negoIndexSendHtml returns '' when there is nothing unsent, and a
+    // full-basis element that still occupied a line would open a gap under the
+    // title on every idle contract
+    const css = (await page()).css();
+    assert.match(css, /\.redline-page \.rl-sendslot:empty\{display:none\}/);
+  });
+
+  test('the slot does not inherit the room\'s spacing on top of its own row', async () => {
+    // .nego-index-send is drawn for the room, where it earns a dashed rule and
+    // 9px of air at the foot of a scrolling index. Here it already sits under
+    // the head's own border, and the rule is painted in --n-line, a room token
+    // that does not resolve on this page
+    const css = (await page()).css();
+    assert.match(css, /\.redline-page \.rl-sendslot \.nego-index-send\{[^}]*margin-top:0[^}]*border-top:0/);
+  });
+
+  test('the discussion chevron sits at the edge, not against the count', async () => {
+    // #rl-thread-count renders empty on a contract with no threads, which slid
+    // the collapse control left to hug the title — a different header on an
+    // empty contract than on a busy one
+    const css = (await page()).css();
+    assert.match(css, /\.redline-page \.rl-disc-head \.rl-disc-x\{margin-left:auto\}/);
+  });
+});
+
 describe('F84 — the fold is a real function, and it remembers', () => {
   test('rlToggleDiscussion() toggles the page and the reveal chip together', async () => {
     const p = await page();
