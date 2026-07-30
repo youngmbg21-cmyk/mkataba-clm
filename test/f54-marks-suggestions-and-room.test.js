@@ -153,7 +153,7 @@ describe('the contract header collapses', () => {
     const doc = win.document;
     doc.body.innerHTML = `
       <div data-ws-fold="actions"><button id="x">Share</button></div>
-      <div style="display:flex;gap:6px"><button id="ws-ai">Ask Copilot</button>
+      <div style="display:flex;gap:6px"><button id="ws-new">Draft new agreement</button>
         <button id="ws-collapse" aria-expanded="true"></button></div>
       <div id="ws-actionbar" data-ws-fold="strip">Drafting</div>`;
     return { win, doc };
@@ -164,8 +164,12 @@ describe('the contract header collapses', () => {
     win.applyWsCollapse();
     for (const el of doc.querySelectorAll('[data-ws-fold]'))
       assert.equal(el.style.display, 'none');
-    assert.notEqual(doc.getElementById('ws-ai').style.display, 'none',
-      'the one action you use while READING stays');
+    /* Whatever sits in that slot stays. It was Ask Copilot; it is now Draft
+       new agreement (see f91). What is under test is that applyWsCollapse
+       folds only what carries data-ws-fold and leaves the row beside it
+       alone — the identity of the button in it is not this file's business. */
+    assert.notEqual(doc.getElementById('ws-new').style.display, 'none',
+      'the action outside the folding rows stays');
   });
 
   test('the control that folds it is not inside what it folds', () => {

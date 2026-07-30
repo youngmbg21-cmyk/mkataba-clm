@@ -4055,10 +4055,14 @@ function redlineLayoutCss(){
   .redline-page.disc-off #rl-disc-col{display:none}
   .redline-page.disc-off .rl-doc{grid-column:span 8}
   .redline-page.disc-off #rl-changes-col{grid-column:span 4}
-  /* Focus mode: the document takes all twelve. Written after the disc-off
-     rules and at equal specificity so it wins whichever way the fold is set. */
-  .redline-page.rl-focus #rl-changes-col,.redline-page.rl-focus #rl-disc-col{display:none}
-  .redline-page.rl-focus .rl-doc{grid-column:span 12}
+  /* Focus mode is GONE — the toggle, the state and the twelve-column override
+     with it. It gave the document the whole row by hiding the other two
+     columns, which is the fold's job done twice: the discussion already folds
+     to 8/4, and hiding the Tracked Changes column as well leaves the workbench
+     with nothing to work on. It also had to be undone from three other places
+     — tagging a note, jumping to a clause, linking a card — each of which had
+     to remember to switch it off before it could reach a column that focus
+     mode had hidden. One less state, three fewer things to remember. */
 
   /* ---- THE CLAUSE TOOLBAR, AND THE BLANK ROW IT USED TO RESERVE ----
      It was opacity:0 until hover. opacity does not take an element out of the
@@ -4139,11 +4143,71 @@ function redlineRoundLabel(c){
   const open = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
   return `Round ${n}${open ? ` · ${open} open` : ''}`;
 }
+/* ============================================================
+   THE WORKBENCH HOLDS ONE CONTRACT, AND SAYS WHICH
+   ============================================================
+   The bench is a single station: one agreement is on it at a time. That was
+   already true — it reads state.activeId — but nothing recorded WHICH, so
+   nothing could act on a change of occupant.
+
+   redlineEvict is what acts on it. Bringing a new contract to the bench takes
+   the previous one off and puts it back in Drafting, so the pipeline on the
+   dashboard reads as what is actually being worked on rather than accumulating
+   everything that has ever passed through.
+
+   TWO THINGS IT WILL NOT DO, and both are the same principle: a stage is a
+   claim about a contract, and moving one is only honest where the claim is
+   still ours to make.
+
+     · A SIGNED, closed, declined or expired agreement is not demoted. "Draft"
+       on an executed contract is not a tidier pipeline, it is a false
+       statement about a document somebody has signed — and status drives the
+       register, the dashboard counts and the renewal calendar, so the lie
+       would propagate into all three.
+     · It is never SILENT. Every demotion is written to the audit trail with a
+       reason and announced in a toast. A stage that moves on its own, with no
+       record of who moved it or why, is the thing a person later cannot
+       explain to their counterparty. */
+let _redlineHeldId = null;
+const redlineHeldId = () => _redlineHeldId;
+/* Statuses that are still ours to move. Anything else has left our hands. */
+const RL_DEMOTABLE = new Set(['Under Review']);
+function redlineEvict(nextId, opts = {}){
+  const prev = _redlineHeldId;
+  if (!prev || prev === nextId) return null;
+  const c = (typeof getContract === 'function') ? getContract(prev) : null;
+  if (!c) return null;
+  if (!RL_DEMOTABLE.has(c.status)) return null;
+  const from = c.status;
+  c.status = 'Draft';
+  c.lastAction = (window.todayStr ? todayStr() : c.lastAction);
+  if (window.logAudit) logAudit(c, 'Lifecycle',
+    `Moved from ${from} back to Draft — the redline workbench took on ${nextId || 'another contract'},`
+    + ' and the bench holds one agreement at a time');
+  if (opts.persist !== false && window.persist) persist(c);
+  if (window.toast) toast(`${c.name} moved back to Draft — the workbench now holds ${
+    (typeof getContract === 'function' && getContract(nextId) || {}).name || 'another contract'}`);
+  return c;
+}
+/* Bring a contract to the bench. The one entry point, so the eviction cannot
+   be skipped by a caller that sets state.activeId and calls setView itself. */
+function openRedlineWorkbench(id, opts = {}){
+  const target = String(id == null ? '' : id) || (window.state && state.activeId);
+  if (!target) return false;
+  redlineEvict(target, opts);
+  if (window.state) state.activeId = target;
+  if (typeof setView === 'function') setView('redline');
+  else renderRedline();
+  return true;
+}
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
   redlineLayoutCss();
   const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  /* Recorded on the paint, not on the navigation: however the reader arrived —
+     the tab, the register, a link — the bench now knows what is on it. */
+  _redlineHeldId = c ? c.id : null;
   if (!c){
     host.innerHTML = `
       <div class="view-enter" style="padding:16px 18px 28px;">
@@ -4200,8 +4264,6 @@ function renderRedline(){
         </div>
         <div class="rl-actions">
           ${blast}
-          <button type="button" class="rl-btn rl-btn-ghost" data-rl-focus aria-pressed="false"
-            title="Give the document the whole row">&#9652; Focus mode</button>
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
           <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 9-9"/><path d="M15 4V2M15 10V8M11 6h2M17 6h2M19 13v-2M19 17v-2M17 15h2M21 15h-2"/><path d="m14 7-1.5 1.5a2.1 2.1 0 0 0 0 3l.5.5a2.1 2.1 0 0 0 3 0L17.5 10"/></svg>
@@ -4290,29 +4352,8 @@ function renderRedline(){
   negoAfterPaint(c, opts, mount);
   host.querySelectorAll('[data-redline-disc]').forEach(el =>
     el.addEventListener('click', () => rlToggleDiscussion()));
-  host.querySelectorAll('[data-rl-focus]').forEach(el =>
-    el.addEventListener('click', () => rlToggleFocus()));
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
-}
-
-/* ---------- FOCUS MODE ----------
-   Not a fourth panel but the absence of the other two: the document takes the
-   whole row so a long clause can be read at a sensible measure. The changes
-   and the discussion are still there the moment it is switched off, and the
-   fold preference for the discussion is left untouched — coming out of focus
-   must put the page back the way it was found, not the way the design ships. */
-function rlToggleFocus(force){
-  const page = document.getElementById('view-redline');
-  if (!page) return false;
-  const on = force == null ? !page.classList.contains('rl-focus') : !!force;
-  page.classList.toggle('rl-focus', on);
-  const btn = page.querySelector('[data-rl-focus]');
-  if (btn){
-    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.textContent = on ? '▸ Exit focus' : '▴ Focus mode';
-  }
-  return on;
 }
 
 /* ============================================================
@@ -4537,7 +4578,6 @@ function rlTagInternalNote(ctx){
   /* Unfolding first: the composer is in the discussion column, and focusing an
      input inside a display:none column silently does nothing. */
   rlToggleDiscussion(false);
-  rlToggleFocus(false);
   /* Internal, pressed for them. The visibility switch defaults to shared on a
      reply, and a note tagged from the document is by name an internal one —
      leaving the reader to notice and flip it is how a private remark reaches
@@ -4579,10 +4619,6 @@ function rlLinkFocus(c, changeId, source){
   page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
   const clause = page.querySelector('#rl-doc [data-nego-card-anchor="' + q(id) + '"]');
   const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
-  /* Unfolding first where the card is the target: focus mode hides the whole
-     column, and scrolling to an element inside a display:none parent silently
-     does nothing at all. */
-  if (card && source === 'clause') rlToggleFocus(false);
   if (clause){
     clause.classList.add('is-linked');
     if (source !== 'clause' && clause.scrollIntoView)
@@ -4607,7 +4643,6 @@ function rlLinkFocus(c, changeId, source){
 function rlJumpToClause(clauseId, opts = {}){
   const page = document.getElementById('view-redline');
   if (!page) return null;
-  rlToggleFocus(false);
   const sel = `[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`;
   const clause = page.querySelector('#rl-doc ' + sel) || page.querySelector(sel);
   if (!clause) return null;
@@ -5198,7 +5233,8 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
-  rlToggleDiscussion, rlToggleFocus, rlWireClauseTools,
+  rlToggleDiscussion, rlWireClauseTools,
+  redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,

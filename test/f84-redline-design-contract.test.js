@@ -409,26 +409,10 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
   });
 });
 
-describe('F84 — focus mode', () => {
-  test('it gives the document all twelve columns and hands them back', async () => {
-    const p = await page();
-    const css = p.css();
-    assert.match(css, /\.redline-page\.rl-focus \.rl-doc\{grid-column:span 12\}/);
-    assert.match(css, /\.redline-page\.rl-focus #rl-changes-col,\.redline-page\.rl-focus #rl-disc-col\{display:none\}/);
-
-    assert.equal(p.win.rlToggleFocus(), true);
-    assert.ok(p.$('#view-redline').classList.contains('rl-focus'));
-    assert.equal(p.$('[data-rl-focus]').getAttribute('aria-pressed'), 'true');
-    assert.equal(p.win.rlToggleFocus(), false);
-    assert.ok(!p.$('#view-redline').classList.contains('rl-focus'));
-  });
-
-  test('leaving focus does not disturb the discussion preference', async () => {
-    const p = await page();
-    p.win.rlToggleDiscussion(true);
-    p.win.rlToggleFocus(true);
-    p.win.rlToggleFocus(false);
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'),
-      'focus mode must put the page back as it found it, not as the design ships it');
-  });
-});
+/* F84 — focus mode was here. The toggle, its state and the twelve-column
+   override are gone from the workbench: it gave the document the whole row by
+   hiding the other two columns, which is the discussion fold's job done twice
+   and leaves the workbench with nothing to work on. Three other paths — tagging
+   a note, jumping to a clause, linking a card — each had to remember to switch
+   it off before they could reach a column it had hidden. See
+   test/f91-doc-redline-navigation.test.js for what replaced the header slot. */

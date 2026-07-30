@@ -1989,19 +1989,18 @@ function docTabDefaults(c){
     _docTabsFor = c.id;
   }
 }
-/* ---- Workspace-level tabs: Docs · Negotiation ------------------------------
-   A sibling of the Docs view, not a card inside it. The three-pane redline
-   needs the full width of the window — baseline, working copy and change index
-   at once — and the right-hand panel is a third of the screen, so it could
-   never have lived there.
+/* ---- Workspace-level tabs: Docs · Redline ---------------------------------
+   A sibling of the Docs view, not a card inside it. The redline needs the full
+   width of the window — the document whole, with the changes and the
+   discussion beside it — and the right-hand panel here is a third of the
+   screen, so it could never have lived in it.
 
-   The choice persists per contract, like the panel tabs above, and resets when
-   a different contract opens. Switching only toggles `display`, so the
-   negotiation's own view state (which fingerprint is focused, which threads are
-   open) survives a trip to Docs and back — "without reloading or losing state"
-   is a property of the mechanism rather than something re-established on the
-   way in. */
-let _wsTab='docs';                           // 'docs' | 'negotiation'
+   Which is why only ONE of these two is a pane. Docs is; Redline is a door to
+   the workbench at view-redline, and it snaps back to Docs on the way through
+   so that coming back lands on the document rather than on a tab pointing
+   somewhere the reader has left. The choice resets when a different contract
+   opens. */
+let _wsTab='docs';                           // 'docs' | 'redline'
 let _wsTabFor=null;
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
@@ -2022,27 +2021,35 @@ function negoTabCountHtml(c){
   return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:#b8862b;color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
 }
 function applyWsTabs(c){
-  if(_wsTab!=='docs'&&_wsTab!=='negotiation') _wsTab='docs';
+  if(_wsTab!=='docs'&&_wsTab!=='redline') _wsTab='docs';
   document.querySelectorAll('[data-ws-pane]').forEach(p=>{
     const on=p.getAttribute('data-ws-pane')===_wsTab;
     p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
   });
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')===_wsTab;
     b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
-  /* The Negotiation tab is a DOOR, not a pane. Pressing it enters the room —
-     a full-window mode with its own chrome — because three panes squeezed under
-     the workspace header left both documents too small to read, which defeated
-     the point of putting them side by side. The tab snaps back to Docs so that
-     leaving the room lands on a workspace showing the document, not on a tab
-     pointing at a room that is no longer open. */
-  if(_wsTab==='negotiation'){
+  /* ---- REDLINE IS A DOOR, NOT A PANE ----
+     It was a door before too, and it opened the full-window negotiation room:
+     three panes squeezed under this header left both documents too small to
+     read. It now opens the REDLINE WORKBENCH — the page at view-redline —
+     which is the same engine laid out as the design sets it, with the document
+     whole and the changes and discussion beside it.
+
+     Either way the tab snaps back to Docs before it goes, so that coming BACK
+     from the workbench lands on a workspace showing the document rather than
+     on a tab pointing at somewhere the reader is no longer standing. */
+  if(_wsTab==='redline'){
     _wsTab='docs';
     document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')==='docs';
       b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       p.style.display=(p.getAttribute('data-ws-pane')==='docs')?(p.id==='doc-grid'?'grid':'flex'):'none'; });
-    if(window.openNegotiationRoom) openNegotiationOwnerRoom(c);
-    else toast('The negotiation room is unavailable on this page','err');
+    /* Through openRedlineWorkbench, not by setting activeId and switching view
+       here: that one function is where the previous occupant of the bench is
+       taken off and put back in Drafting, and a second route in would skip it
+       silently. */
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+    else toast('The redline workbench is unavailable on this page','err');
   }
 }
 function wireWsTabs(c){
@@ -2549,11 +2556,19 @@ function renderWorkspace(){
               you are reading. Collapsing folds the actions away and keeps what
               tells you where you are: the name, the status, the way back.
 
-              These two sit OUTSIDE the row that folds. A control that hides
-              itself cannot be pressed again, and Ask Copilot is the one action
-              people reach for while reading rather than while deciding. */}
+              These two sit OUTSIDE the row that folds, because a control that
+              hides itself cannot be pressed again.
+
+              ASK COPILOT HAS GONE FROM HERE. It was not the only way in — the
+              Copilot has a launcher in the sidebar on every screen, and the
+              Redline page reaches it from a selection — so this was a third
+              door to one room, taking the most prominent slot on the page.
+              What that slot now carries is the act this page does not
+              otherwise offer at all: starting the next agreement. It opens the
+              same new-contract menu the command bar and the dashboard open,
+              rather than being a second way of creating paper. */}
         <div style="display:flex;gap:6px;align-items:center;flex:none">
-          <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
+          <button id="ws-new" title="Draft a new agreement" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>
           <button id="ws-collapse" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none"
             title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
         </div>
@@ -2564,17 +2579,16 @@ function renderWorkspace(){
     ${readyToSignStrip(c)}
     ${returnedChangesStrip(c)}
 
-    <!-- ============ WORKSPACE TABS: Docs · Negotiation ============
-         Two ways of working on one contract, side by side rather than one
-         behind the other. Docs is everything that existed before — the
-         document, the review panel, signing. Negotiation is the three-pane
-         fingerprinted redline. Switching is a display toggle over markup that
-         is already rendered, so nothing reloads and no state is lost: an open
-         thread, a focused fingerprint and a half-typed comment all survive a
-         trip to the Docs tab and back. -->
+    <!-- ============ WORKSPACE TABS: Docs · Redline ============
+         Two ways of working on one contract. Docs is this page — the document,
+         the review panel, signing. Redline hands the contract to the workbench
+         at view-redline, where the wording is negotiated as tracked changes
+         with a fingerprint on each one. The count beside it is the number of
+         changes waiting on a decision, so a negotiation that needs an answer is
+         never discoverable only by clicking. -->
     <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm);align-self:flex-start">
       ${wsTabBtn('docs','Docs','file')}
-      ${wsTabBtn('negotiation','Negotiation','history')}${negoTabCountHtml(c)}
+      ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
     </div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
@@ -2750,13 +2764,20 @@ function renderWorkspace(){
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
-  /* ONE Ask-Copilot button on this page, pre-filled from the contract in front
-     of you. There were briefly two — a plain "Ask AI" beside the PDF button and
-     this one — which is a duplicate surface for one assistant. */
   wireWsCollapse(c);
-  document.getElementById('ws-ai')?.addEventListener('click',()=>
-    openAI(`What should I be watching in ${c.name} (${c.id})? Key dates, obligations and anything unusual.`));
-  window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
+  /* Draft new agreement — the same new-contract menu the command bar and the
+     dashboard's hero button open, not a second route into creation. Falls back
+     to pressing the command bar's own control where the menu is not mounted,
+     which is exactly what the dashboard does. */
+  document.getElementById('ws-new')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const nm=document.getElementById('new-menu'), nb=document.getElementById('cmd-new');
+    if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
+    else if(nb){ nb.click(); }
+    else if(typeof openWizard==='function') openWizard();
+    else toast('Drafting is unavailable on this page','err');
+  });
+  window.updateAIBadge&&updateAIBadge();   // the Copilot's unread dot lives on the sidebar launcher now
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));

@@ -515,13 +515,6 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
       'Edit means edit — the engine\'s inline editor opens on the clause itself');
   });
 
-  test('rlJumpToClause leaves focus mode so the document is on screen', async () => {
-    const p = await page();
-    p.win.rlToggleFocus(true);
-    const id = p.$('#rl-changes [data-rl-edit]').getAttribute('data-rl-edit');
-    assert.ok(p.win.rlJumpToClause(id, { edit: false }));
-    assert.ok(!p.$('#view-redline').classList.contains('rl-focus'));
-  });
 });
 
 describe('F89 (14) — a card shows the change, not the clause', () => {
