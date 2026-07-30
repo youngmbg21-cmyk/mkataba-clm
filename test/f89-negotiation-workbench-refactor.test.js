@@ -110,7 +110,7 @@ async function page(opts = {}){
      toolbar's AI Assist is gone and highlighting words is the statement of
      scope. jsdom makes no real selection rectangle, so the hook is driven
      directly, exactly as F89's own selection test always has. */
-  const openSel = (text = 'thirty (30) days') => {
+  const openSel = (text = 'thirty (30) days', extra = {}) => {
     let handed = null;
     const real = win.wireNegotiationTab;
     win.wireNegotiationTab = (cc, o) => { handed = o; return real(cc, o); };
@@ -118,7 +118,10 @@ async function page(opts = {}){
     win.wireNegotiationTab = real;
     const cl = win.negoClauseList(c).find(x => /PAYMENT/i.test(x.headingText))
       || win.negoClauseList(c)[0];
-    handed.selMenu({ text, clauseId: cl.clauseId,
+    /* `extra` stands in for what the live capture reads off the selection's
+       own Range — `marked` and `spans` — which jsdom's rectless selections
+       cannot produce through the real gesture. */
+    handed.selMenu({ text, clauseId: cl.clauseId, ...extra,
       rect: { left: 10, top: 10, bottom: 30, right: 90, width: 80, height: 20 } });
     return doc.querySelector('.nego-selmenu');
   };
@@ -346,6 +349,45 @@ describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog'
     assert.ok(!p.$('.nego-aipop'));
     assert.ok(p.panel.pushed.some(x => x.role === 'assistant' && /not connected/i.test(x.m.text)),
       'the refusal belongs in the conversation the reader just opened');
+  });
+});
+
+describe('F89 (3b) — a refusal names the actual problem, read off the selection itself', () => {
+  /* Highlighting across two clauses used to fall through the includes() check
+     against ONE clause's text and be reported as "pending edits" — a false
+     positive, read off the clause instead of off the chosen words. The live
+     capture now reads `spans` and `marked` from the selection's own fragment;
+     these drive the hook with those flags, the way every selection test on
+     this page drives text and clauseId. */
+  const press = async (p, i = 1) => {   // 1 = Shorten & Simplify
+    p.$$('.nego-selmenu [data-nego-ai]')[i].dispatchEvent(
+      new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 10));
+  };
+  const said = (p, re) => p.panel.pushed.some(x => x.role === 'assistant' && re.test(x.m.text));
+
+  test('a selection spanning clauses is said to span clauses, before the model is asked', async () => {
+    const p = await page();
+    p.openSel('thirty (30) days.\n3. TERMINATION', { spans: true, marked: false });
+    await press(p);
+    assert.equal(p.panel.proposals.length, 0, 'no tokens are spent on it');
+    assert.ok(said(p, /more than one clause/i));
+    assert.ok(!said(p, /pending edits/i), 'and it is not misreported as pending edits');
+  });
+
+  test('an unmatched selection with no marks inside it is not blamed on pending edits', async () => {
+    const p = await page();
+    p.openSel('wording that is in no clause at all', { marked: false });
+    await press(p);
+    assert.ok(said(p, /reselect/i));
+    assert.ok(!said(p, /pending edits/i));
+  });
+
+  test('marks actually inside the selection still read as pending edits', async () => {
+    const p = await page();
+    p.openSel('wording that mixes kept and struck text', { marked: true });
+    await press(p);
+    assert.ok(said(p, /pending edits/i));
   });
 });
 
