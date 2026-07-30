@@ -232,6 +232,40 @@ describe('F84 — the Tracked Changes head gives the send slot its own line', ()
   });
 });
 
+describe('F84 — the switcher wears its colours and its counts', () => {
+  test('the tray and the two tinted buttons are styled, not grey text', async () => {
+    const p = await page();
+    const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
+    assert.match(css, /\.rl-side-tabs\{[^}]*background:#f1f5f9/, 'the slate tray');
+    assert.match(css, /\.rl-tab-changes\{[^}]*background:#ecfdf5/, 'Tracked Changes idles in emerald');
+    assert.match(css, /\.rl-tab-changes\.on\{[^}]*background:#d1fae5/, 'and deepens when active');
+    assert.match(css, /\.rl-tab-changes \.rl-tab-n\{[^}]*background:#059669/, 'solid emerald count pill');
+    assert.match(css, /\.rl-tab-disc\{[^}]*background:#eef2ff/, 'Discussion idles in indigo');
+    assert.match(css, /\.rl-tab-disc\.on\{[^}]*background:#e0e7ff/, 'and deepens when active');
+    assert.match(css, /\.rl-tab-disc \.rl-tab-n\{[^}]*background:#4f46e5/, 'solid indigo count pill');
+    assert.match(css, /html\.dark[^{]*\.rl-tab-changes/, 'the colours survive dark mode as tints');
+  });
+
+  test('each tab carries its own live count', async () => {
+    const p = await page();
+    const chg = p.$('#rl-side .rl-tab-changes #rl-chg-count');
+    const disc = p.$('#rl-side .rl-tab-disc #rl-rail-count');
+    assert.ok(chg && disc, 'both pills are on their buttons');
+    assert.equal(chg.textContent.trim(), '1', 'one live redline in the fixture');
+    assert.match(p.$('#rl-side .rl-tab-changes').textContent, /Tracked Changes/);
+    assert.match(p.$('#rl-side .rl-tab-disc').textContent, /Discussion/);
+  });
+
+  test('the card snippet is clamped to two lines; the canvas holds the full scope', async () => {
+    const p = await page();
+    const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
+    const m = /\.rl-card-diff\{([^}]*)\}/.exec(css);
+    assert.ok(m, 'the diff snippet must carry a rule');
+    assert.match(m[1], /-webkit-line-clamp:2/, 'two lines, uniform stack');
+    assert.match(m[1], /overflow:hidden/, 'the overflow is reachable on the canvas, not in the card');
+  });
+});
+
 describe('F84 — one sidebar, two modes, switched by the tabs and remembered', () => {
   test('the tabs are mutually exclusive and mark the root', async () => {
     const p = await page();

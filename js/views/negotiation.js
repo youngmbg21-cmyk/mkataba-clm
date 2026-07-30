@@ -4014,8 +4014,14 @@ function redlineLayoutCss(){
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
   html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px;line-height:1.5}
-  /* The same size as the clause it is a diff of — see --rl-type. */
-  .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6}
+  /* The same size as the clause it is a diff of — see --rl-type.
+     CLAMPED TO TWO LINES: the card is a pointer at the redline, not the
+     redline itself — the full expanded scope lives on the contract canvas,
+     one click away, and a stack of uniform two-line cards scans in a way a
+     stack of variable ones cannot. The marked runs keep their colours inside
+     the clamp: what shows is redline, what overflows is reachable. */
+  .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
@@ -4143,16 +4149,36 @@ function redlineLayoutCss(){
     display:flex;flex-direction:column}
   .redline-page[data-rl-side-mode="changes"] #rl-disc-col{display:none}
   .redline-page[data-rl-side-mode="disc"] #rl-changes-col{display:none}
-  .redline-page .rl-side-tabs{display:flex;gap:3px;padding:7px 8px;flex:none;
-    border-bottom:1px solid var(--color-divider)}
-  .redline-page .rl-side-tab{flex:1;border:0;border-radius:7px;background:none;cursor:pointer;
-    font:inherit;font-size:11px;font-weight:700;padding:6px 8px;color:var(--color-neutral-600);
+  /* ---- THE SWITCHER WEARS ITS COLOURS ----
+     A slate tray (the reference's bg-slate-100 p-1.5 rounded-xl) holding two
+     tinted buttons: emerald for Tracked Changes, indigo for Discussion — the
+     same families the origin badges speak — with the live count as a solid
+     pill on each. Fixed hex for the dark-mode reason every colour on this
+     page is: a switch that re-maps with the theme is a switch misread. The
+     active face deepens its tint and takes the full border; the idle one
+     stays in its colour rather than fading to grey, because both destinations
+     exist whether or not you are standing on them. */
+  .redline-page .rl-side-tabs{display:flex;gap:6px;padding:6px;margin:8px 8px 0;flex:none;
+    background:#f1f5f9;border-radius:12px}
+  html.dark .redline-page .rl-side-tabs{background:rgba(148,163,184,.14)}
+  .redline-page .rl-side-tab{flex:1;border:1px solid transparent;border-radius:9px;cursor:pointer;
+    font:inherit;font-size:11px;font-weight:700;padding:6px 8px;
     display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
-    transition:background .12s,color .12s}
-  .redline-page .rl-side-tab.on{background:var(--accent-solid);color:#fff}
+    transition:background .12s,color .12s,border-color .12s,box-shadow .12s}
   .redline-page .rl-side-tab .rl-tab-n{font-size:9.5px;font-weight:700;padding:1px 7px;
-    border-radius:999px;background:var(--color-neutral-100);color:var(--color-neutral-600)}
-  .redline-page .rl-side-tab.on .rl-tab-n{background:rgba(255,255,255,.24);color:#fff}
+    border-radius:999px;color:#fff}
+  .redline-page .rl-tab-changes{background:#ecfdf5;color:#047857;border-color:rgba(5,150,105,.25)}
+  .redline-page .rl-tab-changes.on{background:#d1fae5;border-color:#059669;color:#065f46;
+    box-shadow:0 1px 3px rgba(5,150,105,.28)}
+  .redline-page .rl-tab-changes .rl-tab-n{background:#059669}
+  .redline-page .rl-tab-disc{background:#eef2ff;color:#4338ca;border-color:rgba(99,102,241,.28)}
+  .redline-page .rl-tab-disc.on{background:#e0e7ff;border-color:#6366f1;color:#3730a3;
+    box-shadow:0 1px 3px rgba(99,102,241,.3)}
+  .redline-page .rl-tab-disc .rl-tab-n{background:#4f46e5}
+  html.dark .redline-page .rl-tab-changes{background:rgba(5,150,105,.14);color:#6ee7b7;border-color:rgba(5,150,105,.35)}
+  html.dark .redline-page .rl-tab-changes.on{background:rgba(5,150,105,.28);color:#a7f3d0;border-color:#059669}
+  html.dark .redline-page .rl-tab-disc{background:rgba(99,102,241,.16);color:#c7d2fe;border-color:rgba(99,102,241,.4)}
+  html.dark .redline-page .rl-tab-disc.on{background:rgba(99,102,241,.32);color:#e0e7ff;border-color:#6366f1}
   /* ---- THE HANDLE ----
      Absolutely positioned over the gap (rlLayoutResizer keeps its left edge
      on the split), the Doc tab's own grip. Hidden where the panes stack. */
@@ -5739,6 +5765,13 @@ function redlinePanesHtml(c, opts = {}){
   const canAct = !opts.readonly;
   const threadTotal = redlineThreads(c, opts).length;
   const mode = rlSideMode();
+  /* The Tracked Changes tab's count: the LIVE redlines this seat can see —
+     the same live-and-through-the-wall reading the card stack itself renders,
+     so the pill and the stack can never disagree. */
+  const tabSide = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const tabHidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, tabSide);
+  const changeTotal = (typeof negoChanges === 'function')
+    ? negoChanges(c).filter(x => _rlIsLive(x) && !tabHidden.has(x.id)).length : 0;
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -5777,11 +5810,16 @@ function redlinePanesHtml(c, opts = {}){
         title="Drag to set how wide the contract is · double-click to reset"><span></span></div>
 
       <aside class="rl-col rl-side" id="rl-side" aria-label="Tracked changes and discussion">
+        <!-- The two faces wear their own colours — emerald for the redlines,
+             indigo for the conversation, the same pair the origin badges use —
+             and each carries its live count as a solid pill. A switch that is
+             two grey words is a switch nobody notices they are standing on. -->
         <div class="rl-side-tabs" role="tablist" aria-label="What the sidebar shows">
-          <button type="button" class="rl-side-tab${mode === 'changes' ? ' on' : ''}" data-rl-mode="changes"
-            role="tab" aria-selected="${mode === 'changes' ? 'true' : 'false'}" aria-controls="rl-changes-col">Tracked Changes</button>
-          <button type="button" class="rl-side-tab${mode === 'disc' ? ' on' : ''}" data-rl-mode="disc"
-            role="tab" aria-selected="${mode === 'disc' ? 'true' : 'false'}" aria-controls="rl-disc-col">Discussion
+          <button type="button" class="rl-side-tab rl-tab-changes${mode === 'changes' ? ' on' : ''}" data-rl-mode="changes"
+            role="tab" aria-selected="${mode === 'changes' ? 'true' : 'false'}" aria-controls="rl-changes-col">&#128221; Tracked Changes
+            <span class="rl-tab-n" id="rl-chg-count">${changeTotal}</span></button>
+          <button type="button" class="rl-side-tab rl-tab-disc${mode === 'disc' ? ' on' : ''}" data-rl-mode="disc"
+            role="tab" aria-selected="${mode === 'disc' ? 'true' : 'false'}" aria-controls="rl-disc-col">&#128172; Discussion
             <span class="rl-tab-n" id="rl-rail-count">${threadTotal}</span></button>
         </div>
 
