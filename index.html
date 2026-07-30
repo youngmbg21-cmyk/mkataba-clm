@@ -311,12 +311,20 @@
   .nav-item[data-view="intel"] svg{color:var(--accent-solid);opacity:1;}
   html.dark .nav-item[data-view="intel"] svg{color:#2dd4bf;}
   .nav-item[data-view="intel"].active svg{color:inherit;}
-  .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
+  /* Nav counts as tinted pills (the design's "AI Active" / "3 Open" tags):
+     teal for portfolio totals, amber for work waiting on someone, neutral
+     gray for everything else — and a zero always renders neutral, because a
+     colored tag with nothing behind it is a false alarm. */
+  .nav-count{flex:none;font-size:9.5px;font-family:var(--font-mono);font-weight:700;padding:1px 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
+  .nav-count:empty{display:none;}
+  .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--color-accent-600);}
+  html.dark .nav-count[data-tone="teal"]{color:#2dd4bf;}
+  .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
+  html.dark .nav-count[data-tone="amber"]{color:#fcd34d;}
   /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
   .nav-badge{margin-left:auto;flex:none;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;
     background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
   html.dark .nav-badge{color:#fcd34d;}
-  .nav-item.active .nav-count{color:inherit;opacity:.8;}
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
      hides its tabs. Only ADMINISTRATION folds now — its header is the one
      button left carrying data-section-toggle and the +/− glyph; every other
