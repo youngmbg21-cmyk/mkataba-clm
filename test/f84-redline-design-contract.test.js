@@ -352,13 +352,25 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
 });
 
 describe('F84 — the clause toolbar files against the contract, not the sandbox', () => {
-  test('every clause carries the design\'s three verbs', async () => {
+  test('every clause carries the three verbs, each in its own colour — and no AI Assist', async () => {
     const p = await page();
     const clause = p.$('#rl-doc .rl-clause');
-    const labels = [...clause.querySelectorAll('.rl-tool')].map(b => b.textContent.trim());
-    assert.ok(labels.some(t => /AI Assist/.test(t)));
+    const tools = [...clause.querySelectorAll('.rl-tool')];
+    const labels = tools.map(b => b.textContent.trim());
+    assert.ok(!labels.some(t => /AI Assist/.test(t)),
+      'the Copilot opens from a text selection only — highlighting words IS the scope');
     assert.ok(labels.some(t => /Add Note\/Tag/.test(t)));
     assert.ok(labels.some(t => /Direct Edit/.test(t)));
+    assert.ok(labels.some(t => /Propose deletion/.test(t)));
+    /* the colour themes: indigo to talk, emerald to write, rose to strike */
+    assert.ok(clause.querySelector('.rl-tool.rl-tool-note[data-rl-note]'));
+    assert.ok(clause.querySelector('.rl-tool.rl-tool-edit[data-nego-edit]'));
+    assert.ok(clause.querySelector('.rl-tool.rl-tool-del[data-nego-del]'));
+    const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
+    assert.match(css, /\.rl-tool\.rl-tool-note\{[^}]*background:#eef2ff/, 'Add Note/Tag is indigo');
+    assert.match(css, /\.rl-tool\.rl-tool-edit\{[^}]*background:#ecfdf5/, 'Direct Edit is emerald');
+    assert.match(css, /\.rl-tool\.rl-tool-del\{[^}]*background:#fff1f2/, 'Propose deletion is rose');
+    assert.ok(!/data-rl-ai/.test(p.html()), 'and the old whole-clause AI hook is gone from the page');
   });
 
   test('Direct Edit is the engine\'s propose handler, by attribute', async () => {
@@ -383,43 +395,46 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     assert.ok(p.$('#rl-doc'), 'and the page still rendered');
   });
 
-  test('AI Assist offers the workbench\'s own action list, over this clause\'s words', async () => {
+  /* Open the passage menu the way the page now does: through the selMenu hook
+     this view hands the engine. The toolbar's AI Assist is gone — a selection
+     is the one entry, and highlighting the words is the statement of scope. */
+  const openSel = p => {
+    let handed = null;
+    const real = p.win.wireNegotiationTab;
+    p.win.wireNegotiationTab = (cc, o) => { handed = o; return real(cc, o); };
+    p.win.renderRedline();
+    p.win.wireNegotiationTab = real;
+    const cl = p.win.negoClauseList(p.c)[0];
+    handed.selMenu({ text: cl.text.slice(0, 24), clauseId: cl.clauseId,
+      rect: { left: 10, top: 10, bottom: 30, right: 90, width: 80, height: 20 } });
+    return p.$('.nego-selmenu');
+  };
+
+  test('a selection offers the workbench\'s own action list, over the highlighted words', async () => {
     /* The list is RL_SEL_ACTIONS, not NEGO_AI_ACTIONS. The workbench
        standardised on three actions of its own — rephrase, shorten, tag — and
        routes all three into the Copilot side panel, while the contract tab and
-       the room keep the engine's list and its popover. What this still pins is
-       the property that mattered: BOTH entry points on this page (a text
-       selection and the clause toolbar) build from ONE list, so they cannot
-       drift into naming different verbs for the same job. */
+       the room keep the engine's list and its popover. */
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
-    const menu = p.$('.nego-selmenu');
-    assert.ok(menu, 'AI Assist must open a menu');
+    const menu = openSel(p);
+    assert.ok(menu, 'a selection must open the menu');
     const offered = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
     /* Joined rather than deep-compared: the page's array is built in its own
        realm, so its prototype is not this realm's Array and a deep compare
        reports a mismatch on two identical lists (the same trap f60 documents). */
     assert.equal(offered.join(','), p.win.RL_SEL_ACTIONS.map(a => a.id).join(','),
       'the menu must be built from the workbench\'s action list, not a second copy');
-    assert.match(menu.textContent, /This clause/);
   });
 
-  test('the AI menu survives the gesture that opened it', async () => {
-    /* Pressing the button is a mouseup inside the document pane, and the pane
-       treats a mouseup as "the reader finished selecting words". A click
-       collapses the selection, so the selection handler found none and
-       dismissed the menu the button had just opened — the menu appeared and
-       vanished, in that order, from one press. Real-browser measurement caught
-       this; jsdom does not schedule it the same way, so the handler is invoked
-       directly here rather than hoping the timing reproduces. */
+  test('the menu survives a mouseup on the clause controls', async () => {
+    /* The pane treats a mouseup as "the reader finished selecting words", and
+       a mouseup on a CONTROL used to collapse the selection and dismiss the
+       menu in the same gesture. Real-browser measurement caught this; jsdom
+       does not schedule it the same way, so the handler is invoked directly. */
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
-    assert.ok(p.$('.nego-selmenu'), 'the menu must open');
-
-    const ev = new p.win.MouseEvent('mouseup', { bubbles: true });
-    ai.dispatchEvent(ev);
+    assert.ok(openSel(p), 'the menu must open');
+    const tool = p.$('#rl-doc .rl-tool');
+    tool.dispatchEvent(new p.win.MouseEvent('mouseup', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     assert.ok(p.$('.nego-selmenu'),
       'a mouseup on a control is somebody operating the page, not selecting words in it');

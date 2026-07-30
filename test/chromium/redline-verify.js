@@ -194,14 +194,17 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('6 a numbered sub-clause list stays a list', struct.list === 2, struct.list);
   check('6 a two-paragraph clause stays two blocks', struct.paras >= 2, struct.paras);
 
-  /* ---- 7. one computed type size ---- */
+  /* ---- 7. two computed type scales, each holding its own ----
+     The canvas reads at the Doc page's contract size (~15px) so switching
+     tabs never resizes the wording being judged; the cards stay compact —
+     a two-line pointer is not the document. */
   const type = await page.evaluate(() => {
     const body = document.querySelector('#rl-doc .nego-body');
     const diff = document.querySelector('#rl-changes .rl-card-diff');
     return { body: getComputedStyle(body).fontSize, diff: getComputedStyle(diff).fontSize };
   });
-  check('7 contract body and card diff compute to the same size',
-    type.body === type.diff, `${type.body} / ${type.diff}`);
+  check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
+  check('7 the card diff stays at the compact card scale', type.diff === '11.5px', type.diff);
 
   /* ---- 8. attribution on every mark ---- */
   const marks = await page.evaluate(() => {
@@ -413,16 +416,30 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await page.reload({ waitUntil: 'load' });
   await page.evaluate(() => window.READY);
   await pause(250);
-  const menu = await page.evaluate(() => {
-    const tool = [...document.querySelectorAll('#rl-doc .rl-tool')]
-      .find(b => /AI Assist/.test(b.textContent));
-    tool.click();
+  const menu = await page.evaluate(async () => {
+    /* The REAL entry: highlight words in a clause and release the mouse. The
+       clause toolbar's AI Assist is gone — a selection is the one door, and
+       this drives the same engine hook a person's drag does. */
+    const para = document.querySelector('#rl-doc .rl-clause .nego-body p')
+      || document.querySelector('#rl-doc .rl-clause p');
+    const textNode = [...para.childNodes].find(n => n.nodeType === 3 && n.nodeValue.trim().length > 30)
+      || para.firstChild;
+    const range = document.createRange();
+    range.setStart(textNode, 0);
+    range.setEnd(textNode, Math.min(28, textNode.nodeValue.length));
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    document.getElementById('nego-scroll-work').dispatchEvent(
+      new MouseEvent('mouseup', { bubbles: true }));
+    await new Promise(r => setTimeout(r, 60));
     const m = document.querySelector('.nego-selmenu');
     return { open: !!m,
+      noToolbarAi: ![...document.querySelectorAll('#rl-doc .rl-tool')]
+        .some(b => /AI Assist/.test(b.textContent)),
       items: m ? [...m.querySelectorAll('[data-nego-ai]')].map(b => b.textContent.trim()) : [],
       dialogs: document.querySelectorAll('.nego-aipop, .lab-aipop').length,
       modals: document.querySelectorAll('#modal-root *').length };
   });
+  check('5 AI Assist is gone from the clause toolbar', menu.noToolbarAi);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
   check('5 they are rephrase, shorten, tag',
@@ -435,7 +452,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   const routed = await page.evaluate(async () => {
     const btn = [...document.querySelectorAll('.nego-selmenu [data-nego-ai]')]
       .find(b => b.getAttribute('data-nego-ai') === 'shorten');
-    btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    /* mousedown, as a pointer would deliver it: the selection-path menu acts
+       before the mouseup that would collapse the selection under it. */
+    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 700));
     const panel = document.getElementById('ai-panel');
     return { open: panel.classList.contains('open'), docked: panel.classList.contains('docked'),

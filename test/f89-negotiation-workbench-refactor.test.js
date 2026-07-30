@@ -105,7 +105,24 @@ async function page(opts = {}){
   win.getContract = id => (id === c.id ? c : null);
   win.renderRedline();
   const doc = win.document;
-  return { w, win, c, doc, panel, post,
+  /* Open the passage menu the way the page now does: through the selMenu hook
+     this view hands the engine — the ONE entry left, since the clause
+     toolbar's AI Assist is gone and highlighting words is the statement of
+     scope. jsdom makes no real selection rectangle, so the hook is driven
+     directly, exactly as F89's own selection test always has. */
+  const openSel = (text = 'thirty (30) days') => {
+    let handed = null;
+    const real = win.wireNegotiationTab;
+    win.wireNegotiationTab = (cc, o) => { handed = o; return real(cc, o); };
+    win.renderRedline();
+    win.wireNegotiationTab = real;
+    const cl = win.negoClauseList(c).find(x => /PAYMENT/i.test(x.headingText))
+      || win.negoClauseList(c)[0];
+    handed.selMenu({ text, clauseId: cl.clauseId,
+      rect: { left: 10, top: 10, bottom: 30, right: 90, width: 80, height: 20 } });
+    return doc.querySelector('.nego-selmenu');
+  };
+  return { w, win, c, doc, panel, post, openSel,
     $: sel => doc.querySelector(sel),
     $$: sel => [...doc.querySelectorAll(sel)],
     html: () => doc.getElementById('content').innerHTML,
@@ -140,8 +157,17 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
     const p = await page();
     const head = p.$('#view-redline .rl-head');
     assert.ok(head, 'the header section survives');
-    assert.match(head.textContent, /Redline Workbench/);
     assert.ok(head.querySelector('.rl-round'), 'the round tag stays');
+    /* The page's TITLE moved up into the Doc page's shell — same name, same
+       status chip, same back arrow on both tabs — and the head now carries
+       the [Docs][Redline] switcher in its place. */
+    const shell = p.$('#view-redline .rl-shell');
+    assert.ok(shell, 'the Doc page\'s shell heads this tab too');
+    assert.match(shell.textContent, /Supply and Services Agreement/);
+    assert.deepEqual([...head.querySelectorAll('.rl-ws-tabs button')].map(b => b.textContent.trim()),
+      ['Docs', 'Redline']);
+    assert.ok(head.querySelector('.rl-ws-tabs button.on').textContent.includes('Redline'),
+      'this tab knows which tab it is');
   });
 });
 
@@ -230,12 +256,11 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
 describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog', () => {
   test('an AI action opens the docked panel and files nothing', async () => {
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
+    p.openSel();
     const shorten = [...p.$$('.nego-selmenu [data-nego-ai]')]
       .find(b => b.getAttribute('data-nego-ai') === 'shorten');
     assert.ok(shorten, 'the menu must offer the shorten action');
-    shorten.click();
+    shorten.dispatchEvent(new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 10));
 
     assert.equal(p.panel.opened.length, 1, 'the Copilot panel must open on the same gesture');
@@ -249,9 +274,9 @@ describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog'
 
   test('what was asked appears in the reader\'s own stream first', async () => {
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
-    p.$$('.nego-selmenu [data-nego-ai]')[1].click();
+    p.openSel();
+    p.$$('.nego-selmenu [data-nego-ai]')[1].dispatchEvent(
+      new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 10));
     assert.ok(p.panel.pushed.some(x => x.role === 'user'),
       'a panel that answers a question it never showed reads as volunteering wording');
@@ -259,10 +284,10 @@ describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog'
 
   test('Rephrase asks what the rewrite is for instead of guessing', async () => {
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
+    p.openSel();
     [...p.$$('.nego-selmenu [data-nego-ai]')]
-      .find(b => b.getAttribute('data-nego-ai') === 'rephrase').click();
+      .find(b => b.getAttribute('data-nego-ai') === 'rephrase').dispatchEvent(
+        new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 10));
     assert.equal(p.panel.sessions.length, 1, 'it must seed a session, not spend a call');
     assert.equal(p.panel.proposals.length, 0, 'nothing is asked until the drafter says what they want');
@@ -299,9 +324,9 @@ describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog'
 
   test('with no Copilot connected it says so in the panel, not in a dialog', async () => {
     const p = await page({ copilot: false });
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
-    p.$$('.nego-selmenu [data-nego-ai]')[1].click();
+    p.openSel();
+    p.$$('.nego-selmenu [data-nego-ai]')[1].dispatchEvent(
+      new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 10));
     assert.ok(!p.$('.nego-aipop'));
     assert.ok(p.panel.pushed.some(x => x.role === 'assistant' && /not connected/i.test(x.m.text)),
@@ -323,8 +348,7 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
 
   test('the rendered menu offers those and nothing else', async () => {
     const p = await page();
-    const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
-    ai.click();
+    p.openSel();
     const btns = p.$$('.nego-selmenu [data-nego-ai]');
     assert.equal(btns.length, 3);
     assert.ok(!/playbook/i.test(p.$('.nego-selmenu').textContent),
@@ -399,20 +423,28 @@ describe('F89 (6) — the document that was uploaded is the document that is dra
   });
 });
 
-describe('F89 (7) — one type size across the canvas and the changes column', () => {
-  test('both are set from a single declaration', async () => {
+describe('F89 (7) — two type scales, each declared once', () => {
+  /* The one-size rule this replaced unified the canvas with the cards. The
+     master directive supersedes it: the CANVAS reads at the Doc page's own
+     contract size, so switching tabs never changes the size of the wording
+     being judged, while the cards stay at their compact pointer scale. What
+     survives from the old rule is the discipline — each scale is one token,
+     so neither can drift within itself. */
+  test('the canvas is set from the doc token, the cards from the card token', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\{--rl-type:[\d.]+px\}/,
-      'the shared size must be one token, or the two columns can drift apart again');
-    assert.match(p.rule('.redline-page .rl-card-diff') || '', /font-size:var\(--rl-type\)/);
-    assert.match(p.css(), /\.redline-page \.rl-clause-p,[\s\S]{0,200}?font-size:var\(--rl-type\)/,
-      'the contract body must read at the Tracked Changes card size');
+    assert.match(p.css(), /\.redline-page\{--rl-type:[\d.]+px;--rl-doc-type:[\d.]+px\}/,
+      'both scales must be tokens, or a column can drift apart within itself');
+    assert.match(p.rule('.redline-page .rl-card-diff') || '', /font-size:var\(--rl-type\)/,
+      'the cards keep the compact pointer scale');
+    assert.match(p.css(), /\.redline-page \.rl-clause-p,[\s\S]{0,200}?font-size:var\(--rl-doc-type\)/,
+      'the contract body must read at the Doc page\'s contract size');
   });
 
-  test('the token is the card size the design sets its diffs at', async () => {
+  test('the canvas token is the Doc page\'s ~15px; the card token stays compact', async () => {
     const p = await page();
-    const m = /\.redline-page\{--rl-type:([\d.]+)px\}/.exec(p.css());
+    const m = /\.redline-page\{--rl-type:([\d.]+)px;--rl-doc-type:([\d.]+)px\}/.exec(p.css());
     assert.equal(m[1], '11.5');
+    assert.equal(m[2], '15');
   });
 });
 

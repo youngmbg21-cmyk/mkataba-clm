@@ -3809,10 +3809,12 @@ function redlineLayoutCss(){
   const s = document.createElement('style');
   s.id = 'redline-layout-css';
   s.textContent = `
-  /* The single type size the document canvas and the Tracked Changes column are
-     both set from. It is the card size, which is the one the design sets its
-     diffs at — see the note on .rl-clause-p. */
-  .redline-page{--rl-type:11.5px}
+  /* TWO TYPE SCALES, EACH WITH ONE JOB. --rl-doc-type is the document canvas —
+     set to read like the Doc page's contract sheet, so switching tabs never
+     changes the size of the wording being judged. --rl-type is the sidebar's
+     card scale: the cards are two-line pointers at the canvas, and pointers
+     are set small. Each is declared once so neither can drift within itself. */
+  .redline-page{--rl-type:11.5px;--rl-doc-type:15px}
   /* ---- THE HEADER IS A BAND, NOT A CARD ----
      It used to be drawn as a panel — surface fill, a 1px border, a radius and a
      card shadow — sitting inside a page that already has its own frame and
@@ -3831,8 +3833,34 @@ function redlineLayoutCss(){
   .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;
     background:none;border:0;box-shadow:none;border-radius:0;padding:0 2px 2px;flex:none}
   .redline-page .rl-head-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
-  .redline-page .rl-head-id h3{margin:0;font-size:15px;font-weight:700;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* ---- THE DOC PAGE'S SHELL, ON THIS TAB ----
+     Back arrow, contract name and status, the document verbs — the workspace
+     header's own arrangement, so the furniture holds still while the tabs
+     change what is under it. */
+  .redline-page .rl-shell{display:flex;align-items:flex-start;gap:10px;flex:none;
+    background:var(--color-surface);border:1px solid var(--color-divider);
+    box-shadow:var(--shadow-sm);border-radius:6px;padding:12px 16px}
+  .redline-page .rl-shell-back{width:32px;height:32px;padding:0;flex:none;
+    display:inline-grid;place-items:center}
+  .redline-page .rl-shell-id{min-width:0;flex:1}
+  .redline-page .rl-shell-name{display:flex;align-items:center;gap:8px;min-width:0}
+  .redline-page .rl-shell-name h3{font-size:17px;margin:0;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-shell-name>span{flex:none}
+  .redline-page .rl-shell-sub{font-size:11px;color:var(--color-neutral-600);margin-top:2px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .redline-page .rl-shell-acts{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:none}
+  .redline-page .rl-shell-acts .ui-btn{font-size:12px;padding:5px 10px}
+  /* The [Docs][Redline] switcher, in the Doc page's own clothes: a surface
+     pill box, the active tab solid accent. Docs is a DOOR back to the
+     workspace, not a pane — same contract, other tab. */
+  .redline-page .rl-ws-tabs{display:flex;gap:3px;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:9px;padding:3px;
+    box-shadow:var(--shadow-sm);flex:none}
+  .redline-page .rl-ws-tabs button{border:0;border-radius:7px;background:none;cursor:pointer;
+    font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);
+    padding:6px 14px;white-space:nowrap;transition:background .12s,color .12s}
+  .redline-page .rl-ws-tabs button.on{background:var(--color-accent-800);color:#fff}
   .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
@@ -3931,7 +3959,7 @@ function redlineLayoutCss(){
      The Doc page prints it, so this page does too, in the workbench's own type
      scale. Read-only: the terms in it are the Doc page's to edit. */
   .redline-page .rl-recital{margin:0 0 16px}
-  .redline-page .rl-recital p{margin:0 0 8px;font-size:var(--rl-type);line-height:1.72;
+  .redline-page .rl-recital p{margin:0 0 8px;font-size:var(--rl-doc-type);line-height:1.75;
     color:var(--color-text)}
   /* ---- AND A SECOND INSET INSIDE THE FIRST ----
      .rl-clause is also .nego-clause, which carries padding:10px 12px for the
@@ -3942,20 +3970,19 @@ function redlineLayoutCss(){
      only the CHANGED ones — p-3, the frame that says something is on the table
      — which is what these two rules restore. */
   .redline-page .rl-clause{margin:0 0 16px;padding:0}
-  .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-type);font-weight:700;
+  .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-doc-type);font-weight:700;
     letter-spacing:.02em}
-  /* ---- ONE TYPE SIZE FOR THE WHOLE WORKBENCH ----
-     The contract read at one size and the Tracked Changes cards at another, so
-     the SAME sentence — the clause on the left and the diff of it on the right
-     — was set in two different faces of type, and the eye had to re-measure
-     every time it crossed the gutter. --rl-type is the Tracked Changes card
-     size, and the document canvas is now set from it: one declaration, both
-     columns, and a change to it moves them together or not at all.
-     Declared on the page rather than in :root so it cannot leak. */
+  /* ---- THE CANVAS READS LIKE THE DOC PAGE ----
+     One declaration for the whole document canvas — clause bodies, marked
+     lines, the recital — set from --rl-doc-type so the wording is the same
+     size on both tabs (the seamlessness this scale exists for). The cards
+     keep --rl-type: a two-line pointer is not the document, and setting the
+     stack at contract size would halve how many changes fit on a screen.
+     Declared on the page rather than in :root so neither can leak. */
   .redline-page .rl-clause-p,
   .redline-page .rl-doc .nego-doc,
   .redline-page .rl-doc .nego-body,
-  .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-type);line-height:1.72;color:var(--color-text)}
+  .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
   .redline-page .rl-clause-p{margin:0}
   .redline-page .rl-propose{margin-top:7px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:11.5px;font-weight:600;color:var(--color-accent-600)}
@@ -4227,12 +4254,27 @@ function redlineLayoutCss(){
     .redline-page .rl-tools{position:static;opacity:1;pointer-events:auto;margin-top:7px}
   }
   .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:999px;padding:2px 9px;font:inherit;font-size:10px;font-weight:600;line-height:1.6;
+    border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;line-height:1.6;
     color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
+    box-shadow:0 1px 2px rgba(15,23,42,.08);
     transition:border-color .15s,color .15s,background .15s}
-  .redline-page .rl-tool:hover{border-color:var(--accent-solid);color:var(--color-text);
-    background:var(--color-neutral-100)}
   .redline-page .rl-tool:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  /* ---- THE THREE VERBS, EACH IN ITS OWN COLOUR ----
+     Indigo to talk, emerald to write, rose to strike — the same families the
+     rest of the workbench speaks (discussion is indigo, your redlines travel
+     on emerald, deletions read red). Fixed hex, dark tints, for the reason
+     every colour on this page is: a verb that re-maps with the theme is a
+     verb pressed by mistake. Written as .rl-tool.rl-tool-* so the pair
+     outranks the base pill at every state. */
+  .redline-page .rl-tool.rl-tool-note{background:#eef2ff;border-color:#c7d2fe;color:#4338ca}
+  .redline-page .rl-tool.rl-tool-note:hover{background:#e0e7ff;border-color:#6366f1;color:#3730a3}
+  .redline-page .rl-tool.rl-tool-edit{background:#ecfdf5;border-color:#6ee7b7;color:#065f46}
+  .redline-page .rl-tool.rl-tool-edit:hover{background:#d1fae5;border-color:#059669}
+  .redline-page .rl-tool.rl-tool-del{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+  .redline-page .rl-tool.rl-tool-del:hover{background:#ffe4e6;border-color:#f43f5e}
+  html.dark .redline-page .rl-tool.rl-tool-note{background:rgba(99,102,241,.16);border-color:rgba(99,102,241,.45);color:#c7d2fe}
+  html.dark .redline-page .rl-tool.rl-tool-edit{background:rgba(5,150,105,.16);border-color:rgba(5,150,105,.45);color:#6ee7b7}
+  html.dark .redline-page .rl-tool.rl-tool-del{background:rgba(244,63,94,.16);border-color:rgba(244,63,94,.45);color:#fda4af}
   .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
   .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
@@ -4480,13 +4522,38 @@ function renderRedline(){
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
     <div id="view-redline" class="view-enter redline-page" data-rl-side-mode="${rlSideMode()}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
-      <!-- ONE STRIP. Title, round tag and every header action share a single
-           row: the explanatory sub-banner is gone (the wall bar below already
-           says what stays behind), and the actions no longer stack on a second
-           line — the title ellipsizes instead of pushing them down. -->
+      <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
+           The back arrow, the contract's name and status, and the document
+           verbs (Share / Import / Compare), exactly where the Doc page puts
+           them — so switching tabs moves the WORK, never the furniture. The
+           actions press the workspace's own handlers; a page that redraws the
+           same buttons over different code is two pages pretending. -->
+      <section class="rl-shell">
+        <button type="button" data-rl-back class="ui-btn rl-shell-back" title="Back to the Docs page">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7M5 12h14"/></svg></button>
+        <div class="rl-shell-id">
+          <div class="rl-shell-name">
+            <h3>${esc(c.name)}</h3>
+            <span>${window.contractStatusChip ? contractStatusChip(c) : (window.statusChip ? statusChip(c.status) : '')}</span>
+          </div>
+          <div class="rl-shell-sub">${esc(c.id)}${(window.FOLDERS && FOLDERS[c.folder]) ? ' &middot; ' + esc(FOLDERS[c.folder].name) : ''}${c.lastAction ? ' &middot; updated ' + esc(c.lastAction) : ''}</div>
+        </div>
+        <div class="rl-shell-acts">
+          ${(typeof canEdit !== 'function' || canEdit()) ? `
+          <button type="button" data-rl-shell="share" class="ui-btn" title="Share with counterparty">Share</button>
+          <button type="button" data-rl-shell="import" class="ui-btn" title="Import counterparty response">Import</button>` : ''}
+          <button type="button" data-rl-shell="compare" class="ui-btn" title="Compare versions &amp; review changes">Compare</button>
+        </div>
+      </section>
+      <!-- ONE STRIP under the shell: the [Docs][Redline] switcher the Doc page
+           carries (Redline pressed, Docs a door back), the round tag, and the
+           workbench's own verbs on the same line. -->
       <section class="rl-head">
         <div class="rl-head-id">
-          <h3>Redline Workbench — ${esc(c.name)}</h3>
+          <div class="rl-ws-tabs" role="tablist" aria-label="Docs or Redline">
+            <button type="button" data-rl-back role="tab" aria-selected="false">Docs</button>
+            <button type="button" class="on" role="tab" aria-selected="true">Redline</button>
+          </div>
           <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
         </div>
         <div class="rl-actions">
@@ -4505,6 +4572,19 @@ function renderRedline(){
     </div>`;
   host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* The shell's controls press the WORKSPACE's own handlers — one share
+     modal, one import flow, one compare, however you arrived at them. Back
+     and the Docs tab are the same door: the workspace, on this contract. */
+  host.querySelectorAll('[data-rl-back]').forEach(el =>
+    el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  host.querySelectorAll('[data-rl-shell]').forEach(el =>
+    el.addEventListener('click', () => {
+      const act = el.getAttribute('data-rl-shell');
+      if (act === 'share' && window.openShareModal) return openShareModal(c);
+      if (act === 'import' && window.openImportModal) return openImportModal(c);
+      if (act === 'compare' && window.openCompareModal) return openCompareModal(c);
+      if (window.toast) toast('That tool is not available on this page', 'err');
+    }));
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
   /* The header's two actions are the design's, but they are not second copies
@@ -5029,29 +5109,10 @@ function rlWireClauseTools(c, host, opts){
      Falling back to renderRedline from inside an embed would paint the owner's
      workbench over a page that is not the owner's. */
   const again = (opts && typeof opts.rerender === 'function') ? opts.rerender : () => renderRedline();
-  host.querySelectorAll('[data-rl-ai]').forEach(btn => btn.addEventListener('click', ev => {
-    ev.preventDefault(); ev.stopPropagation();
-    _negoKillSelMenu();
-    const clauseId = btn.getAttribute('data-rl-ai');
-    /* THE MODEL'S TEXT, NOT THE SCREEN'S. This used to read the rendered
-       body's textContent, and on any clause whose markup renders more than
-       its text projection — template fields with placeholder chrome, block
-       whitespace — the two strings differ. rlAiPropose then compares the
-       passage against the model's clause text, finds no match, and refuses
-       with a message about pending changes on a clause that had none: AI
-       Assist dead on exactly the contracts the wizard produces, found in the
-       six-round drive of the running app. A whole-clause ask has a canonical
-       source — the clause record — so it is read from there, and the
-       whole-clause check downstream is true by construction. The SELECTION
-       path keeps reading the screen, because a selection is of the screen. */
-    const cl = (typeof negoClauseById === 'function') ? negoClauseById(c, clauseId) : null;
-    const sec = host.querySelector(`[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`);
-    const para = sec && (sec.querySelector('.nego-body') || sec.querySelector('.rl-clause-p'));
-    const text = String((cl && cl.text) || (para && para.textContent) || '').trim();
-    if (!text) return;
-    rlSelMenu({ c, opts, text, clauseId, rect: btn.getBoundingClientRect(),
-      whole: true, event: 'click', again });
-  }));
+  /* The clause toolbar's AI Assist is GONE — the Copilot's three actions open
+     from a text selection only (the engine's selMenu hook, which this page
+     supplies), because highlighting the words is itself the statement of
+     scope. The [data-rl-ai] wiring went with the button. */
 
   host.querySelectorAll('[data-rl-note]').forEach(btn => btn.addEventListener('click', () => {
     rlTagInternalNote({ c, clauseId: btn.getAttribute('data-rl-note'),
@@ -5298,18 +5359,19 @@ function redlineDocHtml(c, opts = {}){
   const tools = (cl, ch) => {
     if (!editable) return '';
     const id = _ne(cl.clauseId);
-    /* AI Assist is offered only where a Copilot panel exists to land in. The
-       counterparty's page has none — their embed passes noAi — and a button
-       whose every outcome is an apology is worse than no button. */
-    const ai = opts.noAi ? '' : `<button type="button" class="rl-tool" data-rl-ai="${id}"
-        title="Run an AI action on this clause">&#129668; AI Assist</button>`;
+    /* AI ASSIST IS NOT HERE, and that is a decision, not an omission. The
+       Copilot's three actions open from a TEXT SELECTION — highlighting the
+       words you want worked on is itself the instruction about scope — and a
+       second whole-clause entry on every hover was a duplicate door that made
+       the toolbar four verbs wide. The three that remain are each dressed in
+       their own colour: a row of identical grey pills over a white contract is
+       a row nobody can tell apart at speed. */
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
-      ${ai}
-      <button type="button" class="rl-tool" data-rl-note="${id}"${ch ? ` data-rl-change="${_ne(ch.id)}"` : ''}
+      <button type="button" class="rl-tool rl-tool-note" data-rl-note="${id}"${ch ? ` data-rl-change="${_ne(ch.id)}"` : ''}
         title="Attach an internal or shared note to this clause">&#128172; Add Note/Tag</button>
-      <button type="button" class="rl-tool" data-nego-edit="${id}"
+      <button type="button" class="rl-tool rl-tool-edit" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
-      <button type="button" class="rl-tool" data-nego-del="${id}"
+      <button type="button" class="rl-tool rl-tool-del" data-nego-del="${id}"
         title="Propose deleting this clause — the wording stays until the other side accepts the deletion">&#128465; Propose deletion</button>
     </div>`;
   };
