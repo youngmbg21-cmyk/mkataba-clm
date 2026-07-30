@@ -367,4 +367,4 @@ async function tbPaintBranding() {
   });
 }
 
-Object.assign(window, { openTemplateBuilder });
+Object.assign(window, { openTemplateBuilder, TB_BLOCK_META });

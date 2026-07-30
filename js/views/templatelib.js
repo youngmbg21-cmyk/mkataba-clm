@@ -87,7 +87,8 @@ function tplLibPaint() {
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Company standard templates</h4>
         <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library</span>
         <span style="flex:1"></span>
-        ${canManage ? `<button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
+        ${canManage ? `<button id="tpllib-upload" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
+        <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
       </div>
       ${list.length ? rows : `<div style="padding:34px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">
         ${canManage
@@ -105,6 +106,154 @@ function tplLibPaint() {
   document.querySelectorAll('[data-tpllib-use]').forEach(el =>
     el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
   document.getElementById('tpllib-new')?.addEventListener('click', tplLibCreateModal);
+  document.getElementById('tpllib-upload')?.addEventListener('click', tplLibUploadModal);
+}
+
+/* ---------- upload-and-convert: a Word document becomes a draft ---------- */
+function tplLibUploadModal() {
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
+  openModal(`
+    <div style="padding:20px 22px;max-width:470px">
+      <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">Convert a document into a template</h3>
+      <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
+        Upload your standard contract as a Word (.docx) file. HaTi reads it, works out which parts are
+        fixed wording and which are blanks to fill in, and rebuilds it as a draft template — HaTi's
+        layout, your branding. The original file's formatting is deliberately left behind. You review
+        every detected field before anything goes further.</p>
+      <input type="file" id="tpllib-up-file" accept=".docx" style="display:block;margin-bottom:12px;font-size:12px">
+      <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name <span style="font-weight:400;color:var(--color-neutral-500)">(defaults to the file name)</span></span>
+        <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button id="tpllib-up-go" class="ui-btn ui-btn-primary">Upload &amp; convert</button>
+      </div>
+    </div>`);
+  document.getElementById('tpllib-up-go')?.addEventListener('click', () => {
+    const file = document.getElementById('tpllib-up-file').files?.[0];
+    if (!file) { toast('Choose a .docx file first', 'err'); return; }
+    if (!/\.docx$/i.test(file.name)) { toast('The converter reads .docx files only', 'err'); return; }
+    if (file.size > 8 * 1024 * 1024) { toast('Keep the document under 8 MB', 'err'); return; }
+    const btn = document.getElementById('tpllib-up-go');
+    btn.disabled = true; btn.textContent = 'Reading the document…';
+    const r = new FileReader();
+    r.onload = async () => {
+      try {
+        const d = await api('templates/upload', 'POST', {
+          dataUrl: String(r.result), fileName: file.name,
+          name: document.getElementById('tpllib-up-name').value.trim(),
+        });
+        closeModal();
+        if (d.notice) toast(d.notice, 'err');
+        if (!d.converted) {
+          toast(d.errorNote || 'The conversion did not produce a draft — the original file is stored', 'err');
+          openTemplateLibDetail(d.templateId);
+          return;
+        }
+        openTemplateConfirm(d.templateId, d.versionId);
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Upload & convert';
+        toast(e.message, 'err');
+      }
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+/* The confirmation step — required, minimal, and unskippable: no path from
+   upload to published avoids this screen, and there is no auto-approve. The
+   user checks the detected fields (low confidence first), fixes, adds or
+   deletes, then continues into the builder. */
+let _tplConfirm = null;
+async function openTemplateConfirm(tid, vid) {
+  tplLibCancelPending();
+  let t, v;
+  try { t = await api('templates/' + tid); v = await api(`templates/${tid}/versions/${vid}`); }
+  catch (e) { toast(e.message, 'err'); return; }
+  _tplConfirm = {
+    tid, vid, name: t.template.name,
+    blocks: v.blocks.map(b => ({ blockType: b.blockType, content: b.content })),
+    fields: v.fields.map(f => ({
+      fieldKey: f.field_key, label: f.label, section: f.section || '', fieldType: f.field_type,
+      control: f.control, options: f.options || [], required: f.required,
+      defaultValue: f.default_value || '', helpText: f.help_text || '',
+      detectionConfidence: f.detection_confidence,
+    })),
+  };
+  tplConfirmPaint();
+}
+function tplConfirmPaint() {
+  const s = _tplConfirm;
+  const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
+  const INP = 'border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 8px;font:inherit;font-size:12px;outline:none';
+  // low confidence first — those are the rows a human most needs to look at
+  const rank = { low: 0, medium: 1, high: 2, manual: 3 };
+  const order = s.fields.map((f, i) => i).sort((a, b) => (rank[s.fields[a].detectionConfidence] ?? 3) - (rank[s.fields[b].detectionConfidence] ?? 3));
+  const types = Object.entries(window.FIELD_LIB || {});
+  const rows = order.map(i => {
+    const f = s.fields[i];
+    const conf = f.detectionConfidence;
+    const chip = conf === 'manual' ? '' : `<span class="badge" style="background:${conf === 'low' ? '#fbeaea' : conf === 'medium' ? '#fdf3e2' : '#e8f4ee'};color:${conf === 'low' ? '#8f322b' : conf === 'medium' ? '#8a5a19' : '#1e6b4d'}">${conf}</span>`;
+    return `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid var(--color-divider)">
+      <span style="flex:none;width:64px">${chip}</span>
+      <input data-tc-label="${i}" value="${esc(f.label)}" style="${INP};flex:2;min-width:120px" maxlength="200">
+      <select data-tc-type="${i}" style="${INP};flex:1;min-width:110px">${types.map(([k, tt]) => `<option value="${k}"${f.fieldType === k ? ' selected' : ''}>${tt.label}</option>`).join('')}</select>
+      <label style="flex:none;display:flex;align-items:center;gap:4px;font-size:11px"><input type="checkbox" data-tc-req="${i}" ${f.required ? 'checked' : ''}>required</label>
+      <button data-tc-del="${i}" class="ui-btn" style="flex:none;font-size:10px;padding:2px 7px;border-color:#e6c9c1;color:#8f322b">${icon('x', 'w-3 h-3')}</button>
+    </div>`;
+  }).join('');
+  const blockRows = s.blocks.map(b => `
+    <div style="display:flex;gap:8px;padding:6px 14px;border-bottom:1px solid var(--color-divider);font-size:11.5px">
+      <span class="badge" style="flex:none;background:var(--color-neutral-100);color:var(--color-neutral-600)">${((window.TB_BLOCK_META || {})[b.blockType] || { label: b.blockType }).label}</span>
+      <span style="min-width:0;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.content.slice(0, 160))}</span>
+    </div>`).join('');
+  document.getElementById('content').innerHTML = `
+  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:14px;max-width:920px">
+    <section style="${CARD};padding:16px 18px">
+      <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:17px;font-weight:700">Check what the converter found</h3>
+      <p style="margin:0;font-size:12px;color:var(--color-neutral-600);line-height:1.55">
+        “${esc(s.name)}” — ${s.fields.length} field${s.fields.length === 1 ? '' : 's'} and ${s.blocks.length} block${s.blocks.length === 1 ? '' : 's'} detected.
+        Low-confidence fields are listed first: fix their labels and types, delete anything that is not
+        really a blank, add anything missed. Nothing publishes until you have been through the builder.</p>
+    </section>
+    <section style="${CARD}">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
+        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin:0;flex:1">Fields found</h4>
+        <button id="tc-add" class="ui-btn" style="font-size:11px;padding:3px 10px">${icon('plus', 'w-3 h-3')} Add field</button>
+      </div>
+      ${rows || '<div style="padding:20px;text-align:center;color:var(--color-neutral-500);font-size:12px">No fields detected — add them here or in the builder.</div>'}
+    </section>
+    <section style="${CARD}">
+      <div style="padding:11px 14px;border-bottom:1px solid var(--color-divider)">
+        <h4 style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin:0">Blocks found</h4>
+      </div>
+      ${blockRows}
+    </section>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button id="tc-continue" class="ui-btn ui-btn-primary" style="font-size:13px;padding:8px 18px">Looks right — continue to the builder</button>
+    </div>
+  </div>`;
+  const upd = (i, k, v2) => { s.fields[i][k] = v2; };
+  document.querySelectorAll('[data-tc-label]').forEach(el => el.addEventListener('input', () => upd(Number(el.getAttribute('data-tc-label')), 'label', el.value)));
+  document.querySelectorAll('[data-tc-type]').forEach(el => el.addEventListener('change', () => upd(Number(el.getAttribute('data-tc-type')), 'fieldType', el.value)));
+  document.querySelectorAll('[data-tc-req]').forEach(el => el.addEventListener('change', () => upd(Number(el.getAttribute('data-tc-req')), 'required', el.checked)));
+  document.querySelectorAll('[data-tc-del]').forEach(el => el.addEventListener('click', () => { s.fields.splice(Number(el.getAttribute('data-tc-del')), 1); tplConfirmPaint(); }));
+  document.getElementById('tc-add')?.addEventListener('click', () => {
+    s.fields.push({ fieldKey: 'field_' + (s.fields.length + 1), label: '', section: '', fieldType: 'short_text',
+      control: 'free', options: [], required: false, defaultValue: '', helpText: '', detectionConfidence: 'manual' });
+    tplConfirmPaint();
+  });
+  document.getElementById('tc-continue')?.addEventListener('click', async () => {
+    if (s.fields.some(f => !String(f.label).trim())) { toast('Every field needs a label — fix or delete the blank ones', 'err'); return; }
+    try {
+      // a human has now looked at the list — that is what this screen is for
+      await api(`templates/${s.tid}/versions/${s.vid}`, 'PUT', {
+        blocks: s.blocks.map((b, i) => ({ orderIndex: i, blockType: b.blockType, content: b.content })),
+        fields: s.fields.map((f, i) => ({ ...f, orderIndex: i, humanReviewed: true })),
+      });
+      openTemplateBuilder(s.tid, s.vid);
+    } catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ---------- new contract from a published template ---------- */
@@ -419,6 +568,6 @@ function renderTemplateFormSection(c) {
 
 Object.assign(window, {
   renderTemplateLibrary, openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
-  saveContractToLibrary, tplLibNewContract, renderTemplateFormSection,
+  saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
   TPLLIB_CATEGORIES, TPLLIB_STATUS,
 });

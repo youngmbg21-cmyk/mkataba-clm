@@ -3818,3 +3818,100 @@ button stayed visible all the time.
 
 **1165 tests, 0 failures.** 23 new in f70. Six existing assertions were updated
 for the marker that moved and the button that went.
+
+---
+
+## Run 7 — Template Library & Document Converter (2026-07-30)
+
+### Plain English first
+
+Companies have standard contracts. HaTi now lets them turn those into
+reusable **company standard templates** that live in a library, so any
+employee can create a correct, branded, fillable contract in one click.
+
+A template is born three ways: built by hand in a block/field builder,
+saved from a contract that went well ("this deal is the standard now"), or
+**converted from an uploaded Word document** — HaTi reads the .docx, works
+out which parts are fixed wording and which are blanks, and rebuilds it as
+a native HaTi template. The original file's formatting is deliberately
+discarded; the original bytes are stored for reprocessing.
+
+Templates are versioned and permissioned: Admin and Legal manage, everyone
+else sees published templates and creates contracts from them. A published
+version can never be edited — edits become a new draft version — and a
+contract, once created, is an independent copy: later template changes
+never touch it, and it permanently records which template and version it
+came from. Nobody ever signs a template.
+
+Filling a contract is a typed form: KRA PINs, emails, phone numbers, dates
+and amounts validate as you type, on the owner's screen and on the
+counterparty's portal page alike, with per-field autosave so a closed tab
+loses nothing. Company details arrive pre-filled from the org profile.
+Fixed wording is read-only for both sides. The signature blocks feed the
+existing signing flow, and the document renders under the company's own
+letterhead.
+
+### Technical second
+
+All four phases of the brief completed. New tables (additive only):
+`templates`, `template_versions`, `template_blocks`, `template_fields`,
+`org_branding`, `org_profile_values`; contracts gained set-once
+`template_id` / `template_version_id` columns (COALESCE in
+`upsertContract` + a JSON guard in the save route — the only two touches
+to shared code besides a one-line optional model override in
+`anthropicMessages` and small additive hooks in the contract/portal views).
+
+New modules: `js/fieldlib.js` (ONE validation registry, window global +
+CommonJS, required verbatim by the server — a future type is a single
+entry), `js/templateform.js` (blocks+values → the contract's rich body;
+both sides render identically), `js/views/templatelib.js` (library, detail,
+confirmation screen, fill panel), `js/views/templatebuilder.js` (the
+builder). New server surface: `/api/templates*` CRUD/versions/publish/
+spawn/upload, `/api/org/branding`, `/api/org/profile-values`,
+`/api/shares/:token/template-values` (public per-field autosave,
+values-only by construction), `/api/contracts/:id/save-as-template`.
+
+The converter (`POST /api/templates/upload`) checks real file bytes (PK
+magic + `word/document.xml`), extracts ordered structure server-side
+(headings by pStyle, paragraphs, tables with label↔blank cell pairing),
+and sends only the fixed-vs-blank judgement to `claude-sonnet-4-6` via the
+existing `anthropicMessages` helper with forced tool_use. Its output is
+always a draft behind an unskippable confirmation screen — no auto-approve
+exists, deliberately.
+
+**Dependencies added: none.** Fixtures: `fixtures/` holds three generated
+.docx files (generator committed); the Brut Africa form is a synthetic
+reconstruction — the original was not supplied with the brief.
+
+**Deviations from the brief, and why**
+- Branch: `claude/new-session-d8fnvd`, not `feature/template-library` —
+  this environment pushes only to its designated branch.
+- Guardrail 6 (EN/SV i18n): no i18n mechanism exists in this codebase
+  (recon-verified); new strings follow house convention (inline English).
+- "JSON only, no prose, no fences" prompting → forced tool_use with an
+  input schema, the house pattern and strictly stronger; the defensive
+  parse survives as shape-cleaning (`tplConvertClean`) with an error-note
+  fallback that never crashes an upload.
+- "Everyone else can create contracts from published templates" maps to
+  editors: viewers are read-only platform-wide by an existing server-side
+  rule this feature must not weaken.
+- Negotiation propose-wording is refused on template contracts: fixed
+  wording is the template manager's, not the deal-maker's. Changing the
+  standard is a new published version, not a per-deal redline.
+- The ≥24-of-27 Brut detection acceptance requires a live model call and
+  is marked NOT RUN in CHECKLIST.md; everything either side of the model
+  call is pinned by f100 against a real-shaped stub.
+
+**Acceptance criteria** — A: manager creates shell / non-manager sees it
+only once published / archive hides from new-contract flow without breaking
+children (f96). B: hand-build + publish; contract→template with party names
+as empty short_text fields (f96, f97, f98). C: pre-filled company details,
+fill, sign-gate, export-clean render, and the byte-identical immutability
+test (f99). D: fixture detection through the full pipeline with fields
+typed correctly and Articles 1–7 as fixed_text (f100); live-model count
+pending a key.
+
+**Tests: 1692 passing, 0 failures** (f96–f100 new: 29 tests). Negotiation
+room, tracked changes, DOCX round-trip, counterparty portal, signing flow
+and the existing Templates page all still green — nothing that worked at
+session start is broken.

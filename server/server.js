@@ -1557,7 +1557,10 @@ const isModelRejection = (status, text) => {
    a failed call costs nothing and books nothing. */
 async function anthropicMessages(key, tier, payload, meter = {}) {
   const t = tier === 'deep' ? 'deep' : 'fast';
-  const chosen = aiModelForTier(t);
+  // meter.model pins a specific model for callers whose behaviour is tuned to
+  // one (the template converter); the tier default remains the retry-once
+  // fallback below, so a retired pin degrades instead of breaking the feature.
+  const chosen = meter.model || aiModelForTier(t);
   const def = AI_TIER_DEFAULTS[t];
   const book = (model, data) => {
     const spend = recordAiSpend(meter.feature || 'other', model, data && data.usage,
@@ -4121,6 +4124,7 @@ const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
    this re-check is the answer that counts. Adding a future type is a single
    entry in that file, nowhere else. */
 const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
+const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
 /* Same registry, template_fields row shape (options may arrive as a JSON
    string straight from SQLite). Empty is a `required` question, not a type
    question — fieldLibValidate answers it first and separately. */
@@ -4492,6 +4496,374 @@ app.post('/api/contracts/:id/save-as-template', auth, templateManager, passwordC
   });
   res.json({ ok: true, templateId: tid, versionId: vid,
     fieldsCreated: fields.length, blocksCreated: blocks.length });
+});
+
+/* ---- create a contract FROM a template (Phase C) ----
+   Copies the PUBLISHED version's blocks and fields into a new, independent
+   contract instance and stamps the provenance columns. Enforced here, not in
+   the client: a draft cannot spawn contracts, an archived template cannot
+   spawn new ones, and the copy means a later template edit never reaches
+   contracts already created — there is nothing left pointing back to follow. */
+function tplOrgValues() {
+  const b = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID) || {};
+  const base = { company_name: b.company_name, registration_number: b.registration_number, address: b.address };
+  for (const r of db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID))
+    base[r.field_key] = r.value;
+  return base;
+}
+const TPL_CATEGORY_FOLDER = { procurement: 'proc', sales: 'sales', employment: 'corp', nda: 'corp', other: 'corp' };
+app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  if (t.status === 'archived') return res.status(409).json({ error: `“${t.name}” is archived — it cannot spawn new contracts` });
+  const pub = tplPublishedVersion(t.id);
+  if (t.status !== 'published' || !pub) return res.status(409).json({ error: `“${t.name}” is a draft — publish it before creating contracts from it` });
+
+  const b = req.body || {};
+  const scope = folderScopeFor(req.user);
+  const folder = b.folder && typeof b.folder === 'string' ? b.folder : (TPL_CATEGORY_FOLDER[t.category] || 'corp');
+  if (!inScope(scope, folder)) return res.status(403).json({ error: 'You do not have access to that value stream' });
+
+  const fields = tplFieldsOf(pub.id).map(f => ({
+    fieldKey: f.field_key, label: f.label, section: f.section || '', orderIndex: f.order_index,
+    fieldType: f.field_type, control: f.control, options: f.options,
+    required: f.required, defaultValue: f.default_value || '', helpText: f.help_text || '',
+  }));
+  const blocks = tplBlocksOf(pub.id).map(bl => ({ orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' }));
+  /* Company answers arrive pre-filled: {{org.…}} defaults resolve from the
+     org profile at CREATION time. Later profile edits do not reach this
+     contract — same copy semantics as the template content itself. */
+  const values = templateFormResolveDefaults(fields, tplOrgValues());
+  const form = {
+    templateId: t.id, templateVersionId: pub.id, templateName: t.name,
+    versionNumber: pub.version_number, blocks, fields, values,
+  };
+  const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  const uid = (Number(getSetting('uid')) || 100) + 1;
+  const c = {
+    id: 'MK-' + uid,
+    name: clean(b.name).slice(0, 200) || t.name,
+    counterparty: '', counterpartyEmail: '', value: 0, valueType: 'none',
+    status: 'Draft', template: null, folder, source: null,
+    lastAction: 'Created from template', expiry: null, hash: null, signedAt: null,
+    format: 'rich', redlineText: templateFormDocHtml(form),
+    templateForm: form,
+    libraryTemplateId: t.id, libraryTemplateVersionId: pub.id,
+    /* the branding snapshot travels on the contract so the portal (which has
+       no session and no org routes) renders the same header the owner sees */
+    branding: branding ? { logoUrl: branding.logo_url || null, companyName: branding.company_name || '',
+      registrationNumber: branding.registration_number || '', address: branding.address || '',
+      footerText: branding.default_footer_text || '' } : null,
+    fields: {}, comments: [],
+    audit: [{ at: now(), user: req.user.name, action: 'Created',
+      detail: `Created from template “${t.name}” v${pub.version_number} (${t.id})` }],
+    signatures: [], obligations: [], rounds: [],
+  };
+  c._seq = nextSeq();
+  txn(() => {
+    upsertContract(c, 1);
+    setSetting('uid', uid);
+    db.prepare('UPDATE templates SET last_used_at=? WHERE id=?').run(now(), t.id);
+  });
+  c._v = 1;
+  res.json({ ok: true, contract: c, uid });
+});
+
+/* ---- counterparty fills the form: per-field autosave on the share ----
+   Public (the counterparty has no login), rate-limited, and narrow: it
+   accepts ONLY field values, validates every one against the field
+   definitions the payload itself carries (the same single registry as the
+   client), and rewrites only templateForm.values + the rendered wording.
+   Fixed wording is untouchable by construction — there is no path from this
+   route to any other part of the payload. A half-finished form survives a
+   closed tab because the values land on the share row, not in the tab. */
+app.post('/api/shares/:token/template-values', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  let payload; try { payload = JSON.parse(s.payload); } catch (_) { return res.status(500).json({ error: 'This link’s copy could not be read' }); }
+  const c = payload && payload.contract;
+  const form = c && c.templateForm;
+  if (!form) return res.status(409).json({ error: 'This contract has no form to fill' });
+  if (c.executed || (s.contract_id && contractExecution(s.contract_id)))
+    return res.status(409).json({ error: 'This contract is executed — its record can no longer change' });
+  const incoming = (req.body || {}).values;
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming))
+    return res.status(400).json({ error: 'values must be an object of field_key → value' });
+  const problems = {};
+  let changed = 0;
+  form.values = form.values || {};
+  for (const [key, raw] of Object.entries(incoming).slice(0, 300)) {
+    const f = form.fields.find(x => x.fieldKey === key);
+    if (!f) continue;                       // never invent a field
+    if (f.fieldType === 'signature_name_title') continue; // the signing flow owns these
+    const value = raw == null ? '' : String(raw).slice(0, 10000);
+    const problem = fieldLibValidate({ label: f.label, field_key: f.fieldKey, field_type: f.fieldType,
+      control: f.control, options: f.options, required: f.required }, value);
+    if (problem && value.trim() !== '') { problems[key] = problem; continue; } // an emptied field may clear itself
+    if (value.trim() === '') delete form.values[key]; else form.values[key] = value.trim();
+    changed++;
+  }
+  if (changed) {
+    c.docText = undefined; // stale projection; the portal renders from the form
+    db.prepare('UPDATE shares SET payload=? WHERE token=?').run(JSON.stringify(payload), s.token);
+  }
+  res.json({ ok: true, saved: changed, problems, values: form.values });
+});
+
+/* ---- upload-and-convert: a Word document becomes a draft template ----
+   HaTi is a converter, not a PDF filler: the original file's formatting is
+   deliberately discarded. The upload is checked by its real bytes (PK zip
+   magic + word/document.xml inside), the original is stored for reprocessing,
+   the ordered structure (headings, paragraphs, tables with label↔blank cell
+   pairing) is extracted HERE — deterministic code — and only the judgement
+   call "which parts are fixed wording and which are blanks" goes to the
+   model. The output is ALWAYS a draft opened behind the confirmation screen;
+   there is no path from upload to published that skips a human. */
+
+/* A minimal ZIP reader (central-directory walk + inflateRawSync). The client
+   has one in js/docx.js built on DecompressionStream; the server cannot use
+   that, and needs only enough to pull one entry out of a .docx. */
+function tplZipEntry(buf, wantedName) {
+  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocd < 0) return null;
+  const count = buf.readUInt16LE(eocd + 10);
+  let off = buf.readUInt32LE(eocd + 16);
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(off) !== 0x02014b50) return null;
+    const method = buf.readUInt16LE(off + 10);
+    const csize = buf.readUInt32LE(off + 20);
+    const nameLen = buf.readUInt16LE(off + 28);
+    const extraLen = buf.readUInt16LE(off + 30);
+    const commentLen = buf.readUInt16LE(off + 32);
+    const localOff = buf.readUInt32LE(off + 42);
+    const name = buf.slice(off + 46, off + 46 + nameLen).toString('utf8');
+    if (name === wantedName) {
+      const lNameLen = buf.readUInt16LE(localOff + 26);
+      const lExtraLen = buf.readUInt16LE(localOff + 28);
+      const dataStart = localOff + 30 + lNameLen + lExtraLen;
+      const raw = buf.slice(dataStart, dataStart + csize);
+      return method === 0 ? raw : require('node:zlib').inflateRawSync(raw);
+    }
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
+}
+const tplXmlText = xml => String(xml)
+  .replace(/<w:tab[^>]*\/>/g, '\t')
+  .replace(/<[^>]+>/g, '')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+/* Ordered structure out of WordprocessingML: headings (by pStyle), paragraphs,
+   and tables with their cells kept together per row so a label and the empty
+   cell beside it stay adjacent — that adjacency IS the blank. */
+function tplDocxStructure(bytes) {
+  const xml = tplZipEntry(bytes, 'word/document.xml');
+  if (!xml) return null;
+  const body = String(xml);
+  const out = [];
+  const topLevel = /<w:(p|tbl)\b[\s\S]*?<\/w:\1>/g;
+  // tables contain <w:p> inside cells, so walk top-level elements only: track
+  // the end of the last match and skip matches that start inside it
+  let m, lastEnd = 0;
+  while ((m = topLevel.exec(body)) !== null) {
+    if (m.index < lastEnd) continue;
+    lastEnd = m.index + m[0].length;
+    if (m[1] === 'tbl') {
+      for (const row of m[0].match(/<w:tr\b[\s\S]*?<\/w:tr>/g) || []) {
+        const cells = (row.match(/<w:tc\b[\s\S]*?<\/w:tc>/g) || [])
+          .map(c => tplXmlText((c.match(/<w:t[^>]*>[\s\S]*?<\/w:t>/g) || []).join('')).trim());
+        out.push({ kind: 'table_row', cells });
+      }
+      continue;
+    }
+    const styleM = /<w:pStyle[^>]*w:val="([^"]+)"/.exec(m[0]);
+    const text = tplXmlText((m[0].match(/<w:t[^>]*>[\s\S]*?<\/w:t>/g) || []).join('')).trim();
+    if (!text) continue;
+    const heading = styleM && /^(Heading|Title|berschrift)/i.test(styleM[1]);
+    out.push({ kind: heading ? 'heading' : 'paragraph', text });
+  }
+  return out;
+}
+/* The extraction the model reads: one line per element, labelled, in reading
+   order. (empty) marks a blank table cell — the shape the detection rules in
+   the prompt are written against. */
+function tplExtractionText(structure) {
+  return structure.map(el => {
+    if (el.kind === 'table_row')
+      return 'TABLE ROW: ' + el.cells.map(c => c || '(empty)').join(' | ');
+    return (el.kind === 'heading' ? 'HEADING: ' : 'PARA: ') + el.text;
+  }).join('\n').slice(0, 60000);
+}
+
+const TPL_CONVERT_MODEL = 'claude-sonnet-4-6';
+const TPL_UPLOAD_MAX = 8 * 1024 * 1024; // decoded bytes
+const TPL_CONVERT_TOOL = {
+  name: 'propose_template',
+  description: 'Return the document rebuilt as template blocks and typed fields.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      blocks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            order_index: { type: 'integer' },
+            block_type: { type: 'string', enum: ['heading', 'fixed_text', 'field_group', 'signature_block'] },
+            content: { type: 'string', description: 'Text with {{field_key}} where each blank sits. For signature_block: who signs.' },
+          },
+          required: ['order_index', 'block_type', 'content'],
+        },
+      },
+      fields: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' },
+            field_key: { type: 'string', description: 'machine-safe: lowercase letters, digits, underscores' },
+            section: { type: 'string', description: 'the nearest heading above the field' },
+            field_type: { type: 'string', enum: Object.keys(TPL_FIELD_LIB) },
+            required: { type: 'boolean' },
+            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+          },
+          required: ['label', 'field_key', 'field_type', 'confidence'],
+        },
+      },
+    },
+    required: ['blocks', 'fields'],
+  },
+};
+const TPL_CONVERT_PROMPT = `You are converting a company's standard document into a reusable contract template. The extraction below lists the document's elements in reading order: HEADING lines, PARA lines, and TABLE ROW lines whose cells are separated by | with (empty) marking a blank cell.
+
+Rebuild it as blocks and fields:
+- A field is anything a human must supply per deal. A heading is never a field.
+- Recognise blanks in ALL these shapes: an empty table cell beside a label; underscore runs (____); bracket placeholders like [INSERT NAME], [●] or [ ]; and inline phrases such as "whose registered address is ______".
+- An asterisk or the word "required" beside a label means required: true.
+- Legal articles, clauses and boilerplate paragraphs are fixed_text blocks, never fields.
+- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block.
+- Where a blank sits inside wording, emit a field_group block whose content keeps the wording with {{field_key}} in the blank's place. A table of label/blank pairs becomes one field_group block listing "Label: {{field_key}}" lines.
+- Choose the most specific field_type the label supports (kenya_tax_id for KRA PIN, email for email addresses, phone for telephone numbers, national_id for ID numbers, date for dates, currency for amounts). Unsure of the type: use short_text with confidence: low.
+- Never invent a field that is not in the source document. Every field's {{field_key}} must appear in exactly one block.
+
+Return the result via the propose_template tool only.`;
+
+const tplSafeParse = v => { try { return JSON.parse(v); } catch (_) { return null; } };
+function tplConvertClean(input) {
+  // Defensive shape-check of the model's structured output. Anything that
+  // fails validation is dropped with a note rather than crashing the upload.
+  const problems = [];
+  const rawBlocks = Array.isArray(input && input.blocks) ? input.blocks : null;
+  const rawFields = Array.isArray(input && input.fields) ? input.fields : null;
+  if (!rawBlocks || !rawFields) return { blocks: null, fields: null, problems: ['response missing blocks or fields'] };
+  const fields = [];
+  const seen = new Set();
+  for (const f of rawFields.slice(0, 300)) {
+    if (!f || typeof f !== 'object') continue;
+    let key = TPL_KEY_RE.test(String(f.field_key || '')) ? f.field_key : tplSlugKey(f.field_key || f.label);
+    if (seen.has(key)) { let n = 2; while (seen.has(`${key}_${n}`)) n++; key = `${key}_${n}`; }
+    seen.add(key);
+    if (!TPL_FIELD_LIB[f.field_type]) problems.push(`field “${key}”: unknown type “${f.field_type}” — kept as short_text`);
+    fields.push({
+      field_key: key, label: clean(f.label).slice(0, 200) || key,
+      section: clean(f.section).slice(0, 200) || null,
+      field_type: TPL_FIELD_LIB[f.field_type] ? f.field_type : 'short_text',
+      required: !!f.required,
+      detection_confidence: ['high', 'medium', 'low'].includes(f.confidence) ? f.confidence : 'low',
+    });
+  }
+  const blocks = [];
+  for (const b of rawBlocks.slice(0, 500)) {
+    if (!b || typeof b !== 'object') continue;
+    if (!['heading', 'fixed_text', 'field_group', 'signature_block'].includes(b.block_type)) continue;
+    blocks.push({ order_index: Number(b.order_index) || blocks.length, block_type: b.block_type,
+      content: String(b.content == null ? '' : b.content).slice(0, 60000) });
+  }
+  blocks.sort((a, b) => a.order_index - b.order_index);
+  return { blocks, fields, problems };
+}
+
+app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const dataUrl = String(b.dataUrl || '');
+  const m = /^data:([\w.+-]+\/[\w.+-]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!m) return res.status(400).json({ error: 'Send the document as a base64 data URL' });
+  let bytes;
+  try { bytes = Buffer.from(m[2], 'base64'); } catch (_) { return res.status(400).json({ error: 'The file could not be decoded' }); }
+  if (bytes.length > TPL_UPLOAD_MAX) return res.status(400).json({ error: `Keep the document under ${Math.round(TPL_UPLOAD_MAX / 1024 / 1024)} MB` });
+  // The real file signature, not the extension: a .docx is a PK zip that
+  // contains word/document.xml. Anything else is refused, whatever it is named.
+  if (!(bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04))
+    return res.status(400).json({ error: 'That is not a Word (.docx) file — the converter reads .docx only (PDF arrives in a later phase)' });
+  const structure = tplDocxStructure(bytes);
+  if (!structure) return res.status(400).json({ error: 'The file has a zip wrapper but no Word document inside (word/document.xml is missing)' });
+  if (!structure.length) return res.status(400).json({ error: 'No readable text found in the document' });
+  const key = aiKey();
+  if (!key) return res.status(409).json({ error: 'The converter needs the Copilot engine — an admin adds the Anthropic API key under Team & Settings', needsKey: true });
+
+  const fileName = clean(b.fileName).slice(0, 200) || 'upload.docx';
+  const name = clean(b.name).slice(0, 160) || fileName.replace(/\.docx$/i, '');
+  // store the original for reprocessing before anything can fail
+  const fileId = 'f_' + rid(10);
+  db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+    .run(fileId, fileName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', dataUrl, now());
+
+  const extraction = tplExtractionText(structure);
+  let converted = null, errorNote = null, notice = null;
+  try {
+    const out = await anthropicMessages(key, 'deep', {
+      max_tokens: 8192,
+      system: TPL_CONVERT_PROMPT,
+      tools: [TPL_CONVERT_TOOL],
+      tool_choice: { type: 'tool', name: 'propose_template' },
+      messages: [{ role: 'user', content: extraction }],
+    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL });
+    if (!out.ok) {
+      errorNote = `The converter could not reach the model (HTTP ${out.status}) — the original file is stored; try again from the template's page`;
+      console.error('[template-convert] model call failed:', out.status, String(out.error).slice(0, 500));
+    } else {
+      const block = (out.data.content || []).find(x => x.type === 'tool_use');
+      const cleaned = tplConvertClean(block && block.input);
+      if (!cleaned.blocks || !cleaned.blocks.length) {
+        errorNote = 'The model returned nothing usable — the original file is stored; try again from the template’s page';
+        console.error('[template-convert] unusable response:', JSON.stringify(out.data.content || []).slice(0, 2000));
+      } else {
+        converted = cleaned;
+        if (cleaned.problems.length) notice = cleaned.problems.join(' · ');
+        if (out.fellBack) notice = `${notice ? notice + ' · ' : ''}model “${out.rejectedModel}” was rejected; the tier default answered instead`;
+      }
+    }
+  } catch (e) {
+    errorNote = 'The conversion failed: ' + e.message + ' — the original file is stored; try again from the template’s page';
+    console.error('[template-convert] threw:', e);
+  }
+
+  const tid = 'tpl_' + rid(8);
+  let vid;
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft','upload',NULL,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', req.user.name, now(), now());
+    const v = tplNewVersion(tid, 1);
+    vid = v.id;
+    if (errorNote) db.prepare('UPDATE template_versions SET error_note=? WHERE id=?').run(errorNote.slice(0, 500), vid);
+    if (converted) {
+      converted.blocks.forEach((bl, i) =>
+        db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+          .run('tb_' + rid(8), vid, i, bl.block_type, bl.content));
+      converted.fields.forEach((f, i) =>
+        db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+          VALUES (?,?,?,?,?,?,?,'free',NULL,?,NULL,NULL,?,0)`)
+          .run('tf_' + rid(8), vid, f.field_key, f.label, f.section, i, f.field_type, f.required ? 1 : 0, f.detection_confidence));
+    }
+  });
+  res.json({
+    ok: true, templateId: tid, versionId: vid, fileId,
+    converted: !!converted, errorNote, notice,
+    fieldsDetected: converted ? converted.fields.length : 0,
+    blocksDetected: converted ? converted.blocks.length : 0,
+  });
 });
 
 /* ---- org branding & profile values ---- */
