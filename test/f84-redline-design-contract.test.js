@@ -347,19 +347,25 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     assert.ok(p.$('#rl-doc'), 'and the page still rendered');
   });
 
-  test('AI Assist offers the engine\'s own actions, over this clause\'s words', async () => {
+  test('AI Assist offers the workbench\'s own action list, over this clause\'s words', async () => {
+    /* The list is RL_SEL_ACTIONS, not NEGO_AI_ACTIONS. The workbench
+       standardised on three actions of its own — rephrase, shorten, tag — and
+       routes all three into the Copilot side panel, while the contract tab and
+       the room keep the engine's list and its popover. What this still pins is
+       the property that mattered: BOTH entry points on this page (a text
+       selection and the clause toolbar) build from ONE list, so they cannot
+       drift into naming different verbs for the same job. */
     const p = await page();
     const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
     ai.click();
     const menu = p.$('.nego-selmenu');
     assert.ok(menu, 'AI Assist must open a menu');
     const offered = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
-    /* Joined rather than deep-compared: the engine's array is built in the
-       page's own realm, so its prototype is not this realm's Array and a deep
-       compare reports a mismatch on two identical lists (the same trap f60
-       documents). */
-    assert.equal(offered.join(','), p.win.NEGO_AI_ACTIONS.map(a => a.id).join(','),
-      'the menu must be built from the engine\'s action list, not a second copy');
+    /* Joined rather than deep-compared: the page's array is built in its own
+       realm, so its prototype is not this realm's Array and a deep compare
+       reports a mismatch on two identical lists (the same trap f60 documents). */
+    assert.equal(offered.join(','), p.win.RL_SEL_ACTIONS.map(a => a.id).join(','),
+      'the menu must be built from the workbench\'s action list, not a second copy');
     assert.match(menu.textContent, /This clause/);
   });
 
@@ -403,26 +409,10 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
   });
 });
 
-describe('F84 — focus mode', () => {
-  test('it gives the document all twelve columns and hands them back', async () => {
-    const p = await page();
-    const css = p.css();
-    assert.match(css, /\.redline-page\.rl-focus \.rl-doc\{grid-column:span 12\}/);
-    assert.match(css, /\.redline-page\.rl-focus #rl-changes-col,\.redline-page\.rl-focus #rl-disc-col\{display:none\}/);
-
-    assert.equal(p.win.rlToggleFocus(), true);
-    assert.ok(p.$('#view-redline').classList.contains('rl-focus'));
-    assert.equal(p.$('[data-rl-focus]').getAttribute('aria-pressed'), 'true');
-    assert.equal(p.win.rlToggleFocus(), false);
-    assert.ok(!p.$('#view-redline').classList.contains('rl-focus'));
-  });
-
-  test('leaving focus does not disturb the discussion preference', async () => {
-    const p = await page();
-    p.win.rlToggleDiscussion(true);
-    p.win.rlToggleFocus(true);
-    p.win.rlToggleFocus(false);
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'),
-      'focus mode must put the page back as it found it, not as the design ships it');
-  });
-});
+/* F84 — focus mode was here. The toggle, its state and the twelve-column
+   override are gone from the workbench: it gave the document the whole row by
+   hiding the other two columns, which is the discussion fold's job done twice
+   and leaves the workbench with nothing to work on. Three other paths — tagging
+   a note, jumping to a clause, linking a card — each had to remember to switch
+   it off before they could reach a column it had hidden. See
+   test/f91-doc-redline-navigation.test.js for what replaced the header slot. */

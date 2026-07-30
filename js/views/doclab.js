@@ -1877,11 +1877,37 @@ function labSetDiscCollapsed(v){
   try{ localStorage.setItem(LAB_DISC_KEY, v ? 'true' : 'false'); }catch(_){}
 }
 /* On window, because the toggle is invoked from inline onclick handlers in the
-   rendered markup — the same wiring the master design uses for this control. */
-window.rlToggleDiscussion = function(){
+   rendered markup — the same wiring the master design uses for this control.
+
+   ---- TWO PAGES, ONE NAME, AND WHY THIS WRAPS RATHER THAN OVERWRITES ----
+   The Negotiation Workbench (js/views/negotiation.js) publishes a function of
+   this same name, for the same reason: the master design calls it from an
+   `onclick=` attribute, so the NAME is part of the contract both pages are
+   held to. js/app.js imports the workbench first and the lab second, so a
+   plain assignment here took the name off the workbench — and its Discussion
+   fold then ran the lab's body against the lab's element. The class landed on
+   #rl-grid instead of #view-redline, the workbench's own rule
+   (.redline-page.disc-off …) never matched, and pressing the chevron on the
+   Redline page did nothing at all.
+
+   Nothing failed loudly. Both pages mount an element called #rl-grid, so there
+   was no error to see — the fold simply stopped working, and only in the real
+   app: a test that loads one view module and not the other cannot reproduce it
+   by construction. See test/f90-redline-name-collision.test.js, which loads
+   both in js/app.js order precisely so this cannot come back.
+
+   So the previous binding is kept and delegated to when the workbench owns the
+   page. The two are told apart by the class the workbench puts on its own
+   page — .redline-page — which the lab's #view-redline does not carry. */
+const _labPrevToggleDisc = typeof window !== 'undefined' && typeof window.rlToggleDiscussion === 'function'
+  ? window.rlToggleDiscussion : null;
+window.rlToggleDiscussion = function(force){
+  const page = document.getElementById('view-redline');
+  if(_labPrevToggleDisc && page && page.classList && page.classList.contains('redline-page'))
+    return _labPrevToggleDisc(force);
   const grid = document.getElementById('rl-grid');
   if(!grid) return;
-  const off = !grid.classList.contains('disc-off');
+  const off = force == null ? !grid.classList.contains('disc-off') : !!force;
   labSetDiscCollapsed(off);
   grid.classList.toggle('disc-off', off);
   const show = document.getElementById('rl-disc-show');
@@ -1889,6 +1915,7 @@ window.rlToggleDiscussion = function(){
   /* The panes changed width, so anything floating over them is re-placed
      against the wording it belongs to rather than where that wording was. */
   if(typeof labRefloat === 'function') labRefloat();
+  return off;
 };
 function labStatusHeaderHtml(c, lab, side, external, held, payload){
   const collapsed = labHeaderCollapsed();

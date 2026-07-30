@@ -288,10 +288,24 @@ function redlineOpsHtml(ops, opts = {}){
   const delCls = opts.delClass || REDLINE_DEL_CLASS;
   const tagIns = opts.spans ? 'span' : 'ins';
   const tagDel = opts.spans ? 'span' : 'del';
+  /* ---- WHO LAST TOUCHED THIS EDIT, ON HOVER ----
+     `opts.title` names the hand behind the marked wording, and the caller
+     supplies it because only the caller knows whose change these ops belong to
+     — this renderer is given an array of ops and nothing else.
+
+     Escaped for an ATTRIBUTE, not for text. The text escaper on this page is
+     the app's `esc`, which handles & < > and leaves a double quote alone; a
+     name carrying one would close the attribute early and everything after it
+     would be parsed as markup. A person's own name is not a trusted string. */
+  const attr = s => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const t = String(opts.title == null ? '' : opts.title).trim();
+  const tip = t ? ` title="${attr(t)}"` : '';
   return (ops || []).map(o =>
     o.op === 'keep' ? e(o.text)
-    : o.op === 'ins' ? `<${tagIns} class="${insCls}">${e(o.text)}</${tagIns}>`
-    : `<${tagDel} class="${delCls}">${e(o.text)}</${tagDel}>`).join('');
+    : o.op === 'ins' ? `<${tagIns} class="${insCls}"${tip}>${e(o.text)}</${tagIns}>`
+    : `<${tagDel} class="${delCls}"${tip}>${e(o.text)}</${tagDel}>`).join('');
 }
 
 /* ============================================================
