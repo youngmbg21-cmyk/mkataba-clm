@@ -692,18 +692,36 @@ describe('the stylesheet survives a repaint', () => {
 });
 
 describe('the room wears the prototype\'s visual language, and keeps it to itself', () => {
-  /* This block used to assert the opposite — that HaTi's tokens had replaced the
-     prototype's. That reading of the brief was overturned: the negotiation is a
-     distinct focused mode and looks like one. What must still hold, and is the
-     real safety property, is that NONE of it escapes the room. */
+  /* This block has been read two ways. It first asserted that HaTi's tokens had
+     replaced the prototype's; that was overturned in favour of the negotiation
+     being a distinct focused mode that looks like one.
+
+     The redesign splits the question. TYPE is now one system across the whole
+     platform — a clause has to read identically in the room, on the Doc page
+     and in the exported PDF, and the room's Georgia was the one place a
+     contract changed face when you walked into it. COLOUR is still the room's
+     own: its slate chrome and its redline ramp are what make the mode legible
+     as a mode.
+
+     What has never changed, and is the real safety property, is that none of it
+     escapes the room. */
   test('the prototype\'s own tokens are there', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /--n-slate:#33475c/, 'the prototype\'s slate');
     assert.match(css, /--n-canvas:#f2f4f7/, 'the prototype\'s cool canvas');
-    assert.match(css, /--n-font-doc:Georgia/, 'the prototype\'s serif document face');
     assert.match(css, /--n-ins-bg:#e4f1ea/);
     assert.match(css, /--n-del-fg:#b0453c/);
+  });
+
+  test('but its type is the platform\'s, so a clause does not change face', async () => {
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    assert.match(css, /--n-font-doc:var\(--font-doc\)/,
+      'the room used to set Georgia here, so a contract read as a different '
+      + 'document in the room than on the Doc page');
+    assert.match(css, /--n-font-ui:var\(--font-body\)/);
+    assert.ok(!/Georgia/.test(css), 'no serif document face survives in the room');
   });
 
   test('they are declared on the room, never on :root', async () => {
@@ -723,12 +741,12 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
         `every selector must be namespaced to the component — found "${sel}"`);
   });
 
-  test('the room does not borrow the app\'s tokens either', async () => {
+  test('the room does not borrow the app\'s colour either', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.ok(!/var\(--color-/.test(css),
-      'a room styled half from each palette reads as neither');
-    assert.ok(!/var\(--font-(heading|body|mono)\)/.test(css));
+      'a room COLOURED half from each palette reads as neither — the shared '
+      + 'thing is the type, and only through the --n-font-* tokens above');
     // including the markup the component generates
     assert.ok(!/var\(--color-/.test(m.html()),
       'inline styles must use the room\'s ramp too');

@@ -35,11 +35,15 @@
 //
 // DESIGN
 //
-// The room adopts prototype.html's own visual language, not HaTi's: Georgia on
-// paper for the documents, the slate #33475c bar, the cool #f2f4f7 canvas. That
-// reverses an earlier reading of the brief, which took "match HaTi's real
-// tokens where they genuinely conflict" as licence to restyle the whole screen
-// — see BUGLOG D3, rewritten to record the decision.
+// The room keeps prototype.html's own COLOUR: the slate #33475c bar, the cool
+// #f2f4f7 canvas, its redline ramp. That reverses an earlier reading of the
+// brief, which took "match HaTi's real tokens where they genuinely conflict" as
+// licence to restyle the whole screen — see BUGLOG D3.
+//
+// Its TYPE is the platform's, which is the later correction: the room used to
+// set a serif document face of its own, so the same clause read as a different
+// document depending on which screen you opened it from. The --n-font-* tokens
+// now alias the platform faces; everything else in the ramp stays local.
 //
 // The tokens are declared on `.nego-room` and `#nego-root`, never on `:root`,
 // and that scoping is the entire safety argument: inside the negotiation
@@ -155,9 +159,12 @@ function negoStyleHtml(){
     --n-paper:#ffffff; --n-canvas:#f2f4f7; --n-line:#e3e8ee;
     --n-ink:#2b3440; --n-ink-soft:#66707d;
     --n-accept:#1e6b4d; --n-reject:#b0453c; --n-focus:#456a8f;
-    --n-font-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    --n-font-doc:Georgia,"Times New Roman",Times,serif;
-    --n-font-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* Type is the platform's, colour is the room's. The room used to set its
+       own three faces, so a contract changed face when you walked into it;
+       a clause now reads the same here as on the Doc page and in the PDF. */
+    --n-font-ui:var(--font-body);
+    --n-font-doc:var(--font-doc);
+    --n-font-mono:var(--font-mono);
     --n-r-sm:6px; --n-r-md:10px; --n-r-lg:14px;
     --n-shadow-card:0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07);
     --n-shadow-pop:0 8px 30px rgba(38,55,74,.18);

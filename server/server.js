@@ -4020,6 +4020,10 @@ app.get('/index.html', (req, res) => res.sendFile(INDEX));
 // database) to the network.
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
+/* The two interface faces, vendored into the repo so the app does not depend on
+   Google Fonts resolving. Immutable content (the filenames carry the subset and
+   style), so it is safe to let a browser hold on to them. */
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts'), { maxAge: '30d', immutable: true }));
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS
 // picks one, and "which port is it on?" should not need a second guess.

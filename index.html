@@ -10,12 +10,12 @@
   try{ if(localStorage.getItem('hati-theme')==='dark') document.documentElement.classList.add('dark'); }catch(e){}
 </script>
 <script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- The design's two faces, and only those: Inter for body copy, Plus Jakarta
-     Sans for headings. Everything monospaced uses the system mono stack, which
-     is what the design's `font-mono` utility resolves to. -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+     Sans for headings. Served from the repo rather than Google Fonts so the
+     platform renders identically offline, behind a restrictive network and
+     inside a strict content policy — a silent fallback to a system face is the
+     exact drift this redesign removes. See fonts/fonts.css. -->
+<link href="fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <!-- The separate document faces (Google Sans Flex / Google Sans Code) are
      retired: the platform runs on the design's two families throughout, contract
