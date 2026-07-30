@@ -238,13 +238,13 @@ describe('F92 — the six-round negotiation, end to end', () => {
     const marks = t.$$('#rl-doc .rl-clause.is-changed ins, #rl-doc .rl-clause.is-changed del');
     assert.ok(marks.length && marks.every(m => /^Last updated by /.test(m.getAttribute('title') || '')),
       'hover attribution on every marked span');
-    // Fold the discussion: 8/4 — the 2/3 · 1/3 split.
-    win.rlToggleDiscussion(true);
-    assert.ok(t.$('#view-redline').classList.contains('disc-off'));
-    const css = t.doc.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.redline-page\.disc-off \.rl-doc\{grid-column:span 8\}/);
-    assert.match(css, /\.redline-page\.disc-off #rl-changes-col\{grid-column:span 4\}/);
+    // Flip the sidebar to Discussion and back: one card, one face at a time.
     win.rlToggleDiscussion(false);
+    assert.equal(t.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
+    const css = t.doc.getElementById('redline-layout-css').textContent;
+    assert.match(css, /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/);
+    assert.match(css, /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/);
+    win.rlToggleDiscussion(true);
 
     // NOW FLIP, with the draft still unsent. Nothing may betray it.
     t.view('counterparty');
