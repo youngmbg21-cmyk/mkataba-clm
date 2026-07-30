@@ -3652,7 +3652,85 @@ async function negoConfirmCloseRound(c){
    does not come up focused on a fingerprint from another agreement. */
 function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
 
+/* ---------- THE REDLINE PAGE ----------
+   The workbench as a top-level destination, not only a tab inside a contract
+   and not only the full-window room.
+
+   It renders THE SAME workbench through the same entry point the contract tab
+   uses — renderNegotiationTab, which carries the style, the wiring and the
+   after-paint with it. Nothing here re-implements a pane, a change card or a
+   thread, so there is exactly one redline in the product and it cannot drift
+   from itself. What this adds is the page around it: the design's header, and
+   an empty state for arriving with no contract open.
+
+   The header deliberately holds only the title and the round. Every control the
+   design draws beside it — the internal/counterparty toggle, accepting the
+   non-risk changes, publishing the round — already exists inside the workbench
+   below, wired to the real engine. Drawing a second copy up here would give the
+   page two buttons for one action, and the top one would be the one that is
+   not connected to anything. */
+/* The design's header carries a "Round 2" tag. There is no round-number helper
+   to read one from, so this counts c.rounds — but it floors at 1 to agree with
+   the workbench's own status bar directly below it, which calls the live round
+   "Round 1" before anything has been closed. Two figures for the same thing,
+   one saying "No rounds yet" and one saying "Round 1", is worse than no figure
+   at all. The open count is unresolvedRedlines, the same one the register uses. */
+function redlineRoundLabel(c){
+  const n = Math.max(1, (((c && c.rounds) || []).length));
+  const open = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
+  return `Round ${n}${open ? ` · ${open} open` : ''}`;
+}
+function renderRedline(){
+  const host = document.getElementById('content');
+  if (!host) return;
+  const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  if (!c){
+    host.innerHTML = `
+      <div class="view-enter" style="padding:16px 18px 28px;">
+        <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:34px;text-align:center;">
+          <div style="width:44px;height:44px;margin:0 auto 12px;border-radius:12px;background:var(--tile-amber-bg);color:var(--tile-amber-fg);display:grid;place-items:center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+          </div>
+          <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;">No contract open</h3>
+          <p style="margin:0 0 16px;font-size:12.5px;color:var(--color-neutral-600);max-width:46ch;margin-inline:auto;line-height:1.6;">
+            The redline workbench negotiates a specific agreement — open one from the register and its changes, rounds and discussion land here.
+          </p>
+          <button data-open-register class="ui-btn ui-btn-primary" style="padding:8px 16px;">Open the register</button>
+        </section>
+      </div>`;
+    host.querySelectorAll('[data-open-register]').forEach(el => el.addEventListener('click', () => {
+      if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
+      setView('register');
+    }));
+    return;
+  }
+  host.innerHTML = `
+    <div class="view-enter" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
+      <section style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:12px;padding:14px 16px;flex:none;">
+        <div style="min-width:0;">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
+            <h3 style="margin:0;font-size:15px;font-weight:700;">Redline Workbench — ${esc(c.name)}</h3>
+            <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent);">${esc(redlineRoundLabel(c))}</span>
+          </div>
+          <p style="margin:3px 0 0;font-size:11px;color:var(--color-neutral-500);">
+            Negotiate wording without leaking your position — internal notes and unsent drafts never reach the counterparty.
+          </p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;">
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500);">${esc(c.id)}</span>
+          <button data-redline-open-doc class="ui-btn" style="padding:6px 12px;">Open the contract →</button>
+        </div>
+      </section>
+      <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
+    </div>`;
+  host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
+    el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
+  /* The workbench itself, through the contract tab's own render path. */
+  renderNegotiationTab(c, { hostId: 'redline-host' });
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
+  renderRedline, redlineRoundLabel,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,

@@ -687,12 +687,11 @@
           </button>
           <!-- Redline workbench (the design's `nav-redline`): highlighter glyph,
                and an amber "N Open" tag carrying the count of open changes.
-               STEP 1 OF THE PORT — presentation only. data-view is still
-               `doclab`, so the button routes exactly where it did before and
-               nothing can break; the route and the view are swapped together in
-               the next step, when the Doc Lab module is retired. The count is
-               left hidden until app.js has something real to put in it. -->
-          <button data-view="doclab" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
+               Routed to `redline`, which renders the negotiation workbench as a
+               page (renderRedline in js/views/negotiation.js). The Doc Lab
+               module is still loaded but no longer reachable from the nav; it
+               is retired in the next step. -->
+          <button data-view="redline" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
             <span style="flex:1;">Redline</span>

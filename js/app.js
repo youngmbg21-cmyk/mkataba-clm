@@ -97,6 +97,10 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
     }
+    case 'redline': {
+      const c=getContract(state.activeId);
+      return ['Redline', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+    }
     default: return ['HaTi', ''];
   }
 }
@@ -132,7 +136,8 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
-  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab' };
+  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
+  redline:'the Redline workbench' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -182,6 +187,7 @@ function setView(view){
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
     else if(view==='doclab') renderDocLab();
+    else if(view==='redline') renderRedline();
     else renderWorkspace();
   }catch(e){
     /* The id, when the record can be named. An error raised deep in a helper
