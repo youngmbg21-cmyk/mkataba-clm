@@ -5534,9 +5534,18 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* NOT a .rl-badge: that class is the card's one STATUS badge, and half
        the product (and its tests) reads the status by querying it — a second
        element wearing it would answer "Counterparty" to "where does this
-       stand". Same clothes, its own name. */
+       stand". Same clothes, its own name.
+
+       The tooltip names the AUTHOR's organisation, not the record's
+       counterparty field: on the portal the viewer IS c.counterparty, and
+       "the other side" there is the sender — opts.org, which is what the
+       portal passes. The badge label stays seat-relative ("Counterparty" =
+       the other side of your table), like the verbs beneath it. */
+    const originOrg = ch.authorSide === 'counterparty'
+      ? (c.counterparty || 'the counterparty')
+      : (opts.org || window.FIRST_PARTY || 'the other side');
     const origin = theirs
-      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(c.counterparty || 'the counterparty')}">Counterparty</span>`
+      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Counterparty</span>`
       : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your Ask</span>`;
     return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${

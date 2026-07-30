@@ -217,6 +217,57 @@ describe('F93 (3) — the verbs are reciprocal: nobody rules on their own ask', 
   });
 });
 
+describe('F93 (5) — the counterparty link gets the same column, seat-flipped', () => {
+  /* The portal mounts redlineEmbed(side:'counterparty', org:<sender>, …) —
+     the same redlinePanesHtml and redlineChangeCardsHtml as the owner's
+     workbench, so the badges and the filter arrive there by construction.
+     What must be pinned is the SEAT FLIP: from their chair, "Your Ask" is
+     their counter-ask, "Counterparty" is the sender — and the tooltip must
+     name the sender's organisation, not c.counterparty, which on that page
+     is the reader's own company. */
+  const theirSeat = (p, over = {}) => {
+    const box = p.doc.createElement('div');
+    box.innerHTML = p.win.redlineChangeCardsHtml(p.c,
+      { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [], ...over });
+    return box;
+  };
+
+  test('from their chair the badges swap sides', async () => {
+    const p = await page({ myChange: true });
+    const box = theirSeat(p);
+    const ownerCard = box.querySelector('[data-rl-origin="them"]');
+    const theirCard = box.querySelector('[data-rl-origin="us"]');
+    assert.match(ownerCard.querySelector('.rl-origin').textContent, /Counterparty/,
+      'the sender\'s ask is the other side of THEIR table');
+    assert.match(theirCard.querySelector('.rl-origin').textContent, /Your Ask/,
+      'and their own counter-ask is theirs');
+  });
+
+  test('the Counterparty tooltip names the SENDER, never the reader\'s own company', async () => {
+    const p = await page({ myChange: true });
+    const tip = theirSeat(p).querySelector('[data-rl-origin="them"] .rl-origin').getAttribute('title');
+    assert.match(tip, /Wanjiru Catering Ltd/, 'the author\'s organisation — opts.org, the portal\'s sender');
+    assert.ok(!tip.includes('Naivas'), 'c.counterparty on that page is the reader themselves');
+  });
+
+  test('the origin filter is seat-relative there too', async () => {
+    const p = await page({ myChange: true });
+    p.win.rlSetCardFilter('us');
+    const ids = [...theirSeat(p).querySelectorAll('[data-nego-card]')]
+      .map(el => el.getAttribute('data-rl-origin'));
+    assert.deepEqual(ids, ['us'], '"Your Asks" from their chair means THEIR asks');
+    p.win.rlSetCardFilter('all');
+  });
+
+  test('and the dropdown itself ships in the panes their embed renders', async () => {
+    const p = await page({ myChange: true });
+    const box = p.doc.createElement('div');
+    box.innerHTML = p.win.redlinePanesHtml(p.c,
+      { side: 'counterparty', org: 'Wanjiru Catering Ltd', hiddenIds: [] });
+    assert.ok(box.querySelector('#rl-card-filter'), 'same head, same filter, no portal-shaped copy');
+  });
+});
+
 describe('F93 (4) — a filtered card still links to its clause', () => {
   test('clicking a card the filter kept lights and reaches the clause', async () => {
     const p = await page({ myChange: true });
