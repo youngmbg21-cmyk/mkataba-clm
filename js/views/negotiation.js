@@ -2966,12 +2966,12 @@ async function negoAiPropose(c, ctx){
     if (raw && typeof raw !== 'string') raw = String(raw);
   }catch(err){
     fail(err && err.needsKey
-      ? 'The Copilot needs an API key before it can answer. Nothing was changed.'
-      : `The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
+      ? 'The Copilot needs an API key. Add one under Team & Settings, then try again.'
+      : `The Copilot couldn't answer: ${(err && err.message) || err}. Try again.`);
     return;
   }
   if (!pop.isConnected) return;                    // closed while it was thinking
-  if (!String(raw || '').trim()){ fail('The Copilot returned nothing usable. Nothing was changed.'); return; }
+  if (!String(raw || '').trim()){ fail('The Copilot didn\'t return a usable answer. Try again.'); return; }
 
   let note = '', replacement = String(raw).trim();
   if (action.explain){
@@ -2991,7 +2991,7 @@ async function negoAiPropose(c, ctx){
      version — the lookup misses, and the entire clause is silently swapped. */
   const found = !!replacement && clauseText.includes(text);
   if (replacement && !found){
-    fail('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    fail('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
   const proposed = found ? clauseText.replace(text, replacement) : clauseText;
@@ -4896,18 +4896,18 @@ async function rlAiPropose(ctx){
   if (window.renderAIFeed) renderAIFeed(!action.converse);
 
   if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    rlSayInPanel('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
+    rlSayInPanel('The Copilot isn\'t connected yet. Connect it under Team & Settings, then try again.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
-  if (!cl){ rlSayInPanel('That clause is no longer in the document, so there is nothing to rewrite. Nothing was changed.'); return; }
+  if (!cl){ rlSayInPanel('This clause is no longer in the document. Select a current clause and try again.'); return; }
   /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and it is checked before a
      token is spent. The old fallback for a miss was to swap the whole clause
      for whatever came back, which loses wording nobody agreed to lose. */
   const clauseText = String(cl.text || '');
   const whole = String(text).trim() === clauseText.trim();
   if (!whole && !clauseText.includes(text)){
-    rlSayInPanel('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    rlSayInPanel('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
   const party = side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');
@@ -4924,11 +4924,11 @@ async function rlAiPropose(ctx){
      than writing an older copy back over whatever moved in between. */
   const applyWording = wording => {
     const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
-    if (!live) return { ok: false, message: 'That clause is no longer in the document. Nothing was changed.' };
+    if (!live) return { ok: false, message: 'This clause is no longer in the document. Select a current clause and try again.' };
     const nowText = String(live.text || '');
     const isWhole = String(text).trim() === nowText.trim();
     if (!isWhole && !nowText.includes(text))
-      return { ok: false, message: 'That passage has moved since the panel opened, so the wording cannot be placed back safely. Nothing was changed.' };
+      return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
     const proposed = isWhole ? String(wording)
       : nowText.slice(0, nowText.indexOf(text)) + String(wording) + nowText.slice(nowText.indexOf(text) + text.length);
     if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
@@ -4976,7 +4976,7 @@ async function rlAiPropose(ctx){
     return;
   }
   try{
-    if (!await propose('')) rlSayInPanel('The Copilot returned nothing usable. Nothing was changed.');
+    if (!await propose('')) rlSayInPanel('The Copilot didn\'t return a usable answer. Try again.');
   }catch(err){
     rlSayInPanel(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
   }
