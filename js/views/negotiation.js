@@ -4255,15 +4255,36 @@ function renderRedline(){
      publishes every unsent draft in one go rather than opening a queue of
      confirmations. See redlineSyncProxies for why a proxy can go dead. */
   const unsentN = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
+  /* Whose postbox the batch send presses. The owner's is #nego-send; acting
+     as the counterparty the engine renders #nego-send-decisions instead, and
+     a proxy aimed at the wrong one is a button that dies the moment the view
+     flips — which is what it did: Send All worked in Internal View and went
+     dead in Counterparty View, found in the six-round simulation. */
+  const sendTarget = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
+  const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
+    : (c.counterparty || 'the counterparty');
   /* ONE TEXT NODE, and both halves of that matter. Written on one line because
      a newline in inline text renders as a space; and the count is NOT wrapped
      in a span, because .rl-btn is an inline-flex row with gap:6px — a wrapped
      number becomes a flex item and the gap paints as "Send All ( 1 ) Redline".
      The count is read from the label rather than from a hook precisely so the
      label can stay one string. */
-  const blast = unsentN ? `<button data-redline-proxy="nego-send" data-rl-blast class="rl-btn rl-btn-blast"`
-    + ` title="Publish every unsent redline to ${_nea(c.counterparty || 'the counterparty')} in one action">`
+  const blast = unsentN ? `<button data-redline-proxy="${sendTarget}" data-rl-blast class="rl-btn rl-btn-blast"`
+    + ` title="Publish every unsent redline to ${_nea(sendWho)} in one action">`
     + `&#9889; Send All (${unsentN}) Redline${unsentN === 1 ? '' : 's'}</button>` : '';
+  /* ---- CLOSING THE ROUND, FROM THE PAGE THE ROUND IS WORKED ON ----
+     negoAdvanceRound archives the decided changes onto the round record and
+     makes the agreed wording the next baseline — the "clean public diff" a
+     finished round folds down to. The only control that reached it lived in
+     the ROOM (#nego-to-docs), which this page does not render, so a
+     negotiation finished HERE could never be closed here: every change
+     decided, and no way to finalise. Offered exactly when it is true — every
+     change answered, and at least one on the table — and behind the same
+     naming dialog the room uses, because closing is irreversible. */
+  const prog = (typeof negoProgress === 'function') ? negoProgress(c)
+    : { pending: 0, total: 0 };
+  const closer = (!prog.pending && prog.total && side === 'owner')
+    ? `<button data-rl-close-round class="rl-btn rl-btn-go" title="Archive this round's decisions and make the agreed wording the new baseline">&#10003; Close Round ${negoRound(c)}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -4286,9 +4307,10 @@ function renderRedline(){
           <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 9-9"/><path d="M15 4V2M15 10V8M11 6h2M17 6h2M19 13v-2M19 17v-2M17 15h2M21 15h-2"/><path d="m14 7-1.5 1.5a2.1 2.1 0 0 0 0 3l.5.5a2.1 2.1 0 0 0 3 0L17.5 10"/></svg>
             Accept All Non-Risk</button>
-          <button data-redline-proxy="nego-send" class="rl-btn rl-btn-go">
+          <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
             Publish Round</button>
+          ${closer}
         </div>
       </section>
       <div id="redline-host" style="flex:1;min-height:0;display:flex;flex-direction:column;"></div>
@@ -4364,12 +4386,63 @@ function renderRedline(){
       }
       renderRedline();
     },
+    /* ---- ACTING AS THE COUNTERPARTY, THE TABLE STILL TURNS ----
+       The engine's index renders #nego-send-decisions for the counterparty
+       side only when told what is waiting (their new asks, their undecided
+       answers) — this page told it nothing, so Counterparty View had no way
+       to hand the contract back and the six-round loop stalled at round two.
+       Both counts come off the record: asks from negoUnsentAsks, decisions
+       from resolvedAt landing after the last hand-over. */
+    pendingProposals: side === 'counterparty'
+      ? (window.negoUnsentAsks ? negoUnsentAsks(c, 'counterparty') : []).length : 0,
+    pendingDecisions: side === 'counterparty'
+      ? negoChanges(c).filter(x => (x.status === 'accepted' || x.status === 'rejected')
+          && x.authorSide === 'owner'
+          && String(x.resolvedAt || '') > String((c.negotiation && c.negotiation.turnAt) || '')).length : 0,
+    org: window.FIRST_PARTY || 'the owner',
+    /* Handing back FROM the table is a turn move, not a share: both sides of
+       this toggle read the same record, so the decisions and counter-asks are
+       already on it — what travels is whose turn it is. The real counterparty
+       page (the portal) keeps its own send, which posts a response payload;
+       this one exists for the negotiation table the workbench is. */
+    onSendDecisions(){
+      const who = window.FIRST_PARTY || 'the owner';
+      if (!negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' })){
+        if (window.toast) toast('It is already their turn', 'err');
+        return;
+      }
+      if (window.persist) persist(c);
+      if (window.toast) toast(`Handed back to ${who} — it is now their turn`);
+      renderRedline();
+    },
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
   host.querySelectorAll('[data-redline-disc]').forEach(el =>
     el.addEventListener('click', () => rlToggleDiscussion()));
+  /* #nego-send-decisions is wired by the ROOM's action bar, which this page
+     does not mount — so the counterparty postbox is bound here, to the same
+     hook the room would call. */
+  if (side === 'counterparty'){
+    const back = document.getElementById('nego-send-decisions');
+    if (back && !back.dataset.rlWired){
+      back.dataset.rlWired = '1';
+      back.addEventListener('click', () => opts.onSendDecisions());
+    }
+  }
+  /* Closing the round — the naming dialog first, because it is irreversible:
+     the decided changes fold into the round history and the agreed wording
+     becomes the baseline the next round is measured against. */
+  host.querySelectorAll('[data-rl-close-round]').forEach(el =>
+    el.addEventListener('click', async () => {
+      if (window.negoConfirmCloseRound && !await negoConfirmCloseRound(c)) return;
+      const r = negoAdvanceRound(c, { by: opts.by || (window.currentUser && currentUser()?.name) });
+      if (!r){ if (window.toast) toast('The round cannot close with changes still pending', 'err'); return; }
+      if (window.persist) persist(c);
+      if (window.toast) toast(`Round ${r.n} closed — the agreed wording is the new baseline for round ${negoRound(c)}`);
+      renderRedline();
+    }));
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
 }
@@ -4596,6 +4669,19 @@ function rlTagInternalNote(ctx){
   /* Unfolding first: the composer is in the discussion column, and focusing an
      input inside a display:none column silently does nothing. */
   rlToggleDiscussion(false);
+  /* THE COMPOSER MAY BE AIMED AT A DIFFERENT CHANGE. A change with no thread
+     yet has no reply box of its own — the column's one starter serves the
+     first silent change, and this note may be about the third. Found during
+     the six-round simulation: tagging a note on any silent change that was
+     not silent[0] found no input and silently did nothing. So the change is
+     NOMINATED and the column repainted; the starter honours the nomination
+     (see redlineDiscussionHtml) and the input exists by the time it is
+     focused below. */
+  if (!document.getElementById('nego-ti-' + changeId)){
+    _rlStarterFor = changeId;
+    renderRedline();
+    rlToggleDiscussion(false);
+  }
   /* Internal, pressed for them. The visibility switch defaults to shared on a
      reply, and a note tagged from the document is by name an internal one —
      leaving the reader to notice and flip it is how a private remark reaches
@@ -4690,12 +4776,21 @@ function rlWireClauseTools(c, host, opts){
     ev.preventDefault(); ev.stopPropagation();
     _negoKillSelMenu();
     const clauseId = btn.getAttribute('data-rl-ai');
+    /* THE MODEL'S TEXT, NOT THE SCREEN'S. This used to read the rendered
+       body's textContent, and on any clause whose markup renders more than
+       its text projection — template fields with placeholder chrome, block
+       whitespace — the two strings differ. rlAiPropose then compares the
+       passage against the model's clause text, finds no match, and refuses
+       with a message about pending changes on a clause that had none: AI
+       Assist dead on exactly the contracts the wizard produces, found in the
+       six-round drive of the running app. A whole-clause ask has a canonical
+       source — the clause record — so it is read from there, and the
+       whole-clause check downstream is true by construction. The SELECTION
+       path keeps reading the screen, because a selection is of the screen. */
+    const cl = (typeof negoClauseById === 'function') ? negoClauseById(c, clauseId) : null;
     const sec = host.querySelector(`[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`);
-    /* The clause's body, whichever way it is drawn — rich markup for a settled
-       clause, redline blocks for one under change. `.rl-clause-p` was the old
-       flat paragraph and no longer exists on either. */
     const para = sec && (sec.querySelector('.nego-body') || sec.querySelector('.rl-clause-p'));
-    const text = String((para && para.textContent) || '').trim();
+    const text = String((cl && cl.text) || (para && para.textContent) || '').trim();
     if (!text) return;
     rlSelMenu({ c, opts, text, clauseId, rect: btn.getBoundingClientRect(),
       whole: true, event: 'click', again });
@@ -4796,8 +4891,13 @@ const RL_REGION = { SE: 'Sweden (EU/GDPR)', KE: 'Kenya (KICA/ODPC)' };
 function redlineDocHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+  /* Through the wall. A clause whose only change is the other side's unsent
+     draft renders as its untouched baseline — no marks, no ask tag, nothing
+     that says "something exists here that you cannot see". */
+  const hidden = rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded' && x.changeType !== 'insertClause') : [];
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && x.changeType !== 'insertClause'
+        && !hidden.has(x.id)) : [];
   const byClause = new Map();
   for (const ch of changes) byClause.set(ch.clauseId, ch);
   const tmpl = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
@@ -4935,6 +5035,43 @@ function redlineDocHtml(c, opts = {}){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+/* ============================================================
+   THE VIEW WALL — what each side of the toggle is allowed to see
+   ============================================================
+   The workbench's Internal/Counterparty toggle is a promise: Counterparty View
+   is EXACTLY what they see, and nothing on that side may reveal that anything
+   else exists. The reference states it in its own banner — "internal threads,
+   notes and unsent drafts are not here".
+
+   That promise was only half kept. The turn model already meant an unsent ask
+   never TRAVELS (negoUnsentAsks measures against the hand-over timestamp, and
+   the share payload is built from the record) — but the TOGGLE ignored it: the
+   document canvas, the Tracked Changes column, the thread list and the wall
+   banner all rendered the same set whichever side was looking. Flip to
+   Counterparty View with a draft on the table and the draft was right there,
+   marked in the document with "Your ask" beside it. The wall held at the
+   transport and leaked at the preview — and the preview is the thing a person
+   checks BEFORE sending, so it is exactly where the truth matters.
+
+   These two helpers are the wall, and every renderer on this page draws
+   through them:
+
+     rlHiddenFrom(c, side)  — the change ids this side must not see: the OTHER
+       side's unsent asks, read from negoUnsentAsks so the wall, the badges and
+       the batch count can never disagree about what has been sent.
+     rlMsgVisible(m, side)  — a thread message is visible if it is shared, or
+       if it belongs to the side that is looking. Symmetric on purpose: an
+       owner's internal note never shows in Counterparty View, and a note
+       filed while acting as the counterparty never shows in Internal View. */
+function rlHiddenFrom(c, side){
+  const other = side === 'counterparty' ? 'owner' : 'counterparty';
+  return new Set((window.negoUnsentAsks ? negoUnsentAsks(c, other) : []).map(x => x.id));
+}
+const rlMsgVisible = (m, side) =>
+  !!m && (m.visibility === 'shared' || (m.side || 'owner') === (side === 'counterparty' ? 'counterparty' : 'owner'));
+/* Which silent change the discussion column's one starter composer is aimed
+   at. Nominated by rlTagInternalNote, honoured by redlineDiscussionHtml. */
+let _rlStarterFor = null;
 /* ---------- THE CARD SHOWS THE CHANGE, NOT THE CLAUSE ----------
    A card used to render the whole ops array, keeps included — so a one-word
    amendment to a four-line clause arrived as four lines of unchanged wording
@@ -4975,7 +5112,10 @@ function redlineChangeCardsHtml(c, opts = {}){
   const canAct = !opts.readonly;
   const editable = canAct && opts.canEdit !== false;
   const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
-  const changes = all.filter(_rlIsLive);
+  /* Through the wall: the other side's unsent drafts have no card on this
+     side, because on this side they do not exist. */
+  const hidden = rlHiddenFrom(c, side);
+  const changes = all.filter(_rlIsLive).filter(x => !hidden.has(x.id));
   /* Which of OUR asks have never left the building. The engine already answers
      this — the same count the wall and the batch send are drawn from — so the
      card's Send button and the toolbar's cannot disagree about what is unsent. */
@@ -5010,7 +5150,12 @@ function redlineChangeCardsHtml(c, opts = {}){
     const diff = window.redlineOpsHtml && ch.ops
       ? redlineOpsHtml(rlDeltaOps(ch.ops), { title: tip })
       : _ne(ch.proposedText || ch.newText || '');
-    const note = ch.note ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
+    /* A note is the AUTHOR's aside — the 🔒 on it is a promise, and the wall
+       applies to the toggle too: it renders only on the side that wrote it.
+       A Copilot rationale filed with an owner ask must not appear the moment
+       someone flips to Counterparty View to check what they are sending. */
+    const note = (ch.note && ch.authorSide === side)
+      ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
        card and not only the decidable ones: revising your own ask is the most
@@ -5055,6 +5200,18 @@ function redlineChangeCardsHtml(c, opts = {}){
    the wall it says that instead of printing zeroes. */
 function redlineWallHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* Counterparty View gets the reference's EYE banner, not the wall's counts.
+     The wall line says how many internal things are being held back — which
+     is itself internal information, and printing it on the side that is
+     supposed to be "exactly what they see" would tell that side precisely
+     what it must not know: that held-back things exist, and how many. */
+  if (side === 'counterparty'){
+    const who = _ne(c.counterparty || 'the counterparty');
+    return `<div class="rl-wall" role="status">
+      <span class="rl-wall-ic">&#128065;</span>
+      <span>You are viewing <b>exactly what ${who} sees</b>. Internal threads, notes and unsent drafts are not here &mdash; and nothing on this side reveals they exist.</span>
+    </div>`;
+  }
   const unsent = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
   const msgs = (c && c._messages) || [];
   const internal = window.discussIsInternal
@@ -5140,19 +5297,31 @@ function redlinePanesHtml(c, opts = {}){
    wireNegotiationTab binds the send, the internal/shared choice and the
    validation without any of it being reimplemented here. */
 function redlineThreads(c, opts = {}){
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  /* Through the wall, twice over. A thread hangs off a change, so a change
+     this side cannot see contributes no thread; and within a visible thread,
+     each MESSAGE is filtered on its own visibility — an internal aside sits in
+     the same thread as the shared replies, and stripping the thread whole
+     would either leak the aside or eat the conversation around it. A thread
+     whose every message is internal to the other side disappears entirely,
+     counts included: rl-thread-count and the rail chip are both drawn from
+     this list, so the numbers cannot betray what the list conceals. */
+  const hidden = rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded') : [];
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
   return changes.map(ch => ({
     ch,
-    msgs: window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []),
+    msgs: (window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []))
+      .filter(m => rlMsgVisible(m, side)),
   })).filter(t => t.msgs.length);
 }
 function redlineDiscussionHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
   const threads = redlineThreads(c, opts);
+  const hidden = rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded') : [];
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
   const head = `
     <div class="rl-disc-head">
       <h3>Discussion</h3>
@@ -5202,16 +5371,24 @@ function redlineDiscussionHtml(c, opts = {}){
      the foot of the column. It targets the same per-change reply the cards use,
      so a first message is filed exactly like a reply. */
   const silent = changes.filter(ch => !(window.negoMergedThread
-    ? negoMergedThread(c, ch, opts.messages) : (ch.thread || [])).length);
+    ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []))
+    .filter(m => rlMsgVisible(m, side)).length);
+  /* WHICH silent change the composer aims at. It used to be silent[0], always
+     — so "Tag with internal note" on any OTHER silent change found no input
+     with its id and silently did nothing. rlTagInternalNote now nominates the
+     change it is about (_rlStarterFor) and repaints; the starter honours the
+     nomination when that change is still silent, and falls back to the first
+     one when it is not. */
+  const target = silent.find(ch => ch.id === _rlStarterFor) || silent[0];
   const starter = (canComment && silent.length) ? `
     <div class="rl-starter">
       <div class="nego-visswitch" role="group" aria-label="Who can read this">
-        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(silent[0].id)}" aria-pressed="true">&#128274; Internal</button>
-        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(silent[0].id)}" aria-pressed="false">&#127760; Shared</button>
+        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(target.id)}" aria-pressed="true">&#128274; Internal</button>
+        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(target.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
-        <input type="text" id="nego-ti-${_ne(silent[0].id)}" placeholder="Start a thread on ${_ne(silent[0].id)}…" aria-label="Start a thread on change ${_ne(silent[0].id)}"/>
-        <button data-nego-send="${_ne(silent[0].id)}" title="Start the thread">&uarr;</button>
+        <input type="text" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"/>
+        <button data-nego-send="${_ne(target.id)}" title="Start the thread">&uarr;</button>
       </div>
       <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>
     </div>` : '';
@@ -5253,6 +5430,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlWireClauseTools,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
+  rlHiddenFrom, rlMsgVisible,
   RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
