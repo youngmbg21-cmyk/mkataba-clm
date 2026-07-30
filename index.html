@@ -4,11 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HaTi — Contract Lifecycle Management</title>
+<script>
+  // Apply the saved theme before first paint (class strategy — see toggleTheme
+  // in js/app.js). Default is light; 'hati-theme' persists the choice.
+  try{ if(localStorage.getItem('hati-theme')==='dark') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Interface faces. The application chrome stays on IBM Plex. -->
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Interface faces (HaTi redesign): Inter for body copy, Plus Jakarta Sans for
+     headings. IBM Plex Mono stays as the interface mono (--font-mono / .tnum). -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <!-- Document faces, for contract text only (see --font-doc / --font-doc-mono).
      Both come from Google Fonts. Google Sans Flex is a variable face: weight
      300-700 plus a real slant axis (slnt, -10..0), so emphasis in a contract
@@ -16,44 +23,41 @@
      no separate italic. Google Sans Code carries the columnar blocks. -->
 <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,400..700;1,400..700&family=Google+Sans+Flex:slnt,wght@-10..0,300..700&display=swap" rel="stylesheet">
 <script>
-  // HaTi — Industry design system (steel-blue on a light technical ground).
-  // Barlow / Barlow Condensed typography, white surfaces on a very light-grey
-  // ground (#eff0f2), a steel accent (#5980a6), hairline borders, 4–6px radii
-  // and a grey / amber / emerald / ruby status model. The Tailwind palette
-  // below is repointed onto the Industry tokens so class-based views inherit
-  // the flip; new work sources exact values from the CSS variables in :root.
+  // HaTi — CLM redesign (teal brand on slate, light/dark via the `dark` class).
+  // Inter / Plus Jakarta Sans typography, white surfaces on slate-50, a teal
+  // accent (#0d9488), 12px radii and an amber / emerald / rose status model.
+  // The Tailwind palette below is repointed onto the new tokens so class-based
+  // views inherit the flip; new work sources exact values from the CSS
+  // variables in :root (with dark overrides under html.dark).
   tailwind.config = {
+    darkMode: 'class',
     theme: { extend: {
       fontFamily: {
-        display: ['"IBM Plex Sans"','system-ui','sans-serif'],
-        heading: ['"IBM Plex Sans"','system-ui','sans-serif'],
-        serif:   ['"IBM Plex Sans"','system-ui','sans-serif'],
-        sans:    ['"IBM Plex Sans"','system-ui','sans-serif'],
+        display: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
+        heading: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
+        serif:   ['Inter','system-ui','sans-serif'],
+        sans:    ['Inter','system-ui','sans-serif'],
         mono:    ['"IBM Plex Mono"','ui-monospace','monospace'],
       },
-      fontWeight: { 400:'400', 500:'500', 600:'600', 700:'700', 800:'700', 900:'700' },
       colors: {
-        white:'#ffffff',
-        canvas:'#f4f3f0',     // page ground (warm off-white)
-        ink:'#1d1f20',        // text
-        // steel accent ramp (Industry)
-        brand:{50:'#eef6ff',100:'#d6ebff',200:'#d6ebff',300:'#b5d9fd',400:'#94bce3',500:'#749dc4',600:'#5980a6',700:'#416180',800:'#2c455d',900:'#1d2d3d'},
+        canvas:'#f8fafc',     // page ground (slate-50)
+        ink:'#1e293b',        // text
+        // teal brand ramp (HaTi redesign)
+        brand:{50:'#f0fdfa',100:'#ccfbf1',200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',500:'#14b8a6',600:'#0d9488',700:'#0f766e',800:'#115e59',900:'#134e4a',accent:'#06b6d4',purple:'#8b5cf6'},
         // amber (In Review / pending)
-        gold:{300:'#f1e6cd',400:'#b8862b',500:'#b8862b',600:'#7d5a14'},
-        // neutral ramp
-        slate:{50:'#f5f5f8',100:'#e7e7ea',200:'#e7e7ea',300:'#d4d4d7',400:'#b7b7ba',500:'#98989b',600:'#7a7a7d',700:'#5d5d60',800:'#424244',900:'#2b2b2d'},
-        // ruby (Closed / Expired / risk / danger)
-        rose:{50:'#f1dcd8',100:'#f1dcd8',200:'#e6c9c1',300:'#dca99d',400:'#b0453c',500:'#b0453c',600:'#8f322b',700:'#8f322b',900:'#3e1712'},
+        gold:{300:'#fde68a',400:'#f59e0b',500:'#f59e0b',600:'#b45309'},
+        // rose (Closed / Expired / risk / danger)
+        rose:{50:'#fff1f2',100:'#ffe4e6',200:'#fecdd3',300:'#fda4af',400:'#fb7185',500:'#f43f5e',600:'#e11d48',700:'#be123c',900:'#881337'},
         // emerald (Executed / active)
-        emerald:{50:'#d9eae0',100:'#d9eae0',200:'#c7ddce',400:'#2e8763',500:'#2e8763',600:'#1e6b4d',700:'#1e6b4d'},
+        emerald:{50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857'},
         // chrome tokens (hairline dividers)
-        hair:'#eeece7',
-        line:'#dcdcdf',
-        inputln:'#d4d4d7',
-        faint:'#ffffff',
-        docbg:'#f4f3f0',
-        amber:'#b8862b',
-        danger:'#b0453c',
+        hair:'#e2e8f0',
+        line:'#cbd5e1',
+        inputln:'#cbd5e1',
+        faint:'#f8fafc',
+        docbg:'#f8fafc',
+        amber:'#f59e0b',
+        danger:'#dc2626',
       },
     }},
   };
@@ -63,22 +67,27 @@
      INDUSTRY DESIGN TOKENS — source of truth for the redesign.
      ============================================================ */
   :root{
-    --color-bg:#f4f3f0;
+    --color-bg:#f8fafc;
     --color-surface:#ffffff;
-    --color-text:#1d1f20;
-    --color-accent:#5980a6;
-    --color-divider:#eeece7;
+    --color-text:#1e293b;
+    --color-accent:#0d9488;
+    --color-divider:#e2e8f0;
 
-    --color-neutral-100:#f5f5f8; --color-neutral-200:#e7e7ea; --color-neutral-300:#d4d4d7;
-    --color-neutral-400:#b7b7ba; --color-neutral-500:#98989b; --color-neutral-600:#7a7a7d;
-    --color-neutral-700:#5d5d60; --color-neutral-800:#424244; --color-neutral-900:#2b2b2d;
+    --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+    --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
+    --color-neutral-700:#334155; --color-neutral-800:#1e293b; --color-neutral-900:#0f172a;
 
-    --color-accent-100:#eef6ff; --color-accent-200:#d6ebff; --color-accent-300:#b5d9fd;
-    --color-accent-400:#94bce3; --color-accent-500:#749dc4; --color-accent-600:#597ea3;
-    --color-accent-700:#416180; --color-accent-800:#2c455d; --color-accent-900:#1d2d3d;
+    --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
+    --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
+    --color-accent-700:#0f766e; --color-accent-800:#115e59; --color-accent-900:#134e4a;
 
-    --font-heading:"IBM Plex Sans",system-ui,sans-serif;
-    --font-body:"IBM Plex Sans",system-ui,sans-serif;
+    /* solid brand fills that must NOT flip with the theme (nav active, primary
+       buttons, the Copilot header) — always teal, always white-on-top */
+    --accent-solid:#0d9488; --accent-solid-hover:#0f766e;
+    --brand-grad:linear-gradient(135deg,#0d9488,#06b6d4);
+
+    --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+    --font-body:Inter,system-ui,sans-serif;
     --font-mono:"IBM Plex Mono",ui-monospace,monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
@@ -110,11 +119,11 @@
     --color-doc-rule:#c9ccd1;
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
-    --radius-sm:5px; --radius-md:10px; --radius-lg:10px;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
 
-    --shadow-sm:0 1px 2px rgba(43,43,45,.05), 0 10px 26px -12px rgba(43,43,45,.20);
-    --shadow-md:0 4px 10px rgba(43,43,45,.08), 0 18px 40px -14px rgba(43,43,45,.28);
-    --shadow-lg:0 12px 32px color-mix(in srgb,#2b2b2d 22%,transparent);
+    --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+    --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+    --shadow-lg:0 12px 32px color-mix(in srgb,#0f172a 22%,transparent);
 
     /* legacy elevation aliases kept so un-migrated views still separate cleanly */
     --ring:0 0 0 1px var(--color-divider);
@@ -123,26 +132,60 @@
     --ease:cubic-bezier(.2,.7,.3,1);
 
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
-    --danger:#b0453c; --danger-hover:#8f322b; --red-tint:rgba(176,69,60,.1);
+    --danger:#dc2626; --danger-hover:#b91c1c; --red-tint:rgba(220,38,38,.1);
 
     /* status palette (wash bg / fg / dot) */
-    --st-gray-bg:#eceae6;  --st-gray-fg:#5d5d60;  --st-gray-dot:#98989b;
-    --st-amber-bg:#fbf4e3; --st-amber-fg:#7d5a14; --st-amber-dot:#b8862b;
-    --st-green-bg:#e8f4ee; --st-green-fg:#1e6b4d; --st-green-dot:#2e8763;
-    --st-ruby-bg:#fdece9;  --st-ruby-fg:#8f322b;  --st-ruby-dot:#b0453c;
-    --st-steel-bg:#eef4fb; --st-steel-fg:#2c455d; --st-steel-dot:#5980a6;
+    --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;
+    --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b;
+    --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981;
+    --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;
+    --st-steel-bg:#ccfbf1; --st-steel-fg:#115e59; --st-steel-dot:#14b8a6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
-    --tile-steel-bg:#e2edf9;   --tile-steel-fg:#2c455d;
-    --tile-emerald-bg:#d6ece0; --tile-emerald-fg:#1e6b4d;
-    --tile-amber-bg:#f5e7c6;   --tile-amber-fg:#7d5a14;
-    --tile-ruby-bg:#f6d8d2;    --tile-ruby-fg:#8f322b;
+    --tile-steel-bg:#ccfbf1;   --tile-steel-fg:#115e59;
+    --tile-emerald-bg:#d1fae5; --tile-emerald-fg:#047857;
+    --tile-amber-bg:#fef3c7;   --tile-amber-fg:#b45309;
+    --tile-ruby-bg:#ffe4e6;    --tile-ruby-fg:#be123c;
 
     /* tone gradients (hero stat cards only) */
-    --grad-steel:linear-gradient(135deg,#6f9bd1,#4f76c9);
-    --grad-emerald:linear-gradient(135deg,#4ec295,#2e8763);
-    --grad-amber:linear-gradient(135deg,#e8b85e,#c78a2c);
-    --grad-ruby:linear-gradient(135deg,#e58176,#c34d41);
+    --grad-steel:linear-gradient(135deg,#14b8a6,#0891b2);
+    --grad-emerald:linear-gradient(135deg,#34d399,#059669);
+    --grad-amber:linear-gradient(135deg,#fbbf24,#d97706);
+    --grad-ruby:linear-gradient(135deg,#fb7185,#e11d48);
+  }
+
+  /* ============================================================
+     DARK THEME — html.dark (toggled from the top header, persisted
+     as 'hati-theme'). Surfaces and neutrals flip; the teal accent
+     ramp and the document paper (--color-doc-*) deliberately do not:
+     a contract still reads as paper in a dark room. Views are being
+     re-skinned page-by-page; anything still reading these tokens
+     inherits a coherent dark automatically.
+     ============================================================ */
+  html.dark{
+    --color-bg:#020617;
+    --color-surface:#0f172a;
+    --color-text:#e2e8f0;
+    --color-divider:#1e293b;
+
+    --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
+    --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#94a3b8;
+    --color-neutral-700:#cbd5e1; --color-neutral-800:#e2e8f0; --color-neutral-900:#f1f5f9;
+
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.55);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
+    --shadow-lg:0 12px 32px rgba(0,0,0,.6);
+
+    --st-gray-bg:rgba(148,163,184,.14);  --st-gray-fg:#94a3b8;  --st-gray-dot:#64748b;
+    --st-amber-bg:rgba(245,158,11,.15);  --st-amber-fg:#fbbf24; --st-amber-dot:#f59e0b;
+    --st-green-bg:rgba(16,185,129,.15);  --st-green-fg:#34d399; --st-green-dot:#10b981;
+    --st-ruby-bg:rgba(244,63,94,.15);    --st-ruby-fg:#fb7185;  --st-ruby-dot:#f43f5e;
+    --st-steel-bg:rgba(20,184,166,.15);  --st-steel-fg:#5eead4; --st-steel-dot:#14b8a6;
+
+    --tile-steel-bg:rgba(20,184,166,.16);  --tile-steel-fg:#5eead4;
+    --tile-emerald-bg:rgba(16,185,129,.16);--tile-emerald-fg:#34d399;
+    --tile-amber-bg:rgba(245,158,11,.16);  --tile-amber-fg:#fbbf24;
+    --tile-ruby-bg:rgba(244,63,94,.16);    --tile-ruby-fg:#fb7185;
   }
 
   *,*::before,*::after{box-sizing:border-box;}
@@ -188,11 +231,11 @@
   .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap;font-family:var(--font-body);}
   .badge>.dot{width:6px;height:6px;border-radius:50%;flex:none;}
 
-  /* buttons (Industry) */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  /* buttons */
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
   .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
-  .ui-btn-primary{background:var(--color-accent);color:#fff;border-color:var(--color-accent);}
-  .ui-btn-primary:hover{background:var(--color-accent-600);}
+  .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 55%,transparent);}
+  .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* view enter */
@@ -206,7 +249,7 @@
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
   /* live ping (workspace status + activity live dots) */
-  @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(89,128,166,.45)}70%{box-shadow:0 0 0 6px rgba(89,128,166,0)}100%{box-shadow:0 0 0 0 rgba(89,128,166,0)}}
+  @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(13,148,136,.45)}70%{box-shadow:0 0 0 6px rgba(13,148,136,0)}100%{box-shadow:0 0 0 0 rgba(13,148,136,0)}}
   .live-ping{animation:livePing 2.4s infinite;}
   .live-dot{position:relative;}
   .live-dot::after{content:'';position:absolute;inset:-3px;border-radius:9999px;background:currentColor;opacity:.35;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
@@ -219,26 +262,24 @@
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
-     SHELL — sidebar / command bar / context panel
+     SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
-  .nav-item{position:relative;display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--color-neutral-800);font:inherit;font-family:var(--font-body);font-size:12.5px;font-weight:500;padding:7px 8px 7px 10px;cursor:pointer;text-align:left;border-radius:4px;transition:background .12s,color .12s;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:12px;font-weight:600;padding:9px 12px;cursor:pointer;text-align:left;border-radius:12px;transition:background .12s,color .12s,border-color .12s;}
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:2px;}
-  .nav-item svg{flex:none;opacity:.85;}
-  /* hover AND active share the same treatment: dark-blue fill, white text */
-  .nav-item:hover{background:var(--color-accent-800);color:#fff;}
+  .nav-item svg,.nav-item i{flex:none;opacity:.85;}
+  .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
   .nav-item:hover svg{opacity:1;}
-  .nav-item:hover .nav-count{color:rgba(255,255,255,.72);}
-  .nav-item.active{background:var(--color-accent-800);color:#fff;font-weight:600;}
-  .nav-item.active .nav-rail{background:#fff;}
+  .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--color-accent-600);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);}
+  html.dark .nav-item.active{color:#2dd4bf;}
   .nav-item.active svg{opacity:1;}
   .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
-  .nav-item.active .nav-count{color:rgba(255,255,255,.75);}
-  /* Collapsible nav sections: the group label is now a +/- toggle that shows or
+  .nav-item.active .nav-count{color:inherit;opacity:.8;}
+  /* Collapsible nav sections: the group label is a +/- toggle that shows or
      hides its tabs. On login only "Work" is open (see .open in the markup); the
      section holding the active view is auto-opened in setActiveNav(). */
-  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);padding:10px 8px 5px;text-align:left;transition:color .12s;}
+  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400);padding:12px 12px 6px;text-align:left;transition:color .12s;}
   .nav-section:first-child .nav-section-head{padding-top:4px;}
-  .nav-section-head:hover{color:var(--color-accent-800);}
+  .nav-section-head:hover{color:var(--color-accent-600);}
   .nav-plus{margin-left:auto;position:relative;width:12px;height:12px;flex:none;opacity:.8;}
   .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:1px;transition:opacity .15s;}
   .nav-plus::before{left:1px;right:1px;top:5px;height:2px;}   /* horizontal bar (always shown) */
@@ -247,13 +288,35 @@
   .nav-section-head:hover .nav-plus{opacity:1;}
   .nav-section:not(.open) .nav-section-body{display:none;}
 
-  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
-  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-800);}
+  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
+  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-600);}
   .panel-tab:hover{color:var(--color-text);}
 
-  /* command-bar search */
-  .cmd-search{display:flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-bg);padding:5px 9px;width:250px;border-radius:4px;}
-  .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12px;flex:1;min-width:0;color:inherit;}
+  /* top-header global search (⌘K) — a flex item that may shrink, so the
+     jurisdiction switcher and the search never overlap on narrower shells */
+  .cmd-search{display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:6px 12px;flex:0 1 24rem;min-width:130px;border-radius:12px;transition:border-color .15s,box-shadow .15s;}
+  .cmd-search:focus-within{border-color:var(--color-accent-500);box-shadow:0 0 0 1px var(--color-accent-500);}
+  .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12.5px;flex:1;min-width:0;color:inherit;}
+
+  /* top-header square icon buttons (theme toggle, notifications) */
+  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
+  .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
+
+  /* jurisdiction switcher (Sweden / Kenya) */
+  .region-btn{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
+  .region-btn:hover{color:var(--color-text);}
+  .region-btn.active{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
+
+  /* theme toggle: both glyphs live in the button; html.dark picks which shows */
+  #theme-icon-sun{display:none;color:#fbbf24;}
+  html.dark #theme-icon-moon{display:none;}
+  html.dark #theme-icon-sun{display:block;}
+  #side-copilot:hover{filter:brightness(1.07);}
+  /* narrow shells: shed the "Jurisdiction:" caption first, then the switcher,
+     then the global search and the profile text */
+  @media (max-width:1620px){ #region-switch>span:first-child{display:none;} }
+  @media (max-width:1430px){ #region-switch{display:none!important;} }
+  @media (max-width:1000px){ .cmd-search{display:none!important;} #hdr-profile-meta{display:none!important;} .cmd-ai-label{display:none!important;} }
 
   @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}html{scroll-behavior:auto;}}
 
@@ -353,7 +416,7 @@
   #ai-feed > * + *{margin-top:16px;}
   #ai-panel > footer{padding:12px 20px 20px;}
   #ai-badge.pulse,.ai-badge-dot.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
-  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(89,128,166,.6);}50%{box-shadow:0 0 0 8px rgba(89,128,166,0);}}
+  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(13,148,136,.6);}50%{box-shadow:0 0 0 8px rgba(13,148,136,0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
@@ -521,29 +584,91 @@
 <div id="auth-root"></div>
 <div id="share-root"></div>
 
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:210px 1fr;background:var(--color-bg);">
+<!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
+     stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:240px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
 
-  <!-- ================= SIDEBAR (210px) ================= -->
-  <aside style="display:flex;flex-direction:column;background:#f6f8fc;border-right:1px solid var(--color-divider);min-height:0;">
-    <!-- brand block -->
-    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
-      <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
-      <div style="line-height:1.15;">
-        <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
-        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
+  <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
+  <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
+
+    <!-- brand + jurisdiction switcher -->
+    <div style="display:flex;align-items:center;gap:20px;min-width:0;">
+      <div style="display:flex;align-items:center;gap:11px;flex:none;">
+        <div id="brand-mark" style="width:40px;height:40px;border-radius:12px;background:var(--brand-grad);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(13,148,136,.55);">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h5M8 17h8"/></svg>
+        </div>
+        <div style="line-height:1.15;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em;">HaTi</span>
+            <span style="font-size:10px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 22%,transparent);color:var(--color-accent-600);font-weight:700;">CLM</span>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
+        </div>
+      </div>
+
+      <!-- Jurisdiction / compliance switcher (SE / KE) — presentation profile
+           only; wired in js/app.js (setRegion), persisted as 'hati-region' -->
+      <div id="region-switch" style="display:flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:3px;border-radius:12px;flex:none;">
+        <span style="font-size:11px;color:var(--color-neutral-500);padding:0 8px;font-weight:500;">Jurisdiction:</span>
+        <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span>🇸🇪</span> Sweden (EU/GDPR)</button>
+        <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span>🇰🇪</span> Kenya (KICA/ODPC)</button>
       </div>
     </div>
 
-    <nav id="nav" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;" class="scroll-thin">
+    <!-- central global search (filters the register; ⌘K opens the jump palette) -->
+    <div class="cmd-search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.45;flex:none;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="cmd-search" placeholder="Search contracts, clauses, counterparties…"/>
+      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-mono);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
+    </div>
+
+    <!-- right actions: Copilot · theme · notifications · profile -->
+    <div style="display:flex;align-items:center;gap:10px;flex:none;">
+      <button id="cmd-ai" title="Ask HaTi Copilot" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);color:var(--color-accent-600);cursor:pointer;font-family:var(--font-body);font-size:11.5px;font-weight:600;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
+        <span class="cmd-ai-label">Ask HaTi Intel</span>
+        <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
+      </button>
+
+      <button id="theme-toggle-btn" class="hdr-icon-btn" title="Toggle light / dark theme">
+        <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+
+      <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--accent-solid);border:2px solid var(--color-surface);"></span>
+      </button>
+
+      <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
+      <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
+        <button id="rail-avatar" title="Team &amp; settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
+          <span id="side-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--brand-grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;font-family:var(--font-heading);flex:none;border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);">AM</span>
+          <span id="hdr-profile-meta" style="line-height:1.25;min-width:0;">
+            <span id="side-name" style="display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Amina Mwangi</span>
+            <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Admin</span>
+          </span>
+        </button>
+        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" class="hdr-icon-btn" style="width:32px;height:32px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= SIDEBAR (240px) ================= -->
+  <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+
+    <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
       <!-- Collapsible sections: each header toggles its tabs open/closed. "Work"
            opens on login; the others start collapsed (see .open below). -->
       <div class="nav-section open" data-section="work">
-        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true">Work<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true">Core Workspace<span class="nav-plus"></span></button>
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-            <span style="flex:1;">Home</span><span class="nav-count" data-count="dashboard"></span>
+            <span style="flex:1;">Dashboard</span><span class="nav-count" data-count="dashboard"></span>
           </button>
           <button data-view="pipeline" class="nav-item" title="Queue">
             <span class="nav-rail"></span>
@@ -619,53 +744,43 @@
           <button data-view="intel" class="nav-item" title="Intel">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/></svg>
-            <span style="flex:1;">Intel</span><span class="nav-count" data-count="intel"></span>
+            <span style="flex:1;">Portfolio Intel</span><span class="nav-count" data-count="intel"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="settings">
-        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Settings<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Administration<span class="nav-plus"></span></button>
         <div class="nav-section-body">
           <button data-view="team" class="nav-item" title="Team">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span style="flex:1;">Team &amp; settings</span><span class="nav-count" data-count="team"></span>
+            <span style="flex:1;">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
           </button>
         </div>
       </div>
     </nav>
 
-    <!-- HaTi Copilot launcher — pinned above the footer, deliberately dark
-         blue (accent-800/900) so it stands off the light sidebar -->
-    <div class="copilot-wrap" style="padding:8px 10px;">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:9px 10px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.02em;box-shadow:0 2px 10px rgba(29,45,61,.28);transition:background .15s;" onmouseover="this.style.background='var(--color-accent-900)'" onmouseout="this.style.background='var(--color-accent-800)'">
+    <!-- HaTi Copilot launcher — pinned above the footer, on the brand gradient
+         so it stands off the surface in both themes -->
+    <div class="copilot-wrap" style="padding:8px 12px;">
+      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--brand-grad);color:#fff;border:0;border-radius:12px;padding:10px;cursor:pointer;font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:.01em;box-shadow:0 6px 16px -6px rgba(13,148,136,.55);transition:filter .15s;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
         <span class="sc-label">HaTi Copilot</span>
-        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
+        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
       </button>
     </div>
 
-    <!-- footer: live status + user -->
-    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
-      <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);">
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
-        <span id="side-status">Server mode · SQLite · 4 online</span>
-      </div>
-      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
-        <span style="width:7px;height:7px;border-radius:50%;background:#c79a3e;flex:none;"></span>
-        <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
-      </button>
-      <div class="foot-id" style="display:flex;align-items:center;gap:6px;min-width:0;">
-        <button id="rail-avatar" title="Team &amp; settings" style="flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
-          <span id="side-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-heading);flex:none;">AM</span>
-          <span class="foot-id-text" style="line-height:1.2;min-width:0;">
-            <span id="side-name" style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Amina Mwangi</span>
-            <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin</span>
-          </span>
-        </button>
-        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;color:var(--color-neutral-600);cursor:pointer;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#b0453c';this.style.borderColor='#e6c9c1'" onmouseout="this.style.color='var(--color-neutral-600)';this.style.borderColor='var(--color-divider)'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    <!-- footer: live status card (the profile badge lives in the top header) -->
+    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:12px;">
+      <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
+        <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);min-width:0;">
+          <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+          <span id="side-status" style="min-width:0;">Server mode · SQLite · 4 online</span>
+        </div>
+        <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
+          <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
         </button>
       </div>
     </div>
@@ -674,18 +789,14 @@
   <!-- ================= MAIN COLUMN ================= -->
   <div style="display:flex;flex-direction:column;min-width:0;min-height:0;">
 
-    <!-- Command bar (52px) -->
-    <header style="display:flex;align-items:center;gap:12px;padding:0 16px;height:52px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;">
+    <!-- View command bar (48px) — per-view title + working-set actions. The
+         global search and Copilot entry moved up into the top header. -->
+    <header style="display:flex;align-items:center;gap:12px;padding:0 20px;height:48px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;">
       <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
-        <h1 id="cmd-title" style="font-size:19px;margin:0;white-space:nowrap;">Portfolio</h1>
-        <span id="cmd-sub" style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw;"></span>
+        <h1 id="cmd-title" style="font-size:16px;margin:0;white-space:nowrap;font-weight:700;">Portfolio</h1>
+        <span id="cmd-sub" style="font-size:11px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw;"></span>
       </div>
       <div style="flex:1;"></div>
-      <div class="cmd-search">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.5;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="cmd-search" placeholder="Filter register…"/>
-        <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9px;border:1px solid var(--color-divider);padding:1px 5px;color:var(--color-neutral-600);font-family:var(--font-mono);border-radius:3px;background:var(--color-surface);cursor:pointer;">⌘K</button>
-      </div>
       <button id="cmd-export" class="ui-btn" title="Export the working set">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         Export
@@ -694,12 +805,8 @@
         <button id="cmd-new" class="ui-btn ui-btn-primary" style="padding:6px 14px;">
           + New contract
         </button>
-        <div id="new-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:5px;padding:6px;z-index:50;max-height:70vh;overflow-y:auto;"></div>
+        <div id="new-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:12px;padding:6px;z-index:50;max-height:70vh;overflow-y:auto;"></div>
       </div>
-      <button id="cmd-ai" class="ui-btn" title="Ask HaTi Copilot" style="position:relative;width:30px;height:30px;padding:0;background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
-        <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
-      </button>
       <button id="cmd-panel" class="ui-btn" title="Toggle context panel" style="width:30px;height:30px;padding:0;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M15 3v18"/></svg>
       </button>
