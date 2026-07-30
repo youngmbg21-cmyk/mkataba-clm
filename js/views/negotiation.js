@@ -3937,20 +3937,16 @@ function redlineLayoutCss(){
      sight: it holds #nego-send, which the header's Publish Round presses. */
   .redline-page .rl-turnwrap{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-  /* ---- ONE SHEET, NOT A CARD INSIDE A CARD ----
-     .rl-paper is the engine's .nego-doc, and that class draws a full panel of
-     its own: paper fill, a 1px rule, a radius and a card shadow, at a 720px
-     measure. Inside .rl-doc — which is already a framed, scrolling column —
-     that produced a second bordered sheet floating within the first, with the
-     page showing through the gutter between them.
-
-     So the inner wrapper gives up its chrome entirely. The document is drawn
-     directly onto the column: one continuous canvas from the title rule to the
-     last clause, which is how the master prototype sets it — a single
-     contract-page sheet, no nested frame. The column keeps the sheet's shadow,
-     see .rl-doc below, so the paper still reads as paper. */
-  .redline-page .rl-paper{padding:22px 24px 28px;max-width:none;
-    background:none;border:0;border-radius:0;box-shadow:none;margin:0}
+  /* ---- A CENTRED SHEET WITH GUTTERS, LIKE THE DOC PAGE ----
+     The Doc page floats the contract as a 660px paper sheet on the page
+     background, with air on both sides; this page used to draw the text
+     edge-to-edge across the whole column instead, so the same agreement read
+     as two different documents. The paper here now takes the Doc page's
+     shape: a bounded measure, centred, white, with the sheet's own shadow —
+     and the column behind it drops to the page background (see .rl-doc) so
+     the gutters read as page, not as card. */
+  .redline-page .rl-paper{padding:30px 36px 36px;max-width:720px;
+    background:var(--color-surface);border:0;border-radius:4px;box-shadow:var(--shadow-md);margin:0 auto}
   /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
      The engine reserves it — padding-left:100px on .nego-pane.working
      .nego-doc — because in the room the fingerprint badges hang there, outside
@@ -3963,9 +3959,9 @@ function redlineLayoutCss(){
      stylesheet is inserted BEFORE #nego-style in the head — at equal
      specificity the engine would win on order. The reference sets the sheet at
      p-6 (24px) all round; that is what this restores. */
-  .redline-page .nego-pane.working .rl-paper{padding-left:24px;padding-right:24px}
+  .redline-page .nego-pane.working .rl-paper{padding-left:36px;padding-right:36px}
   @media (max-width:1023px){
-    .redline-page .nego-pane.working .rl-paper{padding-left:18px;padding-right:18px}
+    .redline-page .nego-pane.working .rl-paper{padding-left:20px;padding-right:20px}
   }
   .redline-page .rl-paper-head{text-align:center;border-bottom:1px solid var(--color-divider);
     padding-bottom:14px;margin-bottom:18px}
@@ -4310,15 +4306,14 @@ function redlineLayoutCss(){
   }
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
-  /* The document column IS the sheet — the only frame around the contract text.
-     No border: the prototype's contract-page is a shadowed page, not a boxed
-     panel, and a rule here would put an edge line back around wording that
-     already sits inside .rl-paper's own margins. */
-  .redline-page .rl-doc{background:var(--color-surface);border:0;border-radius:12px;
-    box-shadow:0 10px 30px rgba(15,23,42,.10);min-height:0;overflow:hidden;
+  /* The document column is the canvas the sheet floats on — page background,
+     so the gutters either side of .rl-paper read the way the Doc page's do.
+     The sheet itself (.rl-paper above) carries the paper shadow. */
+  .redline-page .rl-doc{background:var(--color-bg);border:1px solid var(--color-divider);border-radius:12px;
+    box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;
     display:flex;flex-direction:column}
-  html.dark .redline-page .rl-doc{box-shadow:0 10px 30px rgba(0,0,0,.45)}
-  .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 4px}
+  html.dark .redline-page .rl-paper{box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:20px 24px 28px}
   .redline-page #rl-changes-col{border-radius:12px}
   .redline-page #rl-changes-col h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
