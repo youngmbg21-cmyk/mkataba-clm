@@ -3771,6 +3771,52 @@ function redlineLayoutCss(){
   .redline-page .rl-acc{background:var(--st-green-fg);color:#fff}
   .redline-page .rl-rej{background:var(--color-neutral-200);color:var(--color-neutral-700)}
 
+  /* Tracked Changes head, and the discussion column */
+  .redline-page .rl-idx-head{display:flex;align-items:center;gap:8px;padding:13px 14px;
+    border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-idx-head [hidden]{display:none!important}
+  .redline-page .rl-disc-toggle,.redline-page .rl-disc-x{border:1px solid var(--color-divider);
+    background:var(--color-neutral-100);border-radius:7px;padding:3px 8px;font:inherit;font-size:9.5px;
+    font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);cursor:pointer}
+  .redline-page .rl-disc-x{width:24px;height:24px;padding:0;line-height:1;font-size:13px;flex:none}
+  .redline-page .rl-sendslot:empty{display:none}
+  .redline-page .rl-sendslot{margin-left:auto}
+
+  .redline-page .rl-thread{border:1px solid var(--color-divider);border-radius:10px;padding:11px 12px;
+    margin-bottom:10px;background:var(--color-surface)}
+  .redline-page .rl-thread.is-internal{background:color-mix(in srgb,#f59e0b 6%,transparent);
+    border-color:color-mix(in srgb,#f59e0b 30%,transparent)}
+  .redline-page .rl-thread-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .redline-page .rl-vis{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px}
+  .redline-page .rl-vis.sh{background:var(--st-steel-bg);color:var(--st-steel-fg)}
+  .redline-page .rl-vis.int{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .redline-page .rl-thread-state{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
+    background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .redline-page .rl-thread-ref{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:8px}
+  .redline-page .rl-msg{margin-bottom:9px}
+  .redline-page .rl-msg-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+    font-size:11px;margin-bottom:2px}
+  .redline-page .rl-msg-top span{color:var(--color-neutral-500);font-size:10px}
+  .redline-page .rl-msg p{margin:0;font-size:11.5px;line-height:1.6;color:var(--color-text)}
+  .redline-page .rl-reply,.redline-page .rl-starter{margin-top:9px}
+  .redline-page .rl-starter{border-top:1px solid var(--color-divider);padding:11px 14px;flex:none}
+  .redline-page .rl-reply-row{display:flex;align-items:center;gap:6px}
+  .redline-page .rl-reply-row input{flex:1;min-width:0;border:1px solid var(--color-divider);
+    background:var(--color-neutral-100);border-radius:8px;padding:6px 10px;font:inherit;font-size:11.5px;
+    color:inherit;outline:none}
+  .redline-page .rl-reply-row input:focus{border-color:var(--color-accent-500)}
+  .redline-page .rl-reply-row button{flex:none;width:28px;height:28px;border:0;border-radius:8px;
+    background:var(--accent-solid);color:#fff;cursor:pointer;font-size:13px}
+  .redline-page .nego-visswitch{display:flex;gap:4px;margin-bottom:6px}
+  .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:7px;padding:3px 8px;font:inherit;font-size:10px;font-weight:600;cursor:pointer;
+    color:var(--color-neutral-600)}
+  .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
+    border-color:var(--accent-solid)}
+  .redline-page .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
+  .redline-page.disc-off .rl-disc{display:none}
+  .redline-page.disc-off .rl-grid{grid-template-columns:minmax(0,1.9fr) minmax(280px,.95fr)}
+
   /* the design's three columns */
   .redline-page .rl-grid{flex:1;min-height:0;display:grid;gap:14px;
     grid-template-columns:minmax(0,1.9fr) minmax(260px,.85fr) minmax(260px,.9fr);align-items:stretch}
@@ -3882,7 +3928,10 @@ function renderRedline(){
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
-  redlineWireDiscussion(c, mount);
+  host.querySelectorAll('[data-redline-disc]').forEach(el => el.addEventListener('click', () => {
+    const page = host.querySelector('.redline-page');
+    if (page) page.classList.toggle('disc-off');
+  }));
   redlineSyncProxies(host);
 }
 
@@ -3926,7 +3975,12 @@ function redlineDocHtml(c, opts = {}){
         title="Propose different wording for this clause">&#9998; Propose edit</button>` : ''}
     </section>`;
   }).join('');
-  return `<article class="rl-paper">
+  /* nego-doc is required, not cosmetic: the Copilot selection menu (the three
+     NEGO_AI_ACTIONS — rephrase for advantage, explain legal risk, shorten
+     wording) only opens when the selection sits inside
+     `.nego-pane.working .nego-doc`. Without this class the AI redlining is
+     silently unreachable on this page. */
+  return `<article class="nego-doc rl-paper">
     <header class="rl-paper-head">
       <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
       <p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>
@@ -3985,8 +4039,9 @@ function redlineWallHtml(c, opts = {}){
   const bits = [];
   if (internal) bits.push(`<b>${internal} internal thread${internal === 1 ? '' : 's'}</b>`);
   if (unsent) bits.push(`<b>${unsent} unsent draft${unsent === 1 ? '' : 's'}</b>`);
+  const n = internal + unsent;
   const lead = bits.length
-    ? `${bits.join(' &middot; ')} stay behind when you share.`
+    ? `${bits.join(' &middot; ')} ${n === 1 ? 'stays' : 'stay'} behind when you share.`
     : 'Nothing is behind the wall right now.';
   return `<div class="rl-wall" role="status">
     <span class="rl-wall-ic">&#128274;</span>
@@ -3999,6 +4054,7 @@ function redlineWallHtml(c, opts = {}){
 function redlinePanesHtml(c, opts = {}){
   const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
   const canAct = !opts.readonly;
+  const threadTotal = redlineThreads(c, opts).length;
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -4019,19 +4075,20 @@ function redlinePanesHtml(c, opts = {}){
       </section>
 
       <aside class="nego-pane index rl-col" id="nego-index" aria-label="Tracked changes">
-        <div class="nego-index-head">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-            <h3 style="flex:1;min-width:0;margin:0">Tracked Changes</h3>
-            <span class="nego-count" id="nego-count">${p.pending || p.total}</span>
-            <button class="nego-fold" id="nego-fold" hidden>Hide</button>
-          </div>
-          <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
-          <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+        <div class="nego-index-head rl-idx-head">
+          <h3 style="flex:1;min-width:0;margin:0">Tracked Changes</h3>
+          <button type="button" class="rl-disc-toggle" data-redline-disc>Discussion ${threadTotal}</button>
+          ${''/* kept for the engine's wiring and the header proxies; the design
+                 carries these controls in the page header instead */}
+          <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
+          <button class="nego-fold" id="nego-fold" hidden>Hide</button>
+          <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
+          <div id="nego-progress" hidden>${p.done} of ${p.total} resolved</div>
           ${canAct ? `<div class="nego-bulk">
             <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>
             <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
           </div>` : ''}
-          ${negoIndexSendHtml(c, opts)}
+          <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
         </div>
         <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}${redlineChangeCardsHtml(c, opts)}</div>
       </aside>
@@ -4043,44 +4100,101 @@ function redlinePanesHtml(c, opts = {}){
   </div>`;
 }
 
-/* The third column. It is the SAME discussion the contract page runs — the
-   shared/internal threads from js/discuss.js — not a redline-local chat, so a
-   thread raised here is the thread the contract already has.
-   Discussion is a server-mode feature (the messages live on the workspace, not
-   in this browser), exactly as it is on the contract page, so in local mode the
-   column says so rather than pretending to be an empty conversation. */
+/* THE THIRD COLUMN — the threads that hang off the changes.
+   Not the workspace-wide message board: the design's cards each name a change
+   ("Change L-001 · 2. Payment Terms"), which is the engine's per-change thread.
+   Those live on the contract, so unlike the workspace board they work in local
+   mode too.
+   The markup is the design's; the controls are the engine's. The reply box
+   carries id="nego-ti-<change>" and data-nego-send, and the visibility switch
+   carries data-nego-vis — the same attributes negoLiveCardsHtml emits — so
+   wireNegotiationTab binds the send, the internal/shared choice and the
+   validation without any of it being reimplemented here. */
+function redlineThreads(c, opts = {}){
+  const changes = (typeof negoChanges === 'function')
+    ? negoChanges(c).filter(x => x.status !== 'superseded') : [];
+  return changes.map(ch => ({
+    ch,
+    msgs: window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (ch.thread || []),
+  })).filter(t => t.msgs.length);
+}
 function redlineDiscussionHtml(c, opts = {}){
-  const head = n => `
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
+  const threads = redlineThreads(c, opts);
+  const changes = (typeof negoChanges === 'function')
+    ? negoChanges(c).filter(x => x.status !== 'superseded') : [];
+  const head = `
     <div class="rl-disc-head">
       <h3>Discussion</h3>
-      ${n ? `<span class="rl-disc-n">${n} thread${n === 1 ? '' : 's'}</span>` : ''}
+      ${threads.length ? `<span class="rl-disc-n">${threads.length} thread${threads.length === 1 ? '' : 's'}</span>` : ''}
+      <button type="button" class="rl-disc-x" data-redline-disc title="Collapse discussion">&rsaquo;</button>
     </div>`;
-  if (!window.discussPanelHtml || !(window.API_MODE && API_MODE())) return `
-    ${head(0)}
-    <div class="rl-disc-empty">
-      Threads are kept on the workspace, so the conversation appears when HaTi is
-      running with its server. Change marks and decisions on the left work either way.
-    </div>`;
-  const msgs = c._messages || [];
-  const topics = window.discussTopics ? discussTopics(c, window.docPlainText ? docPlainText(c) : '') : [];
-  const groups = window.discussGroups ? discussGroups(msgs) : [];
-  return `${head(groups.length)}
-    <div class="rl-disc-body">${discussPanelHtml({
-      messages: msgs, topics, mine: opts.side === 'counterparty' ? 'counterparty' : 'owner',
-      idp: 'rl-discuss', title: '', blurb: '',
-      disabled: !!(window.canEdit && !canEdit()),
-      disabledNote: 'Viewers can read this conversation but cannot post to it.',
-    })}</div>`;
+  if (!changes.length) return `${head}
+    <div class="rl-disc-empty">Threads attach to a change. Propose an edit on the left and the conversation about it lands here.</div>`;
+
+  const card = ({ ch, msgs }) => {
+    const anyShared = msgs.some(m => m.visibility === 'shared');
+    const decided = ch.status === 'accepted' || ch.status === 'rejected';
+    const body = msgs.map(m => {
+      const shared = m.visibility === 'shared';
+      return `<div class="rl-msg${shared ? '' : ' is-internal'}">
+        <div class="rl-msg-top"><b>${_ne(m.who || 'Someone')}</b><span>${_ne(negoWhen(m.at))}</span></div>
+        <p>${_ne(m.text || '')}</p>
+      </div>`;
+    }).join('');
+    return `<article class="rl-thread${anyShared ? '' : ' is-internal'}">
+      <div class="rl-thread-top">
+        <span class="rl-vis ${anyShared ? 'sh' : 'int'}">${anyShared ? '&#127760; Shared' : '&#128274; Internal'}</span>
+        <span class="rl-thread-state">${decided ? (ch.status === 'accepted' ? 'Accepted' : 'Rejected') : 'Open'}</span>
+      </div>
+      <div class="rl-thread-ref">Change ${_ne(ch.id)}${ch.clauseLabel ? ' &middot; ' + _ne(ch.clauseLabel) : ''}</div>
+      ${body}
+      ${canComment ? `<div class="rl-reply">
+        <div class="nego-visswitch" role="group" aria-label="Who can read this reply">
+          <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">&#128274; Internal</button>
+          <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
+        </div>
+        <div class="rl-reply-row">
+          <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"/>
+          <button data-nego-send="${_ne(ch.id)}" title="Send this reply">&uarr;</button>
+        </div>
+      </div>` : ''}
+    </article>`;
+  };
+
+  /* Starting a thread on a change that has none yet: the design's composer at
+     the foot of the column. It targets the same per-change reply the cards use,
+     so a first message is filed exactly like a reply. */
+  const silent = changes.filter(ch => !(window.negoMergedThread
+    ? negoMergedThread(c, ch, opts.messages) : (ch.thread || [])).length);
+  const starter = (canComment && silent.length) ? `
+    <div class="rl-starter">
+      <div class="nego-visswitch" role="group" aria-label="Who can read this">
+        <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(silent[0].id)}" aria-pressed="true">&#128274; Internal</button>
+        <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(silent[0].id)}" aria-pressed="false">&#127760; Shared</button>
+      </div>
+      <div class="rl-reply-row">
+        <input type="text" id="nego-ti-${_ne(silent[0].id)}" placeholder="Start a thread on ${_ne(silent[0].id)}…" aria-label="Start a thread on change ${_ne(silent[0].id)}"/>
+        <button data-nego-send="${_ne(silent[0].id)}" title="Start the thread">&uarr;</button>
+      </div>
+      <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>
+    </div>` : '';
+
+  return `${head}
+    <div class="rl-disc-body">
+      ${threads.length ? threads.map(card).join('')
+        : `<div class="rl-disc-empty">No one has said anything yet. Start a thread below and it stays attached to that change.</div>`}
+    </div>
+    ${starter}`;
 }
-function redlineWireDiscussion(c, mount){
-  if (!window.wireDiscussPanel || !(window.API_MODE && API_MODE())) return;
-  if (!mount.querySelector('#rl-disc-col [data-discuss-topic], #rl-disc-col form, #rl-disc-col textarea, #rl-disc-col input')) return;
-  const topics = window.discussTopics ? discussTopics(c, window.docPlainText ? docPlainText(c) : '') : [];
-  /* Posting goes through the contract page's own sender when it is available,
-     so a message raised here is filed and delivered the one way messages are. */
-  const send = window.postDiscussMessage ? (m => postDiscussMessage(c, m)) : null;
-  if (!send) return;
-  wireDiscussPanel({ idp: 'rl-discuss', topics, send, onSent: () => renderRedline() });
+/* A timestamp a person can read, falling back to the raw value rather than
+   inventing one when the record has no parseable date. */
+function negoWhen(at){
+  const t = Date.parse(at || '');
+  if (isNaN(t)) return '';
+  const d = new Date(t);
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 /* Mirror the engine's own enablement onto the header buttons, so the header
    never offers an action the workbench itself is refusing. */
@@ -4095,7 +4209,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
-  redlinePanesHtml, redlineDiscussionHtml, redlineWireDiscussion, redlineDocHtml, redlineChangeCardsHtml,
+  redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
