@@ -1803,23 +1803,17 @@ function labModeBannerHtml(c, lab, side, external){
     <div class="lab-mode is-sandbox" role="status">
       <b>🔒 Internal sandbox drafting</b>
       <span style="flex:1;min-width:180px">${unsent.length} draft${unsent.length === 1 ? '' : 's'} still on your desk${
-        stacked > 0 ? `, across ${roundClauses.length} clause${roundClauses.length === 1 ? '' : 's'} — ${stacked} ${stacked === 1 ? 'is a colleague stacking on' : 'are colleagues stacking on'} another's wording` : ''}. ${other} cannot see ${unsent.length === 1 ? 'it' : 'them'} and cannot answer until you send.</span>
-      <button class="ui-btn ui-btn-primary" id="lab-publish-round"
-        style="font-size:11.5px;padding:4px 11px"
-        title="Collapses each clause's internal stack into one clean diff from the last agreed wording, and sends the lot as one turn">📤 Publish Round${
-          roundClauses.length ? ` (${roundClauses.length} clause${roundClauses.length === 1 ? '' : 's'})` : ''}</button>
+        stacked > 0 ? `, across ${roundClauses.length} clause${roundClauses.length === 1 ? '' : 's'} — ${stacked} ${stacked === 1 ? 'is a colleague stacking on' : 'are colleagues stacking on'} another's wording` : ''}. ${other} cannot see ${unsent.length === 1 ? 'it' : 'them'} and cannot answer until you send — <b>Publish Round</b> in the header above sends ${roundClauses.length === 1 ? 'it' : 'them'}.</span>
     </div>` : `
     <div class="lab-mode is-published" role="status">
       <b>🌐 Counterparty published round</b>
       <span style="flex:1;min-width:180px">Everything on the table has been sent to ${other}. Nothing here is private.</span>
     </div>`;
-  /* The two batch actions live in the same banner, because what they do depends
-     entirely on which of the two states you are in. */
-  const acts = (split.clear.length || split.theirs.length) ? `
+  /* Accept All Non-Risk and Publish Round moved up to the never-collapsing
+     header strip (labStatusHeaderHtml) to match the master design; the banner
+     keeps the action that has no header seat, and the held-back count. */
+  const acts = (split.theirs.length || split.held.length) ? `
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:8px">
-      <button class="ui-btn" id="lab-batch-acc"${split.clear.length ? '' : ' disabled'}
-        style="font-size:11.5px;padding:4px 11px;border-color:#1e6b4d;color:#1e6b4d"
-        title="Accepts only the pending changes that trip no playbook, scan or rewrite signal — the rest are held back for you to read">Accept All Non-Risk Redlines${split.clear.length ? ` (${split.clear.length})` : ''}</button>
       <button class="ui-btn" id="lab-batch-rej"${split.theirs.length ? '' : ' disabled'}
         style="font-size:11.5px;padding:4px 11px;border-color:#b0453c;color:#b0453c"
         title="Rejects every pending change proposed by the other side. Your own drafts are untouched.">Reject All Counterparty Redlines${split.theirs.length ? ` (${split.theirs.length})` : ''}</button>
@@ -1862,11 +1856,51 @@ function labHeaderCollapsed(){
 function labSetHeaderCollapsed(v){
   try{ localStorage.setItem(LAB_HEADER_KEY, v ? 'true' : 'false'); }catch(_){}
 }
+
+/* ---------- THE DISCUSSION PANE FOLDS AWAY ----------
+   The workbench is three columns on a desktop — document (6), tracked changes
+   (3), discussion (3), the master design's 12-column split — and the third one
+   is the first thing a reader working down a long redline wants out of the way.
+   Collapsing it re-deals the grid to 8 / 4: the document and the change cards
+   take the freed width, nothing is unmounted, and the way back is a Discussion
+   button that appears in the Tracked Changes header with the live thread count
+   on it. Pure class toggles, so open popovers, scroll positions and a note
+   somebody is half-way through writing all survive the fold.
+
+   Remembered per browser for the same reason the status header's fold is: the
+   person who wants the room wants it every time. */
+const LAB_DISC_KEY = 'doclab_disc_collapsed';
+function labDiscCollapsed(){
+  try{ return localStorage.getItem(LAB_DISC_KEY) === 'true'; }catch(_){ return false; }
+}
+function labSetDiscCollapsed(v){
+  try{ localStorage.setItem(LAB_DISC_KEY, v ? 'true' : 'false'); }catch(_){}
+}
+/* On window, because the toggle is invoked from inline onclick handlers in the
+   rendered markup — the same wiring the master design uses for this control. */
+window.rlToggleDiscussion = function(){
+  const grid = document.getElementById('rl-grid');
+  if(!grid) return;
+  const off = !grid.classList.contains('disc-off');
+  labSetDiscCollapsed(off);
+  grid.classList.toggle('disc-off', off);
+  const show = document.getElementById('rl-disc-show');
+  if(show) show.style.display = off ? '' : 'none';
+  /* The panes changed width, so anything floating over them is re-placed
+     against the wording it belongs to rather than where that wording was. */
+  if(typeof labRefloat === 'function') labRefloat();
+};
 function labStatusHeaderHtml(c, lab, side, external, held, payload){
   const collapsed = labHeaderCollapsed();
   const pending = (lab.changes || []).filter(x => x.status === 'pending');
   const unsent  = pending.filter(x => !x.sent && x.side === side);
   const sandbox = !external && unsent.length > 0;
+  /* The two round-level actions live HERE, in the strip that never collapses —
+     per the master design's header — not in the fold-away banner. Publish Round
+     hidden inside a collapsed detail pane was a round that could not be sent. */
+  const bsplit = external ? null : labBatchSplit(c, lab, side);
+  const roundClauses = [];
+  for(const d of unsent) if(!roundClauses.includes(d.clauseId)) roundClauses.push(d.clauseId);
   const other = esc(c.counterparty || 'the counterparty');
   const modeChip = external || !sandbox
     ? `<span class="doclab-modechip is-published" title="Everything on the table has been sent">🌐 ${external ? 'Counterparty published round' : 'Published round'}</span>`
@@ -1896,9 +1930,15 @@ function labStatusHeaderHtml(c, lab, side, external, held, payload){
           <button id="lab-side-them" class="ui-btn${side === LAB_THEM ? ' is-on' : ''}">Acting as them</button>
         </div>`}
         <div class="doclab-seg" role="group" aria-label="Whose view of the document">
-          <button id="lab-int" class="ui-btn${external ? '' : ' is-on is-accent'}">Your workspace</button>
-          <button id="lab-ext" class="ui-btn${external ? ' is-on is-accent' : ''}">Counterparty's view</button>
+          <button id="lab-int" class="ui-btn${external ? '' : ' is-on is-accent'}">Internal View</button>
+          <button id="lab-ext" class="ui-btn${external ? ' is-on is-accent' : ''}">Counterparty View</button>
         </div>
+        ${external ? '' : `
+        <button id="lab-batch-acc" class="ui-btn" type="button"${bsplit.clear.length ? '' : ' disabled'}
+          style="border-color:#1e6b4d;color:#1e6b4d"
+          title="Accepts only the pending changes that trip no playbook, scan or rewrite signal — the rest are held back for you to read">✨ Accept All Non-Risk${bsplit.clear.length ? ` (${bsplit.clear.length})` : ''}</button>
+        <button id="lab-publish-round" class="ui-btn ui-btn-primary" type="button"${unsent.length ? '' : ' disabled'}
+          title="Collapses each clause's internal stack into one clean diff from the last agreed wording, and sends the lot as one turn">📤 Publish Round${roundClauses.length ? ` (${roundClauses.length})` : ''}</button>`}
         <button id="lab-export-docx" class="ui-btn" type="button"
           title="Download the marked-up document as Word tracked changes. UI badges are stripped; every insertion and deletion arrives as w:ins / w:del.">⬇︎ Word</button>
         <button id="toggle-header-btn" class="ui-btn" type="button"
@@ -1915,7 +1955,7 @@ function labStatusHeaderHtml(c, lab, side, external, held, payload){
       <p class="doclab-detail-line">A copy of the document you can edit freely. Nothing here is saved to the contract or sent anywhere.${
         (held.threads || held.drafts) ? ` Staying behind if this were shared right now: <b>${held.threads} internal thread${held.threads === 1 ? '' : 's'}</b> (${held.messages} message${held.messages === 1 ? '' : 's'})${
           held.drafts ? ` and <b>${held.drafts} unsent draft change${held.drafts === 1 ? '' : 's'}</b>` : ''}. Switch to the counterparty's view to check.` : ''}</p>`}
-      ${labModeBannerHtml(c, lab, side, external)}
+      <div id="rl-banner">${labModeBannerHtml(c, lab, side, external)}</div>
     </div>
   </div>`;
 }
@@ -1971,19 +2011,22 @@ function labScrollWithin(pane, el){
 
 function labKeepScroll(cid){
   const doc = document.getElementById('lab-canvas');
-  const side = document.querySelector('.lab-sidepane');
-  if(!doc && !side) return null;
-  return { cid, doc: doc ? doc.scrollTop : null, side: side ? side.scrollTop : null };
+  const sides = Array.from(document.querySelectorAll('.lab-sidepane'));
+  if(!doc && !sides.length) return null;
+  /* BOTH side panes, in document order — tracked changes and discussion scroll
+     independently now, and each one's place is its own. */
+  return { cid, doc: doc ? doc.scrollTop : null, sides: sides.map(p => p.scrollTop) };
 }
 function labRestoreScroll(keep, cid){
   if(!keep || keep.cid !== cid) return;
   const doc = document.getElementById('lab-canvas');
-  const side = document.querySelector('.lab-sidepane');
+  const sides = Array.from(document.querySelectorAll('.lab-sidepane'));
   /* Setting scrollTop on an element that is not yet scrollable clamps to 0, so
      the panes must already have been given their height — wireDocLab does that
      synchronously before this runs. */
   if(doc && keep.doc) doc.scrollTop = keep.doc;
-  if(side && keep.side) side.scrollTop = keep.side;
+  const kept = keep.sides || (keep.side != null ? [keep.side] : []);
+  kept.forEach((v, i) => { if(sides[i] && v) sides[i].scrollTop = v; });
 }
 
 function renderDocLab(){
@@ -2156,12 +2199,24 @@ function renderDocLab(){
        The grid's height is set from JS against its own measured top rather than
        guessed at here with a magic offset, because the banner above it changes
        height with what it has to say. */
-    .lab-split{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(330px,1fr);
+    /* The master design's split, kept exactly: a 12-column grid dealing the
+       document 6, tracked changes 3 and discussion 3 — and, with the discussion
+       folded away (.disc-off), re-dealing to 8 / 4 with the third column
+       display:none rather than squeezed, so neither survivor inherits a
+       phantom scrollbar from a zero-width pane. */
+    .lab-split{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));
       gap:12px;align-items:stretch}
-    /* min-height:0 on both, or a grid child refuses to shrink below its content
-       and the panes grow the page instead of scrolling inside it. */
+    /* min-height:0 on all three, or a grid child refuses to shrink below its
+       content and the panes grow the page instead of scrolling inside it. */
     .lab-split > *{min-height:0}
-    .lab-docpane{display:flex;flex-direction:column;min-height:0}
+    .lab-docpane{display:flex;flex-direction:column;min-height:0;grid-column:span 6}
+    /* The column's layout lives HERE and not in a style attribute, because an
+       inline display would outrank .disc-off's display:none and the folded
+       pane would wrap to a phantom second row instead of leaving. */
+    .lab-sidepane{grid-column:span 3;display:flex;flex-direction:column;gap:12px;min-width:0}
+    .lab-split.disc-off .lab-docpane{grid-column:span 8}
+    .lab-split.disc-off #rl-changes-col{grid-column:span 4}
+    .lab-split.disc-off #rl-disc-col{display:none}
     /* The heading stays put and the document moves under it, so a reader who
        has scrolled to clause 14 can still see which copy they are looking at —
        the lab's own or the counterparty's. Getting that wrong is how internal
@@ -2174,6 +2229,10 @@ function renderDocLab(){
        gesture and the page underneath will not move. */
     @media (max-width: 900px){
       .lab-split{grid-template-columns:minmax(0,1fr);height:auto !important}
+      /* One column: every pane takes the full track, whatever it spans wide. */
+      .lab-split > *{grid-column:auto}
+      /* A folded discussion stays folded on a phone too — but the panes stack,
+         so the 8/4 re-deal is moot and only the display:none matters. */
       .lab-docpane #lab-canvas, .lab-sidepane{overflow:visible;max-height:none}
     }
 
@@ -2331,38 +2390,51 @@ function renderDocLab(){
        still is the whole of the job. */
     #app-shell{right:0 !important}
   </style>
-  <div class="view-enter" style="padding:0 0 24px;display:flex;flex-direction:column;gap:0">
+  <div id="view-redline" class="view-enter" style="padding:0 0 24px;display:flex;flex-direction:column;gap:0">
 
     ${labStatusHeaderHtml(c, lab, side, external, held, payload)}
 
     <div style="padding:12px 16px 0">
-    <div class="lab-split">
+    <div class="lab-split${labDiscCollapsed() ? ' disc-off' : ''}" id="rl-grid">
 
-      <section class="lab-docpane" style="${LAB_CARD};padding:18px 22px 0;min-width:0">
+      <section class="lab-docpane" id="rl-doc" style="${LAB_CARD};padding:18px 22px 0;min-width:0">
         <h6 style="${LAB_H6};margin-bottom:14px">Working document${external ? ' · as they see it' : ' · the lab’s own copy'}</h6>
         <div id="lab-canvas" class="document-canvas" style="font-family:var(--font-doc);color:var(--color-doc-text)">${labDocHtml(c, lab, side, external)}</div>
       </section>
 
-      <div class="lab-sidepane" style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="lab-sidepane" id="rl-changes-col">
 
         <section style="${LAB_CARD};padding:14px 16px">
-          <h6 style="${LAB_H6};margin-bottom:10px">Changes${external ? ' on the table' : ''}</h6>
-          ${changesToDraw.length
-            ? `<div style="display:flex;flex-direction:column;gap:8px">${changesToDraw.map(ch => labChangeCardHtml(ch, side, external)).join('')}</div>`
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+            <h6 style="${LAB_H6}">Tracked Changes${external ? ' on the table' : ''}</h6>
+            <button id="rl-disc-show" type="button" onclick="rlToggleDiscussion()" class="ui-btn"
+              style="font-size:10px;padding:2px 8px;flex:none${labDiscCollapsed() ? '' : ';display:none'}"
+              title="Show the discussion pane">💬 Discussion <span id="rl-rail-count">${threadsToDraw.length ? `(${threadsToDraw.length})` : ''}</span></button>
+          </div>
+          <div id="rl-changes" style="display:flex;flex-direction:column;gap:8px">${changesToDraw.length
+            ? changesToDraw.map(ch => labChangeCardHtml(ch, side, external)).join('')
             : `<div style="font-size:12px;color:var(--color-neutral-600);line-height:1.6">${external
                 ? 'Nothing has been sent to them yet.'
-                : 'No changes yet. Use <b>Change this clause</b> in the document, or seed a round below.'}</div>`}
+                : 'No changes yet. Use <b>Change this clause</b> in the document, or seed a round below.'}</div>`}</div>
         </section>
 
+      </div>
+
+      <div class="lab-sidepane" id="rl-disc-col">
+
         <section style="${LAB_CARD};padding:14px 16px">
-          <h6 style="${LAB_H6};margin-bottom:10px">Discussion${external ? ' · as they see it' : ''}</h6>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+            <h6 style="${LAB_H6}">Discussion${external ? ' · as they see it' : ''} <span id="rl-thread-count" style="font-weight:600;color:var(--color-neutral-500)">${threadsToDraw.length || ''}</span></h6>
+            <button type="button" onclick="rlToggleDiscussion()" class="ui-btn"
+              style="font-size:10px;padding:2px 8px;flex:none" title="Collapse discussion — the document and change cards take the width">›</button>
+          </div>
           ${labLinkedBarHtml(threadsToDraw)}
-          ${threadsToDraw.length
-            ? `<div style="display:flex;flex-direction:column;gap:9px">${labVisibleThreads(threadsToDraw).map(t => labThreadHtml(t, { owner: !external,
-                clauseId: labClauseOfChange(lab.changes, t.changeId) })).join('')}</div>`
+          <div id="rl-threads" style="display:flex;flex-direction:column;gap:9px">${threadsToDraw.length
+            ? labVisibleThreads(threadsToDraw).map(t => labThreadHtml(t, { owner: !external,
+                clauseId: labClauseOfChange(lab.changes, t.changeId) })).join('')
             : `<div style="font-size:12px;color:var(--color-neutral-600);line-height:1.6">${external
                 ? 'Nothing has been shared with them yet.'
-                : 'No threads yet. Write one below, or seed a round.'}</div>`}
+                : 'No threads yet. Write one below, or seed a round.'}</div>`}</div>
         </section>
 
         ${external ? `
@@ -2447,8 +2519,10 @@ function wireDocLab(c, lab, side, external){
     const thread = document.querySelector(`[data-lab-thread-change="${_labLinked}"]`);
     /* Within the sidebar only, for the same reason the clause pairing is: the
        badge's job is to bring the card into view, not to move the contract the
-       reader is looking at. */
-    labScrollWithin(document.querySelector('.lab-sidepane'), card || thread);
+       reader is looking at. THE TARGET'S OWN pane — cards and threads live in
+       different columns now, each with its own scrollbar. */
+    const linkTo = card || thread;
+    labScrollWithin(linkTo && linkTo.closest('.lab-sidepane'), linkTo);
   };
   /* ---------- PAIRING THE TWO SIDES ----------
      Click a clause and its cards and threads light up beside it; click a card
@@ -2479,7 +2553,7 @@ function wireDocLab(c, lab, side, external){
     if(from !== 'side'){
       const mate = document.querySelector(`[data-lab-card-clause="${_labFocus}"]`)
         || document.querySelector(`[data-lab-thread-clause="${_labFocus}"]`);
-      labScrollWithin(document.querySelector('.lab-sidepane'), mate);
+      labScrollWithin(mate && mate.closest('.lab-sidepane'), mate);
     }
   };
 
@@ -2648,9 +2722,10 @@ function wireDocLab(c, lab, side, external){
       });
     }
     /* A fixed-position layer does not move with a pane that scrolls under it,
-       so anything open is re-placed against its own wording. */
+       so anything open is re-placed against its own wording. All three panes:
+       the canvas and both side columns scroll independently. */
     for(const pane of [document.getElementById('lab-canvas'),
-                       document.querySelector('.lab-sidepane')]){
+                       ...document.querySelectorAll('.lab-sidepane')]){
       if(pane) pane.addEventListener('scroll', labRefloat, { passive: true });
     }
   }

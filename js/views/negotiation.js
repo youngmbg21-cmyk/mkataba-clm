@@ -355,8 +355,22 @@ function negoStyleHtml(){
   /* ---- the selection menu ----
      Anchored to the selection rather than to the pointer: a person who selects
      with the keyboard, or drags right-to-left, still gets the menu on the words
-     they chose. Fixed positioning because the pane it floats over scrolls. */
-  .nego-selmenu{position:fixed;z-index:60;display:flex;flex-direction:column;gap:1px;
+     they chose. Fixed positioning because the pane it floats over scrolls.
+
+     ---- WHY 66 AND NOT 60 ----
+     Both floating layers are appended to document.body, so their z-index is
+     read against the other body-level layers, and there are three of them:
+     .nego-room at 60, #ai-scrim at 65 while the room is open, #ai-panel at 70.
+
+     At 60 this menu was TIED with the room and only painted above it because
+     _negoKillSelMenu re-appends it last — order-of-DOM luck, not a rule. And
+     at 60/61 both layers sat UNDER the scrim, which is rgba(29,45,61,.35) with
+     a 2px backdrop blur and pointer-events:auto when open. Opening the Copilot
+     drawer undocked therefore dimmed and blurred the menu and the proposal
+     popover — the washed-out, unclickable state — rather than the page behind
+     them. Above the scrim, under the drawer: the menu stays crisp and live,
+     and the drawer still wins where the two actually overlap. */
+  .nego-selmenu{position:fixed;z-index:66;display:flex;flex-direction:column;gap:1px;
     min-width:236px;padding:5px;border-radius:9px;background:var(--n-paper);
     border:1px solid var(--n-line);box-shadow:0 10px 30px -8px rgba(20,32,48,.35)}
   .nego-selmenu button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;
@@ -372,7 +386,9 @@ function negoStyleHtml(){
      A proposal, never an edit. Nothing has moved when this is on screen: it
      shows the redline that WOULD be filed, and closing it leaves the document
      exactly as it was. */
-  .nego-aipop{position:fixed;z-index:61;width:min(460px,calc(100vw - 32px));
+  /* 67, one above the selection menu and one above the scrim — see the note on
+     .nego-selmenu for why the scrim is the layer that matters here. */
+  .nego-aipop{position:fixed;z-index:67;width:min(460px,calc(100vw - 32px));
     border-radius:11px;background:var(--n-paper);border:1px solid var(--n-line);
     box-shadow:0 18px 44px -12px rgba(20,32,48,.42);overflow:hidden}
   .nego-aipop header{display:flex;align-items:center;gap:8px;padding:11px 14px;
