@@ -2010,7 +2010,7 @@ function wsTabDefaults(c){
   }
 }
 function wsTabBtn(k,label,ic){
-  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 16px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:6px 14px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
 }
 /* The count of undecided changes, on the tab itself. A negotiation waiting on
    the reader is the one thing that must not be discoverable only by clicking. */
@@ -2465,7 +2465,10 @@ const WS_FOLD_KEY = () => { const u=(typeof currentUser==='function')&&currentUs
 const wsChromeFolded = () => { try{ return !!lsGet(WS_FOLD_KEY()); }catch(_){ return false; } };
 function applyWsCollapse(){
   const on=wsChromeFolded();
-  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':''; });
+  /* Restore the element's OWN display, not a bare '' — setting display:'' on
+     unfold wipes the inline `display:flex` these rows are laid out with, which
+     turns the status strip into a block and its flex spacer to zero width. */
+  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':(el.getAttribute('data-ws-display')||''); });
   const btn=document.getElementById('ws-collapse');
   if(btn){
     btn.setAttribute('aria-expanded', on?'false':'true');
@@ -2537,7 +2540,7 @@ function renderWorkspace(){
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
-        <div data-ws-fold="actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+        <div data-ws-fold="actions" data-ws-display="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
           <!-- Edit is GONE from this page. The Docs page reads, checks and signs;
                wording changes happen in the negotiation, where every one of them
                is a tracked change with a fingerprint someone has to decide. Two
@@ -2573,22 +2576,31 @@ function renderWorkspace(){
             title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
         </div>
       </div>
-      <div id="ws-actionbar" data-ws-fold="strip" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
     ${readyToSignStrip(c)}
     ${returnedChangesStrip(c)}
 
-    <!-- ============ WORKSPACE TABS: Docs · Redline ============
+    <!-- ============ TABS + STATUS, ONE ROW: Docs · Redline · next action ============
          Two ways of working on one contract. Docs is this page — the document,
          the review panel, signing. Redline hands the contract to the workbench
          at view-redline, where the wording is negotiated as tracked changes
          with a fingerprint on each one. The count beside it is the number of
          changes waiting on a decision, so a negotiation that needs an answer is
-         never discoverable only by clicking. -->
-    <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm);align-self:flex-start">
-      ${wsTabBtn('docs','Docs','file')}
-      ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
+         never discoverable only by clicking.
+
+         The status strip ("Drafting — add the counterparty and value…") used
+         to be a full-width band inside the header card, with this tab switcher
+         on a band of its own below it — two tiers of chrome before the first
+         line of the contract. It now sits INLINE on the tab row, flat, with no
+         card of its own: same chip, same guidance, same next-action button,
+         one row instead of two. -->
+    <div style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:3px;box-shadow:var(--shadow-sm)">
+        ${wsTabBtn('docs','Docs','file')}
+        ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
+      </div>
+      <div id="ws-actionbar" data-ws-fold="strip" data-ws-display="flex" style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
     </div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->

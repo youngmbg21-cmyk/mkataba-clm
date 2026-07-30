@@ -354,42 +354,6 @@ function regGroupFamilies(cs){
   return out;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-/* Measure the stream-filter row and fold any pills that don't fit into a
-   "More ▾" dropdown. Runs after each full render and on window resize, so the
-   chips stay on one line no matter how many custom streams get added. */
-function layoutStreamPills(){
-  const R=regState();
-  const row=document.getElementById('reg-streams');
-  const wrap=document.getElementById('reg-more-wrap');
-  const menu=document.getElementById('reg-more-menu');
-  const moreBtn=document.getElementById('reg-more');
-  if(!row||!wrap||!menu) return;
-  const pills=Array.from(row.children);
-  pills.forEach(p=>{ p.style.display=''; });
-  menu.innerHTML=''; menu.classList.add('hidden'); wrap.style.display='none';
-  if(moreBtn){ moreBtn.style.borderColor='var(--color-divider)'; moreBtn.style.background='var(--color-surface)'; moreBtn.style.color='var(--color-neutral-700)'; }
-  const avail=row.getBoundingClientRect().width;
-  if(!avail) return;
-  const gap=6, widths=pills.map(p=>p.getBoundingClientRect().width);
-  const total=widths.reduce((s,w,i)=>s+w+(i?gap:0),0);
-  if(total<=avail) return;              // everything fits on one line — no More needed
-  const reserve=74;                     // room reserved for the "More ▾" button
-  let used=0; const hidden=[];
-  pills.forEach((p,i)=>{ used+=widths[i]+(i?gap:0); if(used>avail-reserve) hidden.push(p); });
-  if(!hidden.length) return;
-  wrap.style.display='';
-  let activeHidden=false;
-  hidden.forEach(p=>{ p.style.display='none';
-    const k=p.getAttribute('data-reg-type'); const on=p.getAttribute('data-active')==='1'; if(on) activeHidden=true;
-    const item=document.createElement('button'); item.type='button'; item.setAttribute('data-reg-type',k); item.textContent=p.textContent;
-    item.style.cssText='display:block;width:100%;text-align:left;white-space:nowrap;border:0;background:'+(on?'var(--color-accent-100)':'none')+';font:inherit;font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer;color:'+(on?'var(--color-accent-800)':'var(--color-neutral-700)')+';font-weight:'+(on?'600':'400');
-    item.addEventListener('mouseenter',()=>{ if(!on) item.style.background='var(--color-neutral-100)'; });
-    item.addEventListener('mouseleave',()=>{ if(!on) item.style.background='none'; });
-    item.addEventListener('click',()=>{ R.type=k; R.page=1; renderRegister(); });
-    menu.appendChild(item);
-  });
-  if(moreBtn && activeHidden){ moreBtn.style.borderColor='var(--color-accent)'; moreBtn.style.background='var(--color-accent)'; moreBtn.style.color='#fff'; }
-}
 // Row ⋯ actions — label + which real handler runs. All close the menu first.
 const REG_ROW_ACTIONS=[
   {k:'open',   label:'Open workspace'},
@@ -522,11 +486,19 @@ function regExportCsv(){
 function renderRegister(){
   const R=regState(); R.page=1;
   const cs=regFiltered();
-  // Industry filter pill: accent fill when active, hairline box + accent-border hover when not.
-  const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:999px;cursor:pointer`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
-  const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
-  const typePills=regTypes().map(t=>`<button class="reg-pill" data-reg-type="${t.k}" data-active="${R.type===t.k?'1':'0'}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
+  /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
+     Stages, streams and saved views used to be three full-width rows of pills
+     (plus a legend band and an export band) stacked above the table — the
+     register's own data started below the fold. Each filter is now a compact
+     dropdown on a single row; an active one carries the accent border so a
+     narrowed set is still visible at a glance, and Clear puts everything back. */
+  const selFilter=(id,opts,active,title)=>`<select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select>`;
+  const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
+  const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
+  const viewOpts=`<option value="" ${R.view?'':'selected'}>Saved views</option>`
+    +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all');
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -534,9 +506,9 @@ function renderRegister(){
     ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
   const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="Sort by ${label}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
-  const viewPills=REG_VIEWS.map(v=>`<button class="reg-pill" data-reg-view="${v.k}" style="${pill(R.view===v.k)}">${v.label}</button>`).join('');
+  const renewalActive=!!(R.renewal&&R.renewal!=='all');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
-    <select id="reg-renewal" style="${selStyle}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
   const ftsBlock=API_MODE()?`
@@ -575,49 +547,27 @@ function renderRegister(){
       .reg-actlink{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;
         color:var(--color-accent-600);cursor:pointer;padding:0}
       .reg-actlink:hover{text-decoration:underline}
-      .reg-pill:hover{border-color:var(--color-accent)}
       .reg-th-sort:hover{color:var(--color-accent-700)!important}
       .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
       .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
-    <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
-      <!-- filter row 1: stage pills · Sort -->
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-        ${stagePills}
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+      <!-- THE ONE FILTER BAR: stage · stream · saved view · renewal · clear,
+           then sort, full-text search (server mode) and the export — a single
+           compact strip where three tiers of pills used to stack, so the table
+           itself starts above the fold. -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
+        ${selFilter('reg-type-sel',typeOpts,R.type!=='all','Value stream')}
+        ${selFilter('reg-view-sel',viewOpts,!!R.view,'Saved views — expiry, auto-renewal and obligation presets')}
+        ${renewalSel}
+        ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">Clear</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">Sort
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
-      </div>
-      <!-- filter row 2: stream pills on their own full-width line, overflow → More ▾ -->
-      <div id="reg-streambar" style="display:flex;gap:6px;align-items:center;min-width:0;position:relative">
-        <div id="reg-streams" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow:hidden;min-width:0;flex:1">${typePills}</div>
-        <div id="reg-more-wrap" style="position:relative;flex:none;display:none">
-          <button id="reg-more" type="button" class="reg-pill" style="${pill(false)}">More ▾</button>
-          <div id="reg-more-menu" class="hidden" style="position:absolute;top:calc(100% + 4px);right:0;z-index:40;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:6px;min-width:180px;max-height:300px;overflow:auto"></div>
-        </div>
-      </div>
-      <!-- secondary controls: saved views · renewal · full-text (server mode) -->
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
-          <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-right:2px">Saved views</span>
-          ${viewPills}
-          ${R.view?`<button data-reg-view="" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;margin-left:2px">clear</button>`:''}
-        </div>
-        <span style="flex:1;min-width:8px"></span>
-        ${renewalSel}
         ${ftsBlock}
-      </div>
-      <!-- legend: explains the coloured row edge-stripe (value stream) -->
-      <div style="padding-top:2px;border-top:1px solid var(--color-divider)">${folderLegendHtml({style:'padding-top:8px'})}</div>
-
-      <!-- The reference's one header control. It used to be a bar that appeared
-           only once rows were ticked; the tick column is gone with the move to
-           the reference's seven, so the button is always here and exports the
-           set the filters are showing — which is what the footer has always
-           claimed it did. -->
-      <div style="display:flex;justify-content:flex-end">
-        <button id="reg-export" class="ui-btn" style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:6px 12px">${icon('download','w-3.5 h-3.5')} Export CSV</button>
+        <button id="reg-export" class="ui-btn" title="Exports the set the filters are showing" style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:5px 12px;flex:none">${icon('download','w-3.5 h-3.5')} Export CSV</button>
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
@@ -646,6 +596,9 @@ function renderRegister(){
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:11px;color:var(--color-neutral-600)">
           <span id="reg-showing">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
+          <!-- the legend explains the coloured row edge-stripe, so it lives
+               with the table it annotates rather than as a band above it -->
+          ${folderLegendHtml({style:'font-size:10.5px'})}
           <span>${REG_PAGE} per page · CSV export respects filters</span>
         </div>
       </section>
@@ -659,8 +612,7 @@ function renderRegister(){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
-  document.getElementById('reg-more')?.addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('reg-more-menu')?.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; renderRegister(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
@@ -670,13 +622,12 @@ function renderRegister(){
     if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }
     R.page=1; renderRegister();
   }));
-  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegisterBody(); });
-  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.page=1; renderRegister(); }));
-  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.page=1; renderRegister(); }));
-  document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.page=1; renderRegister(); }));
+  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; renderRegister(); });
   document.getElementById('reg-export')?.addEventListener('click',regExportCsv);
-  layoutStreamPills();
-  if(!window._regStreamResizeBound){ window._regStreamResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='register') layoutStreamPills(); }); }
   setActiveNav('register');
 }
 
@@ -700,4 +651,4 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows,layoutStreamPills});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows});
