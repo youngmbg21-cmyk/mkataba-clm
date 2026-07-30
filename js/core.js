@@ -2514,7 +2514,17 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
-    if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){
+    const routeDone = window.allSigned && allSigned(c);
+    /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
+       plan can still arrive here holding both parties' marks — ours recorded
+       outside the single-signer path (a migration, an off-platform mark), and
+       theirs landing now through the share link. Leaving it unsealed meant a
+       fully signed contract that never froze, never fingerprinted and never
+       sent anybody their copy. The route check stays first and stricter: while
+       a plan exists, only its completion seals. */
+    const bothDone = (!window.signerPlan || !signerPlan(c).length)
+      && window.bothPartiesSigned && bothPartiesSigned(c);
+    if((routeDone || bothDone) && c.status!=='Signed' && window.finalizeExecution){
       c.lastAction=todayStr(); persist(c);
       await finalizeExecution(c, { silent:!!opts.background });
       return true;

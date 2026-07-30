@@ -2609,7 +2609,12 @@ function openNegotiationRoom(c, opts = {}){
     ['nego-cp-decline', 'onDecline'],
     ['nego-issue-signing', 'onIssueSigningLink'],
     ['nego-send-decisions', 'onSendDecisions']]){
-    roomId(id)?.addEventListener('click', () => {
+    const el = roomId(id);
+    /* wireNegotiationTab wires the hand-off itself now — see the negoWired
+       guard there — so this only binds what is still unwired. */
+    if (!el || el.dataset.negoWired) continue;
+    el.dataset.negoWired = '1';
+    el.addEventListener('click', () => {
       if (typeof opts[hook] === 'function') opts[hook](c);
       else if (window.toast) toast('That action is not available on this screen', 'err');
     });
@@ -3209,6 +3214,22 @@ function wireNegotiationTab(c, opts = {}){
     if (typeof opts.onShareLink === 'function') opts.onShareLink(c, { purpose: 'negotiate' });
     else if (typeof window.openShareModal === 'function') openShareModal(c, { purpose: 'negotiate' });
   });
+
+  /* THE HAND-OFF, wired wherever the readiness banner renders. This lived only
+     in the retired room's chrome (openNegotiationRoom), so on the workbench
+     page — the only owner surface left — the banner's one button, "Issue a
+     signing link", did nothing. Found in the cross-party audit: an aligned
+     negotiation could not be moved to signature from the page it was
+     negotiated on. Guarded per element because the room's own wiring may run
+     on the same host. */
+  const issue = byId('nego-issue-signing');
+  if (issue && !issue.dataset.negoWired){
+    issue.dataset.negoWired = '1';
+    issue.addEventListener('click', () => {
+      if (typeof opts.onIssueSigningLink === 'function') opts.onIssueSigningLink(c);
+      else if (window.toast) toast('That action is not available on this screen', 'err');
+    });
+  }
 
   const send = host.querySelector('#nego-send');
   if (send) send.addEventListener('click', () => {
@@ -4438,6 +4459,18 @@ function renderRedline(){
        appearing the moment there is an address to remember. */
     contact: (window.counterpartyContact
       ? counterpartyContact(c, (window.cachedShares ? cachedShares(c) : [])) : null),
+    /* THE EMAIL IS SET ONCE, HERE. The strip that records it renders in the
+       banner slot (see redlinePanesHtml) until a contact exists, and never
+       again after — every later send goes straight to the standing link. */
+    onSetCounterparty(x){
+      c.counterpartyEmail = String((x && x.email) || '').trim();
+      if (x && x.name) c.counterpartyName = x.name;
+      if (window.logAudit) logAudit(c, 'Negotiation',
+        `Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
+      if (window.persist) persist(c);
+      if (window.toast) toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
+      renderRedline();
+    },
     async onSendDirect(){
       const to = c.counterpartyName || c.counterparty || 'the counterparty';
       const btns = [...document.querySelectorAll('#view-redline [data-rl-send], #view-redline [data-rl-blast]')];
@@ -4491,6 +4524,46 @@ function renderRedline(){
       if (window.persist) persist(c);
       if (window.toast) toast(`Handed back to ${who} — it is now their turn`);
       renderRedline();
+    },
+    /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
+       negoPostComment writes it onto our record, which is what this page's
+       thread reads — and on this page that was the whole of it, so an answer
+       typed here reached the counterparty only when the next round happened
+       to refresh their link. Found in the cross-party audit: the owner
+       confirmed a point in the thread and Erik's page never showed it. It
+       goes down the discussion channel as well, under the change's own
+       topic, which is the store their page reads live. */
+    async onComment(_c, ch, msg){
+      if (!window.API_MODE || !API_MODE() || !ch) return;
+      try{
+        const res = await api('contracts/' + c.id + '/messages', 'POST', {
+          topic: (window.negoTopicFor ? negoTopicFor(ch) : 'change:' + ch.id),
+          topicLabel: `Change #${ch.id}${ch.clauseLabel ? ' · ' + ch.clauseLabel : ''}`,
+          body: msg.text });
+        c._messages = (res && res.messages) || c._messages || [];
+        if (window.toast) toast(`Comment posted on #${ch.id} — ${c.counterparty || 'the counterparty'} sees it on the same change. The contract is unchanged.`);
+      }catch(e){
+        if (window.toast) toast(`Saved on the change, but it could not be sent to ${c.counterparty || 'the counterparty'}: ${(e && e.message) || 'the message channel is unavailable'}`, 'err');
+      }
+    },
+    /* ---- THE HAND-OFF LIVES HERE NOW ----
+       The readiness banner's "Issue a signing link" is wired to this hook, and
+       the room that used to supply it is retired — without it the one button
+       that moves an aligned negotiation to signature answered "not available
+       on this screen", on the only owner surface left. Found in the
+       cross-party audit. Same share dialog as every other send; the 'sign'
+       purpose is what supersedes the standing negotiation link. */
+    onIssueSigningLink(){
+      if (typeof window.openShareModal !== 'function'){
+        if (window.toast) toast('Sharing is not available on this screen', 'err');
+        return;
+      }
+      openShareModal(c, { purpose: 'sign',
+        onSent(){
+          if (window.logAudit) logAudit(c, 'Shared', 'A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
+          if (window.persist) persist(c);
+          renderRedline();
+        } });
     },
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
@@ -5421,6 +5494,13 @@ function redlinePanesHtml(c, opts = {}){
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
     <div id="rl-banner">${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
+      ''/* THE SET-ONCE EMAIL STRIP. It lived in the retired room's banner, so
+           the workbench page — the only owner surface left — never offered it:
+           the owner had no way to record where changes go, and the first send
+           died with "not been shared with anyone yet". Rendered here, it
+           appears exactly once per negotiation: negoCounterpartySetupHtml
+           returns nothing once a contact email is on record. */
+    }${negoCounterpartySetupHtml(c, opts)}${
       window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : ''}</div>
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
