@@ -12,16 +12,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Interface faces (HaTi redesign): Inter for body copy, Plus Jakarta Sans for
-     headings. IBM Plex Mono stays as the interface mono (--font-mono / .tnum). -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- The design's two faces, and only those: Inter for body copy, Plus Jakarta
+     Sans for headings. Everything monospaced uses the system mono stack, which
+     is what the design's `font-mono` utility resolves to. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<!-- Document faces, for contract text only (see --font-doc / --font-doc-mono).
-     Both come from Google Fonts. Google Sans Flex is a variable face: weight
-     300-700 plus a real slant axis (slnt, -10..0), so emphasis in a contract
-     is a true oblique rather than a browser-synthesised fake — this family has
-     no separate italic. Google Sans Code carries the columnar blocks. -->
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,400..700;1,400..700&family=Google+Sans+Flex:slnt,wght@-10..0,300..700&display=swap" rel="stylesheet">
+<!-- The separate document faces (Google Sans Flex / Google Sans Code) are
+     retired: the platform runs on the design's two families throughout, contract
+     text included, so --font-doc now resolves to Inter. -->
 <script>
   // HaTi — CLM redesign (teal brand on slate, light/dark via the `dark` class).
   // Inter / Plus Jakarta Sans typography, white surfaces on slate-50, a teal
@@ -37,7 +35,7 @@
         heading: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
         serif:   ['Inter','system-ui','sans-serif'],
         sans:    ['Inter','system-ui','sans-serif'],
-        mono:    ['"IBM Plex Mono"','ui-monospace','monospace'],
+        mono:    ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','"Liberation Mono"','"Courier New"','monospace'],
       },
       colors: {
         canvas:'#f8fafc',     // page ground (slate-50)
@@ -88,20 +86,19 @@
 
     --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
     --font-body:Inter,system-ui,sans-serif;
-    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
-       the PDF export. The application interface (nav, register, cards,
-       buttons, panels) stays on IBM Plex, so the difference between "the
-       product" and "the paper" is legible at a glance.
-       Google Sans Flex is a variable face: wght 300-700, plus a real slant
-       axis (slnt -10..0), so emphasis is a true oblique rather than a
-       browser-synthesised fake. Google Sans Code carries the columnar blocks —
-       fee schedules drawn with rules, side-by-side signature blocks — where
-       character alignment is the content. */
-    --font-doc:"Google Sans Flex","Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-    --font-doc-mono:"Google Sans Code",ui-monospace,"IBM Plex Mono",monospace;
+       the PDF export.
+       They used to be a separate pair (Google Sans Flex / Google Sans Code) so
+       that "the product" and "the paper" were distinguishable at a glance. The
+       redesign runs one type system end to end, so they now resolve to the
+       interface faces. Contract text is still governed by its own tokens — the
+       .doc-surface size, leading and ink below are unchanged — so the paper
+       keeps its own measure even though it shares a family with the app. */
+    --font-doc:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
        modifier. `text-brand-800/85` composited the blue-grey #2c455d onto the
@@ -444,17 +441,11 @@
     print-color-adjust:exact;
     -webkit-print-color-adjust:exact;
   }
-  /* Google Sans Flex ships no italic — it ships a SLANT AXIS. Using it gives a
-     drawn oblique instead of the browser shearing the upright, which on a
-     contract's defined terms is the difference between emphasis and a smear.
-     The font-style declaration stays as the fallback for anyone who does not
-     get the variable font. */
-  @supports (font-variation-settings:'slnt' -10){
-    .doc-surface em, .doc-surface i, .doc-surface cite{
-      font-style:normal;
-      font-variation-settings:'slnt' -10;
-    }
-  }
+  /* The slant-axis rule that used to live here existed because Google Sans Flex
+     ships no italic, only a `slnt` axis. Inter ships a true italic, so emphasis
+     in a contract is a drawn italic again and the override is not just
+     unnecessary but harmful — it would force the upright and lose the emphasis
+     entirely. */
   .doc-surface strong,.doc-surface b{font-weight:600;color:var(--color-doc-text);}
   .doc-surface h1,.doc-surface h2,.doc-surface h3,.doc-surface h4,
   .doc-surface h5,.doc-surface h6{font-family:var(--font-doc);color:var(--color-doc-text);}
