@@ -172,7 +172,7 @@ describe('F83 — the calendar can act on what it draws', () => {
     const w = world(['js/views/calendar.js'], over);
     w.renderCalendar();
     const html = w.document.getElementById('content').innerHTML;
-    return { w, rows: html.slice(html.indexOf('Next 60 days')) };
+    return { w, rows: html.slice(html.indexOf('id="cal-agenda"')) };
   };
 
   test('an obligation row carries a Done button', () => {

@@ -140,35 +140,54 @@ function renderCalendar(){
       <button id="cal-empty-reg" style="font-size:11.5px;font-weight:600;color:var(--color-accent-700);background:none;border:1px solid var(--color-divider);border-radius:4px;padding:6px 12px;cursor:pointer">Open the register</button>
     </div>`;
 
-  const btnBase='width:26px;height:26px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:13px;color:var(--color-neutral-700);line-height:1';
+  /* THE REFERENCE'S NAVIGATION, which sits in the page header beside the title
+     rather than inside the month card. 32px squares with an 8px radius. */
+  const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font-size:14px;color:var(--color-neutral-700);line-height:1';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
+  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
     <style>
       .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
       .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}
+      /* ---- THE REFERENCE'S TWO-TO-ONE SPLIT ----
+         Twelve-column thinking again: lg:grid-cols-3 with the month taking
+         col-span-2 and the agenda the last third. Below the design's lg
+         breakpoint the two stack, and the page — not an inner pane — scrolls,
+         because two independently scrolling boxes on a phone is a trap. */
+      .cal-split{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+      .cal-split > *{min-height:0}
+      .cal-month-card{grid-column:span 2}
+      .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);
+        box-shadow:var(--shadow-sm);border-radius:16px;padding:20px;display:flex;
+        flex-direction:column;min-height:0}
+      .cal-wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:10px;
+        font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+        color:var(--color-neutral-500);text-align:center;margin-bottom:4px;flex:none}
+      @media (max-width:1023px){
+        .cal-split{grid-template-columns:minmax(0,1fr);height:auto}
+        .cal-month-card{grid-column:auto}
+        .cal-card{min-height:420px}
+      }
     </style>
-    <div style="flex:1;min-height:0;display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:stretch">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:14px;display:flex;flex-direction:column;min-height:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex:none">
-          <h4 style="margin:0;font-family:var(--font-heading);font-size:16px;color:var(--color-text)">${monthName}</h4>
-          <div style="display:flex;gap:4px">
-            <button id="cal-prev" style="${btnBase}">‹</button>
-            <button id="cal-next" style="${btnBase}">›</button>
-            <button id="cal-today" style="height:26px;padding:0 9px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;color:var(--color-neutral-700)">Today</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);text-align:center;margin-bottom:3px;flex:none">
-          ${weekdays}
-        </div>
-        <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:3px">${cells.join('')}</div>
-        <div style="display:flex;gap:14px;margin-top:9px;padding-top:8px;border-top:1px solid var(--color-divider);font-size:10.5px;color:var(--color-neutral-700);flex:none">
-          ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:5px">${_dot(v.dot,7)}${v.label}</span>`).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;flex-wrap:wrap">
+      <h4 id="cal-month" style="margin:0;font-family:var(--font-heading);font-size:17px;font-weight:700;color:var(--color-text)">${monthName}</h4>
+      <div style="display:flex;gap:8px;flex:none">
+        <button id="cal-prev" style="${btnBase}" title="Previous month">‹</button>
+        <button id="cal-next" style="${btnBase}" title="Next month">›</button>
+        <button id="cal-today" style="height:32px;padding:0 12px;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;color:var(--color-neutral-700)">Today</button>
+      </div>
+    </div>
+    <div class="cal-split">
+      <section class="cal-card cal-month-card">
+        <div class="cal-wk">${weekdays}</div>
+        <div id="cal-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:10px;color:var(--color-neutral-500);flex:none">
+          ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:6px">${_dot(v.dot,8)}${v.label}</span>`).join('')}
         </div>
       </section>
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:14px;display:flex;flex-direction:column;min-height:0">
-        <h4 style="font-family:var(--font-heading);font-size:14px;margin:0 0 8px;color:var(--color-text);flex:none">Next 60 days</h4>
-        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
+      <section class="cal-card">
+        <h4 style="font-family:var(--font-heading);font-size:15px;font-weight:700;margin:0 0 10px;color:var(--color-text);flex:none">Next 60 Days</h4>
+        <div id="cal-agenda" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto">${agendaRows}</div>
       </section>
     </div>
   </div>`;

@@ -81,8 +81,11 @@ function commandMeta(view){
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
-    case 'intel':     return ['Portfolio Intelligence', 'Copilot contract graph · clustered by value stream'];
-    case 'calendar':  return ['Renewal Calendar', 'expiries, renewal decisions and obligation due dates'];
+    // Named to match the nav item exactly. One feature answering to two names —
+    // "Portfolio Intel" in the sidebar, "Portfolio Intelligence" on the page —
+    // is one name too many for a reader trying to describe where they were.
+    case 'intel':     return ['Portfolio Intel', 'Copilot contract graph · clustered by value stream'];
+    case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
     case 'migration': return ['Migration', 'bulk-import an existing portfolio · Copilot extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
     case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];

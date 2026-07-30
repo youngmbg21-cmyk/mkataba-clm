@@ -191,7 +191,7 @@ describe('F80 — the agenda says what is due, and whose it is', () => {
     });
     sb.renderCalendar();
     const html = sb.document.getElementById('content').innerHTML;
-    return html.slice(html.indexOf('Next 60 days'));
+    return html.slice(html.indexOf('id="cal-agenda"'));
   }
 
   test('an obligation row names the obligation, not just the contract', () => {

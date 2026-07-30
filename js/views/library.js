@@ -1182,7 +1182,7 @@ function openTemplatePreview(tpl){
 
 /* ============================================================ TEMPLATES PAGE */
 function renderTemplatesPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
   const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
   const my=customTemplates();
   const canManage=tplCanManage();
@@ -1191,9 +1191,9 @@ function renderTemplatesPage(){
   const tplTile=folder=>{ const t=TPL_TONE[folder]||'steel'; return `background:var(--tile-${t}-bg);color:var(--tile-${t}-fg)`; };
 
   const myCards=my.map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(t.name)}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder]?.name||'—'} · ${(t.chars||t.text.length).toLocaleString()} chars</span>
@@ -1209,6 +1209,7 @@ function renderTemplatesPage(){
         ${canManage?`<button data-tpl-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use</button>`:''}
         ${canManage?`<button data-tpl-edit="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Edit</button>`:''}
         <button data-tpl-prev="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Preview</button>
+        <button data-tpl-vers="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Version history — ${templateVersions(t).length+1} version${templateVersions(t).length?'s':''}">${icon('history','w-3 h-3')}</button>
         ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:#e6c9c1;color:#8f322b" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
       </div>
       ${canManage?`<div style="display:flex;gap:6px">
@@ -1219,9 +1220,9 @@ function renderTemplatesPage(){
 
   const myRole=currentUser()?.role||'viewer';
   const builtinCards=Object.values(TEMPLATES).filter(t=>!canManage||templateAllowedForRole(t.id,myRole)).map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder].name} · Template ${t.id}</span>
@@ -1286,6 +1287,7 @@ function renderTemplatesPage(){
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
   document.querySelectorAll('[data-tpl-edit]').forEach(b=>b.addEventListener('click',()=>openTemplateEditor(b.getAttribute('data-tpl-edit'))));
+  document.querySelectorAll('[data-tpl-vers]').forEach(b=>b.addEventListener('click',()=>openTemplateVersions(b.getAttribute('data-tpl-vers'))));
   document.querySelectorAll('[data-tpl-dup]').forEach(b=>b.addEventListener('click',()=>duplicateBuiltinTemplate(b.getAttribute('data-tpl-dup'))));
   // deletion puts the usage count in front of the decision rather than after it
   document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',()=>deleteTemplateGuarded(b.getAttribute('data-tpl-del'))));
