@@ -967,6 +967,40 @@ function negoUnwithdraw(c, id, opts = {}){
   return ch;
 }
 
+/* ---------- retracting an unsent draft ----------
+   Withdraw (above) is for an ask the other side has seen and refused; this is
+   for one they have never seen. Until the round is handed over a draft exists
+   only on its author's desk, so taking it back removes the record outright —
+   there is nothing to acknowledge and nobody to notify. A sent or decided
+   change is refused here for the same reason Redline.removeChange refuses
+   them: deleting what the other side is relying on rewrites history. */
+function negoRetractDraft(c, id, opts = {}){
+  negoInit(c);
+  const ch = negoChangeById(c, id);
+  if (!ch) return null;
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  if (ch.authorSide !== side){
+    if (window.toast) toast('Only the side that drafted this can retract it', 'err');
+    return null;
+  }
+  if (ch.status !== 'pending'){
+    if (window.toast) toast('This change already has an answer, so it can\'t be retracted', 'err');
+    return null;
+  }
+  if (!negoUnsentAsks(c, side).some(x => x && x.id === id)){
+    if (window.toast) toast('This change has already been sent, so it can\'t be retracted', 'err');
+    return null;
+  }
+  const i = c.changes.findIndex(x => x && x.id === id);
+  if (i < 0) return null;
+  c.changes.splice(i, 1);
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    `#${ch.id} retracted by ${who} — “${ch.summary || ch.clauseLabel || ch.clauseId}” was never sent, so nothing was withdrawn from anyone`);
+  c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
+  return ch;
+}
+
 /* ---------- talking about a change ----------
    The light channel, attached to one fingerprint. It opens no round, captures
    no version and moves no wording — the same guarantee js/discuss.js makes for
@@ -2028,7 +2062,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
-  negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw,
+  negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
