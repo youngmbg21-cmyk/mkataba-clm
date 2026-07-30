@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HaTi — Redline Workbench, Chromium verification</title>
+<script>
+/* --view-h is measured by the shell after its header renders. There is no
+   shell here, so the page is given the window and the harness measures the
+   real three-column layout rather than a collapsed one. */
+document.documentElement.style.setProperty('--view-h', '100vh');
+</script>
+</head>
+<body>
+<div id="app-shell"></div>
+<div id="content"></div>
+<div id="modal-root"></div>
+
+<!-- index.html's own stylesheet and Copilot panel, lifted at load rather than
+     copied. Copied markup drifts; this harness exists to measure the real
+     thing. Synchronous because js/ai.js wires itself to #ai-send and friends
+     the moment it loads — a deliberate choice in a harness and nowhere else. -->
+<script>
+(function(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '/index.html', false);
+  xhr.send(null);
+  var doc = new DOMParser().parseFromString(xhr.responseText, 'text/html');
+  Array.prototype.forEach.call(doc.querySelectorAll('style'), function(st){
+    var el = document.createElement('style'); el.textContent = st.textContent;
+    document.head.appendChild(el);
+  });
+  ['ai-scrim', 'ai-panel'].forEach(function(id){
+    var node = doc.getElementById(id);
+    if (node) document.body.appendChild(document.importNode(node, true));
+  });
+})();
+</script>
+
+<script>
+/* The application shell, stood in for. Everything below that matters is the
+   product's own code, loaded unmodified from js/. */
+window.FIRST_PARTY = 'Wanjiru Catering Ltd';
+window.PORTAL_MODE = false;
+try{
+  localStorage.setItem('hati.v1.users', JSON.stringify([{ id:'u_w', name:'Wanjiru Kamau', role:'legal', email:'wanjiru@company.co.ke' }]));
+  localStorage.setItem('hati.v1.session', JSON.stringify({ userId:'u_w' }));
+  localStorage.removeItem('hati.v1.rlDiscOff');
+}catch(e){}
+window.currentUser = () => ({ id:'u_w', name:'Wanjiru Kamau', role:'legal' });
+window.canEdit = () => true;
+window.isAdmin = () => false;
+window.API_MODE = () => false;
+window.nowISO = () => new Date('2026-07-30T09:14:00Z').toISOString();
+window.todayStr = () => '30 Jul 2026';
+window.fmtDT = () => '30 Jul 2026, 09:14';
+window.fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
+window.icon = () => '<svg width="14" height="14"></svg>';
+window.persist = () => {};
+window.saveContract = () => {};
+window.renderWorkspace = () => {};
+window.setView = () => {};
+window.toast = () => {};
+window.openModal = html => { document.getElementById('modal-root').innerHTML = html; };
+window.closeModal = () => { document.getElementById('modal-root').innerHTML = ''; };
+window.confirmDialog = async () => true;
+window.promptDialog = async () => '';
+window.logAudit = (c, action, detail) => { (c.audit = c.audit || []).push({ at: nowISO(), user: 'Wanjiru Kamau', action, detail }); };
+window.emailOff = () => true;
+window.counterpartySeenState = () => ({ kind: 'opened' });
+window.customTemplates = () => [];
+</script>
+
+<script src="../../js/components.js"></script>
+<script src="../../js/templates.js"></script>
+<script src="../../js/core.js"></script>
+<script src="../../js/richdoc.js"></script>
+<script src="../../js/clausemodel.js"></script>
+<script src="../../js/redline.js"></script>
+<script src="../../js/docx.js"></script>
+<script src="../../js/versioning.js"></script>
+<script src="../../js/discuss.js"></script>
+<script src="../../js/negotiation.js"></script>
+<script src="../../js/ai.js"></script>
+<script src="../../js/views/negotiation.js"></script>
+
+<script>
+/* core.js defines its own currentUser, persist, toast and friends over the top
+   of the shell above — which is correct, it IS the product — so the few the
+   harness genuinely has to stand in for are re-applied after it. */
+window.currentUser = () => ({ id:'u_w', name:'Wanjiru Kamau', role:'legal' });
+window.canEdit = () => true;
+window.persist = () => {};
+window.setView = () => {};
+window.toast = () => {};
+window.FIRST_PARTY = 'Wanjiru Catering Ltd';
+if (!window.TEMPLATES.WH) window.TEMPLATES.WH = { id:'WH', name:'Warehousing and Logistics Services Agreement', folder:'dist' };
+/* A Copilot double, so the panel route can be exercised without a key and
+   without a model's wording appearing in a measurement. */
+window.copilotAvailable = () => true;
+window.copilotAsk = async () => JSON.stringify({
+  advice: 'Same effect, fewer words.',
+  proposedText: 'Invoices are payable within thirty (30) days of issue.' });
+</script>
+
+<script>
+/* A contract with the two things a re-typeset document loses: headings whose
+   numbers are not plain integers, and clause bodies made of more than one
+   block. Written the way an upload arrives — rich HTML — so the ingestion path
+   is the one under measurement. */
+const RICH = [
+  '<h1>Warehousing and Logistics Services Agreement</h1>',
+  '<p>Between Wanjiru Catering Ltd (Nairobi, Kenya) and Nordfrakt Logistik AB (Malmö, Sweden).</p>',
+  '<h2>1.1 Definitions</h2>',
+  '<p>In this Agreement, <strong>Business Day</strong> means a day other than a Saturday, Sunday or public holiday in Kenya.</p>',
+  '<h2>4. Payment Terms</h2>',
+  '<p>All invoices are payable within thirty (30) days from the date of issue (Net-30).</p>',
+  '<p>Late payments will incur a service charge of 1.5% per month on the outstanding balance.</p>',
+  '<h2>8.2(a) Termination for convenience</h2>',
+  '<ol>',
+  '<li>Either party may terminate by giving not less than sixty (60) days written notice.</li>',
+  '<li>Termination shall not affect fees accrued for services already rendered.</li>',
+  '</ol>',
+  '<h2>12. Governing Law</h2>',
+  '<p>This Agreement is governed by the laws of Kenya.</p>',
+].join('');
+
+window.READY = (async () => {
+  const c = { id:'MK-191', name:'WH — YOUNG MBAGAYA',
+    counterparty:'Nordfrakt Logistik AB', template:'WH', status:'Under Review',
+    folder:'dist', fields:{}, metadata:{}, audit:[], rounds:[], versions:[],
+    signatures:[], comments:[], redlineText: RICH, format:'rich' };
+  negoInit(c);
+  const byNum = n => negoClauseList(c).find(x => (x.headingText || '').indexOf(n) === 0);
+
+  /* THEIR ask, so the document carries a redline and the card carries verbs. */
+  await negoEditClause(c, byNum('4.').clauseId,
+    '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45).</p>'
+    + '<p>Late payments will incur a service charge of 1.5% per month on the outstanding balance.</p>',
+    { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB',
+      summary:'Payment terms extended from Net-30 to Net-45' });
+  /* OURS, unsent, so the batch send has something to count. Deliberately NOT
+     on the list clause: a clause under redline is drawn from its stored ops as
+     one block per line, which is the redline renderer's own shape — so leaving
+     8.2(a) settled is what lets the harness measure that an <ol> survives
+     ingestion at all. */
+  await negoEditClause(c, byNum('12.').clauseId,
+    '<p>This Agreement is governed by the laws of Kenya and the courts of Nairobi have exclusive jurisdiction.</p>',
+    { side:'owner', author:'Wanjiru Kamau',
+      summary:'Exclusive jurisdiction added to the governing-law clause' });
+  negoPostComment(c, negoChanges(c)[0].id,
+    'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.',
+    { side:'counterparty', author:'Amina Wanjiru' });
+
+  window.CONTRACT = c;
+  /* Into core.js's OWN state, not over the top of it. `state` and
+     `getContract` are script-scoped consts in js/core.js, so a window property
+     of the same name is a different binding that renderRedline never reads —
+     the page would come up on its "No contract open" empty state and the
+     harness would be measuring that instead. */
+  state.contracts.unshift(c);
+  state.activeId = c.id;
+  state.view = 'redline';
+  renderRedline();
+  return true;
+})();
+</script>
+</body>
+</html>

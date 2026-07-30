@@ -347,19 +347,25 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     assert.ok(p.$('#rl-doc'), 'and the page still rendered');
   });
 
-  test('AI Assist offers the engine\'s own actions, over this clause\'s words', async () => {
+  test('AI Assist offers the workbench\'s own action list, over this clause\'s words', async () => {
+    /* The list is RL_SEL_ACTIONS, not NEGO_AI_ACTIONS. The workbench
+       standardised on three actions of its own — rephrase, shorten, tag — and
+       routes all three into the Copilot side panel, while the contract tab and
+       the room keep the engine's list and its popover. What this still pins is
+       the property that mattered: BOTH entry points on this page (a text
+       selection and the clause toolbar) build from ONE list, so they cannot
+       drift into naming different verbs for the same job. */
     const p = await page();
     const ai = [...p.$$('#rl-doc .rl-tool')].find(b => /AI Assist/.test(b.textContent));
     ai.click();
     const menu = p.$('.nego-selmenu');
     assert.ok(menu, 'AI Assist must open a menu');
     const offered = [...menu.querySelectorAll('[data-nego-ai]')].map(b => b.getAttribute('data-nego-ai'));
-    /* Joined rather than deep-compared: the engine's array is built in the
-       page's own realm, so its prototype is not this realm's Array and a deep
-       compare reports a mismatch on two identical lists (the same trap f60
-       documents). */
-    assert.equal(offered.join(','), p.win.NEGO_AI_ACTIONS.map(a => a.id).join(','),
-      'the menu must be built from the engine\'s action list, not a second copy');
+    /* Joined rather than deep-compared: the page's array is built in its own
+       realm, so its prototype is not this realm's Array and a deep compare
+       reports a mismatch on two identical lists (the same trap f60 documents). */
+    assert.equal(offered.join(','), p.win.RL_SEL_ACTIONS.map(a => a.id).join(','),
+      'the menu must be built from the workbench\'s action list, not a second copy');
     assert.match(menu.textContent, /This clause/);
   });
 

@@ -101,6 +101,14 @@ const negoSeenScope = (c, opts) => String((opts && opts.seenScope)
   || (c && c.id) || 'anon');
 
 const _ne = s => (window.esc ? esc(s) : String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
+/* ESCAPED FOR AN ATTRIBUTE, which _ne is not. The app's `esc` handles & < >
+   and leaves quotes alone, which is right for text between tags and wrong the
+   moment the value is a person's name inside title="…" — one apostrophe or
+   double quote and the attribute closes early, with everything after it parsed
+   as markup. Every attribute this view writes from a NAME goes through here. */
+const _nea = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 /* A clause id is a NEGOTIATION key, not a DOM id. "clause:2." carries a colon
    and a full stop, both of which are CSS combinators — `#nw-clause:2.` is not a
@@ -3353,6 +3361,19 @@ function wireNegotiationTab(c, opts = {}){
       try { rect = sel.getRangeAt(0).getBoundingClientRect(); } catch (e){ return; }
       if (!rect || (!rect.width && !rect.height)) return;
       _negoKillSelMenu();
+      /* ---- THE HOST DECIDES WHAT A SELECTION OFFERS ----
+         The contract tab and the room keep the engine's own menu below. The
+         Redline workbench passes its own builder, which offers the three
+         standardised actions and routes every one of them into the Copilot
+         side panel instead of a floating dialog over the document. The hook is
+         here rather than in a fork of this function because everything else
+         about a selection — which pane it is legal in, which clause it belongs
+         to, whether the reader may propose at all — is the same question on
+         every surface and must keep exactly one answer. */
+      if (typeof opts.selMenu === 'function'){
+        opts.selMenu({ c, opts, text, clauseId, rect, side, again });
+        return;
+      }
       const menu = document.createElement('div');
       menu.className = 'nego-selmenu';
       menu.setAttribute('role', 'menu');
@@ -3743,9 +3764,20 @@ function redlineLayoutCss(){
   const s = document.createElement('style');
   s.id = 'redline-layout-css';
   s.textContent = `
+  /* The single type size the document canvas and the Tracked Changes column are
+     both set from. It is the card size, which is the one the design sets its
+     diffs at — see the note on .rl-clause-p. */
+  .redline-page{--rl-type:11.5px}
+  /* ---- THE HEADER IS A BAND, NOT A CARD ----
+     It used to be drawn as a panel — surface fill, a 1px border, a radius and a
+     card shadow — sitting inside a page that already has its own frame and
+     18px of gutter. Two rounded edges a few pixels apart is the "double border"
+     that reads as a box inside a box, and at the top of the page it is the
+     first thing the eye lands on. The header carries a title, a round tag and
+     the actions; none of that needs a container to be legible, so the container
+     is gone and the row sits flat on the page beside the document below it. */
   .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
-    background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);
-    border-radius:12px;padding:14px 16px;flex:none}
+    background:none;border:0;box-shadow:none;border-radius:0;padding:0 2px 2px;flex:none}
   .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
@@ -3761,6 +3793,26 @@ function redlineLayoutCss(){
   html.dark .redline-page .rl-btn-alt{color:#c4b5fd}
   .redline-page .rl-btn-go{background:var(--accent-solid);color:#fff;
     box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 60%,transparent)}
+
+  /* ---- THE BATCH SEND, AND WHY IT FLASHES ----
+     An unsent draft is the one state in this workbench that looks finished and
+     is not: the change is filed, fingerprinted, sitting in the index with a
+     Draft badge — and the counterparty has never seen it. The send for it used
+     to live at the foot of the Tracked Changes head, below the fold on a busy
+     contract. So it moves to the toolbar, it counts what is waiting, and it
+     pulses until the count is zero.
+     It renders ONLY when there is something unsent. A permanently flashing
+     control is a control people stop seeing, and one that flashes over an empty
+     queue is worse than none — it is an alarm with nothing behind it. */
+  .redline-page .rl-btn-blast{background:#059669;color:#fff;border-color:#059669;
+    box-shadow:0 4px 14px -4px rgba(5,150,105,.65);animation:rlBlast 1.5s ease-in-out infinite}
+  .redline-page .rl-btn-blast:hover{background:#047857;animation:none}
+  .redline-page .rl-btn-blast:disabled{animation:none}
+  @keyframes rlBlast{
+    0%,100%{box-shadow:0 4px 14px -4px rgba(5,150,105,.65);transform:translateY(0)}
+    50%{box-shadow:0 0 0 4px rgba(5,150,105,.22),0 6px 18px -4px rgba(5,150,105,.8);transform:translateY(-1px)}
+  }
+  @media (prefers-reduced-motion:reduce){ .redline-page .rl-btn-blast{animation:none} }
 
   .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
   .redline-page .rl-head{flex-wrap:nowrap;align-items:flex-start}
@@ -3778,21 +3830,64 @@ function redlineLayoutCss(){
      sight: it holds #nego-send, which the header's Publish Round presses. */
   .redline-page .rl-turnwrap{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-  /* the document, as the design sets it */
-  .redline-page .rl-paper{padding:26px 30px 34px;max-width:none}
+  /* ---- ONE SHEET, NOT A CARD INSIDE A CARD ----
+     .rl-paper is the engine's .nego-doc, and that class draws a full panel of
+     its own: paper fill, a 1px rule, a radius and a card shadow, at a 720px
+     measure. Inside .rl-doc — which is already a framed, scrolling column —
+     that produced a second bordered sheet floating within the first, with the
+     page showing through the gutter between them.
+
+     So the inner wrapper gives up its chrome entirely. The document is drawn
+     directly onto the column: one continuous canvas from the title rule to the
+     last clause, which is how the master prototype sets it — a single
+     contract-page sheet, no nested frame. The column keeps the sheet's shadow,
+     see .rl-doc below, so the paper still reads as paper. */
+  .redline-page .rl-paper{padding:26px 30px 34px;max-width:none;
+    background:none;border:0;border-radius:0;box-shadow:none;margin:0}
   .redline-page .rl-paper-head{text-align:center;border-bottom:1px solid var(--color-divider);
     padding-bottom:14px;margin-bottom:18px}
   .redline-page .rl-paper-title{margin:0;font-size:19px;font-weight:700;letter-spacing:.01em}
   .redline-page .rl-paper-sub{margin:5px 0 0;font-size:11.5px;color:var(--color-neutral-500)}
   .redline-page .rl-clause{margin:0 0 18px}
-  .redline-page .rl-clause-h{margin:0 0 5px;font-size:12.5px;font-weight:700;text-transform:uppercase;
+  .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-type);font-weight:700;
     letter-spacing:.02em}
-  .redline-page .rl-clause-p{margin:0;font-size:12.5px;line-height:1.72;color:var(--color-text)}
+  /* ---- ONE TYPE SIZE FOR THE WHOLE WORKBENCH ----
+     The contract read at one size and the Tracked Changes cards at another, so
+     the SAME sentence — the clause on the left and the diff of it on the right
+     — was set in two different faces of type, and the eye had to re-measure
+     every time it crossed the gutter. --rl-type is the Tracked Changes card
+     size, and the document canvas is now set from it: one declaration, both
+     columns, and a change to it moves them together or not at all.
+     Declared on the page rather than in :root so it cannot leak. */
+  .redline-page .rl-clause-p,
+  .redline-page .rl-doc .nego-doc,
+  .redline-page .rl-doc .nego-body,
+  .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-type);line-height:1.72;color:var(--color-text)}
+  .redline-page .rl-clause-p{margin:0}
   .redline-page .rl-propose{margin-top:7px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:11.5px;font-weight:600;color:var(--color-accent-600)}
   .redline-page .rl-propose:hover{text-decoration:underline}
   .redline-page .rl-clause.is-changed{background:color-mix(in srgb,#f59e0b 7%,transparent);
     border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);border-radius:10px;padding:13px 15px}
+  /* ---- WHERE "EDIT" LANDS YOU ----
+     Pressing Edit on a card scrolls the document to that clause, and the clause
+     has to say so when it arrives — a page that silently jumps has moved the
+     reader somewhere without telling them which line to look at. The ring
+     fades; the clause underneath it is untouched. */
+  .redline-page .rl-clause.rl-jump{animation:rlJump 1.6s ease 1}
+  @keyframes rlJump{
+    0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 55%,transparent)}
+    70%{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-solid) 30%,transparent)}
+    100%{box-shadow:0 0 0 3px transparent}
+  }
+  @media (prefers-reduced-motion:reduce){ .redline-page .rl-clause.rl-jump{animation:none;
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-solid) 45%,transparent)} }
+  /* ---- WHO TOUCHED THIS WORDING ----
+     Every marked span in the document carries a title naming the last hand on
+     that edit. The cursor says the tooltip is there; without it a title is a
+     thing you find by accident. */
+  .redline-page .rl-doc ins[title],.redline-page .rl-doc del[title],
+  .redline-page .rl-doc .nego-ins[title],.redline-page .rl-doc .nego-del[title]{cursor:help}
   .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .redline-page .rl-asktag{flex:none;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
     background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -3813,14 +3908,25 @@ function redlineLayoutCss(){
   .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
   .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px;line-height:1.5}
-  .redline-page .rl-card-diff{font-size:11.5px;line-height:1.6}
+  /* The same size as the clause it is a diff of — see --rl-type. */
+  .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6}
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .redline-page .rl-card-verbs{display:flex;gap:7px;margin-top:9px}
-  .redline-page .rl-card-verbs button{flex:1;border:0;border-radius:7px;padding:6px;font:inherit;
-    font-size:11px;font-weight:700;cursor:pointer}
-  .redline-page .rl-acc{background:var(--st-green-fg);color:#fff}
-  .redline-page .rl-rej{background:var(--color-neutral-200);color:var(--color-neutral-700)}
+  .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+  .redline-page .rl-card-verbs button{flex:1;min-width:64px;border:0;border-radius:7px;padding:6px;font:inherit;
+    font-size:11px;font-weight:700;cursor:pointer;transition:filter .15s}
+  .redline-page .rl-card-verbs button:hover{filter:brightness(1.07)}
+  /* ---- THE VERBS ARE COLOUR-CODED, AND THE CODE IS FIXED ----
+     Accept is green, Reject is red, Edit is grey, Send is green. Written as
+     literal hex rather than through the status tokens because those tokens
+     re-map in dark mode — --st-green-fg becomes a light mint that is unreadable
+     as a button fill — and a destructive verb that changes colour with the
+     theme is a verb somebody presses by mistake. These four are the design's
+     emerald-600 / red-600 / slate-200 / slate-800 exactly. */
+  .redline-page .rl-acc,.redline-page .rl-send{background:#059669;color:#fff}
+  .redline-page .rl-rej{background:#dc2626;color:#fff}
+  .redline-page .rl-edit{background:#e2e8f0;color:#1e293b}
+  html.dark .redline-page .rl-edit{background:#cbd5e1;color:#0f172a}
 
   /* Tracked Changes head, and the discussion column */
   /* WRAPS, and two things now depend on it. It stops the title collapsing to
@@ -3944,8 +4050,16 @@ function redlineLayoutCss(){
       grid-column:auto;min-height:280px}
     .redline-page.disc-off .rl-doc,.redline-page.disc-off #rl-changes-col{grid-column:auto}
   }
-  .redline-page .rl-doc,.redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
+  .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  /* The document column IS the sheet — the only frame around the contract text.
+     No border: the prototype's contract-page is a shadowed page, not a boxed
+     panel, and a rule here would put an edge line back around wording that
+     already sits inside .rl-paper's own margins. */
+  .redline-page .rl-doc{background:var(--color-surface);border:0;border-radius:12px;
+    box-shadow:0 10px 30px rgba(15,23,42,.10);min-height:0;overflow:hidden;
+    display:flex;flex-direction:column}
+  html.dark .redline-page .rl-doc{box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 4px}
   .redline-page #rl-changes-col{border-radius:12px}
   .redline-page #rl-changes-col h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
@@ -4001,6 +4115,22 @@ function renderRedline(){
   }
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
+  /* ---- THE BATCH SEND ----
+     Drawn only when there is something behind the wall, and labelled with how
+     much. It is a proxy onto #nego-send like Publish Round is — the same one
+     act, taking the same route through the share/response flow — so pressing it
+     publishes every unsent draft in one go rather than opening a queue of
+     confirmations. See redlineSyncProxies for why a proxy can go dead. */
+  const unsentN = (window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).length;
+  /* ONE TEXT NODE, and both halves of that matter. Written on one line because
+     a newline in inline text renders as a space; and the count is NOT wrapped
+     in a span, because .rl-btn is an inline-flex row with gap:6px — a wrapped
+     number becomes a flex item and the gap paints as "Send All ( 1 ) Redline".
+     The count is read from the label rather than from a hook precisely so the
+     label can stay one string. */
+  const blast = unsentN ? `<button data-redline-proxy="nego-send" data-rl-blast class="rl-btn rl-btn-blast"`
+    + ` title="Publish every unsent redline to ${_nea(c.counterparty || 'the counterparty')} in one action">`
+    + `&#9889; Send All (${unsentN}) Redline${unsentN === 1 ? '' : 's'}</button>` : '';
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -4018,6 +4148,7 @@ function renderRedline(){
           </p>
         </div>
         <div class="rl-actions">
+          ${blast}
           <button type="button" class="rl-btn rl-btn-ghost" data-rl-focus aria-pressed="false"
             title="Give the document the whole row">&#9652; Focus mode</button>
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
@@ -4057,6 +4188,12 @@ function renderRedline(){
   const opts = { hostId: 'redline-host', side, discOff: _redlineDiscOff(),
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
+    /* Highlighting wording on this page drives the SIDE PANEL, never a
+       standalone popover with a dialog behind it. rlSelMenu is the only floating
+       layer left here, and it is a three-item menu that dismisses itself the
+       moment one is chosen — everything it hands off to lands either in the
+       Copilot column or in the Discussion column. */
+    selMenu: ctx => rlSelMenu({ ...ctx, c, opts, again: () => renderRedline() }),
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
@@ -4088,64 +4225,323 @@ function rlToggleFocus(force){
   return on;
 }
 
-/* AI Assist and Add Note/Tag, bound to the engine.
+/* ============================================================
+   THE WORKBENCH'S THREE ACTIONS ON A PASSAGE
+   ============================================================
+   Standardised, and standardised down to three. The engine's NEGO_AI_ACTIONS
+   is still what the contract tab and the room offer; this page offers these,
+   and offers them from ONE list to both entry points — a text selection and
+   the clause toolbar's AI Assist — so the two can never drift into naming
+   different verbs for the same job.
 
-   AI Assist offers the same three NEGO_AI_ACTIONS the selection menu offers,
-   because a clause-level ask and a phrase-level ask are the same ask over a
-   different span of text — negoAiPropose takes the passage either way, and
-   what comes back is a PROPOSAL, never an edit: nothing moves until it is
-   filed. The menu is built from the engine's own list, so an action added
-   there appears here without a second edit.
+   What changed is not only the count. Every one of these now ends in the
+   COPILOT SIDE PANEL rather than in a floating dialog over the document:
 
-   Add Note/Tag needs somewhere for the note to live, and on this engine a note
-   lives on a CHANGE. Where a clause has no change yet, it says so rather than
-   filing an empty one to hang a note on — a fingerprint nobody proposed is
-   worse than a message that explains itself. */
+     ✨ Rephrase with Copilot — opens the panel with the passage attached and
+        asks what the rewrite is FOR. "Rephrase" is not an instruction, and the
+        old action supplied one on the reader's behalf — favour my side — which
+        was the wrong job about half the time. The answer typed into the panel
+        is the instruction.
+     ✂️ Shorten & Simplify — already carries its instruction, so it goes
+        straight to a proposal. Asking somebody to retype what they just
+        pressed is a step for nothing.
+     🏷️ Tag with internal note — not an AI action at all, and deliberately in
+        the same menu: the thing a reader most often wants to do with wording
+        they have just read is say something about it, and making them leave
+        the selection to do that is how a note lands on the wrong clause.
+
+   WHY THE PANEL AND NOT A POPOVER. The reader is deciding whether proposed
+   wording fits the clauses either side of it. A dialog over the document makes
+   that undecidable — it covers the very thing being compared against — and a
+   modal makes it worse by taking the page's input as well. The panel docks
+   beside the document, nothing behind it moves or reflows, and the exchange
+   can go several turns without the contract ever leaving the screen. */
+const RL_SEL_ACTIONS = [
+  { id: 'rephrase', label: '✨ Rephrase with Copilot', converse: true,
+    ask: 'Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    greeting: 'How would you like me to help rephrase this passage?' },
+  { id: 'shorten', label: '✂️ Shorten & Simplify',
+    ask: 'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
+  { id: 'tag', label: '🏷️ Tag with internal note', tag: true }
+];
+function rlSelActions(){ return RL_SEL_ACTIONS.slice(); }
+
+/* Say something in the Copilot panel without asking a model anything. Used for
+   every refusal on this path, because a refusal belongs in the conversation the
+   reader just opened rather than in a toast that is gone in four seconds. */
+function rlSayInPanel(text){
+  if (window.openAI) openAI(null, { docked: true });
+  if (window.aiPush) aiPush('assistant', { text: _ne(text) });
+  if (window.renderAIFeed) renderAIFeed();
+  else if (window.toast) toast(text, 'err');
+}
+
+/* ---------- THE MENU ----------
+   One builder, two entry points. Floating rather than inline because it is
+   anchored to a selection rectangle that can be anywhere in the clause — but it
+   is a MENU, not a dialog: it holds no fields, decides nothing, and every item
+   in it hands off to the side panel or the discussion column and disappears. */
+function rlSelMenu(ctx){
+  const { text, clauseId, rect, whole } = ctx;
+  const actions = rlSelActions();
+  _negoKillSelMenu();
+  const menu = document.createElement('div');
+  menu.className = 'nego-selmenu';
+  menu.setAttribute('role', 'menu');
+  menu.innerHTML = `<div class="nego-selhead">${whole ? 'This clause' : 'Selected wording'}</div>
+    <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
+    ${actions.map(a => `<button type="button" role="menuitem" data-nego-ai="${_nea(a.id)}">${_ne(a.label)}</button>`).join('')}`;
+  document.body.appendChild(menu);
+  const box = menu.getBoundingClientRect();
+  const at = _negoAnchor(rect, box.width, box.height);
+  menu.style.left = at.left + 'px';
+  menu.style.top = at.top + 'px';
+  /* mousedown, not click, on the selection path: clicking collapses the
+     selection first and the proposal needs the words that were chosen. The
+     toolbar path has no selection to lose, so it passes `click` and a press
+     of the keyboard reaches it too. */
+  const evName = ctx.event || 'mousedown';
+  menu.querySelectorAll('[data-nego-ai]').forEach(b => b.addEventListener(evName, ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const action = actions.find(a => a.id === b.getAttribute('data-nego-ai'));
+    _negoKillSelMenu();
+    if (!action) return;
+    if (action.tag){ rlTagInternalNote(ctx); return; }
+    rlAiPropose({ ...ctx, action });
+  }));
+  return menu;
+}
+
+/* ---------- THE ASK, IN THE PANEL ----------
+   Nothing here writes to the document. What comes back is a PROPOSAL in the
+   Copilot's own stream, with Apply / Decline / Edit on it, and Apply files a
+   tracked change through negoEditClause exactly like every other proposal on
+   this engine — same model, same fingerprint, same chain. A suggestion that
+   arrived from a model is not a different KIND of change and must not get a
+   private path into the contract. */
+async function rlAiPropose(ctx){
+  const { c, action, text, clauseId, opts } = ctx;
+  const again = typeof ctx.again === 'function' ? ctx.again : () => renderRedline();
+  const side = opts && opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  _negoKillSelMenu(); _negoKillAiPop();
+  /* THE DRAWER OPENS FIRST, before anything is asked and before anything can
+     fail. Pressing a menu item has to do something visible on the same gesture;
+     a control that opens a panel only once a model has answered reads as broken
+     for as long as the round trip takes, and permanently if it fails. */
+  if (window.openAI) openAI(null, { docked: true });
+  /* What was asked, in the reader's own stream — otherwise the panel answers a
+     question it never shows, and the Copilot reads as volunteering wording
+     nobody asked for. */
+  if (window.aiPush) aiPush('user', { text: `${_ne(action.label)}<div style="font-size:11px;margin-top:4px;opacity:.8;font-style:italic">“${
+    _ne(text.length > 140 ? text.slice(0, 139) + '…' : text)}”</div>` });
+  if (window.renderAIFeed) renderAIFeed(!action.converse);
+
+  if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
+    rlSayInPanel('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings and try again — the wording you selected is untouched.');
+    return;
+  }
+  const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
+  if (!cl){ rlSayInPanel('That clause is no longer in the document, so there is nothing to rewrite. Nothing was changed.'); return; }
+  /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and it is checked before a
+     token is spent. The old fallback for a miss was to swap the whole clause
+     for whatever came back, which loses wording nobody agreed to lose. */
+  const clauseText = String(cl.text || '');
+  const whole = String(text).trim() === clauseText.trim();
+  if (!whole && !clauseText.includes(text)){
+    rlSayInPanel('That selection spans wording already marked as changed, so it cannot be placed back into the clause safely. Decide the pending change first, or select from a settled part of the clause. Nothing was changed.');
+    return;
+  }
+  const party = side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');
+  const pbLine = (() => {
+    try{
+      const v = (((c && c.playbook) || {}).verdicts || []).filter(x => x.status === 'deviation');
+      return v.length ? `Our playbook flags this contract for: ${v.map(x => x.category).join(', ')}.` : '';
+    }catch(_){ return ''; }
+  })();
+
+  /* Applying files against the clause AS IT NOW STANDS. The clause object in
+     this closure was read when the panel opened, and a conversation can run for
+     minutes — so the live one is re-read and the passage re-checked, rather
+     than writing an older copy back over whatever moved in between. */
+  const applyWording = wording => {
+    const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
+    if (!live) return { ok: false, message: 'That clause is no longer in the document. Nothing was changed.' };
+    const nowText = String(live.text || '');
+    const isWhole = String(text).trim() === nowText.trim();
+    if (!isWhole && !nowText.includes(text))
+      return { ok: false, message: 'That passage has moved since the panel opened, so the wording cannot be placed back safely. Nothing was changed.' };
+    const proposed = isWhole ? String(wording)
+      : nowText.slice(0, nowText.indexOf(text)) + String(wording) + nowText.slice(nowText.indexOf(text) + text.length);
+    if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
+    const html = window.negoRichFromLines ? negoRichFromLines(proposed) : `<p>${_ne(proposed)}</p>`;
+    /* Awaited nowhere the card can see it, so the card settles immediately and
+       the toast reports what actually happened. */
+    Promise.resolve(negoEditClause(c, clauseId, html, { side, author: opts && opts.by,
+      note: `Copilot — ${action.label.replace(/^\S+\s/, '')}` }))
+      .then(ch => {
+        if (!ch){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
+        if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+        if (opts && opts.persist !== false && window.persist) persist(c);
+        if (window.toast) toast(`#${ch.id} filed from the Copilot — it is a proposal until the other side answers it`);
+        again();
+      })
+      .catch(err => { if (window.toast) toast(`Could not file that change: ${(err && err.message) || err}`, 'err'); });
+    return { ok: true };
+  };
+
+  const refine = async (instruction, prev, extra) => {
+    const made = await copilotPropose({ ask: action.ask, passage: text, party,
+      playbook: pbLine, instruction, history: (extra && extra.history) || '' });
+    if (!made) return null;
+    return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
+      clauseLabel: negoClauseLabel(cl), replacing: text, onApply: applyWording, onRefine: refine };
+  };
+  const propose = async instruction => {
+    const made = await copilotPropose({ ask: action.ask, passage: text, party,
+      playbook: pbLine, instruction: instruction || '' });
+    if (!made) return false;
+    const card = window.aiOpenProposal ? aiOpenProposal({ advice: made.advice,
+      proposedText: made.proposedText, strict: made.strict,
+      clauseLabel: negoClauseLabel(cl), replacing: text,
+      onApply: applyWording, onRefine: refine }) : null;
+    /* The session hands over once there IS a card: the next sentence typed is
+       then a note about the proposal rather than a second answer to a question
+       that has already been answered. */
+    if (card && window.aiCloseRephraseSession) aiCloseRephraseSession();
+    return true;
+  };
+
+  if (action.converse && window.aiOpenRephraseSession){
+    aiOpenRephraseSession({ passage: text, clauseLabel: negoClauseLabel(cl),
+      greeting: action.greeting, onPropose: instruction => propose(instruction) });
+    return;
+  }
+  try{
+    if (!await propose('')) rlSayInPanel('The Copilot returned nothing usable. Nothing was changed.');
+  }catch(err){
+    rlSayInPanel(`The Copilot could not answer: ${(err && err.message) || err}. Nothing was changed.`);
+  }
+}
+
+/* ---------- 🏷️ TAG WITH INTERNAL NOTE ----------
+   Straight into the Discussion column's own composer, with the internal switch
+   pressed and the selected wording quoted into the field. No dialog: the note
+   is going to live in that panel, so that is where it is written, and the
+   reader can see the thread it is joining while they write it.
+
+   A note needs somewhere to live, and on this engine that is a CHANGE. Where
+   the clause has none yet this says so rather than filing an empty change to
+   hang a note on — a fingerprint nobody proposed is worse than a message that
+   explains itself. */
+function rlTagInternalNote(ctx){
+  const { c, clauseId } = ctx;
+  const quote = String(ctx.text || '').trim();
+  const changes = (typeof negoChanges === 'function') ? negoChanges(c) : [];
+  const changeId = ctx.changeId
+    || (changes.find(x => x.clauseId === clauseId && _rlIsLive(x))
+      || changes.find(x => x.clauseId === clauseId && x.status !== 'superseded') || {}).id;
+  if (!changeId){
+    if (window.toast) toast('Propose an edit on this clause first — a note attaches to a change', 'err');
+    return false;
+  }
+  /* Unfolding first: the composer is in the discussion column, and focusing an
+     input inside a display:none column silently does nothing. */
+  rlToggleDiscussion(false);
+  rlToggleFocus(false);
+  /* Internal, pressed for them. The visibility switch defaults to shared on a
+     reply, and a note tagged from the document is by name an internal one —
+     leaving the reader to notice and flip it is how a private remark reaches
+     the counterparty. */
+  document.querySelectorAll(`[data-nego-vis][data-for="${_nea(changeId)}"]`).forEach(b =>
+    b.setAttribute('aria-pressed', String(b.getAttribute('data-nego-vis') === 'internal')));
+  const input = document.getElementById('nego-ti-' + changeId);
+  if (!input) return false;
+  if (quote && !input.value)
+    input.value = `“${quote.length > 90 ? quote.slice(0, 89) + '…' : quote}” — `;
+  if (input.scrollIntoView) input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (input.focus) input.focus();
+  if (input.setSelectionRange) { try { input.setSelectionRange(input.value.length, input.value.length); } catch (e) {} }
+  return true;
+}
+
+/* ---------- JUMP TO THE CLAUSE AND EDIT IT THERE ----------
+   What the Tracked Changes card's Edit button does. Not a dialog over the
+   column and not an editor inside the card: the change is a change to a
+   CLAUSE, and the only place its wording can be judged is between the clauses
+   either side of it. So the document scrolls to it, the clause says it has
+   arrived, and the engine's own inline editor opens on it — the same
+   data-nego-edit path Direct Edit uses, so there is one way to edit a clause
+   on this page rather than two that can disagree. */
+function rlJumpToClause(clauseId, opts = {}){
+  const page = document.getElementById('view-redline');
+  if (!page) return null;
+  rlToggleFocus(false);
+  const sel = `[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`;
+  const clause = page.querySelector('#rl-doc ' + sel) || page.querySelector(sel);
+  if (!clause) return null;
+  if (clause.scrollIntoView) clause.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  clause.classList.remove('rl-jump');
+  /* Re-triggering the animation needs the class off for a frame; without the
+     reflow read the browser coalesces remove+add into no change at all, so a
+     second press of the same card's Edit lit nothing. */
+  void clause.offsetWidth;
+  clause.classList.add('rl-jump');
+  if (opts.edit !== false){
+    const editBtn = clause.querySelector('[data-nego-edit]');
+    if (editBtn && !clause.querySelector('.nego-edit-bar')) editBtn.click();
+    const box = clause.querySelector('[data-nego-editor]');
+    if (box && box.focus) box.focus();
+  }
+  return clause;
+}
+
+/* AI Assist, Add Note/Tag, and the Tracked Changes card verbs, bound to the
+   engine. AI Assist opens the same three RL_SEL_ACTIONS a text selection
+   offers, because a clause-level ask and a phrase-level ask are the same ask
+   over a different span of text. */
 function rlWireClauseTools(c, host, opts){
-  const actions = (typeof NEGO_AI_ACTIONS !== 'undefined') ? NEGO_AI_ACTIONS : [];
+  const again = () => renderRedline();
   host.querySelectorAll('[data-rl-ai]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     _negoKillSelMenu();
     const clauseId = btn.getAttribute('data-rl-ai');
     const sec = host.querySelector(`[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`);
-    const para = sec && sec.querySelector('.rl-clause-p');
+    /* The clause's body, whichever way it is drawn — rich markup for a settled
+       clause, redline blocks for one under change. `.rl-clause-p` was the old
+       flat paragraph and no longer exists on either. */
+    const para = sec && (sec.querySelector('.nego-body') || sec.querySelector('.rl-clause-p'));
     const text = String((para && para.textContent) || '').trim();
     if (!text) return;
-    const rect = btn.getBoundingClientRect();
-    const menu = document.createElement('div');
-    menu.className = 'nego-selmenu';
-    menu.setAttribute('role', 'menu');
-    menu.innerHTML = `<div class="nego-selhead">This clause</div>
-      <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
-      ${actions.map(a => `<button type="button" role="menuitem" data-nego-ai="${_ne(a.id)}">${_ne(a.label)}</button>`).join('')}`;
-    document.body.appendChild(menu);
-    const box = menu.getBoundingClientRect();
-    const at = _negoAnchor(rect, box.width, box.height);
-    menu.style.left = at.left + 'px';
-    menu.style.top = at.top + 'px';
-    menu.querySelectorAll('[data-nego-ai]').forEach(b => b.addEventListener('click', e => {
-      e.preventDefault(); e.stopPropagation();
-      const action = actions.find(a => a.id === b.getAttribute('data-nego-ai'));
-      _negoKillSelMenu();
-      if (action) negoAiPropose(c, { action, text, clauseId, rect, side: opts.side, opts,
-        again: () => renderRedline() });
-    }));
+    rlSelMenu({ c, opts, text, clauseId, rect: btn.getBoundingClientRect(),
+      whole: true, event: 'click', again });
   }));
 
   host.querySelectorAll('[data-rl-note]').forEach(btn => btn.addEventListener('click', () => {
-    const changeId = btn.getAttribute('data-rl-change');
-    if (!changeId){
-      if (window.toast) toast('Propose an edit on this clause first — a note attaches to a change', 'err');
-      return;
-    }
-    /* Unfolding first: the composer is in the discussion column, and focusing
-       an input inside a display:none column silently does nothing. */
-    rlToggleDiscussion(false);
-    rlToggleFocus(false);
-    const input = document.getElementById('nego-ti-' + changeId);
-    if (!input) return;
-    input.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    input.focus();
+    rlTagInternalNote({ c, clauseId: btn.getAttribute('data-rl-note'),
+      changeId: btn.getAttribute('data-rl-change') || null });
+  }));
+
+  /* The card's Edit — scroll the document to the clause and open the editor on
+     it. Stopped from bubbling because the card itself focuses on click, and
+     focusing would scroll the index back over the jump we just made. */
+  host.querySelectorAll('[data-rl-edit]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const clauseId = btn.getAttribute('data-rl-edit');
+    const changeId = btn.getAttribute('data-rl-edit-change');
+    if (changeId && window.negoFocus) negoFocus(c, changeId, 'card');
+    if (!rlJumpToClause(clauseId) && window.toast)
+      toast('That clause is no longer in the document', 'err');
+  }));
+
+  /* The card's Send — the SAME act as the toolbar's batch send, because there
+     is only one send: everything unsent goes in one round. A per-change send
+     would let a reader believe they had published one ask while three others
+     stayed home. */
+  host.querySelectorAll('[data-rl-send]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const engine = document.getElementById('nego-send');
+    if (engine && !engine.disabled){ engine.click(); return; }
+    if (window.toast) toast('There is nothing to send on this round yet', 'err');
   }));
 }
 
@@ -4199,11 +4595,11 @@ function redlineDocHtml(c, opts = {}){
   const editable = !opts.readonly && opts.canEdit !== false;
   /* ---- THE CLAUSE TOOLBAR ----
      Three verbs on every clause, and each one presses the ENGINE's control
-     rather than a lookalike: Direct Edit carries data-nego-edit, which is the
-     same attribute the propose dialog has always bound to; AI Assist opens the
-     three NEGO_AI_ACTIONS against this clause's own wording; Add Note/Tag
-     jumps to the per-change reply box, which is where a note on a clause
-     actually lives.
+     rather than a lookalike: Direct Edit carries data-nego-edit, which opens
+     the engine's inline editor on the clause itself; AI Assist opens the three
+     RL_SEL_ACTIONS against this clause's own wording, in the Copilot side
+     panel; Add Note/Tag jumps to the per-change reply box in the Discussion
+     column, which is where a note on a clause actually lives.
 
      WHY NOT THE DOC LAB'S TOOLBAR, which looks identical. The lab's buttons
      write to hati.lab.v1 — a sandbox store that by design cannot reach a
@@ -4222,24 +4618,78 @@ function redlineDocHtml(c, opts = {}){
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
     </div>`;
   };
+  /* ---- THE HEADING THE DOCUMENT ACTUALLY CARRIES ----
+     This used to be rebuilt as `${num}. ${title}` from the two halves the
+     clause parser split the heading into, and rebuilding is where the document
+     stopped being the document. "1.1 Definitions" came back as "1.1.
+     Definitions" — a full stop nobody typed — and a clause headed "8.2(a)"
+     came back as "8.2. (a)". A contract is cited by those strings. Printing a
+     number the uploaded file does not contain is a renumbering, however small,
+     and it is invisible to whoever uploaded it because the wording underneath
+     is right.
+
+     So the literal heading is used, exactly as the file carried it. num/title
+     stay on the record for the label the index and the cards print, which is a
+     summary and may be reformatted; this is the document, which may not.
+     A headingless clause — the fallback for an upload that arrived as a wall of
+     paragraphs — gets no heading rather than an invented "Clause". */
+  const heading = cl => {
+    const raw = String(cl.headingText || '').trim();
+    if (!raw) return '';
+    return `<h4 class="rl-clause-h">${_ne(raw)}</h4>`;
+  };
+  /* ---- THE BODY, WITH ITS SHAPE ON ----
+     negoRichBody renders the clause's own sanitised markup — paragraphs, bold,
+     lists, indents, sub-clause line breaks — the same way the contract tab and
+     the room draw it. What was here before was `_ne(cl.text)` inside one <p>:
+     the text projection, which flattens every one of those into a single run.
+     A schedule read as a paragraph and a lettered sub-clause list read as a
+     sentence, on the one page where a reader is deciding what the wording says.
+
+     Under redline it is redlineOpsBlocksHtml, not redlineOpsHtml, for exactly
+     the same reason — the block renderer regroups the STORED ops at their
+     newlines without rewriting any of them, so a clause under change keeps its
+     numbering and its indents instead of collapsing into one line.
+
+     .nego-body is not decoration either: wireNegotiationTab's Direct Edit
+     replaces `.nego-body` (falling back to the first `p`), so without this
+     wrapper a multi-paragraph clause would have had only its first paragraph
+     swapped for the editor and the rest stranded outside what got saved. */
+  const richBody = cl => `<div class="nego-body">${
+    (typeof negoRichBody === 'function') ? negoRichBody(cl) : `<p>${_ne(cl.text || '')}</p>`}</div>`;
+  const redlineBody = ch => {
+    /* ---- WHO LAST TOUCHED THIS EDIT ----
+       Carried on every marked span in the clause as a title, so hovering a
+       struck or inserted phrase says whose hand it was. The record already
+       knows: `author` is the hand on the live revision — negoFileChange
+       overwrites it in place when the same person revises their own ask, and
+       stacks a new change when a different one does — so it is the LAST
+       updater by construction, not the first. */
+    const who = String((ch && (ch.author || ch.by)) || '').trim();
+    const when = (ch && (ch.updatedAt || ch.createdAt)) ? negoWhen(ch.updatedAt || ch.createdAt) : '';
+    const tip = who ? `Last updated by ${who}${when ? ` at ${when}` : ''}` : '';
+    if (window.redlineOpsBlocksHtml && Array.isArray(ch.ops) && ch.ops.length)
+      return `<div class="nego-body">${redlineOpsBlocksHtml(ch.ops, { title: tip })}</div>`;
+    if (window.redlineOpsHtml && ch.ops)
+      return `<div class="nego-body"><p>${redlineOpsHtml(ch.ops, { title: tip })}</p></div>`;
+    return `<div class="nego-body"><p>${_ne(ch.proposedText || ch.newText || '')}</p></div>`;
+  };
   const body = clauses.map(cl => {
     const ch = byClause.get(cl.clauseId);
-    const heading = `${cl.num ? cl.num + '. ' : ''}${_ne(cl.title || 'Clause')}`;
     if (ch){
       const theirs = ch.authorSide !== side;
-      const text = window.redlineOpsHtml && ch.ops ? redlineOpsHtml(ch.ops) : _ne(ch.proposedText || cl.text || '');
       return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
-          <h4 class="rl-clause-h">${heading}</h4>
+          ${heading(cl)}
           <span class="rl-asktag">${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}</span>
         </div>
-        <p class="rl-clause-p">${text}</p>
+        ${redlineBody(ch)}
         ${tools(cl, ch)}
       </section>`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
-      <h4 class="rl-clause-h">${heading}</h4>
-      <p class="rl-clause-p">${_ne(cl.text || '')}</p>
+      ${heading(cl)}
+      ${richBody(cl)}
       ${tools(cl, null)}
     </section>`;
   }).join('');
@@ -4257,38 +4707,77 @@ function redlineDocHtml(c, opts = {}){
   </article>`;
 }
 
-/* The design's change card. Accept and Reject appear only where the engine
-   would allow the decision — a pending change, raised by the OTHER side, on a
-   copy that can still move the negotiation. Nobody rules on their own ask. */
+/* ---------- THE TRACKED CHANGES COLUMN ----------
+   ONLY LIVE REDLINES REACH IT. The column used to list every change that was
+   not superseded, which meant a contract six rounds deep opened on a stack of
+   settled history — accepted wording, rejected asks — with the two things
+   actually waiting on somebody buried inside it. A column headed "Tracked
+   Changes" that is mostly changes nobody can act on is a column people stop
+   reading, and the count above it stops meaning anything.
+
+   So a card exists for exactly one condition: a clause carrying an ACTIVE
+   redline — pending, proposed, not yet decided, not withdrawn. A clause with
+   nothing on the table has no card at all. The settled ones have not gone
+   anywhere: they are in the document as adopted or reverted wording, in the
+   round history, and in the discussion threads that hang off them.
+
+   Accept and Reject still appear only where the engine would allow the
+   decision — the OTHER side's ask, on a copy that can still move the
+   negotiation. Nobody rules on their own ask. */
+const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const canAct = !opts.readonly;
-  const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded') : [];
-  if (!changes.length) return `<div class="rl-cards-empty">
+  const editable = canAct && opts.canEdit !== false;
+  const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
+  const changes = all.filter(_rlIsLive);
+  /* Which of OUR asks have never left the building. The engine already answers
+     this — the same count the wall and the batch send are drawn from — so the
+     card's Send button and the toolbar's cannot disagree about what is unsent. */
+  const unsent = new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
+  if (!changes.length){
+    const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
+    return `<div class="rl-cards-empty">
       <b>No changes on the table.</b>
-      <span>Press <b>Propose edit</b> under any clause to ask for different wording. Each ask lands here with its own fingerprint, and the other side accepts or rejects them one at a time.</span>
+      <span>Press <b>Direct Edit</b> under any clause to ask for different wording. Each ask lands here with its own fingerprint, and the other side accepts or rejects them one at a time.</span>
+      ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
+  }
   return changes.map(ch => {
     const theirs = ch.authorSide !== side;
-    const decided = ch.status === 'accepted' || ch.status === 'rejected';
-    const badge = decided ? (ch.status === 'accepted' ? ['ok', 'Accepted'] : ['no', 'Rejected'])
-      : ch.sentByMe ? ['sent', 'Sent']
-      : theirs ? ['sent', 'Awaiting you'] : ['draft', '&#128274; Draft'];
+    const mineUnsent = !theirs && unsent.has(ch.id);
+    const badge = mineUnsent ? ['draft', '&#128274; Draft']
+      : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
     const who = [ch.clauseLabel || ch.clauseId, ch.by || ch.author, theirs ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us')]
       .filter(Boolean).map(_ne).join(' &middot; ');
-    const diff = window.redlineOpsHtml && ch.ops ? redlineOpsHtml(ch.ops) : _ne(ch.proposedText || '');
+    /* The same tooltip the marked wording in the document carries, so hovering
+       either one answers the same question with the same words. */
+    const lastBy = String(ch.author || ch.by || '').trim();
+    const tip = lastBy ? `Last updated by ${lastBy}` : '';
+    const diff = window.redlineOpsHtml && ch.ops
+      ? redlineOpsHtml(ch.ops, { title: tip }) : _ne(ch.proposedText || ch.newText || '');
     const note = ch.note ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
-    const verbs = (canAct && !decided && theirs) ? `<div class="rl-card-verbs">
-        <button class="rl-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>
-        <button class="rl-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>
-      </div>` : '';
+    /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
+       Accept green, Reject red, Edit grey, Send green. Edit is on every live
+       card and not only the decidable ones: revising your own ask is the most
+       common thing done in this column, and it was the one act with no button.
+       It carries the clause id rather than the change id because what it opens
+       is the clause in the document — see rlWireCardEdit. */
+    const verbs = [];
+    if (canAct && theirs){
+      verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>`);
+      verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>`);
+    }
+    if (editable) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
+        title="Jump to this clause in the contract and edit it there">Edit</button>`);
+    if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
+        title="Send this and every other unsent draft to ${_nea(c.counterparty || 'the counterparty')}">Send</button>`);
     return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-id">${_ne(ch.id)}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
-      <div class="rl-card-meta">${who}</div>
+      <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
       <div class="rl-card-diff">${diff}</div>
-      ${note}${verbs}
+      ${note}${verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}
     </article>`;
   }).join('');
 }
@@ -4483,13 +4972,22 @@ function redlineSyncProxies(host){
     const target = document.getElementById(el.getAttribute('data-redline-proxy'));
     const usable = !!target && !target.disabled;
     el.disabled = !usable;
-    el.title = usable ? '' : 'Not available on this round yet';
+    /* The button's OWN title survives being usable. Blanking it was fine while
+       every proxy was a bare verb, but the batch send explains what it is about
+       to do to a named counterparty, and a control that only describes itself
+       when it is broken is the wrong way round. Stashed on first sight so a
+       repeated sync cannot overwrite it with the failure message. */
+    if (el.dataset && el.dataset.rlTitle == null) el.dataset.rlTitle = el.title || '';
+    const own = (el.dataset && el.dataset.rlTitle) || '';
+    el.title = usable ? own : 'Not available on this round yet';
   });
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlToggleFocus, rlWireClauseTools,
+  RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
+  rlJumpToClause, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
