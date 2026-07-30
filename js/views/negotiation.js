@@ -4002,7 +4002,11 @@ function renderRedline(){
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
   host.innerHTML = `
-    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
+    <!-- The reference is lg:h-full: the workbench fills the window and each of
+         its three columns scrolls inside itself, rather than the page growing
+         past the viewport and taking the whole thing with it. --view-h is the
+         room the shell actually leaves, measured after the header renders. -->
+    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px;min-height:0;">
       <section class="rl-head">
         <div class="rl-head-id" style="min-width:0;">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">

@@ -666,7 +666,7 @@ function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
+  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
       <span style="flex:1"></span>

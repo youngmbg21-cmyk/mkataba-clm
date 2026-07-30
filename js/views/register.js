@@ -547,7 +547,7 @@ function renderRegister(){
     </div>`:'';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4

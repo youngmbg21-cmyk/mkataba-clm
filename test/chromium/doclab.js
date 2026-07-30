@@ -92,10 +92,17 @@ function check(name, ok, detail){
 
     const routed = await page.evaluate(() => ({
       view: state.view,
-      title: (document.getElementById('cmd-title') || {}).textContent || ''
+      /* The shell's command strip is gone — a page states its own name now, and
+         the lab states it in its own status header, which is also where its
+         mode chip lives. That chip is the thing that actually tells a reader
+         this is the sandbox and not the contract. */
+      ident: (document.querySelector('.doclab-status-header .doclab-name') || {}).textContent || '',
+      mode:  (document.querySelector('.doclab-modechip') || {}).textContent || '',
+      strip: !!document.querySelector('.doclab-status-header'),
     }));
     check('the route still reaches the lab', routed.view === 'doclab', routed.view);
-    check('the command bar names it a sandbox', /sandbox/i.test(routed.title), routed.title);
+    check('the lab states itself in its own header', routed.strip && !!routed.ident, routed.ident);
+    check('and its header carries the mode chip', /sandbox|published/i.test(routed.mode), routed.mode);
 
     /* ---- the lab's own copy of the document draws, with clauses to edit ---- */
     const doc = await page.evaluate(() => {

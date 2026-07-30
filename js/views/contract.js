@@ -2517,7 +2517,7 @@ function renderWorkspace(){
     ? 'Back to '+FOLDERS[_wr.folderId].name
     : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
   content.innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
     <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
     <section style="${CARD};flex:none;overflow:hidden">

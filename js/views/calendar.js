@@ -147,7 +147,7 @@ function renderCalendar(){
   const btnBase='width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:var(--shadow-sm);border-radius:8px;cursor:pointer;font-size:14px;color:var(--color-neutral-700);line-height:1';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column;gap:14px">
     <style>
       .cal-day{transition:box-shadow .14s ease,border-color .14s ease;position:relative}
       .cal-day:hover{border-color:var(--color-accent)!important;box-shadow:0 0 0 2px rgba(89,128,166,.32),0 4px 14px rgba(43,43,45,.16);z-index:2}

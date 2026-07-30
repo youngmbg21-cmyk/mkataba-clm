@@ -107,12 +107,77 @@ function commandMeta(view){
     default: return ['HaTi', ''];
   }
 }
-function updateCommandBar(view){
-  const [t,s]=commandMeta(view);
-  const te=document.getElementById('cmd-title'), se=document.getElementById('cmd-sub');
-  if(te) te.textContent=t;
-  if(se) se.textContent=s;
+/* ---------- THE PAGE HEADER ----------
+   Each page states its own name and offers its own verbs. Two rules decide
+   what appears, and both come from the reference:
+
+     · THE DASHBOARD GETS NO HEADER AT ALL. Its hero already says what the
+       screen is and already carries "Draft new agreement". A title bar above
+       it repeated the name and put a second create button directly over the
+       first — the duplication that prompted this.
+
+     · A PAGE OFFERS ONLY ITS OWN VERBS. Export belongs where there is a
+       working set to export; drafting belongs where a reader is looking at
+       contracts, not at a calendar or an import queue. Anything a page
+       already renders for itself is not repeated here — Templates draws its
+       own "Create template", so it gets no create button from this. */
+const PAGE_ACTIONS = {
+  register: ['export', 'new'],
+  folder:   ['export', 'new'],
+  workspace:['export'],
+  pipeline: ['new'],
+  reports:  ['export'],
+};
+function pageActionHtml(kind){
+  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="Export the working set">`+
+    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>`;
+  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
+  return '';
 }
+/* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
+   one above them is the second layer this whole change removes.
+
+     dashboard  the hero says what the screen is and carries its one verb
+     redline    the workbench's own head card names the contract and the round,
+                and carries the view toggle, Accept All and Publish Round
+     workspace  the contract page leads with the contract's own name
+     doclab     the lab's status strip does the same for the sandbox
+
+   Everything else is a list or a tool with no name of its own, and says who it
+   is here. */
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'doclab'];
+function renderPageHeader(view){
+  const host=document.getElementById('page-head'); if(!host) return;
+  if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
+  const [t,sub]=commandMeta(view);
+  const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
+  host.style.padding='16px 20px 0';
+  host.innerHTML=`
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        ${sub?`<p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500);line-height:1.5">${esc(sub)}</p>`:''}
+      </div>
+      ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
+    </div>`;
+  syncViewHeight();
+}
+/* The full-height views size themselves against this rather than a constant,
+   so a page header that grows a line — or a dashboard that has none at all —
+   never leaves them overflowing or short. Measured from the scroll container
+   itself, which is exactly the room a view has. */
+function syncViewHeight(){
+  const sc=document.getElementById('content-scroll');
+  const root=document.documentElement;
+  /* Both guarded: the node tests render this switch against a cut-down
+     document that has neither a scroll container nor a documentElement. */
+  if(sc && root && root.style) root.style.setProperty('--view-h', sc.clientHeight+'px');
+}
+/* Kept under its old name because the shell and several views call it. */
+function updateCommandBar(view){ renderPageHeader(view); }
+/* Guarded rather than assumed: this module is evaluated on a cut-down stage in
+   the node tests, where there is no global addEventListener to bind to. */
+if(typeof addEventListener==='function') addEventListener('resize', syncViewHeight);
 function updateSidebarCounts(){
   const cs=state.contracts;
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
@@ -508,14 +573,30 @@ function wireShell(){
   // global jump palette (⌘K hint button in the search box)
   document.getElementById('cmd-k-hint')?.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); openCommandPalette(); });
 
-  // export
-  document.getElementById('cmd-export')?.addEventListener('click',exportWorkingSetCsv);
-
-  // new-contract menu (re-rendered on open so newly saved templates appear)
+  // Export and + New contract are drawn into the page header per view, so they
+  // are bound by delegation — binding once at startup would hold a reference to
+  // a button that the next render replaces.
   renderNewMenu();
-  const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu');
-  nb&&nb.addEventListener('click',e=>{ e.stopPropagation(); if(nm.classList.contains('hidden')) renderNewMenu(); nm.classList.toggle('hidden'); });
-  document.addEventListener('click',e=>{ if(nm&&!nm.classList.contains('hidden')&&!nm.contains(e.target)&&e.target!==nb&&!nb.contains(e.target)) nm.classList.add('hidden'); });
+  const nm=document.getElementById('new-menu');
+  document.addEventListener('click',e=>{
+    const exp=e.target.closest?.('[data-page-export]');
+    if(exp){ exportWorkingSetCsv(); return; }
+    const nb=e.target.closest?.('[data-page-new]');
+    if(nb){
+      e.stopPropagation();
+      if(nm.classList.contains('hidden')){
+        renderNewMenu();
+        // Anchored under its trigger and clamped to the viewport, because the
+        // trigger is no longer in a fixed strip at a known position.
+        const r=nb.getBoundingClientRect();
+        nm.style.top=Math.round(r.bottom+6)+'px';
+        nm.style.left=Math.round(Math.min(Math.max(8,r.right-300),window.innerWidth-308))+'px';
+      }
+      nm.classList.toggle('hidden');
+      return;
+    }
+    if(nm&&!nm.classList.contains('hidden')&&!nm.contains(e.target)) nm.classList.add('hidden');
+  });
 
   // Copilot
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
@@ -571,4 +652,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
+Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});
