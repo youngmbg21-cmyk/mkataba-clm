@@ -4098,7 +4098,7 @@ function redlineLayoutCss(){
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
-    background:var(--st-amber-bg);color:var(--st-amber-fg)}
+    background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
   .redline-page .rl-card-verbs button{flex:1;min-width:64px;border:0;border-radius:7px;padding:6px;font:inherit;
     font-size:11px;font-weight:700;cursor:pointer;transition:filter .15s}
@@ -4178,12 +4178,20 @@ function redlineLayoutCss(){
   .redline-page .rl-vis.int{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-thread-state{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
     background:var(--color-neutral-100);color:var(--color-neutral-600)}
-  .redline-page .rl-thread-ref{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:8px}
-  .redline-page .rl-msg{margin-bottom:9px}
+  .redline-page .rl-thread-ref{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:8px;
+    overflow-wrap:anywhere}
+  /* Long sentences wrap inside the card, and so does a long unbroken run — a
+     URL or a word typed without spaces would otherwise set the card's width
+     and push the column wider than its pane. min-width:0 on the author cell
+     for the same reason: a flex child will not shrink below its content
+     without it, so the timestamp was the first thing to go. */
+  .redline-page .rl-msg{margin-bottom:9px;min-width:0}
   .redline-page .rl-msg-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;
     font-size:11px;margin-bottom:2px}
-  .redline-page .rl-msg-top span{color:var(--color-neutral-500);font-size:10px}
-  .redline-page .rl-msg p{margin:0;font-size:11.5px;line-height:1.6;color:var(--color-text)}
+  .redline-page .rl-msg-top b{min-width:0;overflow-wrap:anywhere}
+  .redline-page .rl-msg-top span{color:var(--color-neutral-500);font-size:10px;flex:none}
+  .redline-page .rl-msg p{margin:0;font-size:11.5px;line-height:1.6;color:var(--color-text);
+    white-space:pre-wrap;overflow-wrap:anywhere}
   .redline-page .rl-reply,.redline-page .rl-starter{margin-top:9px}
   .redline-page .rl-starter{border-top:1px solid var(--color-divider);padding:11px 14px;flex:none}
   .redline-page .rl-reply-row{display:flex;align-items:center;gap:6px}
