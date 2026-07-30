@@ -72,7 +72,7 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
        screen with the redesign. The scoping question is unchanged: whatever
        panels exist must key off the scoped list. */
     assert.ok(html.includes('Active contract lifecycle pipeline'));
-    assert.ok(html.includes('Live audit &amp; activity') || html.includes('Live audit & activity'));
+    assert.ok(html.includes('Decisions due'));
   });
 });
 

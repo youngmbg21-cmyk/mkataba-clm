@@ -151,6 +151,9 @@ function renderDashboard(){
   // renewal decisions due (expiry − notice period), within 90 days, live contracts only
   const rdd=window.renewalDecisionDate||(()=>null);
   const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
+  /* Paper that has sat in review, longest first — the other half of what a
+     person has to decide about, alongside the renewals. */
+  const waitingLongest=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
   const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
@@ -347,31 +350,50 @@ function renderDashboard(){
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;">${pipeCols}</div>
     </section>`;
 
-  /* ---- LIVE AUDIT & ACTIVITY FEED (redesign) ----
-     Real audit entries, not a decorative stream: the same feed the context
-     panel reads, tinted by the category the entry already carries. */
-  const ACT_TONE={green:['var(--tile-emerald-bg)','var(--tile-emerald-fg)','seal'],
-                  amber:['var(--tile-amber-bg)','var(--tile-amber-fg)','clock'],
-                  ruby:['var(--tile-ruby-bg)','var(--tile-ruby-fg)','alert'],
-                  gray:['var(--st-gray-bg)','var(--st-gray-fg)','file'],
-                  steel:['var(--tile-steel-bg)','var(--tile-steel-fg)','sparkle']};
-  const acts=(window.buildActivityFeed?buildActivityFeed(6):[]);
-  const actRows=acts.map(a=>{ const [bg,fg,ic]=ACT_TONE[a.cat]||ACT_TONE.steel;
-    return `<button data-sel="${esc(a.id)}" style="display:flex;gap:11px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;">
-      <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(ic,'w-3.5 h-3.5',1.8)}</span>
+  /* ---- DECISIONS DUE (in the design's feed slot) ----
+     The audit stream that sat here read "Created — Seeded as sample data" over
+     and over, because a created record is the only history a fresh contract
+     has. What belongs in the one column beside the pipeline is what needs a
+     person: a renewal decision whose date is closing, and paper that has sat in
+     review. Drawn in the design's feed row — a round tone tile, two lines — and
+     capped to the pipeline's height, scrolling inside its own box. */
+  const decisionItems=[
+    ...decisions.map(x=>({
+      cid:x.c.id, urgent:x.d<=30, ic:'calendar',
+      txt:`Renew or exit — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
+      meta:`${esc(x.c.counterparty||'no counterparty')} · decide by ${fmtDDay(x.dd)}`,
+      tag:x.d===0?'today':`in ${x.d}d`,
+    })),
+    ...waitingLongest.map(x=>({
+      cid:x.c.id, urgent:x.idle>=30, ic:'clock',
+      txt:`Waiting on review — <strong style="font-weight:600">${esc(x.c.name)}</strong>`,
+      meta:`${esc(x.c.counterparty||'no counterparty')} · ${esc(x.c.id)}`,
+      tag:`${x.idle}d idle`,
+    })),
+  ];
+  const decisionRows=decisionItems.slice(0,8).map(it=>{
+    const bg=it.urgent?'var(--tile-ruby-bg)':'var(--tile-amber-bg)';
+    const fg=it.urgent?'var(--tile-ruby-fg)':'var(--tile-amber-fg)';
+    return `<button data-sel="${esc(it.cid)}" style="display:flex;gap:11px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;">
+      <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(it.ic,'w-3.5 h-3.5',1.8)}</span>
       <span style="flex:1;min-width:0;">
-        <span style="display:block;font-size:11.5px;line-height:1.4;color:var(--color-text);">${esc(a.txt)}</span>
-        <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)} · ${esc(a.when)}</span>
+        <span style="display:flex;align-items:baseline;gap:8px;">
+          <span style="flex:1;min-width:0;font-size:11.5px;line-height:1.4;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.txt}</span>
+          <span style="flex:none;font-size:10px;font-weight:600;font-family:var(--font-mono);color:${fg};">${esc(it.tag)}</span>
+        </span>
+        <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.meta}</span>
       </span>
     </button>`; }).join('')
-    || `<div style="font-size:11.5px;color:var(--color-neutral-500);padding:10px 2px;">No activity recorded yet.</div>`;
+    || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>Nothing to decide — you're all caught up.</div>`;
   const activitySection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-        <h4 style="font-size:15px;margin:0;font-weight:700;">Live audit &amp; activity</h4>
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+    <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
+        <h4 style="font-size:15px;margin:0;font-weight:700;">Decisions due</h4>
+        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:${decisionItems.length?'#f59e0b':'#10b981'};flex:none;"></span>
+        ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
-      <div style="flex:1;min-height:0;">${actRows}</div>
+      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
+      ${decisionItems.length>8?`<button data-open-decisions style="flex:none;margin-top:8px;border:0;background:none;padding:2px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">See all ${decisionItems.length} in the calendar →</button>`:''}
     </section>`;
 
   document.getElementById('content').innerHTML=`
@@ -397,9 +419,16 @@ function renderDashboard(){
 
     <!-- The lifecycle pipeline and the live feed, side by side (2:1) as in the
          design. Both cards size to their own content. -->
-    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;">
+    <!-- The pipeline sets the height of this row; the decisions card is filled
+         absolutely into the remaining column so a long list scrolls inside it
+         instead of stretching the row and leaving the pipeline half-empty. -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:stretch;">
       ${lifecycleSection}
-      ${activitySection}
+      <div style="position:relative;min-width:0;">
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;">
+          ${activitySection}
+        </div>
+      </div>
     </div>
 
   </div>`;

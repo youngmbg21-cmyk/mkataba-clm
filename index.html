@@ -667,7 +667,9 @@
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+            <!-- pie chart (the design's fa-chart-pie), drawn solid so it reads
+                 at 15px the way the flat glyph does -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
             <span style="flex:1;">Dashboard</span><span class="nav-count" data-count="dashboard"></span>
           </button>
           <button data-view="pipeline" class="nav-item" title="Queue">
