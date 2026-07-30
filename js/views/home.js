@@ -143,7 +143,6 @@ function renderDashboard(){
     {k:'Declined',     label:'Closed',    color:'#b0453c'},
   ];
   const stages=STAGE_DEF.map(s=>{ const list=cs.filter(c=>c.status===s.k); return {...s, n:list.length, val:valOf(list)}; });
-  const stageTotal=stages.reduce((s,x)=>s+x.n,0)||1;
 
   // family-aware: a master agreement's real end date is whatever the latest
   // amendment says, and an amendment is not itself an expiring agreement
@@ -154,8 +153,6 @@ function renderDashboard(){
   const decisions=cs.filter(c=>c.status!=='Declined').map(c=>{ const dd=rdd(c); return dd?{c,dd,d:dU(dd)}:null; }).filter(x=>x&&x.d>=0&&x.d<=90).sort((a,b)=>a.d-b.d);
   const fmtDDay=iso=>{ const t=Date.parse((iso||'')+'T00:00:00'); return isNaN(t)?iso:new Date(t).toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'numeric'}); };
   const highRisk=cs.filter(c=>c.status!=='Declined').map(c=>({c,r:contractRisk(c)})).filter(x=>x.r>=60).sort((a,b)=>b.r-a.r);
-  const waiting=cs.filter(c=>c.status==='Under Review').map(c=>({c,idle:idleOf(c)})).sort((a,b)=>b.idle-a.idle);
-  const reviewByRisk=cs.filter(c=>c.status==='Under Review').map(c=>({c,r:contractRisk(c)})).sort((a,b)=>b.r-a.r);
   // Awaiting counterparty = contracts that are OUT with a counterparty and not
   // yet signed — a live share in 'sent' or 'opened', so the ball is in their
   // court. This is the dispatch signal (state.shareByContract), independent of
@@ -272,24 +269,6 @@ function renderDashboard(){
     </button>`; };
   const kpiHtml=kpiSel.map(kpiCard).join('');
 
-  // ---- segmented stage bar + cards ----
-  const segBar=stages.map((s,i)=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color};"></span>`).join('');
-  const stageCards=stages.map(s=>`
-    <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
-      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?`${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}`:`${s.n.toLocaleString('en-KE')} contract${s.n===1?'':'s'}`}</span>
-    </button>`).join('');
-
-  // ---- needs your action ----
-  const actionRows=reviewByRisk.slice(0,5).map(x=>{ const c=x.c;
-    return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
-      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
-      <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
-      ${riskChip(x.r)}
-      ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
-    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
 
   /* The dashboard no longer carries Decisions due, Obligations, the renewal
      pipeline or the approvals queue — the redesign leads on the pipeline and
@@ -359,7 +338,6 @@ function renderDashboard(){
       </div>
     </div>`;
   }).join('');
-  const closedN=(stages.find(s=>s.k==='Declined')||{n:0}).n;
   const lifecycleSection=`
     <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
@@ -367,18 +345,6 @@ function renderDashboard(){
         <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;">${pipeCols}</div>
-      <div style="margin-top:14px;border-top:1px solid var(--color-divider);padding-top:11px;">
-        <div style="display:flex;height:7px;overflow:hidden;margin-bottom:9px;border-radius:999px;">${segBar}</div>
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">${stageCards}</div>
-        ${closedN?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:7px;">Closed and declined paper stays on the bar above and in the register — it is not a stage you work in.</div>`:''}
-      </div>
-      <div style="margin-top:13px;border-top:1px solid var(--color-divider);padding-top:11px;">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
-          <h6 style="margin:0;font-size:10.5px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase;font-weight:700;">Needs your action</h6>
-          <span style="font-size:10px;color:var(--color-neutral-500);">sorted by risk</span>
-        </div>
-        ${actionRows}
-      </div>
     </section>`;
 
   /* ---- LIVE AUDIT & ACTIVITY FEED (redesign) ----

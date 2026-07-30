@@ -71,7 +71,6 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
        "Needs your action" — Decisions due / Waiting longest moved off this
        screen with the redesign. The scoping question is unchanged: whatever
        panels exist must key off the scoped list. */
-    assert.ok(html.includes('Needs your action'));
     assert.ok(html.includes('Active contract lifecycle pipeline'));
     assert.ok(html.includes('Live audit &amp; activity') || html.includes('Live audit & activity'));
   });
@@ -110,13 +109,13 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
      What it guarded — that a reader without can_view_values is never shown a
      KES figure — is still enforced across the whole screen by the test below,
      and the stage cards it shared the row with are covered there too. */
-  test('the stage cards show counts, with no KES figure', () => {
+  test('the lifecycle pipeline counts documents, with no KES figure', () => {
     const without = renderWith(sample(), { money: false });
     const barStart = without.indexOf('Active contract lifecycle pipeline');
     assert.ok(barStart > 0, 'the lifecycle panel should render');
     const panel = without.slice(barStart);
     assert.ok(!/KES/.test(panel), 'the lifecycle panel must not print a KES figure');
-    assert.match(panel, /contract[s]?</, 'a stage card should still count its contracts');
+    assert.match(panel, /\d+ docs?</, 'a stage column should still count what is in it');
   });
 
   test('no KES figure appears anywhere on the dashboard without the right', () => {
@@ -125,8 +124,14 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     assert.ok(!html.includes('48000000') && !html.includes('36000000'), 'a raw amount survived');
   });
 
-  test('the stage cards show contract counts instead of stage totals', () => {
+  /* The four stage cards left the dashboard with the redesign; the lifecycle
+     columns carry the same reading. What matters is unchanged: a reader without
+     can_view_values is told HOW MANY sit at each stage, never how much. */
+  test('the lifecycle columns count the scoped contracts, not stage totals', () => {
     const without = renderWith(sample(), { money: false });
-    assert.match(without, /1 contract/, 'a stage card should count contracts');
+    const col = h => { const i = without.indexOf(h); return without.slice(i, i + 400); };
+    assert.match(col('2. Review & Redline'), /1 doc</, 'one contract is in review');
+    assert.match(col('3. Sign & Executed'), /1 doc</, 'and one is executed');
+    assert.match(col('1. Draft & Template'), /0 docs</, 'and nothing is in draft');
   });
 });
