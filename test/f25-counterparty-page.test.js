@@ -34,59 +34,6 @@ describe('F25 — what Erik sees when he opens the link', () => {
       assert.ok(p.has(id), `the counterparty must be able to ${id}`);
   });
 
-  test('a contract drafted in HaTi still offers him a Word route', () => {
-    assert.ok(p.has('pt-word-gen'),
-      'a drafted contract has no uploaded file, and used to offer him no Word option at all');
-    assert.ok(p.has('pt-word-up'), 'and he must be able to bring his marked-up copy back');
-  });
-});
-
-describe('F25 — the Word file he actually downloads', () => {
-  let p;
-  before(() => {
-    p = buildPortal();
-    p.open(sharePayloadFor(p, supplyContract()));
-  });
-
-  test('it is a real Word file, not one unreadable paragraph', async () => {
-    await p.click('pt-word-gen');
-    const dl = p.lastDownload();
-    assert.ok(dl, 'pressing download must produce a file');
-    assert.equal(dl.bytes[0], 0x50, 'a .docx is a ZIP');
-    assert.equal(dl.bytes[1], 0x4b);
-
-    const back = await p.win.docxExtract(dl.bytes);
-    const lines = back.text.split('\n').filter(l => l.trim());
-    assert.ok(lines.length > 3,
-      `the contract must keep its shape — got ${lines.length} line(s): ${JSON.stringify(back.text.slice(0, 120))}`);
-  });
-
-  test('it keeps the headings and the clause numbers', async () => {
-    await p.click('pt-word-gen');
-    const back = await p.win.docxExtract(p.lastDownload().bytes);
-    assert.match(back.text, /RAW MATERIAL SUPPLY AGREEMENT/);
-    assert.match(back.text, /3\.\s*Payment shall be made within thirty \(30\) days/,
-      'the clause number must be in the file, or cross-references break');
-    assert.match(back.text, /SIGNED for and on behalf of the parties/);
-    const kinds = back.text.split('\n').map(p.win.docLineKind);
-    assert.ok(kinds.includes('heading'), 'section titles must still read as headings');
-  });
-
-  test('it matches what the owner would have sent him', async () => {
-    // the same contract exported from the owner's side, byte-for-byte comparable
-    // in the only way that matters: the wording and its shape
-    await p.click('pt-word-gen');
-    const his = await p.win.docxExtract(p.lastDownload().bytes);
-    const hers = await p.win.docxExtract(await p.win.contractDocxBytes(supplyContract()));
-    assert.equal(his.text.replace(/\s+/g, ' ').trim(), hers.text.replace(/\s+/g, ' ').trim(),
-      'both sides of the deal must be marking up the same document');
-  });
-
-  test('the filename is something he can find again', async () => {
-    await p.click('pt-word-gen');
-    assert.match(p.lastDownload().fileName, /\.docx$/);
-    assert.match(p.lastDownload().fileName, /Raw Material Supply Agreement/);
-  });
 });
 
 describe('F25 — proposing edits, clause by clause', () => {

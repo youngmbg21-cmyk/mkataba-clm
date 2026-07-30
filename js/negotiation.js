@@ -84,7 +84,7 @@ const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : 
 /* ---------- the negotiation record ----------
    c.negotiation holds the BASELINE for the round in flight: the wording both
    sides are measuring this round's proposals against. It is a snapshot of the
-   document, not a pointer to a version, for the same reason recordWordSent()
+   document, not a pointer to a version, for the same reason the round record
    keeps one — a version can be superseded, but what the parties were arguing
    about cannot un-happen.
 
@@ -130,6 +130,31 @@ function negoStampContract(c){
   const { html, stamped } = clauseStampIds(body);
   if (stamped && window.isRich && isRich(c.format) && c.redlineText != null) c.redlineText = html;
   return html;
+}
+
+/* ---------- keeping an UNTOUCHED baseline current ----------
+   The baseline is a snapshot, and during a live round it must be: every filed
+   ask is measured against it. But before anything is on the table the snapshot
+   can go stale in a way a reader sees as two different contracts — fill the
+   key terms on the Doc page after the workbench's first paint and the Doc page
+   says "KES 14,500,000" while the redline still shows the blank it froze.
+
+   So an untouched negotiation re-reads its baseline from the document. The
+   guards are the point, and every one is load-bearing: any filed change, any
+   archived round, any hash issued means the baseline has been MEASURED AGAINST
+   and may not move — that is the round model's contract, not an optimisation. */
+function negoFreshenBaseline(c){
+  const n = negoInit(c);
+  if ((c.changes || []).length) return false;         // something is on the table
+  if ((n.rounds || []).length || n.round !== 1) return false;  // history exists
+  if (n.chainHead) return false;                      // a hash has cited this baseline
+  const body = negoStampContract(c);
+  if (!body || body === n.baselineBody) return false;
+  const text = window.richToText ? richToText(body) : '';
+  n.baselineBody = body;
+  n.baselineText = text;
+  n.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
+  return true;
 }
 
 const negoBaseText = c => (negoInit(c).baselineText || '');
@@ -256,6 +281,7 @@ async function verifyChangeChain(c){
   negoInit(c);
   const list = negoIssuances(c);
   let prev = null;                       // the hash issued immediately before, in creation order
+  let omitted = 0;                       // links this copy was never given (see below)
   const lastOf = new Map();              // and the previous hash of each change's own history
   for (const iss of list){
     if (iss.hashV !== NEGO_HASH_V)
@@ -268,7 +294,24 @@ async function verifyChangeChain(c){
        shows up as a broken link rather than passing quietly. */
     const isRevision = lastOf.has(iss.id);
     const expectPrev = isRevision ? lastOf.get(iss.id) : prev;
-    if ((iss.prevChangeHash || null) !== expectPrev)
+    /* A COPY THAT WAS NEVER GIVEN THE WHOLE CHAIN.
+
+       The counterparty's copy carries a change but not the earlier drafts it
+       replaced — those are the owner's, and only what was sent is published.
+       The chain links a change to the wording it replaced, so the first record
+       of a revised change points at a hash this copy does not hold. That is not
+       a broken chain; it is a chain seen through a window, and reporting it as
+       "the stored wording has been altered" accused the document of something
+       nobody had done.
+
+       The payload says how many are missing, so the difference is knowable
+       rather than guessed. The link across them is not checked — it cannot be —
+       and the verdict says so. Everything else still is: the record's own
+       fingerprint is recomputed and matched exactly as before, and a broken
+       link the omission does not account for still fails. */
+    const notCarried = !isRevision && Number(iss.revisionsOmitted || 0) > 0;
+    if (notCarried) omitted += Number(iss.revisionsOmitted);
+    else if ((iss.prevChangeHash || null) !== expectPrev)
       return { ok: false, checked: list.length, failedAt: iss.id || null, seq: iss.seq || null,
         reason: 'broken-link',
         detail: isRevision
@@ -293,8 +336,14 @@ async function verifyChangeChain(c){
         + 'so these fingerprints were computed with a weak substitute and cannot be verified. '
         + 'Open this page over https to check the chain.' };
   return { ok: true, checked: list.length, failedAt: null, reason: null,
-    detail: list.length ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints`
-      : 'nothing filed yet' };
+    omitted, partial: omitted > 0,
+    detail: !list.length ? 'nothing filed yet'
+      : omitted
+        ? `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints.`
+          + ` ${omitted} earlier revision${omitted === 1 ? '' : 's'} ${omitted === 1 ? 'is' : 'are'} not carried by`
+          + ` this copy, so the link${omitted === 1 ? '' : 's'} across ${omitted === 1 ? 'it' : 'them'} cannot be`
+          + ` checked here. Nothing suggests the wording has been altered.`
+        : `${list.length} change record${list.length === 1 ? '' : 's'} verified against their fingerprints` };
 }
 
 /* The verification the "Verified" pill reads.
@@ -377,8 +426,19 @@ async function negoFileChange(c, draft, opts = {}){
 
   const oldText = String(draft.oldText == null ? '' : draft.oldText);
   const newText = String(draft.newText == null ? '' : draft.newText);
-  const ops = (draft.changeType === 'modify' && window.redlineOps)
-    ? redlineOps(oldText, newText)
+  /* ALIGNED ON LINES FIRST where the engine offers it. A clause is rarely one
+     sentence — it is a heading, numbered sub-clauses and lettered
+     sub-paragraphs — and aligning words across the whole of it lets the diff
+     match "(a)" against an "(a)" three lines away. The reconstruction is exact
+     either way; the difference is that the line-aware walk reports the two
+     sub-paragraphs nobody touched as untouched, instead of striking them out
+     and re-inserting them verbatim.
+
+     This is decided HERE, at the moment of filing, because the ops are the
+     record: every later render reads them back rather than re-deriving them,
+     so a bad alignment saved now is a bad redline for the life of the change. */
+  const ops = (draft.changeType === 'modify' && (window.redlineOpsStructured || window.redlineOps))
+    ? (window.redlineOpsStructured ? redlineOpsStructured(oldText, newText) : redlineOps(oldText, newText))
     : draft.changeType === 'insertClause' ? [{ op: 'ins', text: newText }]
     : [{ op: 'del', text: oldText }];
 
@@ -667,11 +727,35 @@ function negoBodyFromText(oldBodyHtml, newText){
    an insertion anchored on a clause that is also being deleted still lands in
    the position it was proposed for, rather than falling off the end of the
    document because its anchor evaporated. */
-function negoResolvedBody(c){
+function negoResolvedBody(c){ return negoBuildBody(c, x => x.status === 'accepted'); }
+/* ---------- the document as it would read if everything were agreed ----------
+   THE SAME BUILDER, over the accepted set PLUS the pending one.
+
+   Reading a redline and reading a contract are two different acts, and the room
+   only supported the first. Every screen in it draws what is being asked for —
+   struck-through wording, inserted wording, a fingerprint in the margin — which
+   is exactly right for deciding a change and exactly wrong for the question
+   everybody asks next: what does this actually say if we agree to all of it?
+   Answering it meant accepting every change to see, which is a decision, not a
+   look.
+
+   So this is a READ and nothing else: it builds a document, writes nothing, and
+   the changes stay pending. A refused ask is not in it — silence still rejects,
+   and a rejected change is settled, not outstanding.
+
+   Withdrawn asks are excluded for the same reason: the side that made them has
+   taken them off the table, so a document that assumed them would be assuming
+   agreement to wording nobody is asking for any more. */
+function negoCleanBody(c){
+  return negoBuildBody(c, x => x.status === 'accepted'
+    || (x.status === 'pending' && !x.withdrawn));
+}
+const negoCleanText = c => (window.richToText ? richToText(negoCleanBody(c)) : '');
+function negoBuildBody(c, take){
   negoInit(c);
   let body = negoBaseBody(c);
   if (!window.clauseReplaceBody) return body;
-  const accepted = negoChanges(c).filter(x => x.status === 'accepted')
+  const accepted = negoChanges(c).filter(x => x.status !== 'superseded' && take(x))
     .slice().sort((a, b) => (a.seq || 0) - (b.seq || 0));
 
   for (const ch of accepted){
@@ -730,7 +814,7 @@ function negoCommitBody(c, body){
   }
   return { flattened: false, text };
 }
-/* Kept for callers that still speak text (js/wordflow.js, the round model). */
+/* Kept for callers that still speak text (the round model). */
 function negoCommitText(c, text){
   const wasRich = !!(window.isRich && isRich(c.format) && c.redlineText);
   let flattened = false;
@@ -776,7 +860,13 @@ function negoResolve(c, id, status, opts = {}){
     if (window.toast) toast('You cannot decide your own proposal', 'err');
     return null;
   }
-  if (c.status === 'Signed' || (window.wordDoorClosed && wordDoorClosed(c))){
+  /* THE SIGNED DOOR, inlined when the Word round trip was removed. It used to
+     live in js/wordflow.js as wordDoorClosed(), and losing that file would have
+     quietly reduced this to `status === 'Signed'` — dropping the seal and the
+     execution stamp from the test. An executed record takes no new decisions,
+     however it came to be executed. */
+  const executed = !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
+  if (executed){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
@@ -805,7 +895,7 @@ function negoResolve(c, id, status, opts = {}){
     `${status === 'rejected' ? ' · the clause stays at the baseline and the ask travels back as an open point' : ''}` +
     `${status === 'pending' ? ` (was ${prev})` : ''}`);
   if (window.captureVersion && status !== 'pending')
-    captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who);
+    captureVersion(c, `#${ch.id} ${verb} — ${ch.clauseLabel || ch.clauseId}`, who, { auto: true });
   c.lastAction = window.todayStr ? window.todayStr() : c.lastAction;
   return ch;
 }
@@ -897,11 +987,26 @@ function negoPostComment(c, id, text, opts = {}){
     ? (c.counterparty || 'The counterparty')
     : ((window.currentUser && window.currentUser()?.name) || 'This workspace'))).trim();
   ch.thread = Array.isArray(ch.thread) ? ch.thread : [];
-  const msg = { who, side, at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
+  /* WHO THIS IS FOR, and the default is the safe one.
+
+     'shared' means it also goes out on the discussion channel and the other
+     side reads it. 'internal' means it stays on this record: ch.thread is not
+     in the share payload (buildSharePayload, js/core.js) and never has been, so
+     an internal note reaches nobody by simply not being posted — there is no
+     filter here to get wrong, which is the point.
+
+     Anything that is not exactly 'shared' is internal. A caller that forgets
+     the field, or passes something misspelt, keeps the note at home; the
+     opposite default would publish a colleague's aside to the counterparty. */
+  const visibility = opts.visibility === 'shared' ? 'shared' : 'internal';
+  const msg = { who, side, visibility,
+    at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: ch.hash || null };
   ch.thread.push(msg);
   if (window.logAudit) logAudit(c, 'Negotiation',
-    `Comment posted on #${ch.id} by ${who} — the contract is unchanged and no round was opened`);
+    `${visibility === 'shared' ? 'Comment' : 'Internal note'} posted on #${ch.id} by ${who}`
+    + ` — the contract is unchanged and no round was opened`
+    + (visibility === 'shared' ? '' : '; it stays inside this organisation'));
   return msg;
 }
 /* Is this comment about wording that has since been revised? A read, never a
@@ -909,6 +1014,92 @@ function negoPostComment(c, id, text, opts = {}){
 const negoCommentIsStale = (ch, msg) => !!(ch && msg && msg.atHash && ch.hash && msg.atHash !== ch.hash);
 /* The topic key a change's thread shares with js/discuss.js. */
 const negoTopicFor = ch => ch ? ('change:' + ch.id) : null;
+
+/* ---------- ONE THREAD PER CHANGE, OUT OF TWO STORES ----------
+
+   A comment on a fingerprint has always had two places to live, and each side
+   was reading only one of them.
+
+     ch.thread          — written by negoPostComment, onto the contract record
+                          the screen is reading. The owner's record IS the
+                          contract, so their own comments landed here and stayed.
+     share_messages     — the discussion channel, keyed by topic. The
+                          counterparty's copy of the contract is assembled from
+                          a share payload and thrown away on the next repaint,
+                          so their replies cannot be written to it and go here
+                          instead, under topic `change:<id>`.
+
+   The card rendered ch.thread and nothing else. So the owner asked for input on
+   a change, the counterparty answered, the answer was filed — correctly, and
+   visibly in the discussion panel — and the card that asked the question showed
+   no reply at all. Each side could see its own half of a conversation and
+   neither could see the other's.
+
+   This is the read that puts them back together. It merges, it does not move
+   anything: both stores keep exactly what they held, and the ordering is by
+   time so an exchange reads in the order it happened.
+
+   Identical text from the same side in both stores is ONE message, not two —
+   the owner's comments are written to the thread and posted to the channel, so
+   without this every one of them would appear twice on their own screen.
+
+   `extra` is passed rather than only read off the record, because the two sides
+   hold that list in different places: the owner keeps it on `c._messages`, and
+   the counterparty's page has no contract to keep anything on — its copy is
+   rebuilt from the share payload on every repaint, so the list lives on the
+   page (PORTAL_OPTS.messages) and is handed in. */
+function negoMergedThread(c, ch, extra){
+  const own = (ch && Array.isArray(ch.thread)) ? ch.thread : [];
+  const all = Array.isArray(extra) ? extra
+    : ((c && Array.isArray(c._messages)) ? c._messages : []);
+  if (!ch || !all.length) return own;
+  const topic = negoTopicFor(ch);
+  /* THE TIMESTAMP IS DELIBERATELY NOT IN THE KEY, and leaving it in would put
+     every one of the owner's own comments on the screen twice. A comment they
+     post is written to `ch.thread` stamped by their browser and posted to the
+     channel stamped by the server — same words, same author, same side, two
+     clocks. Author, side and wording identify a message; the moment it was
+     recorded identifies which copy of it you are holding. */
+  const key = m => `${m.side || ''}|${String(m.who || '').trim()}|${String(m.text || '').replace(/\s+/g, ' ').trim()}`;
+  const have = new Set(own.map(key));
+  const extras = [];
+  for (const m of all){
+    if (!m || String(m.topic || '') !== topic) continue;
+    /* A message from the discussion channel is SHARED by definition: it
+       travelled. Stamping it here means the badge on a merged thread is right
+       for both stores rather than only for the half written locally. */
+    const one = { who: m.author, side: m.side, at: m.at, text: m.body, atHash: null,
+      visibility: 'shared' };
+    if (have.has(key(one))) continue;
+    have.add(key(one));
+    extras.push(one);
+  }
+  if (!extras.length) return own;
+  return own.concat(extras)
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+}
+/* The name this was introduced under, kept: it reads better at the call sites
+   that only ever have the record to go on. */
+const negoThreadOf = (c, ch) => negoMergedThread(c, ch);
+
+/* ---------- IS SOMEBODY WAITING ON AN ANSWER? ----------
+   Unread means two things at once, and both have to be true: the last word in
+   the thread is THEIRS, and it arrived after the last time this reader opened
+   that thread. Either half alone is wrong — "the last word is theirs" nags for
+   ever once you have read it and decided not to reply, and "newer than last
+   opened" lights up over your own comment.
+
+   `seenAt` is the reader's own record of when they last opened this thread. It
+   is a local fact about a person, not a fact about the agreement, so it is kept
+   in localStorage per reader and never travels with the contract. */
+function negoThreadUnread(msgs, side, seenAt){
+  const list = Array.isArray(msgs) ? msgs : [];
+  if (!list.length) return false;
+  const last = list[list.length - 1];
+  if (!last || last.side === side) return false;           // our own word is last
+  if (!seenAt) return true;                                // never opened
+  return String(last.at || '') > String(seenAt);
+}
 
 /* ---------- progress, and the one transition out ---------- */
 function negoProgress(c){
@@ -965,6 +1156,43 @@ function negoAlignment(c){
   return { aligned: !pending.length && !contested.length,
     total: live.length, pending, contested,
     outstanding: pending.concat(contested) };
+}
+/* ---------- WHAT MUST BE SETTLED BEFORE ANYTHING IS SEALED ----------
+
+   The gate in front of every signature, and the one place both generations of
+   the negotiation are asked at once.
+
+   The signing panel has refused to seal over an unresolved redline since E2,
+   and it asked `unresolvedRedlines()` — which counts open ROUNDS carrying
+   proposed text. That was the whole negotiation once. It is not now: the room
+   works change by change on `c.changes`, and a counterparty answering through
+   the room creates NO ROUND AT ALL. So the old gate reported nothing
+   outstanding over a contract with four unanswered changes on it, and the
+   signature went on. A contract was frozen, sealed with a tamper-evident
+   fingerprint and distributed to both parties as their record of the deal,
+   while a change was still being argued about.
+
+   Both states in the change model stop a signature, and the second is the one
+   that gets missed: a REFUSED ask nobody has withdrawn has an answer, so the
+   round is finished — but it is not agreement, and sealing over it records
+   agreement where there is a live disagreement. That distinction is
+   negoAlignment's, and it is deliberately not re-derived here.
+
+   Returns plain sentences a person can act on, because whatever refuses a
+   signature has to say what would clear it. */
+function negoSigningBlockers(c){
+  const out = [];
+  const rounds = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
+  if (rounds) out.push(`${rounds} proposed edit${rounds === 1 ? '' : 's'} from the counterparty`
+    + ` ${rounds === 1 ? 'is' : 'are'} still open`);
+  const a = negoAlignment(c);
+  if (a.pending.length) out.push(`${a.pending.length} change${a.pending.length === 1 ? '' : 's'}`
+    + ` ${a.pending.length === 1 ? 'has' : 'have'} not been answered`
+    + ` (${a.pending.map(x => '#' + x.id).join(', ')})`);
+  if (a.contested.length) out.push(`${a.contested.length} refused ask${a.contested.length === 1 ? '' : 's'}`
+    + ` ${a.contested.length === 1 ? 'is' : 'are'} still outstanding — the side that asked has not withdrawn`
+    + ` ${a.contested.length === 1 ? 'it' : 'them'} (${a.contested.map(x => '#' + x.id).join(', ')})`);
+  return out;
 }
 /* What is stopping this, in words, for the disabled button to say. Never
    "not ready yet": a control that refuses without saying why teaches nothing,
@@ -1032,11 +1260,35 @@ function negoSignalReady(c, opts = {}){
    deal stands. Deleting it would erase the fact that it was given; leaving it
    unqualified would have the owner issue a signing link for a contract that had
    gone back into negotiation. So it is kept, and marked. */
+/* Has this side actually signed? The counterparty's marks are `counterparty`
+   and `external`; everything else on the list is ours. Mirrors signedParties()
+   on the server and cpSigned in the workspace's action bar, which had this
+   right long before the readiness strip did. */
+const negoSideSigned = (c, side) => {
+  const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
+  const theirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  return side === 'counterparty' ? sigs.some(theirs) : sigs.some(s => s && !theirs(s));
+};
+/* A SIGNAL OF INTENT, SUPERSEDED BY THE ACT.
+
+   This returned the signal for as long as the record carried it, and the four
+   surfaces that read it all stood down on the same condition: the whole
+   contract reaching "Executed". Between the first signature and the last, the
+   contract is still "Under Review" — so a counterparty who had signed was
+   shown, in bold, "Nothing is signed yet", next to their own signature.
+
+   Once a side has signed, their signature is the live fact about them and it
+   says more than the signal did. Retired here rather than at each surface,
+   because there were four of them: the strip on the Docs page, the banner in
+   the room, the same banner on their own page, and the dashboard's count of
+   contracts waiting for a signature. */
 const negoReadySignal = (c, side) => {
   const n = (c && c.negotiation && c.negotiation.ready) || null;
   if (!n) return null;
-  const sig = n[side === 'counterparty' ? 'counterparty' : 'owner'] || null;
+  const s = side === 'counterparty' ? 'counterparty' : 'owner';
+  const sig = n[s] || null;
   if (!sig) return null;
+  if (negoSideSigned(c, s)) return null;
   return { ...sig, stale: !negoAlignment(c).aligned };
 };
 /* Points the counterparty raised that were refused, and are therefore still
@@ -1224,32 +1476,159 @@ function negoCopilotRecord(c){
    picking anything other than the live pair puts the screen in a read-only
    comparison, and says so. Offering Accept on a difference nobody proposed
    would be inventing a decision. */
+/* The comparison key for "is this the same document?". Whitespace-insensitive,
+   because two snapshots of one wording taken through different paths differ by
+   line breaks and by nothing a reader would call a version. */
+const _negoSameDoc = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+
+/* WHICH ROUND A SNAPSHOT BELONGS TO.
+   Stamped at capture from now on. Contracts negotiated before that stamp
+   existed carry nothing, so the round is read off the clock instead: a snapshot
+   taken before round 1 closed belongs to round 1, one taken before round 2
+   closed belongs to round 2, and so on. Anything that still cannot be placed
+   falls into the round in flight, which is where an unplaceable snapshot is
+   least surprising and never invents a round that is not on the list. */
+function negoVersionRound(c, v){
+  const cur = negoRound(c);
+  const closed = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
+  let r = (v && typeof v.roundN === 'number' && v.roundN > 0) ? v.roundN : null;
+  if (r == null && v && v.at){
+    const at = Date.parse(v.at);
+    if (!isNaN(at)){
+      for (const cr of closed){
+        const closedAt = Date.parse(cr.at || '');
+        if (isNaN(closedAt) || at <= closedAt){ r = cr.n; break; }
+      }
+    }
+  }
+  if (r == null) r = cur;
+  return Math.max(1, Math.min(r, cur));
+}
+
 function negoVersionOptions(c){
   negoInit(c);
-  const out = [{
-    key: 'baseline', kind: 'live',
-    /* The prototype's own words for these two panes, kept: "Original Baseline"
-       and "Working Version" are what the screen has always called them, and a
-       dropdown is no reason to rename the thing it selects. */
-    label: `Original Baseline · round ${negoRound(c)}`,
-    sub: 'the wording this round is measured against',
+  const cur = negoRound(c);
+  const closed = Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds : [];
+  /* ROUND FIRST, THING SECOND — "Round 2 - Baseline", not "Original Baseline ·
+     round 2". The old names described the pane and buried the round at the end
+     of the line, so a list spanning three rounds read as a pile of similar
+     phrases and the one fact that ordered it was the last thing on each row.
+     The V numbers restart with each round for the same reason: "Round 2 - V1"
+     is the first snapshot of round 2, which is the question people ask. The
+     snapshot's own number in the version history travels in `sub`, so nothing
+     is renamed out of existence — see negoCompareDocHtml, which prints it. */
+  const versionsIn = round => {
+    const out = [];
+    for (const v of (window.listedVersions ? listedVersions(c) : (c.versions || []))){
+      if (negoVersionRound(c, v) !== round) continue;
+      const body = v.body != null && String(v.body).trim()
+        ? String(v.body)
+        : negoRichFromLines(v.text || '');
+      const named = v.label && v.label !== 'Saved' ? ` · ${v.label}` : '';
+      out.push({ key: 'v' + v.n, kind: 'version', n: v.n, roundN: round,
+        label: `Round ${round} - V${out.length + 1}${named}`,
+        sub: [`v${v.n} in the version history`, v.by, v.at ? String(v.at).slice(0, 10) : null]
+          .filter(Boolean).join(' · '),
+        body, text: v.text || '' });
+    }
+    return out;
+  };
+  /* OLDEST FIRST, top to bottom. The list reads as the sequence the document
+     actually went through — every closed round in order, then the wording this
+     round started from, then each saved version in the order it was taken, then
+     what is on the table now — rather than the newest-first order it had, which
+     put the original at the bottom of a list whose first entry changed every
+     round, so "which one did we start from" was answered by a different row
+     each time. */
+  const out = [];
+  /* THE ROUNDS THAT ARE OVER. Their wording was stored the moment each round
+     closed and was then unreachable from this screen: the selector offered the
+     live pair and nothing else, so "what did we start from before we conceded
+     that in round 1" had no answer here at all, on a negotiation whose whole
+     record was sitting in the contract.
+
+     A closed round's WORKING version is deliberately not a separate entry —
+     it is word for word the next round's baseline, which is the row directly
+     below it. Two rows, one document, is the noise the choices list exists to
+     keep out. */
+  for (const r of closed){
+    /* The body if the record has one, lifted from the text if it does not — a
+       link made before closed rounds travelled carries neither, and a row that
+       selects an empty document is worse than no row. */
+    out.push({ key: `round${r.n}-baseline`, kind: 'round', roundN: r.n,
+      label: `Round ${r.n} - Baseline`,
+      sub: `the wording round ${r.n} was measured against`,
+      body: (r.baselineBody && String(r.baselineBody).trim())
+        ? String(r.baselineBody)
+        : negoRichFromLines(r.baselineText || ''),
+      text: r.baselineText || '' });
+    out.push(...versionsIn(r.n));
+  }
+  const baseline = {
+    key: 'baseline', kind: 'live', roundN: cur,
+    label: `Round ${cur} - Baseline`,
+    sub: cur > 1
+      ? `the wording round ${cur - 1} ended on — what this round is measured against`
+      : 'the wording this round is measured against',
     body: negoBaseBody(c), text: negoBaseText(c),
-  }, {
-    key: 'working', kind: 'live',
-    label: `Working Version · round ${negoRound(c)}`,
+  };
+  const working = {
+    key: 'working', kind: 'live', roundN: cur,
+    label: `Round ${cur} - Working Version`,
     sub: 'proposed redline',
     body: negoResolvedBody(c), text: negoResolvedText(c),
-  }];
-  /* Newest first: the version you want is nearly always a recent one, and a
-     list that makes you scroll past 1 to reach 40 is a list nobody uses. */
-  for (const v of (c.versions || []).slice().reverse()){
-    const body = v.body != null && String(v.body).trim()
-      ? String(v.body)
-      : negoRichFromLines(v.text || '');
-    out.push({ key: 'v' + v.n, kind: 'version', n: v.n,
-      label: `v${v.n} · ${v.label || 'Saved'}`,
-      sub: [v.by, v.at ? String(v.at).slice(0, 10) : null].filter(Boolean).join(' · '),
-      body, text: v.text || '' });
+  };
+  out.push(baseline, ...versionsIn(cur), working);
+  return out;
+}
+
+/* ---- WHAT THE DROPDOWN OFFERS, AND WHY IT IS NOT EVERYTHING ----
+
+   Every milestone the product passes takes a snapshot: the template being
+   applied, each hand-over, each round closing, the send, the signature. All of
+   them are real records and all of them belong in the version history — but a
+   pane selector is not the version history. It asks "which two documents do you
+   want side by side", and two entries holding WORD FOR WORD the same document
+   are not two answers to it.
+
+   That is not hypothetical. A contract opened for the first time offered three
+   choices — Original Baseline, Working Version, and `v1 · Template "WH"` — of
+   which the first and the third were the identical document under two names.
+   One round of negotiation added more of exactly that kind, and the list became
+   something to pick through rather than read.
+
+   So a version is OFFERED only when it says something no entry above it already
+   says. Nothing is renamed, merged or thrown away: negoVersionOptions still
+   returns every one of them, which is what negoVersionByKey resolves against
+   and what the version history panel reads — a key that used to work still
+   works, it simply is not on the menu when a clearer name for the same document
+   already is. */
+function negoVersionChoices(c, keep){
+  const all = negoVersionOptions(c);
+  const wanted = new Set([].concat(keep || []).filter(Boolean));
+  const seen = new Set();
+  /* THE LIVE PAIR WINS A TIE, wherever it sits in the list. First-seen-keeps-it
+     is the right rule between two archived entries, but not against the two
+     rows that are always on the menu: a round CLOSING makes its wording the
+     next round's baseline, so "Round 1 - V1 · Round 1 closed" and
+     "Round 2 - Baseline" are word for word the same document, every time. The
+     live row cannot be dropped, so without this both appear and the list is
+     back to naming one document twice — the exact thing it exists to prevent,
+     arriving through the entries that were added to make history reachable. */
+  for (const o of all) if (o.kind === 'live'){
+    const k = _negoSameDoc(o.text || '');
+    if (k) seen.add(k);
+  }
+  const out = [];
+  for (const o of all){
+    const key = _negoSameDoc(o.text || '');
+    /* The live pair is always on the menu — they are the two panes' home
+       position, and a selector you cannot get back to the live round from is
+       the trap the compare bar exists to prevent. So is anything currently
+       selected: a <select> whose own value is missing from its options renders
+       as blank or silently reassigns itself. */
+    if (o.kind === 'live' || wanted.has(o.key) || !key || !seen.has(key)) out.push(o);
+    if (key) seen.add(key);
   }
   return out;
 }
@@ -1354,13 +1733,48 @@ function negoHandOver(c, opts = {}){
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   /* Every turn close snapshots a version, so version compare keeps working and
      the history reads as a sequence of hand-offs rather than a pile of edits. */
-  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by);
+  /* LISTED, and it has to be. A hand-over is the one moment in a negotiation
+     that a person can name afterwards — "the draft we sent them on Tuesday",
+     "what came back". Filed unlisted, a negotiation conducted entirely through
+     tracked changes in the room produced a version list reading "0 versions",
+     so there was nothing to compare and nothing to go back to unless somebody
+     had remembered to press Snapshot before every send. The per-change copies
+     stay unlisted; these are the milestones, one per turn. */
+  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by, { auto: true, listed: true });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
   return { turn: to, at: n.turnAt };
 }
 /* The banner both sides read. A READ of the change set and the turn, so it can
    never claim a state the record does not support. */
+/* ASKS OF OURS THE OTHER SIDE HAS NEVER BEEN SHOWN.
+
+   A change is handed over by sending the round, and `turnAt` records when that
+   last happened. Anything of ours still pending and filed SINCE then has not
+   left the building — nobody on the other side can answer it, because they have
+   not seen it.
+
+   This exists because the owner had the same dead end the counterparty's page
+   was fixed for: propose something after handing over, and the change was
+   filed, pending, with no send anywhere in the room. It waited for THEM to
+   answer before we were allowed to tell them what we had asked. */
+function negoUnsentAsks(c, side){
+  const me = side === 'counterparty' ? 'counterparty' : 'owner';
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  /* Measured against a hand-over that actually happened. With no `turnAt` at
+     all nothing has ever been sent, and "unsent" is not the useful fact about
+     the round — it is simply somebody's turn, and the turn already says so.
+     Reading a missing turnAt as "everything is unsent" also mislabels the other
+     side's asks: a change of theirs is on our record only because it was sent
+     to us, whatever the turn stamp says. */
+  return negoPending(c).filter(x => x && x.authorSide === me
+    && (at ? String(x.createdAt || '') > String(at)
+           /* Nothing has ever been handed over. Our own pending asks are
+              therefore unsent — the first round is unsent work like any other.
+              Theirs are not: a change of theirs is on our record only because
+              it was sent to us, whatever the turn stamp says. */
+           : me === 'owner'));
+}
 function negoTurnBanner(c, side){
   negoInit(c);
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
@@ -1368,11 +1782,19 @@ function negoTurnBanner(c, side){
   const other = me === 'owner' ? (c.counterparty || 'the counterparty') : ((window.FIRST_PARTY) || 'the owner');
   const mine = negoPending(c).filter(x => x.authorSide !== me).length;
   if (turn === me)
-    return { mine: true, text: mine
+    return { mine: true, unsent: 0, text: mine
       ? `Your turn — ${mine} change${mine === 1 ? '' : 's'} to review`
       : 'Your turn — propose changes or send it back' };
   const sent = c.negotiation.turnAt || null;
-  return { mine: false, sentAt: sent, text: `Waiting on ${other}${sent ? '' : ''}` };
+  /* AND "WAITING ON THEM" HAS TO BE TRUE TO BE SAID. With an ask of ours they
+     have never seen, it is not: they are not the hold-up on a change nobody has
+     shown them. The wait is stated as what it is, and the send that clears it
+     is offered beside it. */
+  const unsent = negoUnsentAsks(c, me).length;
+  if (unsent) return { mine: false, unsent, sentAt: sent,
+    text: `${unsent} change${unsent === 1 ? '' : 's'} you have not sent yet`
+      + ` — ${other} cannot answer ${unsent === 1 ? 'it' : 'them'} until you do` };
+  return { mine: false, unsent: 0, sentAt: sent, text: `Waiting on ${other}${sent ? '' : ''}` };
 }
 
 /* ---------- advancing the round ----------
@@ -1400,8 +1822,14 @@ function negoAdvanceRound(c, opts = {}){
   c.negotiation.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
   c.negotiation.round = n + 1;
   c.changes = [];                             // the archived set lives on the round
+  /* A round closing makes the agreed wording the new baseline — that is an
+     update to the contract, so it is listed even though nobody asked for it. */
   if (window.captureVersion) captureVersion(c, `Round ${n} closed`, opts.by
-    || (window.currentUser && window.currentUser()?.name) || 'System');
+    || (window.currentUser && window.currentUser()?.name) || 'System',
+    /* Stamped with the round that CLOSED, not the one starting. The counter
+       above has already moved, and a snapshot named "Round 1 closed" filed
+       under round 2 would be the one entry in the list nobody could place. */
+    { auto: true, listed: true, roundN: n });
   if (window.logAudit) logAudit(c, 'Negotiation',
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
@@ -1594,20 +2022,22 @@ function negoMigrate(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
-  negoInit, negoStampContract, negoBaseText, negoBaseBody, negoRound,
+  negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw,
-  negoPostComment, negoCommentIsStale, negoTopicFor,
+  negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
+  negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
-  negoAlignment, negoAlignmentWhy, negoSignalReady, negoReadySignal,
+  negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoSignalReady, negoReadySignal, negoSideSigned,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
   negoCopilotRecord, NEGO_COPILOT_CAP,
-  negoVersionOptions, negoVersionByKey, negoIsLivePair, negoCompareVersions,
-  negoTurn, negoHandOver, negoTurnBanner,
+  negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
+  negoIsLivePair, negoCompareVersions,
+  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate });

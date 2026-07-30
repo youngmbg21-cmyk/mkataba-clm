@@ -211,6 +211,44 @@ const STATUS_META = {
   'Declined':     {label:'Closed',    dot:'#b0453c', bg:'#fdece9', tx:'#8f322b', bd:'#f5d4cd'},
 };
 const statusLabel = s => (STATUS_META[s]||{}).label || s;
+
+/* ---- THE STAGE THAT ARRIVES BY ITSELF ----
+
+   Every other stage in this product is something a person did: somebody drafted
+   it, somebody sent it for review, somebody signed it, somebody closed it. One
+   is not. A contract's term ends because a date went past, with nobody pressing
+   anything — and there was no stage for it. An executed contract whose term ran
+   out in 2023 still showed the emerald "Executed" chip, still sat in the
+   portfolio's "Active value" figure, and dropped out of the expiring-in-30/60/90
+   buckets on the very day it needed attention most, because every one of those
+   filters is `days >= 0`. The whole product agreed it was live.
+
+   So the stage is DERIVED, never stored. A stored one would need a sweep to
+   write it, would be wrong between sweeps, and would have to be un-written if
+   an amendment extended the term. This is a read of the same effective expiry
+   the register and the calendar already draw, so the badge, the date column and
+   the renewal calendar cannot disagree with each other.
+
+   Only an EXECUTED contract expires. A draft whose stated end date has passed
+   is a drafting problem, not an expired agreement, and calling it expired would
+   bury it under a label that reads as "finished". Declined is already an end. */
+function contractExpired(c){
+  if(!c || c.status!=='Signed') return false;
+  const raw=(window.effectiveExpiry?effectiveExpiry(c):null)
+    || (c.metadata&&c.metadata.expiryDate) || c.expiry;
+  const day=window.dateOnly?dateOnly(raw):raw;
+  if(!day) return false;                       // no term recorded — not a claim we can make
+  const d=window.daysUntil?daysUntil(day):null;
+  return d!=null && !isNaN(d) && d<0;
+}
+/* The stage to SHOW for this contract, as against the one stored on it. The
+   stored status is untouched — filters, the server and every existing query
+   keep working on Draft/Under Review/Signed/Declined exactly as before. */
+const contractStage = c => contractExpired(c) ? 'Expired' : (c&&c.status);
+const EXPIRED_META = {label:'Expired', dot:'#8a8a8d', bg:'#efedea', tx:'#5d5d60', bd:'#dedcd6'};
+const contractStatusChip = c => contractExpired(c)
+  ? `<span class="badge" style="background:${EXPIRED_META.bg};color:${EXPIRED_META.tx}">${EXPIRED_META.label}</span>`
+  : statusChip(c&&c.status);
 // Pill status chip: wash bg + tone fg, 999px radius. No inner dot — the chip's
 // own colour carries the stage; the separate share dot (shareDot) sits outside
 // the chip so the two signals never read as one confusing double dot.
@@ -814,7 +852,15 @@ function startApp(){
   // resume where the user left off
   window.hydrateAdvice&&hydrateAdvice();   // Advice Desk queue (static mode; server mode loads async below)
   setView(['dashboard','register','pipeline','advice','folder','intel','calendar','reports','templates','playbook','workspace','team','migration'].includes(state.view)?state.view:'dashboard');
-  if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage(); setInterval(pollPendingResponses,45000); setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
+  if(API_MODE()){ refreshStats(); refreshShareOverview(); refreshWaitingQuestions(); pollPendingResponses(); refreshAiUsage();
+    schedulePolling();
+    /* Coming back to the tab is when a person expects to be up to date. */
+    if(!window._pollFocusBound){
+      window._pollFocusBound=true;
+      window.addEventListener('focus',()=>pollNow('focus'));
+      document.addEventListener('visibilitychange',()=>{ if(!document.hidden) pollNow('visible'); });
+    }
+    setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000);
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{}); }
   repairMigratedSignatories();
 }
@@ -1353,6 +1399,36 @@ function contractReadiness(c){
   const ph=contractPlaceholders(c);
   if(ph.length) add('block','placeholders',
     `The document still contains ${ph.length} unfilled placeholder${ph.length===1?'':'s'}: ${ph.slice(0,5).join(', ')}${ph.length>5?', …':''}`);
+  /* INTERNAL APPROVAL IS PART OF BEING READY TO SEND, and it was not on this
+     list. Signing checks it — signDocument refuses outright — but sharing
+     never did, and sharing is how a contract actually reaches the other side:
+     a link sent with purpose 'sign' puts the counterparty in front of a
+     signature panel, and their signature executes the contract through
+     applyResponse without the owner touching the Sign button at all. So the
+     one gate that existed could be walked straight past by pressing Share.
+
+     Read through `window` so the rule-chain version in js/approvals.js is the
+     one that answers — js/core.js declares its own legacy approvalState below,
+     and a bare call would resolve to that lexical binding for ever. */
+  /* AND THE SEVERITY IS NOT THE SAME IN ALL THREE CASES. Sending a draft out
+     for comment while approval is still working its way through is not a
+     mistake — it is the ordinary order of events, and making the sender tick an
+     acknowledgement for it would teach them to tick acknowledgements. A
+     REFUSAL is different: somebody said no, and putting that wording in front
+     of the counterparty anyway is a decision the sender should have to own. So
+     is a sign-off the contract has since moved out from under. */
+  try{
+    const ap=(window.approvalState)?window.approvalState(c):null;
+    if(ap && ap.required && !ap.ok){
+      const refused=(ap.rejected||[])[0], stale=(ap.stale||[])[0];
+      if(refused) add('block','approval',
+        `Internal approval was refused${refused.by?` by ${refused.by}`:''} — “${refused.name}” is unresolved.`);
+      else if(stale) add('block','approval',
+        `“${stale.name}” was approved and the contract has changed since — it needs approving again.`);
+      else add('warn','approval',
+        `Internal approval is outstanding: “${ap.next?ap.next.name:'approval'}” is waiting on ${ap.approverLabel||'an approver'}. This contract cannot go out for signature until it clears.`);
+    }
+  }catch(_){ /* a readiness list that cannot be built is not a reason to block */ }
   if(c.status==='Draft') add('warn','status','This contract is still a Draft.');
   const sig=(c.signatories||c.signers||[]).filter(s=>s&&(s.name||s.email));
   if(window.SIGN_ROUTE_ON && !sig.length) add('warn','signatory','No named signatory is set on the signature block.');
@@ -1373,6 +1449,60 @@ const shareMessageText=(c,link,msg,expiresAt)=>
   +(msg?`\n\n${msg}`:'')
   +`\n\nOpen it here — review, sign, request changes or decline, no account needed:\n${link}`
   +(expiresAt?`\n\nThis link expires on ${String(expiresAt).slice(0,10)}.`:'');
+
+/* ---------- what is this link FOR? ----------
+   A share carries a purpose, and the purpose decides which screen the other
+   side lands on: the negotiation room, or a signing panel. Every caller that
+   had an opinion stated one — the room says 'negotiate', the signing route says
+   'sign' — and the ONE caller nobody thought about is the Share button in the
+   contract toolbar, which is the button a first-time user actually presses.
+
+   It stated nothing, so buildSharePayload fell back to reading the change set:
+   no changes yet means nobody has negotiated, which it took to mean "this is a
+   signature request". On a first draft that reading is exactly backwards. The
+   first send of a negotiation went out labelled `sign`, and the counterparty's
+   first sight of a contract nobody had discussed was a green tick and the words
+   "Ready to sign".
+
+   So the default is now a read of whether the deal is FINISHED, not of whether
+   it has started, and the dialog states the answer out loud where the sender
+   can change it. */
+function defaultSharePurpose(c){
+  if(!c) return 'negotiate';
+  if(c.status==='Signed') return 'sign';
+  /* Read c.changes directly rather than through negoChanges: this is asked of
+     contracts loaded as summaries, and a read must not stamp clause ids into a
+     document (see negoAlignment for the same care). */
+  const live=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='superseded');
+  if(!live.length) return 'negotiate';          // nothing negotiated yet — never a signature request
+  const settled=live.every(x=>x.status==='accepted'||(x.status==='rejected'&&x.withdrawn));
+  return settled?'sign':'negotiate';
+}
+const SHARE_PURPOSE_COPY={
+  negotiate:{ label:'Negotiate', title:'They read it and propose changes',
+    blurb:'They land in the negotiation room. Every clause they want changed comes back as its own item you accept or reject. Nothing can be signed on this link.' },
+  sign:{ label:'Sign', title:'They sign this exact wording',
+    blurb:'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.' },
+};
+function sharePurposePickerHtml(c, sel){
+  const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
+    return `<button type="button" data-share-purpose="${k}" aria-pressed="${on?'true':'false'}"
+      style="flex:1;min-width:190px;text-align:left;cursor:pointer;font:inherit;border-radius:6px;padding:10px 12px;
+      border:1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'};
+      background:${on?'var(--color-accent-100)':'var(--color-surface)'}">
+      <span style="display:flex;align-items:center;gap:7px">
+        <span style="flex:none;width:13px;height:13px;border-radius:50%;border:1.5px solid ${on?'var(--color-accent)':'var(--color-neutral-500)'};
+          background:${on?'var(--color-accent)':'transparent'};box-shadow:${on?'inset 0 0 0 2.5px var(--color-surface)':'none'}"></span>
+        <span style="font-size:12.5px;font-weight:700;color:${on?'var(--color-accent-800)':'var(--color-text)'}">${m.label}</span>
+      </span>
+      <span style="display:block;font-size:11.5px;font-weight:600;color:var(--color-text);margin:5px 0 2px">${m.title}</span>
+      <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${m.blurb}</span>
+    </button>`; };
+  return `<div id="share-purpose" style="margin:0 0 14px">
+    <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-mono);letter-spacing:.02em">What is this link for?</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${btn('negotiate')}${btn('sign')}</div>
+  </div>`;
+}
 
 /* ---------- step 1 of Share: what am I actually sending? ----------
    Share used to open straight onto the send form, which asked someone to
@@ -1403,6 +1533,7 @@ function shareSummaryStepHtml(c, opts={}){
     <div id="share-step-1">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">What you are sending</h2></div>
+      ${sharePurposePickerHtml(c, opts.purposeSel||defaultSharePurpose(c))}
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55;">
         ${s&&s.lines.length
           ? `Round ${s.total?esc(String(s.round)):''} — ${s.lines.length} change${s.lines.length===1?'':'s'} on the table${s.pending?`, ${s.pending} still awaiting a decision`:''}. ${esc(c.counterparty||'The counterparty')} sees this summary alongside the link.`
@@ -1536,8 +1667,12 @@ function buildSharePayload(c, docHash, who, opts){
 
      The one thing that stays behind is the internal name of whoever ruled: the
      organisation speaks, exactly as it does for shareRounds above. */
+  /* What the owner has not sent is not sendable by a side effect. See the
+     holdUnsent note at the quiet-refresh call site. */
+  const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
+    ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
-    .filter(x => x.status !== 'superseded')
+    .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
       changeType:x.changeType||null, afterClauseId:x.afterClauseId||null,
       headingText:x.headingText||null, bodyHtml:x.bodyHtml||null,
@@ -1550,7 +1685,14 @@ function buildSharePayload(c, docHash, who, opts){
       prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
       needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
       author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
-      summary:x.summary, note:x.note||null, reply:x.reply||null,
+      /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
+         used to travel whole, and the counterparty's page printed it under
+         "why they asked" — which for a Copilot-drafted change read
+         "Copilot — Explain Legal Risk": telling the other side HOW we drafted
+         and WHICH clause we felt exposed on. Negotiation-sensitive twice over.
+         Their own note comes back to them — they wrote it — and ours stays
+         home. */
+      summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
       /* Whether a refused ask has been taken off the table by the side that
          made it. It travels because "Ready to sign" is gated on it: a reader
@@ -1559,11 +1701,51 @@ function buildSharePayload(c, docHash, who, opts){
          why. Who withdrew it travels too — it is their own name coming back
          when the ask was theirs, and the organisation's when it was ours. */
       withdrawn:x.withdrawn?{ by:x.withdrawn.by, side:x.withdrawn.side, at:x.withdrawn.at }:null,
-      thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
+      /* HOW MANY EARLIER DRAFTS THIS COPY IS NOT CARRYING, and not one word of
+         them. A revision is wording we wrote and REPLACED before sending; it is
+         ours, and the reader gets what was sent. But the fingerprint chain links
+         a change to the wording it replaced, so a copy without the revisions
+         hits a link pointing at a hash it has never been given — and reported
+         the only failure it knew how to report, in red, on a legal document.
+         The number is enough for the check to say "not carried here" instead of
+         "altered", and it publishes nothing. See verifyChangeChain. */
+      revisionsOmitted:(Array.isArray(x.revisions)?x.revisions.length:0) || undefined,
+      /* ONLY THE SHARED HALF OF THE THREAD TRAVELS. negoPostComment's own
+         documentation promises that an internal note "reaches nobody by simply
+         not being posted — there is no filter here to get wrong". That was true
+         when it was written and stopped being true when the thread was later
+         added to this payload WHOLE: every internal aside a colleague filed on
+         a change — the negotiation ceiling, the walk-away point — travelled to
+         the counterparty's page, without even a visibility field their page
+         could have filtered on. The filter now exists in the one place a
+         missing filter cannot leak: what is never sent needs no hiding. The
+         visibility field rides along so the reader's page can label the shared
+         messages honestly. */
+      thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared')
+        .map(m=>({ who:m.who, side:m.side, visibility:'shared', at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to
      the old reading of the change set, so an existing link keeps opening on
      exactly the screen it opened on yesterday. New links always state it. */
+  /* THE ROUNDS THAT ARE OVER, so the other side's screen can say what ours says.
+     Their page had no idea a round had ever closed: it could not offer the
+     wording a past round started from, it could not show the history, and every
+     change ever decided sat in one undifferentiated live list — so a change
+     settled two rounds ago read to them as something still on the table.
+
+     WHAT TRAVELS is the round's number, when it closed, the wording it was
+     measured against, and WHICH CHANGES BELONGED TO IT — by id. The changes
+     themselves are already in shareChanges, whole; sending them a second time
+     inside the round would put two copies of one fingerprint on their page and
+     invite the two to disagree. The ids are the join.
+
+     WHAT DOES NOT TRAVEL is the internal name of whoever ruled, exactly as for
+     shareRounds and shareChanges above: the organisation speaks. */
+  const shareNegoRounds = ((c.negotiation&&c.negotiation.rounds)||[]).map(r=>({
+    n:r.n, at:r.at||null,
+    baselineBody:r.baselineBody||'',
+    baselineText:r.baselineText||'',
+    changeIds:(r.changes||[]).map(x=>x&&x.id).filter(Boolean) }));
   const purpose = SHARE_PURPOSE(opts&&opts.purpose) || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
@@ -1586,9 +1768,24 @@ function buildSharePayload(c, docHash, who, opts){
            just theirs: a reader who cannot see that WE have signalled cannot
            tell a deal waiting on them from one waiting on us. */
         ready:c.negotiation.ready||undefined,
+        rounds:shareNegoRounds.length?shareNegoRounds:undefined,
         baselineBody:c.negotiation.baselineBody||'',
         baselineText:c.negotiation.baselineText||'' } : undefined,
       upload:isUpload(c)?shareUpload(c.upload):undefined,
+      /* THE ONE FACT THAT ENDS THE NEGOTIATION, and it was not on the list.
+         Everything on the counterparty's page that should stop when a contract
+         is executed — the redline editor, the decision verbs, the readiness
+         signal — is gated on `c.status === 'Signed'`, and the payload carried
+         no status at all, so renderSharePortal hard-coded 'Under Review' onto
+         every copy it built. Their screen therefore showed a live negotiation
+         over a contract that had been signed and sealed.
+
+         WHEN, and nothing else. Not who signed, not their capacity, not the
+         seal: those are the evidence pack, which is not a counterparty's to
+         read. The date is the fact they need, and it is a fact about a deal
+         they are a party to. */
+      executed:(c.status==='Signed'||c.hash||(c.execution&&c.execution.at))
+        ? { at:(c.execution&&c.execution.at)||c.signedAt||null } : undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
       rounds:shareRounds.length?shareRounds:undefined,
       /* The wording exactly as it left, in plain text. A template-drafted
@@ -1625,8 +1822,11 @@ function lastShareRecipient(shares){
   return { name:s.recipientName||'', email:s.recipientEmail||'', phone:s.recipientPhone||'',
     channel:s.channel||'email', token:s.token||null };
 }
-function shareModalPrefill(shares){
-  const last=lastShareRecipient(shares);
+/* A blank recipient box on a contract whose counterparty we already named is
+   the third time in one sitting the same fact gets asked for. The contract's
+   own address fills it when no link has been sent yet. */
+function shareModalPrefill(shares, c){
+  const last=lastShareRecipient(shares) || (c ? counterpartyContact(c, []) : null);
   if(!last) return { name:'', email:'', phone:'', channel:'email' };
   return { name:last.name, email:last.email, phone:last.phone, channel:last.channel||'email' };
 }
@@ -1642,14 +1842,34 @@ async function contractShares(c){
    a fresh link carrying the wording as it now reads. Returns the created share
    so the caller can report the outcome; throws only if there is nobody to send
    to, which the button's own visibility already rules out. */
+/* WHERE THIS COUNTERPARTY CAN BE REACHED.
+
+   Two places know it and they answer in this order: a link we have already sent
+   them (the address it went to), then the address recorded on the contract
+   itself when the negotiation was set up. The second is why a FIRST send no
+   longer needs the dialog — before it existed, the only record of who to write
+   to was a share that had not been created yet, so the first send always had to
+   stop and ask. */
+function counterpartyContact(c, shares){
+  /* A prior share wins outright, however it was sent. lastShareRecipient
+     already requires one of name/email/phone, and a copy-link share carries
+     only a name — narrowing this to "has an email" broke re-sending on exactly
+     those, which is a channel the product supports. The contract's own address
+     is a FALLBACK for the case that had none: the first send. */
+  const last=lastShareRecipient(shares);
+  if(last) return last;
+  const email=String((c&&c.counterpartyEmail)||'').trim();
+  if(!email) return null;
+  return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email, phone:'', channel:'email', token:null };
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
   const shares=opts.shares||await contractShares(c);
-  const last=lastShareRecipient(shares);
+  const last=counterpartyContact(c, shares);
   if(!last) throw new Error('This contract has not been shared with anyone yet');
   try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
-  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you'); if(v) persist(c); }
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
   /* If this counterparty already has a durable link, refresh THAT rather than
      mint another one: the point of a durable link is that the other side keeps
@@ -1668,18 +1888,30 @@ async function reshareToLastRecipient(c, opts={}){
   const record=(r,reused)=>{
     const ch=last.channel||'email';
     const delivered=ch==='email' && !!r.emailSent;
-    const detail = delivered
+    /* A round published to the standing link ON PURPOSE is not a failed email.
+       The link was delivered once, when the negotiation began; every round
+       after that travels through the platform, and the audit line says so
+       instead of reading like a mail outage. */
+    const quiet=!!r.notifySkipped;
+    const detail = quiet
+      ? `Round sent to ${who}'s standing link — the platform is the channel; the link was emailed once, when the negotiation began`
+      : delivered
       ? `Updated version emailed to ${who}${reused?' on their existing link':''}`
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
     logAudit(c,'Shared',detail);
     persist(c);
-    return { share:r, recipient:last, reused:!!reused, delivered, channel:ch,
+    return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
              link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
   };
   if(live){
-    const r=await api('shares/'+live.token+'/payload','PUT',{ payload });
+    /* ONE EMAIL PER NEGOTIATION, and this is the line that keeps the promise:
+       a round-send onto an existing standing link refreshes the copy behind
+       the URL the counterparty already holds and posts nothing. The first
+       send — the POST below, when no link exists yet — is the one that emails,
+       because it is the one delivering a link. */
+    const r=await api('shares/'+live.token+'/payload','PUT',{ payload, notify:false });
     return record(r||{}, true);
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
@@ -1711,7 +1943,7 @@ async function openShareModal(c, opts={}){
   try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
   // E2: snapshot the exact text being sent so a returned redline diffs cleanly.
-  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review'); if(v) persist(c); }
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Shared for review',null,{auto:true}); if(v) persist(c); }
   /* THE SHARE PAYLOAD IS A COPY OF THE CONTRACT THAT LEAVES THE BUILDING.
      In server mode it sits in the shares table and is served to anyone holding
      the link; in static mode the whole thing travels inside the URL. Either
@@ -1742,13 +1974,18 @@ async function openShareModal(c, opts={}){
      reachable by a test. It was inline when the returned-changes banner shipped,
      which is exactly how that banner came to be verified against a payload the
      application never actually produces. */
-  const payloadObj=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
+  /* The purpose the dialog opens on: what the caller asked for if it had an
+     opinion, otherwise what the contract's own state says. It is a live value —
+     the picker on step 1 changes it, and everything downstream reads it from
+     here rather than from the payload built a moment ago. */
+  let purposeSel=SHARE_PURPOSE(opts.purpose)||defaultSharePurpose(c);
+  const payloadObj=buildSharePayload(c, docHash, null, { purpose:purposeSel });
   const server=API_MODE();
   // Who this went to last time. Fetched before the dialog is built so the
   // fields open already filled rather than filling themselves a moment later
   // under the user's cursor.
   const priorShares=await contractShares(c);
-  const pre=shareModalPrefill(priorShares);
+  const pre=shareModalPrefill(priorShares, c);
   const FLD='width:100%;min-height:34px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 10px;font-size:12.5px;font-family:var(--font-body);color:var(--color-text);outline:none;';
   const LBL='display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;';
   const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;padding:7px 4px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:4px">${label}</button>`;
@@ -1756,7 +1993,7 @@ async function openShareModal(c, opts={}){
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   openModal(`
     <div style="padding:22px 24px;">
-      ${shareSummaryStepHtml(c, opts)}
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel })}
       <div id="share-step-2" class="hidden">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0;">Share with counterparty</h2></div>
@@ -1789,7 +2026,7 @@ async function openShareModal(c, opts={}){
                    one copy of exactly one text, so the standing-channel default
                    is wrong for it — and a default that contradicts the sentence
                    beside it is worse than no default. Still theirs to change. */}
-            <input type="checkbox" id="sh-durable"${opts.purpose==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
+            <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
             <span><b>Keep this link open for the whole negotiation.</b>
             <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">They keep one link and always see the current wording, round after round. Untick for a <b>single-answer link</b> — the right choice for a final signature, where one copy gets exactly one response.</span></span>
           </label>
@@ -1815,6 +2052,30 @@ async function openShareModal(c, opts={}){
     document.getElementById('share-step-1').classList.toggle('hidden', n!==1);
     document.getElementById('share-step-2').classList.toggle('hidden', n!==2);
   };
+  /* THE PURPOSE PICKER. Repainting the two buttons in place rather than
+     re-rendering step 1: the summary textarea sits in that step and the sender
+     may already have edited it, and rebuilding would throw their words away. */
+  const paintPurpose=()=>{
+    document.querySelectorAll('#share-purpose [data-share-purpose]').forEach(b=>{
+      const on=b.getAttribute('data-share-purpose')===purposeSel;
+      b.setAttribute('aria-pressed',on?'true':'false');
+      b.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
+      b.style.background=on?'var(--color-accent-100)':'var(--color-surface)';
+      const dot=b.querySelector('span span'), name=b.querySelectorAll('span')[2];
+      if(dot){ dot.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-neutral-500)'}`;
+               dot.style.background=on?'var(--color-accent)':'transparent';
+               dot.style.boxShadow=on?'inset 0 0 0 2.5px var(--color-surface)':'none'; }
+      if(name) name.style.color=on?'var(--color-accent-800)':'var(--color-text)';
+    });
+    /* A signing link is one-shot by default and a negotiation link is standing,
+       for the reason written beside the checkbox. Changing the purpose has to
+       move it, or the picker would quietly leave the wrong kind of link. */
+    const d=document.getElementById('sh-durable');
+    if(d) d.checked = purposeSel!=='sign';
+  };
+  document.querySelectorAll('#share-purpose [data-share-purpose]').forEach(b=>
+    b.addEventListener('click',()=>{ purposeSel=b.getAttribute('data-share-purpose');
+      payloadObj.purpose=purposeSel; paintPurpose(); }));
   document.getElementById('share-close-1').addEventListener('click',closeModal);
   document.getElementById('share-next').addEventListener('click',()=>step(2));
   document.getElementById('share-back').addEventListener('click',()=>step(1));
@@ -1831,7 +2092,12 @@ async function openShareModal(c, opts={}){
   if(ch!=='email') setCh(ch);         // open on the channel they used last time
   document.getElementById('share-close').addEventListener('click',closeModal);
 
-  const resultBox=(html)=>{ document.getElementById('sh-result').innerHTML=html; };
+  /* Set when the send refreshed a link the recipient already had rather than
+     minting another. It sits ABOVE whatever the channel reports, because "which
+     link is this" is a different fact from "did the email leave", and the
+     channel branches below each write the whole box. */
+  let reuseNote='';
+  const resultBox=(html)=>{ document.getElementById('sh-result').innerHTML=reuseNote+html; };
   const copyBox=(link,note)=>`
     <div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:12px;">
       ${note?`<div style="font-size:11.5px;color:var(--color-accent-800);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px">${icon('check2','w-3.5 h-3.5')} ${note}</div>`:''}
@@ -1855,6 +2121,30 @@ async function openShareModal(c, opts={}){
     payloadObj.contract.changeSummary=summary||null;
     if(ch==='email' && !/.+@.+\..+/.test(email)){ toast('Enter the recipient’s email address','err'); return; }
     if(ch==='whatsapp' && phone.replace(/\D/g,'').length<9){ toast('Enter a WhatsApp number with country code, e.g. +2547…','err'); return; }
+    /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
+
+       Everything else on the readiness list is the sender's call — a missing
+       effective date, a Draft status, even an unfilled placeholder: they tick
+       the box, they own it, and the contract can still be pulled back. An
+       outstanding internal approval on a link whose purpose is SIGN is a
+       different kind of thing. The counterparty's signature executes the
+       contract by itself, through applyResponse, and a signature cannot be
+       taken back — so the approval the organisation requires would be
+       permanently bypassed by one tick of a checkbox in the sender's own
+       dialog. signDocument refuses this outright rather than warning about it;
+       so does this. A negotiation link is unaffected: sending a draft out for
+       comment is exactly what happens BEFORE approval. */
+    if(purposeSel==='sign'){
+      let ap=null; try{ ap=(window.approvalState)?window.approvalState(c):null; }catch(_){ ap=null; }
+      if(ap && ap.required && !ap.ok){
+        toast(`This contract needs internal approval before it can go out for signature — ${
+          (ap.rejected||[]).length ? 'an approver refused it'
+          : (ap.stale||[]).length ? 'it changed after it was approved'
+          : `“${ap.next?ap.next.name:'approval'}” is still waiting on ${ap.approverLabel||'an approver'}`
+        }. Send it to negotiate instead, or clear the approval first.`,'err');
+        return;
+      }
+    }
     // A share cannot be recalled, so an incomplete contract needs an explicit
     // acknowledgement rather than a toast that scrolls away.
     const ack=document.getElementById('sh-ack');
@@ -1869,10 +2159,38 @@ async function openShareModal(c, opts={}){
     if(server){
       let r;
       const durableEl=document.getElementById('sh-durable');
-      try{ r=await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
-        recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
-        durable:durableEl?!!durableEl.checked:false, purpose:payloadObj.purpose }); }
+      /* ONE PERSON, ONE LINK — the second half of a fix the contract page had
+         and this dialog did not.
+
+         There were two ways to send the next round and they did different
+         things. "Send updated version" refreshed the link the counterparty
+         already had open; Share — and the negotiation room's "Send to …",
+         which comes through here — minted a SECOND link and left the first one
+         live. Nothing on screen said which was which, so the commonest way to
+         send round two put two live links in one inbox, and the reader could
+         be answering the older one with neither side able to tell.
+
+         So a standing negotiation link to this same address is refreshed in
+         place rather than duplicated. A SIGNING link is deliberately exempt:
+         issuing one is what retires the negotiation links, and it has to be its
+         own copy for one signature to bind one text. */
+      const wantDurable=durableEl?!!durableEl.checked:false;
+      const reuse=(wantDurable && payloadObj.purpose!=='sign' && email)
+        ? (priorShares||[]).find(s=>s && s.durable && !s.revokedAt
+            && s.state!=='revoked' && s.state!=='expired'
+            && String(s.recipientEmail||'').toLowerCase()===String(email).toLowerCase())
+        : null;
+      try{
+        r = reuse
+          ? await api('shares/'+reuse.token+'/payload','PUT',{ payload:payloadObj })
+          : await api('shares','POST',{ payload:payloadObj, channel:ch, message:msg,
+              recipient:{ name, email, phone }, expiryDays:Number(fval('sh-exp'))||14,
+              durable:wantDurable, purpose:payloadObj.purpose });
+      }
       catch(e){ toast(e.message,'err'); return; }
+      reuseNote = reuse ? `<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--color-accent-800);margin-bottom:8px">
+        <b>${esc(name||email)} already had a link to this contract, so that link now shows this version.</b>
+        No second link was created — there is still exactly one, and nothing older is left open.</div>` : '';
       if(ch==='email'){
         // Three different outcomes used to read as one cheerful green box that
         // always blamed a missing mail key — including when the key was working
@@ -1890,8 +2208,57 @@ async function openShareModal(c, opts={}){
         const wa=waShareLink(phone, shareMessageText(c,r.link,msg,r.expiresAt));
         window.open(wa,'_blank');
         resultBox(copyBox(r.link,`Tracked link created for ${rcptLabel} — WhatsApp opened with the message prefilled. If it didn’t open, copy the link below.`)); wireCopy();
-      } else { resultBox(copyBox(r.link,`Tracked link created${name?` for ${name}`:''} — expires ${String(r.expiresAt).slice(0,10)}.`)); wireCopy(); }
-      logAudit(c,'Shared',`Sent to ${rcptLabel} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
+      } else { resultBox(copyBox(r.link, reuse
+          ? `${name||rcptLabel} keeps the link they already have — it now shows this version.`
+          : `Tracked link created${name?` for ${name}`:''}${r.expiresAt?` — expires ${String(r.expiresAt).slice(0,10)}`:''}.`)); wireCopy(); }
+      /* THE DRAFT AS IT WENT OUT, on the version list a person reads.
+
+         "Go back to what we sent them on Tuesday" is the commonest thing anyone
+         wants from a version list, and until now a negotiation run entirely
+         through the room produced NO listed versions at all — the automatic
+         copies are unlisted by design, and the hand-over capture only fires on
+         a turn that actually moves. So the list read "0 versions" through a
+         whole round and there was nothing to compare against and nothing to go
+         back to. captureVersion refuses a no-change capture, so sending twice
+         without editing does not file two. */
+      if(c.status!=='Signed' && window.captureVersion)
+        captureVersion(c, `Sent to ${rcptLabel}${payloadObj.purpose==='sign'?' for signature':''}`,
+          currentUser()?.name, { auto:true, listed:true });
+      /* IT IS NOT A DRAFT ONCE IT IS WITH THE OTHER SIDE.
+
+         The status only ever moved on the "Send for review" button, which is an
+         internal step nobody presses once there is a counterparty to send to.
+         So a contract could go through six rounds of real negotiation with a
+         named buyer — proposals, refusals, counter-wording — and still call
+         itself Drafting on every screen and in every filter of the register.
+         Sending it to somebody outside the building IS the transition, and it
+         is the one the owner can see happening. */
+      /* AND IT IS THEIR MOVE NOW.
+
+         Handing the turn over was something only the negotiation room's own
+         send did, so a draft sent from the Share button left the record saying
+         it was still the owner's turn. With the status finally moving to
+         Under Review that became visible and wrong in the same breath: the bar
+         dropped straight to "Approved — confirm intent and sign below" on a
+         contract that had just gone out for the other side to argue with.
+
+         negoHandOver is idempotent and returns null if the turn is already
+         theirs, so the room's send and this one cannot fight. A signing link is
+         excluded — a signature request is not a negotiating turn. */
+      if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
+        try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
+      }
+      if(c.status==='Draft'){
+        c.status='Under Review';
+        logAudit(c,'Status changed',`Draft → Under Review — sent to ${rcptLabel}`);
+        /* The chip AND the bar. Changing the status without repainting the bar
+           left it still reading "Key terms are set — move it into review", with
+           a button offering to do the thing that had just been done — the same
+           stale-bar fault as after signing, in a different place. */
+        try{ if(typeof updateStatusUI==='function') updateStatusUI(c); }catch(_){}
+        try{ if(typeof renderActionBar==='function') renderActionBar(c); }catch(_){}
+      }
+      logAudit(c,'Shared',`${reuse?`Published to ${rcptLabel}'s existing link`:`Sent to ${rcptLabel}`} via ${ch==='link'?'link':ch}${msg?' with a message':''}`);
       persist(c); renderAuditSection(c);
       refreshShareOverview(); renderSharesSection(c);
       if(typeof opts.onSent==='function')
@@ -2147,7 +2514,17 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
-    if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){
+    const routeDone = window.allSigned && allSigned(c);
+    /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
+       plan can still arrive here holding both parties' marks — ours recorded
+       outside the single-signer path (a migration, an off-platform mark), and
+       theirs landing now through the share link. Leaving it unsealed meant a
+       fully signed contract that never froze, never fingerprinted and never
+       sent anybody their copy. The route check stays first and stricter: while
+       a plan exists, only its completion seals. */
+    const bothDone = (!window.signerPlan || !signerPlan(c).length)
+      && window.bothPartiesSigned && bothPartiesSigned(c);
+    if((routeDone || bothDone) && c.status!=='Signed' && window.finalizeExecution){
       c.lastAction=todayStr(); persist(c);
       await finalizeExecution(c, { silent:!!opts.background });
       return true;
@@ -2172,17 +2549,32 @@ async function applyResponse(c, r, opts={}){
        not theirs to rule on: that would let one side mark its own wording
        adopted and tell the other it was agreed. */
     const done=applyNegoDecisions(c, r, who);
-    if(!done.length){
+    /* AND WORDING OF THEIR OWN. A response on a negotiation link carries both:
+       answers to our asks, and asks of theirs. Only decisions used to arrive,
+       so the room's Change button on their side filed a change that could never
+       leave their browser — see PORTAL_NEGO_PROPOSED. */
+    const filed=await applyNegoProposals(c, r, who);
+    /* AND WITHDRAWALS. This branch used to ignore them — only the readiness
+       branch read negoWithdrawn — so a counterparty who took a refused ask off
+       the table and pressed Send rather than Ready had the withdrawal dropped
+       in silence. Their screen said the point was settled; ours went on
+       reporting a live disagreement, and neither side could see why the deal
+       would not move. */
+    const withdrew=applyNegoWithdrawals(c, r, who);
+    if(!done.length && !filed.length && !withdrew.length){
       if(!opts.background) toast('That response carried no decisions this contract recognises','err');
       return false;
     }
     const acc=done.filter(x=>x.status==='accepted').length;
-    c.comments.push({ author:r.name, role:'Counterparty — Decisions on proposed changes', side:'external',
-      text:r.comment||`${acc} of ${done.length} proposed changes accepted (${done.map(x=>'#'+x.id).join(', ')}).`,
-      ts:fmtDT(r.at) });
-    logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
+    const said=[done.length?`${acc} of ${done.length} proposed changes accepted (${done.map(x=>'#'+x.id).join(', ')})`:'',
+      filed.length?`${filed.length} change${filed.length===1?'':'s'} proposed (${filed.map(x=>'#'+x).join(', ')})`:'',
+      withdrew.length?`${withdrew.length} ask${withdrew.length===1?'':'s'} withdrawn (${withdrew.map(x=>'#'+x).join(', ')})`:'']
+      .filter(Boolean).join('; ');
+    c.comments.push({ author:r.name, role:'Counterparty — Negotiation round', side:'external',
+      text:r.comment||(said+'.'), ts:fmtDT(r.at) });
+    if(done.length) logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
     negoTurnBack(c, who);
-    toast(`${r.name} answered ${done.length} change${done.length===1?'':'s'} — ${acc} accepted`);
+    toast(said?`${r.name}: ${said}`:`${r.name} answered`);
   } else if(r.action==='ready'){
     /* ONE PRESS, ONE CALL. "Ready to sign" carries whatever decisions were
        still held on their page AND the readiness signal, in a single response.
@@ -2197,17 +2589,18 @@ async function applyResponse(c, r, opts={}){
        signal is checked against is the one their decisions produce, not the one
        the contract had before they answered. */
     const done=applyNegoDecisions(c, r, who);
+    /* Wording of their own, arriving with the readiness signal. Filed BEFORE
+       the signal is checked, for the same reason the decisions are: the
+       alignment the claim is tested against has to be the one their whole
+       response produces. A reader who asks for a change and presses Ready in
+       one breath is not aligned, and the contract must be able to see that. */
+    await applyNegoProposals(c, r, who);
     /* Also arriving in the same call: asks THEY made that we refused and they
        have now let go. Without this a counterparty could never clear their own
        side of a deadlock from their link. Only their OWN asks — withdrawing
        ours would let one side clear every objection raised against its wording
        and then declare the deal aligned. */
-    const withdrew=[];
-    for(const id of (Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.slice(0,200):[])){
-      const ch=window.negoChangeById?negoChangeById(c,String(id||'')):null;
-      if(!ch || ch.authorSide!=='counterparty') continue;
-      if(window.negoWithdraw && negoWithdraw(c, ch.id, { side:'counterparty', by:who })) withdrew.push(ch.id);
-    }
+    const withdrew=applyNegoWithdrawals(c, r, who);
     const sig=window.negoSignalReady
       ? negoSignalReady(c, { side:'counterparty', by:who, at:r.at, email:r.email||null })
       : null;
@@ -2299,8 +2692,66 @@ async function applyResponse(c, r, opts={}){
     toast(`${r.name} declined the agreement`,'err');
   } else { if(!opts.background) toast('Unknown response type','err'); return false; }
   c.lastAction=todayStr(); persist(c);
+  /* WRITTEN BEFORE ANYTHING REPAINTS, and this is not a nicety.
+
+     `persist` only marks the contract dirty and sets a 400 ms timer. The
+     repaint below reloads the contract into the same object — so on the
+     background path the sequence was: apply the counterparty's answers, mark
+     dirty, repaint, let the reload assign the SERVER's older copy over the
+     answers, and then let the timer save that older copy back. Every decision,
+     withdrawal and audit line in the response vanished, with no error anywhere:
+     the response was marked applied on the server, so it was never re-delivered
+     either. A counterparty accepted a clause, their screen said sent, and the
+     owner's contract never heard of it.
+
+     Draining the queue here makes the write happen while the object still holds
+     what arrived. */
+  try{ await flushSaves(); }catch(_){}
   if(opts.background) setView(state.view||'dashboard'); else renderWorkspace();
+  /* THE ROOM IS A LAYER OVER THE PAGE, and the repaint above rebuilds the page
+     UNDER it. So an owner sitting in the negotiation watched a change stay
+     "pending" after the counterparty had accepted it and we had applied the
+     acceptance: the record was right, the screen they were reading was not, and
+     nothing on it said so. Leaving and coming back fixed it, which is the worst
+     kind of fix — the one only somebody who already suspects a problem finds. */
+  if(window.negoRepaintOpenRoom) negoRepaintOpenRoom(c);
+  /* AND THEIR LINK IS A PHOTOCOPY. It serves the payload taken when the link
+     was made; nothing updated it when their own answers were applied. So the
+     counterparty answered, sent, and reloaded — and their page replayed the
+     negotiation as it stood before they touched it: decision needed, Accept and
+     Reject, on a change they had already answered.
+
+     Caught up quietly: no email, no "sent" mark, no reset of whether they have
+     opened the current wording. Telling them stays a deliberate act. */
+  refreshLiveShareQuietly(c);
   return true;
+}
+
+/* Bring the counterparty's live link up to date with the record, silently.
+   Fire-and-forget by design: it is a correction to a copy, and a contract that
+   has just been updated must not fail because a link could not be refreshed. */
+async function refreshLiveShareQuietly(c){
+  if(!API_MODE() || !canEdit()) return;
+  try{
+    const shares=await contractShares(c);
+    const live=(shares||[]).filter(s=>s && s.durable && !s.revokedAt && !s.expired);
+    if(!live.length) return;
+    const docHash=await sha256(canonicalDoc(c));
+    for(const s of live){
+      /* The purpose the link was issued with is kept. A negotiation link that
+         quietly became a signing link — or the reverse — would change what the
+         reader is being asked to do without anybody deciding it. */
+      /* holdUnsent: this refresh fires on DECISIONS — an answer to something
+         already on their screen — and can run while the owner holds a draft
+         they have not sent. A payload built here without the guard carried
+         that draft to the counterparty's page: the one thing the whole turn
+         model exists to keep home, leaked by a background sync. The explicit
+         SEND path never sets this, because there everything pending is
+         precisely what is being sent. */
+      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined, holdUnsent:true });
+      try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
+    }
+  }catch(e){ /* the record is right either way; the link catches up next time */ }
 }
 
 /* WHOSE MOVE IT IS, after they answer.
@@ -2342,6 +2793,72 @@ function applyNegoDecisions(c, r, who){
   return done;
 }
 
+/* Asks of THEIR OWN that we refused and they have now let go. Only their own —
+   withdrawing ours would let one side clear every objection raised against its
+   wording and then declare the deal aligned.
+
+   Lifted out of the readiness branch because both branches need it: a
+   withdrawal is what clears the deadlock a single refusal creates, and it can
+   travel with plain decisions just as easily as with a readiness signal. */
+function applyNegoWithdrawals(c, r, who){
+  const out=[];
+  for(const id of (Array.isArray(r.negoWithdrawn)?r.negoWithdrawn.slice(0,200):[])){
+    const ch=window.negoChangeById?negoChangeById(c,String(id||'')):null;
+    if(!ch || ch.authorSide!=='counterparty') continue;
+    if(window.negoWithdraw && negoWithdraw(c, ch.id, { side:'counterparty', by:who })) out.push(ch.id);
+  }
+  return out;
+}
+
+/* ---------- wording the counterparty asked for ----------
+   The other half of a negotiation round, and the half that used to have no way
+   home. Their room files a real change when they press Change on a clause; this
+   is where it lands on the record.
+
+   RE-FILED, never trusted. The draft arrives from a public, no-login page, so
+   nothing about it is taken as evidence: the id, the fingerprint and the chain
+   are all minted here by negoFileChange, exactly as they are for a change typed
+   on this side. What travels is what they wrote and which clause they wrote it
+   on. Their id is kept only in the log, so a support conversation can match the
+   two up.
+
+   `oldText` is read from OUR copy of the clause, not from theirs. A redline is a
+   claim about what the wording currently says, and the record copy is the only
+   thing entitled to answer that. */
+async function applyNegoProposals(c, r, who){
+  const list=Array.isArray(r.negoProposed)?r.negoProposed.slice(0,200):[];
+  if(!list.length || !window.negoFileChange) return [];
+  const filed=[];
+  for(const p of list){
+    if(!p || !p.clauseId) continue;
+    const type=p.changeType==='deleteClause'||p.changeType==='insertClause'?p.changeType:'modify';
+    const cl=window.negoClauseById?negoClauseById(c, String(p.clauseId)):null;
+    if(!cl && type!=='insertClause') continue;      // a clause we do not have
+    const newText=String(p.newText==null?'':p.newText);
+    /* Already here. A durable link can send the same round twice and the poller
+       retries anything it could not mark applied, so the same ask must not
+       become two fingerprints on the index. */
+    if((c.changes||[]).some(x=>x && x.authorSide==='counterparty' && x.clauseId===p.clauseId
+        && x.status==='pending' && String(x.newText||'')===newText)) continue;
+    let ch=null;
+    try{
+      ch=await negoFileChange(c, { clauseId:String(p.clauseId), changeType:type,
+        oldText: cl?cl.text:String(p.oldText||''), newText,
+        bodyHtml: p.bodyHtml?(window.sanitizeRich?sanitizeRich(p.bodyHtml):null):null,
+        headingText:p.headingText||null, afterClauseId:p.afterClauseId||null,
+        clauseLabel:(cl&&window.negoClauseLabel?negoClauseLabel(cl):p.clauseLabel)||null },
+        { side:'counterparty', author:who, note:p.note||null, quiet:true,
+          via:`their link${p.id?` as ${p.id}`:''}` });
+    }catch(e){ ch=null; }
+    if(!ch) continue;
+    filed.push(ch.id);
+    logAudit(c,'Negotiation',`#${ch.id} proposed by ${who} through their link — “${ch.summary}”`
+      +` on ${ch.clauseLabel||ch.clauseId} · fingerprint ${ch.hash}`
+      +` (the counterparty's wording, recorded in their name${p.id&&p.id!==ch.id?`; their copy called it ${p.id}`:''})`);
+  }
+  return filed;
+}
+
 /* poll the server for counterparty responses and apply them */
 async function pollPendingResponses(){
   if(!API_MODE() || !canEdit()) return;
@@ -2360,5 +2877,77 @@ async function pollPendingResponses(){
     }
   }catch(e){ /* transient network issues — next poll retries */ }
 }
+/* ---------- how often to look ----------
+   Answers arrive by polling; there is no channel from the server that can tap
+   this page on the shoulder. One fixed 45-second beat treated every situation
+   the same, so someone sitting on the contract they have just sent out — the
+   one case where the wait is the whole experience — watched a screen that could
+   be three quarters of a minute out of date, with no reason to suspect it.
 
-Object.assign(window,{cachedShares,DEFAULT_APPROVAL,SHARE_PURPOSE,applyNegoDecisions,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+   Two cheap corrections, both using what is already here:
+
+     · WATCH HARDER WHEN SOMEBODY IS WATCHING. While the open contract is with
+       the other side, look every twelve seconds instead of forty-five. It costs
+       one small request; it is the difference between "it just appeared" and
+       "I had to reload".
+     · LOOK WHEN THEY COME BACK. Returning to the tab is exactly the moment a
+       person expects to be caught up, and it costs nothing to be right then.
+       Rate-limited so alt-tabbing repeatedly cannot hammer the server. */
+const POLL_SLOW=45000, POLL_FAST=12000;
+let _pollTimer=null, _pollEvery=0, _pollLastAt=0;
+function pollWaitingOnThem(){
+  if(state.view!=='workspace') return false;
+  const c=getContract(state.activeId);
+  if(!c || c.status==='Signed' || c.status==='Declined') return false;
+  if((c.rounds||[]).some(r=>r&&r.status==='open')) return false;   // it is OUR move
+  const turn=window.negoTurn ? negoTurn(c) : (c.negotiation&&c.negotiation.turn);
+  if(turn==='counterparty') return true;
+  // or we have sent something and nobody has answered it yet
+  return !!(c.negotiation&&c.negotiation.turnAt) || (Array.isArray(c.signatures)&&c.signatures.length===0
+    && (Array.isArray(c.changes)?c.changes:[]).some(x=>x&&x.status==='pending'&&x.authorSide==='owner'));
+}
+/* A REPLY IS NOT A RESPONSE, and it arrives by a different door.
+   pollPendingResponses collects answers that MOVE the negotiation — decisions,
+   proposals, signatures. A comment on a fingerprint moves nothing and is
+   deliberately not on that route, so a counterparty's reply reached the server
+   and then sat there until the owner reloaded the page. On the one screen built
+   for the conversation, that is the reply arriving late by exactly as long as
+   the owner happens to stay put.
+
+   Refreshed on the same beat, and only for the contract that is open: the
+   messages belong to a screen somebody is looking at, and there is no reason to
+   fetch a conversation nobody is reading. */
+async function pollThreadMessages(){
+  if(!API_MODE()) return;
+  const c=state.contracts&&state.activeId?getContract(state.activeId):null;
+  if(!c) return;
+  try{
+    const r=await api('contracts/'+c.id+'/messages');
+    const next=(r&&r.messages)||[];
+    const before=(c._messages||[]).length;
+    c._messages=next;
+    /* Repaint only when something actually arrived. A repaint on every tick
+       would rebuild the room under the reader twice a minute — and take the
+       reply box they were typing into with it. */
+    if(next.length!==before){
+      const painted=window.negoRepaintOpenRoom ? negoRepaintOpenRoom(c) : false;
+      if(!painted && window.renderDiscussSection) renderDiscussSection(c);
+    }
+  }catch(e){ /* transient — the next tick retries */ }
+}
+async function pollNow(reason){
+  const t=Date.now();
+  if(t-_pollLastAt < 4000) return;      // never twice in four seconds
+  _pollLastAt=t;
+  await pollPendingResponses();
+  await pollThreadMessages();
+}
+function schedulePolling(){
+  const want=pollWaitingOnThem()?POLL_FAST:POLL_SLOW;
+  if(_pollEvery===want && _pollTimer) return;
+  _pollEvery=want;
+  clearInterval(_pollTimer);
+  _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
+}
+
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

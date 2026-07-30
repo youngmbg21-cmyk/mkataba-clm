@@ -59,7 +59,16 @@ function pdfIndexObjects(bin){
 async function pdfStreamBytes(o){
   if(!o||o.raw==null) return null;
   const arr=Uint8Array.from(o.raw, ch=>ch.charCodeAt(0)&0xff);
-  if(/\/Flate/.test(o.dict)){ const inf=await inflateBytes(arr); return inf||arr; }
+  /* A DECLARED-FLATE STREAM THAT WILL NOT INFLATE IS NOT READABLE, and
+     `return inf||arr` said otherwise: it handed the raw compressed bytes back
+     as though they were the decoded content. Everything above this treats the
+     return value as text — the content-stream walker turns it straight into
+     drawing operators — so a truncated, encrypted or oddly-predicted stream
+     became a page full of high-entropy noise that then looked, to every check
+     downstream, like a document with text in it.
+
+     Null is what the callers already handle: "this stream could not be read". */
+  if(/\/Flate/.test(o.dict)) return await inflateBytes(arr) || null;
   return arr;
 }
 /* PDF 1.5+ keeps most non-stream objects (page dicts, fonts) inside /ObjStm containers */
@@ -653,12 +662,46 @@ function pdfStringsFrom(content){
    what a page break is here. What CANNOT be recovered from this path — real
    headings, list nesting — is rebuilt afterwards by docRichFromText, which
    reads the wording itself. */
+/* IS THIS STREAM COMPRESSED? The scrape works on a raw regex over the file, so
+   it has no object dictionary to hand — it looks at the one that precedes the
+   `stream` keyword, and at the bytes themselves. A zlib stream opens 0x78 with
+   a valid two-byte check; that is a strong enough signal on its own, and the
+   /Filter entry is the authoritative one where it is there to be read. */
+function pdfStreamIsCompressed(bin, at, raw){
+  const head=bin.slice(Math.max(0, at-800), at);
+  const dictAt=head.lastIndexOf('<<');
+  if(dictAt>=0 && /\/Filter\b[^>]{0,200}\/(FlateDecode|LZWDecode|DCTDecode|JPXDecode|CCITTFaxDecode|RunLengthDecode|ASCIIHexDecode|ASCII85Decode)/
+      .test(head.slice(dictAt))) return true;
+  if(raw.length>=2){
+    const a=raw.charCodeAt(0)&0xff, b=raw.charCodeAt(1)&0xff;
+    if(a===0x78 && ((a<<8)+b)%31===0) return true;      // zlib header
+    if(a===0x1f && b===0x8b) return true;               // gzip
+  }
+  return false;
+}
 async function pdfFlatText(bin){
   const out=[]; const re=/stream\r?\n([\s\S]*?)\r?\nendstream/g; let m;
   while((m=re.exec(bin))){
-    const arr=Uint8Array.from(m[1],ch=>ch.charCodeAt(0)&0xff);
+    const raw=m[1];
+    const arr=Uint8Array.from(raw,ch=>ch.charCodeAt(0)&0xff);
     const inf=await inflateBytes(arr);
-    const text=inf?pdfLatin(inf):m[1];
+    /* COMPRESSED BYTES ARE NOT TEXT, and the fallback treated them as text.
+
+       `inf ? pdfLatin(inf) : m[1]` meant that when the inflate failed — an
+       unsupported predictor, a truncated stream, an encrypted document — the
+       RAW COMPRESSED BYTES were handed to the scraper. Deflate output is
+       high-entropy, so across a few hundred kilobytes it reliably contains the
+       letters `Tj` or `BT` somewhere, and plenty of `(` … `)` pairs. The test
+       passed, `pdfStringsFrom` dutifully scraped the bytes between the
+       parentheses, and the result — pure binary noise — was stored as the
+       contract's extractedText and printed by the PDF export.
+
+       An uncompressed content stream really is text and still reads as one.
+       A compressed one that will not inflate yields nothing, and nothing is
+       the honest answer: it routes to the "no machine-readable text" path and
+       the OCR offer, which can actually read the document. */
+    if(!inf && pdfStreamIsCompressed(bin, m.index, raw)) continue;
+    const text=inf?pdfLatin(inf):raw;
     if(/\bTj\b|\bTJ\b|\bBT\b/.test(text)) out.push(pdfStringsFrom(text));
   }
   return out.join('\n\n')
@@ -666,6 +709,31 @@ async function pdfFlatText(bin){
     .replace(/[ \t]*\n[ \t]*/g,'\n')
     .replace(/\n{3,}/g,'\n\n')
     .trim();
+}
+
+/* ---- THE LAST GATE BEFORE GARBAGE BECOMES THE CONTRACT ----
+
+   Extraction has several fallbacks and each of them can fail in a way that
+   still returns a string. The check that matters is not which path produced it
+   but whether the result is READABLE — because whatever comes back is stored as
+   the document's text, fed to Copilot, searched, diffed and printed.
+
+   Printable means what a person reading a contract would call printable: the
+   Latin-1 range, tabs and line breaks. Below 85% over the opening few kilobytes
+   this is not a document, it is bytes, and the caller is told so by being given
+   nothing at all. Empty is not a failure state here — it is the existing "no
+   machine-readable text" path, and it is what puts the OCR offer in front of
+   someone whose scan can actually be read. */
+function looksLikeText(s){
+  const t=String(s==null?'':s);
+  if(!t.trim()) return true;                       // nothing is not garbage
+  const sample=t.slice(0,4096);
+  let ok=0;
+  for(let i=0;i<sample.length;i++){
+    const ch=sample.charCodeAt(i);
+    if(ch===9||ch===10||ch===13||(ch>=32&&ch<=126)||(ch>=160&&ch<=0x2027)||ch>=0x202a) ok++;
+  }
+  return (ok/sample.length)>0.85;
 }
 
 async function extractPdfText(buf){
@@ -698,8 +766,11 @@ async function extractPdfText(buf){
       if(txt) pages.push(txt);
     }
   }catch(e){ pages=[]; }
-  if(pages.length) return pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
-  return await pdfFlatText(bin);
+  const text = pages.length
+    ? pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim()
+    : await pdfFlatText(bin);
+  // one gate, on every path out of here — see looksLikeText
+  return looksLikeText(text) ? text : '';
 }
 /* Decode a data: URL locally — fetch(dataUrl) is blocked by the server-mode
    CSP (connect-src 'self'), so the bytes are unpacked without a request. */
@@ -950,6 +1021,7 @@ function openUploadModal(){
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         ${upField('up-name','Contract name','e.g. Supply Agreement — Acme')}
         ${upField('up-cp','Received from (counterparty)','e.g. Acme Ltd')}
+        ${upField('up-cpemail','Their email (so you can send it back)','them@company.co.ke','email')}
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-3">
         <label class="block"><span class="text-xs font-medium text-brand-800/70">File under</span>
@@ -1001,6 +1073,8 @@ async function submitUpload(){
   if(!file){ toast('Choose a file to upload','err'); return; }
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return; }
   const cp=fval('up-cp');
+  const cpEmail=fval('up-cpemail');
+  if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
   const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
   const folder=document.getElementById('up-folder').value;
   const vtype=document.getElementById('up-vtype').value;
@@ -1036,6 +1110,12 @@ async function submitUpload(){
   } else {
     extractedText=await extractDocText(dataUrl, mime);   // real text extraction
   }
+  /* NOTHING UNREADABLE IS STORED, whichever reader produced it. extractPdfText
+     already applies this gate, and it is applied again here because this is the
+     last point before the string becomes the contract's text — and because the
+     next line decides whether to offer OCR, which is exactly the right thing to
+     do with a document nobody could read. */
+  if(!looksLikeText(extractedText)) extractedText='';
   // A PDF with no text layer, or a photo of a contract, is read by OCR rather
   // than filed as an empty shell. Provenance is recorded either way.
   let ocr=null, textSource=word==='docx'?'docx-text':(extractedText.length>=OCR_TEXT_FLOOR?'pdf-text':'none');
@@ -1059,7 +1139,7 @@ async function submitUpload(){
     try{ const r=await api('files','POST',{ name:file.name, mime, dataUrl });
       upload.fileId=r.id; }catch(e){ /* fall back to inline bytes */ }
   }
-  const c={ id:nextId(), name, counterparty:cp, value, status: cp?'Under Review':'Draft',
+  const c={ id:nextId(), name, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1133,7 +1213,6 @@ function openEditDocModal(c){
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
   // the Word-review soft lock: edits made here while the file is out would
   // silently lose to (or clobber) the wording coming back from Word
-  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review first','err'); return; }
   const wasRich=!!(window.isRich&&isRich(c.format)&&c.redlineText);
   const cur=wasRich ? docPlainText(c)
     : (window.reflowWorkingText?reflowWorkingText(docPlainText(c)):docPlainText(c));
@@ -1274,53 +1353,6 @@ async function loadDiscussion(c){
   renderDiscussSection(c);
 }
 
-function openWordExportModal(c){
-  if(!canEdit()){ toast('Viewers cannot export documents','err'); return; }
-  if(window.wordReviewOut&&wordReviewOut(c)){
-    toast('This document is already out for Word review — upload the returned file or cancel the review first','err'); return;
-  }
-  /* Will this copy carry markup? A Word user reads a document by its red ink,
-     so which of the two files is going out is the most important thing on this
-     screen — and it is knowable before the file is built. */
-  let plan=null;
-  try{ plan=window.redlinePlan?redlinePlan(c):null; }catch(err){ plan=null; }
-  const who=(c.counterparty||'the counterparty').replace(/</g,'&lt;');
-  openModal(`
-    <div style="padding:22px 24px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="color:var(--color-accent);display:inline-flex">${icon('download')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0">Download as Word</h2></div>
-      <p style="font-size:12.5px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">
-        You'll get a <b>.docx</b> of the wording as it reads right now — headings, clause numbers and all — for a counterparty who works in Word. When their marked-up copy comes back, upload it on the contract and HaTi files it as a negotiation round.</p>
-      ${plan?`
-      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid #bcd9ca;background:#e4f1ea;border-radius:5px;padding:10px 12px;cursor:pointer;margin-bottom:8px">
-        <input type="checkbox" id="we-track" checked style="margin-top:2px;flex:none"/>
-        <span style="font-size:12.5px;line-height:1.55"><b>Mark your changes in red (tracked changes).</b>
-        <span style="display:block;color:var(--color-neutral-700);margin-top:2px">${who} opens the file and sees exactly what you changed since the copy they last had, marked in the name of <b>${(window.FIRST_PARTY||'this workspace').replace(/</g,'&lt;')}</b> — insertions underlined, removals struck through, the way Word does it. Untick to send clean text they'd have to compare by hand.</span></span>
-      </label>`:`
-      <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;margin-bottom:8px;font-size:12px;line-height:1.55;color:var(--color-neutral-700)">
-        This copy goes out as <b>clean text</b> — ${who} has not seen an earlier wording of this document, so there is nothing to mark. Once they return a copy and you decide it, later exports carry your changes in red automatically.</div>`}
-      <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:5px;padding:10px 12px;cursor:pointer">
-        <input type="checkbox" id="we-lock" checked style="margin-top:2px;flex:none"/>
-        <span style="font-size:12.5px;line-height:1.55"><b>Pause editing here until the file comes back.</b>
-        <span style="display:block;color:var(--color-neutral-600);margin-top:2px">Recommended while a copy is out with the other side: changes made here in the meantime would clash with the wording coming back. You can lift it at any time from the Word panel on the contract.</span></span>
-      </label>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button id="we-cancel" class="ui-btn">Cancel</button>
-        <button id="we-go" class="ui-btn ui-btn-primary">${icon('download','w-3.5 h-3.5')} Download</button>
-      </div>
-    </div>`);
-  document.getElementById('we-cancel').addEventListener('click',closeModal);
-  document.getElementById('we-go').addEventListener('click',async e=>{
-    const lock=!!document.getElementById('we-lock')?.checked;
-    const trackEl=document.getElementById('we-track');
-    const btn=e.currentTarget; btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    try{
-      await startWordReview(c, null, { lock, tracked:trackEl?!!trackEl.checked:undefined });
-      closeModal();
-    }catch(err){ toast('Could not build the Word file — '+err.message,'err'); btn.disabled=false; btn.innerHTML='Download'; }
-  });
-}
-
 function uploadDocBody(c){
   const u=c.upload||{}, mime=u.mime||'';
   const isPdf=/pdf/.test(mime), isImg=/^image\//.test(mime), isText=/^text\//.test(mime);
@@ -1361,7 +1393,6 @@ function uploadDocBody(c){
     </div>
     ${PORTAL_MODE?'':`
     ${ocrBannerHtml(u)}
-    ${window.wordControlsHtml?wordControlsHtml(c):''}
     <div class="mb-4 grid sm:grid-cols-2 gap-2 text-[11px]">
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Original file</div><div class="font-medium text-brand-900 truncate">${u.fileName||'—'} · ${sizeKB} KB</div></div>
       <div class="rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-0.5">Uploaded</div><div class="font-medium text-brand-900 truncate">${u.uploadedBy||'—'} · ${u.uploadedAt?fmtDT(u.uploadedAt):'—'}</div></div>
@@ -1402,17 +1433,10 @@ async function rereadUploadText(c, btn){
   const restore=btn?btn.innerHTML:'';
   if(btn){ btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Reading…</span>'; }
   try{
-    // once Word rounds have been adopted, the CURRENT file is the latest
-    // version — re-reading the v1 original would silently roll the text back
-    const cur=(window.wordCurrentFile&&window.wordFileEntries)?wordCurrentFile(c):null;
-    if(cur&&cur.key!=='v1'){
-      const dataUrl=await wordEntryDataUrl(c, cur);
-      const text=(await extractWordText(dataUrl)).text;
-      if(!text || text.length<40) throw new Error('no machine-readable text in this file');
-      const before=Number(u.textChars||0);
-      u.extractedText=text; u.textChars=text.length;
-      c.lastAction=todayStr();
-      logAudit(c,'Document',`Re-read ${cur.key} (“${cur.fileName}”) — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
+    /* There is one file on an upload now — the original. The branch that
+       re-read the newest adopted Word version went when the round trip did. */
+    const cur=null;
+    if(cur){
       persist(c);
       toast(`Document re-read from ${cur.key} — ${text.length.toLocaleString()} characters`);
       renderWorkspace();
@@ -1423,7 +1447,9 @@ async function rereadUploadText(c, btn){
     }
     if(!u.dataUrl) throw new Error('the original file is not available on this record');
     const text=await extractDocText(u.dataUrl, u.mime||'');
-    if(!text || text.length<40) throw new Error('no machine-readable text in this file');
+    // …and the same gate on the repair path: a re-read that produced bytes must
+    // not overwrite text that was readable
+    if(!text || text.length<40 || !looksLikeText(text)) throw new Error('no machine-readable text in this file');
     const before=Number(u.textChars||0);
     u.extractedText=text; u.textChars=text.length;
     c.lastAction=todayStr();
@@ -1722,8 +1748,8 @@ function externalExecutionBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#5980a6" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(89,128,166,.10)" stroke="#8fa8c2" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
-          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#5980a6">MIGRATED</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#5980a6">MIGRATED</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
@@ -1770,8 +1796,8 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
-          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
@@ -1819,9 +1845,66 @@ function wsNextAction(c){
   if(!canEdit()) return null;
   const hasTerms=c.counterparty&&(!isMonetary(c)||Number(c.value)>0);
   const appr=(window.approvalState?approvalState(c):{ok:true});
+  /* THE OTHER SIDE IS WAITING ON YOU, and that outranks everything below.
+
+     This bar used to answer "what is the next step for a contract at this
+     status", which stops being the right question the moment a counterparty
+     sends something back. A contract whose status is still Draft carried on
+     saying "Key terms are set — move it into review" with a returned-changes
+     banner sitting directly above it saying the opposite. Two primary buttons,
+     two different next steps, one screen. The one that is actually urgent is
+     the one somebody else is waiting on. */
+  const openRds=(c.rounds||[]).filter(r=>r&&r.status==='open').length;
+  const pendingCh=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x&&x.status==='pending'&&x.authorSide==='counterparty').length;
+  if(openRds||pendingCh){
+    const n=openRds||pendingCh;
+    return { label:'Review the changes', ic:'history', kind:'review-changes',
+      guide:`${c.counterparty||'The counterparty'} is waiting on you — ${n} ${openRds?`round${n===1?'':'s'}`:`change${n===1?'':'s'}`} to decide.` };
+  }
+  /* THEY HAVE SIGNED AND WE HAVE NOT, and nothing on this page said so.
+
+     Walked end to end: the counterparty opens the signing link, adopts a mark,
+     signs. Their signature is filed, the audit trail records it and the share
+     shows "Signed" — and the owner's page went on reading "Key terms are set —
+     move it into review", with a button offering to do something the contract
+     passed three rounds ago. The one act left in the entire deal is her
+     signature, and the screen never mentioned it. */
+  const cpSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party==='counterparty');
+  const weSigned=(Array.isArray(c.signatures)?c.signatures:[])
+    .some(s=>s && s.party!=='counterparty');
+  if(cpSigned && !weSigned && !(c.execution&&c.execution.at)){
+    const who=(c.signatures.find(s=>s.party==='counterparty')||{}).name||c.counterparty||'The counterparty';
+    return { label:'Sign', ic:'finger', kind:c.compliance&&c.compliance.consent?'sign':'sign-scroll',
+      guide:`${who} has signed. Your signature is the only thing left.` };
+  }
   if(c.status==='Draft'){
     if(!hasTerms) return { label:'Complete key terms', ic:'pencil', guide:'Add the counterparty and value to move this forward.', kind:'terms' };
     return { label:'Send for review', ic:'check2', guide:'Key terms are set — move it into review.', kind:'review' };
+  }
+  /* A LIVE NEGOTIATION IS NOT "READY TO SIGN".
+
+     Everything below this point answers for a contract sitting in review with
+     nothing outstanding. Sending the draft out now moves the status, which is
+     right — but it also dropped the bar straight onto "Approved and ready —
+     apply the sealed signature" while the two sides were still three rounds
+     from agreeing. Offering the seal in the middle of an argument is worse
+     than saying nothing. Say whose move it is instead. */
+  const liveChanges=(Array.isArray(c.changes)?c.changes:[])
+    .filter(x=>x && x.status!=='superseded');
+  const notSettled=liveChanges.some(x=>x.status==='pending'
+    || (x.status==='rejected' && !x.withdrawn));
+  const theirTurn=(window.negoTurn ? negoTurn(c)==='counterparty'
+    : !!(c.negotiation && c.negotiation.turn==='counterparty'));
+  if(!cpSigned && (notSettled || theirTurn)){
+    const who=c.counterparty||'the counterparty';
+    const mine=liveChanges.filter(x=>x.status==='pending').length;
+    return theirTurn
+      ? { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`It is with ${who}. Nothing needs you until they answer.` }
+      : { label:'Open the negotiation', ic:'history', kind:'review-changes',
+          guide:`Your turn — ${mine||'some'} change${mine===1?'':'s'} still open with ${who}.` };
   }
   // Under Review
   if(!appr.ok) return { label:'Send to counterparty', ic:'share', guide:'Share the draft to negotiate or collect signature.', kind:'share' };
@@ -1851,6 +1934,15 @@ function wireActionBar(c){
   document.getElementById('ws-next-action')?.addEventListener('click',e=>{
     const kind=e.currentTarget.getAttribute('data-na');
     if(kind==='evidence'){ downloadEvidence(c); return; }
+    /* Deliberately the same code path as the returned-changes strip's own
+       button: two ways to reach one thing, never two things that can drift. */
+    if(kind==='review-changes'){
+      const strip=document.getElementById('changes-review');
+      if(strip){ strip.click(); return; }
+      /* Changes that arrived as tracked items rather than as a round have no
+         strip to borrow — the workbench is where they are decided. */
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return;
+    }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
     if(kind==='review'){
@@ -1897,19 +1989,18 @@ function docTabDefaults(c){
     _docTabsFor = c.id;
   }
 }
-/* ---- Workspace-level tabs: Docs · Negotiation ------------------------------
-   A sibling of the Docs view, not a card inside it. The three-pane redline
-   needs the full width of the window — baseline, working copy and change index
-   at once — and the right-hand panel is a third of the screen, so it could
-   never have lived there.
+/* ---- Workspace-level tabs: Docs · Redline ---------------------------------
+   A sibling of the Docs view, not a card inside it. The redline needs the full
+   width of the window — the document whole, with the changes and the
+   discussion beside it — and the right-hand panel here is a third of the
+   screen, so it could never have lived in it.
 
-   The choice persists per contract, like the panel tabs above, and resets when
-   a different contract opens. Switching only toggles `display`, so the
-   negotiation's own view state (which fingerprint is focused, which threads are
-   open) survives a trip to Docs and back — "without reloading or losing state"
-   is a property of the mechanism rather than something re-established on the
-   way in. */
-let _wsTab='docs';                           // 'docs' | 'negotiation'
+   Which is why only ONE of these two is a pane. Docs is; Redline is a door to
+   the workbench at view-redline, and it snaps back to Docs on the way through
+   so that coming back lands on the document rather than on a tab pointing
+   somewhere the reader has left. The choice resets when a different contract
+   opens. */
+let _wsTab='docs';                           // 'docs' | 'redline'
 let _wsTabFor=null;
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
@@ -1919,7 +2010,7 @@ function wsTabDefaults(c){
   }
 }
 function wsTabBtn(k,label,ic){
-  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:8px 16px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
+  return `<button data-ws-tab="${k}" title="${label}" style="display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:7px;background:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;color:var(--color-neutral-600);padding:6px 14px;white-space:nowrap;transition:background .12s,color .12s">${icon(ic,'w-4 h-4')}<span>${label}</span></button>`;
 }
 /* The count of undecided changes, on the tab itself. A negotiation waiting on
    the reader is the one thing that must not be discoverable only by clicking. */
@@ -1930,27 +2021,35 @@ function negoTabCountHtml(c){
   return `<span id="nego-tab-count" title="${p.pending} change${p.pending===1?'':'s'} waiting on a decision" style="align-self:center;margin:0 8px 0 -6px;font-family:var(--font-mono);font-size:10px;font-weight:700;background:#b8862b;color:#fff;border-radius:999px;padding:1px 7px">${p.pending}</span>`;
 }
 function applyWsTabs(c){
-  if(_wsTab!=='docs'&&_wsTab!=='negotiation') _wsTab='docs';
+  if(_wsTab!=='docs'&&_wsTab!=='redline') _wsTab='docs';
   document.querySelectorAll('[data-ws-pane]').forEach(p=>{
     const on=p.getAttribute('data-ws-pane')===_wsTab;
     p.style.display=on?(p.id==='doc-grid'?'grid':'flex'):'none';
   });
   document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')===_wsTab;
     b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
-  /* The Negotiation tab is a DOOR, not a pane. Pressing it enters the room —
-     a full-window mode with its own chrome — because three panes squeezed under
-     the workspace header left both documents too small to read, which defeated
-     the point of putting them side by side. The tab snaps back to Docs so that
-     leaving the room lands on a workspace showing the document, not on a tab
-     pointing at a room that is no longer open. */
-  if(_wsTab==='negotiation'){
+  /* ---- REDLINE IS A DOOR, NOT A PANE ----
+     It was a door before too, and it opened the full-window negotiation room:
+     three panes squeezed under this header left both documents too small to
+     read. It now opens the REDLINE WORKBENCH — the page at view-redline —
+     which is the same engine laid out as the design sets it, with the document
+     whole and the changes and discussion beside it.
+
+     Either way the tab snaps back to Docs before it goes, so that coming BACK
+     from the workbench lands on a workspace showing the document rather than
+     on a tab pointing at somewhere the reader is no longer standing. */
+  if(_wsTab==='redline'){
     _wsTab='docs';
     document.querySelectorAll('#ws-tabs [data-ws-tab]').forEach(b=>{ const on=b.getAttribute('data-ws-tab')==='docs';
       b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       p.style.display=(p.getAttribute('data-ws-pane')==='docs')?(p.id==='doc-grid'?'grid':'flex'):'none'; });
-    if(window.openNegotiationRoom) openNegotiationOwnerRoom(c);
-    else toast('The negotiation room is unavailable on this page','err');
+    /* Through openRedlineWorkbench, not by setting activeId and switching view
+       here: that one function is where the previous occupant of the bench is
+       taken off and put back in Drafting, and a second route in would skip it
+       silently. */
+    if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+    else toast('The redline workbench is unavailable on this page','err');
   }
 }
 function wireWsTabs(c){
@@ -1962,16 +2061,126 @@ function wireWsTabs(c){
    owner lives here — who they are, what pressing "Propose edits" does, where
    the hand-off goes — so js/views/negotiation.js stays the same code for both
    parties. */
+/* REPAINT THE ROOM, IF THE ROOM IS WHAT THEY ARE LOOKING AT.
+
+   The room is a full-window layer mounted outside the app shell, so
+   renderWorkspace() rebuilds the page UNDERNEATH it and leaves it exactly as it
+   was. Every path that changes the record while the owner might be standing in
+   the room has to say so — an answer arriving from the counterparty, a reply on
+   a thread — or the screen goes on showing a state the contract left behind.
+
+   Guarded on the contract as well as on the room: repainting somebody's open
+   negotiation because a DIFFERENT contract moved would be worse than not
+   repainting at all. */
+function negoRepaintOpenRoom(c){
+  if(!c || !window.negoRoomIsOpen || !negoRoomIsOpen()) return false;
+  if(!window.negoRoomContract || negoRoomContract() !== c) return false;
+  openNegotiationOwnerRoom(c);
+  return true;
+}
 function openNegotiationOwnerRoom(c){
   if(!window.openNegotiationRoom) return;
+  /* THE OTHER SIDE OF EVERY THREAD, fetched before the cards are drawn.
+     A counterparty's reply on a fingerprint is filed in the discussion channel
+     — it cannot be written to our contract record from a public page — so a
+     room that read only c.changes[].thread showed the owner their own question
+     with no answer under it. negoThreadOf merges the two stores; this is what
+     puts the second one within its reach. Fire-and-forget: the room opens
+     immediately either way and repaints when the replies land. */
+  if(API_MODE()&&!Array.isArray(c._messages)){
+    api('contracts/'+c.id+'/messages')
+      .then(r=>{ c._messages=(r&&r.messages)||[];
+        if(window.negoRoomIsOpen&&negoRoomIsOpen()) openNegotiationOwnerRoom(c); })
+      .catch(()=>{ c._messages=c._messages||[]; });
+  }
   openNegotiationRoom(c, {
     side:'owner',
     org:window.FIRST_PARTY,
     readonly:!canEdit()||c.status==='Signed',
     by:currentUser()?.name,
     author:currentUser()?.name,
+    /* The other half of every thread, and which of them this reader has read.
+       Passed rather than looked up, because the counterparty's page keeps the
+       same two things somewhere else entirely — see portalNegoContract. */
+    messages:c._messages||[],
+    seenScope:c.id,
     shares:(window.cachedShares?cachedShares(c):[]),
     onChange(){ persist(c); },
+    /* AND THEIR LINK IS A PHOTOCOPY — the same fault, walked the other way.
+       refreshLiveShareQuietly was added so a counterparty's own answers stop
+       being replayed to them as undecided, and it was called from exactly one
+       place: the path that applies THEIR response. Nothing called it when WE
+       answered. So the counterparty asked for a change, the owner accepted it,
+       and a week later they reloaded their link and found their own ask back on
+       the table marked "waiting on the other side".
+
+       Only answers to what is already on the table — a decision, or an ask
+       taken back. Wording the owner has newly PROPOSED is deliberately not
+       pushed down a live link: what the reader is being asked to look at
+       changes when somebody decides to send it, not as a side effect.
+
+       Silent, like the original: no email, no new share record, no re-marking
+       the link as sent, no resetting whether they have opened it. */
+    /* WHO WE ARE NEGOTIATING WITH, if we know. The room asks for it once when
+       we do not, and sends without asking when we do. */
+    contact:(window.counterpartyContact?counterpartyContact(c,(window.cachedShares?cachedShares(c):[])):null),
+    onSetCounterparty(x){
+      c.counterpartyEmail=String((x&&x.email)||'').trim();
+      if(x&&x.name) c.counterpartyName=x.name;
+      logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
+      persist(c);
+      toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+    },
+    /* THE SEND, once there is somewhere to send to. Rides the same route the
+       "send updated version" control has always used: an existing standing link
+       is refreshed in place rather than duplicated, and a first send mints one.
+       A NEW ASK NOTIFIES — unlike a decision, which updates their link in
+       silence. They are not waiting to be told we accepted something; they
+       cannot answer wording they do not know has arrived. */
+    async onSendDirect(){
+      const to=c.counterpartyName||c.counterparty||'the counterparty';
+      try{
+        const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
+        if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
+        else persist(c);
+        /* Three honest outcomes. quiet: the standing link took the round and no
+           email goes — by design, the platform is the channel after the first
+           send. delivered: the FIRST send, which emails the link. Otherwise the
+           link went out on a channel that cannot deliver itself. */
+        toast(out.quiet
+          ? `Sent to ${to} — the new round is on their link, and it is now their turn`
+          : out.delivered
+          ? `Sent to ${to} — it is now their turn`
+          : `Published to ${to}'s link — it is now their turn. ${out.channel==='email'?'It was not emailed; send them the link.':'Send them the link.'}`,
+          (out.quiet||out.delivered)?undefined:'err');
+      }catch(err){
+        toast(`Could not send to ${to} — ${err.message}`,'err');
+      }
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
+    },
+    onDecided(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    onWithdraw(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
+    /* A comment on a fingerprint has to LEAVE THE BUILDING. negoPostComment
+       writes it onto our record, which is what the owner's card reads — and
+       for a long time was the whole of it, so a question asked here reached
+       the counterparty only if the share link happened to be refreshed
+       afterwards. It goes down the discussion channel as well, under the
+       change's own topic, which is the store their page reads. Same message,
+       both stores, one thread on each side's card. */
+    async onComment(_c, ch, msg){
+      if(!API_MODE()||!ch) return;
+      try{
+        const res=await api('contracts/'+c.id+'/messages','POST',{
+          topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+ch.id),
+          topicLabel:`Change #${ch.id}${ch.clauseLabel?' · '+ch.clauseLabel:''}`,
+          body:msg.text });
+        c._messages=(res&&res.messages)||c._messages||[];
+        toast(`Comment posted on #${ch.id} — ${c.counterparty||'the counterparty'} sees it on the same change. The contract is unchanged.`);
+      }catch(e){
+        toast(`Saved on the change, but it could not be sent to ${c.counterparty||'the counterparty'}: ${e.message||'the message channel is unavailable'}`,'err');
+      }
+    },
     onPropose(){ openNegoProposeModal(c); },
     /* Leaving puts the workspace back the way it was, and repaints it — a
        decision taken in the room has to be visible on the Docs page the reader
@@ -2143,8 +2352,14 @@ function applyDocZoom(){
   // clientWidth already excludes the scrollbar; the 2px keeps a rounding
   // overshoot from tipping the pane into a horizontal scroll.
   const room=pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
-  const z=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
-  wrap.style.setProperty('--doc-zoom', z.toFixed(3));
+  const fit=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
+  /* The reader's text-size preference — the A⁻/A⁺ stepper both tabs carry,
+     persisted by the workbench (rlDocType, default 15) — multiplies the
+     width-fit zoom, so one stored choice sizes the contract on the Doc tab
+     and the Redline canvas alike. At the default it is exactly the old
+     behaviour. */
+  const pref=(window.rlDocType?rlDocType():15)/15;
+  wrap.style.setProperty('--doc-zoom', (fit*pref).toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -2262,7 +2477,10 @@ const WS_FOLD_KEY = () => { const u=(typeof currentUser==='function')&&currentUs
 const wsChromeFolded = () => { try{ return !!lsGet(WS_FOLD_KEY()); }catch(_){ return false; } };
 function applyWsCollapse(){
   const on=wsChromeFolded();
-  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':''; });
+  /* Restore the element's OWN display, not a bare '' — setting display:'' on
+     unfold wipes the inline `display:flex` these rows are laid out with, which
+     turns the status strip into a block and its flex spacer to zero width. */
+  document.querySelectorAll('[data-ws-fold]').forEach(el=>{ el.style.display=on?'none':(el.getAttribute('data-ws-display')||''); });
   const btn=document.getElementById('ws-collapse');
   if(btn){
     btn.setAttribute('aria-expanded', on?'false':'true');
@@ -2321,7 +2539,7 @@ function renderWorkspace(){
     ? 'Back to '+FOLDERS[_wr.folderId].name
     : 'Back to '+({register:'register',pipeline:'my queue',intel:'intelligence',calendar:'calendar',dashboard:'portfolio',reports:'reports',advice:'advice desk'}[_wr.view]||'register');
   content.innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 16px;display:flex;flex-direction:column;gap:12px">
 
     <!-- ============ FULL-WIDTH DOCUMENT HEADER (spans the doc + the right panel) ============ -->
     <section style="${CARD};flex:none;overflow:hidden">
@@ -2330,12 +2548,11 @@ function renderWorkspace(){
         <div style="min-width:0;flex:1">
           <div style="display:flex;align-items:center;gap:8px">
             <h3 style="font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</h3>
-            <span id="ws-status" style="flex:none">${statusChip(c.status)}</span>
-            ${(window.wordReviewOut&&wordReviewOut(c))?`<span title="Downloaded for external review in Microsoft Word — online editing is paused until the file comes back or the review is cancelled" style="flex:none;display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;padding:3px 9px;border-radius:999px;background:#fbf4e3;color:#7d5a14;border:1px solid #f1e6cd"><span style="width:6px;height:6px;border-radius:50%;background:#b8862b"></span>Out for Word review · ${wordReviewDays(c)}d</span>`:''}
+            <span id="ws-status" style="flex:none">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
           </div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.id} · ${FOLDERS[c.folder].name} · updated ${c.lastAction}</div>
         </div>
-        <div data-ws-fold="actions" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+        <div data-ws-fold="actions" data-ws-display="flex" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
           <!-- Edit is GONE from this page. The Docs page reads, checks and signs;
                wording changes happen in the negotiation, where every one of them
                is a tracked change with a fingerprint someone has to decide. Two
@@ -2346,7 +2563,6 @@ function renderWorkspace(){
           <button id="ws-tpl" title="Save as template" class="ui-btn" style="width:30px;height:30px;padding:0">${icon('copy','w-3.5 h-3.5')}</button>`:''}
           <button id="ws-compare" title="Compare versions &amp; review changes" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('history','w-3.5 h-3.5')} Compare</button>
           <button id="ws-pdf" title="Export as PDF" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('printer','w-3.5 h-3.5')} PDF</button>
-          ${window.downloadContractDocx?`<button id="ws-word" title="Download as a Word .docx — for a counterparty who negotiates in Word" class="ui-btn" style="font-size:12px;padding:5px 10px">${icon('download','w-3.5 h-3.5')} Word</button>`:''}
           ${(canEdit()&&(c.status==='Draft'||c.status==='Under Review'))?`<button id="ws-delete" title="Delete this draft permanently" class="ui-btn" style="font-size:12px;padding:5px 10px;border-color:#e6c9c1;color:#8f322b">${icon('trash','w-3.5 h-3.5')} Delete</button>`:''}
         </div>
         ${''/* GIVE THE DOCUMENT THE ROOM. This header carries nine actions, a
@@ -2355,32 +2571,49 @@ function renderWorkspace(){
               you are reading. Collapsing folds the actions away and keeps what
               tells you where you are: the name, the status, the way back.
 
-              These two sit OUTSIDE the row that folds. A control that hides
-              itself cannot be pressed again, and Ask Copilot is the one action
-              people reach for while reading rather than while deciding. */}
+              These two sit OUTSIDE the row that folds, because a control that
+              hides itself cannot be pressed again.
+
+              ASK COPILOT HAS GONE FROM HERE. It was not the only way in — the
+              Copilot has a launcher in the sidebar on every screen, and the
+              Redline page reaches it from a selection — so this was a third
+              door to one room, taking the most prominent slot on the page.
+              What that slot now carries is the act this page does not
+              otherwise offer at all: starting the next agreement. It opens the
+              same new-contract menu the command bar and the dashboard open,
+              rather than being a second way of creating paper. */}
         <div style="display:flex;gap:6px;align-items:center;flex:none">
-          <button id="ws-ai" title="Ask HaTi Copilot" class="ui-btn ui-btn-primary" style="position:relative;font-size:12px;padding:5px 12px">${icon('sparkle','w-3.5 h-3.5')} Ask Copilot<span id="ws-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface)"></span></button>
+          <button id="ws-new" data-page-new title="Draft a new agreement" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>
           <button id="ws-collapse" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none"
             title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
         </div>
       </div>
-      <div id="ws-actionbar" data-ws-fold="strip" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 16px;border-top:1px solid var(--color-divider);background:var(--color-bg)">${actionBarHtml(c)}</div>
     </section>
 
     ${readyToSignStrip(c)}
     ${returnedChangesStrip(c)}
 
-    <!-- ============ WORKSPACE TABS: Docs · Negotiation ============
-         Two ways of working on one contract, side by side rather than one
-         behind the other. Docs is everything that existed before — the
-         document, the review panel, signing. Negotiation is the three-pane
-         fingerprinted redline. Switching is a display toggle over markup that
-         is already rendered, so nothing reloads and no state is lost: an open
-         thread, a focused fingerprint and a half-typed comment all survive a
-         trip to the Docs tab and back. -->
-    <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:4px;box-shadow:var(--shadow-sm);align-self:flex-start">
-      ${wsTabBtn('docs','Docs','file')}
-      ${wsTabBtn('negotiation','Negotiation','history')}${negoTabCountHtml(c)}
+    <!-- ============ TABS + STATUS, ONE ROW: Docs · Redline · next action ============
+         Two ways of working on one contract. Docs is this page — the document,
+         the review panel, signing. Redline hands the contract to the workbench
+         at view-redline, where the wording is negotiated as tracked changes
+         with a fingerprint on each one. The count beside it is the number of
+         changes waiting on a decision, so a negotiation that needs an answer is
+         never discoverable only by clicking.
+
+         The status strip ("Drafting — add the counterparty and value…") used
+         to be a full-width band inside the header card, with this tab switcher
+         on a band of its own below it — two tiers of chrome before the first
+         line of the contract. It now sits INLINE on the tab row, flat, with no
+         card of its own: same chip, same guidance, same next-action button,
+         one row instead of two. -->
+    <div style="flex:none;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div id="ws-tabs" style="flex:none;display:flex;gap:3px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:9px;padding:3px;box-shadow:var(--shadow-sm)">
+        ${wsTabBtn('docs','Docs','file')}
+        ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
+      </div>
+      ${window.rlTypeStepHtml?rlTypeStepHtml():''}
+      <div id="ws-actionbar" data-ws-fold="strip" data-ws-display="flex" style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
     </div>
 
     <!-- ============ BODY: contract (left) · workspace (right) — the divider sets how wide the contract runs ============ -->
@@ -2400,11 +2633,6 @@ function renderWorkspace(){
             :c.redlineText?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('pencil','w-3.5 h-3.5')}<span>Working text — use <b>Edit</b> to change the wording and <b>Compare</b> to review changes between versions.</span></div>`
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
-          <!-- The Word round-trip panel. An uploaded document renders it inside
-               uploadDocBody (beside the file it arrived as); a DRAFTED contract
-               has no such block, which is why the whole round trip used to be
-               invisible on exactly the contracts an SME writes itself. -->
-          ${(!isUpload(c)&&window.wordControlsHtml)?`<div style="max-width:${DOC_PAGE_W}px;margin:0 auto">${wordControlsHtml(c)}</div>`:''}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px">
             
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
@@ -2474,7 +2702,7 @@ function renderWorkspace(){
             <label style="${KROW};cursor:pointer"><span style="${KKEY}">Non-monetary</span>
               <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-600)">no consideration passes
                 <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:15px;height:15px;accent-color:var(--color-accent);flex:none"/></span></label>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             <label style="${KROW}"><span style="${KKEY}">Effective</span>
               <input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${KIN}"/></label>
@@ -2484,7 +2712,7 @@ function renderWorkspace(){
             :`
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
-            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${statusChip(c.status)}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
             ${kv('Expiry',c.expiry||'—')}
@@ -2555,19 +2783,22 @@ function renderWorkspace(){
   }
   wireKeyTerms(c);
   wireActionBar(c);
-  wireDocCanvas(c);   // expand / re-read / Word round-trip buttons (inside #doc-canvas)
+  wireDocCanvas(c);   // expand / re-read buttons (inside #doc-canvas)
   document.getElementById('ws-back').addEventListener('click',()=>{
     const r=state.wsReturn||{};
     if(r.view==='folder'&&r.folderId&&FOLDERS[r.folderId]){ state.folderId=r.folderId; setView('folder'); }
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
-  /* ONE Ask-Copilot button on this page, pre-filled from the contract in front
-     of you. There were briefly two — a plain "Ask AI" beside the PDF button and
-     this one — which is a duplicate surface for one assistant. */
   wireWsCollapse(c);
-  document.getElementById('ws-ai')?.addEventListener('click',()=>
-    openAI(`What should I be watching in ${c.name} (${c.id})? Key dates, obligations and anything unusual.`));
-  window.updateAIBadge&&updateAIBadge();   // sync the freshly-rendered Ask-Copilot dot to the shared unread state
+  /* Draft new agreement carries data-page-new and is NOT wired here. The shell
+     binds every [data-page-new] trigger once, by delegation (js/app.js), and
+     that handler is the one that ANCHORS the menu — measured under the button
+     that was pressed and clamped to the viewport. The first version of this
+     button had its own listener that only lifted `hidden`, so the fixed-
+     position menu opened wherever it had last been placed: on a fresh session,
+     the far corner of the screen, nowhere near the button that asked for it.
+     One binding, one anchoring, every trigger. */
+  window.updateAIBadge&&updateAIBadge();   // the Copilot's unread dot lives on the sidebar launcher now
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
   document.getElementById('ws-delete')?.addEventListener('click',()=>deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
@@ -2577,7 +2808,13 @@ function renderWorkspace(){
   // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
-  document.getElementById('ws-word')?.addEventListener('click',()=>openWordExportModal(c));
+  // The text-size stepper on the tab row: the control, its styles and its
+  // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
+  // two tabs render one component reading one persisted preference. The
+  // stylesheet call is idempotent; the zoom applies the stored choice now.
+  if(window.redlineLayoutCss) redlineLayoutCss();
+  if(window.rlWireTypeStep) rlWireTypeStep(content);
+  applyDocZoom();
   setActiveNav('workspace');
 }
 
@@ -2590,7 +2827,6 @@ function renderWorkspace(){
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
-  if(window.wireWordControls) wireWordControls(c);
 }
 
 /* -------- doc field sync --------
@@ -2709,8 +2945,9 @@ async function fillKeyTermsFromDocument(c){
 }
 function updateStatusUI(c){
   const ms=document.getElementById('meta-status'), ws=document.getElementById('ws-status');
-  if(ms) ms.innerHTML=statusChip(c.status);
-  if(ws) ws.innerHTML=statusChip(c.status);
+  const chip=window.contractStatusChip?contractStatusChip(c):statusChip(c.status);
+  if(ms) ms.innerHTML=chip;
+  if(ws) ws.innerHTML=chip;
 }
 
 /* -------- comments -------- */
@@ -2771,7 +3008,8 @@ function renderSignButton(c){
       ${distributionPanelHtml(c)}`;
     document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
     document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
-    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c); });
+    // pressed deliberately, so it goes now — see distributeExecuted's `force`
+    document.getElementById('dist-send')?.addEventListener('click',()=>{ if(c.distribution) delete c.distribution; distributeExecuted(c,{force:true}); });
     return;
   }
   if(!canEdit()){
@@ -2780,7 +3018,8 @@ function renderSignButton(c){
   }
   // The other way a deal ends. Offered once the wording is settled, because
   // until then there is nothing to have signed on paper.
-  const paperRoute = !(window.unresolvedRedlines && unresolvedRedlines(c))
+  const paperRoute = !((window.negoSigningBlockers ? negoSigningBlockers(c).length
+      : (window.unresolvedRedlines && unresolvedRedlines(c))))
     ? `<button id="sign-paper" class="mt-2 w-full text-center text-[11px] text-brand-800/70 hover:text-brand-900 underline decoration-dotted underline-offset-2 py-1.5 transition">Signed on paper instead? File the signed copy here</button>`
     : '';
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>openPaperSignatureModal(c));
@@ -2796,12 +3035,29 @@ function renderSignButton(c){
   if(!c.compliance.consent)missing.push('intent-to-sign consent');
   if(!appr.ok)missing.push('approvals');
   const signLabel = planned&&ns ? `Sign as ${ns.name}` : 'Sign Document';
+  /* WHO SIGNS, AND IN WHAT ORDER — asked BEFORE the button that ends it.
+
+     This was an 11px text link UNDERNEATH "Sign Document": a decision about
+     which parties execute the contract and in which sequence, sitting below the
+     control that carries it out and styled like a footnote. Anyone who read
+     down the panel in order had already signed by the time they reached it, and
+     a signature cannot be taken back.
+
+     It sits above the button now and is drawn as a control rather than as small
+     print. Once an order exists the panel shows the route itself, with its own
+     "edit route" — so this appears exactly while it is still a live choice. */
+  const signerRoute = !planned&&canEdit()&&c.status!=='Signed'
+    ? `<button id="sp-setup" class="w-full flex items-center justify-center gap-2 rounded-xl border border-brand-200 bg-white py-2.5 mb-2.5 text-[12.5px] font-600 text-brand-700 hover:bg-brand-50 hover:border-brand-300 transition">
+        ${icon('users','w-4 h-4')} Set a multi-signer order…
+      </button>
+      <p class="mb-3 text-[10.5px] text-center text-brand-800/60 leading-relaxed">More than one signatory? Set the order first — signing seals the document.</p>`
+    : '';
   wrap.innerHTML=`
     ${approvalPanelHtml(c)}
+    ${signerRoute}
     <button id="sign-btn" ${ready?'':'disabled'} class="w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-semibold transition ${ready?'bg-brand-900 text-white hover:bg-brand-800 shadow-lg shadow-brand-900/20':'bg-brand-100 text-brand-800/60 cursor-not-allowed'}">
       ${icon('finger','w-[18px] h-[18px]')} ${signLabel}
     </button>
-    ${!planned&&canEdit()&&c.status!=='Signed'?`<button id="sp-setup" class="mt-2 w-full text-[11px] text-brand-600 hover:text-brand-800 font-600">Set a multi-signer order…</button>`:''}
     ${ready?`<p class="mt-2 text-[11px] text-center text-brand-800/65">Freezes the exact text, applies a tamper-evident SHA-256 seal${planned?' when the last signer signs':''}.</p>`
            :`<p class="mt-2 text-[11px] text-center text-brand-800/65">${planned&&ns&&ns.party==='counterparty'?`Next signer is <b>${ns.name}</b> (counterparty) — share the link to collect their signature.`:`Complete: <span class="text-gold-600 font-medium">${missing.join(', ')||'approval'}</span>`}</p>`}
     ${(()=>{ const oh=openFindings(c).filter(x=>x.sev==='high').length;
@@ -2818,16 +3074,31 @@ async function signDocument(c){
   if(!approvalState(c).ok){ toast('This contract needs approval before signing','err'); return; }
   // The document is out in Word: the counterparty may be mid-edit on wording
   // this signature would seal. Bring the file back (or cancel) before signing.
-  if(window.wordReviewOut&&wordReviewOut(c)){ toast('This document is out for external Word review — upload the returned file or cancel the review before signing','err'); return; }
-  // E2-T5: don't seal over unresolved proposed edits. Admin/Legal may override.
-  const openRedlines=unresolvedRedlines(c);
-  if(openRedlines){
-    const u=currentUser();
-    const canOverride = u && (u.role==='admin' || u.role==='legal');
-    const msg=`${openRedlines} proposed edit${openRedlines===1?'':'s'} from the counterparty ${openRedlines===1?'is':'are'} still open. Signing now seals the current text and leaves ${openRedlines===1?'it':'them'} unresolved.`;
-    if(!canOverride){ toast(msg+' Resolve the redline(s) first, or ask an Admin/Legal approver.','err'); return; }
-    if(!await confirmDialog({title:'Sign with open redlines?', message:msg+' This will be recorded as an Admin/Legal override.', confirmLabel:'Sign anyway', danger:true})) return;
-    logAudit(c,'Override',`Signed with ${openRedlines} unresolved redline(s) — override by ${u.name} (${ROLE_LABEL[u.role]})`);
+  /* E2-T5: don't seal over an unsettled negotiation. Admin/Legal may override.
+
+     Through negoSigningBlockers, which asks BOTH generations of the
+     negotiation. This read `unresolvedRedlines` alone — open ROUNDS carrying
+     proposed text — and the room creates no round at all, so a contract with
+     four unanswered changes on it reported nothing outstanding and was sealed
+     mid-argument. See js/negotiation.js. */
+  /* AND IT IS A REFUSAL, not a warning.
+
+     This used to let Admin or Legal sign anyway behind a confirmation, on the
+     reading that an approver should be able to overrule the gate. There are
+     three roles — Admin, Legal and Viewer — and a Viewer cannot sign at all.
+     So "Admin or Legal" was everybody who could reach the button: the override
+     granted no one anything, and the gate was a dialog rather than a gate.
+
+     A signature is the one act in this product that cannot be taken back. It
+     freezes the wording, seals it with a fingerprint and sends both parties
+     their copy as the record of the deal. It does not go on top of an argument
+     that is still running. The room has verbs for every way out — accept,
+     refuse, withdraw — and the refusal names which ones are outstanding. */
+  const blockers=(window.negoSigningBlockers?negoSigningBlockers(c):
+    (unresolvedRedlines(c)?[`${unresolvedRedlines(c)} proposed edit(s) from the counterparty are still open`]:[]));
+  if(blockers.length){
+    toast(`Not signed — ${blockers.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,'err');
+    return;
   }
   const u=currentUser(), at0=nowISO();
   // capture server-stamped IP + time where available (honest attribution)
@@ -2896,10 +3167,13 @@ async function attachPaperSignature(c, file, opts={}){
   if(!canEdit()){ toast('Viewers cannot execute contracts','err'); return null; }
   if(c.status==='Signed' || (c.execution&&c.execution.at)){
     toast('This contract is already executed — record an amendment instead','err'); return null; }
-  if(window.unresolvedRedlines && unresolvedRedlines(c)){
-    toast('There are still open proposed edits — resolve them before recording a signature','err'); return null; }
-  if(window.wordReviewOut && wordReviewOut(c)){
-    toast('This document is out for Word review — bring it back or cancel the review first','err'); return null; }
+  /* The same gate as the electronic route, through the same helper: a scan of
+     a signature page is the same claim about the parties, and asked only about
+     the old round model it let a room negotiation straight past. */
+  const paperBlockers=(window.negoSigningBlockers?negoSigningBlockers(c):
+    (window.unresolvedRedlines&&unresolvedRedlines(c)?['there are still open proposed edits']:[]));
+  if(paperBlockers.length){
+    toast(`${paperBlockers.join('; ')} — settle the negotiation before recording a signature`,'err'); return null; }
   if(file.size>uploadMax()){ toast(uploadTooBigMsg(file),'err'); return null; }
 
   let dataUrl;
@@ -2922,7 +3196,7 @@ async function attachPaperSignature(c, file, opts={}){
       size:file.size, kind:'paper-signature', at, by:u?.name||'System' });
   }
   // the wording as it stood when the parties signed it, kept as a version
-  if(window.captureVersion) captureVersion(c,'Executed on paper', u?.name);
+  if(window.captureVersion) captureVersion(c,'Executed on paper', u?.name, {auto:true,listed:true});
   c.execution={ at, by:u?.name||'System', method:'paper', offPlatform:true,
     fileName:file.name, fileHash, fileId, dataUrl:fileId?null:dataUrl,
     signedOn:opts.signedOn||null, note:opts.note||null };
@@ -3011,23 +3285,52 @@ async function finalizeExecution(c, opts={}){
   c.sealVersion=2;                       // fold the marks into the seal (see sealString)
   c.hash=await sha256(sealString(c));
   c.status='Signed';
-  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System');
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System',{auto:true,listed:true});
   logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
   persist(c);                            // critical state saved before any DOM work
+  /* AND ACTUALLY WRITTEN, before anything reads it back off the server.
+
+     `persist` only marks the contract dirty and sets a 400 ms timer.
+     distributeExecuted below POSTs to /distribute, and the server checks the
+     STORED status before it will send an executed copy — so the request
+     overtook the save, the server saw a contract that was not yet Signed, and
+     answered "Contract is not executed yet". That sentence was then filed on
+     the distribution record and printed in the signature panel of a contract
+     the same panel had just marked Executed & sealed, with both parties shown
+     as Failed. Nobody received their copy. */
+  try{ await flushSaves(); }catch(_){}
   // Re-render if the contract is open; guarded so a headless finalize (the
   // counterparty signs last while the contract isn't on screen) can't fail.
   try{
     const canvas=document.getElementById('doc-canvas'); if(canvas){ canvas.innerHTML=docBody(c); wireDocCanvas(c); }
     if(typeof updateStatusUI==='function') updateStatusUI(c);
+    /* The bar that says what to do next. Left alone, it kept the sentence it
+       had a second earlier — "Erik has signed. Your signature is the only thing
+       left." — on a contract that was by then executed and sealed, until the
+       reader happened to reload. That is the last screen of the whole journey. */
+    if(typeof renderActionBar==='function') renderActionBar(c);
     renderSignButton(c); renderAuditSection(c);
   }catch(e){ /* not on screen — fine */ }
   if(!opts.silent) toast('Signed & sealed — the exact text is frozen and fingerprinted');
   distributeExecuted(c);                 // email a sealed copy to every party
 }
 
-/* Auto-distribute the executed copy to every party (§ auto-distribution). */
-async function distributeExecuted(c){
+/* Auto-distribute the executed copy to every party (§ auto-distribution).
+
+   HELD UNTIL EVERY PARTY HAS SIGNED, and that is not the same test as "the
+   contract is sealed". Sealing happens on the first signature so the wording
+   stops moving; a copy sent at that moment is a document with one signature on
+   it, sealed and fingerprinted, arriving in the other side's inbox reading
+   exactly like a finished agreement. Nobody should be filing that as their
+   record of the deal.
+
+   `opts.force` is the owner pressing the button in the signature panel with
+   their eyes open. It still does not send a half-signed COPY — the server
+   answers a part-signed contract with a progress notice carrying no seal and no
+   link — it only says the notice may go now rather than waiting. */
+async function distributeExecuted(c, opts={}){
   if(c.distribution && c.distribution.at) return;                 // send once
+  if(!opts.force && window.bothPartiesSigned && !bothPartiesSigned(c)) return;
   const recipients=(typeof distributionRecipients==='function')?distributionRecipients(c):[];
   if(!recipients.length){ return; }
   if(API_MODE()){
@@ -3041,7 +3344,10 @@ async function distributeExecuted(c){
   } else {
     c.distribution={ at:nowISO(), triggeredBy:'manual', recipients:recipients.map(r=>({...r,status:'mailto'})) };
   }
-  logAudit(c,'Distributed',`Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`);
+  const fully=!window.bothPartiesSigned||bothPartiesSigned(c);
+  logAudit(c,'Distributed',fully
+    ? `Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`
+    : `Part-signed progress notice ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s) — no copy and no seal were sent, because not every party has signed`);
   persist(c); renderSignButton(c);
 }
 
@@ -3056,12 +3362,20 @@ function distributionPanelHtml(c){
   const d=c.distribution;
   const dot=st=>['delivered','queued','sent'].includes(st)?'#2e8763':['failed','bounced'].includes(st)?'#b0453c':'#8a8f95';
   const stTxt=st=>st==='delivered'?'Delivered':(st==='queued'||st==='sent')?'Sent':st==='failed'?'Failed':st==='bounced'?'Bounced':st==='mailto'?'Ready to email':st;
+  /* WHY NOTHING HAS GONE OUT YET, said before anyone has to wonder. The copy is
+     held until every party has signed; a panel that simply showed the button
+     and never fired it would read as a broken feature rather than a rule. */
+  const ex=(typeof executionParties==='function')?executionParties(c):{fully:true};
   if(!d){
     if(!canEdit()) return '';
     return `<div class="mt-2 rounded-xl border border-line bg-white p-3">
       <div class="text-[11px] font-600 text-ink mb-1">Distribute copies</div>
-      <div class="text-[10.5px] text-ink/60 mb-2">Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.</div>
-      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg bg-brand-900 text-white py-2 text-[11.5px] font-600 hover:bg-brand-800">${icon('share','w-3.5 h-3.5')} Send signed copies to all parties</button>
+      <div class="text-[10.5px] text-ink/60 mb-2">${ex.fully
+        ? 'Email a sealed copy of the executed contract to every party for their records — the platform keeps the master copy.'
+        : `Held: only <b>${(ex.ourName||'one party').replace(/</g,'&lt;')}</b> has signed, so the copy is not going out. Both parties have to sign before the contract is shared. Sending now delivers a progress notice — who has signed, who has not — with no copy and no seal in it.`}</div>
+      <button id="dist-send" class="w-full flex items-center justify-center gap-1.5 rounded-lg ${ex.fully?'bg-brand-900 text-white hover:bg-brand-800':'border border-line text-brand-700 hover:bg-brand-50'} py-2 text-[11.5px] font-600">${icon('share','w-3.5 h-3.5')} ${ex.fully
+        ? 'Send signed copies to all parties'
+        : 'Send a progress notice to all parties'}</button>
     </div>`;
   }
   const rows=(d.recipients||[]).map(r=>`<div class="flex items-center gap-2 py-1 text-[11px]">
@@ -3080,5 +3394,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{openWordExportModal,wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
-  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,openNegoProposeModal});
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

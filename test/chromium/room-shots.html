@@ -130,29 +130,43 @@ if (!window.TEMPLATES.WH) window.TEMPLATES.WH = { id:'WH', name:'Warehousing and
 </script>
 
 <script>
-/* prototype.html's own contract, verbatim: six clauses numbered 1, 4, 5, 6, 9
-   and 12, with the four asks Erik has on the table. */
+/* A contract staged to show the four features this branch adds. Clause 7 is the
+   one that matters: a heading, numbered sub-clauses and lettered
+   sub-paragraphs — the shape that used to collapse into one paragraph the
+   moment it went under redline. */
 const CL = [
   ['1','Scope of Services',["The Provider shall receive, store, handle, and dispatch the Client's goods at the designated facility, and shall perform related logistics services including inventory reporting, order picking, and outbound carrier coordination, in accordance with the service schedule in Annex A."]],
-  ['4','Payment Terms',['All invoices are payable within thirty (30) days from the date of issue (Net-30). Late payments will incur a service charge of 1.5% per month on the outstanding balance. Invoices shall be issued monthly in arrears and delivered electronically.']],
-  ['5','Storage Conditions and Duration',['Stored goods may remain in the facility for a maximum of one hundred and twenty (120) days.',"After that period, the Provider reserves the right to charge additional fees or relocate the goods to an alternative facility at the Client's cost."]],
+  ['4','Payment Terms',['All invoices are payable within thirty (30) days from the date of issue (Net-30). Late payments will incur a service charge of 1.5% per month on the outstanding balance.']],
   ['6','Liability and Insurance',["The Provider's aggregate liability for loss of or damage to stored goods shall not exceed the full replacement value of the affected goods. The Provider shall maintain warehouse legal liability insurance adequate to cover such exposure."]],
-  ['9','Termination Notice',["Either party may terminate this Agreement for convenience by giving the other party not less than sixty (60) days' written notice. Termination shall not affect fees accrued for services already rendered."]],
+  ['7','Term and Termination',[
+    '7.1 This Agreement commences on the Effective Date and runs for twelve (12) months.',
+    '7.2 Either party may terminate for convenience on thirty (30) days written notice.',
+    '(a) notice shall be given in writing to the address in Annex B;',
+    '(b) no cause need be given for a termination under this clause;',
+    '(c) fees accrued for services already rendered remain payable.',
+    '7.3 Termination shall not affect any accrued rights of either party.']],
   ['12','Governing Law and Disputes',['This Agreement is governed by the laws of Kenya. Any dispute arising out of or in connection with this Agreement shall first be referred to good-faith negotiation between senior representatives of the parties before any formal proceedings.']],
 ];
 const RICH = '<h1>Warehousing and Logistics Services Agreement</h1>'
-  + '<p>Between Wanjiru Catering Ltd (Nairobi, Kenya) and Nordfrakt Logistik AB (Malmö, Sweden) · Drafted in HaTi wizard · Template WH</p>'
+  + '<p>Between Wanjiru Catering Ltd (Nairobi, Kenya) and Nordfrakt Logistik AB (Malmo, Sweden)</p>'
   + CL.map(([n,t,body]) => `<h2>Clause ${n} · ${t}</h2>` + body.map(b=>`<p>${b}</p>`).join('')).join('');
 
 const ASKS = {
   '4': ['Payment terms extended from Net-30 to Net-45',
-    '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45). Late payments will incur a service charge of 1.5% per month on the outstanding balance. Invoices shall be issued monthly in arrears and delivered electronically.</p>'],
-  '5': ['Storage term reduced to 90 days with extended-stay premium',
-    '<p>Stored goods may remain in the facility for a maximum of ninety (90) days. Any extension beyond 90 days will incur a 1.25% premium rate.</p><p>After that period, the Provider reserves the right to charge additional fees or relocate the goods to an alternative facility at the Client\'s cost.</p>'],
+    '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45). Late payments will incur a service charge of 1.5% per month on the outstanding balance.</p>'],
   '6': ['Liability capped at EUR 250,000 per contract year',
     "<p>The Provider's aggregate liability for loss of or damage to stored goods shall not exceed EUR 250,000 in the aggregate per contract year. The Provider shall maintain warehouse legal liability insurance adequate to cover such exposure.</p>"],
-  '9': ['Termination notice shortened from 60 to 30 days',
-    "<p>Either party may terminate this Agreement for convenience by giving the other party not less than thirty (30) days' written notice. Termination shall not affect fees accrued for services already rendered.</p>"],
+  /* The structure case: 7.2's notice period moves, one sub-paragraph is
+     replaced and one is added. Everything else in the clause is untouched and
+     has to still look untouched. */
+  '7': ['Termination notice cut to fifteen days; re-tender costs added',
+    '<p>7.1 This Agreement commences on the Effective Date and runs for twelve (12) months.</p>'
+    + '<p>7.2 Either party may terminate for convenience on fifteen (15) days written notice.</p>'
+    + '<p>(a) notice shall be given in writing to the address in Annex B;</p>'
+    + '<p>(b) the terminating party shall bear the re-tender costs of the other party;</p>'
+    + '<p>(c) fees accrued for services already rendered remain payable.</p>'
+    + '<p>(d) any prepaid storage fees shall be refunded pro rata.</p>'
+    + '<p>7.3 Termination shall not affect any accrued rights of either party.</p>'],
 };
 
 window.READY = (async () => {
@@ -166,15 +180,32 @@ window.READY = (async () => {
     await negoEditClause(c, cl.clauseId, body,
       { side:'counterparty', author:'Erik Lindqvist · Nordfrakt Logistik AB', summary });
   }
-  negoPostComment(c, negoChanges(c)[0].id,
+  captureVersion(c, 'Before the redline went out', 'Wanjiru Kamau');
+  /* A risk signal on the liability ask, so "Accept All Non-Risk" has something
+     real to hold back rather than a staged flag. */
+  c.playbook = { verdicts: [
+    { status:'deviation', category:'Liability cap',
+      quote:'EUR 250,000 in the aggregate per contract year' } ] };
+  const ch = negoChanges(c);
+  negoPostComment(c, ch[0].id,
     'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments. Net-45 matches every other supplier we run.',
-    { side:'counterparty', author:'Erik Lindqvist' });
+    { side:'counterparty', author:'Erik Lindqvist', visibility:'shared' });
+  negoPostComment(c, ch[0].id,
+    'Finance says Net-45 is fine up to KES 2M exposure. Do not tell them we would have taken Net-60.',
+    { side:'owner', author:'Wanjiru Kamau', visibility:'internal' });
+  negoPostComment(c, ch[0].id,
+    'Agreed on Net-45. Sending the revised schedule today.',
+    { side:'owner', author:'Wanjiru Kamau', visibility:'shared' });
   await negoRefreshVerification(c);
   window.CONTRACT = c;
+
+  /* The Copilot, stubbed. These shots are of THIS branch's proposal flow — the
+     popover, the redline it previews and the Apply/Cancel decision — not of a
+     model's wording. A live key would make the picture non-reproducible. */
+  window.copilotAvailable = () => true;
+  window.copilotAsk = async () => "The Provider's aggregate liability for loss of or damage to stored goods shall not exceed EUR 400,000 in the aggregate per contract year, save in respect of fraud or wilful misconduct.";
+
   openNegotiationRoom(c, { side:'owner', by:'Wanjiru Kamau', persist:false,
-    /* The same hook js/views/contract.js supplies — the room renders Share
-       Link, it does not implement sharing. Without it the button is inert, and
-       the harness would be measuring its own omission. */
     onShareLink: x => openShareModal(x) });
   return true;
 })();

@@ -8,230 +8,10 @@ window.PORTAL_OPTS={};
    proposed edits and the other side has ruled on them, the reshared link used to
    arrive looking like any other first-time share — leaving them to diff two
    documents by eye to find out what happened to their proposal. */
-/* C1 + C2 — the Word round-trip, mirrored to the counterparty.
-
-   Nothing about this uploads a file. The .docx they send back is opened and
-   read IN THEIR OWN BROWSER, and only the extracted wording is submitted — down
-   the same route as text typed into the box. So a public share link gains no
-   file-upload surface, no size limit to police and no new way in; the returned
-   file never leaves their machine. What they get in exchange is the flow their
-   counsel actually works in.
-
-   Only offered where the contract arrived as a .docx, because HaTi has no Word
-   writer: a template-drafted contract has no file to hand over. */
-const portalWordFile = c => { const u=c&&c.upload;
-  return (u && (u.docKind==='docx' || /wordprocessingml/.test(u.mime||'') || /\.docx$/i.test(u.fileName||''))) ? u : null; };
-/* Word cannot be written by HaTi, so the .docx on record is the file that was
-   uploaded — and it does NOT contain any wording edited in HaTi since. Handing
-   that over silently is the worst outcome: counsel marks up a superseded draft
-   in good faith. Where the wording has moved, the card says so and offers the
-   CURRENT text as a document Word opens (an HTML body under a .doc name, which
-   Word has always read) so the round trip is against the live wording. */
-const portalFileHref = u => u && u.dataUrl ? u.dataUrl : null;
-function portalUploadDiverged(c){
-  const u=c&&c.upload; if(!u) return false;
-  const filed=String(u.extractedText||'').replace(/\s+/g,' ').trim();
-  const live=String(portalCurrentText()||'').replace(/\s+/g,' ').trim();
-  return !!(filed && live && filed!==live);
-}
-function portalDownloadCurrentAsDoc(c){
-  const text=portalCurrentText()||docPlainText(c)||'';
-  const name=String(c.name||c.id||'contract').replace(/[^\w \-]/g,'').trim()||'contract';
-  const body=text.split(/\n{2,}/).map(par=>
-    `<p style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5">${esc(par).replace(/\n/g,'<br/>')}</p>`).join('');
-  const html=`<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(name)}</title></head><body>${body}</body></html>`;
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\ufeff'+html],{type:'application/msword'}));
-  a.download=name+' (current wording).doc';
-  a.click(); URL.revokeObjectURL(a.href);
-}
-/* Any uploaded document, not only Word: a counterparty sent a PDF still needs
-   the file itself, and the portal is now the only place offering it. */
-function portalWordCard(c){
-  const u=c&&c.upload;
-  /* HaTi can now WRITE a .docx (js/docxwrite.js), so "work in Word" no longer
-     depends on the contract having arrived as one. Every reader gets the
-     current wording as a real Word file and can bring their marked-up copy
-     back; a reader whose own paper is on file additionally gets that original.
-     Before this, a counterparty reviewing a HaTi-drafted contract had no Word
-     route at all — the card returned '' and they were left with the textarea. */
-  if(!u||!portalFileHref(u)) return portalGeneratedWordCard(c);
-  const isWord=!!portalWordFile(c);
-  const diverged=portalUploadDiverged(c);
-  const kb=u.size?(u.size>1048576?(u.size/1048576).toFixed(1)+' MB':Math.round(u.size/1024)+' KB'):'';
-  if(!isWord) return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:13px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="flex:none;color:var(--color-accent);display:inline-flex">${icon('file','w-4 h-4')}</span>
-      <span style="flex:1;min-width:160px;font-size:12.5px;color:var(--color-neutral-700)">The original file as it was filed${diverged?' — note the wording below has been revised since':''}.
-        <span style="display:block;font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500);margin-top:2px">${esc(u.fileName||'document')}${kb?' · '+kb:''}</span></span>
-      <button id="pt-word-dl" class="ui-btn" style="flex:none;font-size:12.5px;padding:8px 14px">${icon('download','w-3.5 h-3.5')} Download original</button>
-    </div>`;
-  return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
-        <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Mark the contract up in Word with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
-        </span>
-      </div>
-      ${diverged?`<div style="border:1px solid #e0c48a;background:#fdf6e7;border-radius:5px;padding:9px 12px;margin:0 0 11px;font-size:11.5px;line-height:1.55;color:#7d5a14">
-        <b>The .docx on file is the original.</b> The wording below has been revised since it was uploaded, and those revisions are not in that file. Work from <b>the current wording</b> unless you specifically need the original paper.</div>`:''}
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button id="pt-word-current" class="ui-btn ${diverged?'ui-btn-primary':''}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the current wording</button>
-        <button id="pt-word-dl" class="ui-btn ${diverged?'':'ui-btn-primary'}" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download the original .docx</button>
-        <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
-        <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
-      </div>
-      <div style="margin-top:11px;font-size:11px;font-family:var(--font-mono);color:var(--color-neutral-500)">${esc(u.fileName||'contract.docx')}${kb?' · '+kb:''}</div>
-      <div id="pt-word-out" style="margin-top:12px"></div>
-    </div>`;
-}
-/* The Word card for a contract with no file of its own — everything drafted in
-   HaTi. The .docx is generated from the wording on this page, so what counsel
-   marks up is exactly what the reader is looking at. */
-function portalGeneratedWordCard(c){
-  if(typeof contractDocxBytes!=='function') return '';
-  if(!portalCurrentText() && !(c&&c.redlineText)) return '';
-  return `
-    <div id="pt-word" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;padding:14px 18px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:11px">
-        <span style="flex:none;margin-top:1px;color:var(--color-accent)">${icon('file','w-4 h-4')}</span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:13px;font-weight:600">Prefer to work in Word?</span>
-          <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:2px">Download this contract as a Word document, mark it up with Track Changes on, and bring it back here. Your file is read on this device — only the wording is sent, exactly as if you had typed it above.</span>
-        </span>
-      </div>
-      <div style="display:flex;gap:9px;flex-wrap:wrap">
-        <button id="pt-word-gen" class="ui-btn ui-btn-primary" style="font-size:12.5px;padding:9px 15px">${icon('download','w-3.5 h-3.5')} Download as Word (.docx)</button>
-        <button id="pt-word-up" class="ui-btn" style="font-size:12.5px;padding:9px 15px">${icon('upload','w-3.5 h-3.5')} Upload your marked-up copy</button>
-        <input id="pt-word-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" style="display:none"/>
-      </div>
-      <div id="pt-word-out" style="margin-top:12px"></div>
-    </div>`;
-}
-function wireportalWord(c, p){
-  const u=c&&c.upload;
-  const generated=!u||!portalFileHref(u);
-  if(generated && typeof contractDocxBytes!=='function') return;
-  document.getElementById('pt-word-gen')?.addEventListener('click',async e=>{
-    const btn=e.currentTarget, restore=btn.innerHTML;
-    btn.disabled=true; btn.innerHTML='<span class="animate-pulse">Building…</span>';
-    /* NEVER label plain text as formatted. This handed the writer the plain
-       text projection while keeping format:'rich', so the writer parsed it as
-       markup, found none, and produced the whole contract as ONE paragraph —
-       while the owner's identical button produced a properly structured file.
-       The descriptor now says what the content actually is. */
-    try{
-      const live=portalCurrentText();
-      const richBody=c.redlineText && window.isRich && isRich(c.format);
-      const same=richBody && normText(richToText(c.redlineText))===normText(live||'');
-      const doc = (richBody && (same || !live))
-        ? c                                              // the formatted document itself
-        : { ...c, redlineText:(live||c.redlineText||''), format:TEXT_FORMAT };
-      await downloadContractDocx(doc);
-    }
-    catch(err){ toast('Could not build the Word file — '+err.message,'err'); }
-    btn.disabled=false; btn.innerHTML=restore;
-  });
-  document.getElementById('pt-word-current')?.addEventListener('click',()=>portalDownloadCurrentAsDoc(c));
-  document.getElementById('pt-word-dl')?.addEventListener('click',()=>{
-    // wordTriggerDownload turns the data URL back into bytes; downloadFile
-    // takes (name, content) and would have written the URL string as the file.
-    if(typeof wordTriggerDownload!=='function'){ toast('Word download is unavailable on this page','err'); return; }
-    try{ wordTriggerDownload(u.dataUrl, u.fileName||'contract.docx', u.mime); }
-    catch(e){ toast('Could not start the download','err'); }
-  });
-  const input=document.getElementById('pt-word-file');
-  document.getElementById('pt-word-up')?.addEventListener('click',()=>input&&input.click());
-  input?.addEventListener('change',async()=>{
-    const f=input.files&&input.files[0]; if(!f) return;
-    const out=document.getElementById('pt-word-out');
-    // A courtesy bound, not a security one — nothing is transmitted either way.
-    if(f.size>25*1024*1024){ out.innerHTML=portalWordError('That file is larger than 25 MB. Save it again from Word and try once more.'); input.value=''; return; }
-    out.innerHTML=`<div style="font-size:12px;color:var(--color-neutral-600)">Reading ${esc(f.name)}…</div>`;
-    let res=null;
-    try{ res=await docxExtract(new Uint8Array(await f.arrayBuffer())); }
-    catch(e){ res=null; }
-    input.value='';
-    if(!res||!res.text||!res.text.trim()){
-      out.innerHTML=portalWordError('No wording could be read out of that file. It may not be a Word .docx, or it may be a scan. You can still type your edits into the box below.');
-      return;
-    }
-    portalWordPreview(c, p, f.name, res);
-  });
-}
-const portalWordError = msg => `<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:5px;padding:10px 12px;font-size:12px;line-height:1.55;color:#8f322b">${esc(msg)}</div>`;
-/* C2 — what came out of their file, shown against the current wording, before
-   anything is sent. The question every Word user has is whether the system
-   actually picked their changes up; this answers it while they can still act. */
-function portalWordPreview(c, p, fileName, res){
-  const base=portalCurrentText()||docPlainText(c);
-  const st=(window.diffStats?diffStats(base,res.text):{add:0,del:0});
-  const tracked=res.tracked||{ins:0,del:0};
-  const out=document.getElementById('pt-word-out');
-  out.innerHTML=`
-    <div style="border:1px solid var(--color-accent-300);background:var(--color-accent-100);border-radius:6px;padding:13px 16px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
-        <span style="flex:none;display:inline-flex;color:#1e6b4d">${icon('check2','w-4 h-4')}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--color-accent-800)">Your marked-up copy has been read</span>
-      </div>
-      <div style="font-size:12px;line-height:1.65;color:var(--color-neutral-800)">
-        ${tracked.ins||tracked.del
-          ? `HaTi found <b>${tracked.ins} tracked insertion${tracked.ins===1?'':'s'}</b> and <b>${tracked.del} tracked deletion${tracked.del===1?'':'s'}</b> in <span style="font-family:var(--font-mono);font-size:11px">${esc(fileName)}</span>.`
-          : `<span style="font-family:var(--font-mono);font-size:11px">${esc(fileName)}</span> carries no Word tracked changes, so the whole document is compared as it stands.`}
-        Against the wording you were sent that is <b>+${st.add} added</b> and <b>−${st.del} removed</b>.
-      </div>
-      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:11.5px;color:var(--color-neutral-700);flex:1;min-width:120px">Nothing has been sent yet.</span>
-        <button id="pt-word-view" class="ui-btn" style="font-size:12px;padding:7px 13px">See the redline</button>
-        <button id="pt-word-send" class="ui-btn ui-btn-primary" style="font-size:12px;padding:7px 13px">Send these edits</button>
-      </div>
-    </div>`;
-  document.getElementById('pt-word-view').addEventListener('click',()=>portalWordDiffModal(base,res.text,fileName,st));
-  document.getElementById('pt-word-send').addEventListener('click',()=>{
-    const ta=document.getElementById('pt-redline-text');
-    if(ta) ta.value=res.text;                       // reuse the redline route wholesale
-    // a returned Word file IS a whole-document edit, so the plain surface is
-    // the one that must be live when portalProposedText reads it back
-    document.getElementById('portal-plain')?.classList.remove('hidden');
-    document.getElementById('pt-clause-editor')?.classList.add('hidden');
-    if(!fval('pt-comment')){
-      const el=document.getElementById('pt-comment');
-      if(el) el.value=`Edits returned in Word (${fileName}).`;
-    }
-    portalRespond(p,'redline');
-  });
-}
-function portalWordDiffModal(base, next, fileName, st){
-  const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
-  openModal(`
-    <div style="height:100%;display:flex;flex-direction:column;min-height:0">
-      <div style="flex:none;padding:20px 26px 14px;border-bottom:1px solid var(--color-divider)">
-        <div style="${COL}">
-          <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0">Your edits, read out of ${esc(fileName)}</h3>
-          <p style="font-size:11.5px;color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
-            <span style="background:#dff0e6;color:#1e6b4d;padding:0 4px;border-radius:2px">added</span>
-            <span style="background:#fbe3e1;color:#b0453c;text-decoration:line-through;padding:0 4px;border-radius:2px">removed</span></p>
-        </div>
-      </div>
-      <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:22px 26px;background:var(--color-bg)">
-        <div style="${COL};background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;font-size:14px;line-height:1.95;color:var(--color-doc-text);white-space:pre-wrap;font-family:var(--font-body)">${diffHtml(base,next)}</div>
-      </div>
-      <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
-        <div style="${COL};display:flex;align-items:center;gap:9px">
-          <span style="font-size:11.5px;color:var(--color-neutral-600);flex:1">Close to go back — nothing is sent from here.</span>
-          <button id="pw-close" class="ui-btn">Close</button>
-        </div>
-      </div>
-    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
-  document.getElementById('pw-close').addEventListener('click',closeModal);
-}
-/* A1 — the wording moved since the copy this reader last opened. The baseline
-   comes from the server (the previous link they actually opened); the current
-   text is what this link carries. Identical in kind to the owner's strip: a
-   notice is only worth showing if it opens onto the thing it is about, so the
-   button is not optional furniture. */
+/* The Word round-trip is gone from both sides. A counterparty reads, marks
+   up and answers the contract on this page; there is no file to take away and
+   none to bring back. js/docx.js still READS a .docx, because a contract can
+   still ARRIVE as one — that is intake, and a different thing entirely. */
 function portalVersions(){
   const p=PORTAL_OPTS.payload;
   return (p&&p.contract&&Array.isArray(p.contract.versions))?p.contract.versions:[];
@@ -424,7 +204,7 @@ function openPortalVersionCompare(p){
    round trip, which reads as nothing having happened and invites a second and
    third press on a contract response. */
 const PORTAL_ACTIONS=['pt-sign','pt-accept','pt-redline','pt-changes','pt-decline',
-  'pt-redline-submit','pt-word-send','pc-accept','pc-counter','pc-decline','pt-nego-send',
+  'pt-redline-submit','pc-accept','pc-counter','pc-decline','pt-nego-send',
   /* The room's own controls. On a negotiation link the room IS the page, so a
      press that left THESE live while the request was in flight would look like
      nothing had happened — the exact invitation to press twice this list
@@ -460,10 +240,61 @@ function portalSetDone(pressedId, label){
   }
   const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
 }
-/* The link is answered, or the wording has moved on since it was sent. Either
-   way nothing on this page can be submitted, and the page should say so at the
-   top rather than letting someone fill a form that will be refused. */
+/* THE HEADLINE HAS TO AGREE WITH WHAT JUST HAPPENED.
+
+   Signing left the green banner at the top of the page reading "Ready to sign —
+   read the wording below, then sign or respond on the right", with the
+   confirmation sitting in a box much further down beside the buttons. So the
+   biggest thing on the screen went on instructing someone to do the thing they
+   had just done. The buttons were correctly spent; the page still said
+   otherwise, and on a page this long that is what a reader takes away. */
+function portalMarkSigned(p, info){
+  const band=document.getElementById('pt-agreed');
+  if(!band) return;
+  const who=esc((info&&info.name)||'You');
+  band.style.background='#d9eae0';
+  band.style.borderLeftColor='#1e6b4d';
+  band.innerHTML=`
+    <span style="flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:14px;font-weight:700" aria-hidden="true">✓</span>
+    <span style="flex:1;min-width:220px;line-height:1.5">
+      <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15.5px;color:#14503a">${who} signed this contract</span>
+      <span style="display:block;font-size:11.5px;color:var(--color-neutral-700);margin-top:2px">${fmtDT(nowISO())} · sent to ${esc((p&&p.sharedBy)||'the sender')} at ${esc((p&&p.org)||'their organisation')}. There is nothing further for you to do here — keep this link to read the contract.</span>
+    </span>`;
+}
+/* IS THE DEAL OVER? The one question this page could not ask.
+
+   The server answers it live (`executed` on the share endpoint) because a
+   signature that lands after the link was refreshed is exactly the case that
+   matters. The payload answers it for a static-mode link, which has no server
+   to ask and whose copy is all there is. Either way it is a fact about a deal
+   this reader is a party to, and it is the fact that ends their round. */
+function portalExecuted(){
+  const srv=PORTAL_OPTS&&PORTAL_OPTS.executed;
+  if(srv) return { at:(srv&&srv.at)||null };
+  const pc=PORTAL_OPTS&&PORTAL_OPTS.payload&&PORTAL_OPTS.payload.contract;
+  return (pc&&pc.executed) ? { at:pc.executed.at||null } : null;
+}
+/* Every reason this copy cannot be submitted, in one read. Three of them
+   existed and were checked one at a time in five places; the fourth — the
+   contract has been signed — was checked nowhere at all. */
+const portalReadOnly = () => !!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded||portalExecuted());
+/* The deal is done, the link is answered, or the wording has moved on since it
+   was sent. Any of the three means nothing on this page can be submitted, and
+   the page should say so at the top rather than letting someone fill a form
+   that will be refused. */
 function portalClosedBanner(){
+  /* Executed first. A signed contract that is ALSO an older copy is finished
+     either way, and "a newer version was sent to you" would send the reader
+     looking for a link that no longer has anything for them to do. */
+  const done=portalExecuted();
+  if(done) return `
+    <div id="pt-executed" style="display:flex;align-items:flex-start;gap:12px;border:1px solid #cfe7d9;background:#e8f4ee;border-left:4px solid #1e6b4d;border-radius:6px;padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
+      <span style="flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#1e6b4d;color:#fff;font-size:12px;font-weight:700" aria-hidden="true">✓</span>
+      <span style="flex:1;min-width:0;line-height:1.5">
+        <span style="display:block;font-size:13.5px;font-weight:600;color:#14503a">This contract is executed and sealed</span>
+        <span style="display:block;font-size:12px;color:#14503a;margin-top:2px">The wording is final and read-only${done.at?` — signed ${fmtDT(done.at)}`:''}. You can still read this copy and keep this link. Nothing further can be proposed, decided or signed here; if something has to change, ask ${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')} to record an amendment.</span>
+      </span>
+    </div>`;
   const sup=PORTAL_OPTS.superseded;
   if(!sup) return '';
   return `
@@ -815,6 +646,36 @@ let PORTAL_READY_SENT = false;
    back from the owner's record as the real status. */
 let PORTAL_NEGO_SENT = {};
 let PORTAL_NEGO_WITHDRAWN_SENT = {};
+/* WHAT THE RECORD ITSELF SAYS, as the link last served it.
+
+   Held decisions are kept in the browser and the record is kept on the server,
+   and the page has to be able to tell them apart — otherwise a decision that
+   was sent, applied and came back on a refreshed payload is indistinguishable
+   from one still sitting in this browser waiting to go. It was not
+   distinguishable: reloading a link whose answers had been applied offered
+   "Undo" on them, and one harmless click brought back "Send 1 decision" for an
+   answer the owner was already holding.
+
+   So the payload's own statuses are kept beside the held ones. A held decision
+   that says what the record already says is not held — it is finished, and it
+   is dropped. */
+let PORTAL_NEGO_FILED = {};
+/* CHANGES THIS READER HAS ASKED FOR, and the reason they need somewhere to go.
+
+   The room gives the counterparty a Change button on every clause, and pressing
+   it files a real fingerprinted change in their name. It then had NOWHERE TO
+   GO. The postbox in the change index counted decisions only — answers to the
+   owner's asks — so a counterparty who did the one thing the room exists for
+   was left with a change index full of their own work, two buttons reading
+   Decline and Ready to sign, and no send. Close the tab and it was gone. The
+   owner's app never heard of it.
+
+   Held here exactly as decisions are, and posted on the same response call as
+   `negoProposed`. The owner's side re-files each one through negoFileChange, so
+   the fingerprint and the chain are minted on the record copy rather than
+   trusted from a public page. */
+let PORTAL_NEGO_PROPOSED = {};
+let PORTAL_NEGO_PROPOSED_SENT = {};
 /* WHO IS ANSWERING. Read from the room first, because the room is the page the
    counterparty was sent and the field is in it; then from the respond panel,
    which is where it lives on a signing link; then from the address the sender
@@ -858,6 +719,70 @@ function portalChangeSummaryHtml(p){
   </div>`;
 }
 
+/* ---------- WORK IN PROGRESS SURVIVES A RELOAD ----------
+
+   Everything this reader has done and not yet sent lives in three module
+   variables, and a module variable is exactly as durable as the tab. So a
+   counterparty who answered four changes, closed the laptop and came back had
+   answered nothing: the page rebuilt from the share payload and every card was
+   undecided again. Wording they had typed into a Change went the same way, and
+   that is more work to lose than a click.
+
+   It is now kept in their own browser, against the link it belongs to. Three
+   properties matter and each is deliberate:
+
+     · IT IS NOT A RECORD. Nothing here has been agreed with anybody. It is a
+       draft of a reply, and it says so on every card until it is sent.
+     · IT IS KEYED BY THE LINK. A different link is a different negotiation, and
+       held answers must never follow a reader from one deal to another.
+     · IT EXPIRES. A draft reply nobody sent three months ago is not something
+       to resurrect on a link that has moved on several rounds since.
+
+   Every read and write is wrapped: this page runs on a no-login origin where
+   localStorage can throw outright, and a convenience that cannot remember must
+   never be able to take the page down. */
+const PORTAL_HELD_KEY = t => `hati.negoHeld.${t}`;
+const PORTAL_HELD_TTL = 30*24*60*60*1000;        // a month, then it is stale news
+function portalSaveHeld(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const any=Object.keys(PORTAL_NEGO_DECISIONS).length
+      || Object.keys(PORTAL_NEGO_WITHDRAWN).length
+      || Object.keys(PORTAL_NEGO_PROPOSED).length;
+    if(!any){ localStorage.removeItem(PORTAL_HELD_KEY(t)); return; }
+    localStorage.setItem(PORTAL_HELD_KEY(t), JSON.stringify({ v:1, at:Date.now(),
+      decisions:PORTAL_NEGO_DECISIONS, withdrawn:PORTAL_NEGO_WITHDRAWN,
+      proposed:PORTAL_NEGO_PROPOSED }));
+  }catch(e){ /* a browser that will not remember is not a reason to stop */ }
+}
+function portalLoadHeld(){
+  PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{
+    const raw=localStorage.getItem(PORTAL_HELD_KEY(t)); if(!raw) return;
+    const held=JSON.parse(raw);
+    if(!held || held.v!==1) return;
+    if(!held.at || (Date.now()-held.at)>PORTAL_HELD_TTL){ localStorage.removeItem(PORTAL_HELD_KEY(t)); return; }
+    PORTAL_NEGO_DECISIONS=held.decisions&&typeof held.decisions==='object'?held.decisions:{};
+    PORTAL_NEGO_WITHDRAWN=held.withdrawn&&typeof held.withdrawn==='object'?held.withdrawn:{};
+    PORTAL_NEGO_PROPOSED=held.proposed&&typeof held.proposed==='object'?held.proposed:{};
+  }catch(e){ PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={}; }
+}
+/* Sent, or overtaken by the record — either way it is no longer a draft. */
+function portalDropHeld(){
+  const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return;
+  try{ localStorage.removeItem(PORTAL_HELD_KEY(t)); }catch(e){}
+}
+
+/* Is this answer already somewhere other than this browser? Either it has been
+   sent from this page, or the record itself already carries it. Both mean the
+   answer is not waiting on anybody, and re-registering it as held is what made
+   a settled decision ask to be sent again. */
+function portalDecisionSettled(ch){
+  const sent=PORTAL_NEGO_SENT[ch.id];
+  if(sent && sent.status===ch.status) return true;
+  return PORTAL_NEGO_FILED[ch.id]===ch.status;
+}
 function portalNegoContract(p){
   /* A contract-shaped record for the component to read. The changes and the
      baseline come from the payload, so this page cannot show a fingerprint the
@@ -866,6 +791,23 @@ function portalNegoContract(p){
   const c = migrateContract({ ...src, status:'Under Review',
     folder: src.folder || (TEMPLATES[src.template]||{}).folder || 'corp' });
   c.changes = Array.isArray(src.changes) ? src.changes.map(x=>({ ...x, thread:(x.thread||[]).slice() })) : [];
+  /* THE DISCUSSION CHANNEL, ON THE RECORD THE ROOM READS — and MERGED IN, not
+     merely handed over.
+
+     A reply on a fingerprint cannot be written to this page's copy of the
+     contract: the copy is rebuilt from the share payload on every repaint, and
+     the payload is a snapshot taken before the reply existed. So the reply is
+     filed as a message under the change's own topic, and it has to be put back
+     here on the way through — exactly as PORTAL_NEGO_PROPOSED is for wording
+     they have asked for, and for exactly the same reason.
+
+     Without this, a counterparty typed an answer, saw it appear, pressed Accept
+     on the same change a moment later, and watched their own words vanish. The
+     reply was never lost — it was on the server the whole time — but a page
+     that shows you your comment and then takes it away has told you it was
+     lost, which is the same thing to the person reading it. */
+  const msgs = Array.isArray(PORTAL_OPTS.messages) ? PORTAL_OPTS.messages : [];
+  c._messages = msgs;
   /* baselineBody carries the durable clause ids the changes are anchored on.
      Rebuilding it from the text projection instead would re-segment the
      document and mint FRESH ids on this page, and every fingerprint the owner
@@ -881,14 +823,88 @@ function portalNegoContract(p){
        tell them where the deal stands — they would reopen the link after
        saying they were ready and find no trace of having said it. */
     ready:sn.ready||undefined,
+    /* THE ROUNDS THAT ARE OVER, rebuilt from the payload — see buildSharePayload.
+       The round carries the ids of the changes that belonged to it and the
+       changes themselves arrive once, in the payload's change list, so this is
+       where the two are put back together.
+
+       AND IT TAKES THEM OUT OF THE LIVE LIST. That list is what the index draws
+       as "on the table"; before this, every change ever decided was in it, so
+       something settled two rounds ago sat among this round's open questions
+       looking exactly as live as they did. */
+    rounds:[],
     seq:sn.seq||c.changes.length };
+  const archived = new Set();
+  for (const r of (Array.isArray(sn.rounds) ? sn.rounds : [])){
+    const ids = Array.isArray(r.changeIds) ? r.changeIds : [];
+    for (const id of ids) archived.add(id);
+    c.negotiation.rounds.push({ n:r.n, at:r.at||null,
+      baselineBody:r.baselineBody||'', baselineText:r.baselineText||'',
+      changes:c.changes.filter(x=>x&&ids.includes(x.id)).map(x=>({ ...x })) });
+  }
+  if(archived.size) c.changes = c.changes.filter(x=>x&&!archived.has(x.id));
+  /* Changes THIS reader asked for, put back. The payload is a snapshot taken
+     before they existed, so rebuilding from it alone would make a change they
+     filed a moment ago vanish on the room's next repaint. Sent ones stay too:
+     they are answered from the owner's record on the next copy of the link. */
+  for(const [id,src] of [...Object.entries(PORTAL_NEGO_PROPOSED_SENT).map(x=>[x[0],{...x[1],sentByMe:true}]),
+                         ...Object.entries(PORTAL_NEGO_PROPOSED)])
+    if(!c.changes.some(x=>x.id===id)) c.changes.push({ ...src, id });
+  /* THE COUNTER HAS TO CLEAR WHAT IS ALREADY HELD, or the second ask collides
+     with the first. negoNextId mints from negotiation.seq, and seq is rebuilt
+     from the payload on every repaint — so a reader who asked for two changes
+     got CHG-001 twice, the re-injection above saw the id already present, and
+     their second ask silently replaced their first. */
+  /* EVERY id this negotiation has ever used, not just the ones still on the
+     table. Taking the closed rounds out of the live list above must not take
+     their ids out of the counter — CHG-001 to CHG-005 archived and nothing live
+     would restart the count at CHG-001, and a reader's next ask would arrive
+     wearing a fingerprint that already belongs to something else. */
+  const everyChange=c.changes.concat(
+    ...(c.negotiation.rounds||[]).map(r=>r.changes||[]));
+  const held=everyChange.map(x=>/^CHG-(\d+)$/.exec(String(x.id||'')))
+    .filter(Boolean).map(m=>Number(m[1]));
+  c.negotiation.seq=Math.max(c.negotiation.seq||0, everyChange.length, ...(held.length?held:[0]));
+  /* AND SO DOES THE HASH CHAIN. negoIssue links each new change onto
+     `chainHead` and stamps it with `++chainSeq`, both of which the payload
+     answers for — as it stood before any of these existed. Rebuilding from the
+     payload alone therefore gave a reader's second ask the same seq as their
+     first and a prevChangeHash pointing past it, and the room told them, in
+     red, that their own chain was broken. Wind both forward to the last record
+     actually on this page. */
+  const chain=everyChange.filter(x=>x&&x.hash&&(x.seq||0)>(c.negotiation.chainSeq||0));
+  if(chain.length){
+    const last=chain.reduce((a,b)=>((b.seq||0)>=(a.seq||0)?b:a));
+    c.negotiation.chainHead=last.hash;
+    c.negotiation.chainSeq=last.seq||c.negotiation.chainSeq;
+  }
+  /* Every thread, whole, on every change — including the ones this reader filed
+     themselves a moment ago, which is why it runs after they have been put
+     back. */
+  if(window.negoMergedThread)
+    for(const ch of c.changes) ch.thread = negoMergedThread(c, ch, msgs);
+  /* What the record says about each change, before this page's own held
+     answers are laid over it. Read from the payload, which IS the record as of
+     the last time the link was caught up. */
+  PORTAL_NEGO_FILED={};
+  for(const x of (Array.isArray(src.changes)?src.changes:[]))
+    if(x&&x.id) PORTAL_NEGO_FILED[x.id]=x.status||'pending';
   // a decision taken on this page but not yet sent is shown as taken
   for(const ch of c.changes){
     // sent first, then held — a decision taken again after sending wins
     const s=PORTAL_NEGO_SENT[ch.id];
     if(s) ch.status=s.status, ch.reply=s.reply||ch.reply||null, ch.sentByMe=true;
-    const d=PORTAL_NEGO_DECISIONS[ch.id];
-    if(d) ch.status=d.status, ch.reply=d.reply||ch.reply||null, ch.sentByMe=false;
+    let d=PORTAL_NEGO_DECISIONS[ch.id];
+    /* The record has caught up with this answer, so it is not waiting on
+       anything any more. Kept as a held decision it would go on offering Undo
+       and asking to be sent a second time. */
+    if(d && PORTAL_NEGO_FILED[ch.id]===d.status){ delete PORTAL_NEGO_DECISIONS[ch.id]; d=null; portalSaveHeld(); }
+    if(d){ ch.status=d.status; ch.reply=d.reply||ch.reply||null; ch.sentByMe=false;
+      /* ANSWERED HERE, NOT YET ANYWHERE ELSE. The one state on this page that
+         looks finished and is not: the card says "accepted" and the other side
+         has heard nothing. The component draws it; the page is the only thing
+         that knows it. */
+      ch.heldByMe=true; }
     // and so is an ask of their own they have taken off the table
     if(PORTAL_NEGO_WITHDRAWN[ch.id]||PORTAL_NEGO_WITHDRAWN_SENT[ch.id])
       ch.withdrawn={ by:portalResponderLabel(c), side:'counterparty', at:nowISO() };
@@ -918,7 +934,9 @@ function portalNegoPhase(p){
   const src=(p&&p.contract)||{};
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
   const pending=changes.filter(x=>x.status==='pending').length;
-  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded) return { phase:'read', changes:changes.length, pending };
+  /* An executed contract joins them. It is the strongest form of the same
+     fact: this copy is history, and history is not signable. */
+  if(portalReadOnly()) return { phase:'read', changes:changes.length, pending };
   /* THE LINK SAYS WHAT IT IS. It used to be worked out from the change set,
      and the arithmetic made a decision that is not arithmetic's to make:
      resolve the last change — even by refusing it — and the room the
@@ -969,7 +987,16 @@ function portalNegoHtml(p){
      counterparty invited to negotiate a clean draft landed on a signing panel
      with nowhere to propose anything. */
   if(phase==='negotiate')
-    return `<div id="pt-nego" class="hidden"></div><div id="pt-nego-foot" class="hidden"></div>`;
+    return `
+    <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
+      box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>Direct Edit</b> under a clause to counter-propose, or discuss without changing anything.</span>
+      </div>
+      <div id="pt-nego" style="padding:12px"></div>
+      <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
+    </div>`;
   if(!Array.isArray(src.changes) || !src.changes.length) return '';
   return `
     <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
@@ -979,8 +1006,7 @@ function portalNegoHtml(p){
           <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
           <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
-        <button id="pt-nego-open" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:9px 15px">Open the negotiation room</button>
-        ${''/* kept as the way BACK in after leaving the room, which opens on load */}
+        ${''/* the workbench mounts below, already visible — there is no room and no door */}
       </div>
       <div id="pt-nego" style="height:min(78vh,860px);padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
@@ -1025,203 +1051,339 @@ function portalAgreedHtml(p){
 
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
-  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
-  if(!live) return `<span style="font-size:11.5px;color:var(--color-neutral-600)">This copy is read-only — decisions have to be sent from the current link.</span>`;
+  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  if(!live) return `<span id="nego-readonly-why" style="font-size:11.5px;color:var(--color-neutral-600)">${esc(
+    portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+    : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
+    : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
+    : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')}</span>`;
+  /* ---- THE DEAL-LEVEL VERBS LIVE HERE NOW ----
+     The retired room carried Ready to sign and Decline on its own bar. They
+     are acts about the WHOLE deal, not about one change, so they belong to
+     the page rather than to a card — and the readiness gate is the engine's
+     own reading (negoReadyToSign), never inferred from an empty column:
+     resolving the last change does not make anybody ready, saying so does. */
+  /* The gate is ALIGNMENT, not merely every-change-answered: a refused ask
+     that nobody has withdrawn is answered and still contested, and telling
+     the other side you are ready over a contested point is the untruth the
+     room's gate existed to prevent. Same engine reads, same answer. */
+  const c=portalNegoContract(PORTAL_OPTS.payload||p);
+  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
+  const al=(window.negoAlignment&&c)?negoAlignment(c):{ aligned:false };
+  const readyOk=!!(al&&al.aligned);
+  const whyNot=(window.negoAlignmentWhy&&c)?(negoAlignmentWhy(c,'counterparty')||'Changes are still waiting on a decision.')
+    :'Changes are still waiting on a decision.';
+  const spent=PORTAL_READY_SENT;
   return `
     <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'#7d5a14':'var(--color-neutral-600)'}">
       ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
         :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
     </span>
-    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
+    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
+    ${readyOk||spent?'':`<span id="pt-ready-why" style="flex-basis:100%;font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
+    <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
+      title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
+      style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
+    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent)">Decline</button>`;
 }
+/* A reply on one fingerprint, sent immediately. It is not a response — it
+   changes no wording, opens no round and does not close the link — so it goes
+   down the messages route rather than the respond route, exactly as the
+   discussion panel's replies do. Their name is required for the same reason it
+   is required everywhere else: an unattributed comment on a contract is not
+   worth having.
+
+   ONE HANDLER FOR BOTH MOUNTS. The room and the embedded tab are the same
+   component, and only the room had this — so the reply box on the embedded copy
+   reported "comment posted" and posted it nowhere, onto a record thrown away on
+   the next repaint. */
+const portalNegoComment = p => async (_c, ch, msg) => {
+  if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
+  const author=portalResponderName();
+  if(!author){
+    toast('Enter your full name — the box is at the top of this page','err');
+    try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
+    return;
+  }
+  try{
+    const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
+      { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
+        topicLabel:`Change #${ch&&ch.id}${ch&&ch.clauseLabel?' · '+ch.clauseLabel:''}`,
+        body:msg.text });
+    PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
+    toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
+  }catch(e){ toast(e.message||'Could not send your comment','err'); }
+};
 function wirePortalNego(c, p){
-  if(!window.renderNegotiationTab) return;
-  if(!document.getElementById('pt-nego')) return;
+  /* ---- THE COUNTERPARTY'S PAGE IS THE WORKBENCH ----
+     One negotiation surface, both sides of the table. This used to open the
+     three-pane negotiation ROOM over the page — the layout the product retired
+     — so the counterparty was negotiating in a different, older product than
+     the owner. The room is gone from every route; what mounts here is the same
+     redlineEmbed the design ships, with this page's own rules on it:
+
+       · answers and counter-asks are HELD (PORTAL_NEGO_DECISIONS /
+         _PROPOSED) and travel only when the postbox is pressed — the same
+         hold-then-send this page has always had;
+       · no Copilot: this page has no panel, so no AI Assist and no selection
+         menu — Direct Edit is the counter-proposal route;
+       · the banner speaks to THEM, not about them: their table, their hold.
+
+     The mount rebuilds from portalNegoContract on every change, because this
+     page's copy of the contract is reassembled from the payload plus what is
+     held — the same rule the room lived by. */
+  if(!window.redlineEmbed) return;
+  const host=document.getElementById('pt-nego');
+  if(!host) return;
   const who=portalResponderLabel(c);
-  renderNegotiationTab(c, {
-    hostId:'pt-nego',
+  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  const org=(p&&p.org)||'the sender';
+  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
+  const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
+  const facts=`Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
+  const banner = live
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>Your table:</b> ${
+        held?`<b>${held} answer${held===1?'':'s'}</b> held here — nothing has reached ${esc(org)} yet. `:''
+      }Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared. <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+    : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
+        portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+        : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
+        : 'This copy is read-only.')}</span></div>`;
+  redlineEmbed(host, c, {
     side:'counterparty',
-    readonly:!!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded),
-    by:who, author:who,
-    /* There is nothing here to save. This page holds a COPY of somebody else's
-       contract, assembled from the share payload; persisting it would write that
-       copy into whatever storage the page can reach — and on a no-login origin
-       reaching for localStorage throws outright, which silently killed the
-       click handler before this was set. Decisions live in
-       PORTAL_NEGO_DECISIONS until they are sent. */
+    readonly:!live,
+    holdsDecisions:true,
+    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
+    seenScope:PORTAL_OPTS.token||'',
+    messages:PORTAL_OPTS.messages||[],
     persist:false,
-    /* A decision here is recorded locally and remembered, so it survives the
-       component's own re-render and can be sent as a batch. */
+    by:who, author:who,
+    noAi:true,
+    selMenu(){ /* no Copilot on this page; selecting text is just reading */ },
+    bannerHtml:banner,
+    org, height:'min(78vh, 860px)',
+    pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
+    pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
+    heldDecisionIds:Object.keys(PORTAL_NEGO_DECISIONS),
+    /* From the counterparty's seat, a settled owner-ask in the payload IS a
+       decision that has travelled — decisions on their asks are nobody
+       else's to make. Held ones are excluded; they have not gone yet. */
+    sentDecisionIds:[...new Set([
+      ...(c.changes||[]).filter(x=>x&&x.authorSide==='owner'
+        &&(x.status==='accepted'||x.status==='rejected')&&!x.heldByMe&&!x.withdrawn).map(x=>x.id),
+      ...Object.keys(PORTAL_NEGO_SENT||{})])],
+    unsentIds:Object.keys(PORTAL_NEGO_PROPOSED),
+    /* The transport already walled this payload — nothing unsent is in it —
+       and the rebuilt copy's turn stamp cannot re-derive the wall. See
+       redlineDocHtml. */
+    hiddenIds:[],
     onChange(rec){
-      for(const ch of (rec.changes||[]))
-        if(ch.status!=='pending' && ch.authorSide==='owner')
+      for(const ch of (rec.changes||[])){
+        // a held decision is one that differs from what was sent — see the
+        // history on portalDecisionSettled
+        if(ch.status!=='pending' && ch.authorSide==='owner' && !portalDecisionSettled(ch))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
-        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+        else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
+        // wording THEY have asked for, held by value until sent
+        if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
+          PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
+      }
+      portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
-    onPropose(){ document.getElementById('pt-redline')?.click(); },
+    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
+    onComment:portalNegoComment(p),
+    onSendDecisions(){ portalRespond(p,'decisions'); },
+    rerender(){ wirePortalNego(portalNegoContract(p), p); },
   });
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-  document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalNegoRoom(c,p));
-
-  /* THE LINK OPENS ON THE NEGOTIATION.
-
-     It used to open on a card with a preview squeezed into it and a button
-     marked "Open the negotiation room". That made the thing they were sent
-     something they had to go and find, in a panel a third of the size the
-     owner reads it at. While changes are outstanding the room IS the page.
-
-     Once, on the first paint. Leaving the room drops them onto the page
-     underneath — the banners, the name field, the signing route — and it must
-     not snap shut behind them again. */
-  if(!_ptRoomOpened && portalNegoPhase(p).phase==='negotiate' && window.openNegotiationRoom){
-    _ptRoomOpened=true;
-    openPortalNegoRoom(c,p);
-  }
+  /* "Review what changed" on a signing link unhides this same mount, readonly
+     — the one workbench again, never a second surface. */
+  document.getElementById('pt-nego-open')?.addEventListener('click',()=>{
+    document.getElementById('pt-nego')?.classList.remove('hidden');
+    document.getElementById('pt-nego-foot')?.classList.remove('hidden');
+  },{ once:true });
 }
-/* Whether the room has already been offered on this page load. A page-level
-   latch rather than a room-level one, because the room legitimately re-renders
-   itself many times and re-opening on each would trap the reader inside it. */
-let _ptRoomOpened=false;
 function wirePortalNegoFoot(c, p){
+  /* The pulse on this button is defined in the room's stylesheet — one
+     animation for both postboxes rather than two that can drift. The sheet
+     goes in <head> and re-adding is a no-op, so asking for it here costs
+     nothing and removes the assumption that the room has already opened. */
+  if(window.negoEnsureStyle) negoEnsureStyle();
   document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
-}
-/* The counterparty's door into the room — the SAME full-window mode the owner
-   enters, rendered with side:'counterparty'. His verbs (sign, accept the
-   wording, propose, decline, send decisions) occupy the slot the owner uses for
-   Save Draft and Share Link, so neither side is looking at a lesser screen.
-
-   The room is a door rather than the landing page on purpose: his page also
-   carries the name field, the signing route and the banners telling him what
-   moved since he last looked, and dropping him straight into a full-window mode
-   would put those behind him before he had read them. Leaving the room returns
-   him to exactly that page. */
-function openPortalNegoRoom(c, p){
-  if(!window.openNegotiationRoom){ toast('The negotiation room is unavailable on this page','err'); return; }
-  const who=portalResponderLabel(c);
-  const live=!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded && !PORTAL_OPTS.responded;
-  const reopen=()=>openPortalNegoRoom(portalNegoContract(p), p);
-  /* Is the room the page, or a mode? It is the page when the link they were
-     sent is a negotiation link; a mode when they opened it from a signing link
-     to look back at what changed. Only the first has no way out — see
-     negoRoomHasExit. */
-  const isLanding=portalNegoPhase(p).phase==='negotiate';
-  openNegotiationRoom(c, {
-    side:'counterparty',
-    noExit:isLanding,
-    readonly:!live,
-    /* Why there are no verbs, in the reader's terms. Each of the three ways a
-       copy goes read-only is a different fact about their link, and "no buttons"
-       is not one of them. */
-    readonlyWhy: live ? '' :
-      PORTAL_OPTS.superseded
-        ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
-      : PORTAL_OPTS.responded
-        ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
-        : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.',
-    persist:false,
-    by:who, author:who,
-    /* Whom the sender addressed the link to, so the field opens filled in
-       rather than asking a person who has already been named to name
-       themselves. Still theirs to correct — an address book is not evidence of
-       who is at the keyboard.
-
-       WHAT THEY HAVE ALREADY TYPED WINS, though. The room repaints on every
-       decision — each Accept rebuilds it — so rebuilding the field from the
-       share's recipient would wipe a name typed into it a moment earlier.
-       Reading the live box first makes the repaint carry it rather than undo
-       it. */
-    recipientName:fval('nego-cp-name')||(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName)||fval('pt-name')||'',
-    org:(p&&p.org)||'',
-    pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
-    /* Already told them, on this page load. The payload cannot say so — it was
-       built before they pressed it — so the page remembers, and the button
-       reports itself spent rather than inviting a second identical signal. */
-    readySignalled:PORTAL_READY_SENT,
-    onChange(rec){
-      for(const ch of (rec.changes||[]))
-        if(ch.status!=='pending' && ch.authorSide==='owner')
-          PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
-        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
-    },
-    /* An ask of THEIRS that we refused and they have now let go. Held on this
-       page beside the decisions and posted in the same call, for the same
-       reason: a withdrawal that never left the browser is a deadlock the
-       reader thinks they have cleared. */
-    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; },
-    /* A reply on one fingerprint, sent immediately. It is not a response — it
-       changes no wording, opens no round and does not close the link — so it
-       goes down the messages route rather than the respond route, exactly as
-       the discussion panel's replies do. Their name is required for the same
-       reason it is required everywhere else: an unattributed comment on a
-       contract is not worth having. */
-    async onComment(_c, ch, msg){
-      if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
-      const author=portalResponderName();
-      if(!author){
-        toast('Enter your full name — the box is at the top of this page','err');
-        try{ document.getElementById('nego-cp-name')?.focus(); }catch(_){}
-        return;
-      }
-      try{
-        const res=await api('shares/'+PORTAL_OPTS.token+'/messages','POST',
-          { author, topic:(window.negoTopicFor?negoTopicFor(ch):'change:'+(ch&&ch.id)),
-            topicLabel:`Change #${ch&&ch.id}${ch&&ch.clauseLabel?' · '+ch.clauseLabel:''}`,
-            body:msg.text });
-        PORTAL_OPTS.messages=(res&&res.messages)||PORTAL_OPTS.messages||[];
-        toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
-      }catch(e){ toast(e.message||'Could not send your comment','err'); }
-    },
-    rerender:reopen,
-    onSendDecisions(){ portalRespond(p,'decisions'); },
-    /* ONE PRESS, ONE CALL. Readiness carries the decisions with it — see
-       portalRespond. The room stays open: they have nowhere else to be, and
-       closing it under them was how the old flow lost people. */
-    onSignalReady(){ portalRespond(p,'ready'); },
-    async onDecline(){
-      /* Ask here, in the room. A refusal the other side cannot understand is a
-         refusal they will argue with, and the requirement is real — what was
-         missing was anywhere to satisfy it from. */
-      let why='';
-      /* Reached through `window`, not as a bare call. js/core.js declares
-         promptDialog as a lexical function, so a bare call resolves to that
-         binding and can never be substituted — the same trap negoResolve
-         documents for canEdit, and the reason a stubbed dialog would be
-         silently ignored here. */
-      if(typeof window.promptDialog==='function'){
-        why=await window.promptDialog({ title:'Decline this contract?',
-          message:`This ends the negotiation and tells ${esc((p&&p.org)||'the sender')} you are not proceeding. It cannot be undone from this link.`,
-          label:'Why are you declining?',
-          placeholder:'e.g. The liability cap is below our board mandate.',
-          confirmLabel:'Decline the contract' });
-        if(why==null) return;                     // cancelled — nothing is sent
-        if(!String(why).trim()){ toast('A reason is required to decline','err'); return; }
-      }
-      if(!isLanding) closeNegotiationRoom();
-      portalRespond(p,'decline',{ comment:why });
-    },
-    onPropose(){ if(!isLanding) closeNegotiationRoom(); document.getElementById('pt-redline')?.click(); },
-    onExit(){
-      // his page repaints so a decision taken in the room shows on the card too
-      const foot=document.getElementById('pt-nego-foot');
-      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-      wirePortalNego(portalNegoContract(p), p);
-    },
+  document.getElementById('pt-nego-ready')?.addEventListener('click',()=>portalRespond(p,'ready'));
+  document.getElementById('pt-nego-decline')?.addEventListener('click',async()=>{
+    /* A refusal the other side cannot understand is a refusal they will argue
+       with — the reason is required, exactly as the room required it. */
+    const reason=await (window.promptDialog?promptDialog({title:'Decline this contract?',
+      message:'This ends the negotiation on this link. Say why — they will be told, and it goes on the record.',
+      placeholder:'e.g. The liability cap is below our board minimum.'}):Promise.resolve(''));
+    if(reason==null) return;
+    if(!String(reason).trim()){ toast('A reason is required to decline','err'); return; }
+    portalRespond(p,'decline',{ comment:String(reason).trim() });
   });
+}
+/* The negotiation room is RETIRED. Both sides of the table use the one
+   workbench now — see wirePortalNego — and the code that opened the room from
+   this page is gone rather than dormant: a door that still opens is a door
+   somebody walks through. */
+
+/* ---------- THE PAGE KEEPS UP WITH THE DEAL ----------
+
+   The owner's screen has polled for years: it picks up the other side's answers
+   within a cycle, and every count and banner on it is live. This page rendered
+   once, at the moment it was opened, and then never moved. So the counterparty
+   sat looking at wording that had been revised, at asks that had already been
+   answered, at a turn banner that still said it was their move — and had no way
+   to know, because nothing on the page ever told them to reload.
+
+   That is the last asymmetry between the two screens, and it is a read, not a
+   write. The architecture note this page is built on says a public no-login URL
+   must not MUTATE a contract per click, which is right and is untouched here:
+   this asks the same GET the link already answers, on a slow timer.
+
+   WHAT IT MUST NOT DO IS EAT THEIR WORK. A repaint rebuilds the whole page, and
+   a reader half-way through rewriting four clauses would lose them — which is
+   exactly the fault fixed one release ago in the redline editor, reintroduced
+   by a timer. So a refresh that lands while they are working does not happen:
+   they are told, once, and choose when. */
+const PORTAL_POLL_MS = 45000;
+let _ptPollTimer=null, _ptPollSig=null, _ptPollToken=null, _ptPollInFlight=false;
+
+/* One place that turns a server answer into render options, so the first paint
+   and every refresh after it cannot drift apart. */
+function portalRenderOpts(token, d){
+  return { token, responded:d.responded, share:d.share||{},
+    prior:d.prior||null, superseded:d.superseded||null,
+    /* Read LIVE, not from the payload: a signature that landed after this link
+       was last refreshed is precisely the case that matters. */
+    executed:d.executed||null,
+    emailConfigured:d.emailConfigured!==false, messages:d.messages||[] };
+}
+/* A fingerprint of everything on this page a reader would notice moving. Kept
+   deliberately narrow: the engagement log ticks on every open, and a page that
+   repainted because it had been looked at would never stop repainting. */
+function portalSignature(d){
+  if(!d) return '';
+  const c=(d.payload&&d.payload.contract)||{};
+  /* CONTENT ONLY, and `payload.at` is deliberately not in it. That stamp moves
+     every time the owner's link is refreshed in place — which happens on their
+     side for reasons this reader cannot see — and a signature watching it would
+     report a change over an identical page. Everything the stamp could tell us
+     is already below: the wording, the asks and their statuses, whose turn it
+     is, and what has been said. */
+  const parts=[
+    String(c.docText||c.redlineText||''),
+    (Array.isArray(c.changes)?c.changes:[]).map(x=>`${x.id}:${x.status}:${x.hash||''}:${x.withdrawn?'w':''}`).join(','),
+    String((c.negotiation&&c.negotiation.turn)||''), String((c.negotiation&&c.negotiation.turnAt)||''),
+    String((c.negotiation&&c.negotiation.round)||''),
+    `op${(c.openPoints||[]).length}`, `v${(c.versions||[]).length}`, `rd${(c.rounds||[]).length}`,
+    d.executed?`x:${d.executed.at||'1'}`:'', d.superseded?`s:${d.superseded.at||'1'}`:'',
+    d.responded?'r':'', String((d.messages||[]).length),
+    String((d.share&&d.share.expiresAt)||''),
+  ].join('');
+  let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
+  return parts.length+'.'+h.toString(16);
+}
+/* Is the reader in the middle of something a repaint would destroy? */
+function portalBusy(){
+  try{
+    if(Object.keys(PORTAL_CLAUSE_EDITS).length) return true;      // clauses rewritten, not sent
+    if(Object.keys(PORTAL_NEGO_DECISIONS).length
+      || Object.keys(PORTAL_NEGO_PROPOSED).length
+      || Object.keys(PORTAL_NEGO_WITHDRAWN).length) return true;  // answers held, not sent
+    const rl=document.getElementById('portal-redline');
+    if(rl && !rl.classList.contains('hidden')) return true;       // the editor is open
+    if(document.getElementById('confirm-overlay')) return true;
+    if(document.getElementById('prompt-overlay')) return true;
+    const modal=document.getElementById('modal-root');
+    if(modal && String(modal.innerHTML||'').trim()) return true;
+    return false;
+  }catch(_){ return true; }   // cannot tell ⇒ assume they are working
+}
+/* What a poll that came back should do. A pure read of the two answers, so the
+   rule is one thing a test can hold rather than three scattered conditions. */
+function portalPollDecide(d, prevSig){
+  if(!d) return 'same';
+  const sig=portalSignature(d);
+  if(prevSig && sig===prevSig) return 'same';
+  /* THE DEAL IS OVER, OR THIS COPY IS. Repainted whatever the reader is doing —
+     not to be rude, but because everything they are working on has just become
+     unsendable, and letting them carry on typing into it is the worse outcome.
+     The banner that replaces it says exactly what happened. */
+  if(d.executed || d.superseded) return 'repaint';
+  return portalBusy() ? 'notify' : 'repaint';
+}
+/* The quiet strip. It appears once, says what moved, and waits — it never
+   reloads under somebody's hands. */
+function portalUpdatedNoticeHtml(){
+  return `<div id="pt-updated" role="status" style="position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;
+      border-bottom:1px solid #e0c48a;background:#fdf6e7;padding:10px 24px;font-size:12.5px;color:#7d5a14;box-shadow:var(--shadow-sm)">
+    <span style="flex:none;display:inline-flex">${icon('alert','w-4 h-4')}</span>
+    <span style="flex:1;min-width:0;line-height:1.5"><b>This contract has been updated.</b>
+      Your unsent work is still here — send it or set it aside, then refresh to see the new copy.</span>
+    <button id="pt-updated-go" class="ui-btn" style="flex:none;font-size:12px;padding:6px 13px">Refresh now</button>
+  </div>`;
+}
+function portalShowUpdatedNotice(){
+  if(document.getElementById('pt-updated')) return;      // said once, not once a minute
+  const root=document.getElementById('share-root'); if(!root) return;
+  root.insertAdjacentHTML('afterbegin', portalUpdatedNoticeHtml());
+  document.getElementById('pt-updated-go')?.addEventListener('click',()=>portalRefreshNow('asked'));
+}
+async function portalFetchShare(token){
+  const r=await fetch('api/shares/'+encodeURIComponent(token));
+  const d=await r.json().catch(()=>null);
+  return { status:r.status, ok:r.ok, d };
+}
+/* Repaint from the server's current answer, keeping the reader where they were
+   on the page — a refresh that jumps them back to the top reads as the page
+   having reset rather than caught up. */
+function portalRepaint(token, d){
+  let y=0; try{ y=window.scrollY||0; }catch(_){}
+  renderSharePortal(d.payload, portalRenderOpts(token, d));
+  _ptPollSig=portalSignature(d);
+  try{ window.scrollTo(0, y); }catch(_){}
+}
+async function portalRefreshNow(reason){
+  if(!_ptPollToken || _ptPollInFlight) return 'skipped';
+  _ptPollInFlight=true;
+  try{
+    const { status, ok, d }=await portalFetchShare(_ptPollToken);
+    /* The link died while they held it open — withdrawn by the sender, or
+       expired. That is a whole-page answer and it is shown immediately. */
+    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
+    if(!ok || !d) return 'error';
+    const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
+    if(what==='repaint'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
+    if(what==='notify'){ portalShowUpdatedNotice(); return 'notify'; }
+    return 'same';
+  }catch(e){ return 'error'; }        // a dropped connection is not news; the next tick retries
+  finally{ _ptPollInFlight=false; }
+}
+function portalStopPolling(){ if(_ptPollTimer){ clearInterval(_ptPollTimer); _ptPollTimer=null; } }
+function portalStartPolling(token, d){
+  portalStopPolling();
+  _ptPollToken=token; _ptPollSig=portalSignature(d);
+  try{
+    _ptPollTimer=setInterval(()=>{ portalRefreshNow('tick'); }, PORTAL_POLL_MS);
+    /* Coming back to the tab is the moment somebody most wants the truth, and
+       it costs one request rather than a faster timer for everybody. */
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) portalRefreshNow('visible'); });
+  }catch(_){ /* a page that cannot keep a timer still renders */ }
 }
 
 async function portalEntry(encoded){
   if(encoded.startsWith('t:')){        // server-backed share token
+    const token=encoded.slice(2);
     try{
-      const r=await fetch('api/shares/'+encodeURIComponent(encoded.slice(2)));
-      const d=await r.json().catch(()=>null);
-      if(r.status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
-      if(!r.ok) throw new Error(d?.error||'not found');
-      renderSharePortal(d.payload,{ token:encoded.slice(2), responded:d.responded, share:d.share||{},
-        prior:d.prior||null, superseded:d.superseded||null, emailConfigured:d.emailConfigured!==false,
-        messages:d.messages||[] });
+      const { status, ok, d }=await portalFetchShare(token);
+      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      if(!ok) throw new Error(d?.error||'not found');
+      renderSharePortal(d.payload, portalRenderOpts(token, d));
+      portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
     return;
   }
@@ -1229,6 +1391,10 @@ async function portalEntry(encoded){
 }
 function renderSharePortal(p, opts={}){
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  /* Whatever this reader had answered and not sent, put back — see
+     portalLoadHeld. Before the room is built, because the room is built FROM
+     these. */
+  portalLoadHeld();
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
   // Is there actually a document to render? Three ways there can be:
@@ -1249,7 +1415,15 @@ function renderSharePortal(p, opts={}){
     return;
   }
   FIRST_PARTY=p.org;
-  const c=migrateContract({ ...p.contract, status:'Under Review',
+  /* THE STATUS THIS PAGE GIVES THE CONTRACT IT BUILDS.
+     It was 'Under Review', unconditionally, because the payload carried no
+     status and a contract needs one to render. That was harmless right up to
+     the moment the deal was signed: every guard in the shared Negotiation
+     component that closes a finished negotiation reads `c.status === 'Signed'`,
+     so on this page not one of them could ever fire. The executed fact now
+     travels (see buildSharePayload) and the server reports it live, so the
+     record this page builds can tell the truth about which of the two it is. */
+  const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
@@ -1285,7 +1459,6 @@ function renderSharePortal(p, opts={}){
                Removed rather than hidden. The message route it used still
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
-        ${portalWordCard(c)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
 
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
@@ -1326,16 +1499,40 @@ function renderSharePortal(p, opts={}){
         <textarea id="pt-comment" rows="3" placeholder="Optional for signing; required for changes or decline…" style="${TA}"></textarea></label>
         ${isMonetary(c)?`<label style="display:block;margin-bottom:12px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">Propose a different value (optional, for change requests)</span>
         <input id="pt-proposed" type="number" placeholder="e.g. ${c.value||'2500000'}" style="${TA}min-height:36px;"/></label>`:''}
+        ${''/* ONE ACT, THEN THE OTHERS BEHIND A DOOR.
+
+               Five buttons used to sit here as equals: Approve & sign, Accept
+               the wording (without signing), Propose edits (redline), Request
+               changes, Decline. Three of them overlap in a first-time reader's
+               head — "request changes" and "propose edits" are the same
+               sentence in English — and every one of them was named after what
+               the SYSTEM does rather than what the PERSON does. A procurement
+               manager who signs forty contracts a year can work it out. A
+               caterer opening her first one cannot, and this is the screen
+               where getting it wrong is most expensive.
+
+               The link already knows what it is for (see the purpose picker on
+               the sender's side), and on a signing link the answer is: sign.
+               So that is the button. The other four keep their ids, their
+               handlers and their behaviour — they move behind one line of
+               plain English, and each is relabelled to describe the act rather
+               than the mechanism. */}
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:10px;font-size:13px;">${icon('finger','w-4 h-4')} Approve &amp; sign</button>
-          <!-- B: agreeing to the wording and executing the contract are two
-               different acts. Until now the only way to say the first was to do
-               the second. -->
-          <button id="pt-accept" class="ui-btn" style="width:100%;padding:8px;font-size:12px;">${icon('check2','w-3.5 h-3.5')} Accept the wording (without signing)</button>
-          <button id="pt-redline" class="ui-btn" style="width:100%;padding:8px;font-size:12px;">${icon('history','w-3.5 h-3.5')} Propose edits (redline)</button>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-            <button id="pt-changes" class="ui-btn" style="padding:8px;font-size:12px;">Request changes</button>
-            <button id="pt-decline" class="ui-btn" style="padding:8px;font-size:12px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline</button>
+          <button id="pt-sign" class="ui-btn ui-btn-primary" style="width:100%;padding:11px;font-size:13.5px;">${icon('finger','w-4 h-4')} Sign this contract</button>
+          <button id="pt-other-toggle" aria-expanded="false" aria-controls="pt-other"
+            style="width:100%;background:none;border:0;padding:6px 0;font:inherit;font-size:12px;color:var(--color-accent-700);cursor:pointer;text-align:center;text-decoration:underline">Not ready to sign?</button>
+          <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
+            ${[['pt-redline','history','Change the wording yourself','Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.'],
+               ['pt-changes','alert','Tell them what you want changed','Describe it in the comment box above. The wording stays as it is for now.'],
+               ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
+              .map(([id,ic,label,why])=>`<div>
+                <button id="${id}" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;text-align:left;display:flex;align-items:center;gap:7px">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
+                <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">${why}</span>
+              </div>`).join('')}
+            <div style="border-top:1px solid var(--color-divider);padding-top:9px">
+              <button id="pt-decline" class="ui-btn" style="width:100%;padding:9px;font-size:12.5px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent);">Decline this contract</button>
+              <span style="display:block;font-size:11px;line-height:1.5;color:var(--color-neutral-600);margin:4px 2px 0">Ends the deal. You will be asked why, and they will be told.</span>
+            </div>
           </div>
         </div>
         <div id="portal-result" style="margin-top:16px;"></div>
@@ -1343,28 +1540,50 @@ function renderSharePortal(p, opts={}){
     </div>
   </div>
   <style>.portal-grid{grid-template-columns:1fr;}@media(min-width:1024px){.portal-grid{grid-template-columns:1fr 360px;}.portal-aside{position:sticky;top:24px;}}</style>`;
+  /* The door to the other four. It opens in place and stays open — somebody who
+     has decided they are not signing today should not have to find it twice. */
+  document.getElementById('pt-other-toggle')?.addEventListener('click',e=>{
+    const box=document.getElementById('pt-other');
+    const open=box.classList.toggle('hidden')===false;
+    e.currentTarget.setAttribute('aria-expanded',open?'true':'false');
+    e.currentTarget.textContent=open?'Hide the other options':'Not ready to sign?';
+  });
   document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
   document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
   document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
   document.getElementById('pt-see-changes')?.addEventListener('click',()=>openPortalCompare(p));
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
-  wireportalWord(c, p);
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
-  if(PORTAL_OPTS.superseded||PORTAL_OPTS.responded){
+  if(portalReadOnly()){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
   }
   document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
   // E2: the redline editor takes over the main column, so the document being
   // rewritten and the box you rewrite it in are the same size.
-  const showRedline=on=>{
+  /* HOW MANY CLAUSES THEY HAVE REWRITTEN AND NOT SENT. */
+  const stagedEdits=()=>Object.keys(PORTAL_CLAUSE_EDITS).length;
+  /* THE EDITOR DOES NOT EAT WORK ON THE WAY IN.
+
+     This reset PORTAL_CLAUSE_EDITS on every open, unconditionally. The editor
+     is not a modal — it is a panel that hides the document and is hidden by the
+     same button that shows it, and the room's "Propose a change" clicks that
+     button too. So the ordinary path through a negotiation destroyed the work:
+     rewrite four clauses, press "Review what changed" to check them against the
+     other side's asks, come back, and all four were gone. Nothing asked, nothing
+     warned, and the panel reopened looking like the document had never been
+     touched — which reads as the edits having been sent rather than binned.
+
+     Opening now keeps whatever is staged. The reset belongs to the two moments
+     that genuinely end a draft: it was sent (portalRespond clears it), or its
+     author said to throw it away — which is asked for below rather than
+     assumed. */
+  const showRedline=(on,opts={})=>{
     document.getElementById('portal-redline').classList.toggle('hidden',!on);
     document.getElementById('pt-doc').classList.toggle('hidden',on);
-    if(on){
-      PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={};
-      wirePortalClauseEditor(c, p);
-    }
+    if(opts.fresh){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
+    if(on) wirePortalClauseEditor(c, p);
     try{ document.getElementById('pt-main')?.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){}
   };
   /* The escape hatch. Clause-at-a-time is right for the ordinary case — change
@@ -1388,7 +1607,21 @@ function renderSharePortal(p, opts={}){
   });
   document.getElementById('pt-redline').addEventListener('click',()=>
     showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
-  document.getElementById('pt-redline-cancel').addEventListener('click',()=>showRedline(false));
+  /* CANCEL IS A DISCARD, so it says so and asks first — but only when there is
+     something to lose. Closing an editor nobody typed into is not a decision
+     worth a dialog. */
+  document.getElementById('pt-redline-cancel').addEventListener('click',async()=>{
+    const n=stagedEdits();
+    if(!n){ showRedline(false); return; }
+    let ok=true;
+    if(typeof window.confirmDialog==='function'){
+      ok=await window.confirmDialog({ title:`Discard ${n} rewritten clause${n===1?'':'s'}?`,
+        message:`You have rewritten ${n} clause${n===1?'':'s'} and not sent ${n===1?'it':'them'} yet. Discarding throws the wording away; closing the editor instead keeps it here until you send it.`,
+        confirmLabel:'Discard them', cancelLabel:'Keep editing', danger:true });
+    }
+    if(!ok) return;
+    showRedline(false,{ fresh:true });
+  });
   document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
   if(opts.share){
@@ -1422,8 +1655,19 @@ async function portalRespond(p, action, extra){
     const decisions=Object.keys(PORTAL_NEGO_DECISIONS)
       .map(id=>({ id, status:PORTAL_NEGO_DECISIONS[id].status, reply:PORTAL_NEGO_DECISIONS[id].reply||null }));
     const withdrawn=Object.keys(PORTAL_NEGO_WITHDRAWN);
-    if(action==='decisions' && !decisions.length && !withdrawn.length){
-      toast('Nothing to send — decide a change first','err'); return; }
+    /* Wording they have asked for, travelling with the decisions. Sent as a
+       DRAFT rather than as a finished change: the owner's copy re-files each
+       one through negoFileChange, so the fingerprint and its place in the chain
+       are minted on the record rather than trusted from a no-login page. */
+    const proposed=Object.keys(PORTAL_NEGO_PROPOSED).map(id=>{
+      const x=PORTAL_NEGO_PROPOSED[id];
+      return { id, clauseId:x.clauseId, changeType:x.changeType||'modify',
+        oldText:x.oldText||'', newText:x.newText||'', bodyHtml:x.bodyHtml||null,
+        headingText:x.headingText||null, afterClauseId:x.afterClauseId||null,
+        clauseLabel:x.clauseLabel||null, note:x.note||null };
+    });
+    if(action==='decisions' && !decisions.length && !withdrawn.length && !proposed.length){
+      toast('Nothing to send — ask for a change or decide one first','err'); return; }
     /* READINESS AND THE DECISIONS TRAVEL TOGETHER, in one request.
 
        They used to be two: answer the changes, press Send, then separately say
@@ -1434,13 +1678,15 @@ async function portalRespond(p, action, extra){
        be able to fail on. */
     const res={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action,
       name, title, email, comment, negoDecisions:decisions,
-      negoWithdrawn:withdrawn.length?withdrawn:undefined, at:nowISO() };
+      negoWithdrawn:withdrawn.length?withdrawn:undefined,
+      negoProposed:proposed.length?proposed:undefined, at:nowISO() };
     if(!PORTAL_OPTS.token){ toast('This copy has no channel back — reply to the email you received','err'); return; }
     /* Whichever control was actually pressed reports back on itself. The send
        lives in the change index on a negotiation link and in the foot of the
        card on a signing link, so both are offered and the one on the page
        wins. */
-    const pressed=action==='ready' ? 'nego-cp-ready'
+    const pressed=action==='ready'
+      ? (document.getElementById('pt-nego-ready') ? 'pt-nego-ready' : 'nego-cp-ready')
       : (document.getElementById('nego-send-decisions') ? 'nego-send-decisions' : 'pt-nego-send');
     portalSetBusy(pressed, action==='ready'?'Sending…':'Sending…');
     try{
@@ -1454,21 +1700,30 @@ async function portalRespond(p, action, extra){
       /* Remembered, not discarded — see PORTAL_NEGO_SENT. */
       for(const d of decisions) PORTAL_NEGO_SENT[d.id]={ status:d.status, reply:d.reply||null };
       for(const id of withdrawn) PORTAL_NEGO_WITHDRAWN_SENT[id]=true;
-      PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={};
+      for(const pr of proposed) PORTAL_NEGO_PROPOSED_SENT[pr.id]={ ...PORTAL_NEGO_PROPOSED[pr.id] };
+      PORTAL_NEGO_DECISIONS={}; PORTAL_NEGO_WITHDRAWN={}; PORTAL_NEGO_PROPOSED={};
+      portalDropHeld();                        // it has gone; it is not a draft any more
       if(action==='ready') PORTAL_READY_SENT=true;
-      const n=decisions.length;
+      const n=decisions.length, np=proposed.length;
+      /* What actually went, named. "2 decisions sent" was the only sentence
+         this could produce, so a reader who had sent nothing but their own
+         proposed wording was told a number that did not describe it. */
+      const sentBits=[];
+      if(np) sentBits.push(`${np} change${np===1?'':'s'} you asked for`);
+      if(n) sentBits.push(`${n} decision${n===1?'':'s'}`);
+      const sentWhat=sentBits.join(' and ')||'your answer';
       if(action==='ready'){
         portalSetDone(pressed,'Sent — they know you are ready');
         toast(`${p.org||'The sender'} has been told you are ready to sign`
-          +`${n?` — ${n} decision${n===1?'':'s'} sent with it`:''}. Nothing is signed yet; they will send a signing link.`);
+          +`${sentBits.length?` — ${sentWhat} sent with it`:''}. Nothing is signed yet; they will send a signing link.`);
       } else {
-        portalSetDone(pressed,`${n} decision${n===1?'':'s'} sent`);
-        toast(`${n} decision${n===1?'':'s'} sent to ${p.org||'the sender'}`);
+        portalSetDone(pressed,`${sentWhat} sent`);
+        toast(`${sentWhat} sent to ${p.org||'the sender'} — it is now their turn.`);
       }
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the
          outcome to appear. */
-      if(window.negoRoomIsOpen && negoRoomIsOpen()) openPortalNegoRoom(portalNegoContract(p), p);
+      wirePortalNego(portalNegoContract(p), p);   // repaint the workbench with the fresh record
     }catch(e){
       portalSetIdle();
       toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');
@@ -1520,8 +1775,7 @@ async function portalRespond(p, action, extra){
   const label={sign:'signature',accept:'acceptance',changes:'change request',decline:'decline notice'}[sendAction];
   // Which control the reader actually pressed, so it is the one that reports back.
   const pressed={sign:'pt-sign',accept:'pt-accept',redline:'pt-redline-submit',
-    changes:'pt-changes',decline:'pt-decline'}[action]
-    || (document.getElementById('pt-word-send')?'pt-word-send':null);
+    changes:'pt-changes',decline:'pt-decline'}[action] || null;
   const doneLabel={sign:'Signed and sent',accept:'Acceptance sent',
     changes:'Change request sent',decline:'Decline sent'}[sendAction]||'Sent';
   if(PORTAL_OPTS.token){
@@ -1529,6 +1783,11 @@ async function portalRespond(p, action, extra){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone(pressed, doneLabel);
+      /* SENT IS THE MOMENT THE DRAFT STOPS BEING A DRAFT. Cleared here, and
+         only here, because the editor no longer wipes itself on open — see
+         showRedline. Cleared on failure would be worse than the bug it
+         replaced: nothing was recorded, and their wording would be gone. */
+      if(action==='redline'){ PORTAL_CLAUSE_EDITS={}; PORTAL_CLAUSE_NOTES={}; }
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} ${label[0].toUpperCase()+label.slice(1)} delivered</div>
@@ -1583,6 +1842,7 @@ async function portalSignUnverified(p, info){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');
+      portalMarkSigned(p, info);
       box.innerHTML=`
         <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed</div>
@@ -1627,6 +1887,8 @@ async function portalVerifyAndSign(p, info){
     signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
   try{
     await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
+    portalSetDone('pt-sign','Signed and sent');
+    portalMarkSigned(p, info);
     document.getElementById('portal-result').innerHTML=`
       <div style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#d9eae0;border-radius:6px;padding:16px;text-align:center;">
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:#1e6b4d;font-size:13px;font-weight:600;margin-bottom:4px;">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
@@ -1724,23 +1986,23 @@ function printExecutionBlock(c){
             <circle cx="48" cy="48" r="46" fill="#fff"/>
             <circle cx="48" cy="48" r="46" fill="none" stroke="${external?'#5980a6':'#086B54'}" stroke-width="2"/>
             <circle cx="48" cy="48" r="38" fill="${external?'rgba(89,128,166,.10)':'rgba(8,107,84,.10)'}" stroke="${external?'#8fa8c2':'#C79A3E'}" stroke-width="1.5"/>
-            <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
-            <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
+            <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
+            <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
           </svg>
         </td>
         <td style="vertical-align:top;">
-          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
+          <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
           <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
             ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
             : 'Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).'}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:8px;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
             <div style="font-size:9.5px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
           </div>
         </td>
@@ -1763,13 +2025,13 @@ function exportPDF(c){
     const u=c.upload||{};
     bodyHtml=`
       <div style="border:1px solid #d4d4d7;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value):'—')}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
       </div>
       <p style="font-size:11px;color:#444;line-height:1.6;">${isExternallyExecuted(c)
@@ -1787,7 +2049,7 @@ function exportPDF(c){
     holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
-      span.style.cssText="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
+      span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
       span.textContent=(window.fieldDisplayValue?fieldDisplayValue(inp):(inp.value||inp.getAttribute('value')||''))||'________';
       inp.replaceWith(span);
     });
@@ -1806,20 +2068,20 @@ function exportPDF(c){
     <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
     <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
-  // The HaTi masthead and the audit trail are INTERFACE and stay on IBM Plex;
-  // the contract itself is a document surface and carries the document faces
-  // and the document ink, exactly as it does on screen. Without that the PDF
-  // would look like a different product from the page it was exported from.
+  // The masthead, the audit trail and the contract now share one family — the
+  // platform runs on the design's two faces throughout. The contract is still a
+  // document surface and still carries the document ink, measure and leading,
+  // exactly as it does on screen, so the PDF matches the page it came from.
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;">
+    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #5980a6;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
-        <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       <div class="doc-surface">${bodyHtml}</div>
       ${execBlock}
-      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
@@ -1830,14 +2092,25 @@ function metrics(){
   // Prefer server-computed aggregates (accurate at any scale, even when the
   // client only holds a capped working set); fall back to the in-memory set.
   const s=state.serverStats;
-  if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0, declined:s.declined||0, drafts:s.drafts||0 };
-  const cs=state.contracts, active=cs.filter(c=>c.status!=='Declined');
+  if(s) return { totalValue:s.totalValue||0, pending:s.pending||0, signed:s.signed||0,
+    declined:s.declined||0, drafts:s.drafts||0, expired:s.expired||0, expiredValue:s.expiredValue||0 };
+  const cs=state.contracts;
+  /* ACTIVE VALUE IS THE VALUE OF WHAT IS STILL RUNNING. This counted every
+     contract that was not Declined, so a supply agreement that ended in 2023
+     went on contributing its whole face value to the headline figure on the
+     dashboard for ever. See contractExpired in js/core.js — the same read the
+     status chip and the calendar use, so the number and the badges agree. */
+  const gone=c=>!!(window.contractExpired&&contractExpired(c));
+  const active=cs.filter(c=>c.status!=='Declined'&&!gone(c));
+  const expired=cs.filter(gone);
   return {
     totalValue:active.reduce((s,c)=>s+Number(c.value||0),0),
     pending:cs.filter(c=>c.status==='Under Review').length,
     signed:cs.filter(c=>c.status==='Signed').length,
     declined:cs.filter(c=>c.status==='Declined').length,
     drafts:cs.filter(c=>c.status==='Draft').length,
+    expired:expired.length,
+    expiredValue:expired.reduce((s,c)=>s+Number(c.value||0),0),
   };
 }
 async function refreshStats(){
@@ -1845,4 +2118,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalGeneratedWordCard,portalWordCard,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

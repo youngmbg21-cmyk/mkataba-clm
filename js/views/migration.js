@@ -948,24 +948,33 @@ function renderMigration(){
   const folderOpts=folderOptionsHtml(M.defaults.folder||'auto', true);
   const statusOpts=[['Signed','Executed — signed outside HaTi'],['Under Review','In Review'],['Draft','Drafting']]
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
-  const kpi=(n,label,color)=>`<div style="flex:1;min-width:120px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:7px;padding:12px 14px;box-shadow:var(--shadow-sm)">
-      <div style="font-family:var(--font-mono);font-size:22px;font-weight:600;color:${color||'var(--color-text)'};line-height:1">${n}</div>
-      <div style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600);margin-top:5px">${label}</div></div>`;
+  const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-sm)">
+      <div style="font-family:var(--font-mono);font-size:24px;font-weight:700;color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:5px 7px;color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:14px 16px 28px">
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:12.5px}
-      .mig-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
-      .mig-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
+      .mig-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);padding:12px 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
+      .mig-table td{padding:12px 14px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+      /* The reference's KPI strip: two up on a phone, four on a tablet, five on
+         a desktop — a real grid, so the tiles line up instead of flexing to
+         whatever their number happens to be. */
+      .mig-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+      @media (min-width:640px){ .mig-kpis{grid-template-columns:repeat(4,minmax(0,1fr))} }
+      @media (min-width:1024px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
       .mig-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+      #mig-drop{border:2px dashed var(--color-divider);border-radius:12px;padding:32px 16px;
+        text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
+      #mig-drop:hover{border-color:var(--color-accent)}
       #mig-drop.dragover{border-color:var(--color-accent);background:var(--color-accent-100)}
     </style>
     <div style="display:flex;flex-direction:column;gap:12px">
 
       <!-- KPI strip -->
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div id="mig-kpis" class="mig-kpis">
         ${kpi(k.agreements===k.total?k.total:`${k.agreements}<span style="font-size:13px;color:var(--color-neutral-500)"> · ${k.total}</span>`, k.agreements===k.total?'Contracts migrated':'Agreements · documents')}
         ${kpi(k.complete,'Fully migrated', k.total&&k.complete===k.total?'#1e6b4d':undefined)}
         ${kpi(k.review,'Need review', k.review?'#7d5a14':'#1e6b4d')}
@@ -976,7 +985,7 @@ function renderMigration(){
 
       ${canEdit()?`
       <!-- intake -->
-      <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:16px">
+      <section class="blueprint" style="background:var(--color-surface);box-shadow:var(--shadow-sm);padding:20px;border-radius:16px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="display:inline-flex;color:var(--color-accent)">${icon('upload')}</span>
           <h3 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Bulk import</h3>
@@ -1001,8 +1010,8 @@ function renderMigration(){
           <ul style="margin:0;padding-left:16px;line-height:1.6">${M.manifestProblems.slice(0,12).map(p=>`<li><strong>${migEsc(p.label)}</strong> · ${migEsc(p.field)}: ${migEsc(p.message)}</li>`).join('')}</ul>
           ${M.manifestProblems.length>12?`<div style="margin-top:4px">…and ${M.manifestProblems.length-12} more.</div>`:''}
         </div>`:''}
-        <div id="mig-drop" style="border:2px dashed var(--color-divider);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s">
-          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;background:var(--color-bg);color:var(--color-accent-700);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
+        <div id="mig-drop">
+          <div style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--color-neutral-100);color:var(--color-accent-600);margin-bottom:8px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:13px;font-weight:600">Drop contract files here — or click to choose</div>
           <div style="font-size:11px;color:var(--color-neutral-600);margin-top:3px">Up to ${MIG_MAX_FILES} files per batch · duplicates skipped automatically</div>
           <input id="mig-files" type="file" multiple accept="${MIG_ACCEPT}" style="display:none">

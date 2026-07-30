@@ -666,7 +666,7 @@ function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
+  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
       <span style="flex:1"></span>
@@ -943,7 +943,7 @@ function openPartyModal(name){
         <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
         <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
         <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#2c455d">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
-        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'IBM Plex Mono',monospace" fill="#7a7a7d">${n.sub}</text>
+        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" fill="#7a7a7d">${n.sub}</text>
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">

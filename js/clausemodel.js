@@ -177,6 +177,35 @@ function clauseSegment(html){
   if (!out.length && blocks.length) return _clauseFallback(blocks, html);
   return out;
 }
+/* ---------- the chrome, on request ----------
+   clauseSegment deliberately skips the document's own front matter — the
+   kicker line, the title <h1> and the recital / party paragraph between the
+   title and the first clause heading. Right for the CHANGE MODEL (nobody
+   negotiates the title), wrong to lose from a PAGE that claims to show the
+   document: the Doc page prints all of it, so a workbench that starts at
+   "1." reads as a different contract. This returns exactly what the
+   segmentation skips, detected by the same rule so the two can never
+   disagree about where the clauses start. */
+function clauseFrontMatter(html){
+  const none = { titleText: '', titleHtml: '', leadHtml: '', bodyHtml: '' };
+  const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
+  const blocks = Array.from(root.children);
+  const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
+  if (!(headings.length > 1 && blocks.length)) return none;
+  const first = blocks.findIndex(el => CLAUSE_HEADINGS.has(el.tagName));
+  if (!(first >= 0 && _clRank(blocks[first]) === 1
+      && headings.some(h => _clRank(h) > 1))) return none;
+  const body = [];
+  for (let i = first + 1; i < blocks.length && !CLAUSE_HEADINGS.has(blocks[i].tagName); i++)
+    body.push(blocks[i].outerHTML);
+  return {
+    titleText: (blocks[first].textContent || '').replace(/\s+/g, ' ').trim(),
+    titleHtml: blocks[first].outerHTML,
+    leadHtml: blocks.slice(0, first).map(el => el.outerHTML).join(''),
+    bodyHtml: body.join(''),
+  };
+}
+
 function _clauseFallback(blocks, html){
   const out = [];
   for (const el of blocks){
@@ -340,6 +369,6 @@ function clauseInsert(html, afterId, clause){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel,
-  clauseSegment, clauseStampIds, clauseList, clauseFindById,
+  clauseSegment, clauseFrontMatter, clauseStampIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
 });
