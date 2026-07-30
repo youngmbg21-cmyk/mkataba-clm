@@ -3675,6 +3675,55 @@ function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding
    "Round 1" before anything has been closed. Two figures for the same thing,
    one saying "No rounds yet" and one saying "Round 1", is worse than no figure
    at all. The open count is unresolvedRedlines, the same one the register uses. */
+let _redlineSide = 'owner';
+/* THE DESIGN'S LAYOUT, APPLIED OVER THE ENGINE'S MARKUP.
+   The workbench renders two documents side by side — the baseline and the
+   working copy — because that is what the contract tab and the room are for,
+   and a test is named for it ("both sides, one screen"). The design's Redline
+   page shows the contract ONCE with the marks on it, and gives the freed width
+   to the changes.
+   That difference is presentational, so it is done here in CSS and scoped to
+   .redline-page. negoPanesHtml is untouched, which is why the contract tab and
+   the room keep both documents and their test keeps passing. The baseline is
+   not lost from this page either: the working pane's own version selector still
+   reaches it. */
+function redlineLayoutCss(){
+  if (document.getElementById('redline-layout-css')) return;
+  const s = document.createElement('style');
+  s.id = 'redline-layout-css';
+  s.textContent = `
+  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);
+    border-radius:12px;padding:14px 16px;flex:none}
+  .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
+    background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
+  .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
+    border:1px solid var(--color-divider);padding:3px;border-radius:9px}
+  .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:11px;font-weight:600;padding:4px 10px;
+    border-radius:6px;cursor:pointer;color:var(--color-neutral-500);white-space:nowrap}
+  .redline-page .rl-seg.on{background:var(--accent-solid);color:#fff;box-shadow:0 1px 3px rgba(15,23,42,.18)}
+  .redline-page .rl-btn{border:1px solid transparent;font:inherit;font-size:11.5px;font-weight:700;padding:6px 12px;
+    border-radius:9px;cursor:pointer;white-space:nowrap}
+  .redline-page .rl-btn:disabled{opacity:.45;cursor:not-allowed}
+  .redline-page .rl-btn-alt{background:color-mix(in srgb,#8b5cf6 12%,transparent);color:#6d28d9;
+    border-color:color-mix(in srgb,#8b5cf6 32%,transparent)}
+  html.dark .redline-page .rl-btn-alt{color:#c4b5fd}
+  .redline-page .rl-btn-go{background:var(--accent-solid);color:#fff;
+    box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 60%,transparent)}
+
+  /* one document, not two */
+  .redline-page .nego-pane.baseline,
+  .redline-page #nego-rz-a{display:none!important}
+  .redline-page .nego-work{grid-template-columns:minmax(0,1fr) 6px minmax(300px,var(--nego-c,340px))!important}
+  /* the header carries these now; a second pair inside the index would be two
+     controls for one action */
+  .redline-page .nego-bulk{display:none!important}
+  .redline-page #nego-index{border-radius:12px}
+  .redline-page #nego-index h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--color-neutral-500);font-weight:700}
+  `;
+  document.head.appendChild(s);
+}
 function redlineRoundLabel(c){
   const n = Math.max(1, (((c && c.rounds) || []).length));
   const open = (window.unresolvedRedlines ? unresolvedRedlines(c) : 0);
@@ -3683,6 +3732,7 @@ function redlineRoundLabel(c){
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
+  redlineLayoutCss();
   const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
   if (!c){
     host.innerHTML = `
@@ -3704,20 +3754,24 @@ function renderRedline(){
     }));
     return;
   }
+  const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
+  const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
   host.innerHTML = `
-    <div class="view-enter" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
-      <section style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:12px;padding:14px 16px;flex:none;">
+    <div class="view-enter redline-page" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
+      <section class="rl-head">
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
             <h3 style="margin:0;font-size:15px;font-weight:700;">Redline Workbench — ${esc(c.name)}</h3>
-            <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent);">${esc(redlineRoundLabel(c))}</span>
+            <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
           </div>
           <p style="margin:3px 0 0;font-size:11px;color:var(--color-neutral-500);">
             Negotiate wording without leaking your position — internal notes and unsent drafts never reach the counterparty.
           </p>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex:none;">
-          <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-500);">${esc(c.id)}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap;">
+          <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
+          <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt">Accept All Non-Risk</button>
+          <button data-redline-proxy="nego-send" class="rl-btn rl-btn-go">Publish Round</button>
           <button data-redline-open-doc class="ui-btn" style="padding:6px 12px;">Open the contract →</button>
         </div>
       </section>
@@ -3725,12 +3779,45 @@ function renderRedline(){
     </div>`;
   host.querySelectorAll('[data-redline-open-doc]').forEach(el =>
     el.addEventListener('click', () => { if (window.openWorkspace) openWorkspace(c.id); }));
-  /* The workbench itself, through the contract tab's own render path. */
-  renderNegotiationTab(c, { hostId: 'redline-host' });
+  host.querySelectorAll('[data-redline-side]').forEach(el =>
+    el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
+  /* The header's two actions are the design's, but they are not second copies
+     of anything: each one presses the engine's own control, which is the only
+     thing that can actually accept a change or publish a round. If the engine
+     has not rendered that control — nothing pending, or the other side's turn —
+     the header button disables itself rather than lying about what it can do. */
+  host.querySelectorAll('[data-redline-proxy]').forEach(el =>
+    el.addEventListener('click', () => {
+      const target = document.getElementById(el.getAttribute('data-redline-proxy'));
+      if (target && !target.disabled) target.click();
+    }));
+
+  /* The workbench itself, through the contract tab's own render path — same
+     markup, same wiring, same after-paint. The design's single-document layout
+     is then applied over it by CSS (see redlineLayoutCss), so nothing in the
+     engine's markup had to be forked to get it. */
+  renderNegotiationTab(c, { hostId: 'redline-host', side });
+
+  /* Two labels the design names differently from the engine. Changed on the
+     rendered node rather than in negoPanesHtml, which the contract tab and the
+     room also render. */
+  const idxHead = host.querySelector('#nego-index h3');
+  if (idxHead) idxHead.textContent = 'Tracked Changes';
+  redlineSyncProxies(host);
+}
+/* Mirror the engine's own enablement onto the header buttons, so the header
+   never offers an action the workbench itself is refusing. */
+function redlineSyncProxies(host){
+  host.querySelectorAll('[data-redline-proxy]').forEach(el => {
+    const target = document.getElementById(el.getAttribute('data-redline-proxy'));
+    const usable = !!target && !target.disabled;
+    el.disabled = !usable;
+    el.title = usable ? '' : 'Not available on this round yet';
+  });
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  renderRedline, redlineRoundLabel,
+  renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
