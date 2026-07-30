@@ -241,6 +241,19 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
       'the design pads only what is on the table — p-3 — so the frame means something');
   });
 
+  test('a repaint does not lose the reader\'s place in the contract', async () => {
+    /* Saving a redline or a tag repaints the page whole, and a rebuilt
+       scroller starts at the top — redline a clause six pages down and the
+       contract shot back to the title. */
+    const p = await page();
+    const before = p.doc.getElementById('nego-scroll-work');
+    before.scrollTop = 480;
+    p.win.renderRedline();
+    const after = p.doc.getElementById('nego-scroll-work');
+    assert.notEqual(after, before, 'the repaint rebuilt the node');
+    assert.equal(after.scrollTop, 480, 'and put the reader back where they were');
+  });
+
   test('the clause toolbar is an overlay: hidden at rest, costing no height', async () => {
     /* This rule has been wrong twice, in opposite directions. opacity:0 IN THE
        FLOW reserved a blank 26px row under every clause — the vertical air a
@@ -594,10 +607,14 @@ describe('F89 (10) — the Tracked Changes column holds only live redlines', () 
 });
 
 describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', () => {
-  test('Accept is green, Reject is red, Edit is grey', async () => {
+  test('Accept is green, Reject is red, Edit is grey — as soft washes, not solid fills', async () => {
+    /* Tint background + tone text, the status chips' own clothing: a row of
+       solid emerald and red fills read as alarms on every card. */
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:#059669/);
-    assert.match(p.rule('.redline-page .rl-rej') || '', /background:#dc2626/);
+    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /background:#d1fae5/);
+    assert.match(p.rule('.redline-page .rl-acc,.redline-page .rl-send') || '', /color:#047857/);
+    assert.match(p.rule('.redline-page .rl-rej') || '', /background:#fee2e2/);
+    assert.match(p.rule('.redline-page .rl-rej') || '', /color:#b91c1c/);
     assert.match(p.rule('.redline-page .rl-edit') || '', /background:#e2e8f0/);
     assert.match(p.rule('.redline-page .rl-edit') || '', /color:#1e293b/);
   });
@@ -779,7 +796,8 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
 
   test('the amber is the specified one, and it is not greyed out', async () => {
     const p = await page();
-    assert.match(p.rule('.redline-page .rl-sent') || '', /background:#d97706/);
+    assert.match(p.rule('.redline-page .rl-sent') || '', /background:#fef3c7/,
+      'the amber wash, matching the other verbs\' tint-and-tone clothing');
     assert.match(p.css(), /button\.rl-sent:disabled\{opacity:1\}/,
       'a state the reader is meant to read must not be dimmed like a withheld control');
   });

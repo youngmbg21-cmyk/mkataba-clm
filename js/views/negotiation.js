@@ -4111,23 +4111,30 @@ function redlineLayoutCss(){
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
   .redline-page .rl-card-verbs button{flex:1;min-width:64px;border:0;border-radius:7px;padding:6px;font:inherit;
     font-size:11px;font-weight:700;cursor:pointer;transition:filter .15s}
-  .redline-page .rl-card-verbs button:hover{filter:brightness(1.07)}
+  /* washes darken a touch on hover in light, lift in dark — a brightness
+     bump on a near-white tint is invisible */
+  .redline-page .rl-card-verbs button:hover{filter:brightness(.95)}
+  html.dark .redline-page .rl-card-verbs button:hover{filter:brightness(1.2)}
   /* ---- THE VERBS ARE COLOUR-CODED, AND THE CODE IS FIXED ----
-     Accept is green, Reject is red, Edit is grey, Send is green. Written as
-     literal hex rather than through the status tokens because those tokens
-     re-map in dark mode — --st-green-fg becomes a light mint that is unreadable
-     as a button fill — and a destructive verb that changes colour with the
-     theme is a verb somebody presses by mistake. These four are the design's
-     emerald-600 / red-600 / slate-200 / slate-800 exactly. */
-  .redline-page .rl-acc,.redline-page .rl-send{background:#059669;color:#fff}
-  .redline-page .rl-rej{background:#dc2626;color:#fff}
+     Accept and Send are green, Reject and Retract are red, Edit is grey — as
+     soft washes (tint background, tone text), the same clothing the status
+     chips wear, because a row of solid emerald and red fills read as alarms
+     on every card. Written as literal hex with explicit dark overrides rather
+     than through the status tokens, because those tokens re-map in dark mode
+     and a destructive verb that changes colour with the theme is a verb
+     somebody presses by mistake. */
+  .redline-page .rl-acc,.redline-page .rl-send{background:#d1fae5;color:#047857}
+  .redline-page .rl-rej{background:#fee2e2;color:#b91c1c}
   .redline-page .rl-edit{background:#e2e8f0;color:#1e293b}
+  html.dark .redline-page .rl-acc,html.dark .redline-page .rl-send{background:rgba(5,150,105,.18);color:#6ee7b7}
+  html.dark .redline-page .rl-rej{background:rgba(220,38,38,.18);color:#fda4af}
   html.dark .redline-page .rl-edit{background:#cbd5e1;color:#0f172a}
   /* Amber, past tense, inert — the send after it has gone. Full opacity
      despite being disabled: this is a STATE the reader is meant to read, not a
      control being withheld, and the browser's default greying-out would make
      the one card that has moved the hardest one to see. */
-  .redline-page .rl-sent{background:#d97706;color:#fff;cursor:default}
+  .redline-page .rl-sent{background:#fef3c7;color:#b45309;cursor:default}
+  html.dark .redline-page .rl-sent{background:rgba(245,158,11,.16);color:#fcd34d}
   .redline-page .rl-card-verbs button.rl-sent:disabled{opacity:1}
   .redline-page .rl-card-verbs button.rl-sent:hover{filter:none}
 
@@ -4516,6 +4523,17 @@ function redlineEmbed(host, c, opts = {}){
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
+  /* ---- THE SCROLL SURVIVES THE REPAINT ----
+     Saving a redline, adding a tag, answering a card — every one of them
+     repaints this page whole, and a rebuilt scroller starts at the top:
+     redline a clause six pages down and the contract shot back to the title.
+     The three scroll boxes keep their ids across paints, so their positions
+     are read before the rebuild and put back after the wiring. */
+  const _keepScroll = {};
+  ['nego-scroll-work', 'nego-cards', 'rl-threads'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.scrollTop) _keepScroll[id] = el.scrollTop;
+  });
   redlineLayoutCss();
   const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
   /* Recorded on the paint, not on the navigation: however the reader arrived —
@@ -4828,6 +4846,10 @@ function renderRedline(){
     }));
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
+  Object.keys(_keepScroll).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.scrollTop = _keepScroll[id];
+  });
 }
 
 /* ============================================================
