@@ -987,7 +987,16 @@ function portalNegoHtml(p){
      counterparty invited to negotiate a clean draft landed on a signing panel
      with nowhere to propose anything. */
   if(phase==='negotiate')
-    return `<div id="pt-nego" class="hidden"></div><div id="pt-nego-foot" class="hidden"></div>`;
+    return `
+    <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
+      box-shadow:var(--shadow-sm);overflow:hidden;margin:0 0 18px">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--color-divider);background:var(--color-bg)">
+        <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
+        <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">The same workbench ${esc((p&&p.org)||'the sender')} works on — the contract with every change marked, the tracked changes beside it, and the discussion beside those. Accept or reject what they have proposed, press <b>Direct Edit</b> under a clause to counter-propose, or discuss without changing anything.</span>
+      </div>
+      <div id="pt-nego" style="padding:12px"></div>
+      <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
+    </div>`;
   if(!Array.isArray(src.changes) || !src.changes.length) return '';
   return `
     <div id="pt-nego-wrap" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:8px;
@@ -997,8 +1006,7 @@ function portalNegoHtml(p){
           <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:16px">The negotiation</span>
           <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin-top:3px">Every change on this contract, with its own fingerprint. This is the same screen ${esc((p&&p.org)||'the sender')} is looking at — same clauses, same changes, same statuses. Accept or reject the ones they have proposed, or discuss any of them without changing the contract.</span>
         </span>
-        <button id="pt-nego-open" class="ui-btn ui-btn-primary" style="flex:none;font-size:12.5px;padding:9px 15px">Open the negotiation room</button>
-        ${''/* kept as the way BACK in after leaving the room, which opens on load */}
+        ${''/* the workbench mounts below, already visible — there is no room and no door */}
       </div>
       <div id="pt-nego" style="height:min(78vh,860px);padding:12px"></div>
       <div id="pt-nego-foot" style="padding:12px 18px;border-top:1px solid var(--color-divider);background:var(--color-bg);display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
@@ -1044,13 +1052,39 @@ function portalAgreedHtml(p){
 function portalNegoFootHtml(p){
   const n=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const live=!!PORTAL_OPTS.token && !portalReadOnly();
-  if(!live) return `<span style="font-size:11.5px;color:var(--color-neutral-600)">This copy is read-only — decisions have to be sent from the current link.</span>`;
+  if(!live) return `<span id="nego-readonly-why" style="font-size:11.5px;color:var(--color-neutral-600)">${esc(
+    portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+    : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
+    : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
+    : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')}</span>`;
+  /* ---- THE DEAL-LEVEL VERBS LIVE HERE NOW ----
+     The retired room carried Ready to sign and Decline on its own bar. They
+     are acts about the WHOLE deal, not about one change, so they belong to
+     the page rather than to a card — and the readiness gate is the engine's
+     own reading (negoReadyToSign), never inferred from an empty column:
+     resolving the last change does not make anybody ready, saying so does. */
+  /* The gate is ALIGNMENT, not merely every-change-answered: a refused ask
+     that nobody has withdrawn is answered and still contested, and telling
+     the other side you are ready over a contested point is the untruth the
+     room's gate existed to prevent. Same engine reads, same answer. */
+  const c=portalNegoContract(PORTAL_OPTS.payload||p);
+  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
+  const al=(window.negoAlignment&&c)?negoAlignment(c):{ aligned:false };
+  const readyOk=!!(al&&al.aligned);
+  const whyNot=(window.negoAlignmentWhy&&c)?(negoAlignmentWhy(c,'counterparty')||'Changes are still waiting on a decision.')
+    :'Changes are still waiting on a decision.';
+  const spent=PORTAL_READY_SENT;
   return `
     <span style="flex:1;min-width:150px;font-size:11.5px;color:${n?'#7d5a14':'var(--color-neutral-600)'}">
       ${n?`<b>${n} decision${n===1?'':'s'} ready to send.</b> Nothing has reached ${esc((p&&p.org)||'the sender')} yet.`
         :'Your decisions are held here until you send them. Comments send immediately and change nothing.'}
     </span>
-    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}`;
+    ${n?`<button id="pt-nego-send" class="ui-btn ui-btn-primary nego-pulse" style="flex:none;font-size:12.5px;padding:8px 15px">Send ${n} decision${n===1?'':'s'}</button>`:''}
+    ${readyOk||spent?'':`<span id="pt-ready-why" style="flex-basis:100%;font-size:11px;line-height:1.5;color:var(--color-neutral-600)">${esc(whyNot)}</span>`}
+    <button id="pt-nego-ready" class="ui-btn" ${readyOk&&!spent?'':'disabled'}
+      title="${esc(spent?'You have told them you are ready — they issue the signing link.':readyOk?'Tell them you are ready to sign':whyNot)}"
+      style="flex:none;font-size:12px;padding:8px 14px">${spent?'Readiness sent &#10003;':'Ready to sign'}</button>
+    <button id="pt-nego-decline" class="ui-btn" style="flex:none;font-size:12px;padding:8px 14px;color:#b0453c;border-color:color-mix(in srgb,#b0453c 40%,transparent)">Decline</button>`;
 }
 /* A reply on one fingerprint, sent immediately. It is not a response — it
    changes no wording, opens no round and does not close the link — so it goes
@@ -1081,86 +1115,97 @@ const portalNegoComment = p => async (_c, ch, msg) => {
   }catch(e){ toast(e.message||'Could not send your comment','err'); }
 };
 function wirePortalNego(c, p){
-  if(!window.renderNegotiationTab) return;
-  if(!document.getElementById('pt-nego')) return;
-  /* ONE COPY OF THE NEGOTIATION ON THE PAGE, NOT TWO.
+  /* ---- THE COUNTERPARTY'S PAGE IS THE WORKBENCH ----
+     One negotiation surface, both sides of the table. This used to open the
+     three-pane negotiation ROOM over the page — the layout the product retired
+     — so the counterparty was negotiating in a different, older product than
+     the owner. The room is gone from every route; what mounts here is the same
+     redlineEmbed the design ships, with this page's own rules on it:
 
-     On a negotiation link the room opens over this page and IS the screen. This
-     embedded mount was still being rendered underneath it — hidden, but in the
-     document — which put a second element on the page for every id the room
-     uses: #nego-cards, #nego-count, #nego-progress, #nego-send-decisions and
-     the rest. Anything reaching by id (document.getElementById, fval) found the
-     HIDDEN one, because it comes first.
+       · answers and counter-asks are HELD (PORTAL_NEGO_DECISIONS /
+         _PROPOSED) and travel only when the postbox is pressed — the same
+         hold-then-send this page has always had;
+       · no Copilot: this page has no panel, so no AI Assist and no selection
+         menu — Direct Edit is the counter-proposal route;
+       · the banner speaks to THEM, not about them: their table, their hold.
 
-     That is not theoretical. portalRespond picks the button to report progress
-     on with getElementById('nego-send-decisions') — so "Sending…" and "sent"
-     were being written onto an invisible copy while the button the reader was
-     looking at said nothing. It also cost a long stretch of this session's
-     debugging, because half the clicks in a scripted walk-through were landing
-     on the copy nobody can see. A duplicated id is a fault waiting for the next
-     person.
-
-     So the embedded mount is skipped exactly when the room is the page. The
-     host element stays — other code and the parity test look for it — and on a
-     SIGNING link, where the room is a mode entered from this page rather than
-     the page itself, the embedded copy is still the only mount and still
-     renders. */
-  if(portalNegoPhase(p).phase==='negotiate' && window.openNegotiationRoom){
-    document.getElementById('pt-nego').innerHTML='';
-    const foot0=document.getElementById('pt-nego-foot');
-    if(foot0){ foot0.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-    if(!_ptRoomOpened){ _ptRoomOpened=true; openPortalNegoRoom(c,p); }
-    return;
-  }
+     The mount rebuilds from portalNegoContract on every change, because this
+     page's copy of the contract is reassembled from the payload plus what is
+     held — the same rule the room lived by. */
+  if(!window.redlineEmbed) return;
+  const host=document.getElementById('pt-nego');
+  if(!host) return;
   const who=portalResponderLabel(c);
-  renderNegotiationTab(c, {
-    hostId:'pt-nego',
+  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  const org=(p&&p.org)||'the sender';
+  const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
+  const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
+  const facts=`Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
+  const banner = live
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>Your table:</b> ${
+        held?`<b>${held} answer${held===1?'':'s'}</b> held here — nothing has reached ${esc(org)} yet. `:''
+      }Decisions and counter-proposals stay on this page until you press Send. A reply travels only if marked shared. <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+    : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
+        portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+        : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
+        : 'This copy is read-only.')}</span></div>`;
+  redlineEmbed(host, c, {
     side:'counterparty',
-    readonly:portalReadOnly(),
-    // an answered link can still be spoken on — see openPortalNegoRoom
-    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
-    // this page holds answers until they are sent — see negoLiveCardsHtml
+    readonly:!live,
     holdsDecisions:true,
-    /* Which conversations THIS reader has read. Keyed by the link, because
-       their page has no contract id and the mark must not follow a different
-       link to a different deal. */
+    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     seenScope:PORTAL_OPTS.token||'',
     messages:PORTAL_OPTS.messages||[],
-    by:who, author:who,
-    /* There is nothing here to save. This page holds a COPY of somebody else's
-       contract, assembled from the share payload; persisting it would write that
-       copy into whatever storage the page can reach — and on a no-login origin
-       reaching for localStorage throws outright, which silently killed the
-       click handler before this was set. Decisions live in
-       PORTAL_NEGO_DECISIONS until they are sent. */
     persist:false,
-    /* A decision here is recorded locally and remembered, so it survives the
-       component's own re-render and can be sent as a batch. */
+    by:who, author:who,
+    noAi:true,
+    selMenu(){ /* no Copilot on this page; selecting text is just reading */ },
+    bannerHtml:banner,
+    org, height:'min(78vh, 860px)',
+    pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
+    pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
+    heldDecisionIds:Object.keys(PORTAL_NEGO_DECISIONS),
+    /* From the counterparty's seat, a settled owner-ask in the payload IS a
+       decision that has travelled — decisions on their asks are nobody
+       else's to make. Held ones are excluded; they have not gone yet. */
+    sentDecisionIds:[...new Set([
+      ...(c.changes||[]).filter(x=>x&&x.authorSide==='owner'
+        &&(x.status==='accepted'||x.status==='rejected')&&!x.heldByMe&&!x.withdrawn).map(x=>x.id),
+      ...Object.keys(PORTAL_NEGO_SENT||{})])],
+    unsentIds:Object.keys(PORTAL_NEGO_PROPOSED),
+    /* The transport already walled this payload — nothing unsent is in it —
+       and the rebuilt copy's turn stamp cannot re-derive the wall. See
+       redlineDocHtml. */
+    hiddenIds:[],
     onChange(rec){
-      // same rule as the room's — see openPortalNegoRoom
       for(const ch of (rec.changes||[])){
+        // a held decision is one that differs from what was sent — see the
+        // history on portalDecisionSettled
         if(ch.status!=='pending' && ch.authorSide==='owner' && !portalDecisionSettled(ch))
           PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
-        else if(ch.status==='pending') delete PORTAL_NEGO_DECISIONS[ch.id];
+        else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
+        // wording THEY have asked for, held by value until sent
+        if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
+          PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
       }
       portalSaveHeld();
       const foot=document.getElementById('pt-nego-foot');
       if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
     },
+    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
     onComment:portalNegoComment(p),
-    onPropose(){ document.getElementById('pt-redline')?.click(); },
+    onSendDecisions(){ portalRespond(p,'decisions'); },
+    rerender(){ wirePortalNego(portalNegoContract(p), p); },
   });
   const foot=document.getElementById('pt-nego-foot');
   if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-  document.getElementById('pt-nego-open')?.addEventListener('click',()=>openPortalNegoRoom(c,p));
-  /* Opening the room on a negotiation link is handled at the top, where the
-     embedded mount is skipped — the two decisions are the same decision and
-     were drifting apart when they lived in two places. */
+  /* "Review what changed" on a signing link unhides this same mount, readonly
+     — the one workbench again, never a second surface. */
+  document.getElementById('pt-nego-open')?.addEventListener('click',()=>{
+    document.getElementById('pt-nego')?.classList.remove('hidden');
+    document.getElementById('pt-nego-foot')?.classList.remove('hidden');
+  },{ once:true });
 }
-/* Whether the room has already been offered on this page load. A page-level
-   latch rather than a room-level one, because the room legitimately re-renders
-   itself many times and re-opening on each would trap the reader inside it. */
-let _ptRoomOpened=false;
 function wirePortalNegoFoot(c, p){
   /* The pulse on this button is defined in the room's stylesheet — one
      animation for both postboxes rather than two that can drift. The sheet
@@ -1168,146 +1213,22 @@ function wirePortalNegoFoot(c, p){
      nothing and removes the assumption that the room has already opened. */
   if(window.negoEnsureStyle) negoEnsureStyle();
   document.getElementById('pt-nego-send')?.addEventListener('click',()=>portalRespond(p,'decisions'));
-}
-/* The counterparty's door into the room — the SAME full-window mode the owner
-   enters, rendered with side:'counterparty'. His verbs (sign, accept the
-   wording, propose, decline, send decisions) occupy the slot the owner uses for
-   Save Draft and Share Link, so neither side is looking at a lesser screen.
-
-   The room is a door rather than the landing page on purpose: his page also
-   carries the name field, the signing route and the banners telling him what
-   moved since he last looked, and dropping him straight into a full-window mode
-   would put those behind him before he had read them. Leaving the room returns
-   him to exactly that page. */
-function openPortalNegoRoom(c, p){
-  if(!window.openNegotiationRoom){ toast('The negotiation room is unavailable on this page','err'); return; }
-  const who=portalResponderLabel(c);
-  const live=!!PORTAL_OPTS.token && !portalReadOnly();
-  const reopen=()=>openPortalNegoRoom(portalNegoContract(p), p);
-  /* Is the room the page, or a mode? It is the page when the link they were
-     sent is a negotiation link; a mode when they opened it from a signing link
-     to look back at what changed. Only the first has no way out — see
-     negoRoomHasExit. */
-  const isLanding=portalNegoPhase(p).phase==='negotiate';
-  openNegotiationRoom(c, {
-    side:'counterparty',
-    noExit:isLanding,
-    readonly:!live,
-    // answers are held here until they are sent — see negoLiveCardsHtml
-    holdsDecisions:true,
-    // see wirePortalNego — the link identifies this reader's own read-marks
-    seenScope:PORTAL_OPTS.token||'',
-    messages:PORTAL_OPTS.messages||[],
-    /* SPEAKING OUTLIVES DECIDING. A one-shot link that has been answered can no
-       longer move the negotiation — correctly — but the message route it would
-       use is still open: a comment consumes no link, opens no round and changes
-       no wording, which is the whole reason that route exists separately. So
-       the reply box on a card stays as long as there is a channel back at all.
-       A superseded copy has none: a newer link was sent and this one's replies
-       would be filed against a conversation nobody is reading. */
-    canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
-    /* Why there are no verbs, in the reader's terms. Each of the three ways a
-       copy goes read-only is a different fact about their link, and "no buttons"
-       is not one of them. */
-    readonlyWhy: live ? '' :
-      portalExecuted()
-        ? 'This contract has been executed and sealed — the wording is final. Ask the sender to record an amendment if something has to change.'
-      : PORTAL_OPTS.superseded
-        ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
-      : PORTAL_OPTS.responded
-        ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
-        : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.',
-    persist:false,
-    by:who, author:who,
-    /* Whom the sender addressed the link to, so the field opens filled in
-       rather than asking a person who has already been named to name
-       themselves. Still theirs to correct — an address book is not evidence of
-       who is at the keyboard.
-
-       WHAT THEY HAVE ALREADY TYPED WINS, though. The room repaints on every
-       decision — each Accept rebuilds it — so rebuilding the field from the
-       share's recipient would wipe a name typed into it a moment earlier.
-       Reading the live box first makes the repaint carry it rather than undo
-       it. */
-    recipientName:fval('nego-cp-name')||(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName)||fval('pt-name')||'',
-    org:(p&&p.org)||'',
-    pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
-    pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
-    /* Already told them, on this page load. The payload cannot say so — it was
-       built before they pressed it — so the page remembers, and the button
-       reports itself spent rather than inviting a second identical signal. */
-    readySignalled:PORTAL_READY_SENT,
-    onChange(rec){
-      for(const ch of (rec.changes||[])){
-        /* A HELD DECISION IS ONE THAT DIFFERS FROM WHAT WAS SENT.
-
-           This ran on every repaint and re-registered any decided change as
-           held — including ones already posted, and including repaints that
-           decided nothing at all. So opening a Discuss thread on a change whose
-           answer had gone made "Send 1 decision" reappear, the "sent" pill
-           vanish and Undo come back: the page forgot, on a click that touched
-           nothing, that the answer had ever left. Same symptom as the verbs
-           reappearing after a send, and the same wrong answer to "has this
-           been dealt with". */
-        if(ch.status!=='pending' && ch.authorSide==='owner' && !portalDecisionSettled(ch))
-          PORTAL_NEGO_DECISIONS[ch.id]={ status:ch.status, reply:ch.reply||null };
-        else if(ch.status==='pending' && ch.authorSide==='owner') delete PORTAL_NEGO_DECISIONS[ch.id];
-        /* Wording THEY have asked for. Held until they send it — and held by
-           value, because the room rebuilds its contract from the payload and
-           would otherwise drop it on the next repaint. Already-sent ones are
-           left alone: re-holding them would post the same ask twice. */
-        if(ch.authorSide==='counterparty' && ch.status==='pending' && !PORTAL_NEGO_PROPOSED_SENT[ch.id])
-          PORTAL_NEGO_PROPOSED[ch.id]={ ...ch, thread:[] };
-      }
-      portalSaveHeld();   // it is a draft of a reply, and drafts survive a reload
-      /* The postbox lives in the change index and is rendered from these
-         counts, so it has to be repainted when they move. */
-      const foot=document.getElementById('pt-nego-foot');
-      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-    },
-    /* An ask of THEIRS that we refused and they have now let go. Held on this
-       page beside the decisions and posted in the same call, for the same
-       reason: a withdrawal that never left the browser is a deadlock the
-       reader thinks they have cleared. */
-    onWithdraw(_c, id, on){ if(on) PORTAL_NEGO_WITHDRAWN[id]=true; else delete PORTAL_NEGO_WITHDRAWN[id]; portalSaveHeld(); },
-    onComment:portalNegoComment(p),
-    rerender:reopen,
-    onSendDecisions(){ portalRespond(p,'decisions'); },
-    /* ONE PRESS, ONE CALL. Readiness carries the decisions with it — see
-       portalRespond. The room stays open: they have nowhere else to be, and
-       closing it under them was how the old flow lost people. */
-    onSignalReady(){ portalRespond(p,'ready'); },
-    async onDecline(){
-      /* Ask here, in the room. A refusal the other side cannot understand is a
-         refusal they will argue with, and the requirement is real — what was
-         missing was anywhere to satisfy it from. */
-      let why='';
-      /* Reached through `window`, not as a bare call. js/core.js declares
-         promptDialog as a lexical function, so a bare call resolves to that
-         binding and can never be substituted — the same trap negoResolve
-         documents for canEdit, and the reason a stubbed dialog would be
-         silently ignored here. */
-      if(typeof window.promptDialog==='function'){
-        why=await window.promptDialog({ title:'Decline this contract?',
-          message:`This ends the negotiation and tells ${esc((p&&p.org)||'the sender')} you are not proceeding. It cannot be undone from this link.`,
-          label:'Why are you declining?',
-          placeholder:'e.g. The liability cap is below our board mandate.',
-          confirmLabel:'Decline the contract' });
-        if(why==null) return;                     // cancelled — nothing is sent
-        if(!String(why).trim()){ toast('A reason is required to decline','err'); return; }
-      }
-      if(!isLanding) closeNegotiationRoom();
-      portalRespond(p,'decline',{ comment:why });
-    },
-    onPropose(){ if(!isLanding) closeNegotiationRoom(); document.getElementById('pt-redline')?.click(); },
-    onExit(){
-      // his page repaints so a decision taken in the room shows on the card too
-      const foot=document.getElementById('pt-nego-foot');
-      if(foot){ foot.innerHTML=portalNegoFootHtml(p); wirePortalNegoFoot(c,p); }
-      wirePortalNego(portalNegoContract(p), p);
-    },
+  document.getElementById('pt-nego-ready')?.addEventListener('click',()=>portalRespond(p,'ready'));
+  document.getElementById('pt-nego-decline')?.addEventListener('click',async()=>{
+    /* A refusal the other side cannot understand is a refusal they will argue
+       with — the reason is required, exactly as the room required it. */
+    const reason=await (window.promptDialog?promptDialog({title:'Decline this contract?',
+      message:'This ends the negotiation on this link. Say why — they will be told, and it goes on the record.',
+      placeholder:'e.g. The liability cap is below our board minimum.'}):Promise.resolve(''));
+    if(reason==null) return;
+    if(!String(reason).trim()){ toast('A reason is required to decline','err'); return; }
+    portalRespond(p,'decline',{ comment:String(reason).trim() });
   });
 }
+/* The negotiation room is RETIRED. Both sides of the table use the one
+   workbench now — see wirePortalNego — and the code that opened the room from
+   this page is gone rather than dormant: a door that still opens is a door
+   somebody walks through. */
 
 /* ---------- THE PAGE KEEPS UP WITH THE DEAL ----------
 
@@ -1474,15 +1395,6 @@ function renderSharePortal(p, opts={}){
      portalLoadHeld. Before the room is built, because the room is built FROM
      these. */
   portalLoadHeld();
-  /* A WHOLE-PAGE RENDER IS A FRESH ARRIVAL, so the room opens again with it.
-
-     `_ptRoomOpened` stops the room snapping shut and re-opening every time the
-     component repaints — necessary, because a reader who steps out of the room
-     on a signing link must be able to stay out. But it is a page-level latch,
-     and this is a new page: the link has been refreshed in place with newer
-     wording and newer statuses. Left set, the reader kept looking at the room
-     built from the copy before it. */
-  _ptRoomOpened=false;
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
   // Is there actually a document to render? Three ways there can be:
@@ -1773,7 +1685,8 @@ async function portalRespond(p, action, extra){
        lives in the change index on a negotiation link and in the foot of the
        card on a signing link, so both are offered and the one on the page
        wins. */
-    const pressed=action==='ready' ? 'nego-cp-ready'
+    const pressed=action==='ready'
+      ? (document.getElementById('pt-nego-ready') ? 'pt-nego-ready' : 'nego-cp-ready')
       : (document.getElementById('nego-send-decisions') ? 'nego-send-decisions' : 'pt-nego-send');
     portalSetBusy(pressed, action==='ready'?'Sending…':'Sending…');
     try{
@@ -1810,7 +1723,7 @@ async function portalRespond(p, action, extra){
       /* Repaint, so the room shows the decisions as sent rather than still
          waiting to be. The room is their page — there is nowhere else for the
          outcome to appear. */
-      if(window.negoRoomIsOpen && negoRoomIsOpen()) openPortalNegoRoom(portalNegoContract(p), p);
+      wirePortalNego(portalNegoContract(p), p);   // repaint the workbench with the fresh record
     }catch(e){
       portalSetIdle();
       toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');
@@ -2205,4 +2118,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,openPortalNegoRoom,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});

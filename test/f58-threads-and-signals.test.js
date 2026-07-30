@@ -336,49 +336,60 @@ describe('F58 — a reply survives the repaint that used to eat it', () => {
     const v = theirLink(c);
     const id = filed[0].id;
 
-    await v.press(`[data-nego-discuss="${id}"]`);
+    /* The reply box is in the Discussion column now. Shared has to be said —
+       internal is the default, so a forgotten switch stays home. */
+    await v.press(`[data-nego-vis="shared"][data-for="${id}"]`);
     await v.type(`#nego-ti-${id}`, 'We need Net-45 to match our AP cycle.');
     await v.press(`[data-nego-send="${id}"]`);
 
     assert.ok(v.p.log.sent.some(x => /\/messages$/.test(x.pathname) && x.body.topic === 'change:' + id),
       'the reply really went down the discussion route');
-    assert.match(v.$(`#nego-thread-${id}`).textContent, /match our AP cycle/,
-      'and it is on the card straight away');
+    assert.match(v.$('[id="rl-threads"]').textContent, /match our AP cycle/,
+      'and it is in the thread straight away');
 
-    /* THE REPAINT THAT USED TO EAT IT. Accept rebuilds the whole room from the
+    /* THE REPAINT THAT USED TO EAT IT. Accept rebuilds the whole page from the
        share payload — a snapshot taken before the reply existed. */
     await v.press(`[data-nego-accept="${id}"]`);
-    assert.match(v.$(`#nego-thread-${id}`).textContent, /match our AP cycle/,
+    assert.match(v.$('[id="rl-threads"]').textContent, /match our AP cycle/,
       'their own words must not disappear under them');
-    assert.match(v.$(`[data-nego-discuss="${id}"]`).textContent, /Discuss \(1\)/);
+    assert.match(v.$('[id="rl-thread-count"]').textContent, /1 thread/);
   });
 
   test('and survives a second repaint, and a third', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
-    await v.press(`[data-nego-discuss="${id}"]`);
+    await v.press(`[data-nego-vis="shared"][data-for="${id}"]`);
     await v.type(`#nego-ti-${id}`, 'Net-45 please.');
     await v.press(`[data-nego-send="${id}"]`);
     await v.press(`[data-nego-accept="${id}"]`);
     await v.press(`[data-nego-undo="${id}"]`);
-    assert.match(v.$(`#nego-thread-${id}`).textContent, /Net-45 please/);
+    assert.match(v.$('[id="rl-threads"]').textContent, /Net-45 please/);
   });
 
   test('their postbox pulses once a decision is held', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
-    const send = v.$('#nego-room .nego-pane.index #nego-send-decisions');
+    const send = v.$('#nego-send-decisions');
     assert.ok(send, 'the send is with the decisions');
+    assert.ok(send.closest('.nego-index-send'), 'in the index, beside the work it sends');
     assert.match(send.className, /nego-pulse/, 'and it asks to be pressed');
   });
 
-  test('their reply button reads Send too — one component, both sides', async () => {
-    const { c, filed } = await ownerProposed();
+  test('their reply control is the owner\'s reply control — one component, both sides', async () => {
+    const { win, c, filed } = await ownerProposed();
     const v = theirLink(c);
-    await v.press(`[data-nego-discuss="${filed[0].id}"]`);
-    assert.equal(v.$(`[data-nego-send="${filed[0].id}"]`).textContent.trim(), 'Send');
+    const theirs = v.$(`[data-nego-send="${filed[0].id}"]`);
+    assert.ok(theirs, 'the per-change reply send is on their page');
+    // and the owner's page renders the identical control from the same renderer
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const ours = win.document.querySelector(`[data-nego-send="${filed[0].id}"]`);
+    assert.ok(ours, 'and on ours');
+    assert.equal(theirs.getAttribute('title'), ours.getAttribute('title'),
+      'same control, same words, either side of the table');
   });
 });
 

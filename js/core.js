@@ -1667,8 +1667,12 @@ function buildSharePayload(c, docHash, who, opts){
 
      The one thing that stays behind is the internal name of whoever ruled: the
      organisation speaks, exactly as it does for shareRounds above. */
+  /* What the owner has not sent is not sendable by a side effect. See the
+     holdUnsent note at the quiet-refresh call site. */
+  const heldBack = (opts && opts.holdUnsent && window.negoUnsentAsks)
+    ? new Set(negoUnsentAsks(c, 'owner').map(x => x.id)) : new Set();
   const shareChanges = (window.negoAllChanges ? negoAllChanges(c) : [])
-    .filter(x => x.status !== 'superseded')
+    .filter(x => x.status !== 'superseded' && !heldBack.has(x.id))
     .map(x => ({ id:x.id, clauseId:x.clauseId, clauseLabel:x.clauseLabel||null, type:x.type,
       changeType:x.changeType||null, afterClauseId:x.afterClauseId||null,
       headingText:x.headingText||null, bodyHtml:x.bodyHtml||null,
@@ -1681,7 +1685,14 @@ function buildSharePayload(c, docHash, who, opts){
       prevChangeHash:x.prevChangeHash||null, seq:x.seq||null, status:x.status,
       needsReview:x.needsReview||false, needsReviewWhy:x.needsReviewWhy||null,
       author:x.author, authorSide:x.authorSide, createdAt:x.createdAt, roundN:x.roundN||null,
-      summary:x.summary, note:x.note||null, reply:x.reply||null,
+      /* THE NOTE IS THE AUTHOR'S ASIDE, AND IT DOES NOT CROSS THE TABLE. It
+         used to travel whole, and the counterparty's page printed it under
+         "why they asked" — which for a Copilot-drafted change read
+         "Copilot — Explain Legal Risk": telling the other side HOW we drafted
+         and WHICH clause we felt exposed on. Negotiation-sensitive twice over.
+         Their own note comes back to them — they wrote it — and ours stays
+         home. */
+      summary:x.summary, note:(x.authorSide==='counterparty'&&x.note)?x.note:null, reply:x.reply||null,
       resolvedAt:x.resolvedAt||null,
       /* Whether a refused ask has been taken off the table by the side that
          made it. It travels because "Ready to sign" is gated on it: a reader
@@ -1699,7 +1710,19 @@ function buildSharePayload(c, docHash, who, opts){
          The number is enough for the check to say "not carried here" instead of
          "altered", and it publishes nothing. See verifyChangeChain. */
       revisionsOmitted:(Array.isArray(x.revisions)?x.revisions.length:0) || undefined,
-      thread:Array.isArray(x.thread)?x.thread.map(m=>({ who:m.who, side:m.side, at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
+      /* ONLY THE SHARED HALF OF THE THREAD TRAVELS. negoPostComment's own
+         documentation promises that an internal note "reaches nobody by simply
+         not being posted — there is no filter here to get wrong". That was true
+         when it was written and stopped being true when the thread was later
+         added to this payload WHOLE: every internal aside a colleague filed on
+         a change — the negotiation ceiling, the walk-away point — travelled to
+         the counterparty's page, without even a visibility field their page
+         could have filtered on. The filter now exists in the one place a
+         missing filter cannot leak: what is never sent needs no hiding. The
+         visibility field rides along so the reader's page can label the shared
+         messages honestly. */
+      thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared')
+        .map(m=>({ who:m.who, side:m.side, visibility:'shared', at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to
      the old reading of the change set, so an existing link keeps opening on
@@ -1865,18 +1888,30 @@ async function reshareToLastRecipient(c, opts={}){
   const record=(r,reused)=>{
     const ch=last.channel||'email';
     const delivered=ch==='email' && !!r.emailSent;
-    const detail = delivered
+    /* A round published to the standing link ON PURPOSE is not a failed email.
+       The link was delivered once, when the negotiation began; every round
+       after that travels through the platform, and the audit line says so
+       instead of reading like a mail outage. */
+    const quiet=!!r.notifySkipped;
+    const detail = quiet
+      ? `Round sent to ${who}'s standing link — the platform is the channel; the link was emailed once, when the negotiation began`
+      : delivered
       ? `Updated version emailed to ${who}${reused?' on their existing link':''}`
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
     logAudit(c,'Shared',detail);
     persist(c);
-    return { share:r, recipient:last, reused:!!reused, delivered, channel:ch,
+    return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
              link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
   };
   if(live){
-    const r=await api('shares/'+live.token+'/payload','PUT',{ payload });
+    /* ONE EMAIL PER NEGOTIATION, and this is the line that keeps the promise:
+       a round-send onto an existing standing link refreshes the copy behind
+       the URL the counterparty already holds and posts nothing. The first
+       send — the POST below, when no link exists yet — is the one that emails,
+       because it is the one delivering a link. */
+    const r=await api('shares/'+live.token+'/payload','PUT',{ payload, notify:false });
     return record(r||{}, true);
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
@@ -2479,7 +2514,17 @@ async function applyResponse(c, r, opts={}){
     logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
-    if(window.allSigned && allSigned(c) && c.status!=='Signed' && window.finalizeExecution){
+    const routeDone = window.allSigned && allSigned(c);
+    /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
+       plan can still arrive here holding both parties' marks — ours recorded
+       outside the single-signer path (a migration, an off-platform mark), and
+       theirs landing now through the share link. Leaving it unsealed meant a
+       fully signed contract that never froze, never fingerprinted and never
+       sent anybody their copy. The route check stays first and stricter: while
+       a plan exists, only its completion seals. */
+    const bothDone = (!window.signerPlan || !signerPlan(c).length)
+      && window.bothPartiesSigned && bothPartiesSigned(c);
+    if((routeDone || bothDone) && c.status!=='Signed' && window.finalizeExecution){
       c.lastAction=todayStr(); persist(c);
       await finalizeExecution(c, { silent:!!opts.background });
       return true;
@@ -2696,7 +2741,14 @@ async function refreshLiveShareQuietly(c){
       /* The purpose the link was issued with is kept. A negotiation link that
          quietly became a signing link — or the reverse — would change what the
          reader is being asked to do without anybody deciding it. */
-      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined });
+      /* holdUnsent: this refresh fires on DECISIONS — an answer to something
+         already on their screen — and can run while the owner holds a draft
+         they have not sent. A payload built here without the guard carried
+         that draft to the counterparty's page: the one thing the whole turn
+         model exists to keep home, leaked by a background sync. The explicit
+         SEND path never sets this, because there everything pending is
+         precisely what is being sent. */
+      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined, holdUnsent:true });
       try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
     }
   }catch(e){ /* the record is right either way; the link catches up next time */ }

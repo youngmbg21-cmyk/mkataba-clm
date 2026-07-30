@@ -98,25 +98,48 @@ describe('F70 — the counterparty sees the negotiation we see', () => {
     assert.ok(!('changes' in sent[0]), 'so the round does not carry them a second time');
   });
 
-  test('THE REPORTED GAP — their dropdown reads exactly like ours', async () => {
+  /* REWRITTEN with the surface. The round dropdown belonged to the retired
+     three-pane room; both parties now stand at the same workbench, so the
+     parity is asserted the way f37 asserts it — the two rendered screens are
+     diffed, cards and clause tags alike, over a negotiation with a settled
+     round, a withdrawal and a live ask in it. */
+  test('THE REPORTED GAP — their page reads exactly like ours', async () => {
     const { win, c } = await played();
-    const mine = rows(ownerRoom(win, c).$('[data-nego-vsel="left"]'));
-    const theirs = rows(theirLink(c).$('[data-nego-vsel="left"]'));
-    assert.deepEqual(Array.from(theirs), Array.from(mine));
-    assert.ok(mine.includes('Round 1 - Baseline'), 'including the round that is over');
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const read = root => ({
+      cards: Array.from(root.querySelectorAll('[id="rl-changes"] [data-nego-card]'))
+        .map(n => n.getAttribute('data-nego-card')),
+      tags: Array.from(root.querySelectorAll('[id="rl-doc"] .rl-asktag'))
+        .map(n => n.textContent.replace(/Their ask|Your ask/, 'ask').trim()),
+    });
+    const mine = read(win.document.getElementById('view-redline'));
+    const v = theirLink(c);
+    const theirs = read(v.win.document.getElementById('pt-nego'));
+    assert.equal(theirs.cards.join(','), mine.cards.join(','),
+      'the same live cards, in the same order — the settled round on neither');
+    assert.equal(theirs.tags.join(','), mine.tags.join(','),
+      'the same fingerprints on the same clauses, sides swapped, facts identical');
   });
 
-  test('and the history is on their screen too, read-only', async () => {
+  test('and the history is on their copy too, read-only', async () => {
     const { c, past } = await played();
     const v = theirLink(c);
-    assert.ok(v.$('#nego-history'), 'the rounds that are over are on their page');
-    v.press('[data-nego-round="1"]');
-    const card = v.$(`[data-nego-past="${past.theirs.id}"]`);
-    assert.ok(card, 'opened onto what was settled');
-    assert.match(card.textContent.replace(/\s+/g, ' '), /cashflow needs the extra fortnight/,
-      'with the discussion that went with it');
-    assert.equal(card.querySelector('[data-nego-accept],[data-nego-reject],[data-nego-undo]'), null,
-      'and nothing on it to decide');
+    /* The settled round travels whole and is rebuilt on their side — number,
+       starting wording, and the changes that belonged to it with their
+       decisions on. */
+    const rebuilt = v.win.portalNegoContract(v.payload);
+    const r1 = (rebuilt.negotiation.rounds || [])[0];
+    assert.ok(r1, 'the round that closed is on their copy');
+    const settled = (r1.changes || []).find(x => x.id === past.theirs.id);
+    assert.ok(settled, 'with what was settled in it');
+    assert.equal(settled.status, 'accepted', 'wearing its decision');
+    /* And read-only means read-only: an archived change has no card on the
+       table and nothing anywhere offers to decide it again. */
+    assert.equal(v.$(`[data-nego-card="${past.theirs.id}"]`), null);
+    assert.equal(v.$(`[data-nego-accept="${past.theirs.id}"]`), null);
+    assert.equal(v.$(`[data-nego-undo="${past.theirs.id}"]`), null);
   });
 
   test('a settled change is out of their live list — it is not on the table', async () => {
@@ -165,16 +188,15 @@ describe('F70 — the counterparty sees the negotiation we see', () => {
 
   test('a link made before any of this still opens', async () => {
     /* An older payload has no rounds on its negotiation. It must behave exactly
-       as it did — the live pair, no history, nothing thrown away. */
+       as it did — the live changes on the table, nothing thrown away. */
     const { c } = await played();
     const v = theirLink(c);
     const old = JSON.parse(JSON.stringify(v.payload));
     delete old.contract.negotiation.rounds;
     v.p.open(old, { token: 'tok_old', share: { recipientName: 'Erik Lindqvist' } });
-    assert.equal(v.$('#nego-history'), null, 'no history, because the link carries none');
-    assert.deepEqual(Array.from(rows(v.$('[data-nego-vsel="left"]'))),
-      ['Round 2 - Baseline', 'Round 2 - Working Version']);
-    assert.ok(v.$$('[data-nego-card]').length > 0, 'and the room still works');
+    assert.ok(v.win.document.querySelector('#pt-nego .rl-embed'),
+      'the workbench still mounts');
+    assert.ok(v.$$('[data-nego-card]').length > 0, 'and the table still works');
   });
 });
 
@@ -210,37 +232,38 @@ describe('F70 — every card says whose ask it is', () => {
   });
 
   test('the edge can never collide with the "not sent yet" edge', async () => {
-    /* Both are left borders. They cannot land on one card: the amber only ever
-       marks a decision made about the OTHER side's ask, because nobody decides
-       their own. This asserts the rule the styling rests on. */
+    /* A held mark only ever lands on a decision about the OTHER side's ask,
+       because nobody decides their own. This asserts the rule the marking
+       rests on, in the new card model: data-unsent (a held answer) can only
+       appear on a card whose change the owner authored. */
     const { c } = await played();
     const v = theirLink(c);
-    const theirOwn = v.$$('.nego-card.is-mine');
-    for (const card of theirOwn)
-      assert.ok(!/is-held/.test(card.className), 'your own ask is never something you answered');
-    /* And answering one of ours holds it, on a card that is not ours. */
+    assert.equal(v.$('[data-unsent]'), null, 'nothing is held yet');
     const open = v.$('[data-nego-accept]');
     assert.ok(open, 'there is one of our asks open to them');
     open.dispatchEvent(new v.win.Event('click', { bubbles: true }));
-    const held = v.$('.nego-card.is-held');
+    for (let i = 0; i < 3; i++) await new Promise(r => setImmediate(r));
+    const held = v.$('[data-unsent]');
     assert.ok(held, 'it is now held');
-    assert.ok(!/is-mine/.test(held.className), 'and it was never theirs');
+    const ch = v.payload.contract.changes.find(x => x.id === held.getAttribute('data-unsent'));
+    assert.equal(ch.authorSide, 'owner', 'and the ask it answers was never theirs');
   });
 
   test('one component, both screens — the same card, from the other chair', async () => {
-    const { win, c, past } = await played();
-    const r = ownerRoom(win, c);
-    r.press('[data-nego-round="1"]');
-    const oursHere = r.$(`[data-nego-past="${past.ours.id}"] .nego-whose`).textContent.trim();
+    const { win, c, live } = await played();
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const tagIn = (root, id) => Array.from(root.querySelectorAll('.rl-asktag'))
+      .find(n => n.textContent.includes(id));
+    const oursHere = tagIn(win.document.getElementById('view-redline'), live.id).textContent;
 
     const v = theirLink(c);
-    v.press('[data-nego-round="1"]');
-    const oursThere = v.$(`[data-nego-past="${past.ours.id}"] .nego-whose`).textContent.trim();
+    const oursThere = tagIn(v.win.document.getElementById('pt-nego'), live.id).textContent;
 
-    assert.equal(oursHere, 'Your ask');
-    assert.notEqual(oursThere, 'Your ask',
-      'the card we filed cannot read as theirs on their screen');
-    assert.match(oursThere, /ask$/);
+    assert.match(oursHere, /Your ask/);
+    assert.match(oursThere, /Their ask/,
+      'the ask we filed cannot read as theirs on their screen');
   });
 
   test('the grey italic it replaces is gone, not left beside it', async () => {

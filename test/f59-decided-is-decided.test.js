@@ -94,9 +94,10 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
         `#${f.id}: a sent decision is not a question still on the table`);
       assert.equal(v.$(`[data-nego-reject="${f.id}"]`), null);
       assert.ok(v.$(`[data-sent="${f.id}"]`), 'and the card says the answer has gone');
-      assert.match(v.$(`[data-nego-card="${f.id}"]`).textContent, /accepted/,
+      assert.match(v.$(`[data-nego-card="${f.id}"]`).textContent, /Accepted/,
         'with the answer itself on it');
-      assert.ok(v.$(`[data-nego-discuss="${f.id}"]`), 'talking about it is always allowed');
+      assert.ok(v.$(`[data-rl-change="${f.id}"]`),
+        'talking about it is always allowed — the note tool still names the change');
     }
     assert.equal(v.$('#nego-send-decisions'), null, 'with nothing left waiting to go');
   });
@@ -109,7 +110,7 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
     await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
 
-    await v.press(`[data-nego-discuss="${id}"]`);          // opens a thread, decides nothing
+    await v.press(`[data-nego-card="${id}"]`);             // jumps to the clause, decides nothing
     assert.equal(v.$('#nego-send-decisions'), null,
       'one click that touched nothing must not resurrect "Send 1 decision"');
     assert.ok(v.$(`[data-sent="${id}"]`), 'nor take the sent pill off');
@@ -120,26 +121,27 @@ describe('F59 — after Send, the card is answered and stays answered', () => {
   test('both sides render the same verbs on a decided change', async () => {
     /* The owner's side of the same shape: a change made BY the counterparty,
        decided by the owner. The owner has no send step — their decision is
-       written to the record as they make it — so "sent" has no counterpart
-       there and the comparison is of what a DECIDED card offers. */
+       written to the record as it is made, so the settled change leaves the
+       Tracked Changes column entirely. On the counterparty's page the card
+       stays, wearing "sent", because their answer is out of their hands but
+       may still be re-decided — and it offers no verdict either way. */
     const { win, c } = await ownerProposed();
     const theirs = await theyProposed(win, c);
     win.negoResolve(c, theirs.id, 'accepted', { side: 'owner', by: 'Wanjiru Kamau' });
-    win.negoResetView();
-    win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false });
-    const ownerVerbs = verbsOn(win.document, theirs.id);
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    assert.equal(win.document.querySelector(`[data-nego-card="${theirs.id}"]`), null,
+      'a decided change is settled and off the owner\'s table');
 
     const { c: c2, filed } = await ownerProposed();
     const v = theirLink(c2);
     await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
-    const theirVerbs = verbsOn(v.win.document.querySelector('#nego-room'), filed[0].id);
-
-    for (const side of [ownerVerbs, theirVerbs]){
-      assert.ok(!side.includes('accept') && !side.includes('reject'),
-        'neither side offers a verdict on a change that already has one: ' + side.join(', '));
-      assert.ok(side.includes('discuss'), 'and both can still talk about it');
-    }
+    const theirVerbs = verbsOn(v.win.document, filed[0].id);
+    assert.ok(!theirVerbs.includes('accept') && !theirVerbs.includes('reject'),
+      'no verdict is offered on a change that already has one: ' + theirVerbs.join(', '));
+    assert.ok(v.$(`[data-rl-change="${filed[0].id}"]`), 'and they can still talk about it');
   });
 });
 

@@ -1940,8 +1940,8 @@ function wireActionBar(c){
       const strip=document.getElementById('changes-review');
       if(strip){ strip.click(); return; }
       /* Changes that arrived as tracked items rather than as a round have no
-         strip to borrow — the room is where they are decided. */
-      openNegotiationOwnerRoom(c); return;
+         strip to borrow — the workbench is where they are decided. */
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return;
     }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
@@ -2130,7 +2130,7 @@ function openNegotiationOwnerRoom(c){
       logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
       persist(c);
       toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
-      openNegotiationOwnerRoom(c);
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     },
     /* THE SEND, once there is somewhere to send to. Rides the same route the
        "send updated version" control has always used: an existing standing link
@@ -2144,14 +2144,20 @@ function openNegotiationOwnerRoom(c){
         const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
         if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
         else persist(c);
-        toast(out.delivered
+        /* Three honest outcomes. quiet: the standing link took the round and no
+           email goes — by design, the platform is the channel after the first
+           send. delivered: the FIRST send, which emails the link. Otherwise the
+           link went out on a channel that cannot deliver itself. */
+        toast(out.quiet
+          ? `Sent to ${to} — the new round is on their link, and it is now their turn`
+          : out.delivered
           ? `Sent to ${to} — it is now their turn`
           : `Published to ${to}'s link — it is now their turn. ${out.channel==='email'?'It was not emailed; send them the link.':'Send them the link.'}`,
-          out.delivered?undefined:'err');
+          (out.quiet||out.delivered)?undefined:'err');
       }catch(err){
         toast(`Could not send to ${to} — ${err.message}`,'err');
       }
-      openNegotiationOwnerRoom(c);
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     },
     onDecided(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     onWithdraw(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
