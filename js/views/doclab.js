@@ -2139,12 +2139,12 @@ function renderDocLab(){
     .lab-tag.note-owner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
     .lab-tag.note-counterparty{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
     .lab-tagwho{font-weight:700;font-size:9.5px;letter-spacing:.04em;white-space:nowrap;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      font-family:var(--font-body)}
     /* WHO CAN SEE IT — a separate mark, because visibility and authorship are
        independent and one badge cannot honestly carry both. */
     .lab-tagvis{font-size:9px;letter-spacing:.04em;border-radius:999px;padding:1px 6px;
       white-space:nowrap;background:rgba(255,255,255,.65);border:1px solid rgba(0,0,0,.09);
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      font-family:var(--font-body)}
     /* Kept for the older callers and for the counterparty's copy, which has no
        authorship to colour by. */
     .lab-tag.is-internal:not(.note-owner):not(.note-counterparty){background:#f4ecd8;color:#7d5a14;border:1px solid rgba(138,106,42,.32)}
@@ -2161,7 +2161,7 @@ function renderDocLab(){
     .lab-stacktrail{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px;
       padding:6px 9px;border-radius:6px;background:#faf7ef;border:1px dashed rgba(138,106,42,.3)}
     .lab-stacklabel{font-size:9.5px;font-weight:700;letter-spacing:.05em;color:#7d5a14;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+      font-family:var(--font-body)}
     .lab-stackstep{display:inline-flex;align-items:center;gap:5px}
     .lab-stackid{font-family:var(--font-mono);font-size:9.5px;color:var(--color-neutral-600)}
     .lab-stackarrow{color:var(--color-neutral-500);font-size:10px}

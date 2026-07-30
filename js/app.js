@@ -97,6 +97,10 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
     }
+    case 'redline': {
+      const c=getContract(state.activeId);
+      return ['Redline', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+    }
     default: return ['HaTi', ''];
   }
 }
@@ -132,7 +136,8 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
-  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab' };
+  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
+  redline:'the Redline workbench' };
 
 /* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
 
@@ -182,6 +187,7 @@ function setView(view){
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
     else if(view==='doclab') renderDocLab();
+    else if(view==='redline') renderRedline();
     else renderWorkspace();
   }catch(e){
     /* The id, when the record can be named. An error raised deep in a helper
@@ -245,7 +251,7 @@ function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
   const creatable=(window.myCreatableTemplates?myCreatableTemplates():Object.values(TEMPLATES));
   const item=(ic,bg,fg,title,sub,attrs='')=>`
-    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:4px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(89,128,166,.1)'" onmouseout="this.style.background='none'">
+    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:8px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(13,148,136,.09)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:4px;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
@@ -436,6 +442,38 @@ function renderContextPanel(){
   body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
 }
 
+/* ============================================================ THEME + JURISDICTION (shell header) */
+/* Light / dark via the `dark` class on <html> (Tailwind darkMode:'class' and
+   the html.dark token block in index.html). A tiny head script applies the
+   saved choice before first paint, so this only handles the live toggle. */
+/* Guarded rather than assumed: this module is evaluated on a cut-down stage in
+   the node tests, where document.documentElement does not exist. */
+function applyTheme(mode){ const root=document.documentElement; if(root&&root.classList) root.classList.toggle('dark', mode==='dark'); }
+function toggleTheme(){
+  const root=document.documentElement; if(!root||!root.classList) return;
+  const dark=!root.classList.contains('dark');
+  applyTheme(dark?'dark':'light');
+  try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
+  if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
+}
+/* Jurisdiction switcher (top header): a workspace compliance profile — SE
+   (EU/GDPR) or KE (KICA/ODPC). Presentation-level for now: it selects which
+   regulatory frame the UI speaks in; it does not rewrite any contract data. */
+const REGIONS={ SE:{ label:'Sweden (EU/GDPR)' }, KE:{ label:'Kenya (KICA/ODPC)' } };
+function applyRegion(code){
+  state.region=code;
+  const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
+  const se=document.getElementById('region-se'), ke=document.getElementById('region-ke');
+  if(se&&se.classList) se.classList.toggle('active',code==='SE');
+  if(ke&&ke.classList) ke.classList.toggle('active',code==='KE');
+}
+function setRegion(code,opts){
+  if(!REGIONS[code]) return;
+  applyRegion(code);
+  try{ localStorage.setItem('hati-region',code); }catch(e){}
+  if(!(opts&&opts.silent) && window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label}`);
+}
+
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */
 function wireShell(){
   // nav
@@ -482,6 +520,15 @@ function wireShell(){
 
   // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
+  // header bell = the same live Activity feed (no second notification system)
+  document.getElementById('hdr-notify')?.addEventListener('click',()=>document.getElementById('cmd-panel')?.click());
+
+  // theme toggle + jurisdiction switcher (top header)
+  document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
+  document.getElementById('region-se')?.addEventListener('click',()=>setRegion('SE'));
+  document.getElementById('region-ke')?.addEventListener('click',()=>setRegion('KE'));
+  let savedRegion=null; try{ savedRegion=localStorage.getItem('hati-region'); }catch(e){}
+  setRegion(REGIONS[savedRegion]?savedRegion:'KE',{silent:true});
 }
 
 // default panel state — closed on load/refresh; the user opens it with the
@@ -521,4 +568,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults});
+Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});

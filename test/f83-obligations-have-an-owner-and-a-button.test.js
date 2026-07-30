@@ -210,7 +210,14 @@ describe('F83 — the calendar can act on what it draws', () => {
   });
 });
 
-describe('F83 — the dashboard shows what the parties owe each other', () => {
+describe('F83 — obligations moved from the dashboard to the calendar', () => {
+  /* The redesigned dashboard leads on the lifecycle pipeline and Decisions due
+     (see the note above the hero section in js/views/home.js); the obligations
+     agenda lives on the Calendar — the screen somebody opens to ask "what is
+     due" — where the rows carry the owner line, the theirs chip and the Done
+     button, all proven above. Pinned here: the move itself, and that the
+     calendar's event read keeps the old panel's promises — a finished
+     obligation is not listed as owed, and a declined contract owes nothing. */
   const dash = over => {
     const w = world(['js/views/home.js'], { view: 'dashboard', ...over,
       globals: { agreementsIn: cs => cs.filter(c => !c.parentId),
@@ -219,48 +226,37 @@ describe('F83 — the dashboard shows what the parties owe each other', () => {
         contractExpired: () => false, lsGet: () => null, lsSet() {},
         ...((over && over.globals) || {}) } });
     w.renderDashboard();
-    const html = w.document.getElementById('content').innerHTML;
-    return { w, panel: html.slice(html.indexOf('Obligations · next 45 days')) };
+    return w.document.getElementById('content').innerHTML;
+  };
+  const events = over => {
+    const w = world(['js/views/calendar.js'], { view: 'calendar', ...(over || {}) });
+    return w.calendarEvents();
   };
 
-  test('there is an obligations panel at all', () => {
-    const { w } = dash();
-    assert.match(w.document.getElementById('content').innerHTML, /Obligations · next 45 days/,
-      'the dashboard never mentioned obligations anywhere');
+  test('the dashboard no longer carries the obligations panel', () => {
+    assert.ok(!dash().includes('Obligations · next 45 days'),
+      'the redesign moved the panel to the calendar — it must not be on both');
   });
 
-  test('ours and theirs are counted apart', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [
+  test('an open obligation reaches the calendar, with whose it is', () => {
+    const evs = events({ contracts: [contract({ obligations: [
       ob({ id: 'a', desc: 'Pay the invoice' }),
       ob({ id: 'b', desc: 'Deliver the tonnage', party: 'theirs' }) ] })] });
-    const ours = panel.indexOf('Ours to do'), theirs = panel.indexOf('Theirs to chase');
-    assert.ok(ours > -1 && theirs > ours, 'the two jobs are not the same job');
-    assert.match(panel.slice(ours, theirs), /Pay the invoice/);
-    assert.match(panel.slice(theirs), /Deliver the tonnage/);
+    const obs = evs.filter(e => e.type === 'obligation');
+    assert.equal(obs.length, 2);
+    assert.equal(obs.find(e => e.note === 'Pay the invoice').theirs, false);
+    assert.equal(obs.find(e => e.note === 'Deliver the tonnage').theirs, true,
+      'ours and theirs must stay two different jobs on the calendar too');
   });
 
-  test('overdue is called out', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [ob({ due: day(-5) })] })] });
-    assert.match(panel, /1 overdue/);
-  });
-
-  test('nothing overdue says so plainly', () => {
-    const { panel } = dash();
-    assert.match(panel, /nothing overdue/i);
-  });
-
-  test('each row can be ticked off from here too', () => {
-    const { panel } = dash();
-    assert.match(panel, /data-ob-done="ob_1"/);
-  });
-
-  test('a completed obligation drops out of the panel', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [ob({ status: 'done' })] })] });
-    assert.ok(!/Quarterly volume report/.test(panel), 'finished work is not a to-do list');
+  test('a completed obligation is done, not owed', () => {
+    const evs = events({ contracts: [contract({ obligations: [ob({ status: 'done' })] })] });
+    const o = evs.find(e => e.type === 'obligation');
+    assert.ok(o && o.done === true, 'finished work must carry its done flag');
   });
 
   test('a declined contract owes nothing', () => {
-    const { panel } = dash({ contracts: [contract({ status: 'Declined' })] });
-    assert.ok(!/Quarterly volume report/.test(panel));
+    const evs = events({ contracts: [contract({ status: 'Declined' })] });
+    assert.equal(evs.filter(e => e.type === 'obligation').length, 0);
   });
 });

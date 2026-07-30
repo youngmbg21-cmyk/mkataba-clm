@@ -24,11 +24,15 @@ function calendarEvents(){
       if(exp) out.push({ date:exp, type:'expiry', cid:c.id, cname:c.name, note:c.counterparty||'' });
       const dd=renewalDecisionDate(c);
       if(dd && dd!==exp) out.push({ date:dd, type:'renewal', cid:c.id, cname:c.name, note:'decide by' });
-    }
+
     /* Through the same normalisation the expiry goes through. A due date filed
        as "31 March 2027" — which is what a Copilot scan and a typed migration
        sheet both produce — built an event, counted it, and then drew it on no
-       day at all, while daysUntil(NaN) kept it out of the agenda as well. */
+       day at all, while daysUntil(NaN) kept it out of the agenda as well.
+
+       INSIDE the Declined guard, which this loop used to sit just past: a
+       declined contract owes nothing, and its obligations on the agenda were
+       jobs somebody would have done for a deal that never happened. */
     (c.obligations||[]).forEach(o=>{ const od=window.obligationDue?obligationDue(o):o.due;
       if(od) out.push({ date:od, type:'obligation', cid:c.id, cname:c.name, note:o.desc,
         /* Carried so the agenda can act on this row without looking anything
@@ -44,6 +48,7 @@ function calendarEvents(){
            owner, only the contract's name. A row reading "Nandi Dairy ·
            Obligation · MK-2 · 12d" does not tell anybody what to do. */
         assignee:o.assignee||'', done:o.status==='done' }); });
+    }
   });
   return out;
 }

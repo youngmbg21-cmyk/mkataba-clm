@@ -1748,8 +1748,8 @@ function externalExecutionBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#5980a6" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(89,128,166,.10)" stroke="#8fa8c2" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
-          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#5980a6">MIGRATED</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#3f6087">ON FILE</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#5980a6">MIGRATED</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2"><span class="font-display font-700 text-[17px] text-ink">Executed outside HaTi</span>${statusChip('Signed')}</div>
@@ -1796,8 +1796,8 @@ function signatureBlock(c){
           <circle cx="48" cy="48" r="46" fill="#fff"/>
           <circle cx="48" cy="48" r="46" fill="none" stroke="#086B54" stroke-width="2"/>
           <circle cx="48" cy="48" r="38" fill="rgba(8,107,84,.10)" stroke="#C79A3E" stroke-width="1.5"/>
-          <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
-          <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
+          <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#2e8763">SEALED</text>
+          <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="#1e6b4d">SHA-256</text>
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>

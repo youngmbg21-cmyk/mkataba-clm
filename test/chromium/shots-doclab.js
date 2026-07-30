@@ -53,9 +53,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   await page.fill('#su-email', 'amina@wanjiru.co.ke');
   await page.fill('#su-pass', 'labshots12345');
   await page.click('#su-go');
-  await page.waitForSelector('.nav-item[data-view="doclab"]', { timeout: 25000 });
+  await page.waitForSelector('.nav-item[data-view="redline"]', { timeout: 25000 });
   await page.evaluate(() => openWorkspace(state.contracts[0].id));
-  await page.click('.nav-item[data-view="doclab"]');
+  await page.evaluate(() => setView('doclab'));
   await page.waitForTimeout(600);
 
   /* ---- stage the case the structure work is about: a clause with a heading,

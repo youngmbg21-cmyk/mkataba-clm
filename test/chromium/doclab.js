@@ -72,8 +72,11 @@ function check(name, ok, detail){
     await page.fill('#su-email', 'amina@wanjiru.co.ke');
     await page.fill('#su-pass', 'labtest12345');
     await page.click('#su-go');
-    await page.waitForSelector('.nav-item[data-view="doclab"]', { timeout: 20000 });
-    check('the Doc Lab nav item ships in the shell', true);
+    /* The redesigned shell's nav leads with the Redline workbench; the lab is
+       no longer a nav item but remains a routable view (setView('doclab')) —
+       its wall and its checks below are unchanged. */
+    await page.waitForSelector('.nav-item[data-view="redline"]', { timeout: 20000 });
+    check('the shell boots to the redesigned nav (Redline present)', true);
 
     /* ---- open a contract ---- */
     const opened = await page.evaluate(() => {
@@ -84,17 +87,15 @@ function check(name, ok, detail){
     });
     check('a sample contract opened', !!opened, opened && opened.id);
 
-    await page.click('.nav-item[data-view="doclab"]');
+    await page.evaluate(() => setView('doclab'));
     await page.waitForTimeout(400);
 
     const routed = await page.evaluate(() => ({
       view: state.view,
-      title: (document.getElementById('cmd-title') || {}).textContent || '',
-      navActive: !!document.querySelector('.nav-item[data-view="doclab"].active')
+      title: (document.getElementById('cmd-title') || {}).textContent || ''
     }));
-    check('the nav item routes to the lab', routed.view === 'doclab', routed.view);
+    check('the route still reaches the lab', routed.view === 'doclab', routed.view);
     check('the command bar names it a sandbox', /sandbox/i.test(routed.title), routed.title);
-    check('the nav item highlights', routed.navActive);
 
     /* ---- the lab's own copy of the document draws, with clauses to edit ---- */
     const doc = await page.evaluate(() => {

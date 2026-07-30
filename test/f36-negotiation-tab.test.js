@@ -701,7 +701,10 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /--n-slate:#33475c/, 'the prototype\'s slate');
     assert.match(css, /--n-canvas:#f2f4f7/, 'the prototype\'s cool canvas');
-    assert.match(css, /--n-font-doc:Georgia/, 'the prototype\'s serif document face');
+    // The document face resolves from the design's global token since the
+    // redesign unified typography — the room still declares its OWN --n-font-*
+    // handles, so its sheet never names a family directly.
+    assert.match(css, /--n-font-doc:var\(--font-doc\)/, 'the document face comes from the design token');
     assert.match(css, /--n-ins-bg:#e4f1ea/);
     assert.match(css, /--n-del-fg:#b0453c/);
   });
@@ -723,12 +726,16 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
         `every selector must be namespaced to the component — found "${sel}"`);
   });
 
-  test('the room does not borrow the app\'s tokens either', async () => {
+  test('the room does not borrow the app\'s palette', async () => {
+    /* Typography is the one deliberate exception since the redesign: the
+       room's --n-font-* tokens resolve from the app's global faces, so one
+       design's type reads everywhere. Colour is not — the room keeps its own
+       slate-and-paper ramp, and a room styled half from each palette would
+       read as neither. */
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.ok(!/var\(--color-/.test(css),
       'a room styled half from each palette reads as neither');
-    assert.ok(!/var\(--font-(heading|body|mono)\)/.test(css));
     // including the markup the component generates
     assert.ok(!/var\(--color-/.test(m.html()),
       'inline styles must use the room\'s ramp too');

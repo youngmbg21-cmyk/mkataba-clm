@@ -2073,23 +2073,23 @@ function printExecutionBlock(c){
             <circle cx="48" cy="48" r="46" fill="#fff"/>
             <circle cx="48" cy="48" r="46" fill="none" stroke="${external?'#5980a6':'#086B54'}" stroke-width="2"/>
             <circle cx="48" cy="48" r="38" fill="${external?'rgba(89,128,166,.10)':'rgba(8,107,84,.10)'}" stroke="${external?'#8fa8c2':'#C79A3E'}" stroke-width="1.5"/>
-            <text x="48" y="45" text-anchor="middle" font-family="'IBM Plex Sans',sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
-            <text x="48" y="58" text-anchor="middle" font-family="'IBM Plex Mono',monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
+            <text x="48" y="45" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12" fill="${external?'#3f6087':'#2e8763'}">${external?'ON FILE':'SEALED'}</text>
+            <text x="48" y="58" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" font-size="7" fill="${external?'#5980a6':'#1e6b4d'}">${external?'MIGRATED':'SHA-256'}</text>
           </svg>
         </td>
         <td style="vertical-align:top;">
-          <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
+          <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
           <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
             ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
             : 'Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).'}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9.5px;word-break:break-all;">${esc((c.execution&&c.execution.textHash)||'—')}</div>
           </div>`:''}
           <div style="margin-top:10px;border-radius:8px;padding:10px 12px;background:#1d1f20;color:#f4f5f6;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;letter-spacing:.08em;color:#c79a3e;margin-bottom:3px;">${external?'ORIGINAL FILE FINGERPRINT (SHA-256)':'DOCUMENT SEAL (SHA-256)'}</div>
+            <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;">${esc(hash)}</div>
             <div style="font-size:9.5px;color:#b9bec4;margin-top:4px;">${esc(c.signedAt||'Timestamp recorded')}</div>
           </div>
         </td>
@@ -2112,13 +2112,13 @@ function exportPDF(c){
     const u=c.upload||{};
     bodyHtml=`
       <div style="border:1px solid #d4d4d7;border-radius:10px;padding:16px;margin-bottom:16px;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:15px;margin-bottom:2px;">${esc(c.name)}</div>
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value):'—')}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
       </div>
       <p style="font-size:11px;color:#444;line-height:1.6;">${isExternallyExecuted(c)
@@ -2136,7 +2136,7 @@ function exportPDF(c){
     holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
-      span.style.cssText="font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
+      span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";
       span.textContent=(window.fieldDisplayValue?fieldDisplayValue(inp):(inp.value||inp.getAttribute('value')||''))||'________';
       inp.replaceWith(span);
     });
@@ -2155,20 +2155,20 @@ function exportPDF(c){
     <tr><td style="padding:3px 10px 3px 0;white-space:nowrap;color:#666;">${fmtDT(e.at)}</td>
     <td style="padding:3px 10px 3px 0;font-weight:600;">${e.action}</td>
     <td style="padding:3px 0;">${e.detail} <span style="color:#888;">(${e.user})</span></td></tr>`).join('');
-  // The HaTi masthead and the audit trail are INTERFACE and stay on IBM Plex;
-  // the contract itself is a document surface and carries the document faces
-  // and the document ink, exactly as it does on screen. Without that the PDF
-  // would look like a different product from the page it was exported from.
+  // The masthead, the audit trail and the contract now share one family — the
+  // platform runs on the design's two faces throughout. The contract is still a
+  // document surface and still carries the document ink, measure and leading,
+  // exactly as it does on screen, so the PDF matches the page it came from.
   document.getElementById('print-root').innerHTML=`
-    <div style="font-family:'IBM Plex Sans',system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;">
+    <div style="font-family:Inter,system-ui,sans-serif;max-width:760px;margin:0 auto;padding:32px 24px;color:#1d1f20;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #5980a6;padding-bottom:10px;margin-bottom:24px;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
-        <div style="font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
+        <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
       <div class="doc-surface">${bodyHtml}</div>
       ${execBlock}
-      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
-      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
+      ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
+      ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
       <div style="margin-top:24px;font-size:9px;color:#999;text-align:center;">Generated by HaTi CLM · ${FIRST_PARTY}</div>
     </div>`;
   logAudit(c,'Exported','PDF export generated'); persist(c); renderAuditSection(c);
