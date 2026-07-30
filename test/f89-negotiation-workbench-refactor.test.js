@@ -171,24 +171,39 @@ describe('F89 (1) — the header is a band, not a card inside a card', () => {
   });
 });
 
-describe('F89 (2) — one document sheet, not a sheet inside a panel', () => {
-  test('the inner .nego-doc wrapper gives up its card chrome', async () => {
+describe('F89 (2) — a centred sheet with gutters, like the Doc page', () => {
+  /* The design here changed on request: the Doc page floats the contract as a
+     bounded paper sheet with air on both sides, and this page now does the
+     same — the paper carries its own chrome and the column behind it drops to
+     the page background so the gutters read as page, not as card. */
+  test('the .rl-paper is the sheet: bounded, centred, shadowed', async () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-paper');
     assert.ok(r, '.rl-paper must carry a rule');
-    for (const decl of ['background:none', 'border:0', 'border-radius:0', 'box-shadow:none'])
-      assert.match(r, new RegExp(decl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')),
-        `.nego-doc draws a full panel; ${decl} is what stops it drawing a second one`);
+    assert.match(r, /max-width:720px/, 'the Doc page bounds the contract\'s measure; so does this one');
+    assert.match(r, /margin:0 auto/, 'centred, so the gutters split evenly as the window widens');
+    assert.match(r, /background:var\(--color-surface\)/, 'the sheet is paper, not the column behind it');
+    assert.match(r, /box-shadow:var\(--shadow-md\)/, 'and it carries the paper shadow itself');
   });
 
-  test('the column is the sheet, and it has no border', async () => {
+  test('the column is the canvas behind the sheet, not a second sheet', async () => {
     const p = await page();
     const r = p.rule('.redline-page .rl-doc', 'box-shadow');
     assert.ok(r, '.rl-doc must have a paint rule of its own, split from .rl-col');
-    assert.match(r, /border:0/, 'the prototype sheet is shadowed paper, not a boxed panel');
-    assert.match(r, /box-shadow:0 10px 30px/, 'and it keeps the sheet shadow');
+    assert.match(r, /background:var\(--color-bg\)/, 'the gutters read as page, not as card');
     // the other two columns are still cards — this is not a global de-framing
     assert.match(p.rule('.redline-page .rl-col') || '', /border:1px solid/);
+  });
+
+  test('no later rule may zero the sheet\'s auto margins', async () => {
+    /* The type-scale rule used to say margin:0 at three classes of
+       specificity, beating the two-class centring rule — the paper hugged the
+       left of the column with all the spare width on the right. */
+    const p = await page();
+    const r = p.rule('.redline-page .rl-doc .nego-doc');
+    assert.ok(r, 'the sheet\'s type-scale rule must exist');
+    assert.match(r, /margin:0 auto/,
+      'this selector out-specifies the centring rule, so it must centre too');
   });
 });
 
@@ -206,8 +221,8 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
     const p = await page();
     const r = p.rule('.redline-page .nego-pane.working .rl-paper');
     assert.ok(r, 'the override must exist, or the engine\'s gutter applies');
-    assert.match(r, /padding-left:24px/);
-    assert.match(r, /padding-right:24px/);
+    assert.match(r, /padding-left:36px/);
+    assert.match(r, /padding-right:36px/);
     /* Four classes deep, because the engine's rule is three and this
        stylesheet is inserted BEFORE #nego-style — a tie would lose on order. */
     const css = p.css();

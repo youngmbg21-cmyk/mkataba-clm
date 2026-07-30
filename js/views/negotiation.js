@@ -3957,8 +3957,8 @@ function redlineLayoutCss(){
 
      Written at four classes deep because the engine's rule is three, and this
      stylesheet is inserted BEFORE #nego-style in the head — at equal
-     specificity the engine would win on order. The reference sets the sheet at
-     p-6 (24px) all round; that is what this restores. */
+     specificity the engine would win on order. Restores the sheet's own 36px,
+     matching the Doc page's paper padding. */
   .redline-page .nego-pane.working .rl-paper{padding-left:36px;padding-right:36px}
   @media (max-width:1023px){
     .redline-page .nego-pane.working .rl-paper{padding-left:20px;padding-right:20px}
@@ -4896,7 +4896,7 @@ async function rlAiPropose(ctx){
   if (window.renderAIFeed) renderAIFeed(!action.converse);
 
   if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    rlSayInPanel('The Copilot isn\'t connected yet. Connect it under Team & Settings, then try again.');
+    rlSayInPanel('The Copilot is not connected yet. Connect it under Team & Settings, then try again.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
@@ -5226,6 +5226,22 @@ function rlWireClauseTools(c, host, opts){
     const engine = negoPick(host, id) || document.getElementById(id);
     if (engine && !engine.disabled){ engine.click(); return; }
     if (window.toast) toast('There is nothing to send on this round yet', 'err');
+  }));
+
+  /* The card's Retract — an unsent draft of your own comes off the table
+     entirely. The engine (negoRetractDraft) holds the rules: yours, pending,
+     and never handed over; anything else is refused with a reason. */
+  host.querySelectorAll('[data-rl-retract]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const chId = btn.getAttribute('data-rl-retract');
+    if (!window.negoRetractDraft) return;
+    const side = (opts && opts.side) === 'counterparty' ? 'counterparty' : 'owner';
+    const ch = negoRetractDraft(c, chId, { side, by: opts && opts.by });
+    if (!ch) return;
+    if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+    if (window.persist) persist(c);
+    if (window.toast) toast(`#${chId} retracted — it was never sent, so nothing left your desk`);
+    again();
   }));
 }
 
@@ -5802,6 +5818,11 @@ function redlineChangeCardsHtml(c, opts = {}){
     }
     if (editable && !heldHere) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
         title="Jump to this clause in the contract and edit it there">Edit</button>`);
+    /* A draft that has never left the building can simply be taken back —
+       negoRetractDraft removes the record, so nothing is withdrawn from
+       anyone. Once sent, the honest verbs are Withdraw and revise, above. */
+    if (editable && mineUnsent) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
+        title="Retract this draft — it hasn't been sent, so nothing is taken back from ${_nea(c.counterparty || 'the counterparty')}">Retract</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
         title="Send this and every other unsent draft to ${_nea(c.counterparty || 'the counterparty')}">Send</button>`);
     /* ---- AND WHAT THE SEND BECOMES ----
