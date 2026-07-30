@@ -44,6 +44,7 @@ import './views/adviceportal.js';
 import './templatefields.js';
 import './views/library.js';
 import './fieldlib.js';            // the template-library field catalogue (shared with the server)
+import './templateform.js';        // template-form rendering + validation (shared with the server)
 import './views/templatelib.js';   // the versioned company standard-template library
 import './views/templatebuilder.js';  // edits one draft version of a library template
 import './views/migration.js';

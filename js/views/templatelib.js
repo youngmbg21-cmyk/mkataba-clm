@@ -75,6 +75,8 @@ function tplLibPaint() {
       <span style="flex:none;font-size:11px;color:var(--color-neutral-600);min-width:86px;text-align:right" title="Contracts created from this template">${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'}</span>
       <span style="flex:none;font-size:11px;color:var(--color-neutral-600);min-width:92px;text-align:right" title="Last used">${fmtDay(t.lastUsedAt)}</span>
       <span style="flex:none">${tplLibStatusBadge(t.status)}</span>
+      ${t.status === 'published' && typeof canEdit === 'function' && canEdit()
+        ? `<span style="flex:none"><button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">${icon('plus', 'w-3 h-3')} New contract</button></span>` : ''}
       <span style="flex:none;color:var(--color-neutral-400)">${icon('chevR', 'w-3.5 h-3.5')}</span>
     </button>`).join('');
 
@@ -100,7 +102,22 @@ function tplLibPaint() {
 
   document.querySelectorAll('[data-tpllib-open]').forEach(el =>
     el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
+  document.querySelectorAll('[data-tpllib-use]').forEach(el =>
+    el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
   document.getElementById('tpllib-new')?.addEventListener('click', tplLibCreateModal);
+}
+
+/* ---------- new contract from a published template ---------- */
+async function tplLibNewContract(id) {
+  try {
+    const r = await api(`templates/${id}/contracts`, 'POST', {});
+    if (r.uid) window.uid = r.uid; // keep the client's MK-counter in step with the server's
+    const c = typeof migrateContract === 'function' ? migrateContract(r.contract) : r.contract;
+    c._loaded = true;
+    state.contracts.unshift(c);
+    toast(`${c.id} created from “${c.templateForm ? c.templateForm.templateName : 'template'}” — company details arrived pre-filled`);
+    openWorkspace(c.id);
+  } catch (e) { toast(e.message, 'err'); }
 }
 
 /* ---------- create shell ---------- */
@@ -210,6 +227,7 @@ async function openTemplateLibDetail(id) {
             · ${t.contractsCreated} contract${t.contractsCreated === 1 ? '' : 's'} created${t.lastUsedAt ? ` · last used ${fmtAt(t.lastUsedAt)}` : ''}</p>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;flex:none">
+          ${t.status === 'published' && typeof canEdit === 'function' && canEdit() ? `<button id="tpllib-use" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 12px">${icon('plus', 'w-3 h-3')} New contract</button>` : ''}
           ${canManage ? `<button id="tpllib-edit-meta" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('pencil', 'w-3 h-3')} Rename / describe</button>` : ''}
           ${canManage && t.status !== 'archived' ? `<button id="tpllib-archive" class="ui-btn" style="font-size:11.5px;padding:4px 10px">${icon('box', 'w-3 h-3')} Archive</button>` : ''}
           ${canManage && t.status === 'archived' ? `<button id="tpllib-restore" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Restore</button>` : ''}
@@ -229,6 +247,7 @@ async function openTemplateLibDetail(id) {
   </div>`;
 
   document.getElementById('tpllib-back')?.addEventListener('click', () => setView('tpl-library'));
+  document.getElementById('tpllib-use')?.addEventListener('click', () => tplLibNewContract(t.id));
   document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
     try {
@@ -291,7 +310,115 @@ function tplLibMetaModal(t) {
   });
 }
 
+/* ============================================================
+   The fill form on a contract created from a library template.
+   Rendered into #tplform-section on the contract workspace. Open fields are
+   typed inputs validated by the shared registry; every change autosaves
+   (values + the regenerated wording) through the normal debounced save, so a
+   half-finished form survives a closed tab. Fixed wording has no editor here
+   or anywhere — it is the template manager's, not the deal-maker's.
+   ============================================================ */
+function tplFormInputHtml(f, value, idx) {
+  const lib = (window.FIELD_LIB || {})[f.fieldType] || { input: 'text', hint: '' };
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:6px 9px;font:inherit;font-size:12px;outline:none';
+  const v = value == null ? '' : String(value);
+  if (f.control === 'guided' || f.fieldType === 'select') {
+    const opts = (f.options || []).map(o => `<option value="${esc(o)}"${v === o ? ' selected' : ''}>${esc(o)}</option>`).join('');
+    return `<select data-tplf="${idx}" style="${INP}"><option value="">Choose…</option>${opts}</select>`;
+  }
+  if (lib.input === 'textarea') return `<textarea data-tplf="${idx}" style="${INP};min-height:52px;resize:vertical" placeholder="${esc(lib.hint)}">${esc(v)}</textarea>`;
+  if (lib.input === 'file' || lib.input === 'image')
+    return `<div style="display:flex;align-items:center;gap:8px">
+      ${v ? (lib.input === 'image' ? `<img src="${v}" alt="" style="height:34px;border-radius:4px;border:1px solid var(--color-divider)">` : `<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-700)">attached</span>`) : ''}
+      <input type="file" data-tplf-file="${idx}" accept="${lib.input === 'image' ? 'image/png,image/jpeg,image/webp' : '*/*'}" style="font-size:11px">
+      ${v ? `<button data-tplf-clear="${idx}" class="ui-btn" style="font-size:10px;padding:2px 7px">Clear</button>` : ''}
+    </div>`;
+  const type = { email: 'email', tel: 'tel', date: 'date' }[lib.input] || 'text';
+  return `<input type="${type}" data-tplf="${idx}" value="${esc(v)}" placeholder="${esc(lib.hint)}" style="${INP}">`;
+}
+
+function renderTemplateFormSection(c) {
+  const host = document.getElementById('tplform-section');
+  if (!host) return;
+  const form = c.templateForm;
+  if (!form) { host.innerHTML = ''; return; }
+  const locked = c.status === 'Signed' || (c.execution && c.execution.at) || !!c.hash;
+  const editable = !locked && typeof canEdit === 'function' && canEdit();
+  const fields = (form.fields || []).filter(f => f.fieldType !== 'signature_name_title');
+  const values = form.values || {};
+  const problems = window.templateFormProblems ? templateFormProblems(form) : [];
+  const problemOf = k => { const p = problems.find(x => x.fieldKey === k); return p ? p.problem : null; };
+  const required = fields.filter(f => f.required);
+  const filled = required.filter(f => String(values[f.fieldKey] || '').trim() !== '');
+
+  const bySection = [];
+  for (const f of fields) {
+    const name = f.section || '';
+    let g = bySection.find(x => x.name === name);
+    if (!g) { g = { name, fields: [] }; bySection.push(g); }
+    g.fields.push(f);
+  }
+
+  host.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
+      <h6 style="font-family:var(--font-heading);font-weight:600;font-size:12px;margin:0;flex:1">Contract form
+        <span style="font-weight:400;color:var(--color-neutral-500)">· from “${esc(form.templateName || '')}” v${form.versionNumber || ''}</span></h6>
+      <span style="font-size:10px;color:${filled.length === required.length ? '#1e6b4d' : '#8a5a19'};font-weight:600">${filled.length}/${required.length} required filled</span>
+    </div>
+    <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
+      ${locked ? `<div style="font-size:11px;color:var(--color-neutral-600)">Executed — the form is part of the sealed record.</div>` : ''}
+      ${bySection.map(g => `
+        ${g.name ? `<div style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>` : ''}
+        ${g.fields.map(f => {
+          const idx = form.fields.indexOf(f);
+          const problem = String(values[f.fieldKey] || '').trim() !== '' ? problemOf(f.fieldKey) : null;
+          return `<label style="display:block">
+            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:#8f322b">*</span>' : ''}</span>
+            ${editable ? tplFormInputHtml(f, values[f.fieldKey], idx)
+              : `<span style="display:block;font-size:12px;color:var(--color-neutral-800)">${esc(values[f.fieldKey] || '—')}</span>`}
+            ${f.helpText ? `<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>` : ''}
+            <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:10.5px;color:#8f322b;margin-top:2px">${esc(problem || '')}</span>
+          </label>`;
+        }).join('')}`).join('')}
+    </div>`;
+  if (!editable) return;
+
+  const commit = (idx, value) => {
+    const f = form.fields[idx];
+    if (!f) return;
+    const s = value == null ? '' : String(value).trim();
+    form.values = form.values || {};
+    if (s === '') delete form.values[f.fieldKey]; else form.values[f.fieldKey] = s;
+    // the document IS the rendering of the form — regenerate and repaint
+    if (window.templateFormDocHtml) {
+      c.redlineText = templateFormDocHtml(form);
+      const canvas = document.getElementById('doc-canvas');
+      if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText);
+    }
+    c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
+    persist(c); // debounced autosave — a closed tab loses nothing past 400ms
+    renderTemplateFormSection(c); // repaint for validation + progress
+  };
+  host.querySelectorAll('[data-tplf]').forEach(el => {
+    el.addEventListener('change', () => commit(Number(el.getAttribute('data-tplf')), el.value));
+  });
+  host.querySelectorAll('[data-tplf-file]').forEach(el => {
+    el.addEventListener('change', () => {
+      const file = el.files && el.files[0];
+      if (!file) return;
+      if (file.size > 500 * 1024) { toast('Keep attachments under 500 KB', 'err'); return; }
+      const r = new FileReader();
+      r.onload = () => commit(Number(el.getAttribute('data-tplf-file')), String(r.result));
+      r.readAsDataURL(file);
+    });
+  });
+  host.querySelectorAll('[data-tplf-clear]').forEach(el => {
+    el.addEventListener('click', () => commit(Number(el.getAttribute('data-tplf-clear')), ''));
+  });
+}
+
 Object.assign(window, {
   renderTemplateLibrary, openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
-  saveContractToLibrary, TPLLIB_CATEGORIES, TPLLIB_STATUS,
+  saveContractToLibrary, tplLibNewContract, renderTemplateFormSection,
+  TPLLIB_CATEGORIES, TPLLIB_STATUS,
 });

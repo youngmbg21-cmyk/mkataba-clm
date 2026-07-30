@@ -1787,6 +1787,18 @@ function buildSharePayload(c, docHash, who, opts){
       executed:(c.status==='Signed'||c.hash||(c.execution&&c.execution.at))
         ? { at:(c.execution&&c.execution.at)||c.signedAt||null } : undefined,
       counterparty:c.counterparty, value:c.value, valueType:c.valueType, fields:c.fields,
+      /* A library-template contract IS its form: the blocks, field definitions
+         and current values travel whole so the portal can render typed inputs
+         and regenerate the same wording this side sees. The definitions are
+         not sensitive — they are the blank form the counterparty is being
+         asked to fill — and the branding snapshot makes their copy carry the
+         same letterhead. */
+      templateForm:c.templateForm?{ templateId:c.templateForm.templateId,
+        templateVersionId:c.templateForm.templateVersionId,
+        templateName:c.templateForm.templateName, versionNumber:c.templateForm.versionNumber,
+        blocks:c.templateForm.blocks, fields:c.templateForm.fields,
+        values:{...(c.templateForm.values||{})} }:undefined,
+      branding:c.branding||undefined,
       rounds:shareRounds.length?shareRounds:undefined,
       /* The wording exactly as it left, in plain text. A template-drafted
          contract has no stored body — it is rendered from the template and its
@@ -2496,6 +2508,24 @@ async function applyResponse(c, r, opts={}){
   if(r.docHash && r.docHash!==currentHash && r.docHash!==c.hash)
     toast('Note: the document changed after this share link was created','err');
   const who=r.name+(r.title?', '+r.title:'');
+  /* Values the counterparty filled into a template form. Only known open
+     fields land (never fixed wording, never invented keys), each re-checked
+     against the shared registry, and the wording regenerates so both screens
+     read the same document. Runs before the signature block below so what is
+     signed is the filled form the signer was looking at. */
+  if(r.templateValues && c.templateForm && window.fieldLibValidate){
+    c.templateForm.values=c.templateForm.values||{};
+    for(const [k,v] of Object.entries(r.templateValues)){
+      const f=(c.templateForm.fields||[]).find(x=>x.fieldKey===k);
+      if(!f||f.fieldType==='signature_name_title') continue;
+      const s=v==null?'':String(v).trim();
+      if(!s){ continue; }
+      if(fieldLibValidate({label:f.label,field_key:f.fieldKey,field_type:f.fieldType,
+        control:f.control,options:f.options,required:f.required}, s)) continue;
+      c.templateForm.values[k]=s;
+    }
+    if(window.templateFormDocHtml) c.redlineText=templateFormDocHtml(c.templateForm);
+  }
   if(r.action==='sign'){
     c.signatures=c.signatures||[];
     const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,

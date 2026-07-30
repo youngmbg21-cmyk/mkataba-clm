@@ -1459,9 +1459,11 @@ function renderSharePortal(p, opts={}){
                Removed rather than hidden. The message route it used still
                exists and still carries the per-change threads in the room. */}
         ${portalThreadHtml(c,p)}
+        ${portalTemplateFormHtml(c,p)}
         <div id="pt-doc" class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:30px 36px;">
-
+          ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c):''}
           <article class="doc-surface">${readOnlyDocHtml(docBody(c))}</article>
+          ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
         </div>
         <!-- Rewriting a contract used to happen in a twelve-row box inside the
              360px column on the right. It happens here now, at the size of the
@@ -1555,6 +1557,7 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   // the shared Negotiation component, rendered for this side
   wirePortalNego(portalNegoContract(p), p);
+  wirePortalTemplateForm(p);
   if(portalReadOnly()){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
@@ -1731,6 +1734,16 @@ async function portalRespond(p, action, extra){
     return;
   }
   if(action==='sign' && !email){ toast('A work email is required to sign','err'); return; }
+  /* A template contract signs only over a complete, valid form — the same
+     gate the owner's screen applies, refused here before the signature pad
+     opens rather than after the server bounces it. */
+  if(action==='sign' && portalTemplateForm(p) && window.templateFormProblems){
+    const probs=templateFormProblems(portalTemplateForm(p));
+    if(probs.length){
+      toast(`Not signed yet — ${probs.length} field${probs.length===1?' needs':'s need'} filling first: ${probs.slice(0,3).map(x=>x.label).join(', ')}${probs.length>3?'…':''}`,'err');
+      return;
+    }
+  }
   if(action==='changes' && !comment){ toast('Add a comment explaining your response','err'); return; }
   if(action==='decline' && !comment){ toast('Add a comment explaining your response','err'); return; }
   // Capture the counterparty's signature mark (free choice: draw / type / upload).
@@ -1769,6 +1782,7 @@ async function portalRespond(p, action, extra){
     : null;
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:sendAction, name, title, email, comment,
     proposedValue: proposedValue||null, proposedText, baseText, at:nowISO(),
+    templateValues:portalTemplateValues(p),
     clauseNotes: (clauseNotes&&clauseNotes.length)?clauseNotes:null,
     signatureForm:sig?sig.form:null, signatureImage:sig?sig.image:null, signatureImageHash:sig?sig.imageHash:null,
     signatureTypedName:sig?sig.typedName:null, signatureFont:sig?sig.font:null };
@@ -1822,6 +1836,114 @@ async function portalRespond(p, action, extra){
    binding; what is missing is HaTi's independent check that the signer holds
    that email address. Saying so here, on the record and on the certificate, is
    the difference between a weaker proof and a false one. */
+/* ---------- the template form, on the counterparty's page ----------
+   A contract created from a library template arrives with its form: blocks,
+   field definitions, and the values filled so far. Open fields render as
+   typed inputs — validated by the same registry as the owner's screen — and
+   every change autosaves to the share (POST template-values), so a
+   half-finished form survives a closed tab. Fixed wording has no editor here:
+   the only door this page has into the document is the fields. */
+function portalTemplateForm(p){ return (p && p.contract && p.contract.templateForm) || null; }
+function portalTemplateValues(p){
+  const form=portalTemplateForm(p);
+  if(!form || !form.values || !Object.keys(form.values).length) return undefined;
+  return { ...form.values };
+}
+function portalTemplateFormHtml(c,p){
+  const form=portalTemplateForm(p);
+  if(!form) return '';
+  const fields=(form.fields||[]).filter(f=>f.fieldType!=='signature_name_title');
+  if(!fields.length) return '';
+  const values=form.values||{};
+  const editable=!portalExecuted()&&!portalReadOnly();
+  const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
+  const required=fields.filter(f=>f.required);
+  const filled=required.filter(f=>String(values[f.fieldKey]||'').trim()!=='');
+  const inputFor=(f,idx)=>{
+    const lib=(window.FIELD_LIB||{})[f.fieldType]||{input:'text',hint:''};
+    const v=values[f.fieldKey]==null?'':String(values[f.fieldKey]);
+    if(f.control==='guided'||f.fieldType==='select'){
+      const opts=(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('');
+      return `<select data-ptf="${idx}" style="${INP}" ${editable?'':'disabled'}><option value="">Choose…</option>${opts}</select>`;
+    }
+    if(lib.input==='textarea') return `<textarea data-ptf="${idx}" style="${INP};min-height:48px;resize:vertical" placeholder="${esc(lib.hint)}" ${editable?'':'disabled'}>${esc(v)}</textarea>`;
+    if(lib.input==='file'||lib.input==='image')
+      return `<div style="display:flex;align-items:center;gap:8px">${v?`<span class="badge" style="background:var(--color-neutral-100);color:var(--color-neutral-700)">attached</span>`:''}<input type="file" data-ptf-file="${idx}" accept="${lib.input==='image'?'image/png,image/jpeg,image/webp':'*/*'}" style="font-size:11px" ${editable?'':'disabled'}></div>`;
+    const type={email:'email',tel:'tel',date:'date'}[lib.input]||'text';
+    return `<input type="${type}" data-ptf="${idx}" value="${esc(v)}" placeholder="${esc(lib.hint)}" style="${INP}" ${editable?'':'disabled'}>`;
+  };
+  const groups=[];
+  for(const f of fields){
+    const name=f.section||'';
+    let g=groups.find(x=>x.name===name);
+    if(!g){ g={name,fields:[]}; groups.push(g); }
+    g.fields.push(f);
+  }
+  return `
+  <div id="pt-tplform" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--color-divider)">
+      <span style="font-family:var(--font-heading);font-weight:600;font-size:13px;flex:1">Fill in your details</span>
+      <span style="font-size:10.5px;color:${filled.length===required.length?'#1e6b4d':'#8a5a19'};font-weight:600">${filled.length}/${required.length} required</span>
+      <span id="pt-tplform-state" style="font-size:10px;color:var(--color-neutral-500)"></span>
+    </div>
+    <div style="padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      ${groups.map(g=>`
+        ${g.name?`<div style="grid-column:1/-1;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(g.name)}</div>`:''}
+        ${g.fields.map(f=>{
+          const idx=form.fields.indexOf(f);
+          return `<label style="display:block;min-width:0">
+            <span style="display:block;font-size:11px;font-weight:600;margin-bottom:3px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:#8f322b">*</span>':''}</span>
+            ${inputFor(f,idx)}
+            ${f.helpText?`<span style="display:block;font-size:10px;color:var(--color-neutral-500);margin-top:2px">${esc(f.helpText)}</span>`:''}
+            <span data-ptf-err="${idx}" style="display:none;font-size:10.5px;color:#8f322b;margin-top:2px"></span>
+          </label>`; }).join('')}`).join('')}
+    </div>
+  </div>`;
+}
+function wirePortalTemplateForm(p){
+  const box=document.getElementById('pt-tplform');
+  if(!box) return;
+  const form=portalTemplateForm(p);
+  const stateEl=()=>document.getElementById('pt-tplform-state');
+  const commit=async(idx,value)=>{
+    const f=form.fields[idx]; if(!f) return;
+    const s=value==null?'':String(value).trim();
+    const err=box.querySelector(`[data-ptf-err="${idx}"]`);
+    if(s && window.fieldLibValidate){
+      const problem=fieldLibValidate({label:f.label,field_key:f.fieldKey,field_type:f.fieldType,
+        control:f.control,options:f.options,required:f.required}, s);
+      if(err){ err.textContent=problem||''; err.style.display=problem?'block':'none'; }
+      if(problem) return;                    // an invalid value never leaves the input
+    } else if(err){ err.style.display='none'; }
+    form.values=form.values||{};
+    if(s==='') delete form.values[f.fieldKey]; else form.values[f.fieldKey]=s;
+    // the document below is the rendering of this form — keep the two in step
+    if(window.templateFormDocHtml){
+      p.contract.redlineText=templateFormDocHtml(form);
+      const doc=document.querySelector('#pt-doc article');
+      if(doc && window.readOnlyDocHtml && window.renderDocHtml)
+        doc.innerHTML=readOnlyDocHtml(renderDocHtml(p.contract.redlineText, window.RICH_FORMAT||'rich'));
+    }
+    if(PORTAL_OPTS.token){
+      const el=stateEl(); if(el) el.textContent='Saving…';
+      try{
+        await api('shares/'+PORTAL_OPTS.token+'/template-values','POST',{ values:{ [f.fieldKey]: s } });
+        const el2=stateEl(); if(el2) el2.textContent='Saved — closing this tab loses nothing';
+      }catch(e){ const el2=stateEl(); if(el2) el2.textContent='Could not save: '+(e.message||''); }
+    }
+  };
+  box.querySelectorAll('[data-ptf]').forEach(el=>
+    el.addEventListener('change',()=>commit(Number(el.getAttribute('data-ptf')),el.value)));
+  box.querySelectorAll('[data-ptf-file]').forEach(el=>
+    el.addEventListener('change',()=>{
+      const file=el.files&&el.files[0]; if(!file) return;
+      if(file.size>500*1024){ toast('Keep attachments under 500 KB','err'); return; }
+      const r=new FileReader();
+      r.onload=()=>commit(Number(el.getAttribute('data-ptf-file')),String(r.result));
+      r.readAsDataURL(file);
+    }));
+}
+
 async function portalSignUnverified(p, info){
   const box=document.getElementById('portal-result');
   box.innerHTML=`
@@ -1835,6 +1957,7 @@ async function portalSignUnverified(p, info){
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{
     const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
       name:info.name, title:info.title, email:info.email, comment:info.comment, at:nowISO(),
+      templateValues:portalTemplateValues(p),
       signatureForm:info.sig?info.sig.form:null, signatureImage:info.sig?info.sig.image:null,
       signatureImageHash:info.sig?info.sig.imageHash:null,
       signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
@@ -1883,6 +2006,7 @@ async function portalVerifyAndSign(p, info){
   catch(e){ toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
+    templateValues:portalTemplateValues(p),
     signatureForm:info.sig?info.sig.form:null, signatureImage:info.sig?info.sig.image:null, signatureImageHash:info.sig?info.sig.imageHash:null,
     signatureTypedName:info.sig?info.sig.typedName:null, signatureFont:info.sig?info.sig.font:null };
   try{
@@ -2078,7 +2202,9 @@ function exportPDF(c){
         <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:18px;">HaTi <span style="font-weight:400;font-size:11px;color:#666;">· Contract Lifecycle</span></div>
         <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:#666;">${c.id} · generated ${fmtDT(nowISO())}</div>
       </div>
+      ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c):''}
       <div class="doc-surface">${bodyHtml}</div>
+      ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
       ${execBlock}
       ${marks&&(!execBlock)&&c.hash&&c.hash!=='PRE-SEEDED'?`<div style="margin-top:24px;padding:12px;border:1px solid #d4d4d7;border-radius:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;word-break:break-all;"><strong>${isExternallyExecuted(c)?'SHA-256 ORIGINAL FILE FINGERPRINT':'SHA-256 DOCUMENT SEAL'}</strong><br/>${isExternallyExecuted(c)?((c.upload&&c.upload.fileHash)||'—'):c.hash}<br/><span style="color:#666;">${c.signedAt||''}${isExternallyExecuted(c)?' · executed outside HaTi':''}</span></div>`:''}
       ${marks&&audit?`<div style="margin-top:24px;page-break-inside:avoid;"><div style="font-family:Inter,system-ui,sans-serif;font-weight:600;font-size:13px;border-bottom:1px solid #d4d4d7;padding-bottom:6px;margin-bottom:8px;">Audit trail</div><table style="font-size:10px;border-collapse:collapse;width:100%;">${audit}</table></div>`:''}
