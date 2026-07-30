@@ -3951,6 +3951,23 @@ function redlineLayoutCss(){
   .redline-page .rl-rej{background:#dc2626;color:#fff}
   .redline-page .rl-edit{background:#e2e8f0;color:#1e293b}
   html.dark .redline-page .rl-edit{background:#cbd5e1;color:#0f172a}
+  /* Amber, past tense, inert — the send after it has gone. Full opacity
+     despite being disabled: this is a STATE the reader is meant to read, not a
+     control being withheld, and the browser's default greying-out would make
+     the one card that has moved the hardest one to see. */
+  .redline-page .rl-sent{background:#d97706;color:#fff;cursor:default}
+  .redline-page .rl-card-verbs button.rl-sent:disabled{opacity:1}
+  .redline-page .rl-card-verbs button.rl-sent:hover{filter:none}
+
+  /* ---- THE LINK BETWEEN A CLAUSE AND ITS CARD ----
+     Both ends light at once, whichever end was clicked, because the point of
+     the pairing is that they are one thing shown twice. A ring rather than a
+     fill: the clause already uses background to say "something is on the table
+     here", and a second background would have two meanings competing in one
+     box. */
+  .redline-page .rl-clause.is-linked{box-shadow:0 0 0 2px var(--accent-solid)}
+  .redline-page .rl-card.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
+    border-color:var(--accent-solid)}
 
   /* Tracked Changes head, and the discussion column */
   /* WRAPS, and two things now depend on it. It stops the title collapsing to
@@ -4228,6 +4245,45 @@ function renderRedline(){
        moment one is chosen — everything it hands off to lands either in the
        Copilot column or in the Discussion column. */
     selMenu: ctx => rlSelMenu({ ...ctx, c, opts, again: () => renderRedline() }),
+    /* ---- ONE CLICK, NO DIALOG, WHEN WE KNOW WHERE IT GOES ----
+       #nego-send has always taken the direct route when the mount supplied a
+       contact and an onSendDirect — that is how the contract room sends
+       without asking. This page supplied neither, so every send here fell
+       through to the share dialog: a form, three fields and a Next, to do
+       something the app already had everything it needed to do.
+
+       So the same two are supplied, off the same helpers the room uses. The
+       dialog is still the fallback and has to be: with no address on record
+       there is nowhere to send, and the form is what collects one. That is not
+       a confirmation step — it is the missing information — and it stops
+       appearing the moment there is an address to remember. */
+    contact: (window.counterpartyContact
+      ? counterpartyContact(c, (window.cachedShares ? cachedShares(c) : [])) : null),
+    async onSendDirect(){
+      const to = c.counterpartyName || c.counterparty || 'the counterparty';
+      const btns = [...document.querySelectorAll('#view-redline [data-rl-send], #view-redline [data-rl-blast]')];
+      btns.forEach(b => { b.disabled = true; });
+      try{
+        const out = await reshareToLastRecipient(c, { purpose: 'negotiate' });
+        /* THE TURN MOVES ONLY AFTER SOMETHING HAS LEFT. Every "Sent" this page
+           draws — the badge, the amber button, the count on the toolbar — is
+           read back from negoUnsentAsks, which is measured against this
+           timestamp. Moving it first and sending after would put the word
+           "Sent" on a card while the send was still in flight, and leave it
+           there if the send failed. */
+        negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
+        if (window.persist) persist(c);
+        if (window.toast) toast(out && out.delivered
+          ? `Sent to ${to} — it is now their turn`
+          : `Published to ${to}'s link — it is now their turn. Send them the link if it was not emailed.`,
+          out && out.delivered ? undefined : 'err');
+      }catch(err){
+        btns.forEach(b => { b.disabled = false; });
+        if (window.toast) toast(`Could not send to ${to} — ${(err && err.message) || err}`, 'err');
+        return;
+      }
+      renderRedline();
+    },
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
@@ -4498,6 +4554,48 @@ function rlTagInternalNote(ctx){
   return true;
 }
 
+/* ---------- THE CLAUSE AND ITS CARD ARE ONE THING SHOWN TWICE ----------
+   Two columns showing the same change, and until now neither knew about the
+   other: clicking a clause lit nothing in the index, and clicking a card lit
+   nothing in the document. On a contract with a dozen asks that meant reading
+   a card, scrolling the document by eye to find which clause it was about, and
+   losing your place in the column doing it — twice, because the way back was
+   the same search in reverse.
+
+   So both ends light together, and whichever one was NOT clicked is scrolled
+   to. Scrolling the one that was clicked would yank the thing under the
+   reader's pointer out from under it: they can already see that one, it is
+   what they just pressed.
+
+   The engine's own negoFocus is not used here and cannot be: it finds panes by
+   the `nb-`/`nw-` ids the two-pane comparison mints, and this page draws one
+   document with `data-nego-card-anchor` instead. Calling it would silently do
+   nothing, which is what it did. */
+function rlLinkFocus(c, changeId, source){
+  const page = document.getElementById('view-redline');
+  const id = String(changeId == null ? '' : changeId);
+  if (!page || !id) return false;
+  const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
+  page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
+  const clause = page.querySelector('#rl-doc [data-nego-card-anchor="' + q(id) + '"]');
+  const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
+  /* Unfolding first where the card is the target: focus mode hides the whole
+     column, and scrolling to an element inside a display:none parent silently
+     does nothing at all. */
+  if (card && source === 'clause') rlToggleFocus(false);
+  if (clause){
+    clause.classList.add('is-linked');
+    if (source !== 'clause' && clause.scrollIntoView)
+      clause.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  if (card){
+    card.classList.add('is-linked');
+    if (source !== 'card' && card.scrollIntoView)
+      card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  return !!(clause || card);
+}
+
 /* ---------- JUMP TO THE CLAUSE AND EDIT IT THERE ----------
    What the Tracked Changes card's Edit button does. Not a dialog over the
    column and not an editor inside the card: the change is a change to a
@@ -4555,17 +4653,42 @@ function rlWireClauseTools(c, host, opts){
       changeId: btn.getAttribute('data-rl-change') || null });
   }));
 
-  /* The card's Edit — scroll the document to the clause and open the editor on
-     it. Stopped from bubbling because the card itself focuses on click, and
-     focusing would scroll the index back over the jump we just made. */
+  /* The card's Edit — light both ends, scroll the document to the clause and
+     open the editor on it. Stopped from bubbling because the card itself links
+     on click, and that would scroll the column back over the jump. */
   host.querySelectorAll('[data-rl-edit]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     const clauseId = btn.getAttribute('data-rl-edit');
     const changeId = btn.getAttribute('data-rl-edit-change');
-    if (changeId && window.negoFocus) negoFocus(c, changeId, 'card');
+    if (changeId) rlLinkFocus(c, changeId, 'card');
     if (!rlJumpToClause(clauseId) && window.toast)
       toast('That clause is no longer in the document', 'err');
   }));
+
+  /* ---- CARD → CONTRACT ----
+     Pressing anywhere on a card that is not one of its verbs. The verbs all
+     stop propagation, so Accept does not also drag the document somewhere on
+     its way to deciding a change. */
+  host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
+    card.addEventListener('click', () => rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card')));
+
+  /* ---- CONTRACT → CARD ----
+     And the same in reverse, from the clause. Two things are deliberately not
+     a click here: pressing one of the clause's own tools, and finishing a text
+     selection. Both are somebody operating the clause rather than asking about
+     it, and scrolling the column under them mid-gesture — or worse, moving the
+     page while a phrase is being selected — is the interruption this pairing is
+     supposed to save them. */
+  const fromClauseControl = t => !!(t && t.closest && t.closest(
+    '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, [data-nego-editor], .nego-edit-bar, '
+    + 'button, a, input, textarea, select'));
+  host.querySelectorAll('#rl-doc [data-nego-card-anchor]').forEach(sec =>
+    sec.addEventListener('click', ev => {
+      if (fromClauseControl(ev.target)) return;
+      const sel = window.getSelection && window.getSelection();
+      if (sel && !sel.isCollapsed && String(sel.toString() || '').trim()) return;
+      rlLinkFocus(c, sec.getAttribute('data-nego-card-anchor'), 'clause');
+    }));
 
   /* The card's Send — the SAME act as the toolbar's batch send, because there
      is only one send: everything unsent goes in one round. A per-change send
@@ -4759,6 +4882,41 @@ function redlineDocHtml(c, opts = {}){
    decision — the OTHER side's ask, on a copy that can still move the
    negotiation. Nobody rules on their own ask. */
 const _rlIsLive = ch => !!ch && ch.status === 'pending' && !ch.withdrawn;
+/* ---------- THE CARD SHOWS THE CHANGE, NOT THE CLAUSE ----------
+   A card used to render the whole ops array, keeps included — so a one-word
+   amendment to a four-line clause arrived as four lines of unchanged wording
+   with two marked words somewhere inside it. The column is called Tracked
+   Changes and it was mostly tracked sameness: the reader had to find the
+   delta in the card before they could judge it, which is the job the card
+   exists to do for them.
+
+   So the keeps are dropped and only the marked runs survive. Where a keep sat
+   BETWEEN two marked runs it leaves an ellipsis, because two edits at opposite
+   ends of a clause and two edits in the same sentence are different facts and
+   a card that ran them together would assert the second. Leading and trailing
+   keeps leave nothing — there is no information in "the clause continues".
+
+   The full clause is never more than a glance away: it is on the left, framed,
+   and clicking the card scrolls to it.
+
+   Ops with no marked run at all cannot happen through negoFileChange, which
+   refuses to file a no-op — but a record from an older build might, and an
+   empty card would be worse than a verbose one, so that falls back whole. */
+function rlDeltaOps(ops){
+  const all = Array.isArray(ops) ? ops : [];
+  const marked = all.filter(o => o && (o.op === 'ins' || o.op === 'del'));
+  if (!marked.length) return all;
+  const out = [];
+  let gap = false;
+  for (const o of all){
+    if (!o) continue;
+    if (o.op === 'keep'){ if (out.length) gap = true; continue; }
+    if (gap) out.push({ op: 'keep', text: ' … ' });
+    gap = false;
+    out.push(o);
+  }
+  return out;
+}
 function redlineChangeCardsHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const canAct = !opts.readonly;
@@ -4779,7 +4937,15 @@ function redlineChangeCardsHtml(c, opts = {}){
   }
   return changes.map(ch => {
     const theirs = ch.authorSide !== side;
+    /* ---- DRAFT / SENT, READ FROM THE RECORD ----
+       An ask of ours is unsent while it was filed after the last hand-over —
+       negoUnsentAsks is the one place that decides this, and the wall, the
+       toolbar's batch send and this badge are all drawn from it, so they
+       cannot disagree. Nothing here sets a "sent" flag of its own: the badge
+       flips because the turn moved, and the turn moves only when something
+       actually left the building. */
     const mineUnsent = !theirs && unsent.has(ch.id);
+    const mineSent = !theirs && !unsent.has(ch.id);
     const badge = mineUnsent ? ['draft', '&#128274; Draft']
       : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
     const who = [ch.clauseLabel || ch.clauseId, ch.by || ch.author, theirs ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us')]
@@ -4789,7 +4955,8 @@ function redlineChangeCardsHtml(c, opts = {}){
     const lastBy = String(ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
     const diff = window.redlineOpsHtml && ch.ops
-      ? redlineOpsHtml(ch.ops, { title: tip }) : _ne(ch.proposedText || ch.newText || '');
+      ? redlineOpsHtml(rlDeltaOps(ch.ops), { title: tip })
+      : _ne(ch.proposedText || ch.newText || '');
     const note = ch.note ? `<div class="rl-card-note">&#128274; ${_ne(ch.note)}</div>` : '';
     /* ---- THE FOUR VERBS, AND THE COLOUR EACH ONE IS ----
        Accept green, Reject red, Edit grey, Send green. Edit is on every live
@@ -4806,6 +4973,18 @@ function redlineChangeCardsHtml(c, opts = {}){
         title="Jump to this clause in the contract and edit it there">Edit</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
         title="Send this and every other unsent draft to ${_nea(c.counterparty || 'the counterparty')}">Send</button>`);
+    /* ---- AND WHAT THE SEND BECOMES ----
+       Not the button disappearing. A verb that vanishes on success leaves the
+       reader wondering whether they pressed it, and on a column of six cards
+       there is nothing left to compare against. It stays where it was and
+       changes state — amber, past tense, inert — so "this one has gone" is
+       readable at a glance. Disabled because there is nothing further to do to
+       it: the next move is theirs.
+
+       Drawn from the same reading as the badge above it. Neither is a flag
+       anybody sets; both follow from the turn having actually moved. */
+    if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
+        title="Sent to ${_nea(c.counterparty || 'the counterparty')} — waiting on their answer">Sent</button>`);
     return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-id">${_ne(ch.id)}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
@@ -5021,7 +5200,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlToggleFocus, rlWireClauseTools,
   RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
-  rlJumpToClause, rlSayInPanel,
+  rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,

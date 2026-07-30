@@ -65,7 +65,8 @@ async function page(opts = {}){
   const w = buildWorld({ negotiationView: true });
   const { win } = w;
   win.promptDialog = async () => '';
-  const c = opts.contract || contractFixture();
+  const c = opts.contract || contractFixture(
+    opts.email ? { counterpartyEmail: opts.email, counterpartyName: 'Erik Lindqvist' } : {});
 
   const panel = { opened: [], pushed: [], proposals: [], sessions: [] };
   win.openAI = (prefill, o) => panel.opened.push(o || {});
@@ -77,6 +78,19 @@ async function page(opts = {}){
   win.aiOpenProposal = o => { panel.cards = (panel.cards || []).concat([o]); return o; };
   win.aiOpenRephraseSession = o => { panel.sessions.push(o); return o; };
   win.aiCloseRephraseSession = () => {};
+
+  /* The share layer, stood in for. counterpartyContact and
+     reshareToLastRecipient live in js/core.js, which this stage does not load
+     — so without these the workbench correctly finds no address on file and
+     correctly falls through to the dialog, and a test of the direct send would
+     be testing the fallback. The send ROUTE is the product's; only the
+     transport at the end of it is a double. */
+  const post = { reshared: 0, modals: 0, delivered: opts.delivered !== false };
+  win.openShareModal = () => { post.modals++; };
+  win.counterpartyContact = () => (opts.email
+    ? { name: 'Erik Lindqvist', email: opts.email, channel: 'email' } : null);
+  win.reshareToLastRecipient = async () => { post.reshared++; return { delivered: post.delivered }; };
+  win.cachedShares = () => [];
 
   win.negoInit(c);
   if (opts.theirChange !== false){
@@ -91,7 +105,7 @@ async function page(opts = {}){
   win.getContract = id => (id === c.id ? c : null);
   win.renderRedline();
   const doc = win.document;
-  return { w, win, c, doc, panel,
+  return { w, win, c, doc, panel, post,
     $: sel => doc.querySelector(sel),
     $$: sel => [...doc.querySelectorAll(sel)],
     html: () => doc.getElementById('content').innerHTML,
@@ -507,6 +521,174 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
     const id = p.$('#rl-changes [data-rl-edit]').getAttribute('data-rl-edit');
     assert.ok(p.win.rlJumpToClause(id, { edit: false }));
     assert.ok(!p.$('#view-redline').classList.contains('rl-focus'));
+  });
+});
+
+describe('F89 (14) — a card shows the change, not the clause', () => {
+  test('unchanged wording is stripped from the card', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes .rl-card-diff');
+    const marked = [...card.querySelectorAll('ins, del')].map(n => n.textContent).join('');
+    const all = card.textContent.replace(/…/g, '').trim();
+    assert.ok(marked.length, 'the card must carry the marked wording');
+    assert.equal(all.replace(/\s+/g, ' ').trim(), marked.replace(/\s+/g, ' ').trim(),
+      'everything in the card must be part of the delta — the column is called Tracked Changes');
+  });
+
+  test('the clause it came from is longer than the card', async () => {
+    // the point of the scoping: the card is a summary, the document is the text
+    const p = await page();
+    const clause = p.$('#rl-doc .rl-clause.is-changed .nego-body').textContent.trim();
+    const card = p.$('#rl-changes .rl-card-diff').textContent.trim();
+    assert.ok(clause.length > card.length,
+      'a card as long as its clause has scoped nothing');
+  });
+
+  /* Joined rather than deep-compared throughout: rlDeltaOps returns an array
+     built in the PAGE's realm, whose prototype is not this realm's Array, so
+     deepEqual reports a mismatch on two identical lists — the same trap f60
+     documents and f84 works around the same way. */
+  test('two edits far apart are not run together', async () => {
+    const ops = [{ op: 'keep', text: 'A ' }, { op: 'del', text: 'one' },
+      { op: 'keep', text: ' middle bit ' }, { op: 'ins', text: 'two' }, { op: 'keep', text: ' end' }];
+    const p = await page();
+    const out = p.win.rlDeltaOps(ops);
+    assert.equal([...out].map(o => o.op).join(','), 'del,keep,ins',
+      'the dropped middle leaves an ellipsis, or the card asserts they were adjacent');
+    assert.match(out[1].text, /…/);
+    assert.ok(![...out].some(o => /middle bit/.test(o.text)), 'and the middle itself is gone');
+  });
+
+  test('leading and trailing context leaves nothing behind', async () => {
+    const p = await page();
+    const out = p.win.rlDeltaOps([{ op: 'keep', text: 'before ' },
+      { op: 'ins', text: 'X' }, { op: 'keep', text: ' after' }]);
+    assert.equal([...out].map(o => o.op).join(','), 'ins',
+      'there is no information in "the clause continues"');
+  });
+
+  test('a record with nothing marked falls back whole rather than blank', async () => {
+    const p = await page();
+    const out = p.win.rlDeltaOps([{ op: 'keep', text: 'nothing moved' }]);
+    assert.equal([...out].map(o => o.text).join('|'), 'nothing moved',
+      'an empty card is worse than a verbose one');
+  });
+});
+
+describe('F89 (15) — a clause and its card are one thing shown twice', () => {
+  test('clicking the clause lights and reaches its card', async () => {
+    const p = await page();
+    const ch = p.win.negoChanges(p.c)[0];
+    const clause = p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
+    assert.ok(clause, 'the changed clause must name its card');
+    let scrolled = null;
+    const card = p.$(`#rl-changes [data-nego-card="${ch.id}"]`);
+    card.scrollIntoView = o => { scrolled = o; };
+    clause.click();
+    assert.ok(card.classList.contains('is-linked'), 'the card must light');
+    assert.ok(clause.classList.contains('is-linked'), 'and so must the clause');
+    assert.ok(scrolled && scrolled.behavior === 'smooth', 'the card is scrolled to, smoothly');
+  });
+
+  test('clicking the card lights and reaches its clause', async () => {
+    const p = await page();
+    const ch = p.win.negoChanges(p.c)[0];
+    const clause = p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
+    let scrolled = null;
+    clause.scrollIntoView = o => { scrolled = o; };
+    p.$(`#rl-changes [data-nego-card="${ch.id}"]`).click();
+    assert.ok(clause.classList.contains('is-linked'));
+    assert.ok(scrolled && scrolled.behavior === 'smooth', 'the clause is scrolled to, smoothly');
+  });
+
+  test('the end that was clicked is not yanked out from under the pointer', async () => {
+    const p = await page();
+    const ch = p.win.negoChanges(p.c)[0];
+    const clause = p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"]`);
+    let clauseScrolled = false;
+    clause.scrollIntoView = () => { clauseScrolled = true; };
+    clause.click();
+    assert.equal(clauseScrolled, false,
+      'the reader can already see the thing they just pressed');
+  });
+
+  test('pressing a clause tool is not a request to move the page', async () => {
+    const p = await page();
+    const ch = p.win.negoChanges(p.c)[0];
+    const card = p.$(`#rl-changes [data-nego-card="${ch.id}"]`);
+    let scrolled = false;
+    card.scrollIntoView = () => { scrolled = true; };
+    p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"] .rl-tool`).click();
+    assert.equal(scrolled, false, 'operating a clause is not asking about it');
+  });
+
+  test('only one pair is lit at a time', async () => {
+    const p = await page({ myChange: true });
+    const [a, b] = p.win.negoChanges(p.c);
+    p.win.rlLinkFocus(p.c, a.id, 'card');
+    p.win.rlLinkFocus(p.c, b.id, 'card');
+    const lit = p.$$('#view-redline .is-linked').map(n =>
+      n.getAttribute('data-nego-card') || n.getAttribute('data-nego-card-anchor'));
+    assert.deepEqual([...new Set(lit)], [b.id], 'a stale ring points at the wrong change');
+  });
+});
+
+describe('F89 (16) — Send is one click, and the card says so afterwards', () => {
+  test('the page hands the engine a direct send and a contact', async () => {
+    /* Without both, #nego-send falls through to the share dialog — which is
+       the pop-up this is removing. */
+    const p = await page({ theirChange: false, myChange: true });
+    let handed = null;
+    const real = p.win.wireNegotiationTab;
+    p.win.wireNegotiationTab = (c, o) => { handed = o; return real(c, o); };
+    p.win.renderRedline();
+    assert.equal(typeof handed.onSendDirect, 'function');
+    assert.ok('contact' in handed, 'the mount must answer "do we know where this goes?"');
+  });
+
+  test('with an address on file, Send opens no dialog', async () => {
+    const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
+    p.$('#rl-changes [data-rl-send]').click();
+    await new Promise(r => setTimeout(r, 20));
+    assert.equal(p.post.modals, 0, 'a secondary confirmation is exactly what this removes');
+    assert.equal(p.post.reshared, 1, 'and the send really goes, on the one click');
+  });
+
+  test('after the send the badge reads Sent and the verb turns amber', async () => {
+    const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
+    assert.match(p.$('#rl-changes .rl-badge').textContent, /Draft/);
+    p.$('#rl-changes [data-rl-send]').click();
+    await new Promise(r => setTimeout(r, 20));
+    p.win.renderRedline();
+    assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/);
+    const sent = p.$('#rl-changes button.rl-sent');
+    assert.ok(sent, 'the verb stays in place rather than vanishing');
+    assert.equal(sent.textContent.trim(), 'Sent');
+    assert.ok(sent.disabled, 'there is nothing further to do to it');
+    assert.ok(!p.$('#rl-changes [data-rl-send]'), 'and it cannot be sent twice');
+  });
+
+  test('the amber is the specified one, and it is not greyed out', async () => {
+    const p = await page();
+    assert.match(p.rule('.redline-page .rl-sent') || '', /background:#d97706/);
+    assert.match(p.css(), /button\.rl-sent:disabled\{opacity:1\}/,
+      'a state the reader is meant to read must not be dimmed like a withheld control');
+  });
+
+  test('the badge follows the record, not a flag anybody set', async () => {
+    /* The whole safety argument for saying "Sent": it is read back from
+       negoUnsentAsks, which measures against the hand-over timestamp. If the
+       send fails, the turn does not move and nothing claims to have gone. */
+    const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
+    p.win.reshareToLastRecipient = async () => { throw new Error('the network is down'); };
+    p.$('#rl-changes [data-rl-send]').click();
+    await new Promise(r => setTimeout(r, 20));
+    p.win.renderRedline();
+    assert.equal(p.win.negoUnsentAsks(p.c, 'owner').length, 1, 'nothing left the building');
+    assert.match(p.$('#rl-changes .rl-badge').textContent, /Draft/,
+      'so nothing may say it did');
+    assert.ok(p.$('#rl-changes [data-rl-send]'), 'and the send is still offered');
+    assert.match(p.w.toastText(), /Could not send/);
   });
 });
 

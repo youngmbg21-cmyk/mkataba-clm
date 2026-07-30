@@ -19,6 +19,14 @@
     11  the four card verbs compute to the specified fills
     12  Edit scrolls the document to the clause and opens the editor
     13  the batch send is in the toolbar, counted and animated
+    14  a Tracked Changes card holds the delta and nothing else
+    15  clause <-> card lights and scrolls, both directions, really scrolling
+
+   Item 16 — one-click Send, and the Draft -> Sent states after it — is NOT
+   here, and cannot be: the send routes through counterpartyContact and
+   reshareToLastRecipient, both of which live in js/core.js, which this harness
+   does not load. Verified in the running app instead, against a real server.
+   f89 covers the routing and the states.
 
    Screenshots go to test/chromium/shots/redline/. */
 const path = require('node:path');
@@ -213,6 +221,68 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('11 Send is emerald-600', cards.send && cards.send.bg === 'rgb(5, 150, 105)',
     cards.send && cards.send.bg);
 
+  /* ---- 14. the card holds the delta and nothing else ---- */
+  const delta = await page.evaluate(() => {
+    const card = document.querySelector('#rl-changes .rl-card-diff');
+    const marked = [...card.querySelectorAll('ins, del')].map(n => n.textContent).join('');
+    const shown = card.textContent.replace(/…/g, '');
+    const clause = document.querySelector('#rl-doc .rl-clause.is-changed .nego-body').textContent;
+    const sq = s => s.replace(/\s+/g, ' ').trim();
+    return { equal: sq(shown) === sq(marked), cardLen: sq(shown).length,
+      clauseLen: sq(clause).length, sample: sq(shown).slice(0, 70) };
+  });
+  check('14 the card renders only the marked runs', delta.equal, delta.sample);
+  check('14 and is shorter than the clause it summarises',
+    delta.cardLen < delta.clauseLen, `${delta.cardLen} vs ${delta.clauseLen} chars`);
+
+  /* ---- 15. clause <-> card, both directions, with real scrolling ---- */
+  const sync = await page.evaluate(async () => {
+    const id = document.querySelector('#rl-changes [data-nego-card]').getAttribute('data-nego-card');
+    const clause = document.querySelector(`#rl-doc [data-nego-card-anchor="${CSS.escape(id)}"]`);
+    const card = document.querySelector(`#rl-changes [data-nego-card="${CSS.escape(id)}"]`);
+    const docScroll = document.getElementById('nego-scroll-work');
+    const colScroll = document.getElementById('nego-cards');
+    const seen = (el, box) => {
+      const b = el.getBoundingClientRect(), v = box.getBoundingClientRect();
+      return b.top < v.bottom && b.bottom > v.top;
+    };
+    /* Both ends pushed out of sight first, so "it is on screen afterwards" is
+       a fact about the scroll and not about a short document.
+
+       Through scrollTo with behavior:'auto', not by assigning scrollTop: the
+       pane carries scroll-behavior:smooth, which turns a plain assignment into
+       an ANIMATION. Measured a moment later it had travelled 8px of 781, so
+       the setup silently did nothing and the check that followed was reading a
+       document that had never moved. And 'instant', not 'auto': 'auto' means
+       "obey the stylesheet", which here says smooth — measured, the pane had
+       travelled 8px of 781 while the card column beside it, which carries no
+       scroll-behavior, had gone the whole way. */
+    const top = el => el.scrollTo({ top: el.scrollHeight, behavior: 'instant' });
+    top(docScroll); top(colScroll);
+    await new Promise(r => setTimeout(r, 120));
+    const hidBefore = { clause: !seen(clause, docScroll), card: !seen(card, colScroll) };
+
+    card.click();
+    await new Promise(r => setTimeout(r, 700));
+    const fromCard = { clauseLit: clause.classList.contains('is-linked'),
+      cardLit: card.classList.contains('is-linked'), clauseSeen: seen(clause, docScroll) };
+
+    top(docScroll); top(colScroll);
+    await new Promise(r => setTimeout(r, 120));
+    clause.click();
+    await new Promise(r => setTimeout(r, 700));
+    const fromClause = { cardLit: card.classList.contains('is-linked'),
+      cardSeen: seen(card, colScroll) };
+    return { hidBefore, fromCard, fromClause,
+      lit: document.querySelectorAll('#view-redline .is-linked').length };
+  });
+  check('15 both ends were genuinely out of view first',
+    sync.hidBefore.clause && sync.hidBefore.card, JSON.stringify(sync.hidBefore));
+  check('15 card -> contract lights both ends', sync.fromCard.clauseLit && sync.fromCard.cardLit);
+  check('15 card -> contract scrolls the clause into view', sync.fromCard.clauseSeen);
+  check('15 contract -> card lights and scrolls the card', sync.fromClause.cardLit && sync.fromClause.cardSeen);
+  check('15 exactly one pair is lit', sync.lit === 2, `${sync.lit} elements`);
+
   /* ---- 13. the batch send ---- */
   const blast = await page.evaluate(() => {
     const b = document.querySelector('[data-rl-blast]');
@@ -268,8 +338,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const b = clause.getBoundingClientRect(), v = scroller.getBoundingClientRect();
       return b.top < v.bottom && b.bottom > v.top;
     };
-    scroller.scrollTop = scroller.scrollHeight;      // send it out of view first
-    await new Promise(r => setTimeout(r, 80));
+    /* scrollTo with behavior:'instant', not scrollTop and not 'auto': the pane
+       carries scroll-behavior:smooth, so an assignment animates and 'auto'
+       defers to that same smooth — either way a measurement taken straight
+       after reads a pane that has barely moved. */
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'instant' });
+    await new Promise(r => setTimeout(r, 120));
     /* Whether it WAS out of view is recorded rather than assumed: a document
        short enough to fit the column cannot scroll, and a check that demanded
        movement would fail on a contract with nothing wrong with it. What must

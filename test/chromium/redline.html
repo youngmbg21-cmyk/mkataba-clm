@@ -122,6 +122,25 @@ const RICH = [
   '</ol>',
   '<h2>12. Governing Law</h2>',
   '<p>This Agreement is governed by the laws of Kenya.</p>',
+  /* ---- LONG ENOUGH TO SCROLL, ON PURPOSE ----
+     The clause<->card sync is a claim about SCROLLING, and a document short
+     enough to fit its column cannot test it: everything is already on screen,
+     so "it is visible afterwards" is true whether the code works or not. These
+     clauses exist so both ends can be pushed genuinely out of sight first. */
+  '<h2>13. Insurance</h2>',
+  '<p>The Provider shall maintain warehouse legal liability insurance with a reputable insurer licensed in Kenya, and shall furnish certificates of currency on request.</p>',
+  '<h2>14. Confidentiality</h2>',
+  '<p>Each party shall keep confidential all information disclosed by the other in connection with this Agreement, and shall not disclose it to any third party without prior written consent.</p>',
+  '<h2>15. Data Protection</h2>',
+  '<p>Each party shall comply with the Data Protection Act, 2019 and the regulations made under it in respect of any personal data processed under this Agreement.</p>',
+  '<h2>16. Force Majeure</h2>',
+  '<p>Neither party is liable for failure to perform caused by an event beyond its reasonable control, provided it notifies the other party promptly and resumes performance as soon as practicable.</p>',
+  '<h2>17. Assignment</h2>',
+  '<p>Neither party may assign this Agreement without the prior written consent of the other, such consent not to be unreasonably withheld.</p>',
+  '<h2>18. Notices</h2>',
+  '<p>Notices under this Agreement shall be given in writing and delivered by hand, by courier, or by electronic mail to the addresses set out in Annex B.</p>',
+  '<h2>19. Entire Agreement</h2>',
+  '<p>This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations and understandings.</p>',
 ].join('');
 
 window.READY = (async () => {
@@ -147,6 +166,20 @@ window.READY = (async () => {
     '<p>This Agreement is governed by the laws of Kenya and the courts of Nairobi have exclusive jurisdiction.</p>',
     { side:'owner', author:'Wanjiru Kamau',
       summary:'Exclusive jurisdiction added to the governing-law clause' });
+  /* Enough cards that the Tracked Changes column scrolls too — the other half
+     of what the sync claims. Filed as the counterparty's, which also puts
+     Accept/Reject on them and leaves our one draft the only unsent thing. */
+  const more = [
+    ['13.', '<p>The Provider shall maintain warehouse legal liability insurance with a reputable insurer licensed in Kenya, and shall furnish certificates of currency each quarter.</p>'],
+    ['14.', '<p>Each party shall keep confidential all information disclosed by the other in connection with this Agreement for a period of five (5) years after termination.</p>'],
+    ['16.', '<p>Neither party is liable for failure to perform caused by an event beyond its reasonable control, provided it notifies the other party within five (5) business days.</p>'],
+    ['18.', '<p>Notices under this Agreement shall be given in writing and delivered by hand or by electronic mail to the addresses set out in Annex B.</p>'],
+  ];
+  for (const [num, body] of more){
+    const cl = byNum(num);
+    if (cl) await negoEditClause(c, cl.clauseId, body,
+      { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB' });
+  }
   negoPostComment(c, negoChanges(c)[0].id,
     'Our AP cycle runs monthly — Net-30 forces out-of-cycle payments.',
     { side:'counterparty', author:'Amina Wanjiru' });
