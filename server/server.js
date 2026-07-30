@@ -191,12 +191,14 @@ function syncFts(c) {
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
   const u = c.upload || {};
-  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id)
-    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id)
+  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id,template_id,template_version_id)
+    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id,@template_id,@template_version_id)
     ON CONFLICT(id) DO UPDATE SET json=excluded.json, name=excluded.name, counterparty=excluded.counterparty,
       folder=excluded.folder, status=excluded.status, value=excluded.value, expiry=excluded.expiry,
       is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at,
-      text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id`).run({
+      text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id,
+      template_id=COALESCE(contracts.template_id, excluded.template_id),
+      template_version_id=COALESCE(contracts.template_version_id, excluded.template_version_id)`).run({
     id: c.id, json: j, name: c.name || '', counterparty: c.counterparty || '', folder: c.folder || '',
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || null, is_upload: c.source === 'upload' ? 1 : 0,
     seq: c._seq != null ? c._seq : nextSeq(), version, updated_at: now(),
@@ -204,6 +206,11 @@ function upsertContract(c, version) {
     // be built without loading a single document body.
     text_fingerprint: u.textFingerprint || null, simhash: u.simhash || null,
     parent_id: c.parentId || null,
+    // Template provenance (Template Library). COALESCE above makes both
+    // columns write-once: the first non-null value a contract is saved with is
+    // the value it keeps for life.
+    template_id: c.libraryTemplateId || null,
+    template_version_id: c.libraryTemplateVersionId || null,
   });
   syncFts(c);
 }
@@ -1407,6 +1414,15 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* Template provenance is written once, at creation, and never overwritten or
+     removed — it is the audit trail that answers "which live contracts came
+     from which template version". The columns are set-once via COALESCE in
+     upsertContract; this keeps the JSON blob from disagreeing with them. */
+  if (prev && (prev.libraryTemplateId || prev.libraryTemplateVersionId)) {
+    c.libraryTemplateId = prev.libraryTemplateId;
+    c.libraryTemplateVersionId = prev.libraryTemplateVersionId;
+  }
+
   // The audit trail is evidence, so the client never gets to shorten or rewrite
   // it. Entries may only be appended; anything else is replaced with what is
   // already on the record.
@@ -4016,6 +4032,509 @@ app.put('/api/advice/requests/:id', auth, editor, (req, res) => {
   saveAdviceRequest(r);
   delete r._seq;
   res.json({ ok: true, request: r });
+});
+
+/* ============================================================
+   TEMPLATE LIBRARY — company standard templates
+   ============================================================
+   A template and a contract are different objects; the template is the
+   parent. A template lives in the library, is versioned, and is never sent,
+   filled or signed. Creating a contract copies the current PUBLISHED version
+   into the contract instance, which is independent from that moment on.
+
+   Distinct from the older custom-templates feature (settings blob,
+   PUT /api/settings/templates) which stays untouched — this is the
+   structured, block-based library from the Template Library brief.
+
+   Immutability rules enforced here, not in the client:
+     - a published version's content can never be edited (edits go to a new
+       draft version);
+     - a template that has spawned contracts can never be hard-deleted, only
+       archived;
+     - a contract's template provenance columns are written once. */
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS templates (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL DEFAULT '${WORKSPACE_ID}',
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'other',
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+    origin TEXT NOT NULL DEFAULT 'built_in_hati' CHECK (origin IN ('upload','saved_from_contract','built_in_hati')),
+    source_contract_id TEXT,
+    last_used_at TEXT,
+    created_by TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS template_versions (
+    id TEXT PRIMARY KEY,
+    template_id TEXT NOT NULL,
+    version_number INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','superseded')),
+    published_at TEXT, published_by TEXT,
+    change_note TEXT,
+    error_note TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS idx_template_versions_template ON template_versions(template_id);
+  CREATE TABLE IF NOT EXISTS template_blocks (
+    id TEXT PRIMARY KEY,
+    template_version_id TEXT NOT NULL,
+    order_index INTEGER NOT NULL DEFAULT 0,
+    block_type TEXT NOT NULL CHECK (block_type IN ('heading','fixed_text','field_group','signature_block','branding')),
+    content TEXT);
+  CREATE INDEX IF NOT EXISTS idx_template_blocks_version ON template_blocks(template_version_id);
+  CREATE TABLE IF NOT EXISTS template_fields (
+    id TEXT PRIMARY KEY,
+    template_version_id TEXT NOT NULL,
+    field_key TEXT NOT NULL,
+    label TEXT, section TEXT, order_index INTEGER NOT NULL DEFAULT 0,
+    field_type TEXT NOT NULL DEFAULT 'short_text',
+    control TEXT NOT NULL DEFAULT 'free' CHECK (control IN ('free','guided')),
+    options TEXT,
+    required INTEGER NOT NULL DEFAULT 0,
+    default_value TEXT, help_text TEXT,
+    detection_confidence TEXT NOT NULL DEFAULT 'manual' CHECK (detection_confidence IN ('high','medium','low','manual')),
+    human_reviewed INTEGER NOT NULL DEFAULT 0);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_template_fields_key ON template_fields(template_version_id, field_key);
+  CREATE INDEX IF NOT EXISTS idx_template_fields_version ON template_fields(template_version_id);
+  CREATE TABLE IF NOT EXISTS org_branding (
+    org_id TEXT PRIMARY KEY,
+    logo_url TEXT, company_name TEXT, registration_number TEXT,
+    address TEXT, default_footer_text TEXT, updated_at TEXT);
+  CREATE TABLE IF NOT EXISTS org_profile_values (
+    org_id TEXT NOT NULL, field_key TEXT NOT NULL, value TEXT, updated_at TEXT,
+    PRIMARY KEY (org_id, field_key));
+`);
+// Provenance: which template and which version a contract came from. Written
+// once at creation (COALESCE in upsertContract keeps them set-once at the SQL
+// layer), never overwritten — this is the audit trail that answers "which live
+// contracts contain our old payment terms?".
+addColumnIfMissing('contracts', 'template_id', 'TEXT');
+addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
+
+const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
+const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
+
+/* The field library — the fixed catalogue of field types the whole feature is
+   built on. ONE registry, shared with the browser (js/fieldlib.js is both a
+   window global and a CommonJS module): the client validates for immediacy,
+   this re-check is the answer that counts. Adding a future type is a single
+   entry in that file, nowhere else. */
+const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
+/* Same registry, template_fields row shape (options may arrive as a JSON
+   string straight from SQLite). Empty is a `required` question, not a type
+   question — fieldLibValidate answers it first and separately. */
+const tplValidateValue = (field, value) => fieldLibValidate({ ...field, options: tplParseOptions(field.options) }, value);
+const tplParseOptions = raw => {
+  if (Array.isArray(raw)) return raw.map(String);
+  try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v.map(String) : []; } catch (_) { return []; }
+};
+const TPL_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
+const tplSlugKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'f$1').slice(0, 64) || 'field';
+
+const tplGet = id => db.prepare('SELECT * FROM templates WHERE id=?').get(id);
+const tplVersion = vid => db.prepare('SELECT * FROM template_versions WHERE id=?').get(vid);
+const tplVersionsOf = tid => db.prepare('SELECT * FROM template_versions WHERE template_id=? ORDER BY version_number').all(tid);
+const tplPublishedVersion = tid => db.prepare("SELECT * FROM template_versions WHERE template_id=? AND status='published' ORDER BY version_number DESC LIMIT 1").get(tid);
+const tplBlocksOf = vid => db.prepare('SELECT * FROM template_blocks WHERE template_version_id=? ORDER BY order_index').all(vid);
+const tplFieldsOf = vid => db.prepare('SELECT * FROM template_fields WHERE template_version_id=? ORDER BY order_index').all(vid)
+  .map(f => ({ ...f, options: tplParseOptions(f.options), required: !!f.required, human_reviewed: !!f.human_reviewed }));
+const tplIsManager = u => u && (u.role === 'admin' || u.role === 'legal');
+// Managers see the whole library; everyone else sees a draft template exactly
+// as if it did not exist yet — it becomes visible the moment it is published.
+// Archived templates stay visible to all: the audit trail of their children
+// still points here.
+const tplVisibleTo = (t, u) => !!t && (tplIsManager(u) || t.status !== 'draft');
+const tplUsage = tid => db.prepare("SELECT COUNT(*) n FROM contracts WHERE template_id=?").get(tid).n;
+
+function tplNewVersion(templateId, versionNumber) {
+  const v = { id: 'tv_' + rid(8), template_id: templateId, version_number: versionNumber };
+  db.prepare('INSERT INTO template_versions (id,template_id,version_number,status,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run(v.id, v.template_id, v.version_number, 'draft', now(), now());
+  return v;
+}
+function tplListView(t) {
+  const pub = tplPublishedVersion(t.id);
+  const latest = db.prepare('SELECT MAX(version_number) m FROM template_versions WHERE template_id=?').get(t.id).m || 0;
+  return {
+    id: t.id, name: t.name, description: t.description || '', category: t.category,
+    status: t.status, origin: t.origin, sourceContractId: t.source_contract_id || null,
+    publishedVersion: pub ? pub.version_number : null,
+    publishedVersionId: pub ? pub.id : null,
+    latestVersion: latest,
+    contractsCreated: tplUsage(t.id),
+    lastUsedAt: t.last_used_at || null,
+    createdBy: t.created_by || null, createdAt: t.created_at, updatedAt: t.updated_at,
+  };
+}
+function tplTouch(id) { db.prepare('UPDATE templates SET updated_at=? WHERE id=?').run(now(), id); }
+
+/* ---- library routes ---- */
+app.get('/api/templates', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM templates ORDER BY updated_at DESC').all()
+    .filter(t => tplVisibleTo(t, req.user));
+  res.json({ templates: rows.map(tplListView), canManage: tplIsManager(req.user) });
+});
+
+app.post('/api/templates', auth, templateManager, passwordCurrent, (req, res) => {
+  const b = req.body || {};
+  const name = clean(b.name).slice(0, 160);
+  if (!name) return res.status(400).json({ error: 'A template needs a name' });
+  const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
+  const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
+  const t = {
+    id: 'tpl_' + rid(8), name, description: clean(b.description).slice(0, 2000), category,
+    origin, source_contract_id: null, created_by: req.user.name,
+  };
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft',?,?,?,?,?)`)
+      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.origin, t.source_contract_id, t.created_by, now(), now());
+    tplNewVersion(t.id, 1);
+  });
+  res.json({ ok: true, template: tplListView(tplGet(t.id)) });
+});
+
+app.get('/api/templates/:id', auth, (req, res) => {
+  const t = tplGet(req.params.id);
+  // Out of sight reads exactly like "does not exist" — same rule as contracts.
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const manager = tplIsManager(req.user);
+  const versions = tplVersionsOf(t.id)
+    // a non-manager has no business seeing unpublished drafts-in-progress
+    .filter(v => manager || v.status !== 'draft')
+    .map(v => ({ id: v.id, versionNumber: v.version_number, status: v.status,
+      publishedAt: v.published_at, publishedBy: v.published_by,
+      changeNote: v.change_note || '', errorNote: v.error_note || '', createdAt: v.created_at }));
+  res.json({ template: tplListView(t), versions, canManage: manager });
+});
+
+app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const b = req.body || {};
+  const sets = [], args = [];
+  if (b.name !== undefined) { const n = clean(b.name).slice(0, 160); if (!n) return res.status(400).json({ error: 'A template needs a name' }); sets.push('name=?'); args.push(n); }
+  if (b.description !== undefined) { sets.push('description=?'); args.push(clean(b.description).slice(0, 2000)); }
+  if (b.category !== undefined) {
+    if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
+    sets.push('category=?'); args.push(b.category);
+  }
+  if (b.status !== undefined) {
+    // Status is a lifecycle, not a free field: archive is allowed from
+    // anywhere; restore returns to published/draft depending on whether a
+    // published version exists. Publishing happens on a VERSION, never here.
+    if (b.status === 'archived') { sets.push('status=?'); args.push('archived'); }
+    else if (b.status === 'restore' && t.status === 'archived') { sets.push('status=?'); args.push(tplPublishedVersion(t.id) ? 'published' : 'draft'); }
+    else return res.status(400).json({ error: 'Only archive and restore are allowed here — publishing happens on a version' });
+  }
+  if (!sets.length) return res.status(400).json({ error: 'Nothing to change' });
+  sets.push('updated_at=?'); args.push(now(), req.params.id);
+  db.prepare(`UPDATE templates SET ${sets.join(', ')} WHERE id=?`).run(...args);
+  res.json({ ok: true, template: tplListView(tplGet(req.params.id)) });
+});
+
+app.delete('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const used = tplUsage(t.id);
+  // Never hard-delete a template that has spawned contracts — those contracts
+  // permanently cite it. Archive keeps the audit trail intact.
+  if (used > 0) return res.status(409).json({
+    error: `${used} contract${used === 1 ? ' was' : 's were'} created from “${t.name}” — it can be archived, never deleted`,
+  });
+  txn(() => {
+    for (const v of tplVersionsOf(t.id)) {
+      db.prepare('DELETE FROM template_blocks WHERE template_version_id=?').run(v.id);
+      db.prepare('DELETE FROM template_fields WHERE template_version_id=?').run(v.id);
+    }
+    db.prepare('DELETE FROM template_versions WHERE template_id=?').run(t.id);
+    db.prepare('DELETE FROM templates WHERE id=?').run(t.id);
+  });
+  res.json({ ok: true });
+});
+
+/* ---- version content ---- */
+app.get('/api/templates/:id/versions/:vid', auth, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status === 'draft' && !tplIsManager(req.user)) return res.status(404).json({ error: 'Version not found' });
+  res.json({
+    version: { id: v.id, versionNumber: v.version_number, status: v.status,
+      publishedAt: v.published_at, publishedBy: v.published_by,
+      changeNote: v.change_note || '', errorNote: v.error_note || '' },
+    blocks: tplBlocksOf(v.id).map(bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' })),
+    fields: tplFieldsOf(v.id),
+  });
+});
+
+const TPL_BLOCK_TYPES = ['heading', 'fixed_text', 'field_group', 'signature_block', 'branding'];
+const TPL_CONFIDENCE = ['high', 'medium', 'low', 'manual'];
+/* Replace a DRAFT version's content wholesale. A published or superseded
+   version is immutable — the 409 is the product behaving, not failing. */
+app.put('/api/templates/:id/versions/:vid', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status !== 'draft') return res.status(409).json({
+    error: `v${v.version_number} is ${v.status} and can never be edited — make your changes on a new draft version`,
+  });
+  const b = req.body || {};
+  const blocks = Array.isArray(b.blocks) ? b.blocks : [];
+  const fields = Array.isArray(b.fields) ? b.fields : [];
+  if (blocks.length > 500) return res.status(400).json({ error: 'Too many blocks (max 500)' });
+  if (fields.length > 300) return res.status(400).json({ error: 'Too many fields (max 300)' });
+  const seen = new Set();
+  const cleanFields = [];
+  for (const f of fields) {
+    const key = TPL_KEY_RE.test(String(f.fieldKey || '')) ? f.fieldKey : tplSlugKey(f.fieldKey || f.label);
+    if (seen.has(key)) return res.status(400).json({ error: `Duplicate field key “${key}” — keys are unique within a version` });
+    seen.add(key);
+    if (f.fieldType !== undefined && !TPL_FIELD_LIB[f.fieldType]) return res.status(400).json({ error: `Unknown field type “${f.fieldType}”` });
+    cleanFields.push({
+      id: 'tf_' + rid(8), field_key: key,
+      label: clean(f.label).slice(0, 200), section: clean(f.section).slice(0, 200) || null,
+      order_index: Number(f.orderIndex) || 0,
+      field_type: TPL_FIELD_LIB[f.fieldType] ? f.fieldType : 'short_text',
+      control: f.control === 'guided' ? 'guided' : 'free',
+      options: f.control === 'guided' ? JSON.stringify((Array.isArray(f.options) ? f.options : []).map(o => String(o).slice(0, 200)).slice(0, 50)) : null,
+      required: f.required ? 1 : 0,
+      default_value: f.defaultValue != null && String(f.defaultValue).trim() !== '' ? String(f.defaultValue).slice(0, 2000) : null,
+      help_text: f.helpText != null && String(f.helpText).trim() !== '' ? String(f.helpText).slice(0, 1000) : null,
+      detection_confidence: TPL_CONFIDENCE.includes(f.detectionConfidence) ? f.detectionConfidence : 'manual',
+      human_reviewed: f.humanReviewed ? 1 : 0,
+    });
+  }
+  const cleanBlocks = [];
+  for (const bl of blocks) {
+    if (!TPL_BLOCK_TYPES.includes(bl.blockType)) return res.status(400).json({ error: `Unknown block type “${bl.blockType}”` });
+    cleanBlocks.push({
+      id: 'tb_' + rid(8), order_index: Number(bl.orderIndex) || 0,
+      block_type: bl.blockType, content: String(bl.content == null ? '' : bl.content).slice(0, 60000),
+    });
+  }
+  txn(() => {
+    db.prepare('DELETE FROM template_blocks WHERE template_version_id=?').run(v.id);
+    db.prepare('DELETE FROM template_fields WHERE template_version_id=?').run(v.id);
+    for (const bl of cleanBlocks)
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run(bl.id, v.id, bl.order_index, bl.block_type, bl.content);
+    for (const f of cleanFields)
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(f.id, v.id, f.field_key, f.label, f.section, f.order_index, f.field_type, f.control, f.options, f.required, f.default_value, f.help_text, f.detection_confidence, f.human_reviewed);
+    db.prepare('UPDATE template_versions SET updated_at=? WHERE id=?').run(now(), v.id);
+    tplTouch(t.id);
+  });
+  res.json({ ok: true, blocks: cleanBlocks.length, fields: cleanFields.length });
+});
+
+/* Publish: validates, freezes the draft as the published version, and
+   supersedes the previous published one. Contracts already created from the
+   superseded version are copies and are not touched — by design and by test. */
+app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status !== 'draft') return res.status(409).json({ error: `v${v.version_number} is already ${v.status}` });
+  if (t.status === 'archived') return res.status(409).json({ error: 'Restore the template from the archive before publishing' });
+  const fields = tplFieldsOf(v.id);
+  const blocks = tplBlocksOf(v.id);
+  const problems = [];
+  if (!blocks.length && !fields.length) problems.push('The version is empty — add blocks or fields before publishing');
+  for (const f of fields) {
+    if (!clean(f.label)) problems.push(`Field “${f.field_key}” has no label`);
+    if (f.control === 'guided' && !f.options.length) problems.push(`Guided field “${f.label || f.field_key}” has no options to choose from`);
+  }
+  if (problems.length) return res.status(400).json({ error: problems[0], problems });
+  const warnings = [];
+  if (!blocks.some(b => b.block_type === 'signature_block') && !fields.some(f => f.field_type === 'signature_name_title'))
+    warnings.push('No signature block — contracts from this template will have nowhere to sign');
+  const changeNote = clean((req.body || {}).changeNote).slice(0, 500);
+  txn(() => {
+    db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
+    db.prepare("UPDATE template_versions SET status='published', published_at=?, published_by=?, change_note=?, updated_at=? WHERE id=?")
+      .run(now(), req.user.name, changeNote || null, now(), v.id);
+    db.prepare("UPDATE templates SET status='published', updated_at=? WHERE id=?").run(now(), t.id);
+  });
+  res.json({ ok: true, versionNumber: v.version_number, warnings });
+});
+
+/* A new draft to edit next — seeded from the newest version so a manager
+   iterates on what is live rather than starting blank. */
+app.post('/api/templates/:id/versions', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const existing = tplVersionsOf(t.id);
+  const openDraft = existing.find(v => v.status === 'draft');
+  if (openDraft) return res.status(409).json({ error: `v${openDraft.version_number} is still a draft — finish or publish it first`, versionId: openDraft.id });
+  const source = existing[existing.length - 1];
+  const v = tplNewVersion(t.id, (source ? source.version_number : 0) + 1);
+  if (source) txn(() => {
+    for (const bl of tplBlocksOf(source.id))
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run('tb_' + rid(8), v.id, bl.order_index, bl.block_type, bl.content);
+    for (const f of db.prepare('SELECT * FROM template_fields WHERE template_version_id=?').all(source.id))
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run('tf_' + rid(8), v.id, f.field_key, f.label, f.section, f.order_index, f.field_type, f.control, f.options, f.required, f.default_value, f.help_text, f.detection_confidence, f.human_reviewed);
+  });
+  tplTouch(t.id);
+  res.json({ ok: true, versionId: v.id, versionNumber: v.version_number });
+});
+
+/* ---- save-as-template: a deal that went well becomes the standard ----
+   Copies a contract's wording into a NEW draft template, converting the
+   party-specific values it can recognise (names, emails, amounts, dates —
+   read from the contract's own structured record, not guessed) into empty
+   typed fields, and leaving everything else as fixed wording. The draft then
+   opens in the builder; nothing publishes without a manager looking at it. */
+const TPL_HEADING_RE = /^(article|section|schedule|part|clause)\s+[0-9ivxlc]+\b/i;
+function tplTextBlocks(text) {
+  // Paragraphs are blank-line separated; single newlines inside a paragraph
+  // stay (addresses, signature lines). A heading is short, and either
+  // ALL-CAPS or an Article/Section/Schedule label — deliberately conservative:
+  // "1. The Supplier shall…" is a clause, not a heading.
+  const out = [];
+  for (const para of String(text || '').split(/\n{2,}/)) {
+    const p = para.replace(/[ \t]+$/gm, '').trim();
+    if (!p) continue;
+    const oneLine = !p.includes('\n');
+    const caps = p === p.toUpperCase() && /[A-Z]/.test(p);
+    if (oneLine && p.length <= 80 && (caps || TPL_HEADING_RE.test(p)) && !/[.;:]$/.test(p))
+      out.push({ block_type: 'heading', content: p });
+    else out.push({ block_type: 'fixed_text', content: p });
+  }
+  return out;
+}
+function tplRichBlocks(html) {
+  // The rich format is a sanitised fragment with a fixed tag allowlist, so a
+  // scan for block elements is dependable — no DOM needed on this side.
+  const out = [];
+  const re = /<(h[1-4]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(html)) != null) {
+    const text = richBodyToSearchText(m[2]);
+    if (!text) continue;
+    out.push({ block_type: /^h/i.test(m[1]) ? 'heading' : 'fixed_text', content: text });
+  }
+  return out.length ? out : tplTextBlocks(richBodyToSearchText(html));
+}
+app.post('/api/contracts/:id/save-as-template', auth, templateManager, passwordCurrent, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c; try { c = JSON.parse(row.json); } catch (_) { return res.status(500).json({ error: 'The contract record could not be read' }); }
+  const bodyText = c.format === 'rich' ? null : (c.redlineText || (c.upload && c.upload.extractedText) || '');
+  const blocks = c.format === 'rich' && c.redlineText ? tplRichBlocks(c.redlineText) : tplTextBlocks(bodyText);
+  if (!blocks.length) return res.status(400).json({ error: 'This contract has no document text to turn into a template' });
+
+  /* Party-specific values, read from the record the contract already carries.
+     Every literal occurrence in the wording becomes a {{placeholder}} and an
+     empty field of the right type. Nothing is invented: a value that does not
+     appear in the text creates no field. */
+  const money = Number(c.value) || 0;
+  const candidates = [
+    { key: 'counterparty_name', label: 'Counterparty name', type: 'short_text', required: true,
+      needles: [c.counterparty].filter(Boolean) },
+    { key: 'counterparty_email', label: 'Counterparty email', type: 'email',
+      needles: [c.counterpartyEmail].filter(Boolean) },
+    { key: 'contract_value', label: 'Contract value (KES)', type: 'currency',
+      needles: money > 0 ? [money.toLocaleString('en-US'), String(money)] : [] },
+    { key: 'effective_date', label: 'Effective date', type: 'date',
+      needles: [c.fields && c.fields.effDate].filter(Boolean) },
+    { key: 'expiry_date', label: 'Expiry date', type: 'date',
+      needles: [c.expiry].filter(Boolean) },
+  ];
+  const fields = [];
+  let section = null;
+  const sectionOf = [];
+  blocks.forEach(b => { if (b.block_type === 'heading') section = b.content.slice(0, 120); sectionOf.push(section); });
+  for (const cand of candidates) {
+    let found = false;
+    blocks.forEach((b, i) => {
+      for (const needle of cand.needles) {
+        if (needle && needle.length >= 3 && b.content.includes(needle)) {
+          b.content = b.content.split(needle).join(`{{${cand.key}}}`);
+          b.block_type = b.block_type === 'heading' ? 'heading' : 'field_group';
+          if (!found) { fields.push({ ...cand, section: sectionOf[i] }); found = true; }
+        }
+      }
+    });
+  }
+  // Every agreement signs; give the draft the signature scaffolding so the
+  // builder starts from something publishable. The manager adjusts from here.
+  blocks.push({ block_type: 'signature_block', content: 'Company' });
+  blocks.push({ block_type: 'signature_block', content: 'Counterparty' });
+  fields.push({ key: 'company_signature', label: 'Signed for the company', type: 'signature_name_title', section: 'Signatures' });
+  fields.push({ key: 'counterparty_signature', label: 'Signed for the counterparty', type: 'signature_name_title', section: 'Signatures' });
+
+  const FOLDER_CATEGORY = { proc: 'procurement', sales: 'sales', corp: 'other', mfg: 'other', dist: 'other', mktg: 'other' };
+  const name = clean((req.body || {}).name).slice(0, 160) || `${c.name} — standard template`;
+  const tid = 'tpl_' + rid(8);
+  let vid;
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft','saved_from_contract',?,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Saved from ${c.id} (${c.name})`, FOLDER_CATEGORY[c.folder] || 'other', c.id, req.user.name, now(), now());
+    const v = tplNewVersion(tid, 1);
+    vid = v.id;
+    blocks.forEach((b, i) =>
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run('tb_' + rid(8), vid, i, b.block_type, b.content.slice(0, 60000)));
+    fields.forEach((f, i) =>
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,'free',NULL,?,NULL,NULL,'high',0)`)
+        .run('tf_' + rid(8), vid, f.key, f.label, f.section || null, i, f.type, f.required ? 1 : 0));
+  });
+  res.json({ ok: true, templateId: tid, versionId: vid,
+    fieldsCreated: fields.length, blocksCreated: blocks.length });
+});
+
+/* ---- org branding & profile values ---- */
+app.get('/api/org/branding', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  res.json({ branding: r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
+    registrationNumber: r.registration_number || '', address: r.address || '',
+    defaultFooterText: r.default_footer_text || '' } : null });
+});
+app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
+  const b = req.body || {};
+  const logo = b.logoUrl == null ? null : String(b.logoUrl);
+  // The logo travels as a data URL (house transport for files) and lands on
+  // every contract header, the portal included — so it is validated here, once.
+  if (logo && !/^data:image\/(png|jpe?g|webp|svg\+xml);base64,/.test(logo)) return res.status(400).json({ error: 'The logo must be a PNG, JPEG, WebP or SVG image' });
+  if (logo && logo.length > 700000) return res.status(400).json({ error: 'Keep the logo under 500 KB' });
+  db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,updated_at)
+    VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
+      registration_number=excluded.registration_number, address=excluded.address,
+      default_footer_text=excluded.default_footer_text, updated_at=excluded.updated_at`)
+    .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
+      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500), now());
+  res.json({ ok: true });
+});
+app.get('/api/org/profile-values', auth, (req, res) => {
+  const rows = db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID);
+  res.json({ values: Object.fromEntries(rows.map(r => [r.field_key, r.value])) });
+});
+app.put('/api/org/profile-values', auth, templateManager, passwordCurrent, (req, res) => {
+  const values = (req.body || {}).values;
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return res.status(400).json({ error: 'values must be an object of field_key → value' });
+  const entries = Object.entries(values).slice(0, 200);
+  txn(() => {
+    for (const [k, val] of entries) {
+      const key = tplSlugKey(k);
+      if (val == null || String(val).trim() === '') db.prepare('DELETE FROM org_profile_values WHERE org_id=? AND field_key=?').run(WORKSPACE_ID, key);
+      else db.prepare(`INSERT INTO org_profile_values (org_id,field_key,value,updated_at) VALUES (?,?,?,?)
+        ON CONFLICT(org_id,field_key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`)
+        .run(WORKSPACE_ID, key, String(val).slice(0, 2000), now());
+    }
+  });
+  res.json({ ok: true });
 });
 
 /* ---------- frontend ---------- */

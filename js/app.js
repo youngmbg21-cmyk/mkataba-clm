@@ -43,6 +43,8 @@ import './views/advice.js';
 import './views/adviceportal.js';
 import './templatefields.js';
 import './views/library.js';
+import './fieldlib.js';            // the template-library field catalogue (shared with the server)
+import './views/templatelib.js';   // the versioned company standard-template library
 import './views/migration.js';
 
 /* ============================================================ NAV */
@@ -78,6 +80,7 @@ function commandMeta(view){
     }
     case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
     case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
+    case 'tpl-library': return ['Template Library', 'company standard templates — versioned, permissioned, and the parent of every contract they spawn'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
@@ -210,6 +213,7 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
+  'tpl-library':'Template Library',
   team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
   redline:'the Redline workbench' };
 
@@ -258,6 +262,7 @@ function setView(view){
     else if(view==='pipeline') renderPipeline();
     else if(view==='advice') renderAdviceDesk();
     else if(view==='templates') renderTemplatesPage();
+    else if(view==='tpl-library') renderTemplateLibrary();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
     else if(view==='doclab') renderDocLab();
