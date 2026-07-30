@@ -318,11 +318,17 @@
   html.dark .nav-badge{color:#fcd34d;}
   .nav-item.active .nav-count{color:inherit;opacity:.8;}
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
-     hides its tabs. On login only "Work" is open (see .open in the markup); the
-     section holding the active view is auto-opened in setActiveNav(). */
+     hides its tabs. Only ADMINISTRATION folds now — its header is the one
+     button left carrying data-section-toggle and the +/− glyph; every other
+     section is permanently open under a .static label, because a nav that can
+     hide its own destinations makes people hunt for tabs they use daily. The
+     section holding the active view is still auto-opened in setActiveNav(). */
   .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400);padding:12px 12px 6px;text-align:left;transition:color .12s;}
   .nav-section:first-child .nav-section-head{padding-top:4px;}
   .nav-section-head:hover{color:var(--color-accent-600);}
+  /* a label, not a control: no pointer, no hover invitation, nothing to press */
+  .nav-section-head.static{cursor:default;}
+  .nav-section-head.static:hover{color:var(--color-neutral-400);}
   .nav-plus{margin-left:auto;position:relative;width:12px;height:12px;flex:none;opacity:.8;}
   .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:1px;transition:opacity .15s;}
   .nav-plus::before{left:1px;right:1px;top:5px;height:2px;}   /* horizontal bar (always shown) */
@@ -702,10 +708,13 @@
   <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
-      <!-- Collapsible sections: each header toggles its tabs open/closed. "Work"
-           opens on login; the others start collapsed (see .open below). -->
+      <!-- The standard sections are ALWAYS OPEN — their headers are labels, not
+           toggles: a nav that can hide its own destinations makes people hunt
+           for tabs they use daily. Only ADMINISTRATION keeps the fold (its
+           header stays a button with data-section-toggle), because its items
+           are reached rarely and by choice. -->
       <div class="nav-section open" data-section="work">
-        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true">Core Workspace<span class="nav-plus"></span></button>
+        <div class="nav-section-head static">Core Workspace</div>
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home">
             <span class="nav-rail"></span>
@@ -731,21 +740,11 @@
             <span style="flex:1;">Redline</span>
             <span id="nav-redline-count" class="nav-badge hidden"></span>
           </button>
-          <button data-view="pipeline" class="nav-item" title="Queue">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="9.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="16.5" y="3.5" width="5" height="17" rx="1.3"/></svg>
-            <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
-          </button>
-          <button data-view="advice" class="nav-item" title="Advice Desk">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
-            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
-          </button>
         </div>
       </div>
 
-      <div class="nav-section" data-section="contracts">
-        <button class="nav-section-head" data-section-toggle="contracts" aria-expanded="false">Contracts<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="contracts">
+        <div class="nav-section-head static">Contracts</div>
         <div class="nav-section-body">
           <button data-view="register" class="nav-item" title="Register">
             <span class="nav-rail"></span>
@@ -765,8 +764,8 @@
         </div>
       </div>
 
-      <div class="nav-section" data-section="build">
-        <button class="nav-section-head" data-section-toggle="build" aria-expanded="false">Build<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="build">
+        <div class="nav-section-head static">Build</div>
         <div class="nav-section-body">
           <button data-view="templates" class="nav-item" title="Templates">
             <span class="nav-rail"></span>
@@ -781,14 +780,9 @@
         </div>
       </div>
 
-      <div class="nav-section" data-section="insight">
-        <button class="nav-section-head" data-section-toggle="insight" aria-expanded="false">Insight<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="insight">
+        <div class="nav-section-head static">Insight</div>
         <div class="nav-section-body">
-          <button data-view="reports" class="nav-item" title="Reports">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="4.2" height="9" rx="1.1"/><rect x="9.9" y="7" width="4.2" height="14" rx="1.1"/><rect x="16.8" y="3" width="4.2" height="18" rx="1.1"/></svg>
-            <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
-          </button>
           <button data-view="intel" class="nav-item" title="Intel">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
@@ -804,6 +798,23 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
             <span style="flex:1;">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+          </button>
+          <!-- Operational desks filed under Settings & Rules: day-to-day work
+               lives in Core Workspace; these are run-the-shop surfaces. -->
+          <button data-view="pipeline" class="nav-item" title="Queue">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="9.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="16.5" y="3.5" width="5" height="17" rx="1.3"/></svg>
+            <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
+          </button>
+          <button data-view="advice" class="nav-item" title="Advice Desk">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
+            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+          </button>
+          <button data-view="reports" class="nav-item" title="Reports">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="4.2" height="9" rx="1.1"/><rect x="9.9" y="7" width="4.2" height="14" rx="1.1"/><rect x="16.8" y="3" width="4.2" height="18" rx="1.1"/></svg>
+            <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
           </button>
         </div>
       </div>
