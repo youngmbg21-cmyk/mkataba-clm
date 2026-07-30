@@ -203,17 +203,28 @@ function renderDashboard(){
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
   const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
-  // Adaptive layout: 1–6 chosen → one balanced row that fills the width; more
-  // than 6 → wrap into balanced rows so cards never get awkwardly thin.
-  const kpiN=kpiSel.length||1, kpiCols=kpiN<=6?kpiN:Math.ceil(kpiN/2);
-  const kpiCard=id=>{ const k=KPI_CATALOG[id]; return `
-    <button data-kpi-id="${id}" draggable="true" style="position:relative;display:flex;flex-direction:column;gap:10px;align-items:flex-start;border:0;border-radius:10px;background:${k.grad};padding:15px 16px;font:inherit;color:#fff;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)'">
-      <span style="display:flex;align-items:center;gap:9px;">
-        <span style="width:30px;height:30px;flex:none;border-radius:7px;background:rgba(255,255,255,.22);display:grid;place-items:center;color:#fff;">${icon(k.ic,'w-4 h-4',1.7)}</span>
-        <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.92);line-height:1.25;">${k.label}</span>
+  // Adaptive layout: the redesign's stat cards are wider and quieter than the
+  // gradient blocks they replace, so they sit four to a row and wrap.
+  /* Balanced rows, so a chosen sixth metric never lands alone on a second row:
+     up to 4 sit in one row, 5–6 split 3+3 (or 3+2), more than 6 go four-up. */
+  const kpiN=kpiSel.length||1, kpiCols=kpiN<=4?kpiN:(kpiN<=6?3:4);
+  /* Tone is carried over from the card's old gradient, so a metric keeps the
+     semantic colour it always had (steel = volume, emerald = good, amber =
+     pending, ruby = risk) — now as an icon tile and a delta colour on a plain
+     surface, per the new design. The tile tokens are theme-aware. */
+  const TONE_OF=g=>g===G.green?'emerald':g===G.amber?'amber':g===G.ruby?'ruby':'steel';
+  const TONE_BG={steel:'var(--tile-steel-bg)',emerald:'var(--tile-emerald-bg)',amber:'var(--tile-amber-bg)',ruby:'var(--tile-ruby-bg)'};
+  const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
+  const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
+    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:9px;align-items:stretch;border:1px solid var(--color-divider);border-radius:16px;background:var(--color-surface);padding:16px 18px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s,opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='color-mix(in srgb,var(--accent-solid) 35%,transparent)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--color-divider)'">
+      <span style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span style="font-size:11.5px;font-weight:600;color:var(--color-neutral-600);line-height:1.3;">${k.label}</span>
+        <span style="width:28px;height:28px;flex:none;border-radius:9px;background:${TONE_BG[t]};color:${TONE_FG[t]};display:grid;place-items:center;">${icon(k.ic,'w-3.5 h-3.5',1.8)}</span>
       </span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:25px;line-height:1.0;color:#fff;">${k.val}</span>
-      <span style="font-size:10.5px;color:rgba(255,255,255,.85);font-weight:500;">${k.delta}</span>
+      <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
+        <span class="tnum" style="font-weight:700;font-size:24px;line-height:1.05;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
+      </span>
     </button>`; };
   const kpiHtml=kpiSel.map(kpiCard).join('');
 
@@ -492,7 +503,7 @@ function renderDashboard(){
       ${list.length?list.slice(0,6).map(obRow).join(''):`<div style="font-size:11px;color:var(--color-neutral-600);padding:5px 2px">${empty}</div>`}
     </div>`;
   const obligationsSection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:12px 14px;">
       <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
         <h4 style="font-size:15px;margin:0;">Obligations · next 45 days</h4>
         <span style="font-size:11px;color:${obsOverdue.length?'#8f322b':'var(--color-neutral-600)'};font-weight:${obsOverdue.length?600:400}">${obsOverdue.length?`${obsOverdue.length} overdue`:'nothing overdue'}<span style="color:var(--color-neutral-500);font-weight:400"> · </span><button id="ob-open-cal" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-accent-700);font-weight:500;cursor:pointer">Open the calendar &rarr;</button></span>
@@ -503,9 +514,123 @@ function renderDashboard(){
       </div>
     </section>`;
 
+  /* ---- WELCOME BANNER (redesign) ----
+     The page used to open on a metric ribbon. It now opens on a statement of
+     what this workspace is for, and the one button that starts real work. The
+     sub-line names the jurisdiction actually in force (the header switcher),
+     rather than claiming both. */
+  const REGION_LABEL={SE:'Sweden 🇸🇪', KE:'Kenya 🇰🇪'};
+  const regionNow=REGION_LABEL[state.region]||REGION_LABEL.KE;
+  const heroSection=`
+    <section style="position:relative;overflow:hidden;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:24px 26px;border-radius:18px;background:linear-gradient(115deg,#0f172a 0%,#134e4a 62%,#0d9488 130%);border:1px solid #134e4a;box-shadow:var(--shadow-md);color:#fff;">
+      <div style="position:absolute;right:-60px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(45,212,191,.28),transparent 68%);pointer-events:none;"></div>
+      <div style="position:relative;min-width:0;display:flex;flex-direction:column;gap:7px;">
+        <span style="align-self:flex-start;display:inline-flex;align-items:center;gap:7px;padding:3px 11px;border-radius:999px;background:rgba(20,184,166,.2);border:1px solid rgba(20,184,166,.34);color:#5eead4;font-size:11px;font-weight:600;">
+          <span style="display:inline-flex;color:#5eead4;">${icon('check2','w-3 h-3',2)}</span>Multi-jurisdiction engine ready
+        </span>
+        <h2 style="margin:0;font-size:26px;line-height:1.15;font-weight:700;letter-spacing:-.02em;color:#fff;">SME Contract Control Center</h2>
+        <p style="margin:0;font-size:12.5px;color:#cbd5e1;max-width:62ch;">Fast, accessible execution for ${regionNow} operations · ${Number(countAll).toLocaleString('en-KE')} contracts under management.</p>
+      </div>
+      <div style="position:relative;display:flex;align-items:center;gap:10px;flex:none;">
+        <button id="hero-draft" style="display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:12px;background:var(--accent-solid);color:#fff;font:inherit;font-family:var(--font-heading);font-size:12.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px -6px rgba(13,148,136,.7);transition:background .15s;" onmouseover="this.style.background='#14b8a6'" onmouseout="this.style.background='var(--accent-solid)'">
+          ${icon('plus','w-3.5 h-3.5',2)} Draft new agreement
+        </button>
+      </div>
+    </section>`;
+
+  /* ---- ACTIVE CONTRACT LIFECYCLE PIPELINE (redesign) ----
+     Three columns for the three things that actually happen to a contract, each
+     showing the live records sitting in that stage. The column headers are the
+     old stage filters, so every click-through the segmented bar used to offer
+     still works. "Closed" is not a lifecycle stage you work in, so it keeps its
+     place on the bar below rather than taking a fourth column. */
+  const PIPE_DEF=[
+    {k:'Draft',        n:1, title:'Draft & Template',  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)'},
+    {k:'Under Review', n:2, title:'Review & Redline',  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)'},
+    {k:'Signed',       n:3, title:'Sign & Executed',   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)'},
+  ];
+  const pipeDocCard=(c,st)=>{
+    const risky=st.k==='Under Review'&&contractRisk(c)>=60;
+    const sub=st.k==='Signed'
+      ? `<span style="color:var(--st-green-fg);font-weight:600;display:inline-flex;align-items:center;gap:4px;">${icon('check2','w-3 h-3',2)}${c.signedAt?'Executed':'Signed'}</span>`
+      : `<span style="color:var(--color-neutral-500);">${esc(c.counterparty||'No counterparty yet')}</span>`;
+    return `<button data-sel="${c.id}" style="display:block;width:100%;text-align:left;padding:9px 10px;border-radius:10px;background:var(--color-surface);border:1px solid ${st.bd};font:inherit;color:inherit;cursor:pointer;box-shadow:var(--shadow-sm);transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent-solid)'" onmouseout="this.style.borderColor='${st.bd}'">
+      <span style="display:flex;align-items:flex-start;justify-content:space-between;gap:7px;">
+        <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;">${esc(c.name)}</span>
+        ${risky?`<span style="flex:none;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:var(--st-amber-bg);color:var(--st-amber-fg);">Action</span>`:''}
+      </span>
+      <span style="display:block;margin-top:2px;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${sub}</span>
+    </button>`;
+  };
+  const pipeCols=PIPE_DEF.map(st=>{
+    const list=cs.filter(c=>c.status===st.k);
+    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,3);
+    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-neutral-100);border:1px solid ${st.bd};min-width:0;">
+      <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
+        <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
+        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-divider);color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
+      </button>
+      <div style="display:flex;flex-direction:column;gap:7px;">
+        ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">Nothing at this stage.</div>`}
+        ${list.length>shown.length?`<button data-stage="${st.k}" style="border:0;background:none;padding:2px;font:inherit;font-size:10.5px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">+ ${list.length-shown.length} more →</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  const closedN=(stages.find(s=>s.k==='Declined')||{n:0}).n;
+  const lifecycleSection=`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;">
+        <h4 style="font-size:15px;margin:0;font-weight:700;">Active contract lifecycle pipeline</h4>
+        <button data-open-register style="border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--color-accent-600);font-weight:600;padding:0;">View full register →</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;">${pipeCols}</div>
+      <div style="margin-top:14px;border-top:1px solid var(--color-divider);padding-top:11px;">
+        <div style="display:flex;height:7px;overflow:hidden;margin-bottom:9px;border-radius:999px;">${segBar}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">${stageCards}</div>
+        ${closedN?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:7px;">Closed and declined paper stays on the bar above and in the register — it is not a stage you work in.</div>`:''}
+      </div>
+      <div style="margin-top:13px;border-top:1px solid var(--color-divider);padding-top:11px;">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+          <h6 style="margin:0;font-size:10.5px;color:var(--color-neutral-600);letter-spacing:.08em;text-transform:uppercase;font-weight:700;">Needs your action</h6>
+          <span style="font-size:10px;color:var(--color-neutral-500);">sorted by risk</span>
+        </div>
+        ${actionRows}
+      </div>
+    </section>`;
+
+  /* ---- LIVE AUDIT & ACTIVITY FEED (redesign) ----
+     Real audit entries, not a decorative stream: the same feed the context
+     panel reads, tinted by the category the entry already carries. */
+  const ACT_TONE={green:['var(--tile-emerald-bg)','var(--tile-emerald-fg)','seal'],
+                  amber:['var(--tile-amber-bg)','var(--tile-amber-fg)','clock'],
+                  ruby:['var(--tile-ruby-bg)','var(--tile-ruby-fg)','alert'],
+                  gray:['var(--st-gray-bg)','var(--st-gray-fg)','file'],
+                  steel:['var(--tile-steel-bg)','var(--tile-steel-fg)','sparkle']};
+  const acts=(window.buildActivityFeed?buildActivityFeed(6):[]);
+  const actRows=acts.map(a=>{ const [bg,fg,ic]=ACT_TONE[a.cat]||ACT_TONE.steel;
+    return `<button data-sel="${esc(a.id)}" style="display:flex;gap:11px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;">
+      <span style="width:30px;height:30px;flex:none;border-radius:50%;background:${bg};color:${fg};display:grid;place-items:center;">${icon(ic,'w-3.5 h-3.5',1.8)}</span>
+      <span style="flex:1;min-width:0;">
+        <span style="display:block;font-size:11.5px;line-height:1.4;color:var(--color-text);">${esc(a.txt)}</span>
+        <span style="display:block;margin-top:2px;font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.id)} · ${esc(a.when)}</span>
+      </span>
+    </button>`; }).join('')
+    || `<div style="font-size:11.5px;color:var(--color-neutral-500);padding:10px 2px;">No activity recorded yet.</div>`;
+  const activitySection=`
+    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <h4 style="font-size:15px;margin:0;font-weight:700;">Live audit &amp; activity</h4>
+        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+      </div>
+      <div style="flex:1;min-height:0;">${actRows}</div>
+    </section>`;
+
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="display:flex;flex-direction:column;gap:18px;padding:16px 18px 28px;">
     ${window.emailSetupBannerHtml?emailSetupBannerHtml():''}
+
+    <!-- Welcome banner — what this workspace is for, and the button that starts work -->
+    ${heroSection}
 
     <!-- KPI ribbon — customizable gradient hero cards (pick, drag to reorder) -->
     <section>
@@ -521,47 +646,30 @@ function renderDashboard(){
       </div>
     </section>
 
+    <!-- The lifecycle pipeline and the live feed, side by side (2:1) as in the
+         design. Both cards size to their own content. -->
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;">
+      ${lifecycleSection}
+      ${activitySection}
+    </div>
+
     <!-- Decisions due — renewal decisions + shares out with counterparties, one collapsible card -->
     ${decisionsSection}
 
     <!-- What the parties actually owe each other, split ours / theirs -->
     ${obligationsSection}
 
-    <!-- Stage + pipeline row. align-items:stretch + the absolutely-filled right
-         column make the right side exactly as tall as the Portfolio card, so the
-         Approvals card's bottom lines up with it (Portfolio card stays untouched). -->
-    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:14px;align-items:stretch;">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;">
-          <h4 style="font-size:15px;margin:0;">Portfolio by stage</h4>
-          <button data-open-register style="border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:0;">Open full register →</button>
-        </div>
-        <div style="display:flex;height:9px;overflow:hidden;margin-bottom:10px;border-radius:999px;">${segBar}</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">${stageCards}</div>
-        <div style="margin-top:12px;border-top:1px solid var(--color-divider);padding-top:10px;">
-          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
-            <h6 style="margin:0;font-size:10.5px;color:var(--color-neutral-700);letter-spacing:.08em;text-transform:uppercase;">Needs your action</h6>
-            <span style="font-size:10px;color:var(--color-neutral-600);">sorted by risk</span>
-          </div>
-          ${actionRows}
-        </div>
+    <!-- Renewal pipeline + the reader's own approval queue -->
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start;">
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
+        <h4 style="font-size:15px;margin:0 0 10px;font-weight:700;">Renewal pipeline · 6 mo</h4>
+        ${pipeBars}
+        <div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:6px;">${pipeSummary}</div>
       </section>
-
-      <!-- right column: its content is absolutely filled so it never drives the row
-           height — the Portfolio card sets the height and this matches it exactly -->
-      <div style="position:relative;min-width:0;">
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;min-height:0;">
-          <section style="flex:none;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;">
-            <h4 style="font-size:15px;margin:0 0 8px;">Renewal pipeline · 6 mo</h4>
-            ${pipeBars}
-            <div style="font-size:10.5px;color:var(--color-neutral-600);margin-top:4px;">${pipeSummary}</div>
-          </section>
-          <section style="flex:1;min-height:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px;padding:12px 14px;overflow:hidden;">
-            <h4 style="font-size:15px;margin:0 0 8px;flex:none;">Approvals waiting on you${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-600)">· ${myApprovals.length} total</span>`:''}</h4>
-            <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${apprRows}</div>
-          </section>
-        </div>
-      </div>
+      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
+        <h4 style="font-size:15px;margin:0 0 8px;font-weight:700;">Approvals waiting on you${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-500)">· ${myApprovals.length} total</span>`:''}</h4>
+        <div class="scroll-thin" style="max-height:260px;overflow-y:auto;">${apprRows}</div>
+      </section>
     </div>
   </div>`;
 
@@ -587,6 +695,14 @@ function renderDashboard(){
     });
   });
   document.getElementById('kpi-customize')?.addEventListener('click',e=>{ e.stopPropagation(); openKpiCustomizer(e.currentTarget); });
+  /* The banner's one button opens the same new-contract menu the command bar
+     owns, rather than a second way of creating paper. */
+  document.getElementById('hero-draft')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu');
+    if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
+    else if(nb){ nb.click(); }
+  });
   document.querySelectorAll('[data-stage]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage=el.getAttribute('data-stage'); R.type='all'; R.sel={}; setView('register'); }));
   document.querySelectorAll('[data-open-register]').forEach(el=>el.addEventListener('click',()=>{ const R=regState(); R.stage='all'; R.sel={}; setView('register'); }));
   document.getElementById('dd-ask-ai')?.addEventListener('click',e=>{
