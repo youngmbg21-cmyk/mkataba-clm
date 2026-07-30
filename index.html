@@ -35,7 +35,10 @@
         heading: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
         serif:   ['Inter','system-ui','sans-serif'],
         sans:    ['Inter','system-ui','sans-serif'],
-        mono:    ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','"Liberation Mono"','"Courier New"','monospace'],
+        // `font-mono` marks data (ids, counts, timestamps) in this codebase,
+        // not code — so it resolves to the figure face, same as --font-mono.
+        mono:    ['Inter','system-ui','sans-serif'],
+        code:    ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','"Liberation Mono"','"Courier New"','monospace'],
       },
       colors: {
         canvas:'#f8fafc',     // page ground (slate-50)
@@ -86,7 +89,17 @@
 
     --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
     --font-body:Inter,system-ui,sans-serif;
-    --font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    /* THE FIGURE FACE, not a code face. This token is used ~160 times for
+       reference ids, dates, day counts and money — data, not code — and the
+       design sets all of that in Inter. Pointing it at a monospace stack made
+       every zero in the product a slashed or dotted zero (SF Mono, Consolas and
+       DejaVu Sans Mono all draw one), so "0" in a metric did not match "0" in
+       the sentence beside it. Inter's digits are uniform-width by default, so
+       columns still line up without borrowing a typewriter face to do it. */
+    --font-mono:Inter,system-ui,sans-serif;
+    /* True monospace, kept for the two things that are genuinely code: a
+       SHA-256 fingerprint and a keyboard chip. */
+    --font-code:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
@@ -610,7 +623,7 @@
     <div class="cmd-search">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.45;flex:none;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="cmd-search" placeholder="Search contracts, clauses, counterparties…"/>
-      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-mono);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
+      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-code);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
     </div>
 
     <!-- right actions: Copilot · theme · notifications · profile -->
