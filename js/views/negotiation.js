@@ -3775,9 +3775,19 @@ function redlineLayoutCss(){
      that reads as a box inside a box, and at the top of the page it is the
      first thing the eye lands on. The header carries a title, a round tag and
      the actions; none of that needs a container to be legible, so the container
-     is gone and the row sits flat on the page beside the document below it. */
-  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+     is gone and the row sits flat on the page beside the document below it.
+
+     AND IT IS ONE ROW. The title used to sit above an explanatory sub-banner,
+     with the actions wrapping onto a third band on ordinary laptop widths —
+     three tiers of chrome before a word of the contract. The sub-banner is
+     gone (the wall bar carries the one fact that matters), and the title
+     ellipsizes rather than pushing the actions off the line, so the strip
+     stays a strip at any width the three-column grid itself supports. */
+  .redline-page .rl-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;
     background:none;border:0;box-shadow:none;border-radius:0;padding:0 2px 2px;flex:none}
+  .redline-page .rl-head-id{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+  .redline-page .rl-head-id h3{margin:0;font-size:15px;font-weight:700;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
@@ -3814,16 +3824,19 @@ function redlineLayoutCss(){
   }
   @media (prefers-reduced-motion:reduce){ .redline-page .rl-btn-blast{animation:none} }
 
-  .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
-  .redline-page .rl-head{flex-wrap:nowrap;align-items:flex-start}
+  .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:10px}
+  .redline-page .rl-head{flex-wrap:nowrap}
   .redline-page .rl-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:nowrap}
   .redline-page .rl-btn{display:inline-flex;align-items:center;gap:6px}
-  @media (max-width:1400px){ .redline-page .rl-head{flex-wrap:wrap} .redline-page .rl-actions{flex-wrap:wrap} }
+  /* The wrap point is a fallback for genuinely narrow windows, not the
+     ordinary laptop case — at 1400px this used to stack the actions into a
+     second band, which is the vertical bloat the single strip removes. */
+  @media (max-width:900px){ .redline-page .rl-head{flex-wrap:wrap} .redline-page .rl-actions{flex-wrap:wrap} }
 
   /* the wall — one line, replacing the engine's two banners */
   .redline-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
     background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:10px;
-    padding:10px 14px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-700)}
+    padding:7px 12px;font-size:11.5px;line-height:1.55;color:var(--color-neutral-700)}
   .redline-page .rl-wall-ic{flex:none;color:var(--st-amber-fg)}
   .redline-page .rl-wall b{color:var(--color-text)}
   /* the design carries one banner. The turn strip stays in the DOM but out of
@@ -4290,16 +4303,15 @@ function renderRedline(){
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+      <!-- ONE STRIP. Title, round tag and every header action share a single
+           row: the explanatory sub-banner is gone (the wall bar below already
+           says what stays behind), and the actions no longer stack on a second
+           line — the title ellipsizes instead of pushing them down. -->
       <section class="rl-head">
-        <div class="rl-head-id" style="min-width:0;">
-          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
-            <h3 style="margin:0;font-size:15px;font-weight:700;">Redline Workbench — ${esc(c.name)}</h3>
-            <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
-          </div>
-          <p style="margin:3px 0 0;font-size:11px;color:var(--color-neutral-500);">
-            Negotiate wording without leaking your position — internal notes and unsent drafts never reach the counterparty.
-          </p>
+        <div class="rl-head-id">
+          <h3>Redline Workbench — ${esc(c.name)}</h3>
+          <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
         </div>
         <div class="rl-actions">
           ${blast}
