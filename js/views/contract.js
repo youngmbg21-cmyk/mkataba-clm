@@ -2806,7 +2806,13 @@ function renderWorkspace(){
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
   // how a removed feature comes back the next time someone re-adds the markup.
-  document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
+  /* API mode: "Save as template" lands in the versioned Template Library (a
+     draft opened in the builder). The older settings-blob flow remains the
+     local-mode path, where the server-backed library does not exist. */
+  document.getElementById('ws-tpl')?.addEventListener('click',()=>{
+    if(API_MODE()&&window.saveContractToLibrary) saveContractToLibrary(c);
+    else saveContractAsTemplate(c);
+  });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the

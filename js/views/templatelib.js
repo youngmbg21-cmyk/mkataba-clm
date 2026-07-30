@@ -29,6 +29,11 @@ const TPLLIB_ORIGIN = {
 // render cache — refreshed on every visit, never persisted
 let _tplLib = { list: [], canManage: false, loaded: false };
 const tplLibCanManage = () => _tplLib.canManage;
+/* The list loads async. If the reader has already drilled into a detail or
+   the builder by the time the fetch lands, painting the list over it would
+   throw their work away — the token says "this response is stale, drop it". */
+let _tplLibTok = 0;
+const tplLibCancelPending = () => { _tplLibTok++; };
 
 function tplLibStatusBadge(status) {
   const s = TPLLIB_STATUS[status] || TPLLIB_STATUS.draft;
@@ -44,9 +49,10 @@ function renderTemplateLibrary() {
     return;
   }
   host.innerHTML = `<div class="view-enter" style="padding:40px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">Loading the library…</div>`;
+  const tok = ++_tplLibTok;
   api('templates').then(d => {
     _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true };
-    if (state.view === 'tpl-library') tplLibPaint();
+    if (tok === _tplLibTok && state.view === 'tpl-library') tplLibPaint();
   }).catch(e => {
     host.innerHTML = `<div class="view-enter" style="padding:40px;text-align:center;color:#8f322b;font-size:13px">The library could not be loaded: ${esc(e.message)}</div>`;
   });
@@ -132,8 +138,39 @@ function tplLibCreateModal() {
   });
 }
 
+/* ---------- save an existing contract into the library ---------- */
+function saveContractToLibrary(c) {
+  if (!tplLibCanManage() && !(typeof canEdit === 'function' && canEdit())) { toast('Only Admin or Legal can create templates', 'err'); return; }
+  const INP = 'width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:13px;outline:none';
+  openModal(`
+    <div style="padding:20px 22px;max-width:470px">
+      <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">Save as a standard template</h3>
+      <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
+        HaTi copies this contract's wording into a new draft template. Party-specific values it can
+        recognise — names, emails, amounts, dates — become empty typed fields; everything else stays
+        fixed wording. You review and publish from the builder; nothing changes on ${esc(c.id)} itself.</p>
+      <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name</span>
+        <input id="tpllib-sv-name" style="${INP}" maxlength="160" value="${esc(c.name)} — standard template"></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button class="ui-btn" onclick="closeModal()">Cancel</button>
+        <button id="tpllib-sv-go" class="ui-btn ui-btn-primary">Create draft template</button>
+      </div>
+    </div>`);
+  document.getElementById('tpllib-sv-go')?.addEventListener('click', async () => {
+    try {
+      const r = await api(`contracts/${c.id}/save-as-template`, 'POST', {
+        name: document.getElementById('tpllib-sv-name').value.trim() });
+      closeModal();
+      toast(`Draft template created — ${r.fieldsCreated} field${r.fieldsCreated === 1 ? '' : 's'} recognised`);
+      setView('tpl-library');
+      openTemplateBuilder(r.templateId, r.versionId);
+    } catch (e) { toast(e.message, 'err'); }
+  });
+}
+
 /* ---------- template detail: versions, meta, lifecycle ---------- */
 async function openTemplateLibDetail(id) {
+  tplLibCancelPending();
   let d;
   try { d = await api('templates/' + id); }
   catch (e) { toast(e.message, 'err'); return; }
@@ -255,6 +292,6 @@ function tplLibMetaModal(t) {
 }
 
 Object.assign(window, {
-  renderTemplateLibrary, openTemplateLibDetail, tplLibCanManage,
-  TPLLIB_CATEGORIES, TPLLIB_STATUS,
+  renderTemplateLibrary, openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
+  saveContractToLibrary, TPLLIB_CATEGORIES, TPLLIB_STATUS,
 });
