@@ -194,9 +194,15 @@ function updateSidebarCounts(){
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
     templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
   };
+  /* Tone of the count pill: teal = size of the portfolio, amber = items
+     waiting on a person. A zero drops to neutral so an amber tag never cries
+     wolf over an empty queue. */
+  const NAV_COUNT_TONE={dashboard:'teal',register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
+    const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
+    if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
 }
 

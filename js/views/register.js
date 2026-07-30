@@ -426,7 +426,7 @@ function regRowsHtml(cs){
         ${c._famChild?`<span style="display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
       </td>
       <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
-      <td style="white-space:nowrap">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
+      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center"><span style="display:inline-flex;align-items:center;min-width:19px;flex:none">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</span>${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
       <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
       <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
       <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
