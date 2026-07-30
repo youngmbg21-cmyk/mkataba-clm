@@ -389,6 +389,17 @@ describe('F89 (3b) — a refusal names the actual problem, read off the selectio
     await press(p);
     assert.ok(said(p, /pending edits/i));
   });
+
+  test('typography in the selection does not block the rewrite', async () => {
+    /* The clause stores "payable within thirty (30) days"; the selection
+       arrives with a doubled space and a renderer line break. The tolerant
+       match (negoFindPassage) reaches the model instead of refusing. */
+    const p = await page();
+    p.openSel('payable  within thirty\n(30) days', { marked: false });
+    await press(p);
+    assert.equal(p.panel.proposals.length, 1, 'the tolerant match reaches the model');
+    assert.ok(!said(p, /couldn.t be matched|pending edits/i));
+  });
 });
 
 describe('F89 (5) — three actions on a passage, and only three', () => {

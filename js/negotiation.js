@@ -1001,6 +1001,55 @@ function negoRetractDraft(c, id, opts = {}){
   return ch;
 }
 
+/* ---------- finding a highlighted passage in a clause ----------
+   What the browser hands back from a selection is not byte-for-byte what the
+   clause model stores: rendering puts line breaks between sub-clauses,
+   typography turns straight quotes smart, and pasted wording carries
+   non-breaking and zero-width characters. An exact indexOf over that said
+   "couldn't be matched" about a passage any reader could see was there.
+
+   The MATCH is tolerant, the ANSWER is exact. Both sides are normalised —
+   smart quotes straightened, zero-width characters stripped, whitespace runs
+   collapsed to one space — and an index map is kept for the clause while it
+   normalises, so a hit comes back as REAL offsets into the clause's stored
+   text. A splice at those offsets touches exactly the wording that was
+   chosen, never a normalised approximation of it. */
+function negoNormChar(ch){
+  if (/[“”„«»]/.test(ch)) return '"';   // smart double quotes
+  if (/[‘’‚]/.test(ch)) return "'";               // smart single quotes
+  if (/[\u200B-\u200D\uFEFF]/.test(ch)) return '';              // zero-width characters
+  if (/\s/.test(ch)) return ' ';                                 // \s covers NBSP too
+  return ch;
+}
+function negoNormalizeText(s){
+  let out = '';
+  for (const ch of String(s == null ? '' : s)){
+    const n = negoNormChar(ch);
+    if (n === ' ' && (out === '' || out.endsWith(' '))) continue;
+    out += n;
+  }
+  return out.trim();
+}
+function negoFindPassage(hay, needle){
+  const H = String(hay == null ? '' : hay), N = String(needle == null ? '' : needle);
+  if (!N.trim()) return null;
+  const exact = H.indexOf(N);                     // cheap, and offsets fall straight out
+  if (exact >= 0) return { start: exact, end: exact + N.length };
+  let norm = '';
+  const map = [];                                 // norm index → index into H
+  for (let i = 0; i < H.length; i++){
+    const n = negoNormChar(H[i]);
+    if (!n) continue;
+    if (n === ' ' && (norm === '' || norm.endsWith(' '))) continue;
+    norm += n; map.push(i);
+  }
+  const want = negoNormalizeText(N);
+  if (!want) return null;
+  const at = norm.indexOf(want);
+  if (at < 0) return null;
+  return { start: map[at], end: map[at + want.length - 1] + 1 };
+}
+
 /* ---------- talking about a change ----------
    The light channel, attached to one fingerprint. It opens no round, captures
    no version and moves no wording — the same guarantee js/discuss.js makes for
@@ -2063,6 +2112,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
+  negoNormalizeText, negoFindPassage,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
