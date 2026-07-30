@@ -210,57 +210,12 @@ describe('F83 — the calendar can act on what it draws', () => {
   });
 });
 
-describe('F83 — the dashboard shows what the parties owe each other', () => {
-  const dash = over => {
-    const w = world(['js/views/home.js'], { view: 'dashboard', ...over,
-      globals: { agreementsIn: cs => cs.filter(c => !c.parentId),
-        contractRisk: () => 20, openFindings: () => [], deviationSummary: () => null,
-        cKind: () => 'Contract', approvalState: () => ({ required: false, ok: true, chain: [] }),
-        contractExpired: () => false, lsGet: () => null, lsSet() {},
-        ...((over && over.globals) || {}) } });
-    w.renderDashboard();
-    const html = w.document.getElementById('content').innerHTML;
-    return { w, panel: html.slice(html.indexOf('Obligations · next 45 days')) };
-  };
-
-  test('there is an obligations panel at all', () => {
-    const { w } = dash();
-    assert.match(w.document.getElementById('content').innerHTML, /Obligations · next 45 days/,
-      'the dashboard never mentioned obligations anywhere');
-  });
-
-  test('ours and theirs are counted apart', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [
-      ob({ id: 'a', desc: 'Pay the invoice' }),
-      ob({ id: 'b', desc: 'Deliver the tonnage', party: 'theirs' }) ] })] });
-    const ours = panel.indexOf('Ours to do'), theirs = panel.indexOf('Theirs to chase');
-    assert.ok(ours > -1 && theirs > ours, 'the two jobs are not the same job');
-    assert.match(panel.slice(ours, theirs), /Pay the invoice/);
-    assert.match(panel.slice(theirs), /Deliver the tonnage/);
-  });
-
-  test('overdue is called out', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [ob({ due: day(-5) })] })] });
-    assert.match(panel, /1 overdue/);
-  });
-
-  test('nothing overdue says so plainly', () => {
-    const { panel } = dash();
-    assert.match(panel, /nothing overdue/i);
-  });
-
-  test('each row can be ticked off from here too', () => {
-    const { panel } = dash();
-    assert.match(panel, /data-ob-done="ob_1"/);
-  });
-
-  test('a completed obligation drops out of the panel', () => {
-    const { panel } = dash({ contracts: [contract({ obligations: [ob({ status: 'done' })] })] });
-    assert.ok(!/Quarterly volume report/.test(panel), 'finished work is not a to-do list');
-  });
-
-  test('a declined contract owes nothing', () => {
-    const { panel } = dash({ contracts: [contract({ status: 'Declined' })] });
-    assert.ok(!/Quarterly volume report/.test(panel));
-  });
-});
+/* The obligations panel left the dashboard with the redesign — that screen now
+   leads on the lifecycle pipeline and the live feed. Nothing about obligations
+   themselves changed, and every guarantee this block used to make is still made
+   above, against the surfaces that still draw them:
+     · which side owes it        → 'an obligation knows which side owes it'
+     · the panel on the contract → 'the workspace panel'
+     · completing one            → 'completing one is a verb, not an inline handler'
+     · owner + Done together     → 'the calendar can act on what it draws'
+   If obligations return to the dashboard, this block comes back with them. */

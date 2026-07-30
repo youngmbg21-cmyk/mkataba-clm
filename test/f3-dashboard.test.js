@@ -16,7 +16,7 @@ const { loadViews } = require('./dom');
 
 const VIEWS = ['js/views/home.js'];
 
-function renderWith(contracts, { money = true, shareOverview = {} } = {}) {
+function renderWith(contracts, { money = true, shareOverview = {}, kpis = null } = {}) {
   const sb = loadViews(VIEWS, {
     canViewValues: () => money,
     state: {
@@ -25,6 +25,10 @@ function renderWith(contracts, { money = true, shareOverview = {} } = {}) {
       shareOverview, shareByContract: shareOverview.byContract || {},
     },
   });
+  /* Choosing cards the way a user does — through the stored per-user selection
+     the customizer writes — so a test can ask about a card that is not one of
+     the four the redesign ships by default. */
+  if (kpis) sb.localStorage.setItem(sb.kpiPrefsKey(), JSON.stringify(kpis));
   sb.renderDashboard();
   return sb.document.getElementById('content').innerHTML;
 }
@@ -63,9 +67,13 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
     const overview = await W.restricted.json('/api/shares/overview');
     const html = renderWith(page.rows, { shareOverview: overview });
     assert.deepEqual(mentionsFolderB(html), []);
-    assert.ok(html.includes('Waiting longest'));
+    /* The dashboard's panels are now the lifecycle pipeline, the live feed and
+       "Needs your action" — Decisions due / Waiting longest moved off this
+       screen with the redesign. The scoping question is unchanged: whatever
+       panels exist must key off the scoped list. */
     assert.ok(html.includes('Needs your action'));
-    assert.ok(html.includes('Decisions due'));
+    assert.ok(html.includes('Active contract lifecycle pipeline'));
+    assert.ok(html.includes('Live audit &amp; activity') || html.includes('Live audit & activity'));
   });
 });
 
@@ -78,29 +86,37 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
   test('"Active value" is not in the KPI ribbon or the customizer', () => {
     const html = renderWith(sample(), { money: false });
     assert.ok(!html.includes('Active value'), 'the Active value card must not be rendered');
-    assert.ok(html.includes('Under management'), 'the non-money cards are still there');
+    assert.ok(html.includes('Active contracts'), 'the non-money cards are still there');
   });
 
   test('an admin (or anyone with the right) still gets "Active value"', () => {
-    const html = renderWith(sample(), { money: true });
+    /* Active value is no longer one of the four cards the redesign leads on, so
+       it is chosen here the way a user would choose it — through the stored
+       per-user selection the customizer writes. The right, not the default, is
+       what this test is about. */
+    const html = renderWith(sample(), { money: true, kpis: ['active_value'] });
     assert.ok(html.includes('Active value'));
   });
 
   test('the expiring cards drop the KES exposure delta and say when instead', () => {
-    const withMoney = renderWith(sample(), { money: true });
+    const withMoney = renderWith(sample(), { money: true, kpis: ['expiring90'] });
     assert.match(withMoney, /exposure/, 'with the right, the exposure delta is shown');
-    const without = renderWith(sample(), { money: false });
+    const without = renderWith(sample(), { money: false, kpis: ['expiring90'] });
     assert.ok(!without.includes('exposure'), 'the KES exposure delta must go');
     assert.match(without, /soonest in \d+d|none due/, 'the card should say when, not how much');
   });
 
-  test('the renewal pipeline shows counts, with no KES figure', () => {
+  /* The six-month renewal pipeline panel left the dashboard with the redesign.
+     What it guarded — that a reader without can_view_values is never shown a
+     KES figure — is still enforced across the whole screen by the test below,
+     and the stage cards it shared the row with are covered there too. */
+  test('the stage cards show counts, with no KES figure', () => {
     const without = renderWith(sample(), { money: false });
-    const pipeStart = without.indexOf('Renewal pipeline');
-    assert.ok(pipeStart > 0, 'the pipeline panel should still render');
-    const panel = without.slice(pipeStart, without.indexOf('Approvals waiting'));
-    assert.ok(!/KES/.test(panel), 'the pipeline must not print a KES figure');
-    assert.match(panel, /contract[s]? expiring in the next 6 months/);
+    const barStart = without.indexOf('Active contract lifecycle pipeline');
+    assert.ok(barStart > 0, 'the lifecycle panel should render');
+    const panel = without.slice(barStart);
+    assert.ok(!/KES/.test(panel), 'the lifecycle panel must not print a KES figure');
+    assert.match(panel, /contract[s]?</, 'a stage card should still count its contracts');
   });
 
   test('no KES figure appears anywhere on the dashboard without the right', () => {

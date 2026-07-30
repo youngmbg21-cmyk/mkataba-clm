@@ -10,18 +10,23 @@
    chosen subset + order is stored PER USER in localStorage so it survives
    reloads and stays independent of other teammates on the same server. */
 const KPI_META={
-  under_mgmt:  'Under management',
+  under_mgmt:  'Active contracts',
   active_value:'Active value',
   awaiting:    'Awaiting counterparty',
+  approvals:   'Pending approvals',
+  compliance:  'Compliance rating',
   expiring30:  'Expiring < 30 days',
   expiring60:  'Expiring < 60 days',
   expiring90:  'Expiring < 90 days',
   expired:     'Term already ended',
   highrisk:    'High-risk findings',
-  avgcycle:    'Avg cycle · draft→signed',
+  avgcycle:    'Avg turnaround time',
 };
-const KPI_ALL_ORDER=['under_mgmt','active_value','awaiting','expiring30','expiring60','expiring90','expired','highrisk','avgcycle'];
-const DEFAULT_KPI_SEL=['under_mgmt','active_value','awaiting','expiring90','expired','highrisk'];
+const KPI_ALL_ORDER=['under_mgmt','active_value','avgcycle','approvals','compliance','awaiting','expiring30','expiring60','expiring90','expired','highrisk'];
+/* The four the design leads on: how much paper is live, how fast it moves,
+   what is stuck on a person, and how much of it is clean. Everything else in
+   the catalog stays one click away under Customize. */
+const DEFAULT_KPI_SEL=['under_mgmt','avgcycle','approvals','compliance'];
 /* Money-bearing metrics. A member without can_view_values receives no value
    from the server at all, so these cards would read "KES 0" — a wrong number,
    not a hidden one. They are removed from the catalog entirely rather than
@@ -161,113 +166,6 @@ function renderDashboard(){
     : [];
   const awaitingCount=awaiting.length;
 
-  // ---- KPIs (customizable catalog) ----
-  const newThisWeek=cs.filter(c=>(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&(Date.now()-Date.parse(a.at||0))<7*864e5)).length;
-  const stalled=awaiting.filter(s=>{ const t=Date.parse(s.at); return !isNaN(t)&&(Date.now()-t)>14*864e5; }).length;
-  const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
-  // Expiry views: nearest-first buckets at 30 / 60 / 90 days (expiring is 0–90, sorted).
-  /* Executed agreements whose term has already run out — the same read the
-     status chip uses, so a row badged "Expired" is a row counted here. */
-  const lapsed=agreementsIn(cs).filter(c=>!!(window.contractExpired&&contractExpired(c)))
-    .sort((a,b)=>{ const ea=effectiveExpiry(a)||'', eb=effectiveExpiry(b)||''; return String(ea).localeCompare(String(eb)); });
-  const expWithin=n=>expiring.filter(x=>x.d<=n);
-  const exp30=expWithin(30), exp60=expWithin(60), exp90=expiring;
-  const expVal=arr=>valOf(arr.map(x=>x.c));
-  // The exposure figure on an expiring card is a money total. Without the
-  // right, the card still earns its place — it just says WHEN instead of HOW
-  // MUCH, which is the more actionable half anyway.
-  const expDelta=arr=>money?`${fmtKESshort(expVal(arr))} exposure`
-    :(arr.length?`soonest in ${arr[0].d}d`:'none due');
-  // avg cycle draft→signed from audit where both stamps exist
-  const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
-    const a=(c.audit||[]); const cr=a.find(x=>/creat/i.test(x.action||'')), sg=a.find(x=>/sign|execut|seal/i.test(x.action||''));
-    if(cr&&sg){ const d=(Date.parse(sg.at)-Date.parse(cr.at))/864e5; return d>0?d:null; } return null;
-  }).filter(x=>x!=null);
-  const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
-
-  // Gradient hero cards — one semantic tone per KPI. The full catalog is keyed
-  // by a stable id; the user's chosen subset + order comes from currentKpiSel().
-  const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
-  const KPI_CATALOG={
-    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtKESshort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
-    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
-    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),                                               grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
-    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
-    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),                                               grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
-    /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
-       `days >= 0`, so a contract dropped out of all three on the morning its
-       term ended — the one day it most needed somebody to look at it. */
-    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtKESshort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
-    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`,                              grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
-    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—',            grad:G.green, ic:'clock',    go:{stage:'Signed'}},
-  };
-  const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
-  // Adaptive layout: the redesign's stat cards are wider and quieter than the
-  // gradient blocks they replace, so they sit four to a row and wrap.
-  /* Balanced rows, so a chosen sixth metric never lands alone on a second row:
-     up to 4 sit in one row, 5–6 split 3+3 (or 3+2), more than 6 go four-up. */
-  const kpiN=kpiSel.length||1, kpiCols=kpiN<=4?kpiN:(kpiN<=6?3:4);
-  /* Tone is carried over from the card's old gradient, so a metric keeps the
-     semantic colour it always had (steel = volume, emerald = good, amber =
-     pending, ruby = risk) — now as an icon tile and a delta colour on a plain
-     surface, per the new design. The tile tokens are theme-aware. */
-  const TONE_OF=g=>g===G.green?'emerald':g===G.amber?'amber':g===G.ruby?'ruby':'steel';
-  const TONE_BG={steel:'var(--tile-steel-bg)',emerald:'var(--tile-emerald-bg)',amber:'var(--tile-amber-bg)',ruby:'var(--tile-ruby-bg)'};
-  const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
-  const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
-    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:9px;align-items:stretch;border:1px solid var(--color-divider);border-radius:16px;background:var(--color-surface);padding:16px 18px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s,opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='color-mix(in srgb,var(--accent-solid) 35%,transparent)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--color-divider)'">
-      <span style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <span style="font-size:11.5px;font-weight:600;color:var(--color-neutral-600);line-height:1.3;">${k.label}</span>
-        <span style="width:28px;height:28px;flex:none;border-radius:9px;background:${TONE_BG[t]};color:${TONE_FG[t]};display:grid;place-items:center;">${icon(k.ic,'w-3.5 h-3.5',1.8)}</span>
-      </span>
-      <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
-        <span class="tnum" style="font-weight:700;font-size:24px;line-height:1.05;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
-        <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
-      </span>
-    </button>`; };
-  const kpiHtml=kpiSel.map(kpiCard).join('');
-
-  // ---- segmented stage bar + cards ----
-  const segBar=stages.map((s,i)=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color};"></span>`).join('');
-  const stageCards=stages.map(s=>`
-    <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
-      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
-      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?`${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}`:`${s.n.toLocaleString('en-KE')} contract${s.n===1?'':'s'}`}</span>
-    </button>`).join('');
-
-  // ---- needs your action ----
-  const actionRows=reviewByRisk.slice(0,5).map(x=>{ const c=x.c;
-    return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
-      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
-      <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
-      ${riskChip(x.r)}
-      ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
-    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
-
-  // ---- renewal pipeline (6 mo) ----
-  const now=new Date(); const months=[];
-  for(let i=0;i<6;i++){ const d=new Date(now.getFullYear(),now.getMonth()+i,1); months.push({y:d.getFullYear(),mo:d.getMonth(),label:d.toLocaleDateString('en-KE',{month:'short'}),v:0,n:0}); }
-  agreementsIn(cs).forEach(c=>{ const e=effectiveExpiry(c); if(!e||c.status==='Declined') return; const t=Date.parse(e); if(isNaN(t)) return; const d=new Date(t); const b=months.find(x=>x.y===d.getFullYear()&&x.mo===d.getMonth()); if(b){ b.v+=Number(c.value||0); b.n++; } });
-  // Without the value right the pipeline is drawn from CONTRACT COUNTS, not
-  // from a total of values the browser was never sent — the shape of the
-  // renewal year is still readable, it just is not denominated in shillings.
-  const pipeOf=x=>money?x.v:x.n;
-  const pipeMax=Math.max(1,...months.map(pipeOf));
-  const pipeTotal=months.reduce((s,x)=>s+x.v,0);
-  const pipeCount=months.reduce((s,x)=>s+x.n,0);
-  const pipeBars=months.map(x=>`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <span style="font-family:var(--font-mono);font-size:11px;width:44px;color:var(--color-neutral-700);">${x.label}</span>
-      <div style="flex:1;height:8px;background:var(--color-neutral-200);border-radius:999px;overflow:hidden;"><div style="width:${(pipeOf(x)/pipeMax*100).toFixed(1)}%;height:100%;background:var(--color-accent);border-radius:999px;"></div></div>
-      <span class="tnum" style="font-size:10.5px;width:66px;text-align:right;color:var(--color-neutral-700);">${money?(x.v?fmtKESshort(x.v).replace('KES ',''):'—'):(x.n||'—')}</span>
-    </div>`).join('');
-  const pipeSummary=money
-    ? `${fmtKESshort(pipeTotal)} in expiries · ${pipeCount} contract${pipeCount===1?'':'s'}`
-    : `${pipeCount} contract${pipeCount===1?'':'s'} expiring in the next 6 months`;
-
   // ---- approvals waiting ----
   /* This used to be "the five contracts that have sat in review longest",
      workspace-wide, with the amount printed next to each. That is a queue
@@ -290,230 +188,115 @@ function renderDashboard(){
     if(!mine&&!own) return null;
     return { c, st, mine, own, idle:idleOf(c) };
   }).filter(Boolean).sort((a,b)=>b.idle-a.idle);
-  const apprRows=myApprovals.slice(0,5).map(x=>{ const c=x.c; const dotc=x.idle>=30?'#b0453c':'#b8862b';
-    // A rule's name is auto-generated from its condition ("Value ≥ KES 5M"),
-    // so printing it would hand the spend threshold to someone who may not see
-    // amounts. They get the generic label.
-    const step=(money&&x.st.next&&x.st.next.name)||'Approval';
-    const why=x.mine?'waiting on you':'yours · waiting on '+(x.st.approverLabel||'an approver');
-    return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:5px 0;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;font-size:12px;text-align:left;color:inherit;">
-      <span style="width:7px;height:7px;border-radius:50%;background:${dotc};flex:none;"></span>
-      <span style="flex:1;min-width:0;">
-        <span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(step)} — ${esc(c.counterparty||c.name)}${(money&&isMonetary(c)&&c.value)?` (${fmtKESshort(c.value)})`:''}</span>
-        <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${why}</span>
-      </span>
-      <span style="font-size:10.5px;color:var(--color-neutral-600);flex:none;">${x.idle}d</span>
-    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:6px 0;">Nothing is waiting on you.</div>`;
 
-  // ---- compact attention row (used inside the Decisions-due panel) ----
-  const attnRow=(c,tag,tagColor)=>`
-    <button data-sel="${c.id}" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-      <span style="flex:1;min-width:0;">
-        <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name)}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.id} · ${c.counterparty||'—'}</span>
-      </span>
-      <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:${tagColor};flex:none;">${tag}</span>
-    </button>`;
-  // ---- decisions due (leads the page: the thing you open HaTi to act on) ----
-  const decisionRows=decisions.slice(0,6).map(x=>{ const c=x.c, urgent=x.d<=30;
-    return `<div style="display:flex;align-items:center;gap:11px;padding:9px 4px;border-bottom:1px solid rgba(29,31,32,.07)">
-      <span style="width:9px;height:9px;border-radius:50%;background:${urgent?'#b0453c':'#b8862b'};flex:none"></span>
-      <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-        <span style="display:block;font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.counterparty||'—'} · decide by ${fmtDDay(x.dd)}</span>
-      </span>
-      <span style="font-size:11.5px;font-weight:600;font-family:var(--font-mono);color:${urgent?'#8f322b':'#7d5a14'};flex:none;white-space:nowrap">${x.d===0?'today':'in '+x.d+'d'}</span>
-      <button data-act-decide="${c.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:5px 13px;flex:none">Act</button>
-    </div>`; }).join('');
-  // ---- out with counterparties (share dispatch traffic lights) ----
-  const so=state.shareOverview||{}; const shCounts=so.counts||{};
-  // Changes already reviewed are finished business — they leave the card
-  // instead of impersonating work that still needs a decision.
-  const shItems=(so.items||[]).filter(i=>i.state!=='reviewed');
-  const needAttn=(shCounts.changes||0)+(shCounts.declined||0);
-  const shPri={changes:0,declined:1,opened:2,sent:3,signed:4,reviewed:5,expired:6,revoked:7};
-  shItems.sort((a,b)=>(shPri[a.state]??9)-(shPri[b.state]??9));
-  /* A share that came back wanting something — changes or a decline — is not the
-     same kind of item as one merely sent, and used to look like one. Those get an
-     amber pulse on the count and a banded row, so what is waiting on you separates
-     from what is waiting on them. */
-  const needsYou=st=>st==='changes'||st==='declined';
-  const shCountChip=(st,n)=>{ if(!n) return ''; const m=SHARE_META[st];
-    return `<span class="badge${needsYou(st)?' needs-you':''}" style="background:${m.bg};color:${m.tx}"><span class="dot" style="background:${m.dot}"></span>${n} ${m.label.toLowerCase()}</span>`; };
-  const shareRows=(API_MODE()?shItems:[]).slice(0,5).map(it=>`
-    <button data-share-open="${it.contractId}"${needsYou(it.state)?' data-needs-you="1"':''} style="display:flex;align-items:center;gap:10px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);${needsYou(it.state)?'background:#fdf6e7;box-shadow:inset 3px 0 0 #b8862b;border-radius:5px;':'background:none;'}cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='${needsYou(it.state)?'#fdf6e7':'none'}'">
-      ${shareChip(it.state)}
-      <span style="flex:1;min-width:0">
-        <span style="display:block;font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.contractId} · with ${it.recipientName||it.recipientEmail||it.counterparty||'counterparty'} · via ${it.channel==='whatsapp'?'WhatsApp':it.channel==='email'?'email':'link'}</span>
-      </span>
-      <span style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);flex:none;white-space:nowrap">${fmtDT(it.at)}</span>
-    </button>`).join('');
-  const hasShares=API_MODE()&&shItems.length>0;
-  // ---- Waiting longest (relocated from the deleted bottom cards into the empty
-  // right-hand space inside the Decisions-due panel) ----
-  const waitDdRows=waiting.slice(0,10).map(x=>attnRow(x.c,x.idle+'d idle',x.idle>=30?'#8f322b':'#7d5a14')).join('')
-    || `<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>Nothing sitting in review.</div>`;
-  // ---- Decisions due: one collapsible card merging renewal decisions with the
-  // shares out for counterparty review — a compact summary that expands on click,
-  // so the dashboard stays tight instead of two full-height stacked cards. ----
-  /* THE THIRD PLACE A READINESS SIGNAL REACHES THE OWNER, and the one they see
-     without opening anything: the waiting-on-you card on the dashboard.
+  // ---- KPIs (customizable catalog) ----
+  const newThisWeek=cs.filter(c=>(c.audit||[]).some(a=>/creat/i.test(a.action||'')&&(Date.now()-Date.parse(a.at||0))<7*864e5)).length;
+  const stalled=awaiting.filter(s=>{ const t=Date.parse(s.at); return !isNaN(t)&&(Date.now()-t)>14*864e5; }).length;
+  const onExecuted=highRisk.filter(x=>x.c.status==='Signed').length;
+  // Expiry views: nearest-first buckets at 30 / 60 / 90 days (expiring is 0–90, sorted).
+  /* Executed agreements whose term has already run out — the same read the
+     status chip uses, so a row badged "Expired" is a row counted here. */
+  const lapsed=agreementsIn(cs).filter(c=>!!(window.contractExpired&&contractExpired(c)))
+    .sort((a,b)=>{ const ea=effectiveExpiry(a)||'', eb=effectiveExpiry(b)||''; return String(ea).localeCompare(String(eb)); });
+  const expWithin=n=>expiring.filter(x=>x.d<=n);
+  const exp30=expWithin(30), exp60=expWithin(60), exp90=expiring;
+  const expVal=arr=>valOf(arr.map(x=>x.c));
+  // The exposure figure on an expiring card is a money total. Without the
+  // right, the card still earns its place — it just says WHEN instead of HOW
+  // MUCH, which is the more actionable half anyway.
+  const expDelta=arr=>money?`${fmtKESshort(expVal(arr))} exposure`
+    :(arr.length?`soonest in ${arr[0].d}d`:'none due');
+  const expSub=arr=>arr.length?`soonest ${arr[0].d===0?'today':'in '+arr[0].d+' days'} · ${esc(arr[0].c.counterparty||arr[0].c.name)}`:'nothing inside the window';
+  // avg cycle draft→signed from audit where both stamps exist
+  const cycles=cs.filter(c=>c.status==='Signed').map(c=>{
+    const a=(c.audit||[]); const cr=a.find(x=>/creat/i.test(x.action||'')), sg=a.find(x=>/sign|execut|seal/i.test(x.action||''));
+    if(cr&&sg){ const d=(Date.parse(sg.at)-Date.parse(cr.at))/864e5; return d>0?d:null; } return null;
+  }).filter(x=>x!=null);
+  const avgCycle=cycles.length?(cycles.reduce((s,x)=>s+x,0)/cycles.length).toFixed(1)+'d':'—';
 
-     Read straight off the contract record rather than fetched — the signal
-     arrives on the response and is applied by applyResponse, so by the time
-     this renders it is already part of the contract. A contract that has been
-     signed or declined since is not waiting on anybody, and drops out.
-
-     Named "ready to sign", never "signed": the whole point of the signal is
-     that it is a message, not a state the deal has reached. */
-  const readyItems=readyToSignItems(cs);
-  const ddCount=decisions.length+(hasShares?shItems.length:0)+(((state.waitingQuestions||{}).total)||0)+readyItems.length;
-  const ddTone=(needAttn||decisions.some(x=>x.d<=30))?'#b8862b':'var(--color-accent)';
-  const chevron=`<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-  const renewalStat=`<span class="dd-stat"><span class="dd-badge" style="${decisions.length?'background:#fbf4e3;color:#7d5a14':'background:#e8f4ee;color:#1e6b4d'}">${decisions.length?'•':'✓'}</span><b>${decisions.length}</b> renewal decision${decisions.length===1?'':'s'} <span style="color:var(--color-neutral-500)">· 90d</span></span>`;
-  const shareStat=hasShares?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#eceae6;color:#5d5d60">•</span><b>${shItems.length}</b> out with counterparties</span>`:'';
-  /* Questions the other side asked and nobody answered. These arrive through
-     the light channel, which changes no document state — so without a count
-     here the only two ways to learn of one are an email (the setting most
-     workspaces have not configured) and opening that one contract. */
-  const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
-  const wqTotal=(state.waitingQuestions&&state.waitingQuestions.total)||0;
-  const questionStat=wqTotal?`<span class="dd-sep"></span><span class="dd-stat"><span class="dd-badge" style="background:#fbf4e3;color:#7d5a14">•</span><b>${wqTotal}</b> question${wqTotal===1?'':'s'} waiting for you</span>`:'';
-  /* ASK-AI, FROM THE PLACE THE QUESTION OCCURS TO YOU. A pre-filled question
-     rather than an empty box: the hard part of using an assistant is knowing
-     what it can answer, and the dashboard already knows what is worth asking
-     about today. */
-  const askDash=`<button id="dd-ask-ai" class="dd-more" style="padding:0;margin-left:auto;font-weight:600">Ask Copilot about this →</button>`;
-  const readyStat=readyItems.length?`<span class="dd-sep"></span><span class="dd-stat" id="dd-ready-stat"><span class="dd-badge" style="background:#e8f4ee;color:#1e6b4d">•</span><b>${readyItems.length}</b> ready to sign</span>`:'';
-  const readyRows=readyToSignRowsHtml(readyItems);
-  const questionRows=wq.length?`
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7d5a14;margin-bottom:5px">Questions waiting for you</div>
-      ${wq.slice(0,6).map(q=>`
-        <button data-sel="${esc(q.contractId)}" style="display:flex;align-items:flex-start;gap:9px;width:100%;padding:7px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.06);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
-          <span style="flex:1;min-width:0">
-            <span style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(q.name)}</span>
-            <span style="display:block;font-size:10.5px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc((q.latest&&q.latest.author)||q.counterparty||'They')}: “${esc((q.latest&&q.latest.body)||'')}”</span>
-          </span>
-          <span style="font-size:10.5px;font-weight:600;font-family:var(--font-mono);color:#7d5a14;flex:none">${q.count>1?q.count+' open':'reply'}</span>
-        </button>`).join('')}
-    </div>`:'';
-  const decisionsSection=`
-    <style>
-      .dd-card{background:var(--color-surface);border:1px solid var(--color-divider);border-left:3px solid ${ddTone};box-shadow:var(--shadow-sm);border-radius:10px;overflow:hidden}
-      .dd-card>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-      .dd-card>summary::-webkit-details-marker{display:none}
-      .dd-card>summary:focus-visible{outline:2px solid var(--color-accent);outline-offset:-2px}
-      .dd-card>summary:hover{background:rgba(29,31,32,.02)}
-      .dd-head{display:flex;align-items:center;gap:9px}
-      .dd-ic{width:22px;height:22px;border-radius:6px;background:var(--color-accent-100);color:var(--color-accent-800);display:grid;place-items:center;flex:none}
-      .dd-title{font-size:15px;font-weight:600}
-      .dd-count{font-size:11px;font-weight:600;font-family:var(--font-mono);color:var(--color-accent-700);background:var(--color-accent-100);border-radius:999px;padding:1px 8px}
-      .dd-chev{margin-left:auto;color:var(--color-neutral-500);display:inline-flex;transition:transform .2s}
-      .dd-card[open] .dd-chev{transform:rotate(180deg)}
-      .dd-stats{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding-left:31px;font-size:12.5px;color:var(--color-neutral-600)}
-      .dd-stat{display:inline-flex;align-items:center;gap:7px}
-      .dd-stat b{color:var(--color-text);font-weight:600;font-family:var(--font-mono)}
-      .dd-badge{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;font-size:10px;flex:none}
-      .dd-sep{width:1px;height:13px;background:var(--color-divider)}
-      /* Contained footprint: the expanded panel never grows the card past this
-         height — overflow scrolls INSIDE the panel instead of pushing the page. */
-      .dd-detail{padding:2px 14px 14px;border-top:1px solid var(--color-divider);display:grid;grid-template-columns:1.55fr 1fr;gap:0 26px;max-height:min(46vh,360px);overflow-y:auto}
-      .dd-col{min-width:0}
-      .dd-col-r{border-left:1px solid var(--color-divider);padding-left:24px}
-      @media (max-width:880px){ .dd-detail{grid-template-columns:1fr} .dd-col-r{border-left:0;padding-left:0} }
-      .dd-eyebrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:13px 0 5px}
-      .dd-caught{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--color-neutral-600);padding:3px 0}
-      .dd-more{border:0;background:none;cursor:pointer;font-size:11px;color:var(--color-accent-700);font-weight:500;padding:6px 0 0}
-      /* A slow breath, not a blink — and for anyone who has asked the system for
-         less motion it becomes a static outline, since a flashing element on the
-         first screen of the day is genuinely painful for some readers. */
-      @keyframes dd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,43,.6)}50%{box-shadow:0 0 0 6px rgba(184,134,43,0)}}
-      .dd-eyebrow .badge.needs-you{animation:dd-pulse 1.9s ease-out infinite}
-      @media (prefers-reduced-motion:reduce){
-        .dd-eyebrow .badge.needs-you{animation:none;outline:2px solid #b8862b;outline-offset:2px}
-      }
-    </style>
-    <details class="dd-card"${ddStartsOpen()?' open':''}>
-      <summary>
-        <span class="dd-head">
-          <span class="dd-ic">${icon('clock','w-3.5 h-3.5')}</span>
-          <span class="dd-title">Decisions due</span>
-          ${ddCount?`<span class="dd-count">${ddCount}</span>`:''}
-          <span class="dd-chev">${chevron}</span>
-        </span>
-        <span class="dd-stats">${renewalStat}${readyStat}${questionStat}${shareStat}</span>
-      </summary>
-      <div class="dd-detail">
-        <div class="dd-col">
-          <div class="dd-eyebrow" style="margin-top:6px">Renewal decisions · next 90 days${askDash}</div>
-          ${decisions.length?decisionRows+(decisions.length>6?`<button data-open-decisions class="dd-more">See all in the calendar →</button>`:'')
-            :`<div class="dd-caught"><span style="color:#1e6b4d;display:inline-flex">${icon('check2','w-4 h-4')}</span>None due — you're all caught up.</div>`}
-          ${hasShares?`<div class="dd-eyebrow">Out with counterparties${needAttn?` · <span style="color:#7d5a14">${needAttn} need${needAttn===1?'s':''} your attention</span>`:''}<span style="flex:1"></span>${['sent','opened','changes','signed','declined'].map(st=>shCountChip(st,shCounts[st])).join(' ')}</div>${shareRows}`:''}
-        </div>
-        <div class="dd-col dd-col-r">
-          ${readyRows}
-          ${questionRows}
-          <div class="dd-eyebrow"${questionRows?'':' style="margin-top:6px"'}>Waiting longest · in review${waiting.length?` · <span style="color:#7d5a14">${waiting.length}</span>`:''}</div>
-          ${waitDdRows}
-        </div>
-      </div>
-    </details>`;
-
-  /* ---- OBLIGATIONS, ON THE SCREEN PEOPLE ACTUALLY OPEN ----
-
-     The dashboard had no obligations panel at all. Every deliverable a contract
-     carries — the quarterly report, the insurance certificate, the payment
-     window — could only be seen by opening that contract and scrolling to its
-     own panel. So the answer to "what do we owe this month, and what should we
-     be chasing them for" lived in n places, one per contract, and nobody read
-     it.
-
-     Split ours from theirs, because they are different jobs. One is a task
-     list; the other is a set of phone calls. */
-  const obsAll=(window.openObligations?openObligations(45):[]);
-  const obsOverdue=obsAll.filter(o=>o.days!=null&&o.days<0);
-  const obsOurs=(window.obligationsOurs?obligationsOurs(obsAll):obsAll);
-  const obsTheirs=(window.obligationsTheirs?obligationsTheirs(obsAll):[]);
-  const obRow=o=>{
-    const late=o.days!=null&&o.days<0;
-    const when=o.days==null?'no date':late?`${Math.abs(o.days)}d ago`:`${o.days}d`;
-    /* allObligations carries the counterparty along with each record, so a row
-       from any contract can name who owes a "theirs" without looking it up —
-       and cannot name the wrong one. */
-    const owner=(window.obligationIsTheirs&&obligationIsTheirs(o))
-      ? (o.counterparty||'the counterparty') : (o.assignee||'unassigned');
-    return `<div style="display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(29,31,32,.07)">
-      <button data-sel="${esc(o.cid)}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;padding:6px 2px;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit">
-        <span style="flex:none;width:7px;height:7px;border-radius:50%;background:${late?'#b0453c':'#2e8763'}"></span>
-        <span style="flex:1;min-width:0">
-          <span style="display:block;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.desc||'Obligation')}</span>
-          <span style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(o.cname||o.cid)} · ${esc(owner)}</span>
-        </span>
-      </button>
-      ${(window.toggleObligationById&&o.id&&(!window.canEdit||canEdit()))
-        ? `<button data-ob-done="${esc(o.id)}" data-ob-cid="${esc(o.cid)}" title="Mark this obligation complete" style="flex:none;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:2px 7px;font:inherit;font-size:10px;font-weight:600;color:var(--color-accent-700);cursor:pointer">Done</button>` : ''}
-      <span style="flex:none;font-size:10px;font-weight:600;font-family:var(--font-mono);color:${late?'#8f322b':'var(--color-neutral-600)'};padding-right:2px">${when}</span>
-    </div>`;
+  // Gradient hero cards — one semantic tone per KPI. The full catalog is keyed
+  // by a stable id; the user's chosen subset + order comes from currentKpiSel().
+  const G={steel:'var(--grad-steel)',green:'var(--grad-emerald)',amber:'var(--grad-amber)',ruby:'var(--grad-ruby)'};
+  /* Third line on every card, per the design: the figure's composition, so the
+     number can be read without opening the register. */
+  const stageSub=stages.filter(s=>s.n).map(s=>`${s.n} ${s.label.toLowerCase()}`).join(' · ')||'nothing filed yet';
+  /* Compliance rating — a measured share, not a badge: how many live agreements
+     carry NO high-risk finding. The delta names the regulatory profile in force
+     (the header's jurisdiction switcher), because that is what the rating is
+     being read against. */
+  const live=cs.filter(c=>c.status!=='Declined');
+  const clean=live.filter(c=>contractRisk(c)<60).length;
+  const compliancePct=live.length?Math.round(clean/live.length*100):100;
+  const REG_PROFILE={SE:'EU / GDPR', KE:'KICA / ODPC'};
+  const apprMineN=myApprovals.filter(x=>x.mine).length;
+  const KPI_CATALOG={
+    under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
+    active_value:{label:KPI_META.active_value, val:fmtKESshort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString('en-KE')} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
+    approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString('en-KE'), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
+    compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:`${clean} of ${live.length} live with no high-risk finding`, grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
+    expiring30:  {label:KPI_META.expiring30,   val:Number(exp30.length).toLocaleString('en-KE'),     delta:expDelta(exp30),  sub:expSub(exp30),                           grad:G.ruby,  ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring30'}},
+    expiring60:  {label:KPI_META.expiring60,   val:Number(exp60.length).toLocaleString('en-KE'),     delta:expDelta(exp60),  sub:expSub(exp60),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring60'}},
+    expiring90:  {label:KPI_META.expiring90,   val:Number(exp90.length).toLocaleString('en-KE'),     delta:expDelta(exp90),  sub:expSub(exp90),                           grad:G.amber, ic:'calendar', go:{stage:'all',sort:'expiry',view:'expiring90'}},
+    /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
+       `days >= 0`, so a contract dropped out of all three on the morning its
+       term ended — the one day it most needed somebody to look at it. */
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtKESshort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
+    highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
+    avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };
-  const obGroup=(title,list,empty)=>`
-    <div style="margin-top:6px">
-      <div style="display:flex;align-items:baseline;gap:6px;font-size:10.5px;color:var(--color-neutral-700);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">${title}<span style="flex:1"></span><span style="font-family:var(--font-mono);letter-spacing:0">${list.length}</span></div>
-      ${list.length?list.slice(0,6).map(obRow).join(''):`<div style="font-size:11px;color:var(--color-neutral-600);padding:5px 2px">${empty}</div>`}
-    </div>`;
-  const obligationsSection=`
-    <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:12px 14px;">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px;">
-        <h4 style="font-size:15px;margin:0;">Obligations · next 45 days</h4>
-        <span style="font-size:11px;color:${obsOverdue.length?'#8f322b':'var(--color-neutral-600)'};font-weight:${obsOverdue.length?600:400}">${obsOverdue.length?`${obsOverdue.length} overdue`:'nothing overdue'}<span style="color:var(--color-neutral-500);font-weight:400"> · </span><button id="ob-open-cal" style="border:0;background:none;padding:0;font:inherit;font-size:11px;color:var(--color-accent-700);font-weight:500;cursor:pointer">Open the calendar &rarr;</button></span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-        ${obGroup('Ours to do', obsOurs, 'Nothing of ours is due.')}
-        ${obGroup('Theirs to chase', obsTheirs, 'Nothing to chase them for.')}
-      </div>
-    </section>`;
+  const kpiSel=currentKpiSel().filter(id=>KPI_CATALOG[id]);
+  // Adaptive layout: the redesign's stat cards are wider and quieter than the
+  // gradient blocks they replace, so they sit four to a row and wrap.
+  /* Balanced rows, so a chosen sixth metric never lands alone on a second row:
+     up to 4 sit in one row, 5–6 split 3+3 (or 3+2), more than 6 go four-up. */
+  const kpiN=kpiSel.length||1, kpiCols=kpiN<=4?kpiN:(kpiN<=6?3:4);
+  /* The design's stat card: a muted label with a bare tinted glyph on the first
+     line, the figure and its delta on the second, and the composition on a
+     quiet third. No icon tile and no gradient — the colour is carried by the
+     glyph and the delta alone. Tone comes from the metric's semantics (steel =
+     volume, emerald = good, amber = pending, ruby = risk). */
+  const TONE_OF=g=>g===G.green?'emerald':g===G.amber?'amber':g===G.ruby?'ruby':'steel';
+  const TONE_FG={steel:'var(--tile-steel-fg)',emerald:'var(--tile-emerald-fg)',amber:'var(--tile-amber-fg)',ruby:'var(--tile-ruby-fg)'};
+  const kpiCard=id=>{ const k=KPI_CATALOG[id], t=TONE_OF(k.grad); return `
+    <button data-kpi-id="${id}" draggable="true" class="hati-stat" style="position:relative;display:flex;flex-direction:column;gap:8px;align-items:stretch;border:1px solid var(--color-divider);border-radius:16px;background:var(--color-surface);padding:20px;font:inherit;color:inherit;cursor:grab;text-align:left;box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .15s,opacity .15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='color-mix(in srgb,var(--accent-solid) 35%,transparent)'" onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--color-divider)'">
+      <span style="display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--color-neutral-500);">
+        <span style="font-size:11.5px;font-weight:600;line-height:1.3;">${k.label}</span>
+        <span style="flex:none;display:inline-flex;color:${TONE_FG[t]};">${icon(k.ic,'w-4 h-4',1.8)}</span>
+      </span>
+      <span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;">
+        <span class="tnum" style="font-weight:700;font-size:24px;line-height:1.1;letter-spacing:-.02em;color:var(--color-text);">${k.val}</span>
+        <span style="font-size:11px;font-weight:600;color:${TONE_FG[t]};text-align:right;">${k.delta}</span>
+      </span>
+      <span style="font-size:11px;color:var(--color-neutral-500);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${k.sub||''}</span>
+    </button>`; };
+  const kpiHtml=kpiSel.map(kpiCard).join('');
 
+  // ---- segmented stage bar + cards ----
+  const segBar=stages.map((s,i)=>`<span style="width:${(s.n/stageTotal*100).toFixed(2)}%;background:${s.color};"></span>`).join('');
+  const stageCards=stages.map(s=>`
+    <button data-stage="${s.k}" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;border:1px solid var(--color-divider);border-radius:8px;background:var(--color-bg);padding:10px 12px;font:inherit;color:inherit;cursor:pointer;text-align:left;" onmouseover="this.style.borderColor='var(--color-accent)';this.style.background='rgba(89,128,166,.05)'" onmouseout="this.style.borderColor='var(--color-divider)';this.style.background='var(--color-bg)'">
+      <span style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;"><span style="width:8px;height:8px;border-radius:50%;background:${s.color};"></span>${s.label}</span>
+      <span class="tnum" style="font-family:var(--font-mono);font-weight:600;font-size:19px;line-height:1.1;">${s.n.toLocaleString('en-KE')}</span>
+      <span style="font-size:10.5px;color:var(--color-neutral-600);">${money?`${s.n.toLocaleString('en-KE')} · ${fmtKESshort(s.val)}`:`${s.n.toLocaleString('en-KE')} contract${s.n===1?'':'s'}`}</span>
+    </button>`).join('');
+
+  // ---- needs your action ----
+  const actionRows=reviewByRisk.slice(0,5).map(x=>{ const c=x.c;
+    return `<button data-sel="${c.id}" style="display:flex;align-items:center;gap:9px;width:100%;padding:6px 4px;border:0;border-bottom:1px solid rgba(29,31,32,.07);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(29,31,32,.04)'" onmouseout="this.style.background='none'">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--color-neutral-600);width:56px;flex:none;">${c.id}</span>
+      <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;font-weight:500;">${esc(c.name)}</span>
+      <span style="font-size:11px;color:var(--color-neutral-600);width:110px;flex:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.counterparty||'—'}</span>
+      ${riskChip(x.r)}
+      ${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}
+    </button>`; }).join('') || `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 4px;">Nothing waiting on your review.</div>`;
+
+  /* The dashboard no longer carries Decisions due, Obligations, the renewal
+     pipeline or the approvals queue — the redesign leads on the pipeline and
+     the live feed instead. The reads behind them are unchanged and still
+     surface where they belong: renewal decisions and obligation due dates on
+     the Calendar, an approval chain on the contract itself. What stays here is
+     only what a card still counts (myApprovals feeds Pending approvals). */
   /* ---- WELCOME BANNER (redesign) ----
      The page used to open on a metric ribbon. It now opens on a statement of
      what this workspace is for, and the one button that starts real work. The
@@ -653,24 +436,6 @@ function renderDashboard(){
       ${activitySection}
     </div>
 
-    <!-- Decisions due — renewal decisions + shares out with counterparties, one collapsible card -->
-    ${decisionsSection}
-
-    <!-- What the parties actually owe each other, split ours / theirs -->
-    ${obligationsSection}
-
-    <!-- Renewal pipeline + the reader's own approval queue -->
-    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start;">
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
-        <h4 style="font-size:15px;margin:0 0 10px;font-weight:700;">Renewal pipeline · 6 mo</h4>
-        ${pipeBars}
-        <div style="font-size:10.5px;color:var(--color-neutral-500);margin-top:6px;">${pipeSummary}</div>
-      </section>
-      <section style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;min-width:0;">
-        <h4 style="font-size:15px;margin:0 0 8px;font-weight:700;">Approvals waiting on you${myApprovals.length>5?` <span style="font-size:11px;font-weight:400;color:var(--color-neutral-500)">· ${myApprovals.length} total</span>`:''}</h4>
-        <div class="scroll-thin" style="max-height:260px;overflow-y:auto;">${apprRows}</div>
-      </section>
-    </div>
   </div>`;
 
   // ---- wiring ----

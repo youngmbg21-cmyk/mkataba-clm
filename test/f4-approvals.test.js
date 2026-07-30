@@ -1,13 +1,17 @@
-/* F4 — "Approvals waiting" shows the reader's own queue, not the workspace's.
+/* F4 — "Pending approvals" counts the reader's own queue, not the workspace's.
 
-   Two things are being proved:
-     · the list contains only contracts the reader can act on (they are an
-       eligible approver on a pending step) or raised themselves;
-     · amounts appear only for a reader with can_view_values.
+   The redesign took the per-row approvals panel off the dashboard; what remains
+   there is the Pending approvals card. The guarantee is unchanged and is what
+   this file still proves:
+     · the figure counts only contracts the reader can act on (they are an
+       eligible approver on a pending step) or raised themselves — never the
+       whole workspace's queue;
+     · no amount is printed with it, whatever the reader's can_view_values.
 
    The underlying contract list is already folder-scoped by the server (F1), so
    this is a narrowing of data the reader is entitled to see, not a new
-   confidentiality boundary. */
+   confidentiality boundary. The per-contract approval chain, with its rows and
+   amounts, now lives only on the contract itself (see f79). */
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { loadViews } = require('./dom');
@@ -43,52 +47,61 @@ function render(user, { money = true, contracts = CONTRACTS } = {}) {
   });
   sb.renderDashboard();
   const html = sb.document.getElementById('content').innerHTML;
-  const start = html.indexOf('Approvals waiting');
-  assert.ok(start > 0, 'the approvals panel should render');
-  return { html, panel: html.slice(start) };
+  const start = html.indexOf('Pending approvals');
+  assert.ok(start > 0, 'the Pending approvals card should render');
+  // the card is one <button>; slice to its end so nothing else on the page
+  // can satisfy an assertion about it
+  const end = html.indexOf('</button>', start);
+  return { html, card: html.slice(start, end) };
 }
 
 const ADMIN = { id: 'u_admin', name: 'Amina Otieno', role: 'admin' };
 const LEGAL = { id: 'u_legal', name: 'Wanjiku Kamau', role: 'legal' };
 const OTHER = { id: 'u_other', name: 'Someone Else', role: 'legal' };
 
+/* The card prints a count, so the queue is read off the figure. MK-3 is below
+   the rule threshold and is in no approval chain at all, so it can never be
+   counted for anybody — which is what keeps "2" and "1" below meaningful. */
+const countOf = card => Number((card.match(/>(\d+)<\/span>/) || [])[1]);
+
 describe('F4 — the queue is the reader\'s own', () => {
-  test('an eligible approver sees the contracts waiting on them', () => {
+  test('an eligible approver is counted the contracts waiting on them', () => {
     // the rule sends ≥5M to an Admin, so both big deals wait on Amina
-    const { panel } = render(ADMIN);
-    assert.ok(panel.includes('MK-1'), 'a contract waiting on this approver should be listed');
-    assert.ok(panel.includes('MK-2'), 'and so should the other one');
-    assert.ok(!panel.includes('MK-3'), 'a contract below the rule threshold is not in approval at all');
+    const { card } = render(ADMIN);
+    assert.equal(countOf(card), 2, 'both contracts waiting on this approver should be counted');
+    assert.match(card, /2 waiting on you/, 'and they are named as hers to act on');
   });
 
-  test('a non-approver sees only the contracts they raised', () => {
-    const { panel } = render(LEGAL);
-    assert.ok(panel.includes('MK-2'), 'Wanjiku raised MK-2, so she should see it sitting in approval');
-    assert.ok(!panel.includes('MK-1'), 'MK-1 is neither hers nor waiting on her');
+  test('a non-approver is counted only the contracts they raised', () => {
+    const { card } = render(LEGAL);
+    assert.equal(countOf(card), 1, 'Wanjiku raised MK-2, so she should see it sitting in approval');
+    assert.match(card, /0 waiting on you · 1 on others/,
+      'it is hers to watch, not hers to approve, and the card says which');
   });
 
   test('someone with no stake sees an empty queue, not the workspace\'s', () => {
-    const { panel } = render(OTHER);
-    assert.ok(!panel.includes('MK-1') && !panel.includes('MK-2') && !panel.includes('MK-3'),
-      'a legal user who is neither approver nor author must not see the whole queue');
-    assert.match(panel, /Nothing is waiting on you/);
+    const { card } = render(OTHER);
+    assert.equal(countOf(card), 0,
+      'a legal user who is neither approver nor author must not be counted the whole queue');
+    assert.match(card, /All clear/);
   });
 
-  test('the panel says whose queue it is', () => {
-    const { panel } = render(ADMIN);
-    assert.ok(panel.startsWith('Approvals waiting on you'));
+  test('the card says what the figure is', () => {
+    const { card } = render(ADMIN);
+    assert.ok(card.startsWith('Pending approvals'));
+    assert.match(card, /Action required/, 'a non-zero queue has to read as work');
   });
 });
 
-describe('F4 — amounts follow can_view_values', () => {
-  test('with the right, the amount is shown', () => {
-    const { panel } = render(ADMIN, { money: true });
-    assert.match(panel, /KES 40M/);
+describe('F4 — the count carries no amount, with or without the right', () => {
+  test('with the right, the card still prints no figure', () => {
+    const { card } = render(ADMIN, { money: true });
+    assert.ok(!/KES/.test(card), 'the approvals card is a count, not a commercial total');
   });
-  test('without it, the row is there but the amount is not', () => {
+  test('without it, nothing about the queue leaks an amount', () => {
     // same user, right withdrawn — the queue itself is unchanged
-    const { panel } = render({ ...ADMIN, role: 'legal', name: 'Amina Otieno' }, { money: false });
-    assert.ok(!/KES/.test(panel), 'an amount survived in the approvals panel');
-    assert.ok(panel.includes('MK-1'), 'the contract she raised is still listed');
+    const { card } = render({ ...ADMIN, role: 'legal', name: 'Amina Otieno' }, { money: false });
+    assert.ok(!/KES/.test(card), 'an amount survived on the approvals card');
+    assert.equal(countOf(card), 1, 'the contract she raised is still counted');
   });
 });
