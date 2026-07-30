@@ -310,9 +310,9 @@ function renderDashboard(){
      still works. "Closed" is not a lifecycle stage you work in, so it keeps its
      place on the bar below rather than taking a fourth column. */
   const PIPE_DEF=[
-    {k:'Draft',        n:1, title:'Draft & Template',  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)'},
-    {k:'Under Review', n:2, title:'Review & Redline',  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)'},
-    {k:'Signed',       n:3, title:'Sign & Executed',   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)'},
+    {k:'Draft',        n:1, title:'Draft & Template',  tone:'steel',   fg:'var(--color-neutral-700)', bd:'var(--color-divider)',                              chip:'var(--color-neutral-100)'},
+    {k:'Under Review', n:2, title:'Review & Redline',  tone:'amber',   fg:'var(--st-amber-fg)',       bd:'color-mix(in srgb,#f59e0b 34%,transparent)',        chip:'var(--st-amber-bg)'},
+    {k:'Signed',       n:3, title:'Sign & Executed',   tone:'emerald', fg:'var(--st-green-fg)',       bd:'color-mix(in srgb,#10b981 34%,transparent)',        chip:'var(--st-green-bg)'},
   ];
   const pipeDocCard=(c,st)=>{
     const risky=st.k==='Under Review'&&contractRisk(c)>=60;
@@ -334,10 +334,10 @@ function renderDashboard(){
        short enough that the Decisions card beside it — which is filled into the
        height this one sets — stays readable without scrolling far. */
     const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,2);
-    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-neutral-100);border:1px solid ${st.bd};min-width:0;">
+    return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-surface);border:1px solid ${st.bd};min-width:0;">
       <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
         <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
-        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--color-surface);border:1px solid var(--color-divider);color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
+        <span style="flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:${st.chip};color:${st.fg};">${list.length} doc${list.length===1?'':'s'}</span>
       </button>
       <div style="display:flex;flex-direction:column;gap:7px;">
         ${shown.map(c=>pipeDocCard(c,st)).join('')||`<div style="font-size:10.5px;color:var(--color-neutral-500);padding:4px 2px;">Nothing at this stage.</div>`}
