@@ -283,6 +283,10 @@
   html.dark .nav-item.active{color:#2dd4bf;}
   .nav-item.active svg{opacity:1;}
   .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
+  /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
+  .nav-badge{margin-left:auto;flex:none;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;
+    background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
+  html.dark .nav-badge{color:#fcd34d;}
   .nav-item.active .nav-count{color:inherit;opacity:.8;}
   /* Collapsible nav sections: the group label is a +/- toggle that shows or
      hides its tabs. On login only "Work" is open (see .open in the markup); the
@@ -681,6 +685,19 @@
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
             <span style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
           </button>
+          <!-- Redline workbench (the design's `nav-redline`): highlighter glyph,
+               and an amber "N Open" tag carrying the count of open changes.
+               STEP 1 OF THE PORT — presentation only. data-view is still
+               `doclab`, so the button routes exactly where it did before and
+               nothing can break; the route and the view are swapped together in
+               the next step, when the Doc Lab module is retired. The count is
+               left hidden until app.js has something real to put in it. -->
+          <button data-view="doclab" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
+            <span class="nav-rail"></span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+            <span style="flex:1;">Redline</span>
+            <span id="nav-redline-count" class="nav-badge hidden"></span>
+          </button>
           <button data-view="pipeline" class="nav-item" title="Queue">
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18"/></svg>
@@ -690,14 +707,6 @@
             <span class="nav-rail"></span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
             <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
-          </button>
-          <!-- Sandbox beside the Doc page: internal-vs-shared tried where it
-               cannot touch a contract or a share payload (js/views/doclab.js).
-               Remove this button and its route when the trial is decided. -->
-          <button data-view="doclab" class="nav-item" title="Doc Lab — sandbox">
-            <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6.5L4.5 18a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 9.5V3"/><path d="M8 3h8M7.5 14h9"/></svg>
-            <span style="flex:1;">Doc Lab</span><span class="nav-count" data-count="doclab"></span>
           </button>
         </div>
       </div>
