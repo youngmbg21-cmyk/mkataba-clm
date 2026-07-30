@@ -4064,25 +4064,43 @@ function redlineLayoutCss(){
      to remember to switch it off before it could reach a column that focus
      mode had hidden. One less state, three fewer things to remember. */
 
-  /* ---- THE CLAUSE TOOLBAR, AND THE BLANK ROW IT USED TO RESERVE ----
-     It was opacity:0 until hover. opacity does not take an element out of the
-     flow, so every clause in the document — including the ones under redline,
-     which the design gives no control at all — carried a MEASURED 26px of
-     invisible toolbar plus its 9px margin. That is where the vertical air
-     between clauses was going: a gap with nothing in it, on every clause, all
-     the way down a contract.
+  /* ---- THE CLAUSE TOOLBAR: AN OVERLAY, REVEALED ON HOVER ----
+     The contract reads clean until the reader is over a clause; then the three
+     verbs appear at its lower right corner.
 
-     Zeroing the height and growing it on hover would trade the gap for a worse
-     problem — the page reflowing under the pointer, so everything below the
-     clause you are reading jumps down as you move across it.
+     The history matters, because this rule has been wrong twice in opposite
+     directions. It began as opacity:0-until-hover IN THE FLOW: invisible, but
+     still occupying a measured 26px row under every clause, which was the
+     empty vertical air a review rightly complained about. The fix made the
+     tools permanently visible, which closed the gap and opened the opposite
+     complaint: three buttons repeating under every clause is not a clean
+     document.
 
-     So the tools are simply THERE, the way the room's are and for the reason
-     the room's are (test/f44: hover does not exist on a touch screen, and
-     these are the only way to propose anything). Drawn compact — one 20px
-     line, the same spend the reference makes on its "Propose edit" link — they
-     cost what they show, which is the whole complaint answered. */
-  .redline-page .rl-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px;
-    min-height:20px}
+     This version holds both requirements at once by taking the toolbar OUT of
+     the flow. position:absolute costs zero height, so the clauses sit at
+     their 16px gaps with nothing reserved; and because nothing is in the
+     flow, revealing it moves nothing — no reflow under the pointer, no text
+     jumping as the reader moves down the page.
+
+     Revealed on :hover and on :focus-within, never on hover alone: a person
+     tabbing through the page reaches the same verbs, and focusing one is
+     itself what reveals the row it sits in. pointer-events is gated with the
+     opacity so an invisible button can never swallow a click aimed at the
+     text beneath it. */
+  .redline-page .rl-clause{position:relative}
+  .redline-page .rl-tools{position:absolute;right:6px;bottom:-9px;z-index:3;margin:0;
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;
+    opacity:0;pointer-events:none;transition:opacity .15s ease}
+  .redline-page .rl-clause:hover .rl-tools,
+  .redline-page .rl-clause:focus-within .rl-tools{opacity:1;pointer-events:auto}
+  /* On a touch screen there is no hover, so hidden tools would be unreachable
+     tools — the objection test/f44 records against hover-only controls.
+     There, and only there, they return to the flow and stay visible: the
+     trade against a busier page is forced, the trade against unusable tools
+     is not. */
+  @media (hover:none){
+    .redline-page .rl-tools{position:static;opacity:1;pointer-events:auto;margin-top:7px}
+  }
   .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:999px;padding:2px 9px;font:inherit;font-size:10px;font-weight:600;line-height:1.6;
     color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;

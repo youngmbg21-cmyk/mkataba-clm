@@ -187,10 +187,18 @@ describe('F91 (1,2) — the Doc page header and its sub-navigation', () => {
     assert.ok(!/Ask Copilot/.test(s), 'and so is its label');
   });
 
-  test('and it is wired to the one new-contract menu, not a second route', () => {
+  test('and it opens through the shell\'s anchored delegation, not a listener of its own', () => {
+    /* The shell binds every [data-page-new] trigger once (js/app.js) and that
+       delegated handler is the one that ANCHORS the menu under the button that
+       was pressed. This button's first version had a bespoke listener that
+       only lifted `hidden`, so the fixed-position menu opened wherever it had
+       last been placed — the far corner of the screen on a fresh session. The
+       attribute IS the wiring; a second listener here would double-toggle. */
     const s = code();
-    assert.match(s, /getElementById\('ws-new'\)/, 'the button must be wired at all');
-    assert.match(s, /new-menu/, 'through the menu the command bar and the dashboard open');
+    assert.match(s, /id="ws-new" data-page-new/,
+      'the attribute is what routes the press through the anchoring handler');
+    assert.ok(!/getElementById\('ws-new'\)\?\.addEventListener/.test(s),
+      'a bespoke listener bypasses the anchoring and fights the delegated toggle');
     assert.ok(!/getElementById\('ws-ai'\)/.test(s),
       'a listener left behind is how a removed feature comes back');
   });

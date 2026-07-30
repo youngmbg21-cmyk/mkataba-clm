@@ -133,7 +133,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       colWidth: Math.round(col.width),
       textWidth: Math.round(right - left), gaps,
       toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
-      toolsHeight: tools ? Math.round(tools.getBoundingClientRect().height) : null };
+      toolsPosition: tools ? getComputedStyle(tools).position : null,
+      toolsPE: tools ? getComputedStyle(tools).pointerEvents : null };
   });
   check('2b the text sits the same distance from both edges',
     Math.abs(inset.left - inset.right) <= 2, `${inset.left}px left / ${inset.right}px right`);
@@ -142,11 +143,29 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('2b the contract occupies the column rather than floating in it',
     inset.textWidth / inset.colWidth > 0.9,
     `${(inset.textWidth / inset.colWidth * 100).toFixed(1)}% of the column`);
-  check('2b no clause reserves an invisible toolbar row',
-    inset.toolsOpacity === '1' && inset.toolsHeight <= 26,
-    `opacity ${inset.toolsOpacity}, ${inset.toolsHeight}px`);
+  /* The toolbar is an overlay: hidden at rest and OUT OF THE FLOW, so being
+     hidden costs no height — the failure mode both of its predecessors had
+     (a reserved blank row, then a permanently busy page) is measured against
+     here, not asserted from the stylesheet. */
+  check('2b at rest the toolbar is hidden and costs no height',
+    inset.toolsOpacity === '0' && inset.toolsPosition === 'absolute' && inset.toolsPE === 'none',
+    `opacity ${inset.toolsOpacity}, position ${inset.toolsPosition}, pointer-events ${inset.toolsPE}`);
   check('2b the gaps between clauses are even and tight',
     inset.gaps.every(g => g <= 20), JSON.stringify(inset.gaps));
+
+  /* A REAL hover, through the input pipeline, because :hover cannot be faked
+     from script and a class-toggle simulation would be testing the simulation. */
+  await page.hover('#rl-doc .rl-clause');
+  await pause(300);                                   // the .15s reveal transition
+  const hovered = await page.evaluate(() => {
+    const t = document.querySelector('#rl-doc .rl-clause:hover .rl-tools')
+      || document.querySelector('#rl-doc .rl-clause .rl-tools');
+    return { op: getComputedStyle(t).opacity, pe: getComputedStyle(t).pointerEvents };
+  });
+  check('2b hovering a clause reveals its tools, clickably',
+    hovered.op === '1' && hovered.pe !== 'none', `opacity ${hovered.op}, pointer-events ${hovered.pe}`);
+  await page.mouse.move(5, 5);                        // park the pointer off the document
+  await pause(250);
 
   /* ---- 6. the uploaded document survives ---- */
   const struct = await page.evaluate(() => {

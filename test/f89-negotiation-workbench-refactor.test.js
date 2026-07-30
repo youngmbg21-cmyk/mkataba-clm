@@ -197,19 +197,33 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
       'the design pads only what is on the table — p-3 — so the frame means something');
   });
 
-  test('the clause toolbar costs what it shows', async () => {
-    /* opacity:0 does not take an element out of the flow. Every clause in the
-       document — including the ones under redline, which the reference gives
-       no control at all — reserved a blank 26px row plus its margin. That was
-       the vertical air with nothing in it. */
+  test('the clause toolbar is an overlay: hidden at rest, costing no height', async () => {
+    /* This rule has been wrong twice, in opposite directions. opacity:0 IN THE
+       FLOW reserved a blank 26px row under every clause — the vertical air a
+       review complained about. Permanently visible closed that gap and opened
+       the opposite complaint: three buttons repeating under every clause is
+       not a clean contract. The resolution is an overlay — absolute, so it
+       costs zero height AND can be hidden without leaving a hole. Both halves
+       are asserted together because either alone re-creates a known defect. */
     const p = await page();
     const r = p.rule('.redline-page .rl-tools');
     assert.ok(r, '.rl-tools must carry a rule');
-    assert.ok(!/opacity:0/.test(r),
-      'an invisible row still occupies its height — that is the gap it was creating');
-    assert.ok(!/\.redline-page \.rl-clause:hover \.rl-tools/.test(p.css()),
-      'and hover does not exist on a touch screen (the room settled this — see f44)');
-    assert.match(r, /min-height:20px/, 'one compact line, the spend the reference makes');
+    assert.match(r, /position:absolute/,
+      'in the flow, a hidden toolbar still occupies its row — that was the gap');
+    assert.match(r, /opacity:0/, 'and at rest it is hidden — that was the clutter');
+    assert.match(r, /pointer-events:none/,
+      'an invisible button must never swallow a click aimed at the text under it');
+  });
+
+  test('hover and keyboard focus both reveal it; touch gets it outright', async () => {
+    const p = await page();
+    const css = p.css();
+    assert.match(css, /\.redline-page \.rl-clause:hover \.rl-tools,\s*\.redline-page \.rl-clause:focus-within \.rl-tools\{opacity:1;pointer-events:auto\}/,
+      'hover alone strands a keyboard user — focusing a tool must reveal the row it sits in');
+    assert.match(css, /@media \(hover:none\)\{\s*\.redline-page \.rl-tools\{position:static;opacity:1/,
+      'on touch there is no hover, so hidden tools are unreachable tools (f44\'s objection)');
+    assert.match(p.rule('.redline-page .rl-clause', 'position:relative') || '', /position:relative/,
+      'the overlay anchors to its clause, not to whatever ancestor happens to be positioned');
   });
 });
 

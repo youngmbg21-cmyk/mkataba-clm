@@ -2568,7 +2568,7 @@ function renderWorkspace(){
               same new-contract menu the command bar and the dashboard open,
               rather than being a second way of creating paper. */}
         <div style="display:flex;gap:6px;align-items:center;flex:none">
-          <button id="ws-new" title="Draft a new agreement" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>
+          <button id="ws-new" data-page-new title="Draft a new agreement" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus','w-3.5 h-3.5')} Draft new agreement</button>
           <button id="ws-collapse" class="ui-btn" style="width:30px;height:30px;padding:0;flex:none"
             title="Collapse this bar and give the contract more room" aria-expanded="true">${icon('minus','w-3.5 h-3.5')}</button>
         </div>
@@ -2765,18 +2765,14 @@ function renderWorkspace(){
     else setView(r.view&&r.view!=='workspace'?r.view:'register');
   });
   wireWsCollapse(c);
-  /* Draft new agreement — the same new-contract menu the command bar and the
-     dashboard's hero button open, not a second route into creation. Falls back
-     to pressing the command bar's own control where the menu is not mounted,
-     which is exactly what the dashboard does. */
-  document.getElementById('ws-new')?.addEventListener('click',e=>{
-    e.stopPropagation();
-    const nm=document.getElementById('new-menu'), nb=document.getElementById('cmd-new');
-    if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); }
-    else if(nb){ nb.click(); }
-    else if(typeof openWizard==='function') openWizard();
-    else toast('Drafting is unavailable on this page','err');
-  });
+  /* Draft new agreement carries data-page-new and is NOT wired here. The shell
+     binds every [data-page-new] trigger once, by delegation (js/app.js), and
+     that handler is the one that ANCHORS the menu — measured under the button
+     that was pressed and clamped to the viewport. The first version of this
+     button had its own listener that only lifted `hidden`, so the fixed-
+     position menu opened wherever it had last been placed: on a fresh session,
+     the far corner of the screen, nowhere near the button that asked for it.
+     One binding, one anchoring, every trigger. */
   window.updateAIBadge&&updateAIBadge();   // the Copilot's unread dot lives on the sidebar launcher now
 
   document.getElementById('ws-share')?.addEventListener('click',()=>openShareModal(c));   // ws-evidence is wired by wireActionBar
