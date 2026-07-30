@@ -278,7 +278,7 @@ const shareChip = st => { const m=SHARE_META[st]||SHARE_META.sent;
 // stage chip so it reads as a distinct signal.
 const shareDot = cid => { const s=state.shareByContract&&state.shareByContract[cid]; if(!s) return '';
   const m=SHARE_META[s.state]||SHARE_META.sent;
-  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-left:8px;vertical-align:middle;flex:none"></span>`; };
+  return `<span title="Share: ${m.label}${s.n>1?` · ${s.n} recipients`:''}" style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${m.dot};margin-right:8px;vertical-align:middle;flex:none"></span>`; };
 /* A question the counterparty asked and nobody answered. It changes no document
    state, so without a mark here a contract carrying one looks identical in the
    list to a contract with nothing outstanding. */
@@ -287,7 +287,7 @@ const questionCount = cid => {
   const hit=w.find(x=>x.contractId===cid);
   return hit?hit.count:0; };
 const questionDot = cid => { const n=questionCount(cid); if(!n) return '';
-  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-left:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
+  return `<span title="${n} question${n===1?'':'s'} waiting for your reply" style="display:inline-block;margin-right:6px;vertical-align:middle;font-size:9.5px;font-weight:700;font-family:var(--font-mono);background:#fbf4e3;color:#7d5a14;border-radius:999px;padding:1px 6px;flex:none">${n}&nbsp;?</span>`; };
 
 // ---- Risk model: bands ≥60 ruby / 35–59 amber / <35 emerald ----
 const RISK_PAL = {
