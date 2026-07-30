@@ -2940,6 +2940,13 @@ async function negoAiPropose(c, ctx){
     return;
   }
 
+  /* Said before the model is asked: a drag across a clause boundary cannot be
+     spliced back into one clause, and misreporting it as pending edits sent
+     people hunting for redlines that were not there. */
+  if (ctx.spans){
+    fail('The selection covers more than one clause. Select within a single clause — the Copilot rewrites one clause at a time.');
+    return;
+  }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
   const clauseText = cl ? cl.text : text;
   const pbLine = (() => {
@@ -2989,9 +2996,14 @@ async function negoAiPropose(c, ctx){
      selects five words inside a clause under redline — where the visible text
      mixes kept, inserted and struck-through wording and exists in no single
      version — the lookup misses, and the entire clause is silently swapped. */
+  /* `marked` was read off the selection's own fragment when the menu opened,
+     so "pending edits" is claimed only when marks sit inside the chosen words
+     — not merely somewhere in the clause or the document. */
   const found = !!replacement && clauseText.includes(text);
   if (replacement && !found){
-    fail('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
+    fail(ctx.marked === false
+      ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
+      : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
   const proposed = found ? clauseText.replace(text, replacement) : clauseText;
@@ -3381,6 +3393,23 @@ function wireNegotiationTab(c, opts = {}){
       let rect;
       try { rect = sel.getRangeAt(0).getBoundingClientRect(); } catch (e){ return; }
       if (!rect || (!rect.width && !rect.height)) return;
+      /* ---- READ FROM THE SELECTION'S OWN FRAGMENT, while the range is live.
+         `marked` — redline marks strictly INSIDE the chosen words. Asking the
+         clause (or the document) answers for wording the person never chose,
+         which is how a clean selection two clauses down from a redline got
+         refused as "pending edits". `spans` — the drag crossed a clause
+         boundary, which is a different fact needing a different message. */
+      let marked = false, spans = false;
+      try{
+        const frag = sel.getRangeAt(0).cloneContents();
+        marked = !!(frag.querySelectorAll
+          && frag.querySelectorAll('ins, del, .nego-ins, .nego-del, [data-change-id]').length);
+        const focusEl = sel.focusNode
+          && (sel.focusNode.nodeType === 1 ? sel.focusNode : sel.focusNode.parentElement);
+        const focusClause = focusEl && focusEl.closest ? focusEl.closest('[data-clause]') : null;
+        spans = (!!focusClause && focusClause !== clauseEl)
+          || (frag.querySelectorAll && frag.querySelectorAll('[data-clause]').length > 1);
+      }catch(e){}
       _negoKillSelMenu();
       /* ---- THE HOST DECIDES WHAT A SELECTION OFFERS ----
          The contract tab and the room keep the engine's own menu below. The
@@ -3392,7 +3421,7 @@ function wireNegotiationTab(c, opts = {}){
          to, whether the reader may propose at all — is the same question on
          every surface and must keep exactly one answer. */
       if (typeof opts.selMenu === 'function'){
-        opts.selMenu({ c, opts, text, clauseId, rect, side, again });
+        opts.selMenu({ c, opts, text, clauseId, rect, side, again, marked, spans });
         return;
       }
       const menu = document.createElement('div');
@@ -3414,7 +3443,7 @@ function wireNegotiationTab(c, opts = {}){
         ev.preventDefault(); ev.stopPropagation();
         const action = NEGO_AI_ACTIONS.find(a => a.id === b.getAttribute('data-nego-ai'));
         _negoKillSelMenu();
-        if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again });
+        if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again, marked, spans });
       }));
     };
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
@@ -4901,13 +4930,25 @@ async function rlAiPropose(ctx){
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
   if (!cl){ rlSayInPanel('This clause is no longer in the document. Select a current clause and try again.'); return; }
+  /* A drag across a clause boundary is its own fact, said as such — it used
+     to fall through the includes() check below and be misreported as pending
+     edits on a selection that had none. */
+  if (ctx.spans){
+    rlSayInPanel('The selection covers more than one clause. Select within a single clause — the Copilot rewrites one clause at a time.');
+    return;
+  }
   /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and it is checked before a
      token is spent. The old fallback for a miss was to swap the whole clause
-     for whatever came back, which loses wording nobody agreed to lose. */
+     for whatever came back, which loses wording nobody agreed to lose.
+     Which message a miss gets depends on what was actually selected: `marked`
+     was read off the selection's own fragment, so "pending edits" is claimed
+     only when redline marks sit inside the chosen words. */
   const clauseText = String(cl.text || '');
   const whole = String(text).trim() === clauseText.trim();
   if (!whole && !clauseText.includes(text)){
-    rlSayInPanel('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
+    rlSayInPanel(ctx.marked === false
+      ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
+      : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
   const party = side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');
