@@ -132,6 +132,31 @@ function negoStampContract(c){
   return html;
 }
 
+/* ---------- keeping an UNTOUCHED baseline current ----------
+   The baseline is a snapshot, and during a live round it must be: every filed
+   ask is measured against it. But before anything is on the table the snapshot
+   can go stale in a way a reader sees as two different contracts — fill the
+   key terms on the Doc page after the workbench's first paint and the Doc page
+   says "KES 14,500,000" while the redline still shows the blank it froze.
+
+   So an untouched negotiation re-reads its baseline from the document. The
+   guards are the point, and every one is load-bearing: any filed change, any
+   archived round, any hash issued means the baseline has been MEASURED AGAINST
+   and may not move — that is the round model's contract, not an optimisation. */
+function negoFreshenBaseline(c){
+  const n = negoInit(c);
+  if ((c.changes || []).length) return false;         // something is on the table
+  if ((n.rounds || []).length || n.round !== 1) return false;  // history exists
+  if (n.chainHead) return false;                      // a hash has cited this baseline
+  const body = negoStampContract(c);
+  if (!body || body === n.baselineBody) return false;
+  const text = window.richToText ? richToText(body) : '';
+  n.baselineBody = body;
+  n.baselineText = text;
+  n.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
+  return true;
+}
+
 const negoBaseText = c => (negoInit(c).baselineText || '');
 const negoBaseBody = c => (negoInit(c).baselineBody || '');
 const negoRound = c => negoInit(c).round;
@@ -1997,7 +2022,7 @@ function negoMigrate(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
-  negoInit, negoStampContract, negoBaseText, negoBaseBody, negoRound,
+  negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
   verifyChangeChain, negoVerifyCached, negoRefreshVerification, negoInvalidateVerification, NEGO_HASH_V,
