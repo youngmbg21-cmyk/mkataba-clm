@@ -2352,8 +2352,14 @@ function applyDocZoom(){
   // clientWidth already excludes the scrollbar; the 2px keeps a rounding
   // overshoot from tipping the pane into a horizontal scroll.
   const room=pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
-  const z=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
-  wrap.style.setProperty('--doc-zoom', z.toFixed(3));
+  const fit=Math.min(DOC_ZOOM_MAX, Math.max(1, room/DOC_PAGE_W));
+  /* The reader's text-size preference — the A⁻/A⁺ stepper both tabs carry,
+     persisted by the workbench (rlDocType, default 15) — multiplies the
+     width-fit zoom, so one stored choice sizes the contract on the Doc tab
+     and the Redline canvas alike. At the default it is exactly the old
+     behaviour. */
+  const pref=(window.rlDocType?rlDocType():15)/15;
+  wrap.style.setProperty('--doc-zoom', (fit*pref).toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -2606,6 +2612,7 @@ function renderWorkspace(){
         ${wsTabBtn('docs','Docs','file')}
         ${wsTabBtn('redline','Redline','pencil')}${negoTabCountHtml(c)}
       </div>
+      ${window.rlTypeStepHtml?rlTypeStepHtml():''}
       <div id="ws-actionbar" data-ws-fold="strip" data-ws-display="flex" style="flex:1;min-width:280px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">${actionBarHtml(c)}</div>
     </div>
 
@@ -2801,6 +2808,13 @@ function renderWorkspace(){
   // how a removed feature comes back the next time someone re-adds the markup.
   document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
+  // The text-size stepper on the tab row: the control, its styles and its
+  // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
+  // two tabs render one component reading one persisted preference. The
+  // stylesheet call is idempotent; the zoom applies the stored choice now.
+  if(window.redlineLayoutCss) redlineLayoutCss();
+  if(window.rlWireTypeStep) rlWireTypeStep(content);
+  applyDocZoom();
   setActiveNav('workspace');
 }
 
@@ -3380,5 +3394,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

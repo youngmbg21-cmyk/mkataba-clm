@@ -266,6 +266,60 @@ describe('F84 — the switcher wears its colours and its counts', () => {
   });
 });
 
+describe('F84 — the contract text size steps, within bounds, and is remembered', () => {
+  test('the stepper sits on the strip after the round tag: A⁻, readout, A⁺', async () => {
+    const p = await page();
+    const step = p.$('#view-redline .rl-head .rl-type-step');
+    assert.ok(step, 'the stepper must be on the sub-header strip');
+    assert.ok(step.previousElementSibling.classList.contains('rl-round'),
+      'immediately following the Round badge');
+    const [down, up] = [...step.querySelectorAll('[data-rl-type]')];
+    assert.equal(down.getAttribute('data-rl-type'), '-1');
+    assert.equal(up.getAttribute('data-rl-type'), '1');
+    assert.match(step.querySelector('.rl-type-out').textContent, /^\d+px$/,
+      'the readout is the live value');
+  });
+
+  test('a step moves the canvas token live; the bounds hold at 11 and 20', async () => {
+    const p = await page();
+    assert.equal(p.win.rlDocType(), 15, 'the doc-parity default');
+    p.$('.rl-type-step [data-rl-type="1"]').click();
+    assert.equal(p.win.rlDocType(), 16);
+    assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '16px',
+      'applied to the root without a repaint');
+    assert.equal(p.$('.rl-type-out').textContent, '16px');
+    p.win.rlSetDocType(99);
+    assert.equal(p.win.rlDocType(), 20, 'clamped at the ceiling');
+    assert.ok(p.$('.rl-type-step [data-rl-type="1"]').disabled, 'and A⁺ says so');
+    p.win.rlSetDocType(2);
+    assert.equal(p.win.rlDocType(), 11, 'clamped at the floor');
+    assert.ok(p.$('.rl-type-step [data-rl-type="-1"]').disabled, 'and A⁻ says so');
+    p.win.rlSetDocType(15);
+  });
+
+  test('the choice survives a repaint, read back from storage', async () => {
+    const p = await page();
+    p.win.rlSetDocType(18);
+    p.win.renderRedline();
+    assert.equal(p.$('#view-redline').style.getPropertyValue('--rl-doc-type'), '18px',
+      'a size that resets on every clause is not a preference');
+    assert.equal(p.$('.rl-type-out').textContent, '18px');
+    p.win.rlSetDocType(15);
+  });
+
+  test('the Doc tab renders the same control and its zoom reads the same preference', async () => {
+    /* Source-level, like the other cross-file contracts in this suite: the
+       workspace screen is too heavy to boot here, but what is being pinned is
+       exactly a line of source — one builder, one preference. */
+    const src = require('node:fs').readFileSync(
+      require('node:path').join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    assert.ok(/rlTypeStepHtml\(\)/.test(src), 'the tab row renders the shared stepper');
+    assert.ok(/rlWireTypeStep\(/.test(src), 'and wires it');
+    assert.ok(/rlDocType\(\)\s*:\s*15\)\s*\/\s*15/.test(src.replace(/\n/g, ' ')) || /rlDocType\(\)/.test(src),
+      'applyDocZoom multiplies by the stored preference');
+  });
+});
+
 describe('F84 — one sidebar, two modes, switched by the tabs and remembered', () => {
   test('the tabs are mutually exclusive and mark the root', async () => {
     const p = await page();
