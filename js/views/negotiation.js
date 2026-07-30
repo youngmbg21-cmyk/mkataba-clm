@@ -3997,9 +3997,11 @@ function redlineLayoutCss(){
      stack at contract size would halve how many changes fit on a screen.
      Declared on the page rather than in :root so neither can leak. */
   .redline-page .rl-clause-p,
-  .redline-page .rl-doc .nego-doc,
   .redline-page .rl-doc .nego-body,
   .redline-page .rl-doc .rl-line{margin:0;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
+  /* the sheet keeps its auto margins — margin:0 here beat the centring rule
+     (three classes to two) and pinned the paper to the left of the column */
+  .redline-page .rl-doc .nego-doc{margin:0 auto;font-size:var(--rl-doc-type);line-height:1.75;color:var(--color-text)}
   .redline-page .rl-clause-p{margin:0}
   .redline-page .rl-propose{margin-top:7px;border:0;background:none;padding:0;cursor:pointer;
     font:inherit;font-size:11.5px;font-weight:600;color:var(--color-accent-600)}
