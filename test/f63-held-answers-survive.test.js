@@ -98,7 +98,8 @@ describe('F63 — answers held on the page survive a reload', () => {
     await b.press(`[data-nego-accept="${filed[0].id}"]`);
     b.open();
     assert.equal(b.last(), null, 'remembering an answer is not sending it');
-    assert.ok(b.$(`[data-hold="${filed[0].id}"]`), 'and the card still says so in words');
+    const badge = b.$(`[data-nego-card="${filed[0].id}"] .rl-badge`);
+    assert.match(badge.textContent, /held/, 'and the card still says so in words');
   });
 
   test('answers to several changes all come back', async () => {

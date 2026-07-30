@@ -1940,8 +1940,8 @@ function wireActionBar(c){
       const strip=document.getElementById('changes-review');
       if(strip){ strip.click(); return; }
       /* Changes that arrived as tracked items rather than as a round have no
-         strip to borrow — the room is where they are decided. */
-      openNegotiationOwnerRoom(c); return;
+         strip to borrow — the workbench is where they are decided. */
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); return;
     }
     if(kind==='share'){ openShareModal(c); return; }
     if(kind==='terms'){ focusKeyTerms(c); return; }
@@ -2130,7 +2130,7 @@ function openNegotiationOwnerRoom(c){
       logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
       persist(c);
       toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
-      openNegotiationOwnerRoom(c);
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     },
     /* THE SEND, once there is somewhere to send to. Rides the same route the
        "send updated version" control has always used: an existing standing link
@@ -2151,7 +2151,7 @@ function openNegotiationOwnerRoom(c){
       }catch(err){
         toast(`Could not send to ${to} — ${err.message}`,'err');
       }
-      openNegotiationOwnerRoom(c);
+      if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
     },
     onDecided(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },
     onWithdraw(){ if(window.refreshLiveShareQuietly) refreshLiveShareQuietly(c); },

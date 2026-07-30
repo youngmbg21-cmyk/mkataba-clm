@@ -3722,6 +3722,7 @@ async function negoConfirmCloseRound(c){
 
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
+const negoIsRedeciding = id => !!_negoRedeciding[id];
 function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
 
 /* ---------- THE REDLINE PAGE ----------
@@ -4140,6 +4141,15 @@ function redlineLayoutCss(){
   /* the header carries these; a second pair here would be two controls for one action */
   .redline-page .nego-bulk{display:none!important}
   .redline-page #nego-send{display:none!important}
+  /* An EMBED has no header to carry them, so the bulk verbs come back to the
+     column head there — "I agree to all of it" is a real answer, and on the
+     counterparty's page this is the only surface it can live on. */
+  .redline-page.rl-embed .nego-bulk{display:flex!important;gap:6px;flex-basis:100%}
+  .redline-page.rl-embed .nego-bulk button{flex:1;border:0;border-radius:7px;padding:6px 9px;
+    font:inherit;font-size:10.5px;font-weight:700;cursor:pointer}
+  .redline-page.rl-embed .nego-bulk .b-acc{background:#059669;color:#fff}
+  .redline-page.rl-embed .nego-bulk .b-rej{background:#e2e8f0;color:#1e293b}
+  .redline-page.rl-embed .nego-bulk button:disabled{opacity:.45;cursor:not-allowed}
 
   .redline-page .rl-disc-head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;
     border-bottom:1px solid var(--color-divider);flex:none}
@@ -4218,6 +4228,73 @@ function openRedlineWorkbench(id, opts = {}){
   else renderRedline();
   return true;
 }
+/* ============================================================
+   THE WORKBENCH AS A COMPONENT — one negotiation surface, both sides
+   ============================================================
+   renderRedline above is the OWNER's page: it owns state.activeId, the bench
+   eviction, the header with Publish Round and Close Round. This is the same
+   workbench as a MOUNT: give it a host, a contract and the mount's own rules,
+   and it renders the document canvas, the Tracked Changes column and the
+   Discussion column with the engine wired underneath — which is what lets the
+   counterparty's page BE this design instead of the retired three-pane room.
+
+   What the caller controls, because only the caller knows:
+     side, readonly, canComment, messages, seenScope, by/author — the same
+       contract wireNegotiationTab has always taken;
+     bannerHtml   — the line above the grid. The wall speaks for the owner and
+       the eye banner for the owner's preview; the counterparty's page speaks
+       to the counterparty, and this mount does not guess at it;
+     noAi         — no Copilot panel on this page, so no AI Assist on it;
+     selMenu      — what highlighting text offers (the portal passes a no-op:
+       a page with no Copilot has nothing to route a selection to);
+     pendingDecisions / pendingProposals / org / onSendDecisions — the
+       counterparty postbox, wired to whatever transport the page owns
+       (the portal posts a response payload; the owner's preview hands over
+       the turn);
+     rerender     — the mount cannot know how its host rebuilds its contract
+       (the portal reassembles it from the payload plus held answers), so
+       repainting is the caller's verb. */
+let _rlEmbedSeq = 0;
+function redlineEmbed(host, c, opts = {}){
+  const el = typeof host === 'string' ? document.getElementById(host) : host;
+  if (!el || !c) return false;
+  negoEnsureStyle();
+  redlineLayoutCss();
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
+  const o = { ...opts, side, discOff: opts.discOff != null ? opts.discOff : _redlineDiscOff() };
+  /* .redline-page carries every rule this layout is drawn with; without it the
+     mount renders as unstyled stacked divs. The height bound matters just as
+     much: the three columns scroll INSIDE themselves, and columns with no
+     bounded ancestor grow to their content instead of scrolling. */
+  el.innerHTML = `<div class="redline-page rl-embed${o.discOff ? ' disc-off' : ''}"
+    style="display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
+    ${redlinePanesHtml(c, o)}
+  </div>`;
+  /* The disc-off class lives on #view-redline for the page and on the embed
+     root here; rlToggleDiscussion targets #view-redline, so the embed wires
+     its own fold against its own root. */
+  const root = el.firstElementChild;
+  el.querySelectorAll('[data-redline-disc]').forEach(b => b.addEventListener('click', () => {
+    const off = !root.classList.contains('disc-off');
+    try { localStorage.setItem(RL_DISC_KEY, off ? '1' : '0'); } catch (e) {}
+    root.classList.toggle('disc-off', off);
+    const chip = el.querySelector('#rl-disc-show');
+    if (chip) chip.hidden = !off;
+  }));
+  if (!el.id) el.id = 'rl-embed-' + (++_rlEmbedSeq);
+  wireNegotiationTab(c, { ...o, hostId: el.id });
+  negoAfterPaint(c, o, el);
+  rlWireClauseTools(c, el, o);
+  if (side === 'counterparty'){
+    const back = el.querySelector('#nego-send-decisions');
+    if (back && typeof o.onSendDecisions === 'function' && !back.dataset.rlWired){
+      back.dataset.rlWired = '1';
+      back.addEventListener('click', () => o.onSendDecisions(c));
+    }
+  }
+  return true;
+}
+
 function renderRedline(){
   const host = document.getElementById('content');
   if (!host) return;
@@ -4667,8 +4744,17 @@ function rlTagInternalNote(ctx){
     return false;
   }
   /* Unfolding first: the composer is in the discussion column, and focusing an
-     input inside a display:none column silently does nothing. */
-  rlToggleDiscussion(false);
+     input inside a display:none column silently does nothing. On the owner's
+     page the fold lives on #view-redline; on a mount it lives on the embed's
+     own root, and both are cleared the same way. */
+  const unfold = () => {
+    rlToggleDiscussion(false);
+    const root = (ctx.host && ctx.host.querySelector && ctx.host.querySelector('.rl-embed'))
+      || document.querySelector('.redline-page.rl-embed');
+    if (root){ root.classList.remove('disc-off');
+      const chip = root.querySelector('#rl-disc-show'); if (chip) chip.hidden = true; }
+  };
+  unfold();
   /* THE COMPOSER MAY BE AIMED AT A DIFFERENT CHANGE. A change with no thread
      yet has no reply box of its own — the column's one starter serves the
      first silent change, and this note may be about the third. Found during
@@ -4679,8 +4765,8 @@ function rlTagInternalNote(ctx){
      focused below. */
   if (!document.getElementById('nego-ti-' + changeId)){
     _rlStarterFor = changeId;
-    renderRedline();
-    rlToggleDiscussion(false);
+    if (typeof ctx.rerender === 'function') ctx.rerender(); else renderRedline();
+    unfold();
   }
   /* Internal, pressed for them. The visibility switch defaults to shared on a
      reply, and a note tagged from the document is by name an internal one —
@@ -4716,7 +4802,8 @@ function rlTagInternalNote(ctx){
    document with `data-nego-card-anchor` instead. Calling it would silently do
    nothing, which is what it did. */
 function rlLinkFocus(c, changeId, source){
-  const page = document.getElementById('view-redline');
+  const page = document.getElementById('view-redline')
+    || document.querySelector('.redline-page.rl-embed');
   const id = String(changeId == null ? '' : changeId);
   if (!page || !id) return false;
   const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
@@ -4745,7 +4832,8 @@ function rlLinkFocus(c, changeId, source){
    data-nego-edit path Direct Edit uses, so there is one way to edit a clause
    on this page rather than two that can disagree. */
 function rlJumpToClause(clauseId, opts = {}){
-  const page = document.getElementById('view-redline');
+  const page = document.getElementById('view-redline')
+    || document.querySelector('.redline-page.rl-embed');
   if (!page) return null;
   const sel = `[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`;
   const clause = page.querySelector('#rl-doc ' + sel) || page.querySelector(sel);
@@ -4771,7 +4859,10 @@ function rlJumpToClause(clauseId, opts = {}){
    offers, because a clause-level ask and a phrase-level ask are the same ask
    over a different span of text. */
 function rlWireClauseTools(c, host, opts){
-  const again = () => renderRedline();
+  /* The owner's page repaints itself; a mount repaints however its host says.
+     Falling back to renderRedline from inside an embed would paint the owner's
+     workbench over a page that is not the owner's. */
+  const again = (opts && typeof opts.rerender === 'function') ? opts.rerender : () => renderRedline();
   host.querySelectorAll('[data-rl-ai]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     _negoKillSelMenu();
@@ -4798,7 +4889,8 @@ function rlWireClauseTools(c, host, opts){
 
   host.querySelectorAll('[data-rl-note]').forEach(btn => btn.addEventListener('click', () => {
     rlTagInternalNote({ c, clauseId: btn.getAttribute('data-rl-note'),
-      changeId: btn.getAttribute('data-rl-change') || null });
+      changeId: btn.getAttribute('data-rl-change') || null,
+      host, rerender: again });
   }));
 
   /* The card's Edit — light both ends, scroll the document to the clause and
@@ -4844,7 +4936,12 @@ function rlWireClauseTools(c, host, opts){
      stayed home. */
   host.querySelectorAll('[data-rl-send]').forEach(btn => btn.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
-    const engine = document.getElementById('nego-send');
+    /* Whose postbox a card's Send presses depends on whose card it is: the
+       owner's is #nego-send, the counterparty's — on their page and on the
+       owner's preview alike — is #nego-send-decisions. Scoped to this mount
+       first so two workbenches on one page cannot press each other. */
+    const id = (opts && opts.side) === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
+    const engine = negoPick(host, id) || document.getElementById(id);
     if (engine && !engine.disabled){ engine.click(); return; }
     if (window.toast) toast('There is nothing to send on this round yet', 'err');
   }));
@@ -4893,8 +4990,15 @@ function redlineDocHtml(c, opts = {}){
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
   /* Through the wall. A clause whose only change is the other side's unsent
      draft renders as its untouched baseline — no marks, no ask tag, nothing
-     that says "something exists here that you cannot see". */
-  const hidden = rlHiddenFrom(c, side);
+     that says "something exists here that you cannot see".
+
+     opts.hiddenIds overrides the computed wall, and the counterparty's page
+     passes [] deliberately: its copy is built from the share payload, which
+     the TRANSPORT has already walled (nothing unsent is ever in it), and its
+     rebuilt turn stamp cannot be trusted to re-derive the same answer. The
+     computed wall is for the side holding the full live record — the owner's
+     preview toggle. */
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
     ? negoChanges(c).filter(x => x.status !== 'superseded' && x.changeType !== 'insertClause'
         && !hidden.has(x.id)) : [];
@@ -4919,13 +5023,19 @@ function redlineDocHtml(c, opts = {}){
   const tools = (cl, ch) => {
     if (!editable) return '';
     const id = _ne(cl.clauseId);
+    /* AI Assist is offered only where a Copilot panel exists to land in. The
+       counterparty's page has none — their embed passes noAi — and a button
+       whose every outcome is an apology is worse than no button. */
+    const ai = opts.noAi ? '' : `<button type="button" class="rl-tool" data-rl-ai="${id}"
+        title="Run an AI action on this clause">&#129668; AI Assist</button>`;
     return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
-      <button type="button" class="rl-tool" data-rl-ai="${id}"
-        title="Run an AI action on this clause">&#129668; AI Assist</button>
+      ${ai}
       <button type="button" class="rl-tool" data-rl-note="${id}"${ch ? ` data-rl-change="${_ne(ch.id)}"` : ''}
         title="Attach an internal or shared note to this clause">&#128172; Add Note/Tag</button>
       <button type="button" class="rl-tool" data-nego-edit="${id}"
         title="Edit this clause's wording directly">&#9998; Direct Edit</button>
+      <button type="button" class="rl-tool" data-nego-del="${id}"
+        title="Propose deleting this clause — the wording stays until the other side accepts the deletion">&#128465; Propose deletion</button>
     </div>`;
   };
   /* ---- THE HEADING THE DOCUMENT ACTUALLY CARRIES ----
@@ -4988,10 +5098,17 @@ function redlineDocHtml(c, opts = {}){
     const ch = byClause.get(cl.clauseId);
     if (ch){
       const theirs = ch.authorSide !== side;
+      /* The decision rides on the tag, because the card leaves the column once
+         a change is settled: without this the document showed the marks and
+         nothing said the argument about them was over. The refusal's reason —
+         ch.reply, which travels — is on the tag's tooltip. */
+      const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
+        : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
+      const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
       return `<section class="nego-clause rl-clause is-changed" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
         <div class="rl-clause-top">
           ${heading(cl)}
-          <span class="rl-asktag">${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}</span>
+          <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}${st}</span>
         </div>
         ${redlineBody(ch)}
         ${tools(cl, ch)}
@@ -5113,13 +5230,39 @@ function redlineChangeCardsHtml(c, opts = {}){
   const editable = canAct && opts.canEdit !== false;
   const all = (typeof negoChanges === 'function') ? negoChanges(c) : [];
   /* Through the wall: the other side's unsent drafts have no card on this
-     side, because on this side they do not exist. */
-  const hidden = rlHiddenFrom(c, side);
-  const changes = all.filter(_rlIsLive).filter(x => !hidden.has(x.id));
+     side, because on this side they do not exist. opts.hiddenIds — see
+     redlineDocHtml — lets the transport-walled portal pass []. */
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
+  /* ---- A DECISION HELD IS NOT A DECISION GONE ----
+     On the owner's record a decided change is settled, and leaves the column
+     for the round history. On the counterparty's page a decision is HELD —
+     nothing has reached the other side until they press Send — and a card
+     that vanishes the moment they press Accept tells them the opposite: that
+     it is done, irreversible, filed. So in holdsDecisions mode the decided-
+     but-unsent cards stay, wearing their decision and an Undo, and leave the
+     column only when the decision actually leaves the page. */
+  const heldIds = new Set(opts.holdsDecisions ? (opts.heldDecisionIds || []) : []);
+  /* A CONTESTED ASK OF YOUR OWN STAYS ON THE TABLE. Refused and not withdrawn
+     is the one state that blocks the whole deal (negoAlignment) while sitting
+     in neither "live" nor "held" — and a card that vanishes leaves the person
+     who could clear the deadlock with nothing to press. It carries Withdraw,
+     the engine's own settlement. */
+  const contestedAny = x => x && x.status === 'rejected' && !x.withdrawn;
+  /* Answers this reader has already SENT stay on the table saying so. The page
+     rebuilds from a payload snapshotted before the send, so without these the
+     verbs came back a moment after the answer left — the send reading as
+     having done nothing. Re-deciding is allowed, behind one deliberate click,
+     because the other side is holding the first answer. */
+  const sentIds = new Set(opts.sentDecisionIds || []);
+  const redeciding = id => _negoRedeciding[id];
+  const changes = all.filter(x => (_rlIsLive(x) || heldIds.has(x.id) || contestedAny(x)
+    || sentIds.has(x.id)) && !hidden.has(x.id));
   /* Which of OUR asks have never left the building. The engine already answers
      this — the same count the wall and the batch send are drawn from — so the
      card's Send button and the toolbar's cannot disagree about what is unsent. */
-  const unsent = new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
+  const unsent = Array.isArray(opts.unsentIds)
+    ? new Set(opts.unsentIds)
+    : new Set((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []).map(x => x.id));
   if (!changes.length){
     const settled = all.filter(x => x.status === 'accepted' || x.status === 'rejected').length;
     return `<div class="rl-cards-empty">
@@ -5138,10 +5281,22 @@ function redlineChangeCardsHtml(c, opts = {}){
        flips because the turn moved, and the turn moves only when something
        actually left the building. */
     const mineUnsent = !theirs && unsent.has(ch.id);
-    const mineSent = !theirs && !unsent.has(ch.id);
-    const badge = mineUnsent ? ['draft', '&#128274; Draft']
+    const mineSent = !theirs && !unsent.has(ch.id) && ch.status === 'pending';
+    const heldHere = heldIds.has(ch.id) && ch.status !== 'pending';
+    const sentHere = sentIds.has(ch.id) && ch.status !== 'pending' && !heldHere;
+    const reopen = sentHere && redeciding(ch.id);
+    const contested = ch.status === 'rejected' && !ch.withdrawn && !heldHere && !sentHere;
+    const badge = heldHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; &#128274; held'] : ['no', 'Rejected &middot; &#128274; held'])
+      : sentHere ? (ch.status === 'accepted' ? ['ok', 'Accepted &middot; sent'] : ['no', 'Rejected &middot; sent'])
+      : contested ? ['no', !theirs ? 'Refused &middot; withdraw or revise' : 'Refused &middot; waiting on them']
+      : mineUnsent ? ['draft', '&#128274; Draft']
       : theirs ? ['sent', 'Awaiting you'] : ['sent', 'Sent'];
-    const who = [ch.clauseLabel || ch.clauseId, ch.by || ch.author, theirs ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us')]
+    /* The organisation is the AUTHOR's, not the viewer's. Written seat-relative
+       ("theirs → counterparty, mine → us") this line flipped depending on who
+       was reading it, so the counterparty's page attributed their own ask to
+       the owner's organisation — and the two sides' cards could never match. */
+    const who = [ch.clauseLabel || ch.clauseId, ch.by || ch.author,
+      ch.authorSide === 'counterparty' ? (c.counterparty || 'counterparty') : (window.FIRST_PARTY || 'us')]
       .filter(Boolean).map(_ne).join(' &middot; ');
     /* The same tooltip the marked wording in the document carries, so hovering
        either one answers the same question with the same words. */
@@ -5163,11 +5318,32 @@ function redlineChangeCardsHtml(c, opts = {}){
        It carries the clause id rather than the change id because what it opens
        is the clause in the document — see rlWireCardEdit. */
     const verbs = [];
-    if (canAct && theirs){
+    if (canAct && sentHere && !reopen){
+      verbs.push(`<button class="rl-edit" data-nego-redecide="${_ne(ch.id)}"
+        title="You answered this and it has gone to them. Answering differently files a new decision, and that travels too.">Change decision</button>`);
+    }
+    if (canAct && (reopen)){
       verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>`);
       verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>`);
     }
-    if (editable) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
+    if (canAct && contested && !theirs){ /* asker's Withdraw below */
+      /* Their no, your move: withdrawing is the acknowledgement that settles a
+         refused ask — without it one rejection deadlocks Ready-to-sign for
+         both sides forever. data-nego-withdraw is the engine's own handler. */
+      verbs.push(`<button class="rl-edit" data-nego-withdraw="${_ne(ch.id)}"
+        title="Let this ask go — the refusal is acknowledged and the point is settled">Withdraw</button>`);
+    }
+    if (canAct && heldHere){
+      /* The answer has not left this page; the person who gave it can take it
+         back. data-nego-undo is the engine's own re-open. */
+      verbs.push(`<button class="rl-edit" data-nego-undo="${_ne(ch.id)}"
+        title="Take this answer back — nothing has been sent yet">Undo</button>`);
+    }
+    if (canAct && theirs && ch.status === 'pending' && !heldHere){
+      verbs.push(`<button class="rl-acc" data-nego-accept="${_ne(ch.id)}">Accept</button>`);
+      verbs.push(`<button class="rl-rej" data-nego-reject="${_ne(ch.id)}">Reject</button>`);
+    }
+    if (editable && !heldHere) verbs.push(`<button class="rl-edit" data-rl-edit="${_nea(ch.clauseId)}" data-rl-edit-change="${_nea(ch.id)}"
         title="Jump to this clause in the contract and edit it there">Edit</button>`);
     if (editable && mineUnsent) verbs.push(`<button class="rl-send" data-rl-send="${_nea(ch.id)}"
         title="Send this and every other unsent draft to ${_nea(c.counterparty || 'the counterparty')}">Send</button>`);
@@ -5183,7 +5359,11 @@ function redlineChangeCardsHtml(c, opts = {}){
        anybody sets; both follow from the turn having actually moved. */
     if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
         title="Sent to ${_nea(c.counterparty || 'the counterparty')} — waiting on their answer">Sent</button>`);
-    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" tabindex="0">
+    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}"${
+      (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
+      heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
+      sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
+      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} tabindex="0">
       <div class="rl-card-top"><span class="rl-card-id">${_ne(ch.id)}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
@@ -5240,7 +5420,8 @@ function redlinePanesHtml(c, opts = {}){
      are undefined and the clause tools render as transparent boxes with white
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
-    <div id="rl-banner">${redlineWallHtml(c, opts)}</div>
+    <div id="rl-banner">${opts.bannerHtml != null ? opts.bannerHtml : redlineWallHtml(c, opts)}${
+      window.negoReadySignalHtml ? negoReadySignalHtml(c, opts) : ''}</div>
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
@@ -5306,7 +5487,7 @@ function redlineThreads(c, opts = {}){
      whose every message is internal to the other side disappears entirely,
      counts included: rl-thread-count and the rail chip are both drawn from
      this list, so the numbers cannot betray what the list conceals. */
-  const hidden = rlHiddenFrom(c, side);
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
     ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
   return changes.map(ch => ({
@@ -5319,7 +5500,7 @@ function redlineDiscussionHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const canComment = opts.canComment != null ? !!opts.canComment : !opts.readonly;
   const threads = redlineThreads(c, opts);
-  const hidden = rlHiddenFrom(c, side);
+  const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
   const changes = (typeof negoChanges === 'function')
     ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
   const head = `
@@ -5430,7 +5611,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlWireClauseTools,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
-  rlHiddenFrom, rlMsgVisible,
+  rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,

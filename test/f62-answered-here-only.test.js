@@ -73,9 +73,11 @@ describe('F62 — an answer that has not gone is marked on the card', () => {
     const id = filed[0].id;
     await v.press(`[data-nego-accept="${id}"]`);
 
-    const pills = Array.from(v.card(id).querySelectorAll('.nego-st')).map(x => x.textContent.trim());
-    assert.ok(pills.includes('accepted'), 'the answer is on the card');
-    assert.ok(pills.includes('not sent yet'),
+    /* The card wears both halves of the truth in one badge: the answer, and
+       the lock that says it has not left this page. */
+    const badge = v.card(id).querySelector('.rl-badge');
+    assert.match(badge.textContent, /Accepted/, 'the answer is on the card');
+    assert.match(badge.textContent, /held/,
       'and so is the half of it the reader does not already believe');
     assert.ok(v.$(`[data-unsent="${id}"]`));
   });
@@ -84,19 +86,22 @@ describe('F62 — an answer that has not gone is marked on the card', () => {
     const { c, filed } = await ownerProposed(['4', '6']);
     const v = theirLink(c);
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
-    assert.match(v.card(filed[0].id).className, /is-held/, 'answered here');
-    assert.ok(!/is-held/.test(v.card(filed[1].id).className), 'and not answered at all');
+    assert.ok(v.card(filed[0].id).hasAttribute('data-unsent'), 'answered here');
+    assert.ok(!v.card(filed[1].id).hasAttribute('data-unsent'), 'and not answered at all');
   });
 
   test('and it says what to do about it, in words', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
-    const note = v.$(`[data-hold="${filed[0].id}"]`);
-    assert.ok(note, 'a badge alone tells you a state, not a next step');
-    assert.match(note.textContent.replace(/\s+/g, ' '), /Not sent yet/);
-    assert.match(note.textContent.replace(/\s+/g, ' '), /has not seen this answer/);
-    assert.match(note.textContent.replace(/\s+/g, ' '), /Send/);
+    /* The next step is said in words at page level — the banner counts what is
+       held, the foot names the act that moves it — because the held answers go
+       as one round, not one card at a time. */
+    const page = v.win.document.body.textContent.replace(/\s+/g, ' ');
+    assert.match(page, /1 answer held here/,
+      'a badge alone tells you a state, not a next step');
+    assert.match(page, /nothing has reached .* yet/i);
+    assert.ok(v.$('#nego-send-decisions') || v.$('#pt-nego-send'), 'and Send is offered beside it');
   });
 
   test('sending clears it, and the sent mark takes its place', async () => {
@@ -140,8 +145,8 @@ describe('F62 — held here is not the same as already filed', () => {
     const { v, id } = await applied();
     assert.equal(v.$(`[data-unsent="${id}"]`), null,
       'it went, it was applied, and their link now carries it');
-    assert.ok(!/is-held/.test(v.card(id).className));
-    assert.match(v.card(id).textContent, /accepted/);
+    assert.ok(v.$(`[data-sent="${id}"]`), 'the card says the answer has gone');
+    assert.match(v.card(id).querySelector('.rl-badge').textContent, /Accepted .* sent/);
   });
 
   test('nor offered an Undo it does not have', async () => {
@@ -153,9 +158,10 @@ describe('F62 — held here is not the same as already filed', () => {
   test('and a click that decides nothing does not resurrect the send', async () => {
     const { v, id } = await applied();
     assert.equal(v.$('#nego-send-decisions'), null, 'nothing is waiting to go');
-    await v.press(`[data-nego-discuss="${id}"]`);
+    /* Clicking the card itself only jumps to the clause — it decides nothing. */
+    await v.press(`[data-nego-card="${id}"]`);
     assert.equal(v.$('#nego-send-decisions'), null,
-      'opening a thread must not ask them to send an answer the owner already has');
+      'a harmless click must not ask them to send an answer the owner already has');
     assert.equal(v.$(`[data-unsent="${id}"]`), null);
   });
 
