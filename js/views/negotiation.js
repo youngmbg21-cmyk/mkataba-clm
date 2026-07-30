@@ -3922,6 +3922,17 @@ function redlineLayoutCss(){
     padding-bottom:14px;margin-bottom:18px}
   .redline-page .rl-paper-title{margin:0;font-size:19px;font-weight:700;letter-spacing:.01em}
   .redline-page .rl-paper-sub{margin:5px 0 0;font-size:11.5px;color:var(--color-neutral-500)}
+  /* The kicker above the title — the Doc page's own line, in its clothes:
+     mono, uppercase, wide tracking. Rendered from the document, not invented. */
+  .redline-page .rl-paper-kick,.redline-page .rl-paper-kick p{margin:0 0 6px;font-size:10px;
+    font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;
+    line-height:1.5;color:var(--color-neutral-600)}
+  /* The recital — the party/key-terms paragraph between the title and clause 1.
+     The Doc page prints it, so this page does too, in the workbench's own type
+     scale. Read-only: the terms in it are the Doc page's to edit. */
+  .redline-page .rl-recital{margin:0 0 16px}
+  .redline-page .rl-recital p{margin:0 0 8px;font-size:var(--rl-type);line-height:1.72;
+    color:var(--color-text)}
   /* ---- AND A SECOND INSET INSIDE THE FIRST ----
      .rl-clause is also .nego-clause, which carries padding:10px 12px for the
      room's hover wash. Stacked on the sheet's own padding that put every line
@@ -5358,16 +5369,39 @@ function redlineDocHtml(c, opts = {}){
       ${tools(cl, null)}
     </section>`;
   }).join('');
+  /* ---- THE DOCUMENT'S OWN FRONT MATTER, NOT A LABEL ABOUT IT ----
+     The Doc page opens with the contract's kicker line, its own title and the
+     recital naming the parties and the key terms; the clause model calls all
+     of that chrome and skips it, so this page used to open at "1." under a
+     title invented from the record's display name ("… — JUNO LIMITED") — the
+     same agreement reading as two different documents. clauseFrontMatter
+     returns exactly what the segmentation skips, and it is read from the
+     CURRENT body rather than the round baseline deliberately: the recital's
+     key terms are not negotiable clauses, so what the Doc page shows today is
+     what belongs here today. Where a document has no front matter of its own
+     (an upload that arrived as a wall of paragraphs) the old label head
+     stands, because inventing a recital would be worse than naming the file. */
+  const front = (window.clauseFrontMatter
+    ? clauseFrontMatter((window.negoBodyOf ? negoBodyOf(c) : negoBaseBody(c)))
+    : null) || { titleText: '', leadHtml: '', bodyHtml: '' };
+  const head = front.titleText
+    ? `<header class="rl-paper-head">
+      ${front.leadHtml ? `<div class="rl-paper-kick">${front.leadHtml}</div>` : ''}
+      <h3 class="rl-paper-title">${_ne(front.titleText)}</h3>
+      ${front.leadHtml ? '' : `<p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>`}
+    </header>
+    ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}`
+    : `<header class="rl-paper-head">
+      <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
+      <p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>
+    </header>`;
   /* nego-doc is required, not cosmetic: the Copilot selection menu (the three
      NEGO_AI_ACTIONS — rephrase for advantage, explain legal risk, shorten
      wording) only opens when the selection sits inside
      `.nego-pane.working .nego-doc`. Without this class the AI redlining is
      silently unreachable on this page. */
   return `<article class="nego-doc rl-paper">
-    <header class="rl-paper-head">
-      <h3 class="rl-paper-title">${_ne((c.name || tmpl)).toUpperCase()}</h3>
-      <p class="rl-paper-sub">${_ne(tmpl)} &middot; Jurisdiction: ${_ne(region)}</p>
-    </header>
+    ${head}
     ${body || '<p class="rl-clause-p">This contract has no clause structure yet.</p>'}
   </article>`;
 }
@@ -5696,6 +5730,11 @@ function redlineWallHtml(c, opts = {}){
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
+  /* Before anything reads the baseline: an UNTOUCHED negotiation re-reads it
+     from the document, so key terms filled on the Doc page after the first
+     paint show here too. Guarded inside the engine — one filed change, one
+     archived round or one issued hash and the baseline may not move. */
+  if (window.negoFreshenBaseline) negoFreshenBaseline(c);
   const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
   const canAct = !opts.readonly;
   const threadTotal = redlineThreads(c, opts).length;
