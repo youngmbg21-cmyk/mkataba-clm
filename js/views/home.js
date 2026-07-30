@@ -329,7 +329,11 @@ function renderDashboard(){
   };
   const pipeCols=PIPE_DEF.map(st=>{
     const list=cs.filter(c=>c.status===st.k);
-    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,3);
+    /* Two per column, not three: the card is a glance at what is moving, and
+       the count chip plus "+N more" carry the rest. Two also keeps the card
+       short enough that the Decisions card beside it — which is filled into the
+       height this one sets — stays readable without scrolling far. */
+    const shown=(st.k==='Under Review'?list.slice().sort((a,b)=>contractRisk(b)-contractRisk(a)):list).slice(0,2);
     return `<div style="display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;background:var(--color-neutral-100);border:1px solid ${st.bd};min-width:0;">
       <button data-stage="${st.k}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:none;padding:0;font:inherit;cursor:pointer;text-align:left;color:inherit;">
         <span style="font-size:11.5px;font-weight:700;color:${st.fg};">${st.n}. ${st.title}</span>
