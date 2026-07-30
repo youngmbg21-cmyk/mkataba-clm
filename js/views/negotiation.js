@@ -3863,6 +3863,27 @@ function redlineLayoutCss(){
   .redline-page .rl-ws-tabs button.on{background:var(--color-accent-800);color:#fff}
   .redline-page .rl-round{flex:none;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;
     background:var(--st-amber-bg);color:var(--st-amber-fg);border:1px solid color-mix(in srgb,#f59e0b 25%,transparent)}
+  /* ---- THE TEXT-SIZE STEPPER ----
+     A⁻ / readout / A⁺ in a slate pill (the reference's bg-slate-100 p-1
+     rounded-xl border-slate-200), the buttons w-6 h-6 white. It steps
+     --rl-doc-type, the one token the whole canvas is set from, and the
+     readout is the live value — mono, because it is a measurement. Defined
+     here and reused verbatim by the Doc tab's toolbar (contract.js calls
+     redlineLayoutCss() first), so the two strips render the same control. */
+  .rl-type-step{display:flex;align-items:center;gap:4px;flex:none;
+    background:#f1f5f9;border:1px solid #e2e8f0;padding:4px;border-radius:12px}
+  .rl-type-step button{width:24px;height:24px;flex:none;display:inline-grid;place-items:center;
+    background:#fff;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;
+    font:inherit;font-size:11px;font-weight:700;color:#334155;line-height:1;
+    transition:background .12s,border-color .12s}
+  .rl-type-step button:hover{background:#f8fafc;border-color:#cbd5e1}
+  .rl-type-step button:disabled{opacity:.4;cursor:not-allowed}
+  .rl-type-step .rl-type-out{min-width:34px;text-align:center;font-family:var(--font-mono);
+    font-size:11px;font-weight:600;color:#334155}
+  html.dark .rl-type-step{background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.28)}
+  html.dark .rl-type-step button{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:#cbd5e1}
+  html.dark .rl-type-step button:hover{background:rgba(15,23,42,.75)}
+  html.dark .rl-type-step .rl-type-out{color:#cbd5e1}
   .redline-page .rl-segwrap{display:flex;align-items:center;gap:2px;background:var(--color-neutral-100);
     border:1px solid var(--color-divider);padding:3px;border-radius:9px}
   .redline-page .rl-seg{border:0;background:none;font:inherit;font-size:11px;font-weight:600;padding:4px 10px;
@@ -4432,7 +4453,7 @@ function redlineEmbed(host, c, opts = {}){
      an attribute here exactly as on #view-redline — rlSetSideMode paints
      every .redline-page root, so the tabs need no embed-specific wiring. */
   el.innerHTML = `<div class="redline-page rl-embed" data-rl-side-mode="${rlSideMode()}"
-    style="display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
+    style="--rl-doc-type:${rlDocType()}px;display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
     ${redlinePanesHtml(c, o)}
   </div>`;
   if (!el.id) el.id = 'rl-embed-' + (++_rlEmbedSeq);
@@ -4521,7 +4542,7 @@ function renderRedline(){
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page" data-rl-side-mode="${rlSideMode()}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -4555,6 +4576,7 @@ function renderRedline(){
             <button type="button" class="on" role="tab" aria-selected="true">Redline</button>
           </div>
           <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
+          ${rlTypeStepHtml()}
         </div>
         <div class="rl-actions">
           ${blast}
@@ -5153,6 +5175,9 @@ function rlWireClauseTools(c, host, opts){
   /* ---- THE SPLIT HANDLE ---- */
   rlWireResizer(host);
 
+  /* ---- THE TEXT-SIZE STEPPER ---- */
+  rlWireTypeStep(host);
+
   /* ---- CARD → CONTRACT ----
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
@@ -5280,6 +5305,58 @@ function rlLayoutResizer(host){
   grid.style.gridTemplateColumns = leftPx + 'px minmax(0,1fr)';
   rez.style.left = leftPx + 'px';
 }
+/* ---------- THE CONTRACT TEXT SIZE, STEPPED ----------
+   A⁻ / readout / A⁺ on the sub-header strip. It drives --rl-doc-type — the
+   one token the whole canvas is set from (clause bodies, headings, recital) —
+   so a step moves the entire document together, and it is remembered per
+   browser so the choice survives a repaint, a reload and the trip through the
+   Docs tab (whose auto-zoom multiplies by the same preference, one reading on
+   both tabs). Bounded: below 11px a contract stops being readable, above
+   20px it stops being a contract. */
+const RL_TYPE_MIN = 11, RL_TYPE_MAX = 20, RL_TYPE_DEF = 15;
+const RL_TYPE_KEY = 'hati.v1.rlDocType';
+function rlDocType(){
+  try { const v = Number(localStorage.getItem(RL_TYPE_KEY));
+    return (v >= RL_TYPE_MIN && v <= RL_TYPE_MAX) ? v : RL_TYPE_DEF; }
+  catch (e) { return RL_TYPE_DEF; }
+}
+function rlSetDocType(px){
+  const v = Math.max(RL_TYPE_MIN, Math.min(RL_TYPE_MAX, Math.round(Number(px) || RL_TYPE_DEF)));
+  try { localStorage.setItem(RL_TYPE_KEY, String(v)); } catch (e) {}
+  /* Applied live to every mounted workbench root — no repaint, so scroll
+     positions and half-typed replies survive a resize like they survive a
+     mode switch — and the readouts and bound-stops follow the same value. */
+  document.querySelectorAll('.redline-page').forEach(root =>
+    root.style.setProperty('--rl-doc-type', v + 'px'));
+  document.querySelectorAll('.rl-type-out').forEach(el => { el.textContent = v + 'px'; });
+  document.querySelectorAll('[data-rl-type]').forEach(b => {
+    const d = Number(b.getAttribute('data-rl-type'));
+    b.disabled = (d < 0 && v <= RL_TYPE_MIN) || (d > 0 && v >= RL_TYPE_MAX);
+  });
+  /* The Doc tab reads the same preference through its zoom (applyDocZoom
+     multiplies by rlDocType()/default), so stepping here re-sizes there. */
+  if (window.applyDocZoom) applyDocZoom();
+  return v;
+}
+/* The stepper's markup — one builder, so the Redline strip and the Doc tab's
+   toolbar render the identical control. */
+function rlTypeStepHtml(){
+  const v = rlDocType();
+  return `<div class="rl-type-step" role="group" aria-label="Contract text size">
+    <button type="button" data-rl-type="-1" title="Smaller contract text"${v <= RL_TYPE_MIN ? ' disabled' : ''}>A&#8315;</button>
+    <span class="rl-type-out">${v}px</span>
+    <button type="button" data-rl-type="1" title="Larger contract text"${v >= RL_TYPE_MAX ? ' disabled' : ''}>A&#8314;</button>
+  </div>`;
+}
+function rlWireTypeStep(host){
+  const scope = (host && host.querySelectorAll) ? host : document;
+  scope.querySelectorAll('[data-rl-type]').forEach(b => {
+    if (b.dataset.rlTypeWired) return;
+    b.dataset.rlTypeWired = '1';
+    b.addEventListener('click', () => rlSetDocType(rlDocType() + Number(b.getAttribute('data-rl-type'))));
+  });
+}
+
 function rlWireResizer(host){
   const scope = (host && host.querySelector) ? host : document;
   const grid = scope.querySelector('.redline-page .rl-grid');
@@ -6062,6 +6139,7 @@ function redlineSyncProxies(host){
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
+  rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
