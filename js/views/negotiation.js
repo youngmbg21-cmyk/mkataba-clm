@@ -3823,7 +3823,7 @@ function redlineLayoutCss(){
   .redline-page .rl-rej{background:var(--color-neutral-200);color:var(--color-neutral-700)}
 
   /* Tracked Changes head, and the discussion column */
-  .redline-page .rl-idx-head{display:flex;align-items:center;gap:8px;padding:13px 14px;
+  .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;
     border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-head [hidden]{display:none!important}
   .redline-page .rl-disc-toggle,.redline-page .rl-disc-x{border:1px solid var(--color-divider);
@@ -4316,7 +4316,7 @@ function redlinePanesHtml(c, opts = {}){
 
       <aside class="nego-pane index rl-col" id="rl-changes-col" aria-label="Tracked changes">
         <div class="nego-index-head rl-idx-head">
-          <h3 style="flex:1;min-width:0;margin:0">Tracked Changes</h3>
+        <h3 style="flex:1;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tracked Changes</h3>
           <button type="button" id="rl-disc-show" class="rl-disc-toggle" data-redline-disc
             title="Show the discussion column"${opts.discOff ? '' : ' hidden'}>Discussion <span id="rl-rail-count">${threadTotal}</span></button>
           ${''/* kept for the engine's wiring and the header proxies; the design
