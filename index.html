@@ -297,6 +297,12 @@
   .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--color-accent-600);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);}
   html.dark .nav-item.active{color:#2dd4bf;}
   .nav-item.active svg{opacity:1;}
+  /* Portfolio Intel keeps the accent whether or not it is the current page —
+     the reference tints this one glyph on purpose, because the contract graph
+     is the thing it wants a reader's eye to find in the list. */
+  .nav-item[data-view="intel"] svg{color:var(--accent-solid);opacity:1;}
+  html.dark .nav-item[data-view="intel"] svg{color:#2dd4bf;}
+  .nav-item[data-view="intel"].active svg{color:inherit;}
   .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
   /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
   .nav-badge{margin-left:auto;flex:none;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;
@@ -698,7 +704,7 @@
           </button>
           <button data-view="workspace" class="nav-item" title="Doc">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9h-5a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/><path d="M7.2 16.4c1-1.3 1.7-.3 2.6 0s1.5-.5 2.5 0" fill="none" stroke="var(--color-surface)" stroke-width="1.5" stroke-linecap="round"/></svg>
             <span style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
           </button>
           <!-- Redline workbench (the design's `nav-redline`): highlighter glyph,
@@ -709,18 +715,18 @@
                is retired in the next step. -->
           <button data-view="redline" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14.6 2.6a2 2 0 0 1 2.8 0l4 4a2 2 0 0 1 0 2.8l-7.1 7.1-6.8-6.8 7.1-7.1Z"/><path d="M6.4 10.9l6.7 6.7-2.6 2.6H8.9l-1.2 1.2H3.4l-.9-.9 1.4-1.4v-1.9l2.5-6.3Z"/></svg>
             <span style="flex:1;">Redline</span>
             <span id="nav-redline-count" class="nav-badge hidden"></span>
           </button>
           <button data-view="pipeline" class="nav-item" title="Queue">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="9.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="16.5" y="3.5" width="5" height="17" rx="1.3"/></svg>
             <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
           </button>
           <button data-view="advice" class="nav-item" title="Advice Desk">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
             <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
           </button>
         </div>
@@ -731,17 +737,17 @@
         <div class="nav-section-body">
           <button data-view="register" class="nav-item" title="Register">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
             <span style="flex:1;">Register</span><span class="nav-count" data-count="register"></span>
           </button>
           <button data-view="calendar" class="nav-item" title="Calendar">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
             <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
           <button data-view="migration" class="nav-item" title="Migration">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H7a2 2 0 0 0-2 2v6h4.2l-1.6-1.6a1 1 0 0 1 1.4-1.4l3.3 3.3a1 1 0 0 1 0 1.4l-3.3 3.3a1 1 0 0 1-1.4-1.4L9.2 12H5v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8h-4a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/></svg>
             <span style="flex:1;">Migration</span><span class="nav-count" data-count="migration"></span>
           </button>
         </div>
@@ -752,12 +758,12 @@
         <div class="nav-section-body">
           <button data-view="templates" class="nav-item" title="Templates">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
           <button data-view="playbook" class="nav-item" title="Playbook">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.5h13a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 18.5v-14a2 2 0 0 1 1-1.73V2.5Z"/><path d="M7.5 6.5h8v1.6h-8V6.5Zm0 3.4h8v1.6h-8V9.9Zm0 3.4h5v1.6h-5v-1.6Z" fill="var(--color-surface)"/></svg>
             <span style="flex:1;">Playbook</span><span class="nav-count" data-count="playbook"></span>
           </button>
         </div>
@@ -768,12 +774,12 @@
         <div class="nav-section-body">
           <button data-view="reports" class="nav-item" title="Reports">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="4.2" height="9" rx="1.1"/><rect x="9.9" y="7" width="4.2" height="14" rx="1.1"/><rect x="16.8" y="3" width="4.2" height="18" rx="1.1"/></svg>
             <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
           </button>
           <button data-view="intel" class="nav-item" title="Intel">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
             <span style="flex:1;">Portfolio Intel</span><span class="nav-count" data-count="intel"></span>
           </button>
         </div>
@@ -784,7 +790,7 @@
         <div class="nav-section-body">
           <button data-view="team" class="nav-item" title="Team">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
             <span style="flex:1;">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
           </button>
         </div>
