@@ -3744,7 +3744,30 @@ async function negoConfirmCloseRound(c){
 /* Reset the reader's place. Called when a different contract opens, so the tab
    does not come up focused on a fingerprint from another agreement. */
 const negoIsRedeciding = id => !!_negoRedeciding[id];
-function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; negoSetComparePair('baseline', 'working'); }
+function negoResetView(){ _negoActive = null; _negoThreads = {}; _negoRedeciding = {}; _negoOpenRounds = {}; _negoClean = false; _rlCardFilter = 'all'; negoSetComparePair('baseline', 'working'); }
+
+/* ---------- WHICH CARDS THE TRACKED CHANGES COLUMN SHOWS ----------
+   A view choice, not a data change: the cards it hides are still on the
+   table, still counted by the wall and the progress line, and come back the
+   moment the filter widens. Seat-relative like everything else on the page —
+   "Your Asks" from the counterparty's chair means THEIR asks — so the same
+   dropdown is honest on the owner's workbench, the Counterparty View preview
+   and the portal alike. Reset with the rest of the view state, because a
+   filter that survives onto another contract shows a column that quietly
+   lies about what is on that contract's table. */
+const RL_CARD_FILTERS = [
+  ['all',    'All Changes'],
+  ['us',     'Your Asks (Us)'],
+  ['them',   'Counterparty Asks (Them)'],
+  ['drafts', 'Drafts (Unsent)'],
+  ['sent',   'Sent Redlines'],
+];
+let _rlCardFilter = 'all';
+function rlCardFilter(){ return _rlCardFilter; }
+function rlSetCardFilter(v){
+  _rlCardFilter = RL_CARD_FILTERS.some(([k]) => k === v) ? v : 'all';
+  return _rlCardFilter;
+}
 
 /* ---------- THE REDLINE PAGE ----------
    The workbench as a top-level destination, not only a tab inside a contract
@@ -3960,12 +3983,25 @@ function redlineLayoutCss(){
     margin-bottom:10px;background:var(--color-surface);cursor:pointer}
   .redline-page .rl-card:focus-visible{outline:2px solid var(--color-accent)}
   .redline-page .rl-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+  .redline-page .rl-card-lead{display:inline-flex;align-items:center;gap:6px;min-width:0}
   .redline-page .rl-card-id{font-family:var(--font-mono);font-size:11.5px;font-weight:700}
   .redline-page .rl-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
   .redline-page .rl-badge-sent{background:var(--st-steel-bg);color:var(--st-steel-fg)}
   .redline-page .rl-badge-draft{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .redline-page .rl-badge-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
   .redline-page .rl-badge-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
+  /* ---- WHOSE ASK: THE ORIGIN PAIR ----
+     Emerald for your side, indigo for theirs — the same families as the verbs
+     each side's cards carry (your asks travel on green Sends; theirs arrive
+     for a decision), and fixed hex for the same dark-mode reason the verbs
+     are. The dark overrides keep the hue and drop the fill to a tint so the
+     badge reads as a label, not a button. .rl-origin carries the .rl-badge
+     metrics itself rather than the class — see the card markup for why. */
+  .redline-page .rl-origin{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  .redline-page .rl-origin-us{background:#d1fae5;color:#065f46;border:1px solid rgba(5,150,105,.35)}
+  .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
+  html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
+  html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
   .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px;line-height:1.5}
   /* The same size as the clause it is a diff of — see --rl-type. */
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6}
@@ -4017,6 +4053,15 @@ function redlineLayoutCss(){
     background:var(--color-neutral-100);border-radius:7px;padding:3px 8px;font:inherit;font-size:9.5px;
     font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);cursor:pointer}
   .redline-page .rl-disc-x{width:24px;height:24px;padding:0;line-height:1;font-size:13px;flex:none}
+  /* ---- THE ORIGIN FILTER, DRESSED LIKE ITS NEIGHBOURS ----
+     A select in the Tracked Changes head, in the Discussion chip's clothes so
+     the header reads as one family of controls. It wears the accent when it
+     is actually narrowing the column: a filter that looks idle while hiding
+     cards is how a change gets "lost". */
+  .redline-page .rl-card-filter{border:1px solid var(--color-divider);background:var(--color-neutral-100);
+    border-radius:7px;padding:3px 6px;font:inherit;font-size:10px;font-weight:700;
+    color:var(--color-neutral-600);cursor:pointer;flex:none;max-width:100%}
+  .redline-page .rl-card-filter.on{border-color:var(--accent-solid);color:var(--accent-solid)}
   .redline-page .rl-sendslot:empty{display:none}
   /* ---- THE SEND SLOT GETS ITS OWN LINE ----
      #nego-send is hidden on this page (the design carries that act in the page
@@ -4990,6 +5035,18 @@ function rlWireClauseTools(c, host, opts){
       toast('That clause is no longer in the document', 'err');
   }));
 
+  /* ---- THE ORIGIN FILTER ----
+     A change handler and a repaint, nothing else: the choice lives in
+     _rlCardFilter (module state, like the side toggle), the repaint is the
+     page's own `again`, and redlineChangeCardsHtml reads the choice back on
+     the way through — so the select, the column and the empty state can
+     never show three different answers. */
+  const cardFilter = host.querySelector('#rl-card-filter');
+  if (cardFilter) cardFilter.addEventListener('change', () => {
+    rlSetCardFilter(cardFilter.value);
+    again();
+  });
+
   /* ---- CARD → CONTRACT ----
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
@@ -5356,7 +5413,30 @@ function redlineChangeCardsHtml(c, opts = {}){
       ${settled ? `<span>${settled} change${settled === 1 ? ' has' : 's have'} already been decided — ${settled === 1 ? 'it is' : 'they are'} in the document and the round history, not here.</span>` : ''}
     </div>`;
   }
-  return changes.map(ch => {
+  /* ---- THE ORIGIN FILTER ----
+     Applied AFTER the table is assembled, so it can only narrow what is
+     legitimately on it — never resurrect a hidden draft or a settled change.
+     Drafts and Sent read from the same `unsent` set as the badge, the wall
+     and the batch send, so the four can never disagree about which side of
+     the wall an ask is on. An empty result names the filter rather than
+     claiming an empty table: "no changes" and "no changes YOU asked for" are
+     different facts, and the second must not wear the first one's words. */
+  const filter = rlCardFilter();
+  const mineOf = x => x.authorSide === side;
+  const shown = changes.filter(x =>
+    filter === 'us'     ? mineOf(x)
+    : filter === 'them'   ? !mineOf(x)
+    : filter === 'drafts' ? mineOf(x) && unsent.has(x.id)
+    : filter === 'sent'   ? mineOf(x) && !unsent.has(x.id)
+    : true);
+  if (!shown.length){
+    const label = (RL_CARD_FILTERS.find(([k]) => k === filter) || [,'this filter'])[1];
+    return `<div class="rl-cards-empty">
+      <b>No changes match &ldquo;${_ne(label)}&rdquo;.</b>
+      <span>${changes.length} change${changes.length === 1 ? ' is' : 's are'} on the table under other filters — switch back to <b>All Changes</b> to see ${changes.length === 1 ? 'it' : 'them'}.</span>
+    </div>`;
+  }
+  return shown.map(ch => {
     const theirs = ch.authorSide !== side;
     /* ---- DRAFT / SENT, READ FROM THE RECORD ----
        An ask of ours is unsent while it was filed after the last hand-over —
@@ -5444,12 +5524,26 @@ function redlineChangeCardsHtml(c, opts = {}){
        anybody sets; both follow from the turn having actually moved. */
     if (editable && mineSent) verbs.push(`<button type="button" class="rl-sent" data-rl-sent="${_nea(ch.id)}" disabled
         title="Sent to ${_nea(c.counterparty || 'the counterparty')} — waiting on their answer">Sent</button>`);
-    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}"${
+    /* ---- WHOSE ASK THIS IS, SAID ON THE CARD ----
+       The status badge answers "where does this stand"; this one answers
+       "who put it on the table", which the meta line said only in small
+       print. Seat-relative like the verbs below it — "Your Ask" from the
+       counterparty's chair means theirs — and the colours are fixed hex for
+       the same reason the verbs' are: an origin that changes colour with the
+       theme is an origin somebody misreads. */
+    /* NOT a .rl-badge: that class is the card's one STATUS badge, and half
+       the product (and its tests) reads the status by querying it — a second
+       element wearing it would answer "Counterparty" to "where does this
+       stand". Same clothes, its own name. */
+    const origin = theirs
+      ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(c.counterparty || 'the counterparty')}">Counterparty</span>`
+      : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your Ask</span>`;
+    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
       ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} tabindex="0">
-      <div class="rl-card-top"><span class="rl-card-id">${_ne(ch.id)}</span>
+      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
       <div class="rl-card-diff">${diff}</div>
@@ -5529,7 +5623,15 @@ function redlinePanesHtml(c, opts = {}){
 
       <aside class="nego-pane index rl-col" id="rl-changes-col" aria-label="Tracked changes">
         <div class="nego-index-head rl-idx-head">
-        <h3 style="flex:1;min-width:0;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tracked Changes</h3>
+        <!-- min-width holds the TITLE's ground: the filter select sizes itself
+             to its longest option, and with min-width:0 the flexbox paid for
+             that by shrinking the title to "Tracked Ch…". The head wraps, so
+             on a narrow column the select drops to its own line instead. -->
+        <h3 style="flex:1;min-width:118px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tracked Changes</h3>
+          <select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
+            aria-label="Filter the tracked changes" title="Show every change, one side's asks, or one side of the wall">${
+            RL_CARD_FILTERS.map(([k, label]) =>
+              `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>
           <button type="button" id="rl-disc-show" class="rl-disc-toggle" data-redline-disc
             title="Show the discussion column"${opts.discOff ? '' : ' hidden'}>Discussion <span id="rl-rail-count">${threadTotal}</span></button>
           ${''/* kept for the engine's wiring and the header proxies; the design
@@ -5704,6 +5806,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   rlToggleDiscussion, rlWireClauseTools,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
+  RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
