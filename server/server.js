@@ -4014,11 +4014,25 @@ app.put('/api/advice/requests/:id', auth, editor, (req, res) => {
 const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));
 app.get('/index.html', (req, res) => res.sendFile(INDEX));
-// Serve exactly the two static trees the frontend loads — the native ES
-// modules (js/) and the bundled sample PDFs (importable from the template
-// library). Never the repo root, which would expose server/data (the SQLite
-// database) to the network.
+// Serve exactly the static trees the frontend loads — the native ES modules
+// (js/), the design's two typefaces (fonts/) and the bundled sample PDFs
+// (importable from the template library). Never the repo root, which would
+// expose server/data (the SQLite database) to the network.
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+/* THE FONTS HAVE TO BE REACHABLE OR THE WHOLE DESIGN FALLS BACK.
+   index.html links fonts/fonts.css, which carries Inter and Plus Jakarta Sans
+   inline as data URIs. Without this route that link 404s, no @font-face ever
+   registers, and every screen renders in whatever sans the operating system
+   happens to default to — the platform quietly stops looking like the design,
+   with nothing in the console to say why. It reproduced only against this
+   server: a dev static server rooted at the repo serves fonts/ by accident and
+   hides the fault completely. */
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts'), {
+  // The faces are content-addressed by their own bytes and never edited in
+  // place, so they can be cached hard; a redeploy that changes them changes
+  // the file, and index.html is served with no cache lifetime either way.
+  maxAge: '30d', immutable: true,
+}));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS
