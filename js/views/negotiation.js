@@ -3711,16 +3711,30 @@ function redlineLayoutCss(){
   .redline-page .rl-btn-go{background:var(--accent-solid);color:#fff;
     box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 60%,transparent)}
 
-  /* one document, not two */
-  .redline-page .nego-pane.baseline,
-  .redline-page #nego-rz-a{display:none!important}
-  .redline-page .nego-work{grid-template-columns:minmax(0,1fr) 6px minmax(300px,var(--nego-c,340px))!important}
-  /* the header carries these now; a second pair inside the index would be two
-     controls for one action */
-  .redline-page .nego-bulk{display:none!important}
+  .redline-page .rl-root{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+  /* the design's three columns */
+  .redline-page .rl-grid{flex:1;min-height:0;display:grid;gap:14px;
+    grid-template-columns:minmax(0,1fr) minmax(280px,320px) minmax(280px,340px);align-items:stretch}
+  @media (max-width:1500px){ .redline-page .rl-grid{grid-template-columns:minmax(0,1fr) minmax(260px,300px)} 
+    .redline-page .rl-disc{display:none} }
+  @media (max-width:1100px){ .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)} }
+  .redline-page .rl-doc,.redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
+    border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
+  .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 4px}
   .redline-page #nego-index{border-radius:12px}
   .redline-page #nego-index h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
+  /* the header carries these; a second pair here would be two controls for one action */
+  .redline-page .nego-bulk{display:none!important}
+  .redline-page #nego-send{display:none!important}
+
+  .redline-page .rl-disc-head{display:flex;align-items:center;gap:8px;padding:13px 14px 9px;
+    border-bottom:1px solid var(--color-divider);flex:none}
+  .redline-page .rl-disc-head h3{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--color-neutral-500);font-weight:700}
+  .redline-page .rl-disc-n{font-size:10.5px;font-weight:700;color:var(--color-accent-600)}
+  .redline-page .rl-disc-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
+  .redline-page .rl-disc-empty{padding:14px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500)}
   `;
   document.head.appendChild(s);
 }
@@ -3792,18 +3806,111 @@ function renderRedline(){
       if (target && !target.disabled) target.click();
     }));
 
-  /* The workbench itself, through the contract tab's own render path — same
-     markup, same wiring, same after-paint. The design's single-document layout
-     is then applied over it by CSS (see redlineLayoutCss), so nothing in the
-     engine's markup had to be forked to get it. */
-  renderNegotiationTab(c, { hostId: 'redline-host', side });
-
-  /* Two labels the design names differently from the engine. Changed on the
-     rendered node rather than in negoPanesHtml, which the contract tab and the
-     room also render. */
-  const idxHead = host.querySelector('#nego-index h3');
-  if (idxHead) idxHead.textContent = 'Tracked Changes';
+  /* The page's OWN three columns — document, tracked changes, discussion — not
+     the two-pane comparison the contract tab renders. The engine still supplies
+     every piece of content and every handler: negoDocHtml draws the marked-up
+     clauses, negoCardsHtml draws the change cards, and the element ids the
+     wiring looks for are all present, so wireNegotiationTab binds to this
+     layout exactly as it binds to its own. */
+  const mount = document.getElementById('redline-host');
+  negoEnsureStyle();
+  const opts = { hostId: 'redline-host', side, messages: c._messages || [], seenScope: c.id,
+    shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
+    rerender: () => renderRedline() };
+  mount.innerHTML = redlinePanesHtml(c, opts);
+  wireNegotiationTab(c, opts);
+  negoAfterPaint(c, opts, mount);
+  redlineWireDiscussion(c, mount);
   redlineSyncProxies(host);
+}
+
+/* The design's grid. Everything inside it is the engine's, arranged the way the
+   design arranges it rather than the way the comparison workbench does. */
+function redlinePanesHtml(c, opts = {}){
+  const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
+  const canAct = !opts.readonly;
+  /* #nego-root is not decoration: the engine declares its entire colour ramp
+     on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
+     are undefined and the clause tools render as transparent boxes with white
+     text on a white page. */
+  return `<div id="nego-root" class="rl-root">
+    ${negoModeHtml(c, opts)}
+    ${negoTurnBannerHtml(c, opts)}
+    <!-- nego-work is kept on the grid because the engine scopes its clause
+         tooling under it (.nego-work .nego-pane …). Without it Change and
+         Delete render as unlabelled empty boxes. The design's column widths are
+         set by .redline-page .rl-grid, which outranks it on specificity. -->
+    <div class="rl-grid nego-work" id="nego-work" style="--nego-f:1;--nego-c:320px">
+      <!-- keeps the nego-pane working classes: the engine's clause tools
+           (Change, Delete, the fingerprint margin) are styled through them, and
+           without them they render as unlabelled empty boxes -->
+      <section class="rl-doc nego-pane working" aria-label="The contract, with this round's changes marked">
+        <div class="nego-scroll" id="nego-scroll-work">${negoDocHtml(c, { ...opts, baseline: false })}</div>
+      </section>
+
+      <aside class="nego-pane index rl-col" id="nego-index" aria-label="Tracked changes">
+        <div class="nego-index-head">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+            <h3 style="flex:1;min-width:0;margin:0">Tracked Changes</h3>
+            <span class="nego-count" id="nego-count">${p.pending || p.total}</span>
+            <button class="nego-fold" id="nego-fold" hidden>Hide</button>
+          </div>
+          <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
+          <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+          ${canAct ? `<div class="nego-bulk">
+            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>
+            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
+          </div>` : ''}
+          ${negoIndexSendHtml(c, opts)}
+        </div>
+        <div class="nego-index-scroll" id="nego-cards">${negoLinkedBarHtml()}${negoCardsHtml(c, opts)}</div>
+      </aside>
+
+      <aside class="rl-col rl-disc" id="rl-disc-col" aria-label="Discussion">
+        ${redlineDiscussionHtml(c, opts)}
+      </aside>
+    </div>
+  </div>`;
+}
+
+/* The third column. It is the SAME discussion the contract page runs — the
+   shared/internal threads from js/discuss.js — not a redline-local chat, so a
+   thread raised here is the thread the contract already has.
+   Discussion is a server-mode feature (the messages live on the workspace, not
+   in this browser), exactly as it is on the contract page, so in local mode the
+   column says so rather than pretending to be an empty conversation. */
+function redlineDiscussionHtml(c, opts = {}){
+  const head = n => `
+    <div class="rl-disc-head">
+      <h3>Discussion</h3>
+      ${n ? `<span class="rl-disc-n">${n} thread${n === 1 ? '' : 's'}</span>` : ''}
+    </div>`;
+  if (!window.discussPanelHtml || !(window.API_MODE && API_MODE())) return `
+    ${head(0)}
+    <div class="rl-disc-empty">
+      Threads are kept on the workspace, so the conversation appears when HaTi is
+      running with its server. Change marks and decisions on the left work either way.
+    </div>`;
+  const msgs = c._messages || [];
+  const topics = window.discussTopics ? discussTopics(c, window.docPlainText ? docPlainText(c) : '') : [];
+  const groups = window.discussGroups ? discussGroups(msgs) : [];
+  return `${head(groups.length)}
+    <div class="rl-disc-body">${discussPanelHtml({
+      messages: msgs, topics, mine: opts.side === 'counterparty' ? 'counterparty' : 'owner',
+      idp: 'rl-discuss', title: '', blurb: '',
+      disabled: !!(window.canEdit && !canEdit()),
+      disabledNote: 'Viewers can read this conversation but cannot post to it.',
+    })}</div>`;
+}
+function redlineWireDiscussion(c, mount){
+  if (!window.wireDiscussPanel || !(window.API_MODE && API_MODE())) return;
+  if (!mount.querySelector('#rl-disc-col [data-discuss-topic], #rl-disc-col form, #rl-disc-col textarea, #rl-disc-col input')) return;
+  const topics = window.discussTopics ? discussTopics(c, window.docPlainText ? docPlainText(c) : '') : [];
+  /* Posting goes through the contract page's own sender when it is available,
+     so a message raised here is filed and delivered the one way messages are. */
+  const send = window.postDiscussMessage ? (m => postDiscussMessage(c, m)) : null;
+  if (!send) return;
+  wireDiscussPanel({ idp: 'rl-discuss', topics, send, onSent: () => renderRedline() });
 }
 /* Mirror the engine's own enablement onto the header buttons, so the header
    never offers an action the workbench itself is refusing. */
@@ -3818,6 +3925,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
+  redlinePanesHtml, redlineDiscussionHtml, redlineWireDiscussion,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
