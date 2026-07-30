@@ -252,7 +252,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.ok(!t.card(gl.id), 'G1: no card for a draft they have never been sent');
     assert.ok(!t.text().includes('courts of Nairobi'),
       'G1: the document canvas shows the untouched clause, not the draft');
-    assert.ok(!/Draft/.test(t.$('#rl-changes-col').textContent),
+    /* Badges, not the column's raw text: the head's origin filter offers a
+       "Drafts (Unsent)" OPTION on every seat — static chrome, there whether
+       or not a draft exists, so it can betray nothing. What must never appear
+       on their side is a Draft BADGE on a card, which is what this audits. */
+    assert.ok(!t.$$('#rl-changes-col .rl-badge').some(b => /Draft/.test(b.textContent)),
       'G1: no Draft badge anywhere on their side');
     const glClause = t.clauseByHead(/Governing/);
     assert.ok(!glClause.classList.contains('is-changed'),
