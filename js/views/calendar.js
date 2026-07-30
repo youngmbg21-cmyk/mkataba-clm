@@ -66,7 +66,7 @@ function renderCalendar(){
 
   const cell=(dnum)=>{
     const inMonth=dnum>=1&&dnum<=days;
-    if(!inMonth) return `<div style="min-height:62px;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
+    if(!inMonth) return `<div style="min-height:62px;min-width:0;background:transparent;border:1px solid transparent;border-radius:7px"></div>`;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(dnum).padStart(2,'0')}`;
     const today=iso===todayIso;
     const list=byDay[iso]||[], es=list.slice(0,3), more=list.length-es.length;
@@ -76,13 +76,15 @@ function renderCalendar(){
     const ev=kind?CAL_EVENT[kind]:null;
     const bg=today?'rgba(89,128,166,.1)':(ev?ev.tint:'var(--color-bg)');
     const bd=today?'var(--color-accent)':(ev?ev.dot:'var(--color-divider)');
-    const cellStyle=`min-height:62px;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
+    /* min-width:0 and overflow:hidden, or the cell's min-content width is the
+       longest contract name inside it and the column stretches to hold it. */
+    const cellStyle=`min-height:62px;min-width:0;overflow:hidden;padding:4px 5px;display:flex;flex-direction:column;gap:2px;cursor:default;border-radius:7px;`+
       `background:${bg};border:1px solid ${bd}`;
     const numStyle=`font-family:var(--font-mono);font-size:10px;color:${today?'var(--color-accent-800)':(ev?ev.fg:'var(--color-neutral-500)')};font-weight:${today||ev?700:400}`;
     const chips=es.map(e=>{
       const ev=CAL_EVENT[e.type];
-      return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
-        _dot(ev.dot,6)+`<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
+      return `<button data-sel="${e.cid}" title="${ev.label}: ${_esc(e.note)}" style="display:flex;align-items:center;gap:4px;width:100%;min-width:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;font-size:9.5px;line-height:1.25;overflow:hidden;${e.done?'opacity:.45;text-decoration:line-through':''}">`+
+        _dot(ev.dot,6)+`<span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_esc(e.cname)}</span></button>`;
     }).join('');
     const moreLine=more>0?`<span style="font-size:9px;color:var(--color-neutral-500);padding-left:2px">+${more} more</span>`:'';
     return `<div class="cal-day" style="${cellStyle}"><span style="${numStyle}">${dnum}</span>${chips}${moreLine}</div>`;
@@ -160,7 +162,7 @@ function renderCalendar(){
       .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);
         box-shadow:var(--shadow-sm);border-radius:16px;padding:20px;display:flex;
         flex-direction:column;min-height:0}
-      .cal-wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:10px;
+      .cal-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:10px;
         font-weight:700;letter-spacing:.08em;text-transform:uppercase;
         color:var(--color-neutral-500);text-align:center;margin-bottom:4px;flex:none}
       @media (max-width:1023px){
@@ -180,7 +182,12 @@ function renderCalendar(){
     <div class="cal-split">
       <section class="cal-card cal-month-card">
         <div class="cal-wk">${weekdays}</div>
-        <div id="cal-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
+        <!-- minmax(0,1fr), NOT 1fr. A bare 1fr is minmax(auto,1fr): the track
+             floor is the content's min-content width, so one long contract name
+             ("Mutual Non-Disclosure Agreement — Juno Limited") pushed its column
+             to 250px while the other six sat at 94px. Seven equal weeks is the
+             whole point of a month grid. -->
+        <div id="cal-grid" style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-template-rows:repeat(6,1fr);gap:4px">${cells.join('')}</div>
         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding-top:10px;border-top:1px solid var(--color-divider);font-size:10px;color:var(--color-neutral-500);flex:none">
           ${Object.values(CAL_EVENT).map(v=>`<span style="display:flex;align-items:center;gap:6px">${_dot(v.dot,8)}${v.label}</span>`).join('')}
         </div>
