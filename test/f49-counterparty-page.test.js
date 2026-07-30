@@ -110,8 +110,8 @@ describe('while there is something to negotiate, the link is the room', () => {
     const { c } = await negotiated();
     const v = theirPage(c);
     const css = v.win.document.getElementById('redline-layout-css').textContent;
-    assert.match(css, /\.redline-page \.rl-grid\{[^}]*repeat\(12,minmax\(0,1fr\)\)/,
-      'the same twelve-column design the owner\'s page is measured against (f84)');
+    assert.match(css, /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,2fr\) minmax\(0,1fr\)/,
+      'the same two-pane design the owner\'s page is measured against (f84)');
     assert.ok(v.$('#pt-nego .rl-embed').classList.contains('redline-page'),
       'drawn with the same stylesheet, not a lesser copy');
   });

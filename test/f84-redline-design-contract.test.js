@@ -78,17 +78,20 @@ describe('F84 — the design names every part, and the names are on the page', (
   test('every id in the design contract is present', async () => {
     const p = await page();
     for (const id of ['view-redline', 'rl-banner', 'rl-grid', 'rl-doc',
-      'rl-changes-col', 'rl-changes', 'rl-disc-col', 'rl-threads',
-      'rl-disc-show', 'rl-rail-count', 'rl-thread-count'])
+      'rl-side', 'rl-resizer', 'rl-changes-col', 'rl-changes', 'rl-disc-col',
+      'rl-threads', 'rl-rail-count', 'rl-thread-count'])
       assert.ok(p.$('#' + id), `#${id} is missing from the rendered workbench`);
   });
 
-  test('the three columns are the document, the changes and the discussion', async () => {
+  test('the grid holds the document and ONE sidebar; both faces live inside it', async () => {
     const p = await page();
     const grid = p.$('#rl-grid');
     assert.ok(grid.contains(p.$('#rl-doc')), 'the document is not in the grid');
-    assert.ok(grid.contains(p.$('#rl-changes-col')), 'tracked changes is not in the grid');
-    assert.ok(grid.contains(p.$('#rl-disc-col')), 'the discussion is not in the grid');
+    assert.ok(grid.contains(p.$('#rl-side')), 'the single sidebar is not in the grid');
+    assert.ok(p.$('#rl-side').contains(p.$('#rl-changes-col')),
+      'tracked changes must be a face of the one sidebar');
+    assert.ok(p.$('#rl-side').contains(p.$('#rl-disc-col')),
+      'and so must the discussion — not a third column');
   });
 
   test('#rl-changes is the card list inside the changes column', async () => {
@@ -135,41 +138,34 @@ describe('F84 — the port adds the design\'s names, it does not rename the wiri
   });
 });
 
-describe('F84 — twelve columns, six/three/three, folding to eight/four', () => {
-  const spanOf = (css, sel) => {
-    // the declaration block for exactly this selector, then its span
-    const re = new RegExp(sel.replace(/[.#*+?^${}()|[\]\\]/g, '\\$&') + '\\{([^}]*)\\}');
-    const m = css.match(re);
-    return m && /grid-column:span (\d+)/.exec(m[1]) ? Number(/grid-column:span (\d+)/.exec(m[1])[1]) : null;
-  };
-
-  test('the grid is twelve real columns, not a fraction that looks like it', async () => {
+describe('F84 — two panes, a drag handle, and a sidebar that shows one face', () => {
+  test('the resting grid is document two-thirds, sidebar one-third', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page \.rl-grid\{[^}]*grid-template-columns:repeat\(12,minmax\(0,1fr\)\)/,
-      'the design is a twelve-column grid; fractions cannot hold the ratio exactly');
+    assert.match(p.css(), /\.redline-page \.rl-grid\{[^}]*grid-template-columns:minmax\(0,2fr\) minmax\(0,1fr\)/,
+      'the Doc tab\'s own split — two thirds to the contract before the first drag');
   });
 
-  test('open, the split is 6 / 3 / 3', async () => {
+  test('the sidebar\'s two faces are mutually exclusive by construction', async () => {
     const css = (await page()).css();
-    assert.equal(spanOf(css, '.redline-page .rl-doc'), 6);
-    assert.equal(spanOf(css, '.redline-page #rl-changes-col'), 3);
-    assert.equal(spanOf(css, '.redline-page #rl-disc-col'), 3);
+    assert.match(css, /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/,
+      'in Tracked Changes mode the discussion must leave the card entirely');
+    assert.match(css, /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/,
+      'and in Discussion mode the changes must — never both at once');
   });
 
-  test('folded, it re-deals to 8 / 4 and the third column leaves', async () => {
-    const css = (await page()).css();
-    assert.equal(spanOf(css, '.redline-page.disc-off .rl-doc'), 8);
-    assert.equal(spanOf(css, '.redline-page.disc-off #rl-changes-col'), 4);
-    assert.match(css, /\.redline-page\.disc-off #rl-disc-col\{display:none\}/,
-      'a collapsed column must leave the row, not sit in it at zero width');
+  test('the handle is real, absolute over the gap, and hidden when stacked', async () => {
+    const p = await page();
+    const rez = p.$('#rl-resizer');
+    assert.ok(rez, 'the split handle must be in the grid');
+    assert.equal(rez.getAttribute('role'), 'separator');
+    assert.match(p.css(), /\.redline-page \.rl-resizer\{[^}]*position:absolute/,
+      'absolute over the gap, so it claims no grid track of its own');
+    assert.match(p.css(), /@media \(max-width:1023px\)\{[\s\S]*?\.rl-resizer\{display:none\}/,
+      'a drag handle over stacked panes resizes nothing');
   });
 
-  test('the discussion survives a 13-inch laptop', async () => {
-    // it used to be dropped below 1500px, which is most of the screens this is
-    // actually read on; the design keeps all three from lg (1024px) up
+  test('the workbench stacks below lg like the design', async () => {
     const css = (await page()).css();
-    assert.ok(!/@media \(max-width:1500px\)/.test(css),
-      'the three-column layout must not be abandoned above the design\'s lg breakpoint');
     assert.match(css, /@media \(max-width:1023px\)/, 'below lg the design stacks to one column');
   });
 });
@@ -227,46 +223,52 @@ describe('F84 — the Tracked Changes head gives the send slot its own line', ()
     assert.match(css, /\.redline-page \.rl-sendslot \.nego-index-send\{[^}]*margin-top:0[^}]*border-top:0/);
   });
 
-  test('the discussion chevron sits at the edge, not against the count', async () => {
-    // #rl-thread-count renders empty on a contract with no threads, which slid
-    // the collapse control left to hug the title — a different header on an
-    // empty contract than on a busy one
-    const css = (await page()).css();
-    assert.match(css, /\.redline-page \.rl-disc-head \.rl-disc-x\{margin-left:auto\}/);
+  test('the fold\'s chip and chevron are gone with the fold', async () => {
+    // the sidebar tabs are the one switch now; a second control pair would be
+    // two ways to disagree about which face is showing
+    const p = await page();
+    assert.equal(p.$('#rl-disc-show'), null);
+    assert.equal(p.$('.rl-disc-x'), null);
   });
 });
 
-describe('F84 — the fold is a real function, and it remembers', () => {
-  test('rlToggleDiscussion() toggles the page and the reveal chip together', async () => {
+describe('F84 — one sidebar, two modes, switched by the tabs and remembered', () => {
+  test('the tabs are mutually exclusive and mark the root', async () => {
     const p = await page();
-    const view = p.$('#view-redline'), chip = p.$('#rl-disc-show');
-    assert.ok(!view.classList.contains('disc-off'), 'it starts open');
-    assert.ok(chip.hidden, 'the reveal chip is for when the column is gone');
+    const view = p.$('#view-redline');
+    assert.equal(view.getAttribute('data-rl-side-mode'), 'changes', 'Tracked Changes is the default face');
+    const tabs = p.$$('#rl-side [data-rl-mode]');
+    assert.deepEqual(tabs.map(t => t.getAttribute('data-rl-mode')), ['changes', 'disc']);
+    assert.match(tabs[1].textContent, /Discussion/);
 
+    tabs[1].click();
+    assert.equal(view.getAttribute('data-rl-side-mode'), 'disc');
+    assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
+    assert.equal(tabs[0].getAttribute('aria-selected'), 'false');
+
+    tabs[0].click();
+    assert.equal(view.getAttribute('data-rl-side-mode'), 'changes');
+    assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
+  });
+
+  test('rlToggleDiscussion keeps its old contract on top of the modes', async () => {
+    /* The name is part of the design contract (the lab wraps it — see f90),
+       so it survives as a shim: true = discussion not showing. */
+    const p = await page();
+    assert.equal(p.win.rlToggleDiscussion(), false, 'from changes, a bare toggle opens the discussion');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
     assert.equal(p.win.rlToggleDiscussion(), true);
-    assert.ok(view.classList.contains('disc-off'));
-    assert.ok(!chip.hidden, 'with the column gone, the chip is the only way back');
-
-    assert.equal(p.win.rlToggleDiscussion(), false);
-    assert.ok(!view.classList.contains('disc-off'));
-    assert.ok(chip.hidden);
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes');
   });
 
   test('the choice survives a repaint', async () => {
     const p = await page();
-    p.win.rlToggleDiscussion(true);
+    p.win.rlSetSideMode('disc');
     p.win.renderRedline();
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'),
-      'a fold that unfolds itself on every clause is not a preference');
-    assert.ok(!p.$('#rl-disc-show').hidden);
-  });
-
-  test('the chip and the header both call it', async () => {
-    const p = await page();
-    p.$('#rl-disc-show').click();
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'));
-    p.$('#rl-disc-show').click();
-    assert.ok(!p.$('#view-redline').classList.contains('disc-off'));
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
+      'a mode that resets itself on every clause is not a preference');
+    assert.equal(p.$('#rl-side [data-rl-mode="disc"]').getAttribute('aria-selected'), 'true');
+    p.win.rlSetSideMode('changes');
   });
 });
 
@@ -398,14 +400,14 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
       'an empty change filed to hold a note is a fingerprint nobody proposed');
   });
 
-  test('Add Note/Tag unfolds the discussion before aiming at the composer', async () => {
+  test('Add Note/Tag switches the sidebar to Discussion before aiming at the composer', async () => {
     const p = await page();
-    p.win.rlToggleDiscussion(true);              // the composer is now display:none
+    p.win.rlSetSideMode('changes');              // the composer is now display:none
     const note = [...p.$$('#rl-doc .rl-tool')].find(b => b.hasAttribute('data-rl-change'));
     assert.ok(note, 'the changed clause should offer a note');
     note.click();
-    assert.ok(!p.$('#view-redline').classList.contains('disc-off'),
-      'focusing an input inside a hidden column silently does nothing');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
+      'focusing an input inside a hidden panel silently does nothing');
   });
 });
 

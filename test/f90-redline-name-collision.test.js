@@ -71,39 +71,39 @@ describe('F90 — the Redline page keeps its own fold with the Doc Lab loaded', 
       'the lab is loaded — without it this file proves nothing');
   });
 
-  test('the fold marks the workbench page, not the lab\'s grid', async () => {
+  test('the mode marks the workbench page, not the lab\'s grid', async () => {
     const p = await page();
     const view = p.$('#view-redline');
     assert.ok(view.classList.contains('redline-page'), 'the workbench owns this page');
 
     assert.equal(p.win.rlToggleDiscussion(true), true,
       'the shared name must still reach the workbench when the workbench is showing');
-    assert.ok(view.classList.contains('disc-off'),
-      'the class belongs on the page the .redline-page.disc-off rule is written against');
+    assert.equal(view.getAttribute('data-rl-side-mode'), 'changes',
+      'the attribute belongs on the root the [data-rl-side-mode] rules are written against');
     assert.ok(!p.$('#rl-grid').classList.contains('disc-off'),
-      'putting it on the grid is what made the fold silently inert');
-    assert.ok(!p.$('#rl-disc-show').hidden, 'the reveal chip is the only way back');
+      'marking the grid is what made the old fold silently inert');
 
     assert.equal(p.win.rlToggleDiscussion(false), false);
-    assert.ok(!view.classList.contains('disc-off'));
-    assert.ok(p.$('#rl-disc-show').hidden);
+    assert.equal(view.getAttribute('data-rl-side-mode'), 'disc');
+    p.win.rlSetSideMode('changes');
   });
 
-  test('the chevron in the rendered markup goes to the same place', async () => {
-    // the button the reader actually presses, not the function a test can call
+  test('the tabs in the rendered markup go to the same place', async () => {
+    // the buttons the reader actually presses, not the function a test can call
     const p = await page();
-    p.$('#rl-disc-col [data-redline-disc]').click();
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'));
-    p.$('#rl-disc-show').click();
-    assert.ok(!p.$('#view-redline').classList.contains('disc-off'));
+    p.$('#rl-side [data-rl-mode="disc"]').click();
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
+    p.$('#rl-side [data-rl-mode="changes"]').click();
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes');
   });
 
   test('the preference still survives a repaint', async () => {
     const p = await page();
-    p.win.rlToggleDiscussion(true);
+    p.win.rlToggleDiscussion(false);      // discussion showing
     p.win.renderRedline();
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'),
-      'a fold that unfolds itself on every repaint is not a preference');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
+      'a mode that resets itself on every repaint is not a preference');
+    p.win.rlSetSideMode('changes');
   });
 
   test('with no workbench page mounted, the name is the lab\'s again', async () => {

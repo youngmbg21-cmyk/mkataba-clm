@@ -318,34 +318,61 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('13 it is animated', !!blast && blast.anim === 'rlBlast', blast && blast.anim);
   check('13 it is emerald-600', !!blast && blast.bg === 'rgb(5, 150, 105)', blast && blast.bg);
 
-  /* ---- 9. the fold re-deals the row ----
+  /* ---- 9. two panes, one sidebar, one face at a time ----
      Measured as a RATIO of the grid's own width, which is what "two thirds"
-     means; a span that stops applying would show up here and nowhere else. */
-  const fold = await page.evaluate(() => {
+     means; a rule that stops applying would show up here and nowhere else. */
+  const panes = await page.evaluate(() => {
     const grid = document.getElementById('rl-grid');
+    const vis = el => el.offsetParent !== null && el.getBoundingClientRect().width > 0;
     const w = () => ({ grid: grid.getBoundingClientRect().width,
       doc: document.getElementById('rl-doc').getBoundingClientRect().width,
-      chg: document.getElementById('rl-changes-col').getBoundingClientRect().width,
-      disc: document.getElementById('rl-disc-col').offsetParent === null ? 0
-        : document.getElementById('rl-disc-col').getBoundingClientRect().width });
-    const open = w();
-    rlToggleDiscussion(true);
-    const shut = w();
-    rlToggleDiscussion(false);
-    return { open, shut };
+      side: document.getElementById('rl-side').getBoundingClientRect().width,
+      chg: vis(document.getElementById('rl-changes-col')),
+      disc: vis(document.getElementById('rl-disc-col')) });
+    const changes = w();
+    rlSetSideMode('disc');
+    const disc = w();
+    rlSetSideMode('changes');
+    return { changes, disc };
   });
   const ratio = (a, b) => a / b;
-  check('9 open, the document takes half the row',
-    Math.abs(ratio(fold.open.doc, fold.open.grid) - 0.5) < 0.03,
-    ratio(fold.open.doc, fold.open.grid).toFixed(3));
-  check('9 folded, the document takes two thirds',
-    Math.abs(ratio(fold.shut.doc, fold.shut.grid) - 2 / 3) < 0.03,
-    ratio(fold.shut.doc, fold.shut.grid).toFixed(3));
-  check('9 folded, tracked changes takes one third',
-    Math.abs(ratio(fold.shut.chg, fold.shut.grid) - 1 / 3) < 0.03,
-    ratio(fold.shut.chg, fold.shut.grid).toFixed(3));
-  check('9 folded, the discussion leaves the row rather than sitting at zero',
-    fold.shut.disc === 0, fold.shut.disc);
+  check('9 the document takes two thirds of the row',
+    Math.abs(ratio(panes.changes.doc, panes.changes.grid) - 2 / 3) < 0.04,
+    ratio(panes.changes.doc, panes.changes.grid).toFixed(3));
+  check('9 the one sidebar takes the other third',
+    Math.abs(ratio(panes.changes.side, panes.changes.grid) - 1 / 3) < 0.04,
+    ratio(panes.changes.side, panes.changes.grid).toFixed(3));
+  check('9 changes mode shows the cards and not the discussion',
+    panes.changes.chg && !panes.changes.disc, JSON.stringify(panes.changes));
+  check('9 discussion mode shows the threads and not the cards',
+    panes.disc.disc && !panes.disc.chg, JSON.stringify(panes.disc));
+  check('9 the split does not move when the face flips',
+    Math.abs(panes.disc.doc - panes.changes.doc) < 2,
+    `${panes.changes.doc} vs ${panes.disc.doc}`);
+
+  /* ---- 9b. the handle really drags the split ---- */
+  const drag = await page.evaluate(async () => {
+    const grid = document.getElementById('rl-grid');
+    const rez = document.getElementById('rl-resizer');
+    const before = document.getElementById('rl-doc').getBoundingClientRect().width;
+    const r = rez.getBoundingClientRect();
+    const x0 = r.left + r.width / 2, y = r.top + Math.min(200, r.height / 2);
+    const fire = (type, x) => {
+      const ev = new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+      (type === 'pointerdown' ? rez : window).dispatchEvent(ev);
+    };
+    fire('pointerdown', x0); fire('pointermove', x0 - 160); fire('pointerup', x0 - 160);
+    await new Promise(res => requestAnimationFrame(res));
+    const after = document.getElementById('rl-doc').getBoundingClientRect().width;
+    rez.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    await new Promise(res => requestAnimationFrame(res));
+    const reset = document.getElementById('rl-doc').getBoundingClientRect().width;
+    return { before, after, reset, gridW: grid.getBoundingClientRect().width };
+  });
+  check('9b dragging the handle narrows the document',
+    drag.after < drag.before - 100, `${drag.before} -> ${drag.after}`);
+  check('9b double-click puts the default split back',
+    Math.abs(drag.reset - drag.before) < 8, `${drag.reset} vs ${drag.before}`);
 
   /* ---- 12. Edit lands on the clause ---- */
   const jump = await page.evaluate(async () => {

@@ -333,12 +333,12 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
 
   test('Tag posts into the Discussion thread, with internal pressed', async () => {
     const p = await page();
-    p.win.rlToggleDiscussion(true);                 // the composer is display:none
+    p.win.rlSetSideMode('changes');                 // the composer is display:none
     const ch = p.win.negoChanges(p.c)[0];
     const ok = p.win.rlTagInternalNote({ c: p.c, clauseId: ch.clauseId, text: 'thirty (30) days' });
     assert.equal(ok, true);
-    assert.ok(!p.$('#view-redline').classList.contains('disc-off'),
-      'focusing an input inside a hidden column silently does nothing');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc',
+      'focusing an input inside a hidden panel silently does nothing');
     const input = p.$('#nego-ti-' + ch.id);
     assert.ok(input, 'it must aim at the Discussion column\'s own composer');
     assert.match(input.value, /thirty \(30\) days/, 'the selected wording is quoted into the note');
@@ -451,15 +451,17 @@ describe('F89 (8) — a marked phrase says whose hand it was', () => {
   });
 });
 
-describe('F89 (9) — folding the discussion re-deals two thirds and one third', () => {
-  test('the collapsed split is 8 / 4 and the fold is live', async () => {
+describe('F89 (9) — one sidebar, and the discussion is a mode of it, not a third column', () => {
+  test('the sidebar swaps faces; the two panels never share the row', async () => {
     const p = await page();
-    assert.match(p.css(), /\.redline-page\.disc-off \.rl-doc\{grid-column:span 8\}/);
-    assert.match(p.css(), /\.redline-page\.disc-off #rl-changes-col\{grid-column:span 4\}/);
-    p.$('#rl-disc-col') && assert.ok(p.$('#rl-disc-col'));
-    p.win.rlToggleDiscussion(true);
-    assert.ok(p.$('#view-redline').classList.contains('disc-off'));
-    assert.ok(!p.$('#rl-disc-show').hidden, 'the reveal chip is the only way back');
+    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="changes"\] #rl-disc-col\{display:none\}/);
+    assert.match(p.css(), /\.redline-page\[data-rl-side-mode="disc"\] #rl-changes-col\{display:none\}/);
+    assert.ok(p.$('#rl-side').contains(p.$('#rl-disc-col')), 'the discussion lives inside the one card');
+    p.win.rlSetSideMode('disc');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'disc');
+    p.win.rlSetSideMode('changes');
+    assert.equal(p.$('#view-redline').getAttribute('data-rl-side-mode'), 'changes',
+      'the tabs are the way back — no reveal chip, no chevron');
   });
 });
 

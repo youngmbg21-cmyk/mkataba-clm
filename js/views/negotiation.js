@@ -4049,15 +4049,12 @@ function redlineLayoutCss(){
   .redline-page .rl-idx-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:13px 14px;
     border-bottom:1px solid var(--color-divider)}
   .redline-page .rl-idx-head [hidden]{display:none!important}
-  .redline-page .rl-disc-toggle,.redline-page .rl-disc-x{border:1px solid var(--color-divider);
-    background:var(--color-neutral-100);border-radius:7px;padding:3px 8px;font:inherit;font-size:9.5px;
-    font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);cursor:pointer}
-  .redline-page .rl-disc-x{width:24px;height:24px;padding:0;line-height:1;font-size:13px;flex:none}
-  /* ---- THE ORIGIN FILTER, DRESSED LIKE ITS NEIGHBOURS ----
-     A select in the Tracked Changes head, in the Discussion chip's clothes so
-     the header reads as one family of controls. It wears the accent when it
-     is actually narrowing the column: a filter that looks idle while hiding
-     cards is how a change gets "lost". */
+  /* The reveal chip and the collapse chevron went with the fold they drove —
+     the sidebar tabs are the one switch now, so their rules go too. */
+  /* ---- THE ORIGIN FILTER ----
+     A select at the head of the Tracked Changes panel. It wears the accent
+     when it is actually narrowing the column: a filter that looks idle while
+     hiding cards is how a change gets "lost". */
   .redline-page .rl-card-filter{border:1px solid var(--color-divider);background:var(--color-neutral-100);
     border-radius:7px;padding:3px 6px;font:inherit;font-size:10px;font-weight:700;
     color:var(--color-neutral-600);cursor:pointer;flex:none;max-width:100%}
@@ -4111,38 +4108,49 @@ function redlineLayoutCss(){
   .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
   .redline-page .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
-  /* ---- THE DESIGN'S TWELVE COLUMNS ----
-     The reference is lg:grid-cols-12 with lg:col-span-6 / 3 / 3, and the
-     fold re-deals it to 8 / 4. This used to approximate that with fractions
-     (1.9fr / .85fr / .9fr → 1.9fr / .95fr), which is close enough to look
-     right in a screenshot and wrong under measurement: the document took .518
-     of the row where the design gives it exactly .5, and the fold landed on
-     .667 only by coincidence of the gap arithmetic. Twelve real columns with
-     integer spans make the ratio exact at any width, and — more usefully —
-     make it something a test can assert rather than eyeball.
+  /* ---- TWO PANES AND A HANDLE ----
+     The twelve-column deal is gone: the document takes the left pane (two
+     thirds by default, the Doc tab's own split) and everything else lives in
+     ONE right-hand card. The columns are set in pixels by rlLayoutResizer —
+     the same fraction-persisted drag the Doc tab uses — and this rule is the
+     resting state before the first measure and the fallback where measuring
+     is impossible.
 
-     minmax(0,1fr) on the track, not 1fr: a grid column holding a contract will
-     not otherwise shrink below its longest unbroken line, and the third column
-     gets pushed off the row instead of the text wrapping. */
-  .redline-page .rl-grid{flex:1;min-height:0;display:grid;gap:14px;
-    grid-template-columns:repeat(12,minmax(0,1fr));align-items:stretch}
-  .redline-page .rl-doc{grid-column:span 6}
-  .redline-page #rl-changes-col{grid-column:span 3}
-  .redline-page #rl-disc-col{grid-column:span 3}
-  /* Folded away, the discussion gives its three columns to the other two —
-     8 / 4, the design's own split. display:none rather than a zero span: a
-     collapsed grid child still claims a track and would leave a dead gutter. */
-  .redline-page.disc-off #rl-disc-col{display:none}
-  .redline-page.disc-off .rl-doc{grid-column:span 8}
-  .redline-page.disc-off #rl-changes-col{grid-column:span 4}
-  /* Focus mode is GONE — the toggle, the state and the twelve-column override
-     with it. It gave the document the whole row by hiding the other two
-     columns, which is the fold's job done twice: the discussion already folds
-     to 8/4, and hiding the Tracked Changes column as well leaves the workbench
-     with nothing to work on. It also had to be undone from three other places
-     — tagging a note, jumping to a clause, linking a card — each of which had
-     to remember to switch it off before it could reach a column that focus
-     mode had hidden. One less state, three fewer things to remember. */
+     minmax(0,·) on both tracks, not fr alone: a grid column holding a
+     contract will not otherwise shrink below its longest unbroken line, and
+     the sidebar gets pushed off the row instead of the text wrapping. */
+  .redline-page .rl-grid{flex:1;min-height:0;position:relative;display:grid;gap:14px;
+    grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:stretch}
+  /* ---- THE SIDEBAR IS ONE CARD WITH TWO FACES ----
+     Tracked Changes OR Discussion — data-rl-side-mode on the workbench root
+     decides, and this pair is the whole mechanism: the panels stay mounted
+     (a half-typed reply survives the switch), only visibility moves, and
+     because exactly one attribute value exists at a time the two can never
+     render side by side. */
+  .redline-page .rl-side{min-width:0}
+  .redline-page #rl-changes-col,.redline-page #rl-disc-col{flex:1;min-height:0;
+    display:flex;flex-direction:column}
+  .redline-page[data-rl-side-mode="changes"] #rl-disc-col{display:none}
+  .redline-page[data-rl-side-mode="disc"] #rl-changes-col{display:none}
+  .redline-page .rl-side-tabs{display:flex;gap:3px;padding:7px 8px;flex:none;
+    border-bottom:1px solid var(--color-divider)}
+  .redline-page .rl-side-tab{flex:1;border:0;border-radius:7px;background:none;cursor:pointer;
+    font:inherit;font-size:11px;font-weight:700;padding:6px 8px;color:var(--color-neutral-600);
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+    transition:background .12s,color .12s}
+  .redline-page .rl-side-tab.on{background:var(--accent-solid);color:#fff}
+  .redline-page .rl-side-tab .rl-tab-n{font-size:9.5px;font-weight:700;padding:1px 7px;
+    border-radius:999px;background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .redline-page .rl-side-tab.on .rl-tab-n{background:rgba(255,255,255,.24);color:#fff}
+  /* ---- THE HANDLE ----
+     Absolutely positioned over the gap (rlLayoutResizer keeps its left edge
+     on the split), the Doc tab's own grip. Hidden where the panes stack. */
+  .redline-page .rl-resizer{position:absolute;top:0;bottom:0;left:66%;width:14px;z-index:6;
+    cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none}
+  .redline-page .rl-resizer span{width:4px;height:72px;border-radius:999px;
+    background:var(--color-neutral-300);transition:background .15s}
+  .redline-page .rl-resizer:hover span,.redline-page .rl-resizer[data-drag] span{
+    background:var(--color-accent)}
 
   /* ---- THE CLAUSE TOOLBAR: AN OVERLAY, REVEALED ON HOVER ----
      The contract reads clean until the reader is over a clause; then the three
@@ -4192,16 +4200,13 @@ function redlineLayoutCss(){
   .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
 
-  /* The design keeps all three columns from lg (1024px) up. This used to
-     drop the discussion below 1500px, which hid the whole third column on a
-     13" laptop — the most common screen this is read on. Below lg the design
-     stacks to one column and the page scrolls, so the inner panes give their
-     scroll back to the page rather than trapping the gesture. */
+  /* Below lg the two panes stack to one column and the page scrolls, so the
+     inner panes give their scroll back to the page rather than trapping the
+     gesture. A drag handle over stacked panes resizes nothing — hidden. */
   @media (max-width:1023px){
-    .redline-page .rl-grid{grid-template-columns:minmax(0,1fr);height:auto}
-    .redline-page .rl-doc,.redline-page #rl-changes-col,.redline-page #rl-disc-col{
-      grid-column:auto;min-height:280px}
-    .redline-page.disc-off .rl-doc,.redline-page.disc-off #rl-changes-col{grid-column:auto}
+    .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)!important;height:auto}
+    .redline-page .rl-doc,.redline-page .rl-side{grid-column:auto;min-height:280px}
+    .redline-page .rl-resizer{display:none}
   }
   .redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
@@ -4235,12 +4240,12 @@ function redlineLayoutCss(){
   .redline-page .rl-disc-head h3{margin:0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
   .redline-page .rl-disc-n{font-size:10.5px;font-weight:700;color:var(--color-accent-600)}
-  /* The collapse control sits at the right edge, not wherever the thread count
-     happens to end. #rl-thread-count renders empty on a contract with no
-     threads yet, and without this the chevron slid left to hug the title —
-     a different header on an empty contract than on a busy one. */
-  .redline-page .rl-disc-head .rl-disc-x{margin-left:auto}
   .redline-page .rl-disc-body{flex:1;min-height:0;overflow-y:auto;padding:12px 14px}
+  /* A thread card is a jump target like a change card — same ring, same
+     meaning: this and the clause on the left are one thing shown twice. */
+  .redline-page .rl-thread{cursor:pointer}
+  .redline-page .rl-thread.is-linked{box-shadow:0 0 0 2px var(--accent-solid);
+    border-color:var(--accent-solid)}
   .redline-page .rl-disc-empty{padding:14px;font-size:11.5px;line-height:1.6;color:var(--color-neutral-500)}
   `;
   document.head.appendChild(s);
@@ -4340,26 +4345,17 @@ function redlineEmbed(host, c, opts = {}){
   negoEnsureStyle();
   redlineLayoutCss();
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const o = { ...opts, side, discOff: opts.discOff != null ? opts.discOff : _redlineDiscOff() };
+  const o = { ...opts, side };
   /* .redline-page carries every rule this layout is drawn with; without it the
      mount renders as unstyled stacked divs. The height bound matters just as
-     much: the three columns scroll INSIDE themselves, and columns with no
-     bounded ancestor grow to their content instead of scrolling. */
-  el.innerHTML = `<div class="redline-page rl-embed${o.discOff ? ' disc-off' : ''}"
+     much: the panes scroll INSIDE themselves, and panes with no bounded
+     ancestor grow to their content instead of scrolling. The sidebar mode is
+     an attribute here exactly as on #view-redline — rlSetSideMode paints
+     every .redline-page root, so the tabs need no embed-specific wiring. */
+  el.innerHTML = `<div class="redline-page rl-embed" data-rl-side-mode="${rlSideMode()}"
     style="display:flex;flex-direction:column;gap:12px;min-height:0;height:${_nea(o.height || 'min(880px, 84vh)')};">
     ${redlinePanesHtml(c, o)}
   </div>`;
-  /* The disc-off class lives on #view-redline for the page and on the embed
-     root here; rlToggleDiscussion targets #view-redline, so the embed wires
-     its own fold against its own root. */
-  const root = el.firstElementChild;
-  el.querySelectorAll('[data-redline-disc]').forEach(b => b.addEventListener('click', () => {
-    const off = !root.classList.contains('disc-off');
-    try { localStorage.setItem(RL_DISC_KEY, off ? '1' : '0'); } catch (e) {}
-    root.classList.toggle('disc-off', off);
-    const chip = el.querySelector('#rl-disc-show');
-    if (chip) chip.hidden = !off;
-  }));
   if (!el.id) el.id = 'rl-embed-' + (++_rlEmbedSeq);
   wireNegotiationTab(c, { ...o, hostId: el.id });
   negoAfterPaint(c, o, el);
@@ -4446,7 +4442,7 @@ function renderRedline(){
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page" data-rl-side-mode="${rlSideMode()}" style="height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
       <!-- ONE STRIP. Title, round tag and every header action share a single
            row: the explanatory sub-banner is gone (the wall bar below already
            says what stays behind), and the actions no longer stack on a second
@@ -4493,7 +4489,7 @@ function renderRedline(){
      layout exactly as it binds to its own. */
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
-  const opts = { hostId: 'redline-host', side, discOff: _redlineDiscOff(),
+  const opts = { hostId: 'redline-host', side,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     /* Highlighting wording on this page drives the SIDE PANEL, never a
@@ -4626,8 +4622,6 @@ function renderRedline(){
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
-  host.querySelectorAll('[data-redline-disc]').forEach(el =>
-    el.addEventListener('click', () => rlToggleDiscussion()));
   /* #nego-send-decisions is wired by the ROOM's action bar, which this page
      does not mount — so the counterparty postbox is bound here, to the same
      hook the room would call. */
@@ -4873,17 +4867,11 @@ function rlTagInternalNote(ctx){
     if (window.toast) toast('Propose an edit on this clause first — a note attaches to a change', 'err');
     return false;
   }
-  /* Unfolding first: the composer is in the discussion column, and focusing an
-     input inside a display:none column silently does nothing. On the owner's
-     page the fold lives on #view-redline; on a mount it lives on the embed's
-     own root, and both are cleared the same way. */
-  const unfold = () => {
-    rlToggleDiscussion(false);
-    const root = (ctx.host && ctx.host.querySelector && ctx.host.querySelector('.rl-embed'))
-      || document.querySelector('.redline-page.rl-embed');
-    if (root){ root.classList.remove('disc-off');
-      const chip = root.querySelector('#rl-disc-show'); if (chip) chip.hidden = true; }
-  };
+  /* Switching the sidebar to Discussion first: the composer lives in that
+     panel, and focusing an input inside a display:none panel silently does
+     nothing. rlSetSideMode paints every mounted root — the page and any
+     embed alike — so one call covers both. */
+  const unfold = () => rlSetSideMode('disc');
   unfold();
   /* THE COMPOSER MAY BE AIMED AT A DIFFERENT CHANGE. A change with no thread
      yet has no reply box of its own — the column's one starter serves the
@@ -4940,6 +4928,12 @@ function rlLinkFocus(c, changeId, source){
   page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
   const clause = page.querySelector('#rl-doc [data-nego-card-anchor="' + q(id) + '"]');
   const card = page.querySelector('#rl-changes [data-nego-card="' + q(id) + '"]');
+  /* The change's THREAD is the same thing again in the discussion panel, so
+     it lights with the pair — and whichever sidebar face is showing is the
+     one that gets scrolled: scrolling a display:none panel moves nothing,
+     and the reader is looking at exactly one of the two. */
+  const thread = page.querySelector('#rl-threads [data-rl-thread="' + q(id) + '"]');
+  const mode = page.getAttribute('data-rl-side-mode') === 'disc' ? 'disc' : 'changes';
   if (clause){
     clause.classList.add('is-linked');
     if (source !== 'clause' && clause.scrollIntoView)
@@ -4947,10 +4941,15 @@ function rlLinkFocus(c, changeId, source){
   }
   if (card){
     card.classList.add('is-linked');
-    if (source !== 'card' && card.scrollIntoView)
+    if (source !== 'card' && mode === 'changes' && card.scrollIntoView)
       card.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
-  return !!(clause || card);
+  if (thread){
+    thread.classList.add('is-linked');
+    if (source !== 'card' && mode === 'disc' && thread.scrollIntoView)
+      thread.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  return !!(clause || card || thread);
 }
 
 /* ---------- JUMP TO THE CLAUSE AND EDIT IT THERE ----------
@@ -5047,6 +5046,15 @@ function rlWireClauseTools(c, host, opts){
     again();
   });
 
+  /* ---- THE SIDEBAR'S MODE TABS ----
+     An attribute switch, never a repaint: the panels stay mounted, so a
+     half-typed reply and a scroll position both survive the flip. */
+  host.querySelectorAll('[data-rl-mode]').forEach(b => b.addEventListener('click', () =>
+    rlSetSideMode(b.getAttribute('data-rl-mode'))));
+
+  /* ---- THE SPLIT HANDLE ---- */
+  rlWireResizer(host);
+
   /* ---- CARD → CONTRACT ----
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
@@ -5072,6 +5080,18 @@ function rlWireClauseTools(c, host, opts){
       rlLinkFocus(c, sec.getAttribute('data-nego-card-anchor'), 'clause');
     }));
 
+  /* ---- DISCUSSION CARD → CONTRACT ----
+     A thread hangs off a change, so clicking its card is the same ask as
+     clicking the change's own card: light the clause and take the document
+     there. The same guard as the clause's — typing a reply, pressing its
+     send or flipping its visibility is operating the thread, not asking
+     where it lives. */
+  host.querySelectorAll('#rl-threads [data-rl-thread]').forEach(t =>
+    t.addEventListener('click', ev => {
+      if (fromClauseControl(ev.target)) return;
+      rlLinkFocus(c, t.getAttribute('data-rl-thread'), 'card');
+    }));
+
   /* The card's Send — the SAME act as the toolbar's batch send, because there
      is only one send: everything unsent goes in one round. A per-change send
      would let a reader believe they had published one ask while three others
@@ -5089,33 +5109,109 @@ function rlWireClauseTools(c, host, opts){
   }));
 }
 
-/* ---------- THE DESIGN'S FOLD, AS ITS OWN API ----------
-   The reference calls rlToggleDiscussion() from two places — the chevron in
-   the discussion header and the reveal chip in the Tracked Changes header —
-   and both are `onclick=` attributes, so the name is part of the contract this
-   view is being held to. It is a real function here rather than an inline
-   class toggle so those two controls, the persisted preference and the counts
-   all move together.
+/* ---------- ONE SIDEBAR, TWO MODES, NEVER BOTH ----------
+   The right-hand card shows Tracked Changes OR Discussion — a strict either/
+   or, switched by the tabs at its head. The choice is an attribute on the
+   workbench root (data-rl-side-mode) so one CSS pair enforces the exclusivity,
+   and it is applied WITHOUT a repaint: switching tabs must not eat a half-
+   typed reply or throw away a scroll position, so the panels stay mounted and
+   only their visibility moves.
 
-   The choice is remembered per browser: a negotiator who works with the
-   discussion folded away should not have to fold it again on every clause they
-   open. It is written before the class is toggled so a repaint mid-session
-   reads the same answer the DOM is already showing. */
-const RL_DISC_KEY = 'hati.v1.rlDiscOff';
-function _redlineDiscOff(){
-  try { return localStorage.getItem(RL_DISC_KEY) === '1'; } catch (e) { return false; }
+   Remembered per browser, like the fold it replaces: a negotiator who lives
+   in the discussion should land in it on every contract they open. */
+const RL_SIDE_KEY = 'hati.v1.rlSideMode';
+function rlSideMode(){
+  try { return localStorage.getItem(RL_SIDE_KEY) === 'disc' ? 'disc' : 'changes'; }
+  catch (e) { return 'changes'; }
 }
+function rlApplySideMode(root, m){
+  root.setAttribute('data-rl-side-mode', m);
+  root.querySelectorAll('[data-rl-mode]').forEach(b => {
+    const on = b.getAttribute('data-rl-mode') === m;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+function rlSetSideMode(mode){
+  const m = mode === 'disc' ? 'disc' : 'changes';
+  try { localStorage.setItem(RL_SIDE_KEY, m); } catch (e) {}
+  /* Every mounted workbench root — the page or an embed — so a preference
+     set on one is what any other paints with. */
+  document.querySelectorAll('.redline-page').forEach(root => rlApplySideMode(root, m));
+  return m;
+}
+/* The old fold's name, kept as the compatibility surface: the master design
+   and the Doc Lab both call rlToggleDiscussion by name (see f90 — the lab
+   WRAPS this binding and delegates back when the workbench owns the page).
+   force=true meant "discussion off", which is now the Tracked Changes mode;
+   force=false meant "discussion on", now the Discussion mode. The return
+   value keeps the old contract: true = discussion is not showing. */
 function rlToggleDiscussion(force){
-  const page = document.getElementById('view-redline');
-  if (!page) return false;
-  const off = force == null ? !page.classList.contains('disc-off') : !!force;
-  try { localStorage.setItem(RL_DISC_KEY, off ? '1' : '0'); } catch (e) {}
-  page.classList.toggle('disc-off', off);
-  /* The reveal chip is the only way back once the column is gone, so it is
-     shown exactly when the column is not — never both, never neither. */
-  const chip = document.getElementById('rl-disc-show');
-  if (chip) chip.hidden = !off;
+  const off = force == null ? rlSideMode() === 'disc' : !!force;
+  rlSetSideMode(off ? 'changes' : 'disc');
   return off;
+}
+
+/* ---------- THE SPLIT, DRAGGED ----------
+   The Doc tab's divider, on this page: the contract takes two thirds by
+   default and the handle slides the split either way, remembered per browser.
+   Pixels are computed from the persisted fraction on every layout pass, and
+   pixel floors win over the fraction on a narrow window — a fraction alone
+   would starve one pane. The handle is absolute over the grid gap, so it
+   claims no track of its own. */
+const RL_FMIN = 0.45, RL_F0 = 2 / 3, RL_FMAX = 0.80, RL_GAP = 14;
+const RL_LEFT_MIN = 380, RL_RIGHT_MIN = 300;
+const RL_SPLIT_KEY = 'hati.v1.rlLeftFrac';
+function _rlLeftFrac(){
+  try { const v = Number(localStorage.getItem(RL_SPLIT_KEY));
+    return (v >= RL_FMIN - 0.001 && v <= RL_FMAX + 0.001) ? v : RL_F0; }
+  catch (e) { return RL_F0; }
+}
+function rlLayoutResizer(host){
+  const scope = (host && host.querySelector) ? host : document;
+  const grid = scope.querySelector('.redline-page .rl-grid');
+  const rez = grid && grid.querySelector('#rl-resizer');
+  if (!grid || !rez) return;
+  const avail = grid.clientWidth - RL_GAP;
+  /* Unmeasured (a stage with no layout) or stacked to one column: the CSS
+     fallback columns hold, and writing 0px here would break them. */
+  if (avail < 160) return;
+  let leftPx = Math.round(_rlLeftFrac() * avail);
+  if (avail >= RL_LEFT_MIN + RL_RIGHT_MIN)
+    leftPx = Math.min(Math.max(leftPx, RL_LEFT_MIN), avail - RL_RIGHT_MIN);
+  grid.style.gridTemplateColumns = leftPx + 'px minmax(0,1fr)';
+  rez.style.left = leftPx + 'px';
+}
+function rlWireResizer(host){
+  const scope = (host && host.querySelector) ? host : document;
+  const grid = scope.querySelector('.redline-page .rl-grid');
+  const rez = grid && grid.querySelector('#rl-resizer');
+  if (!grid || !rez) return;
+  rlLayoutResizer(scope);
+  const clamp = f => Math.max(RL_FMIN, Math.min(RL_FMAX, f));
+  let startX = 0, startFrac = RL_F0;
+  const onMove = e => {
+    const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    const avail = Math.max(1, grid.clientWidth - RL_GAP);
+    try { localStorage.setItem(RL_SPLIT_KEY, String(clamp(startFrac + (x - startX) / avail))); } catch (e2) {}
+    rlLayoutResizer(scope);
+  };
+  const onUp = () => { delete rez.dataset.drag;
+    document.body.style.cursor = ''; document.body.style.userSelect = '';
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp); };
+  rez.addEventListener('pointerdown', e => { e.preventDefault();
+    rez.dataset.drag = '1'; startX = e.clientX; startFrac = _rlLeftFrac();
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp); });
+  rez.addEventListener('dblclick', () => {
+    try { localStorage.setItem(RL_SPLIT_KEY, String(RL_F0)); } catch (e2) {}
+    rlLayoutResizer(scope); });
+  if (typeof window !== 'undefined' && !window._rlResizeBound){
+    window._rlResizeBound = true;
+    window.addEventListener('resize', () => rlLayoutResizer(document));
+  }
 }
 
 /* ---------- THE DESIGN'S OWN MARKUP ----------
@@ -5603,6 +5699,7 @@ function redlinePanesHtml(c, opts = {}){
   const p = (typeof negoProgress === 'function') ? negoProgress(c) : { done:0, total:0, pct:0, pending:0 };
   const canAct = !opts.readonly;
   const threadTotal = redlineThreads(c, opts).length;
+  const mode = rlSideMode();
   /* #nego-root is not decoration: the engine declares its entire colour ramp
      on `.nego-room, #nego-root`, so without this wrapper --n-slate and friends
      are undefined and the clause tools render as transparent boxes with white
@@ -5622,6 +5719,13 @@ function redlinePanesHtml(c, opts = {}){
          tooling under it (.nego-work .nego-pane …). Without it Change and
          Delete render as unlabelled empty boxes. The design's column widths are
          set by .redline-page .rl-grid, which outranks it on specificity. -->
+    <!-- ---- TWO PANES, ONE HANDLE, ONE SIDEBAR ----
+         The document on the left; ONE card on the right that shows Tracked
+         Changes OR Discussion, never both — the tabs at its head are the only
+         switch. The handle between them drags the split (the Doc tab's own
+         divider, same defaults: two thirds to the contract). nego-work is kept
+         on the grid because the engine scopes its clause tooling under it
+         (.nego-work .nego-pane …). -->
     <div class="rl-grid nego-work" id="rl-grid" style="--nego-f:1;--nego-c:320px">
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
@@ -5630,19 +5734,24 @@ function redlinePanesHtml(c, opts = {}){
         <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
       </section>
 
-      <aside class="nego-pane index rl-col" id="rl-changes-col" aria-label="Tracked changes">
-        <div class="nego-index-head rl-idx-head">
-        <!-- min-width holds the TITLE's ground: the filter select sizes itself
-             to its longest option, and with min-width:0 the flexbox paid for
-             that by shrinking the title to "Tracked Ch…". The head wraps, so
-             on a narrow column the select drops to its own line instead. -->
-        <h3 style="flex:1;min-width:118px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tracked Changes</h3>
+      <div id="rl-resizer" class="rl-resizer" role="separator" aria-orientation="vertical"
+        title="Drag to set how wide the contract is · double-click to reset"><span></span></div>
+
+      <aside class="rl-col rl-side" id="rl-side" aria-label="Tracked changes and discussion">
+        <div class="rl-side-tabs" role="tablist" aria-label="What the sidebar shows">
+          <button type="button" class="rl-side-tab${mode === 'changes' ? ' on' : ''}" data-rl-mode="changes"
+            role="tab" aria-selected="${mode === 'changes' ? 'true' : 'false'}" aria-controls="rl-changes-col">Tracked Changes</button>
+          <button type="button" class="rl-side-tab${mode === 'disc' ? ' on' : ''}" data-rl-mode="disc"
+            role="tab" aria-selected="${mode === 'disc' ? 'true' : 'false'}" aria-controls="rl-disc-col">Discussion
+            <span class="rl-tab-n" id="rl-rail-count">${threadTotal}</span></button>
+        </div>
+
+        <div class="nego-pane index" id="rl-changes-col" role="tabpanel" aria-label="Tracked changes">
+          <div class="nego-index-head rl-idx-head">
           <select id="rl-card-filter" class="rl-card-filter${rlCardFilter() === 'all' ? '' : ' on'}"
             aria-label="Filter the tracked changes" title="Show every change, one side's asks, or one side of the wall">${
             RL_CARD_FILTERS.map(([k, label]) =>
               `<option value="${k}"${rlCardFilter() === k ? ' selected' : ''}>${label}</option>`).join('')}</select>
-          <button type="button" id="rl-disc-show" class="rl-disc-toggle" data-redline-disc
-            title="Show the discussion column"${opts.discOff ? '' : ' hidden'}>Discussion <span id="rl-rail-count">${threadTotal}</span></button>
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
@@ -5654,17 +5763,18 @@ function redlinePanesHtml(c, opts = {}){
             <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
           </div>` : ''}
           <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
+          </div>
+          <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box
+               the engine and the counterparty portal both reach for by name;
+               #rl-changes is the design's list of cards inside it. They are
+               different things — a scroller and its contents — so nesting is the
+               honest arrangement rather than a trick to satisfy both. -->
+          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
         </div>
-        <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box
-             the engine and the counterparty portal both reach for by name;
-             #rl-changes is the design's list of cards inside it. They are
-             different things — a scroller and its contents — so nesting is the
-             honest arrangement rather than a trick to satisfy both. -->
-        <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
-      </aside>
 
-      <aside class="rl-col rl-disc" id="rl-disc-col" aria-label="Discussion">
-        ${redlineDiscussionHtml(c, opts)}
+        <div class="rl-disc" id="rl-disc-col" role="tabpanel" aria-label="Discussion">
+          ${redlineDiscussionHtml(c, opts)}
+        </div>
       </aside>
     </div>
   </div>`;
@@ -5711,7 +5821,6 @@ function redlineDiscussionHtml(c, opts = {}){
       <h3>Discussion</h3>
       <span class="rl-disc-n" id="rl-thread-count">${
         threads.length ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}</span>
-      <button type="button" class="rl-disc-x" data-redline-disc title="Collapse discussion">&rsaquo;</button>
     </div>`;
   /* #rl-threads is present on both branches, empty state included: the design
      names it as the list, and wiring that only exists once there is something
@@ -5731,7 +5840,8 @@ function redlineDiscussionHtml(c, opts = {}){
         <p>${_ne(m.text || '')}</p>
       </div>`;
     }).join('');
-    return `<article class="rl-thread${anyShared ? '' : ' is-internal'}">
+    return `<article class="rl-thread${anyShared ? '' : ' is-internal'}" data-rl-thread="${_ne(ch.id)}" tabindex="0"
+      title="Jump to ${_ne(ch.clauseLabel || ch.clauseId || 'this clause')} in the contract">
       <div class="rl-thread-top">
         <span class="rl-vis ${anyShared ? 'sh' : 'int'}">${anyShared ? '&#127760; Shared' : '&#128274; Internal'}</span>
         <span class="rl-thread-state">${decided ? (ch.status === 'accepted' ? 'Accepted' : 'Rejected') : 'Open'}</span>
@@ -5812,7 +5922,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
-  rlToggleDiscussion, rlWireClauseTools,
+  rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,

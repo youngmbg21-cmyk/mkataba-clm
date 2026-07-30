@@ -306,13 +306,15 @@ describe('they work through the changes', () => {
     assert.match(v.toasts(), /Enter your full name/);
   });
 
-  test('and the discussion fold', async () => {
+  test('and the sidebar\'s mode tabs', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     const root = v.$('#pt-nego .rl-embed');
-    await v.press('#pt-nego [data-redline-disc]');
-    assert.ok(root.classList.contains('disc-off'),
-      'folding the discussion is a workbench control, and must act on this mount');
+    await v.press('#pt-nego [data-rl-mode="disc"]');
+    assert.equal(root.getAttribute('data-rl-side-mode'), 'disc',
+      'switching the sidebar is a workbench control, and must act on this mount');
+    await v.press('#pt-nego [data-rl-mode="changes"]');
+    assert.equal(root.getAttribute('data-rl-side-mode'), 'changes');
   });
 
   test('Reject All does too, and leaves the deal contested rather than settled', async () => {
