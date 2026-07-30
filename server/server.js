@@ -3386,14 +3386,21 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   else db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
 
-  /* TELL THEM. Refreshing the link used to be silent: the owner was shown
-     "updated version sent", the contract's history recorded that it was sent,
-     and nothing left the building. The negotiation then stalled with each side
-     waiting for the other, and the record said something untrue about it.
-     A refresh is only "sent" once something has actually gone. */
+  /* TELL THEM — ONCE, AT THE START. The email's job in this flow is to deliver
+     the link, and that happens exactly once, when the negotiation begins
+     (POST /api/shares). From then on the platform IS the channel: a round-send
+     refreshes the standing link and the reader finds the new wording behind
+     the same URL they already hold. `notify:false` is how a round-send says
+     so — it is a real send (history recorded, "opened" reset, the round moves)
+     that posts no email, because there is no second link to deliver.
+
+     The email stays available (`notify` omitted or true) for the explicit
+     "email them again" acts — a reminder is a human choice, not a side effect
+     of the round moving. */
+  const notify = (req.body || {}).notify !== false;
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
-  if (!silent && (s.channel || 'link') === 'email' && s.recipient_email) {
+  if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
@@ -3405,6 +3412,7 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
   }
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
+    notifySkipped: !silent && !notify,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });

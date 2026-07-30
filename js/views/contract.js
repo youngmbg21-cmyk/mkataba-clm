@@ -2144,10 +2144,16 @@ function openNegotiationOwnerRoom(c){
         const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
         if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
         else persist(c);
-        toast(out.delivered
+        /* Three honest outcomes. quiet: the standing link took the round and no
+           email goes — by design, the platform is the channel after the first
+           send. delivered: the FIRST send, which emails the link. Otherwise the
+           link went out on a channel that cannot deliver itself. */
+        toast(out.quiet
+          ? `Sent to ${to} — the new round is on their link, and it is now their turn`
+          : out.delivered
           ? `Sent to ${to} — it is now their turn`
           : `Published to ${to}'s link — it is now their turn. ${out.channel==='email'?'It was not emailed; send them the link.':'Send them the link.'}`,
-          out.delivered?undefined:'err');
+          (out.quiet||out.delivered)?undefined:'err');
       }catch(err){
         toast(`Could not send to ${to} — ${err.message}`,'err');
       }

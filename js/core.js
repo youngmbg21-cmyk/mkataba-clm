@@ -1888,18 +1888,30 @@ async function reshareToLastRecipient(c, opts={}){
   const record=(r,reused)=>{
     const ch=last.channel||'email';
     const delivered=ch==='email' && !!r.emailSent;
-    const detail = delivered
+    /* A round published to the standing link ON PURPOSE is not a failed email.
+       The link was delivered once, when the negotiation began; every round
+       after that travels through the platform, and the audit line says so
+       instead of reading like a mail outage. */
+    const quiet=!!r.notifySkipped;
+    const detail = quiet
+      ? `Round sent to ${who}'s standing link — the platform is the channel; the link was emailed once, when the negotiation began`
+      : delivered
       ? `Updated version emailed to ${who}${reused?' on their existing link':''}`
       : ch==='email'
         ? `Updated version published to ${who}'s link${reused?' (existing link)':''} — NOT emailed${r.emailConfigured===false?': this workspace has no mail provider configured':r.emailError?': '+r.emailError:''}`
         : `Updated version published to ${who}'s link${reused?' (existing link)':''} — send it to them by ${ch==='whatsapp'?'WhatsApp':'link'}; nothing was sent automatically`;
     logAudit(c,'Shared',detail);
     persist(c);
-    return { share:r, recipient:last, reused:!!reused, delivered, channel:ch,
+    return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
              link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
   };
   if(live){
-    const r=await api('shares/'+live.token+'/payload','PUT',{ payload });
+    /* ONE EMAIL PER NEGOTIATION, and this is the line that keeps the promise:
+       a round-send onto an existing standing link refreshes the copy behind
+       the URL the counterparty already holds and posts nothing. The first
+       send — the POST below, when no link exists yet — is the one that emails,
+       because it is the one delivering a link. */
+    const r=await api('shares/'+live.token+'/payload','PUT',{ payload, notify:false });
     return record(r||{}, true);
   }
   const r=await api('shares','POST',{ payload, channel:last.channel||'email',
