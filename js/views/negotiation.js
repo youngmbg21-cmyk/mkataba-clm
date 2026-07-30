@@ -2999,14 +2999,23 @@ async function negoAiPropose(c, ctx){
   /* `marked` was read off the selection's own fragment when the menu opened,
      so "pending edits" is claimed only when marks sit inside the chosen words
      — not merely somewhere in the clause or the document. */
-  const found = !!replacement && clauseText.includes(text);
+  /* Matched tolerantly, spliced exactly: negoFindPassage straightens smart
+     quotes, strips zero-width characters and collapses whitespace on BOTH
+     sides before matching, then answers with real offsets into the stored
+     clause text — a selection is no longer refused over a line break the
+     renderer added. */
+  const hit = replacement
+    ? (window.negoFindPassage ? negoFindPassage(clauseText, text)
+       : (clauseText.includes(text) ? { start: clauseText.indexOf(text), end: clauseText.indexOf(text) + text.length } : null))
+    : null;
+  const found = !!hit;
   if (replacement && !found){
     fail(ctx.marked === false
       ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
       : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
-  const proposed = found ? clauseText.replace(text, replacement) : clauseText;
+  const proposed = found ? clauseText.slice(0, hit.start) + replacement + clauseText.slice(hit.end) : clauseText;
   const structured = window.redlineStructuredHtml
     ? redlineStructuredHtml(clauseText, proposed) : null;
   const canApply = found && proposed !== clauseText;
@@ -4952,8 +4961,14 @@ async function rlAiPropose(ctx){
      was read off the selection's own fragment, so "pending edits" is claimed
      only when redline marks sit inside the chosen words. */
   const clauseText = String(cl.text || '');
-  const whole = String(text).trim() === clauseText.trim();
-  if (!whole && !clauseText.includes(text)){
+  /* Both reads are tolerant of typography — smart quotes, non-breaking and
+     zero-width characters, whitespace the renderer introduced — because
+     negoNormalizeText/negoFindPassage straighten them on both sides before
+     comparing. The splice itself happens later, at the REAL offsets the
+     match reports, never against normalised text. */
+  const whole = String(text).trim() === clauseText.trim()
+    || (window.negoNormalizeText && negoNormalizeText(text) === negoNormalizeText(clauseText));
+  if (!whole && !(window.negoFindPassage ? negoFindPassage(clauseText, text) : clauseText.includes(text))){
     rlSayInPanel(ctx.marked === false
       ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
       : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
@@ -4975,11 +4990,15 @@ async function rlAiPropose(ctx){
     const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
     if (!live) return { ok: false, message: 'This clause is no longer in the document. Select a current clause and try again.' };
     const nowText = String(live.text || '');
-    const isWhole = String(text).trim() === nowText.trim();
-    if (!isWhole && !nowText.includes(text))
+    const isWhole = String(text).trim() === nowText.trim()
+      || (window.negoNormalizeText && negoNormalizeText(text) === negoNormalizeText(nowText));
+    const hit = isWhole ? null
+      : (window.negoFindPassage ? negoFindPassage(nowText, text)
+         : (nowText.includes(text) ? { start: nowText.indexOf(text), end: nowText.indexOf(text) + text.length } : null));
+    if (!isWhole && !hit)
       return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
     const proposed = isWhole ? String(wording)
-      : nowText.slice(0, nowText.indexOf(text)) + String(wording) + nowText.slice(nowText.indexOf(text) + text.length);
+      : nowText.slice(0, hit.start) + String(wording) + nowText.slice(hit.end);
     if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
     const html = window.negoRichFromLines ? negoRichFromLines(proposed) : `<p>${_ne(proposed)}</p>`;
     /* Awaited nowhere the card can see it, so the card settles immediately and
