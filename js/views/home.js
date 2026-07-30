@@ -389,6 +389,22 @@ function renderDashboard(){
       </span>
     </button>`; }).join('')
     || `<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--color-neutral-500);padding:12px 2px;"><span style="color:var(--st-green-fg);display:inline-flex;">${icon('check2','w-4 h-4')}</span>Nothing to decide — you're all caught up.</div>`;
+  /* The footer link has to lead where the rows actually live, and this card
+     holds two different kinds of item. A renewal decision is a date, so the
+     calendar is its home; a contract sitting in review is not on any calendar —
+     it is a row in the register. Sending both to the calendar (which the old
+     single-purpose panel could safely do) would land a reader on a screen that
+     shows none of what they clicked. So the footer names its destination, and
+     when the list mixes the two it offers both. */
+  const lnk=(attr,label)=>`<button ${attr} style="border:0;background:none;padding:2px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">${label}</button>`;
+  const renewalN=decisions.length, reviewN=waitingLongest.length;
+  const footerLinks=[
+    renewalN?lnk('data-open-decisions',`${renewalN} renewal decision${renewalN===1?'':'s'} in the calendar →`):'',
+    reviewN?lnk('data-open-review',`${reviewN} waiting in review →`):'',
+  ].filter(Boolean);
+  const decisionFooter=(decisionItems.length>8||footerLinks.length>1)&&footerLinks.length
+    ? `<div style="flex:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:2px;align-items:flex-start;">${footerLinks.join('')}</div>`
+    : '';
   const activitySection=`
     <section style="flex:1;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none;">
@@ -397,7 +413,7 @@ function renderDashboard(){
         ${decisionItems.length?`<span style="margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--st-amber-bg);color:var(--st-amber-fg);">${decisionItems.length}</span>`:''}
       </div>
       <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;">${decisionRows}</div>
-      ${decisionItems.length>8?`<button data-open-decisions style="flex:none;margin-top:8px;border:0;background:none;padding:2px;font:inherit;font-size:11px;font-weight:600;color:var(--color-accent-600);cursor:pointer;text-align:left;">See all ${decisionItems.length} in the calendar →</button>`:''}
+      ${decisionFooter}
     </section>`;
 
   document.getElementById('content').innerHTML=`
@@ -477,6 +493,10 @@ function renderDashboard(){
   document.querySelectorAll('[data-act-decide]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-act-decide'))));
   document.querySelectorAll('[data-share-open]').forEach(el=>el.addEventListener('click',()=>openWorkspace(el.getAttribute('data-share-open'))));
   document.querySelectorAll('[data-open-decisions]').forEach(el=>el.addEventListener('click',()=>setView('calendar')));
+  // contracts sitting in review are register rows, not calendar entries
+  document.querySelectorAll('[data-open-review]').forEach(el=>el.addEventListener('click',()=>{
+    const R=regState(); R.stage='Under Review'; R.type='all'; R.view=null; R.sel={}; setView('register');
+  }));
   document.getElementById('ob-open-cal')?.addEventListener('click',e=>{ e.stopPropagation(); setView('calendar'); });
   /* Through the shared verb in js/obligations.js, exactly as the calendar does:
      one place decides what completing means, and one refresh puts every surface
