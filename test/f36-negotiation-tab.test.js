@@ -712,7 +712,12 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
   test('they are declared on the room, never on :root', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.match(css, /\.nego-room, #nego-root\{\s*--n-slate:#33475c/,
+    /* [^{]* after #nego-root: the block also carries the two body-level
+       floating layers (see the test above), which are nego-namespaced like
+       everything else here. What must not change is that the room and the
+       embedded root lead it and that the tokens live on a component selector
+       rather than :root — both still asserted, here and just below. */
+    assert.match(css, /\.nego-room, #nego-root[^{]*\{\s*--n-slate:#33475c/,
       'the token block must be scoped to the room and the embedded root');
     assert.ok(!/:root\s*\{/.test(css),
       'a :root block here would restyle the whole product from inside a component');
@@ -724,6 +729,23 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     for (const sel of selectors)
       assert.ok(/nego|^from$|^to$/.test(sel),
         `every selector must be namespaced to the component — found "${sel}"`);
+  });
+
+  test('the floating layers can reach the tokens they are painted with', async () => {
+    /* .nego-selmenu and .nego-aipop are appended to document.body on purpose,
+       so a popover is not clipped by the pane it belongs to. That puts them
+       outside .nego-room and #nego-root — where every --n-* is undefined, so
+       background:var(--n-paper) resolved to nothing and the selection menu
+       rendered TRANSPARENT, with the clause text showing through it. The
+       "washed out" menu was never an alpha value; it was a token that did not
+       reach the element using it. */
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    const block = /([^{}]*)\{[^}]*--n-paper:#ffffff/.exec(css);
+    assert.ok(block, 'the paper token must be declared somewhere');
+    for (const sel of ['.nego-selmenu', '.nego-aipop'])
+      assert.ok(block[1].includes(sel),
+        `${sel} floats at body level, so it must be in the token block or it paints with nothing`);
   });
 
   test('the room does not borrow the app\'s palette', async () => {

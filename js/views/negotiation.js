@@ -151,7 +151,21 @@ function negoStyleHtml(){
      exactly as the prototype draws it, and not one rule escapes to the rest of
      HaTi. Prefixed --n-* so a generic name like --line can never be confused
      with a token belonging to the app around it. */
-  .nego-room, #nego-root{
+  /* ---- WHY THE TWO FLOATING LAYERS ARE IN THIS SELECTOR ----
+     .nego-selmenu and .nego-aipop are appended to document.body, deliberately:
+     a popover clipped by the scrolling pane it belongs to is worse than one
+     that outlives it. But that puts them OUTSIDE .nego-room and #nego-root,
+     where every --n-* below is undefined — so background:var(--n-paper)
+     resolved to nothing and the menu rendered with a TRANSPARENT background,
+     the clause text showing straight through the words on top of it. That is
+     the "washed out, muddy" selection menu, and it was never an alpha value:
+     it was a token that did not reach the element using it.
+
+     They are listed here rather than fixed with a hard-coded #fff so the two
+     layers keep reading from the same ramp as the room they belong to, and
+     they stay inside the component's own namespace — nothing here is declared
+     on :root, which would restyle the whole product from inside a component. */
+  .nego-room, #nego-root, .nego-selmenu, .nego-aipop{
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
     --n-badge-bg:#eef2f6;
     --n-ins-bg:#e4f1ea; --n-ins-fg:#1e6b4d;
@@ -3361,8 +3375,29 @@ function wireNegotiationTab(c, opts = {}){
         if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again });
       }));
     };
-    host.addEventListener('mouseup', () => setTimeout(openSelMenu, 0));
-    host.addEventListener('keyup', e => { if (e.shiftKey || e.key === 'Shift') setTimeout(openSelMenu, 0); });
+    /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
+       made the Redline workbench's AI Assist flash and vanish. The clause
+       toolbar sits inside this host, so pressing it fires this handler too;
+       a tick later openSelMenu looked for a selection, found none — a click
+       collapses one — and dismissed the menu the button's own click handler had
+       just opened. The menu was removed by the gesture that asked for it.
+
+       So the gesture is read first: pressing a button, a link or a field is
+       somebody operating the page, not selecting words in it. The Doc Lab hit
+       this and fixed it the same way (see fromControl in js/views/doclab.js);
+       this is that fix on the engine the workbench actually files through. */
+    const fromControl = t => !!(t && t.closest && t.closest(
+      '.rl-tools, .rl-tool, .nego-tool, .nego-selmenu, .nego-aipop, #ai-panel, ' +
+      '[data-nego-editor], button, a, input, textarea, select'));
+    host.addEventListener('mouseup', e => {
+      if (fromControl(e.target)) return;
+      setTimeout(openSelMenu, 0);
+    });
+    host.addEventListener('keyup', e => {
+      if (!(e.shiftKey || e.key === 'Shift')) return;
+      if (fromControl(e.target)) return;
+      setTimeout(openSelMenu, 0);
+    });
     document.addEventListener('mousedown', e => {
       if (!e.target.closest || (!e.target.closest('.nego-selmenu') && !e.target.closest('.nego-aipop')))
         _negoKillSelMenu();
@@ -3830,20 +3865,71 @@ function redlineLayoutCss(){
   .redline-page .nego-visswitch button[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
     border-color:var(--accent-solid)}
   .redline-page .rl-starter-note{margin:7px 0 0;font-size:10px;line-height:1.5;color:var(--color-neutral-500)}
-  .redline-page.disc-off .rl-disc{display:none}
-  .redline-page.disc-off .rl-grid{grid-template-columns:minmax(0,1.9fr) minmax(280px,.95fr)}
+  /* ---- THE DESIGN'S TWELVE COLUMNS ----
+     The reference is lg:grid-cols-12 with lg:col-span-6 / 3 / 3, and the
+     fold re-deals it to 8 / 4. This used to approximate that with fractions
+     (1.9fr / .85fr / .9fr → 1.9fr / .95fr), which is close enough to look
+     right in a screenshot and wrong under measurement: the document took .518
+     of the row where the design gives it exactly .5, and the fold landed on
+     .667 only by coincidence of the gap arithmetic. Twelve real columns with
+     integer spans make the ratio exact at any width, and — more usefully —
+     make it something a test can assert rather than eyeball.
 
-  /* the design's three columns */
+     minmax(0,1fr) on the track, not 1fr: a grid column holding a contract will
+     not otherwise shrink below its longest unbroken line, and the third column
+     gets pushed off the row instead of the text wrapping. */
   .redline-page .rl-grid{flex:1;min-height:0;display:grid;gap:14px;
-    grid-template-columns:minmax(0,1.9fr) minmax(260px,.85fr) minmax(260px,.9fr);align-items:stretch}
-  @media (max-width:1500px){ .redline-page .rl-grid{grid-template-columns:minmax(0,1fr) minmax(260px,300px)} 
-    .redline-page .rl-disc{display:none} }
-  @media (max-width:1100px){ .redline-page .rl-grid{grid-template-columns:minmax(0,1fr)} }
+    grid-template-columns:repeat(12,minmax(0,1fr));align-items:stretch}
+  .redline-page .rl-doc{grid-column:span 6}
+  .redline-page #rl-changes-col{grid-column:span 3}
+  .redline-page #rl-disc-col{grid-column:span 3}
+  /* Folded away, the discussion gives its three columns to the other two —
+     8 / 4, the design's own split. display:none rather than a zero span: a
+     collapsed grid child still claims a track and would leave a dead gutter. */
+  .redline-page.disc-off #rl-disc-col{display:none}
+  .redline-page.disc-off .rl-doc{grid-column:span 8}
+  .redline-page.disc-off #rl-changes-col{grid-column:span 4}
+  /* Focus mode: the document takes all twelve. Written after the disc-off
+     rules and at equal specificity so it wins whichever way the fold is set. */
+  .redline-page.rl-focus #rl-changes-col,.redline-page.rl-focus #rl-disc-col{display:none}
+  .redline-page.rl-focus .rl-doc{grid-column:span 12}
+
+  /* ---- the clause toolbar ----
+     Revealed on hover and on keyboard focus, never on hover alone: a person
+     tabbing through the clauses has to be able to reach the same three verbs.
+     On a touch screen there is no hover at all, so they simply stay out. */
+  .redline-page .rl-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;
+    opacity:0;transition:opacity .16s ease}
+  .redline-page .rl-clause:hover .rl-tools,
+  .redline-page .rl-clause:focus-within .rl-tools{opacity:1}
+  @media (hover:none){ .redline-page .rl-tools{opacity:1} }
+  .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
+    border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;
+    color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
+    transition:border-color .15s,color .15s,background .15s}
+  .redline-page .rl-tool:hover{border-color:var(--accent-solid);color:var(--color-text);
+    background:var(--color-neutral-100)}
+  .redline-page .rl-tool:focus-visible{outline:2px solid var(--accent-solid);outline-offset:1px}
+  .redline-page .rl-btn-ghost{background:var(--color-neutral-100);color:var(--color-neutral-600)}
+  .redline-page .rl-btn-ghost[aria-pressed="true"]{background:var(--accent-solid);color:#fff;
+    border-color:var(--accent-solid)}
+
+  /* The design keeps all three columns from lg (1024px) up. This used to
+     drop the discussion below 1500px, which hid the whole third column on a
+     13" laptop — the most common screen this is read on. Below lg the design
+     stacks to one column and the page scrolls, so the inner panes give their
+     scroll back to the page rather than trapping the gesture. */
+  @media (max-width:1023px){
+    .redline-page .rl-grid{grid-template-columns:minmax(0,1fr);height:auto}
+    .redline-page .rl-doc,.redline-page #rl-changes-col,.redline-page #rl-disc-col{
+      grid-column:auto;min-height:280px}
+    .redline-page.disc-off .rl-doc,.redline-page.disc-off #rl-changes-col{grid-column:auto}
+  }
   .redline-page .rl-doc,.redline-page .rl-col{background:var(--color-surface);border:1px solid var(--color-divider);
     border-radius:12px;box-shadow:var(--shadow-sm);min-height:0;overflow:hidden;display:flex;flex-direction:column}
   .redline-page .rl-doc .nego-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px 4px}
-  .redline-page #nego-index{border-radius:12px}
-  .redline-page #nego-index h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  .redline-page #rl-changes-col{border-radius:12px}
+  .redline-page #rl-changes-col h3{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--color-neutral-500);font-weight:700}
   /* the header carries these; a second pair here would be two controls for one action */
   .redline-page .nego-bulk{display:none!important}
@@ -3892,7 +3978,7 @@ function renderRedline(){
   const side = _redlineSide === 'counterparty' ? 'counterparty' : 'owner';
   const seg = (v, label) => `<button data-redline-side="${v}" class="rl-seg${side === v ? ' on' : ''}">${label}</button>`;
   host.innerHTML = `
-    <div class="view-enter redline-page" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_redlineDiscOff() ? ' disc-off' : ''}" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px 22px;min-height:0;">
       <section class="rl-head">
         <div class="rl-head-id" style="min-width:0;">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;">
@@ -3904,6 +3990,8 @@ function renderRedline(){
           </p>
         </div>
         <div class="rl-actions">
+          <button type="button" class="rl-btn rl-btn-ghost" data-rl-focus aria-pressed="false"
+            title="Give the document the whole row">&#9652; Focus mode</button>
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
           <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 9-9"/><path d="M15 4V2M15 10V8M11 6h2M17 6h2M19 13v-2M19 17v-2M17 15h2M21 15h-2"/><path d="m14 7-1.5 1.5a2.1 2.1 0 0 0 0 3l.5.5a2.1 2.1 0 0 0 3 0L17.5 10"/></svg>
@@ -3938,17 +4026,128 @@ function renderRedline(){
      layout exactly as it binds to its own. */
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
-  const opts = { hostId: 'redline-host', side, messages: c._messages || [], seenScope: c.id,
+  const opts = { hostId: 'redline-host', side, discOff: _redlineDiscOff(),
+    messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     rerender: () => renderRedline() };
   mount.innerHTML = redlinePanesHtml(c, opts);
   wireNegotiationTab(c, opts);
   negoAfterPaint(c, opts, mount);
-  host.querySelectorAll('[data-redline-disc]').forEach(el => el.addEventListener('click', () => {
-    const page = host.querySelector('.redline-page');
-    if (page) page.classList.toggle('disc-off');
-  }));
+  host.querySelectorAll('[data-redline-disc]').forEach(el =>
+    el.addEventListener('click', () => rlToggleDiscussion()));
+  host.querySelectorAll('[data-rl-focus]').forEach(el =>
+    el.addEventListener('click', () => rlToggleFocus()));
+  rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
+}
+
+/* ---------- FOCUS MODE ----------
+   Not a fourth panel but the absence of the other two: the document takes the
+   whole row so a long clause can be read at a sensible measure. The changes
+   and the discussion are still there the moment it is switched off, and the
+   fold preference for the discussion is left untouched — coming out of focus
+   must put the page back the way it was found, not the way the design ships. */
+function rlToggleFocus(force){
+  const page = document.getElementById('view-redline');
+  if (!page) return false;
+  const on = force == null ? !page.classList.contains('rl-focus') : !!force;
+  page.classList.toggle('rl-focus', on);
+  const btn = page.querySelector('[data-rl-focus]');
+  if (btn){
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.textContent = on ? '▸ Exit focus' : '▴ Focus mode';
+  }
+  return on;
+}
+
+/* AI Assist and Add Note/Tag, bound to the engine.
+
+   AI Assist offers the same three NEGO_AI_ACTIONS the selection menu offers,
+   because a clause-level ask and a phrase-level ask are the same ask over a
+   different span of text — negoAiPropose takes the passage either way, and
+   what comes back is a PROPOSAL, never an edit: nothing moves until it is
+   filed. The menu is built from the engine's own list, so an action added
+   there appears here without a second edit.
+
+   Add Note/Tag needs somewhere for the note to live, and on this engine a note
+   lives on a CHANGE. Where a clause has no change yet, it says so rather than
+   filing an empty one to hang a note on — a fingerprint nobody proposed is
+   worse than a message that explains itself. */
+function rlWireClauseTools(c, host, opts){
+  const actions = (typeof NEGO_AI_ACTIONS !== 'undefined') ? NEGO_AI_ACTIONS : [];
+  host.querySelectorAll('[data-rl-ai]').forEach(btn => btn.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    _negoKillSelMenu();
+    const clauseId = btn.getAttribute('data-rl-ai');
+    const sec = host.querySelector(`[data-clause="${window.CSS && CSS.escape ? CSS.escape(clauseId) : clauseId}"]`);
+    const para = sec && sec.querySelector('.rl-clause-p');
+    const text = String((para && para.textContent) || '').trim();
+    if (!text) return;
+    const rect = btn.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.className = 'nego-selmenu';
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = `<div class="nego-selhead">This clause</div>
+      <div class="nego-selquote">${_ne(text.length > 64 ? text.slice(0, 63) + '…' : text)}</div>
+      ${actions.map(a => `<button type="button" role="menuitem" data-nego-ai="${_ne(a.id)}">${_ne(a.label)}</button>`).join('')}`;
+    document.body.appendChild(menu);
+    const box = menu.getBoundingClientRect();
+    const at = _negoAnchor(rect, box.width, box.height);
+    menu.style.left = at.left + 'px';
+    menu.style.top = at.top + 'px';
+    menu.querySelectorAll('[data-nego-ai]').forEach(b => b.addEventListener('click', e => {
+      e.preventDefault(); e.stopPropagation();
+      const action = actions.find(a => a.id === b.getAttribute('data-nego-ai'));
+      _negoKillSelMenu();
+      if (action) negoAiPropose(c, { action, text, clauseId, rect, side: opts.side, opts,
+        again: () => renderRedline() });
+    }));
+  }));
+
+  host.querySelectorAll('[data-rl-note]').forEach(btn => btn.addEventListener('click', () => {
+    const changeId = btn.getAttribute('data-rl-change');
+    if (!changeId){
+      if (window.toast) toast('Propose an edit on this clause first — a note attaches to a change', 'err');
+      return;
+    }
+    /* Unfolding first: the composer is in the discussion column, and focusing
+       an input inside a display:none column silently does nothing. */
+    rlToggleDiscussion(false);
+    rlToggleFocus(false);
+    const input = document.getElementById('nego-ti-' + changeId);
+    if (!input) return;
+    input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    input.focus();
+  }));
+}
+
+/* ---------- THE DESIGN'S FOLD, AS ITS OWN API ----------
+   The reference calls rlToggleDiscussion() from two places — the chevron in
+   the discussion header and the reveal chip in the Tracked Changes header —
+   and both are `onclick=` attributes, so the name is part of the contract this
+   view is being held to. It is a real function here rather than an inline
+   class toggle so those two controls, the persisted preference and the counts
+   all move together.
+
+   The choice is remembered per browser: a negotiator who works with the
+   discussion folded away should not have to fold it again on every clause they
+   open. It is written before the class is toggled so a repaint mid-session
+   reads the same answer the DOM is already showing. */
+const RL_DISC_KEY = 'hati.v1.rlDiscOff';
+function _redlineDiscOff(){
+  try { return localStorage.getItem(RL_DISC_KEY) === '1'; } catch (e) { return false; }
+}
+function rlToggleDiscussion(force){
+  const page = document.getElementById('view-redline');
+  if (!page) return false;
+  const off = force == null ? !page.classList.contains('disc-off') : !!force;
+  try { localStorage.setItem(RL_DISC_KEY, off ? '1' : '0'); } catch (e) {}
+  page.classList.toggle('disc-off', off);
+  /* The reveal chip is the only way back once the column is gone, so it is
+     shown exactly when the column is not — never both, never neither. */
+  const chip = document.getElementById('rl-disc-show');
+  if (chip) chip.hidden = !off;
+  return off;
 }
 
 /* ---------- THE DESIGN'S OWN MARKUP ----------
@@ -3970,6 +4169,31 @@ function redlineDocHtml(c, opts = {}){
   const tmpl = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
   const region = RL_REGION[(window.state && state.region) || 'KE'] || RL_REGION.KE;
   const editable = !opts.readonly && opts.canEdit !== false;
+  /* ---- THE CLAUSE TOOLBAR ----
+     Three verbs on every clause, and each one presses the ENGINE's control
+     rather than a lookalike: Direct Edit carries data-nego-edit, which is the
+     same attribute the propose dialog has always bound to; AI Assist opens the
+     three NEGO_AI_ACTIONS against this clause's own wording; Add Note/Tag
+     jumps to the per-change reply box, which is where a note on a clause
+     actually lives.
+
+     WHY NOT THE DOC LAB'S TOOLBAR, which looks identical. The lab's buttons
+     write to hati.lab.v1 — a sandbox store that by design cannot reach a
+     contract. Wired onto this page they would appear to work and quietly file
+     nothing against the real agreement. Same three verbs, same look, engine
+     underneath: that is the whole point of the port. */
+  const tools = (cl, ch) => {
+    if (!editable) return '';
+    const id = _ne(cl.clauseId);
+    return `<div class="rl-tools" role="group" aria-label="Tools for this clause">
+      <button type="button" class="rl-tool" data-rl-ai="${id}"
+        title="Run an AI action on this clause">&#129668; AI Assist</button>
+      <button type="button" class="rl-tool" data-rl-note="${id}"${ch ? ` data-rl-change="${_ne(ch.id)}"` : ''}
+        title="Attach an internal or shared note to this clause">&#128172; Add Note/Tag</button>
+      <button type="button" class="rl-tool" data-nego-edit="${id}"
+        title="Edit this clause's wording directly">&#9998; Direct Edit</button>
+    </div>`;
+  };
   const body = clauses.map(cl => {
     const ch = byClause.get(cl.clauseId);
     const heading = `${cl.num ? cl.num + '. ' : ''}${_ne(cl.title || 'Clause')}`;
@@ -3982,13 +4206,13 @@ function redlineDocHtml(c, opts = {}){
           <span class="rl-asktag">${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'}</span>
         </div>
         <p class="rl-clause-p">${text}</p>
+        ${tools(cl, ch)}
       </section>`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
       <h4 class="rl-clause-h">${heading}</h4>
       <p class="rl-clause-p">${_ne(cl.text || '')}</p>
-      ${editable ? `<button class="rl-propose" data-nego-edit="${_ne(cl.clauseId)}"
-        title="Propose different wording for this clause">&#9998; Propose edit</button>` : ''}
+      ${tools(cl, null)}
     </section>`;
   }).join('');
   /* nego-doc is required, not cosmetic: the Copilot selection menu (the three
@@ -4076,24 +4300,25 @@ function redlinePanesHtml(c, opts = {}){
      are undefined and the clause tools render as transparent boxes with white
      text on a white page. */
   return `<div id="nego-root" class="rl-root">
-    ${redlineWallHtml(c, opts)}
+    <div id="rl-banner">${redlineWallHtml(c, opts)}</div>
     <div class="rl-turnwrap">${negoTurnBannerHtml(c, opts)}</div>
     <!-- nego-work is kept on the grid because the engine scopes its clause
          tooling under it (.nego-work .nego-pane …). Without it Change and
          Delete render as unlabelled empty boxes. The design's column widths are
          set by .redline-page .rl-grid, which outranks it on specificity. -->
-    <div class="rl-grid nego-work" id="nego-work" style="--nego-f:1;--nego-c:320px">
+    <div class="rl-grid nego-work" id="rl-grid" style="--nego-f:1;--nego-c:320px">
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->
-      <section class="rl-doc nego-pane working" aria-label="The contract, with this round's changes marked">
+      <section id="rl-doc" class="rl-doc nego-pane working" aria-label="The contract, with this round's changes marked">
         <div class="nego-scroll" id="nego-scroll-work">${redlineDocHtml(c, opts)}</div>
       </section>
 
-      <aside class="nego-pane index rl-col" id="nego-index" aria-label="Tracked changes">
+      <aside class="nego-pane index rl-col" id="rl-changes-col" aria-label="Tracked changes">
         <div class="nego-index-head rl-idx-head">
           <h3 style="flex:1;min-width:0;margin:0">Tracked Changes</h3>
-          <button type="button" class="rl-disc-toggle" data-redline-disc>Discussion ${threadTotal}</button>
+          <button type="button" id="rl-disc-show" class="rl-disc-toggle" data-redline-disc
+            title="Show the discussion column"${opts.discOff ? '' : ' hidden'}>Discussion <span id="rl-rail-count">${threadTotal}</span></button>
           ${''/* kept for the engine's wiring and the header proxies; the design
                  carries these controls in the page header instead */}
           <span class="nego-count" id="nego-count" hidden>${p.pending || p.total}</span>
@@ -4106,7 +4331,12 @@ function redlinePanesHtml(c, opts = {}){
           </div>` : ''}
           <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
         </div>
-        <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}${redlineChangeCardsHtml(c, opts)}</div>
+        <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box
+             the engine and the counterparty portal both reach for by name;
+             #rl-changes is the design's list of cards inside it. They are
+             different things — a scroller and its contents — so nesting is the
+             honest arrangement rather than a trick to satisfy both. -->
+        <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, opts)}</div></div>
       </aside>
 
       <aside class="rl-col rl-disc" id="rl-disc-col" aria-label="Discussion">
@@ -4143,11 +4373,17 @@ function redlineDiscussionHtml(c, opts = {}){
   const head = `
     <div class="rl-disc-head">
       <h3>Discussion</h3>
-      ${threads.length ? `<span class="rl-disc-n">${threads.length} thread${threads.length === 1 ? '' : 's'}</span>` : ''}
+      <span class="rl-disc-n" id="rl-thread-count">${
+        threads.length ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}</span>
       <button type="button" class="rl-disc-x" data-redline-disc title="Collapse discussion">&rsaquo;</button>
     </div>`;
+  /* #rl-threads is present on both branches, empty state included: the design
+     names it as the list, and wiring that only exists once there is something
+     in it is wiring that breaks on the first contract anybody opens. */
   if (!changes.length) return `${head}
-    <div class="rl-disc-empty">Threads attach to a change. Propose an edit on the left and the conversation about it lands here.</div>`;
+    <div class="rl-disc-body" id="rl-threads">
+      <div class="rl-disc-empty">Threads attach to a change. Propose an edit on the left and the conversation about it lands here.</div>
+    </div>`;
 
   const card = ({ ch, msgs }) => {
     const anyShared = msgs.some(m => m.visibility === 'shared');
@@ -4198,7 +4434,7 @@ function redlineDiscussionHtml(c, opts = {}){
     </div>` : '';
 
   return `${head}
-    <div class="rl-disc-body">
+    <div class="rl-disc-body" id="rl-threads">
       ${threads.length ? threads.map(card).join('')
         : `<div class="rl-disc-empty">No one has said anything yet. Start a thread below and it stays attached to that change.</div>`}
     </div>
@@ -4225,6 +4461,7 @@ function redlineSyncProxies(host){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
+  rlToggleDiscussion, rlToggleFocus, rlWireClauseTools,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
