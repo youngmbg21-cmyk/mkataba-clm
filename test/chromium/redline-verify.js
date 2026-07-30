@@ -107,6 +107,39 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('2 the sheet fills the column', sheet.paperWidth >= sheet.colWidth - 12,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
 
+  /* ---- 2b. how much of the column the contract actually occupies ----
+     The complaint this answers is "there is too much space at the edges", and
+     it is a measurement, not an opinion: before the fix the text sat 116px in
+     from the left of its column and 46px from the right — lopsided, because
+     the engine's 100px badge gutter was landing on one side only. */
+  const inset = await page.evaluate(() => {
+    const col = document.getElementById('rl-doc').getBoundingClientRect();
+    const bodies = [...document.querySelectorAll('#rl-doc .rl-clause .nego-body')];
+    const left = Math.min(...bodies.map(b => b.getBoundingClientRect().left));
+    const right = Math.max(...bodies.map(b => b.getBoundingClientRect().right));
+    const tools = document.querySelector('#rl-doc .rl-tools');
+    const cls = [...document.querySelectorAll('#rl-doc .rl-clause')];
+    const gaps = cls.slice(1).map((c, i) =>
+      Math.round(c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom));
+    return { left: Math.round(left - col.left), right: Math.round(col.right - right),
+      colWidth: Math.round(col.width),
+      textWidth: Math.round(right - left), gaps,
+      toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
+      toolsHeight: tools ? Math.round(tools.getBoundingClientRect().height) : null };
+  });
+  check('2b the text sits the same distance from both edges',
+    Math.abs(inset.left - inset.right) <= 2, `${inset.left}px left / ${inset.right}px right`);
+  check('2b the margins are the design\'s p-6, not a reserved gutter',
+    inset.left <= 32, `${inset.left}px`);
+  check('2b the contract occupies the column rather than floating in it',
+    inset.textWidth / inset.colWidth > 0.9,
+    `${(inset.textWidth / inset.colWidth * 100).toFixed(1)}% of the column`);
+  check('2b no clause reserves an invisible toolbar row',
+    inset.toolsOpacity === '1' && inset.toolsHeight <= 26,
+    `opacity ${inset.toolsOpacity}, ${inset.toolsHeight}px`);
+  check('2b the gaps between clauses are even and tight',
+    inset.gaps.every(g => g <= 20), JSON.stringify(inset.gaps));
+
   /* ---- 6. the uploaded document survives ---- */
   const struct = await page.evaluate(() => {
     const doc = document.getElementById('rl-doc');

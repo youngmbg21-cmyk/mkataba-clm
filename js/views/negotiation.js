@@ -3842,13 +3842,37 @@ function redlineLayoutCss(){
      last clause, which is how the master prototype sets it — a single
      contract-page sheet, no nested frame. The column keeps the sheet's shadow,
      see .rl-doc below, so the paper still reads as paper. */
-  .redline-page .rl-paper{padding:26px 30px 34px;max-width:none;
+  .redline-page .rl-paper{padding:22px 24px 28px;max-width:none;
     background:none;border:0;border-radius:0;box-shadow:none;margin:0}
+  /* ---- THE HUNDRED-PIXEL GUTTER DOWN THE LEFT ----
+     The engine reserves it — padding-left:100px on .nego-pane.working
+     .nego-doc — because in the room the fingerprint badges hang there, outside
+     the text column. This page does not put them there: the design carries the
+     ask inline, in .rl-asktag on the clause's own top row. So the gutter was
+     holding nothing, and it was holding it asymmetrically: measured, the text
+     sat 116px from the left edge of the column and 46px from the right.
+
+     Written at four classes deep because the engine's rule is three, and this
+     stylesheet is inserted BEFORE #nego-style in the head — at equal
+     specificity the engine would win on order. The reference sets the sheet at
+     p-6 (24px) all round; that is what this restores. */
+  .redline-page .nego-pane.working .rl-paper{padding-left:24px;padding-right:24px}
+  @media (max-width:1023px){
+    .redline-page .nego-pane.working .rl-paper{padding-left:18px;padding-right:18px}
+  }
   .redline-page .rl-paper-head{text-align:center;border-bottom:1px solid var(--color-divider);
     padding-bottom:14px;margin-bottom:18px}
   .redline-page .rl-paper-title{margin:0;font-size:19px;font-weight:700;letter-spacing:.01em}
   .redline-page .rl-paper-sub{margin:5px 0 0;font-size:11.5px;color:var(--color-neutral-500)}
-  .redline-page .rl-clause{margin:0 0 18px}
+  /* ---- AND A SECOND INSET INSIDE THE FIRST ----
+     .rl-clause is also .nego-clause, which carries padding:10px 12px for the
+     room's hover wash. Stacked on the sheet's own padding that put every line
+     of the contract another 12px in from an edge it was already clear of, and
+     10px of air above and below every clause on top of the margin between
+     them. The reference sets an unchanged clause flush to the sheet and pads
+     only the CHANGED ones — p-3, the frame that says something is on the table
+     — which is what these two rules restore. */
+  .redline-page .rl-clause{margin:0 0 16px;padding:0}
   .redline-page .rl-clause-h{margin:0 0 5px;font-size:var(--rl-type);font-weight:700;
     letter-spacing:.02em}
   /* ---- ONE TYPE SIZE FOR THE WHOLE WORKBENCH ----
@@ -3868,7 +3892,7 @@ function redlineLayoutCss(){
     font:inherit;font-size:11.5px;font-weight:600;color:var(--color-accent-600)}
   .redline-page .rl-propose:hover{text-decoration:underline}
   .redline-page .rl-clause.is-changed{background:color-mix(in srgb,#f59e0b 7%,transparent);
-    border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);border-radius:10px;padding:13px 15px}
+    border:1px solid color-mix(in srgb,#f59e0b 32%,transparent);border-radius:10px;padding:12px 14px}
   /* ---- WHERE "EDIT" LANDS YOU ----
      Pressing Edit on a card scrolls the document to that clause, and the clause
      has to say so when it arrives — a page that silently jumps has moved the
@@ -4019,17 +4043,27 @@ function redlineLayoutCss(){
   .redline-page.rl-focus #rl-changes-col,.redline-page.rl-focus #rl-disc-col{display:none}
   .redline-page.rl-focus .rl-doc{grid-column:span 12}
 
-  /* ---- the clause toolbar ----
-     Revealed on hover and on keyboard focus, never on hover alone: a person
-     tabbing through the clauses has to be able to reach the same three verbs.
-     On a touch screen there is no hover at all, so they simply stay out. */
-  .redline-page .rl-tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;
-    opacity:0;transition:opacity .16s ease}
-  .redline-page .rl-clause:hover .rl-tools,
-  .redline-page .rl-clause:focus-within .rl-tools{opacity:1}
-  @media (hover:none){ .redline-page .rl-tools{opacity:1} }
+  /* ---- THE CLAUSE TOOLBAR, AND THE BLANK ROW IT USED TO RESERVE ----
+     It was opacity:0 until hover. opacity does not take an element out of the
+     flow, so every clause in the document — including the ones under redline,
+     which the design gives no control at all — carried a MEASURED 26px of
+     invisible toolbar plus its 9px margin. That is where the vertical air
+     between clauses was going: a gap with nothing in it, on every clause, all
+     the way down a contract.
+
+     Zeroing the height and growing it on hover would trade the gap for a worse
+     problem — the page reflowing under the pointer, so everything below the
+     clause you are reading jumps down as you move across it.
+
+     So the tools are simply THERE, the way the room's are and for the reason
+     the room's are (test/f44: hover does not exist on a touch screen, and
+     these are the only way to propose anything). Drawn compact — one 20px
+     line, the same spend the reference makes on its "Propose edit" link — they
+     cost what they show, which is the whole complaint answered. */
+  .redline-page .rl-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px;
+    min-height:20px}
   .redline-page .rl-tool{border:1px solid var(--color-divider);background:var(--color-surface);
-    border-radius:999px;padding:3px 10px;font:inherit;font-size:10.5px;font-weight:600;
+    border-radius:999px;padding:2px 9px;font:inherit;font-size:10px;font-weight:600;line-height:1.6;
     color:var(--color-neutral-600);cursor:pointer;white-space:nowrap;
     transition:border-color .15s,color .15s,background .15s}
   .redline-page .rl-tool:hover{border-color:var(--accent-solid);color:var(--color-text);

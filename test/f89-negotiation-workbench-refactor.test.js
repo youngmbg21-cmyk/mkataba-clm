@@ -152,6 +152,53 @@ describe('F89 (2) — one document sheet, not a sheet inside a panel', () => {
   });
 });
 
+describe('F89 (2b) — the page sets the contract, it does not float it', () => {
+  /* Three separate rules were each pushing the text in from the edges, and
+     together they left the document sitting in a pool of white space that the
+     master design does not have. Measured on the real box model before the
+     fix: the text sat 116px from the left of its column and 46px from the
+     right, and every clause carried 26px of INVISIBLE toolbar. */
+  test('the engine\'s 100px fingerprint gutter is not reserved on this page', async () => {
+    /* .nego-pane.working .nego-doc{padding-left:100px} exists so the room can
+       hang change badges in the margin. This page carries the ask inline, in
+       .rl-asktag on the clause's own row, so the gutter holds nothing — and it
+       held it on ONE side, which is what made the sheet look off-centre. */
+    const p = await page();
+    const r = p.rule('.redline-page .nego-pane.working .rl-paper');
+    assert.ok(r, 'the override must exist, or the engine\'s gutter applies');
+    assert.match(r, /padding-left:24px/);
+    assert.match(r, /padding-right:24px/);
+    /* Four classes deep, because the engine's rule is three and this
+       stylesheet is inserted BEFORE #nego-style — a tie would lose on order. */
+    const css = p.css();
+    assert.ok(css.indexOf('.redline-page .nego-pane.working .rl-paper') >= 0,
+      'the selector must out-specify .nego-pane.working .nego-doc, not merely restate it');
+  });
+
+  test('a clause is flush to the sheet; only a changed one is framed', async () => {
+    const p = await page();
+    assert.match(p.rule('.redline-page .rl-clause') || '', /padding:0/,
+      '.nego-clause\'s 10px/12px is a second inset inside the sheet\'s own');
+    assert.match(p.rule('.redline-page .rl-clause.is-changed') || '', /padding:12px 14px/,
+      'the design pads only what is on the table — p-3 — so the frame means something');
+  });
+
+  test('the clause toolbar costs what it shows', async () => {
+    /* opacity:0 does not take an element out of the flow. Every clause in the
+       document — including the ones under redline, which the reference gives
+       no control at all — reserved a blank 26px row plus its margin. That was
+       the vertical air with nothing in it. */
+    const p = await page();
+    const r = p.rule('.redline-page .rl-tools');
+    assert.ok(r, '.rl-tools must carry a rule');
+    assert.ok(!/opacity:0/.test(r),
+      'an invisible row still occupies its height — that is the gap it was creating');
+    assert.ok(!/\.redline-page \.rl-clause:hover \.rl-tools/.test(p.css()),
+      'and hover does not exist on a touch screen (the room settled this — see f44)');
+    assert.match(r, /min-height:20px/, 'one compact line, the spend the reference makes');
+  });
+});
+
 describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog', () => {
   test('an AI action opens the docked panel and files nothing', async () => {
     const p = await page();
