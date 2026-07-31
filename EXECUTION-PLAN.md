@@ -2,7 +2,7 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** IN BUILD. Stages 0 and 1 complete.
+**Status:** IN BUILD. Stages 0, 1, 2 and 3 complete; merged to `main` as each lands.
 See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
@@ -558,15 +558,15 @@ in the portfolio as dangling; and the report only fires once the round closes,
 because until then the baseline both sides measure against still carries the
 clause — the warning appears when the gap does.
 
-### 🟡 Stage 3 — partly built, ahead of Stage 2
+### ✅ Stage 3 — COMPLETE (built partly ahead of Stage 2)
 **Suite 1908/0.**
 
 | Item | Status |
 |---|---|
 | **WP-1.4 + the `view` branch of X5** | ✅ Done. `portalNegoPhase` learns the third purpose; `renderShareViewer` is a separate screen, routed out at the **top** of `renderSharePortal` before any of the negotiate page is assembled — which is what makes "nothing on that screen to hide" true rather than aspirational. Banner, watermark, painted marks, print stylesheet. f112 (9) asserts zero buttons, zero fields, nothing editable, none of the negotiate ids — and asserts the negotiate page *does* render buttons so it cannot pass vacuously. |
-| WP-1.3 snapshot semantics | ⬜ Server already freezes the payload at creation and refuses a refresh (f108); the "as of" date renders. Needs its own proving test. |
-| WP-1.5 expiry / revoke / OTP / open-tracking | 🟡 Revoke and expiry already reach view links (f108). The owner-side overview listing and the OTP toggle are not built. |
-| **W6** (the `sign` / `negotiate` split) | ⬜ Not started. |
+| WP-1.3 snapshot semantics | ✅ Done. Inherent — the payload is stored at creation and served verbatim — but now *proven* rather than assumed: editing the contract afterwards does not change what the link shows, and the owner cannot quietly refresh it. f114. |
+| WP-1.5 expiry / revoke / OTP / open-tracking | ✅ Done. The overview now carries `purpose`, `expiresAt` and `firstOpenedAt`, so a view link stops reading as another counterparty who has not answered. Opens are stamped; revoke says "withdrawn" rather than looking broken. f114 (7). |
+| **W6** (the `sign` / `negotiate` split) | ✅ Done. f113 (9). The signing link was mounting the workbench LIVE — Direct Edit and the send-decisions postbox on a page issued to somebody asked only to sign. Keeps a read-only view of what was settled (D4). |
 
 **Why out of order:** the viewer screen was built before Stage 2 because its
 server half was already finished and the two are one feature. X5's rule that
@@ -574,12 +574,20 @@ the viewer must sit on W1's new shell is **not violated** — the viewer does no
 use the portal's card-in-a-page layout at all; it renders its own full-width
 sheet, so W1's rework of the negotiate page cannot strand it.
 
-### ⬜ Stages 2, 4–9 — not started
-**Next: Stage 2** — the counterparty workbench (W1, W2, W4, W5, and W3 now
-that D5 is answered), starting with the Chromium visual-parity harness, since
-jsdom cannot see the defect being fixed. Then Stage 4 (signing route), 5
-(renumber), 6 (history), 7 (live numbering), 8 (extensions), 9 (hardening +
-the merge to main).
+### ✅ Stage 2 — COMPLETE
+**Suite 2030/0 · parity 18/18.** W1 gave the counterparty the window instead
+of a card: contract pane 419px → 928px against the owner's 925px, page 2761px
+→ 940px, the Discussion tab back inside its own panel. W2 deleted the second
+(unmarked) copy of the contract and the third surface duplicating Direct Edit.
+W3 put the name field back — deleting the aside had taken the field that gates
+every send, so the page would have looked right and been unable to send. W5
+stopped *Accept All Non-Risk* claiming, on their screen, that HaTi had sorted
+their asks by our playbook. W4 needed no change and is asserted rather than
+assumed. Ships with `test/chromium/parity-verify.js`, wired into `test:all`.
+
+### ⬜ Stages 4–9 — not started
+**Next: Stage 4** — the signing route (W7 then W8, never W8 first). Then 5
+(renumber), 6 (history), 7 (live numbering), 8 (extensions), 9 (hardening).
 
 ### Notes for whoever picks this up
 - **Branching deviated from §2 deliberately.** This session was instructed to

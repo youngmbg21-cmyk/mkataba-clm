@@ -3184,6 +3184,13 @@ app.get('/api/shares/overview', auth, (req, res) => {
     if (items.length < 12) items.push({
       token: s.token, contractId: s.contract_id, name: s.c_name || s.contract_id, counterparty: s.c_counterparty || '',
       state: st, channel: s.channel || 'link', recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', at,
+      /* WHAT KIND OF LINK, so the owner's overview can tell a view-only pass
+         from a negotiation seat. Without it every row reads as somebody who
+         can answer, and a view link — which by design can do nothing — would
+         sit in the list looking like an unanswered counterparty. */
+      purpose: s.purpose || null,
+      expiresAt: s.expires_at || null,
+      firstOpenedAt: s.first_opened_at || null,
     });
   }
   res.json({ counts, byContract, items });
