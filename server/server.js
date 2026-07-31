@@ -3874,27 +3874,50 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
   res.json({ events: rows });
 });
 
-// Counterparty signing is verified by an email one-time code.
+/* Counterparty signing is verified by an email one-time code.
+
+   ---- W8: THE CODE GOES ONLY TO THE ADDRESS THE OWNER INVITED ----
+   This used to send the code to req.body.email — whatever the signer typed
+   into the page. That proved the signer controls A mailbox, not the RIGHT
+   one: anyone holding a forwarded link and any mailbox could sign, under any
+   name they typed. The destination is now the share's recorded recipient —
+   the address the owner set — and the typed address is ignored entirely.
+
+   This deliberately removes an informal handover that used to work: their
+   lawyer forwards the link, their MD types their own address, gets the code,
+   signs. Its replacement is W7's recorded route — the owner names each
+   signer's address up front and each gets their own bound link — which is why
+   W8 ships with W7 and never before it. Flagged in the release notes. */
 app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request a code
-  const s = db.prepare('SELECT token FROM shares WHERE token=?').get(req.params.token);
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
-  const email = String((req.body || {}).email || '').toLowerCase();
-  if (!/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  const invited = String(s.recipient_email || '').toLowerCase();
+  if (!/.+@.+\..+/.test(invited))
+    /* No recorded address means there is nothing this check could verify
+       AGAINST — a code sent wherever the page asks is theatre wearing a
+       padlock. Refused plainly, with the way out named. */
+    return res.status(409).json({ error: 'This link was issued without a named email address, so a signing code cannot be sent. Ask the sender to reissue the link to the signer\'s own email address.' });
   const code = code6(), expires = Date.now() + 10 * 60 * 1000;
   db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires) VALUES (?,?,?,?,0,?) ' +
     'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
-    .run(req.params.token, email, sha(code + req.params.token), null, expires);
-  sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+    .run(req.params.token, invited, sha(code + req.params.token), null, expires);
+  sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
   // The code is NEVER returned to the caller. This endpoint is public and the
   // caller is the party being verified — handing them the code makes the check
   // theatre. With no mail provider the code queues to the admin-only outbox
   // (dev_hint above), which is what the documentation has always promised.
-  res.json({ ok: true, emailSent: EMAIL_ON() });
+  // `sentTo` is safe to return: it is the address the sender already chose,
+  // shown so the page can say where to look rather than implying the typed
+  // address was used.
+  res.json({ ok: true, emailSent: EMAIL_ON(), sentTo: invited });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
-  const { email, code } = req.body || {};
-  if (!row || row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
+  const { code } = req.body || {};
+  /* The typed email is no longer part of the check — the server chose the
+     destination (W8 above), so matching against what the page typed would
+     only re-admit the page's opinion. Possession of the code IS the proof. */
+  if (!row) return res.status(400).json({ error: 'Request a code first' });
   if (Date.now() > row.expires) return res.status(400).json({ error: 'Code expired — request a new one' });
   if (row.code_hash !== sha(String(code || '') + req.params.token)) return res.status(400).json({ error: 'Incorrect code' });
   const verify = rid(12);

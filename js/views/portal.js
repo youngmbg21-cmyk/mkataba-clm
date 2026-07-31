@@ -2441,21 +2441,37 @@ async function portalSignUnverified(p, info){
   });
 }
 
-/* two-step counterparty signing with email one-time code (server mode) */
+/* two-step counterparty signing with email one-time code (server mode)
+
+   W8: the code goes to the address the OWNER invited — the server reads it
+   off the share record and ignores anything typed on this page. The old copy
+   here said "signing with a different address is allowed (e.g. a colleague
+   signs)"; that handover is exactly what W8 removes, because a code sent to
+   a typed address proves control of A mailbox, not the RIGHT one. A
+   colleague who should sign gets their own link on the signing route. */
 async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
-  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(info.email)}</strong>…</div>`;
-  let emailSent=true;
+  const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
+  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
+  let emailSent=true, sentTo=invited;
   try{
-    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{ email:info.email });
+    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{});
     emailSent=r.emailSent!==false;
-  }catch(e){ toast(e.message,'err'); box.innerHTML=''; return; }
+    sentTo=r.sentTo||invited;
+  }catch(e){
+    /* The one refusal with no way forward on this page: the link records no
+       address to verify against. Said in full, with the way out, rather than
+       as a toast that scrolls away. */
+    box.innerHTML=`<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:#8f322b"><b>Cannot send a signing code.</b> ${esc(e.message||'')}</div>`;
+    portalSetIdle();
+    return;
+  }
   box.innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify your email to sign</div>
-      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(info.email)}</strong>. Enter it to complete your signature.</p>
-      ${(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail&&PORTAL_OPTS.share.recipientEmail.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Note: this contract was sent to <strong>${esc(PORTAL_OPTS.share.recipientEmail)}</strong>. Signing with a different address is allowed (e.g. a colleague signs) and the verified address will be recorded on the signature.</p>`:''}
-      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent to you. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify it's you to sign</div>
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(sentTo)}</strong> — the address this link was issued to. Enter it to complete your signature.</p>
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">The code goes only to <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
@@ -2468,7 +2484,9 @@ async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
   if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
   let verify;
-  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
+  // no email in the body: the server verified the address IT chose (W8), and
+  // possession of the code is the whole proof
+  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
   catch(e){ toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),

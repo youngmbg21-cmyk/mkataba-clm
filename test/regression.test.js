@@ -149,10 +149,15 @@ describe('counterparty sharing still works end to end', () => {
   });
 
   test('a one-time code is never returned to the caller', async () => {
+    /* W8 changed where the code GOES — only ever to the share's recorded
+       recipient, so the link carries one here — but not what the caller may
+       see: the caller is the party being verified, and handing them the code
+       makes the check theatre. */
     const share = await W.admin.json('/api/shares', { method: 'POST', body: {
-      payload: { kind: 'hati-share', contract: { id: 'MK-A2' } }, channel: 'link', recipient: {} } });
+      payload: { kind: 'hati-share', contract: { id: 'MK-A2' } }, channel: 'link',
+      recipient: { name: 'Grace', email: 'g@x.co.ke' } } });
     const anon = h.client('portal3');
-    const r = await anon.raw('/api/shares/' + share.token + '/otp', { method: 'POST', body: { email: 'g@x.co.ke' } });
+    const r = await anon.raw('/api/shares/' + share.token + '/otp', { method: 'POST', body: {} });
     assert.equal(r.status, 200);
     assert.ok(!/\b\d{6}\b/.test(r.text), 'the signing code must not be in the response body');
   });
