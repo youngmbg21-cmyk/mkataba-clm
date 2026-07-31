@@ -5,6 +5,12 @@
    Run:  npm install && npm start   (http://localhost:3000)
    ============================================================ */
 const express = require('express');
+/* The market this workspace operates in — its law, its money, the statute a
+   signature rests on. Required from js/jurisdiction.js rather than restated
+   here: a second copy would drift from the browser's the first time either
+   moved, and the two would then describe different markets to the same model. */
+const { jxPack, JX_DEFAULT } = require('../js/jurisdiction.js');
+const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -81,6 +87,46 @@ db.exec(`
 `);
 
 const now = () => new Date().toISOString();
+/* ---- A DATE FIELD IS NOT ALWAYS A DATE, on this side of the wire too ----
+
+   The mirror of dateOnly()/isoDay() in js/obligations.js, and it has to exist
+   here for the same reason it had to exist there: an expiry or an obligation
+   due date can arrive from metadata extraction, a bulk migration or a
+   spreadsheet somebody typed, and then it reads "30 September 2026".
+
+   `new Date("30 September 2026" + "T00:00:00")` is an Invalid Date, and
+   `toISOString()` on one THROWS — which took the whole reminder sweep down.
+   The sweep is called on a twelve-hour timer inside a catch that swallows, so
+   one badly typed field on one contract stopped every renewal reminder for
+   every contract in the workspace, permanently and without a sound.
+
+   Only shapes a person actually writes a date in are offered to the parser:
+   outside the ISO grammar Date.parse falls back to a guesser that reads
+   "Phase 2" as 1 February 2001. Anything else is null — "we do not know", which
+   every caller handles by simply not firing. */
+const DATE_MONTH_RE = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i;
+const DATE_SHAPES = [
+  /^(\d{1,2})(?:st|nd|rd|th)?[ .\-]+([A-Za-z]{3,9})\.?,?[ .\-]+(\d{4})$/,   // 30 September 2026
+  /^([A-Za-z]{3,9})\.?[ .\-]+(\d{1,2})(?:st|nd|rd|th)?,?[ .\-]+(\d{4})$/,   // September 30, 2026
+];
+/* The calendar day a Date IS, read where the server stands. toISOString()
+   converts to UTC first, so midnight local on a Nairobi-hosted server came back
+   as the previous day — every decision deadline reported one day early. */
+const isoDay = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function dateOnly(v) {
+  if (v instanceof Date) return isNaN(v.getTime()) ? null : isoDay(v);
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  if (!/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s)) {
+    const shape = DATE_SHAPES.map(re => re.exec(s)).find(Boolean);
+    if (!shape || !DATE_MONTH_RE.test(shape[1].length > 2 ? shape[1] : shape[2])) return null;
+  }
+  const t = Date.parse(s);
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : isoDay(d);
+}
 const rid = (n=24) => crypto.randomBytes(n).toString('hex');
 const hashPw = (pw, salt) => crypto.scryptSync(String(pw), salt, 64).toString('hex');
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -151,12 +197,14 @@ function syncFts(c) {
 function upsertContract(c, version) {
   const j = JSON.stringify(c);
   const u = c.upload || {};
-  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id)
-    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id)
+  db.prepare(`INSERT INTO contracts (id,json,name,counterparty,folder,status,value,expiry,is_upload,seq,version,updated_at,text_fingerprint,simhash,parent_id,template_id,template_version_id)
+    VALUES (@id,@json,@name,@counterparty,@folder,@status,@value,@expiry,@is_upload,@seq,@version,@updated_at,@text_fingerprint,@simhash,@parent_id,@template_id,@template_version_id)
     ON CONFLICT(id) DO UPDATE SET json=excluded.json, name=excluded.name, counterparty=excluded.counterparty,
       folder=excluded.folder, status=excluded.status, value=excluded.value, expiry=excluded.expiry,
       is_upload=excluded.is_upload, version=excluded.version, updated_at=excluded.updated_at,
-      text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id`).run({
+      text_fingerprint=excluded.text_fingerprint, simhash=excluded.simhash, parent_id=excluded.parent_id,
+      template_id=COALESCE(contracts.template_id, excluded.template_id),
+      template_version_id=COALESCE(contracts.template_version_id, excluded.template_version_id)`).run({
     id: c.id, json: j, name: c.name || '', counterparty: c.counterparty || '', folder: c.folder || '',
     status: c.status || '', value: Number(c.value) || 0, expiry: c.expiry || null, is_upload: c.source === 'upload' ? 1 : 0,
     seq: c._seq != null ? c._seq : nextSeq(), version, updated_at: now(),
@@ -164,6 +212,11 @@ function upsertContract(c, version) {
     // be built without loading a single document body.
     text_fingerprint: u.textFingerprint || null, simhash: u.simhash || null,
     parent_id: c.parentId || null,
+    // Template provenance (Template Library). COALESCE above makes both
+    // columns write-once: the first non-null value a contract is saved with is
+    // the value it keeps for life.
+    template_id: c.libraryTemplateId || null,
+    template_version_id: c.libraryTemplateVersionId || null,
   });
   syncFts(c);
 }
@@ -228,12 +281,88 @@ addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`)
 // share is bound to a recipient and channel, expires, can be revoked, and
 // carries the lifecycle timestamps the derived share state is computed from.
 addColumnIfMissing('shares', 'durable', 'INTEGER NOT NULL DEFAULT 0');
-/* What the link is FOR — 'negotiate' or 'sign'. Stored on the row as well as
-   inside the payload, because supersession has to compare two links without
-   parsing both payloads, and because the owner's shares panel reads it. NULL
-   on every link created before purposes existed; those keep the old
+/* What the link is FOR — 'negotiate', 'sign' or 'view'. Stored on the row as
+   well as inside the payload, because supersession has to compare two links
+   without parsing both payloads, and because the owner's shares panel reads it.
+   NULL on every link created before purposes existed; those keep the old
    behaviour, where the reader's page inferred a phase from the change set. */
 addColumnIfMissing('shares', 'purpose', 'TEXT');
+
+/* ---------- THE THIRD PURPOSE: 'view' ----------
+   A view link shows the contract with its redlines painted in, to somebody
+   outside the deal — the counterparty's insurer, an advisor, a lawyer being
+   asked "is this normal". They may read. They may do nothing else.
+
+   ENFORCED HERE, NOT BY HIDING BUTTONS. A page that renders no verbs is a
+   courtesy; a route that refuses the request is the rule. The one below is the
+   whole of it, and it is written as a single guard every mutating token route
+   calls rather than a condition repeated at each of them, because the failure
+   mode this feature has to survive is the FIFTH route — the one added next
+   year by someone who never read this comment. A repeated condition protects
+   the four that exist today; a shared guard protects the one that does not. */
+const SHARE_PURPOSES = ['negotiate', 'sign', 'view'];
+const sharePurposeOf = s => String((s && s.purpose) || 'negotiate');
+const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
+/* Returns a response and true when the request must not proceed. Callers read
+   it as: `if (refuseIfViewOnly(s, res)) return;` */
+function refuseIfViewOnly(s, res){
+  if (!shareIsViewOnly(s)) return false;
+  res.status(403).json({ error: 'This is a view-only link. It can show the contract, and nothing else. '
+    + 'Ask the person who sent it if you need to respond.', purpose: 'view' });
+  return true;
+}
+
+/* ---------- THE VIEWER'S COPY, BUILT BY ALLOW-LIST ----------
+   Start from an empty object and add the few things an outside reader may see.
+   Never take the full payload and delete from it.
+
+   The difference is not stylistic. A deny-list is a list of everything secret
+   anyone has thought of so far, and it is wrong the moment a field is added
+   somewhere else in the product — the new field ships visible, and nobody finds
+   out until it is in front of the wrong reader. An allow-list ships new fields
+   invisible and fails in the safe direction. Everything not named below is not
+   omitted by decision; it simply never reaches the object.
+
+   WHAT IS DELIBERATELY ABSENT, because these are the ones somebody will
+   eventually be tempted to add: the internal comment threads, the discussion
+   messages, per-change notes and review flags, the audit trail, the version
+   list, the signature panel, the approval chain, and the counterparty's own
+   contact details. The redlines are here because showing them is the entire
+   point of the link — the advisor is being asked what they think of the marked
+   text. The people are not: an outside reader gets the argument, not the
+   arguers. */
+function viewerPayload(payload, s){
+  const c = (payload && payload.contract) || {};
+  const out = { kind: 'hati-share', purpose: 'view', viewOnly: true };
+  out.contract = {
+    id: c.id || null,
+    name: c.name || null,
+    counterparty: c.counterparty || null,
+    /* The body and the marks. redlineText carries the wording; the change list
+       is reduced to what it takes to PAINT the marks — the clause, the two
+       texts and the ops — with the outcome as visual state only. Who proposed
+       it, who ruled on it, when, and why are all internal: they are the
+       negotiation's story, and the story belongs to the parties. */
+    redlineText: c.redlineText || c.body || null,
+    format: c.format || 'text',
+    changes: Array.isArray(c.changes) ? c.changes.map(ch => ({
+      id: ch.id || null,
+      clauseId: ch.clauseId || null,
+      clauseLabel: ch.clauseLabel || null,
+      changeType: ch.changeType || 'modify',
+      oldText: ch.oldText == null ? '' : ch.oldText,
+      newText: ch.newText == null ? '' : ch.newText,
+      ops: Array.isArray(ch.ops) ? ch.ops : null,
+      status: ch.status || 'pending',
+    })) : [],
+  };
+  /* The snapshot's own honesty: what round this was, and when it was frozen.
+     A read-only copy with no date on it invites being read as current. */
+  out.asOf = (s && s.created_at) || null;
+  out.round = (c.negotiation && c.negotiation.round) || c.round || 1;
+  out.org = (payload && payload.org) || null;
+  return out;
+}
 /* A DURABLE share is one long-lived link per counterparty per contract: it
    always serves the current wording and accepts the next response, round after
    round. A one-shot share is the original behaviour and stays the default —
@@ -285,6 +414,14 @@ addColumnIfMissing('shares', 'sent_at', 'TEXT');
 addColumnIfMissing('shares', 'first_opened_at', 'TEXT');
 addColumnIfMissing('shares', 'responded_at', 'TEXT');
 addColumnIfMissing('shares', 'reminded_at', 'TEXT');
+/* W7: which row of the contract's signing route (c.signerPlan) this link was
+   issued for. A share record used to know its contract but not its signer, and
+   that gap is a recorded data-integrity fault: an incoming signature was
+   stamped on whichever counterparty row was NEXT, so when their FD signed
+   before their MD, the signature landed on the MD's row. The contract side
+   needs no migration — the plan lives in the contract's JSON blob — but the
+   share side is a real table, so it gets a real column. */
+addColumnIfMissing('shares', 'signer_id', 'TEXT');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
 /* Value visibility is a RIGHT, not a preference, so it is a column on the user
    row rather than a key in the client-writable appSettings blob (see SUMMARY.md
@@ -1113,8 +1250,33 @@ app.get('/api/stats', auth, (req, res) => {
   const byFolder = db.prepare(`SELECT folder, COUNT(*) n,
       COALESCE(SUM(CASE WHEN status!='Declined' THEN value ELSE 0 END),0) val,
       SUM(status='Under Review') pending FROM contracts ${w} GROUP BY folder`).all(...f.args);
+  /* ---- AND THE ONES WHOSE TERM HAS RUN OUT ----
+
+     "Active value" was every contract that was not Declined, so an agreement
+     that ended in 2023 kept its whole face value in the headline figure for
+     ever, and there was no count anywhere of how many had quietly lapsed. The
+     browser derives the same fact for the badge and the calendar
+     (contractExpired in js/core.js); this is the portfolio-wide answer, so the
+     dashboard's number and its chips cannot disagree.
+
+     Read in JS rather than compared in SQL because an expiry does not have to
+     be a clean YYYY-MM-DD — a bulk migration or a Copilot extraction can leave
+     "30 September 2026" in that column, and a string comparison against today
+     would silently call it expired. dateOnly is the same normalisation the
+     reminder sweep uses; a value that is no kind of date means "we do not know
+     when this ends", which is not a claim that it has ended. */
+  const today = isoDay(new Date());
+  const signed = db.prepare(`SELECT expiry, value FROM contracts ${whereOf("status='Signed'", f.sql)}`).all(...f.args);
+  let expired = 0, expiredValue = 0;
+  for (const r of signed) {
+    const day = dateOnly(r.expiry);
+    if (day && day < today) { expired++; expiredValue += Number(r.value) || 0; }
+  }
+  g.expired = expired;
+  g.expiredValue = expiredValue;
+  g.totalValue = Math.max(0, (Number(g.totalValue) || 0) - expiredValue);
   if (!canViewValues(req.user)) {
-    delete g.totalValue;
+    delete g.totalValue; delete g.expiredValue;
     return res.json({ ...g, byFolder: byFolder.map(({ val, ...rest }) => rest), valuesHidden: true });
   }
   res.json({ ...g, byFolder });
@@ -1291,8 +1453,45 @@ app.get('/api/contracts/:id', auth, (req, res) => {
 const EXECUTED_IMMUTABLE = [
   'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
   'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+  /* THE NEGOTIATION RECORD IS EVIDENCE TOO, and was not on this list. The
+     wording was protected and the account of how the parties reached it was
+     not, so a request could leave the sealed text untouched and rewrite the
+     changes that produced it — who asked for what, who refused it and why.
+     That record is what the history screen shows an auditor and what the
+     change-chain verification is computed over, and a seal that binds the text
+     while the story behind it stays editable protects the less interesting
+     half. Frozen at execution, along with the rounds they were archived into
+     and the versions that carry each round's body. */
+  'changes', 'rounds', 'negotiation', 'versions',
 ];
-const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash));
+/* THREE SIGNALS, MATCHING negoExecuted IN THE BROWSER (js/negotiation.js).
+   This read two — a seal or an execution stamp — and the client reads three.
+   A record marked Signed that carries neither was executed as far as every
+   screen in the product is concerned, and unprotected as far as this route was.
+   The two definitions must answer the same question or the lock and the sign
+   are guarding different doors.
+
+   Safe to tighten because status and seal are always written together: both
+   signing paths in js/views/contract.js set c.hash and c.status in the same
+   operation before persist(), so no legitimate save arrives carrying a new
+   Signed status against a stored record that was already Signed. */
+const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash || c.status === 'Signed'));
+
+/* THE SEAL MAY BE ACQUIRED ONCE, AND NEVER CHANGED AFTER.
+   Widening isExecutedRow to include the status caught a case it should not: a
+   record marked Signed that has not been sealed yet. Refusing there makes the
+   act of sealing impossible on exactly the contracts that most need it, which
+   is not the rule — the rule is that SEALED CONTENT is immutable, not that a
+   signed record can never receive its seal.
+
+   So these four fields may go from empty to set, once. Anything already
+   carrying a value is frozen like everything else on the list, which is what
+   stops a second write from re-sealing a contract over the top of the first.
+   Every other immutable field — the wording, the parties, the money, the
+   negotiation record — is refused outright, because none of them is something
+   an unsealed-but-signed record is waiting to be given. */
+const SEAL_ACQUIRABLE = new Set(['hash', 'execution', 'sealVersion', 'signedAt']);
+const isEmptyish = v => v === undefined || v === null || v === '';
 const stable = v => JSON.stringify(v === undefined ? null : v);
 
 // Save ONE contract with its own optimistic-lock version.
@@ -1334,7 +1533,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   }
 
   if (prev && isExecutedRow(prev)) {
-    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k]));
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
@@ -1342,6 +1542,50 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
+     The browser has always refused to let one member sign another member's
+     step (js/views/contract.js, "This step is reserved for …"). That is a sign
+     on the door: it stops the honest mistake of a colleague signing on the
+     wrong row, and it stops nothing else, because the request that carries the
+     signature is an ordinary contract save and this route never asked.
+     DESIGN-multi-signature.md listed server-side enforcement as Phase 2
+     hardening and recorded that it was never built.
+
+     Asked as a DIFFERENCE, not as a state: the question is not "is this user
+     the next signer" — a save that touches nothing about signing would fail
+     that — but "does this save newly mark a reserved step as signed, and is the
+     caller the member it was reserved for". Any other save passes untouched.
+
+     Only steps carrying a memberId are reserved. A route row naming somebody
+     with no account (a counterparty signer, an internal name typed by hand) is
+     not bound to a member and is not this rule's business; W7/W8 are what bind
+     those, through the link and the code sent to the invited address. */
+  if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
+    const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
+    const stolen = c.signerPlan.find(s => {
+      if (!s || !s.signed || !s.memberId) return false;
+      const before = was.get(String(s.id || s.order));
+      if (before && before.signed) return false;          // already signed — not this save
+      return String(s.memberId) !== String(req.user.id);
+    });
+    if (stolen) {
+      return res.status(403).json({
+        error: `That signing step is reserved for ${stolen.name || 'another member'}. `
+          + 'Only they can sign it.',
+        reservedFor: stolen.name || null,
+      });
+    }
+  }
+
+  /* Template provenance is written once, at creation, and never overwritten or
+     removed — it is the audit trail that answers "which live contracts came
+     from which template version". The columns are set-once via COALESCE in
+     upsertContract; this keeps the JSON blob from disagreeing with them. */
+  if (prev && (prev.libraryTemplateId || prev.libraryTemplateVersionId)) {
+    c.libraryTemplateId = prev.libraryTemplateId;
+    c.libraryTemplateVersionId = prev.libraryTemplateVersionId;
+  }
+
   // The audit trail is evidence, so the client never gets to shorten or rewrite
   // it. Entries may only be appended; anything else is replaced with what is
   // already on the record.
@@ -1476,7 +1720,10 @@ const isModelRejection = (status, text) => {
    a failed call costs nothing and books nothing. */
 async function anthropicMessages(key, tier, payload, meter = {}) {
   const t = tier === 'deep' ? 'deep' : 'fast';
-  const chosen = aiModelForTier(t);
+  // meter.model pins a specific model for callers whose behaviour is tuned to
+  // one (the template converter); the tier default remains the retry-once
+  // fallback below, so a retired pin degrades instead of breaking the feature.
+  const chosen = meter.model || aiModelForTier(t);
   const def = AI_TIER_DEFAULTS[t];
   const book = (model, data) => {
     const spend = recordAiSpend(meter.feature || 'other', model, data && data.usage,
@@ -1870,10 +2117,10 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
         effectiveDate: { type: 'string', description: 'ISO yyyy-mm-dd, or empty.' },
         expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date, or empty.' },
         value: { type: 'number', description: 'Contract value as a number (no currency symbol). 0 if none/non-monetary.' },
-        currency: { type: 'string', description: 'ISO code e.g. KES, USD. Empty if none.' },
+        currency: { type: 'string', description: 'ISO currency code as written in the document, e.g. KES, SEK, USD. Empty if none.' },
         renewalType: { type: 'string', enum: ['auto-renew', 'fixed', 'evergreen', 'unknown'], description: 'Renewal mechanism.' },
         noticePeriodDays: { type: 'number', description: 'Notice period in days for termination/non-renewal. 0 if none/unclear.' },
-        governingLaw: { type: 'string', description: 'e.g. Kenya, England & Wales. Empty if unclear.' },
+        governingLaw: { type: 'string', description: 'e.g. Kenya, Sweden, England & Wales. Empty if unclear.' },
         paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
         confidence: { type: 'object', properties: {
           counterparty: conf, contractType: conf, effectiveDate: conf, expiryDate: conf, value: conf,
@@ -1938,7 +2185,7 @@ app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, 
       properties: {
         fields: { type: 'array', maxItems: 24, items: { type: 'object', properties: {
           key: { type: 'string', description: 'lower_snake_case placeholder name, letters/digits/underscore only, max 32 chars.' },
-          label: { type: 'string', description: 'Short human label, e.g. "Counterparty" or "Monthly rent (KES)".' },
+          label: { type: 'string', description: 'Short human label, e.g. "Counterparty" or "Monthly rent".' },
           type: { type: 'string', enum: ['text', 'party', 'num', 'date', 'select'], description: 'party = the name of the other company. num = a number. date = a calendar date. select = a fixed choice list.' },
           opts: { type: 'array', items: { type: 'string' }, description: 'For select only: the allowed values.' },
           required: { type: 'boolean', description: 'True if a contract cannot be issued without it.' },
@@ -2044,7 +2291,8 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
       required: ['verdicts'],
     },
   };
-  const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  const J = orgJx();
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -2237,14 +2485,14 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
-  { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic Kenyan-practice scan). Empty if it has not been scanned.',
+  { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
   { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace by status, folder, expiry horizon, or minimum value. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals").',
     input_schema: { type: 'object', properties: {
       status: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'Optional status filter.' },
       folder: { type: 'string', description: 'Optional value-stream folder id.' },
       expiringWithinDays: { type: 'number', description: 'Optional: only contracts expiring within this many days.' },
-      minValue: { type: 'number', description: 'Optional: only contracts worth at least this many KES.' } } } },
+      minValue: { type: 'number', description: 'Optional: only contracts worth at least this much, in the workspace currency.' } } } },
   { name: 'compare_contracts', description: 'Fetch two or more contracts in full at once for a side-by-side comparison. Prefer this over multiple get_contract calls when comparing.',
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -2287,7 +2535,7 @@ function buildCopilotSystem(context, scopeCtx) {
   if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
-  return `You are HaTi Copilot, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform for the Kenyan market (${orgName}). You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
+  return `You are HaTi Copilot, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform (${orgName}), operating in ${orgJx().name}. You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
 
 ${view ? 'CURRENT VIEW: ' + view + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 
@@ -2310,7 +2558,7 @@ HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
-- Contract ids look like MK-103. Money is in Kenyan Shillings (KES).
+- Contract ids look like MK-103. Money is in ${orgJx().currency}.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
 
@@ -2442,7 +2690,7 @@ app.get('/api/export/contracts.csv', auth, (req, res) => {
   if (req.query.status) { where.push('status=@status'); args.status = String(req.query.status); }
   const rows = db.prepare(`SELECT json FROM contracts ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY seq DESC`).all(args)
     .map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
-  const head = ['ID', 'Name', 'Counterparty', 'Folder', 'Value (KES)', 'Status', 'Last action', 'Expiry'];
+  const head = ['ID', 'Name', 'Counterparty', 'Folder', `Value (${orgJx().currency})`, 'Status', 'Last action', 'Expiry'];
   const monetary = c => c.valueType !== 'none';
   const lines = [head.map(CSV_CELL).join(',')];
   for (const c of rows) {
@@ -2460,10 +2708,48 @@ app.post('/api/sign-meta', auth, (req, res) => {
   res.json({ ip: clientIp(req), at: now() });
 });
 
-// Auto-distribution: email a sealed copy of the executed contract to every
-// party for their own records. The platform copy remains the source of truth;
-// this is a convenience copy (link + seal). Idempotency is enforced client-side
-// via c.distribution, but re-sends are allowed (Send again).
+/* ---------- WHO HAS ACTUALLY SIGNED ----------
+   Not the same question as "is the contract sealed", and reading one for the
+   other is how a notice went out saying a contract was "fully signed by all
+   parties" the moment ONE party had put a mark on it. A single-signer route
+   seals and freezes the wording on the first signature — which is correct, the
+   text has to stop moving — but sealing is a fact about the DOCUMENT and
+   execution is a fact about the PARTIES, and the email speaks about the
+   parties.
+
+   Fully executed means both named sides have signed. A contract with no
+   counterparty named has only one side to hear from; one filed as executed
+   outside HaTi carries the paper, which is already both. */
+function signedParties(c) {
+  const sigs = Array.isArray(c && c.signatures) ? c.signatures : [];
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const theirs = sigs.filter(isTheirs);
+  const ours = sigs.filter(s => s && !isTheirs(s));
+  const offPlatform = !!(c && ((c.execution && c.execution.offPlatform) || c.hash === 'MIGRATED'
+    || (c.migration && c.migration.executedOutside)));
+  const expectsCounterparty = !!String((c && c.counterparty) || '').trim();
+  const nameOf = list => String((list[0] && (list[0].name || list[0].email)) || '').trim();
+  return {
+    ours: ours.length, theirs: theirs.length,
+    ourName: nameOf(ours) || 'this workspace',
+    theirName: nameOf(theirs) || String((c && c.counterparty) || 'the counterparty'),
+    counterparty: String((c && c.counterparty) || '').trim(),
+    fully: offPlatform || (ours.length > 0 && (theirs.length > 0 || !expectsCounterparty)),
+  };
+}
+
+/* Distribution: email each party their copy of the executed contract. The
+   platform copy remains the source of truth; this is the convenience copy
+   (link + seal). Idempotency is enforced client-side via c.distribution, but
+   re-sends are allowed (Send again).
+
+   THE COPY GOES OUT ONLY WHEN BOTH PARTIES HAVE SIGNED, and that is the whole
+   point of the split below. A half-executed contract is not a document anybody
+   should be filing as their record of the deal: one side has committed and the
+   other has not, and a sealed copy with a fingerprint on it reads exactly like
+   a finished agreement. So while a signature is outstanding this sends a
+   PROGRESS NOTICE — who has signed, who has not — carrying no seal and no link
+   to the document. The copy itself follows when the last signature lands. */
 app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
@@ -2472,21 +2758,59 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
   const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
+  const st = signedParties(c);
+  const who = st.ours && !st.theirs ? st.ourName : st.theirs && !st.ours ? st.theirName : '';
+  const waitingFor = st.theirs ? st.ourName : (st.counterparty || st.theirName);
+  const subject = st.fully
+    ? `Fully executed — "${c.name}"`
+    : `Signed by ${who || 'one party'} — "${c.name}"`;
   const out = [];
   for (const r of recipients) {
     const email = String((r && r.email) || '').trim();
     if (!/.+@.+\..+/.test(email)) { out.push({ name: (r && r.name) || '', email, role: (r && r.role) || '', party: (r && r.party) || '', status: 'failed', at: now() }); continue; }
-    const subject = `Fully executed — "${c.name}"`;
-    const body = `Hello${r.name ? ' ' + r.name : ''},\n\n` +
-      `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
-      `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
-      `Document seal (SHA-256):\n${seal}\n\n` +
-      `Open it in HaTi:\n${appUrl}\n\n` +
-      `This is an automated notice from HaTi CLM.`;
-    const sent = await sendEmail(email, subject, body, `executed copy: ${c.id}`);
+    /* WHICH DOOR THIS PERSON IS ENTITLED TO.
+
+       Everybody used to get `appUrl` — the platform's own front door. For our
+       own people that is right: they have accounts and the master copy is what
+       they want. For the counterparty it was an invitation into the workspace
+       that holds every other deal we have. They cannot get in, so nothing
+       leaked; what they got was a sign-in wall where the message had promised
+       them a contract.
+
+       Their door is the share link they have been reading the contract through
+       all along, which now serves it executed. Where there is no live link,
+       they get the seal and no link at all — which is what the part-signed
+       notice already does, and is honest. */
+    const external = r.party === 'counterparty' || r.party === 'external';
+    let door = external ? '' : appUrl;
+    if (external) {
+      const own = db.prepare(`SELECT token FROM shares
+        WHERE contract_id=? AND revoked_at IS NULL AND LOWER(COALESCE(recipient_email,''))=?
+        ORDER BY created_at DESC LIMIT 1`).get(c.id, email.toLowerCase());
+      if (own && !shareExpired(db.prepare('SELECT * FROM shares WHERE token=?').get(own.token)))
+        door = `${appUrl}#share=${own.token}`;
+    }
+    const doorLine = door
+      ? (external ? `Your copy of the signed contract:\n${door}\n\n` : `Open it in HaTi:\n${door}\n\n`)
+      : '';
+    const body = st.fully
+      ? `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `"${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''} is now fully signed by all parties and sealed. ` +
+        `This message confirms your copy for safe keeping — a master copy is retained in HaTi.\n\n` +
+        `Document seal (SHA-256):\n${seal}\n\n` +
+        doorLine +
+        `This is an automated notice from HaTi CLM.`
+      : `Hello${r.name ? ' ' + r.name : ''},\n\n` +
+        `${who || 'One party'} has signed "${c.name}"${c.counterparty ? ' with ' + c.counterparty : ''}. ` +
+        `It is NOT yet fully executed — ${waitingFor} has still to sign.\n\n` +
+        `No copy of the contract is attached to this message, and none will be sent until every party has signed. ` +
+        `This is a progress notice only.\n\n` +
+        `This is an automated notice from HaTi CLM.`;
+    const sent = await sendEmail(email, subject, body,
+      st.fully ? `executed copy: ${c.id}` : `part-signed notice: ${c.id}`);
     out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '', status: sent.sent ? 'delivered' : 'sent', via: sent.provider, at: now() });
   }
-  res.json({ at: now(), recipients: out });
+  res.json({ at: now(), fullyExecuted: st.fully, recipients: out });
 });
 
 // "It's your turn to sign" nudge to the next internal signer on a route.
@@ -2691,6 +3015,10 @@ function shareInfo(s) {
        what the client's reshare and seen-state features read. */
     token: s.token, contractId: s.contract_id, state: shareStateResolved(s), channel: s.channel || 'link',
     durable: !!s.durable, purpose: s.purpose || null,
+    // W7: which row of the signing route this link was issued for, and whether
+    // its turn email has gone — the owner's panel can tell a held link from a
+    // sent one without guessing.
+    signerId: s.signer_id || null,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
     firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
@@ -2700,6 +3028,119 @@ function shareInfo(s) {
 function shareOwnerEmails(s) {   // the sender if known, else workspace admins
   if (s.created_by) { const u = db.prepare('SELECT email FROM users WHERE id=?').get(s.created_by); if (u) return [u.email]; }
   return db.prepare(`SELECT email FROM users WHERE role='admin'`).all().map(u => u.email);
+}
+
+/* ---------- THE SIGNING ROUTE, READ SERVER-SIDE (W7) ----------
+
+   The owner sets the whole route up front — who signs, in what order, with
+   which email address — and each counterparty signer gets their OWN link,
+   bound to their row of `c.signerPlan` by `shares.signer_id`. Release is
+   sequential: a bound link is dormant until every earlier step has signed,
+   and the moment signer n signs, signer n+1's link sends itself.
+
+   WHOSE TURN IT IS IS COMPUTED FROM TWO STORES, deliberately. Internal steps
+   are signed in the app and land in the contract JSON when the owner's client
+   saves. Counterparty steps arrive on the public respond route — and the
+   contract JSON only learns about them when the owner's browser polls, applies
+   and persists, which may be hours later or never (the browser may be closed;
+   the route must run unattended). So a counterparty row counts as signed the
+   moment its bound share holds a signed response, without waiting for the
+   owner's client to catch up. */
+function signerRouteFor(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : [])
+    .filter(s => s && s.id != null)
+    .slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!plan.length) return null;
+  const responded = new Set();
+  for (const r of db.prepare(
+    `SELECT signer_id, response FROM shares
+      WHERE contract_id=? AND signer_id IS NOT NULL AND response IS NOT NULL AND revoked_at IS NULL`)
+    .all(contractId)) {
+    try { if (JSON.parse(r.response).action === 'sign') responded.add(String(r.signer_id)); } catch (_) {}
+  }
+  return { contract: c, plan, signedRow: s => !!s.signed || responded.has(String(s.id)) };
+}
+/* Is it this signer's moment? Order-based rather than a special internal/
+   counterparty gate, so a mixed route (CEO → their MD → CFO → their FD) holds
+   at every step, not only at the internal/counterparty boundary. */
+function signerTurn(contractId, signerId) {
+  const rt = signerRouteFor(contractId);
+  if (!rt) return { ok: false, reason: 'no-route' };
+  const mine = rt.plan.find(s => String(s.id) === String(signerId));
+  if (!mine) return { ok: false, reason: 'unknown' };
+  if (rt.signedRow(mine)) return { ok: false, reason: 'already-signed', signer: mine, plan: rt.plan };
+  const waitingOn = rt.plan.find(s => (s.order || 0) < (mine.order || 0) && !rt.signedRow(s));
+  if (waitingOn) return { ok: false, reason: 'awaiting', signer: mine, waitingOn, plan: rt.plan };
+  return { ok: true, signer: mine, plan: rt.plan, contract: rt.contract };
+}
+
+/* W7 fault 4 — the external turn email. The internal notice says "sign in to
+   HaTi", which is a sentence a counterparty signer cannot act on: they have no
+   account and never will. Their turn email delivers their own link and says no
+   account is needed — following the purpose-aware wording precedent of the
+   share email itself, where the invitation must match the screen the link
+   actually opens. */
+function signerTurnEmail({ signer, plan, payload, link, expiresAt }) {
+  const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
+  const org = (payload && payload.org) || 'the sender';
+  const total = (plan || []).length;
+  const pos = signer.order && total ? ` (signer ${signer.order} of ${total} on the agreed order)` : '';
+  return {
+    subject: `Your turn to sign — "${cName}"`,
+    body: `Hello${signer.name ? ' ' + signer.name : ''},\n\n` +
+      `It's your turn to sign "${cName}" with ${org}${pos}. ` +
+      `Every signer before you has signed; the agreement now waits on you.\n\n` +
+      `Open your personal signing link — no account is needed:\n${link}\n\n` +
+      `A one-time code will be emailed to this address to confirm it's you before your signature is recorded. ` +
+      `This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.` +
+      (expiresAt ? `\n\nThis link expires on ${String(expiresAt).slice(0, 10)}.` : '') +
+      `\n\nThis is an automated notice from HaTi CLM.`,
+  };
+}
+
+/* The moment signer n signs, signer n+1's link sends itself — the release half
+   of sequential dispatch. Called from the public respond route because that is
+   where a counterparty signature actually arrives; anything hung off the
+   owner's browser instead would make "unattended" mean "while the owner
+   happens to have the app open".
+
+   Fire-and-forget: the signature itself is already stored, and a failed
+   release email shows up as a link with nothing in sent_at, which the owner
+   can resend. It must never be able to fail the signature that triggered it. */
+async function releaseNextSignerLink(req, contractId) {
+  try {
+    const rt = signerRouteFor(contractId);
+    if (!rt) return;
+    const next = rt.plan.find(s => !rt.signedRow(s));
+    if (!next) return;                                   // route complete — the seal is the client's act
+    if (next.party !== 'counterparty') {
+      // A mixed route can put an internal signer after a counterparty one.
+      // They sign in the app, so their nudge is the sign-in wording.
+      if (/.+@.+\..+/.test(String(next.email || ''))) {
+        const cName = (rt.contract && rt.contract.name) || contractId;
+        await sendEmail(String(next.email), `Your signature is requested — "${cName}"`,
+          `Hello${next.name ? ' ' + next.name : ''},\n\nIt's your turn to sign "${cName}"` +
+          `${next.order ? ` (signer ${next.order})` : ''}. Sign in to HaTi to review and add your signature:\n` +
+          `${req.protocol}://${req.get('host')}/\n\nThis is an automated notice from HaTi CLM.`,
+          `sign turn: ${contractId}`);
+      }
+      return;
+    }
+    const ns = db.prepare(
+      `SELECT * FROM shares WHERE contract_id=? AND signer_id=? AND revoked_at IS NULL AND response IS NULL
+        ORDER BY created_at DESC LIMIT 1`).get(contractId, String(next.id));
+    if (!ns || shareExpired(ns) || ns.sent_at) return;   // no link to release, or it already went
+    if (!/.+@.+\..+/.test(String(ns.recipient_email || ''))) return;
+    let p = {}; try { p = JSON.parse(ns.payload) || {}; } catch (_) {}
+    const mail = signerTurnEmail({ signer: next, plan: rt.plan, payload: p,
+      link: shareUrl(req, ns.token), expiresAt: ns.expires_at });
+    await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), ns.token);
+  } catch (_) { /* the signature that triggered this is safe regardless */ }
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
@@ -2723,16 +3164,70 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      always does. They are the same value, and the payload is the one the page
      obeys, so it is the one that wins here — a row that disagreed with the
      document it serves would supersede the wrong links. */
-  const purp = ['negotiate', 'sign'].includes(payload.purpose) ? payload.purpose
-    : ['negotiate', 'sign'].includes(purpose) ? purpose : null;
-  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
+    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* ---- W7: BIND THE LINK TO ONE ROW OF THE SIGNING ROUTE ----
+     A bound link belongs to one signer, opens only in that signer's turn, and
+     is the row an incoming signature is recorded against. Validated against
+     the STORED contract's plan, not the request's say-so — a signerId the
+     route does not carry would mint a link that can never be matched back. */
+  let signerId = null, heldForTurn = false, signerRow = null, signerPlanAll = null;
+  if ((req.body || {}).signerId != null && String(req.body.signerId).trim()) {
+    if (purp !== 'sign') return res.status(400).json({ error: 'Only a signing link can be bound to a signer' });
+    const rt = signerRouteFor(shareId);
+    signerRow = rt && rt.plan.find(x => String(x.id) === String(req.body.signerId));
+    if (!signerRow) return res.status(400).json({ error: 'That signer is not on this contract\'s signing route' });
+    if (signerRow.party !== 'counterparty')
+      return res.status(400).json({ error: 'Internal signers sign in the app — only a counterparty signer gets a bound link' });
+    signerId = String(signerRow.id);
+    signerPlanAll = rt.plan;
+    const turn = signerTurn(shareId, signerId);
+    heldForTurn = !turn.ok;
+    /* ONE SIGNER, ONE LINK — the same rule the share dialog keeps for durable
+       negotiation links, held here for the same reason: pressing "issue the
+       signing links" twice must not put two live signing links for one signer
+       into the world. A live unanswered bound link is refreshed in place; and
+       if its turn has arrived while its email never went (issued early, before
+       internal signing finished), the refresh is also the moment it sends. */
+    const existing = db.prepare(
+      `SELECT * FROM shares WHERE contract_id=? AND signer_id=? AND revoked_at IS NULL AND response IS NULL
+        ORDER BY created_at DESC LIMIT 1`).get(shareId, signerId);
+    if (existing && !shareExpired(existing)) {
+      db.prepare('UPDATE shares SET payload=?, recipient_name=?, recipient_email=? WHERE token=?')
+        .run(JSON.stringify(payload), String(rec.name || '').slice(0, 120) || existing.recipient_name,
+          email || existing.recipient_email, existing.token);
+      const exLink = shareUrl(req, existing.token);
+      let exSent = false, exErr = null;
+      const sendTo = email || existing.recipient_email;
+      if (!heldForTurn && !existing.sent_at && /.+@.+\..+/.test(String(sendTo || ''))) {
+        const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
+          link: exLink, expiresAt: existing.expires_at });
+        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
+        exSent = !!r2.sent; exErr = r2.detail || null;
+        db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), existing.token);
+      }
+      return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
+        expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
+        signerId, heldForTurn, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr });
+    }
+  }
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
-      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp);
+      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp, signerId);
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
-  if (ch === 'email') {
+  /* A bound link whose turn has not come yet is created but NOT delivered —
+     signer n+1's email is what releaseNextSignerLink sends when signer n
+     signs. Emailing it now would invite a signature the respond route is
+     going to refuse. */
+  if (ch === 'email' && signerId && !heldForTurn) {
+    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires });
+    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
+    emailSent = !!r.sent; emailError = r.detail || null;
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+  } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
@@ -2754,7 +3249,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
   }
-  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable, emailSent, emailConfigured: EMAIL_ON(), emailError });
+  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
+    signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
+    emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -2788,7 +3285,19 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
 // Portfolio-wide dispatch overview: counts by traffic-light state, the
 // "hottest" state per contract (for register/folder dots) and recent items
 // (for the dashboard strip). Registered before /api/shares/:token.
-const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed', 'reviewed', 'expired', 'revoked'];
+/* WHICH OF A CONTRACT'S LINKS SPEAKS FOR IT, when it has several.
+
+   The hottest state wins, and "hottest" used to mean "most in need of a
+   decision" — so `changes` led and `signed` came fifth. One stale negotiation
+   link therefore buried a real signature: a workspace full of executed
+   contracts read as a workspace full of outstanding change requests, and there
+   was no way to see which ones were done.
+
+   The two TERMINAL outcomes lead now. A contract that has been signed, or
+   declined, is finished; nothing any other link says about it can matter more
+   than that, and a person scanning the list is looking for exactly this. Then
+   the states that need somebody to act, then the ones that are merely waiting. */
+const SHARE_STATE_PRIORITY = ['signed', 'declined', 'changes', 'opened', 'sent', 'reviewed', 'expired', 'revoked'];
 /* A share whose returned changes have already been dealt with is finished
    business: the round it raised on the contract has been accepted or rejected.
    Leaving it labelled "changes" kept it on the home page's attention list
@@ -2798,22 +3307,44 @@ const SHARE_STATE_PRIORITY = ['changes', 'declined', 'opened', 'sent', 'signed',
 function shareStateResolved(s, cache) {
   const st = shareState(s);
   if (st !== 'changes' || !s.contract_id) return st;
-  let rounds = cache && cache.get(s.contract_id);
-  if (rounds === undefined) {
+  let full = cache && cache.get(s.contract_id);
+  if (full === undefined) {
     try {
       const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
-      rounds = row ? ((JSON.parse(row.json).rounds) || []) : null;
-    } catch (_) { rounds = null; }
-    if (cache) cache.set(s.contract_id, rounds);
+      full = row ? (JSON.parse(row.json) || null) : null;
+    } catch (_) { full = null; }
+    if (cache) cache.set(s.contract_id, full);
   }
-  if (!rounds || !rounds.length) return st;
+  if (!full) return st;
+  /* An executed contract is not waiting on a change request. applyResponse
+     already refuses to let a share response touch one — "already executed; a
+     share response cannot change it" — so a link still asking for a decision on
+     it is describing a conversation that can no longer happen. */
+  if (full.status === 'Signed' || (full.execution && full.execution.at)) return 'reviewed';
+  const rounds = full.rounds || [];
   // the round this response created carries the response's own timestamp
   let mine = null;
   try { const r = JSON.parse(s.response); mine = rounds.find(x => x.at === r.at) || null; } catch (_) {}
-  if (mine) return mine.status === 'open' ? st : 'reviewed';
-  // older data whose timestamps don't line up: once the response has been
-  // imported and no round on the contract is open, nothing is waiting
-  if (s.applied && !rounds.some(x => x.status === 'open')) return 'reviewed';
+  if (mine && mine.status === 'open') return st;
+  /* THE OTHER HALF OF THE NEGOTIATION, which this could not see at all.
+
+     Everything above reads `rounds` — the round-based model. The negotiation
+     ROOM works change by change on `c.changes`, and a counterparty answering
+     through the room creates NO ROUND. So a room negotiation, however
+     completely it was settled, said "Changes" on the dashboard for ever: there
+     was no path through this function that could clear it.
+
+     Settled means what negoAlignment means by it on the client, and the second
+     case is the one that gets missed: a refused ask nobody has withdrawn is
+     answered but not agreed, and is still outstanding between the parties. */
+  const live = (Array.isArray(full.changes) ? full.changes : []).filter(x => x && x.status !== 'superseded');
+  const outstanding = live.filter(x => x.status === 'pending'
+    || (x.status === 'rejected' && !x.withdrawn));
+  if (outstanding.length) return st;
+  if (mine) return 'reviewed';
+  if (rounds.some(x => x.status === 'open')) return st;
+  // no round of ours, none open, nothing outstanding in the change set
+  if (s.applied || live.length) return 'reviewed';
   return st;
 }
 app.get('/api/shares/overview', auth, (req, res) => {
@@ -2834,10 +3365,50 @@ app.get('/api/shares/overview', auth, (req, res) => {
     if (items.length < 12) items.push({
       token: s.token, contractId: s.contract_id, name: s.c_name || s.contract_id, counterparty: s.c_counterparty || '',
       state: st, channel: s.channel || 'link', recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', at,
+      /* WHAT KIND OF LINK, so the owner's overview can tell a view-only pass
+         from a negotiation seat. Without it every row reads as somebody who
+         can answer, and a view link — which by design can do nothing — would
+         sit in the list looking like an unanswered counterparty. */
+      purpose: s.purpose || null,
+      expiresAt: s.expires_at || null,
+      firstOpenedAt: s.first_opened_at || null,
     });
   }
   res.json({ counts, byContract, items });
 });
+
+/* ---------- THE SIGNED DOOR, on the counterparty's side of it ----------
+
+   js/negotiation.js has one and documents it: an executed record takes no new
+   decisions, however it came to be executed. js/core.js has one in
+   applyResponse: a share response cannot change a contract that is already
+   signed. The public link had neither, and the two together are what made that
+   a silent failure rather than a refusal —
+
+     · the link took the answer and stored it, because nothing here asked;
+     · the owner's poller handed it to applyResponse, which refused it and
+       returned false, so the response was never marked applied and came round
+       again on the next poll, and the next, in silence.
+
+   The counterparty was told their round had gone. Nobody ever saw it.
+
+   Read from the STORED record and never from the share payload: the payload is
+   a copy taken before the signature, and it can only ever be out of date about
+   this. The three signals are the same three the negotiation model uses, and
+   for the same reason — a seal, an execution stamp or the status, any one of
+   which means the wording has stopped moving. */
+function contractExecution(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const at = (c.execution && c.execution.at) || null;
+  if (!(c.status === 'Signed' || c.hash || at)) return null;
+  /* WHEN, and nothing else. This is served on a public no-login endpoint, so
+     it carries the one fact the reader's page needs and not a word about who
+     signed, in what capacity, or under which seal. */
+  return { at: at || c.signedAt || null };
+}
 
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
@@ -2849,6 +3420,40 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   // served here — still offering "Approve & sign" — to anyone holding the link.
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
+  /* ---- W7: A BOUND LINK OPENS IN ITS TURN, AND NOT BEFORE ----
+     Signer n+1 holds a real link — created up front so the whole route exists
+     the moment it is issued — but until signer n has signed, it answers with a
+     dormant notice instead of the contract. Not an error: the page it renders
+     says whose turn it is and stays open, polling, so it comes alive by itself
+     when the turn arrives.
+
+     Checked BEFORE the engagement stamping below, deliberately: first_opened_at
+     is the fact the owner reads as "they have seen the contract", and a signer
+     who clicked early and met the waiting notice has seen no contract. */
+  if (s.signer_id && !s.response) {
+    const turn = signerTurn(s.contract_id, s.signer_id);
+    if (turn.reason === 'unknown')
+      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked' });
+    if (turn.reason === 'already-signed')
+      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked' });
+    if (turn.reason === 'awaiting') {
+      let p = null; try { p = JSON.parse(s.payload); } catch (_) {}
+      const w = turn.waitingOn;
+      return res.json({ dormant: {
+        /* An internal holdup is named as the organisation's, not as a
+           colleague this reader has never met; an earlier counterparty signer
+           is someone on their own side of the route, named so they know who
+           to chase. */
+        waitingOnParty: w.party === 'counterparty' ? 'counterparty' : 'internal',
+        waitingOn: w.party === 'counterparty' ? (w.name || 'an earlier signer') : null,
+        order: turn.signer.order || null, total: (turn.plan || []).length || null,
+        recipientName: s.recipient_name || '',
+        contractName: (p && p.contract && p.contract.name) || '',
+        org: (p && p.org) || '',
+        expiresAt: s.expires_at || null,
+      } });
+    }
+  }
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
   try {
     const payload = JSON.parse(s.payload);
@@ -2864,6 +3469,22 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      place — and answering it once does not shut it: the next round comes back
      through the same link. What it does report is the last answer this reader
      sent, so the page can say so rather than looking untouched. */
+  /* ---- A VIEW LINK LEAVES HERE, WITH ITS OWN PAYLOAD ----
+     Before the negotiate payload is assembled, not after it: the reason the
+     viewer's copy is safe is that the fields it must not carry are never put
+     into the object in the first place. Everything below this line — the live
+     discussion, the prior copies, the supersession state, the recipient's own
+     details — is negotiation machinery, and none of it is built for a view
+     token. The lifecycle facts an outside reader legitimately needs (has this
+     link expired, was it withdrawn) were already answered above, which is why
+     this sits here rather than at the top of the route. */
+  if (shareIsViewOnly(s)){
+    let vp = null; try { vp = viewerPayload(JSON.parse(s.payload), s); } catch (_) {}
+    if (!vp) return res.status(500).json({ error: 'This link’s copy could not be read' });
+    return res.json({ payload: vp, viewOnly: true, purpose: 'view',
+      executed: contractExecution(s.contract_id),
+      share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
+  }
   const lastR = s.durable
     ? db.prepare('SELECT response, at FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
     : null;
@@ -2883,6 +3504,15 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     messages: s.contract_id ? contractMessages(s.contract_id) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
+    /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
+       link still opens — a counterparty is entitled to see what they were sent
+       — but their page has to be able to say that the wording is final, or it
+       goes on inviting redlines on a sealed contract. */
+    executed: contractExecution(s.contract_id),
+    /* The row's purpose, which is what the SENDER chose. The payload carries a
+       purpose too, but that one falls back to a reading of the change set when
+       nobody stated one — see buildSharePayload. W6 needs the choice. */
+    purpose: s.purpose || null,
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });
@@ -3043,6 +3673,7 @@ const msgValid = b => b && typeof b.body === 'string' && b.body.trim()
 app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (!s.contract_id) return res.status(409).json({ error: 'This link cannot carry a discussion' });
   if (!db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
@@ -3106,37 +3737,29 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
     emailSent: sent.sent, emailConfigured: EMAIL_ON(), to: sent.to || null });
 });
 
-/* A question nobody is told about is a question nobody answers — which would
-   leave the lightweight channel quieter than the heavyweight one it exists to
-   replace. Both directions are notified. */
-function notifyMessage(s, m) {
-  try {
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
-    for (const to of shareOwnerEmails(s))
-      sendEmail(to, `Question on "${cName}"`,
-        `${m.author} wrote about "${cName}":\n\n${m.body}\n\n` +
-        `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-        `Nothing has changed in the contract — they are asking, not proposing. Reply in HaTi.`,
-        'discussion message');
-  } catch (_) {}
-}
-async function notifyCounterpartyMessage(contractId, m) {
-  try {
-    const s = db.prepare(
-      `SELECT * FROM shares WHERE contract_id=? AND revoked_at IS NULL AND recipient_email IS NOT NULL
-        ORDER BY created_at DESC LIMIT 1`).get(contractId);
-    const to = s && String(s.recipient_email || '').trim();
-    if (!to) return { sent: false, to: null };
-    let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
-    const cName = (p.contract && p.contract.name) || contractId || 'your contract';
-    const r = await sendEmail(to, `Message about "${cName}"`,
-      `${m.author} at ${p.org || 'the sender'} wrote about "${cName}":\n\n${m.body}\n\n` +
-      `${m.topicLabel ? `This is about: ${m.topicLabel}\n\n` : ''}` +
-      `The wording of the contract has not changed. Open your link to reply.`,
-      'discussion message');
-    return { sent: !!(r && r.sent), to };
-  } catch (_) { return { sent: false, to: null }; }
+/* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------
+   Both of these used to send one, in both directions, on every sentence. That
+   made the lightest act in the product — asking a question about a clause —
+   generate as much inbox traffic as returning a redline, and a three-line
+   exchange about payment terms filled six slots in a mailbox with copies of
+   words both parties were already reading on the same screen.
+
+   Nothing is lost by keeping it quiet. A message reaches the owner through
+   /api/messages/waiting, which raises it on the screen they already work in;
+   it reaches the counterparty on the change's own card the next time they open
+   their link, beside the change it is about. Email is reserved for the two
+   things that cannot be seen without opening the app: wording that moved, and
+   a signature.
+
+   Both functions are kept rather than deleted so their callers, their return
+   shapes and the notification surfaces around them stay exactly as they were —
+   what changed is that neither one now posts. */
+function notifyMessage(_s, _m) { /* in-app only — see above */ }
+async function notifyCounterpartyMessage(_contractId, _m) {
+  /* `to: null` and not the recipient's address: the caller turns a non-null
+     `to` into "the email to <them> could not be sent", which would be a
+     failure report about a message that was never meant to go. */
+  return { sent: false, to: null };
 }
 
 /* Refresh a durable link to the current wording. The copy being replaced is
@@ -3147,27 +3770,59 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id)))
     return res.status(404).json({ error: 'Share not found' });
+  /* A view link is a SNAPSHOT (WP-1.3): it shows the contract as it stood when
+     it was shared, and says so on its face. Refreshing its payload would move
+     the wording under a reader who was told the date it was frozen. */
+  if (refuseIfViewOnly(s, res)) return;
   if (!s.durable) return res.status(409).json({ error: 'Only a durable link can be refreshed — create a new share instead' });
   if (s.revoked_at) return res.status(409).json({ error: 'This link was revoked' });
   const { payload } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
   if (payload.contract && s.contract_id && payload.contract.id !== s.contract_id)
     return res.status(400).json({ error: 'That payload belongs to a different contract' });
+  /* ---- A SILENT REFRESH IS A DIFFERENT ACT FROM SENDING A ROUND ----
+
+     Two things want to write a payload, and only one of them is a message to
+     anybody.
+
+       SENDING a round — the owner presses "Send updated version". The wording
+       has moved, the other side needs to know, and an email goes.
+
+       CATCHING THE LINK UP — the counterparty answered, we applied it, and the
+       copy their link serves is now describing a negotiation that has moved on.
+       Nothing new is being asked of them; the link is simply being stopped from
+       lying. Emailing that would put "we have updated the contract" in their
+       inbox every time they themselves answered something.
+
+     A silent refresh therefore sends nothing, does not count as a send, and —
+     this matters — does not clear `first_opened_at`. Whether they have opened
+     the current wording is a fact about THEM, and it must not be reset by
+     bookkeeping they never asked for and cannot see. */
+  const silent = !!(req.body || {}).silent;
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
-  db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
-    .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
-  db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
+  if (!silent)
+    db.prepare('INSERT INTO share_payload_history (token,at,doc_text,opened_at) VALUES (?,?,?,?)')
+      .run(s.token, s.created_at, oldText || null, s.first_opened_at || null);
+  if (silent) db.prepare('UPDATE shares SET payload=? WHERE token=?').run(JSON.stringify(payload), s.token);
+  else db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
 
-  /* TELL THEM. Refreshing the link used to be silent: the owner was shown
-     "updated version sent", the contract's history recorded that it was sent,
-     and nothing left the building. The negotiation then stalled with each side
-     waiting for the other, and the record said something untrue about it.
-     A refresh is only "sent" once something has actually gone. */
+  /* TELL THEM — ONCE, AT THE START. The email's job in this flow is to deliver
+     the link, and that happens exactly once, when the negotiation begins
+     (POST /api/shares). From then on the platform IS the channel: a round-send
+     refreshes the standing link and the reader finds the new wording behind
+     the same URL they already hold. `notify:false` is how a round-send says
+     so — it is a real send (history recorded, "opened" reset, the round moves)
+     that posts no email, because there is no second link to deliver.
+
+     The email stays available (`notify` omitted or true) for the explicit
+     "email them again" acts — a reminder is a human choice, not a side effect
+     of the round moving. */
+  const notify = (req.body || {}).notify !== false;
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
-  if ((s.channel || 'link') === 'email' && s.recipient_email) {
+  if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
@@ -3178,7 +3833,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), s.token);
   }
-  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link',
+  res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
+    notifySkipped: !silent && !notify,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
@@ -3218,27 +3874,50 @@ app.get('/api/contracts/:id/engagement', auth, (req, res) => {
   res.json({ events: rows });
 });
 
-// Counterparty signing is verified by an email one-time code.
+/* Counterparty signing is verified by an email one-time code.
+
+   ---- W8: THE CODE GOES ONLY TO THE ADDRESS THE OWNER INVITED ----
+   This used to send the code to req.body.email — whatever the signer typed
+   into the page. That proved the signer controls A mailbox, not the RIGHT
+   one: anyone holding a forwarded link and any mailbox could sign, under any
+   name they typed. The destination is now the share's recorded recipient —
+   the address the owner set — and the typed address is ignored entirely.
+
+   This deliberately removes an informal handover that used to work: their
+   lawyer forwards the link, their MD types their own address, gets the code,
+   signs. Its replacement is W7's recorded route — the owner names each
+   signer's address up front and each gets their own bound link — which is why
+   W8 ships with W7 and never before it. Flagged in the release notes. */
 app.post('/api/shares/:token/otp', rlOtp, (req, res) => {     // public: request a code
-  const s = db.prepare('SELECT token FROM shares WHERE token=?').get(req.params.token);
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
-  const email = String((req.body || {}).email || '').toLowerCase();
-  if (!/.+@.+\..+/.test(email)) return res.status(400).json({ error: 'A valid email is required' });
+  const invited = String(s.recipient_email || '').toLowerCase();
+  if (!/.+@.+\..+/.test(invited))
+    /* No recorded address means there is nothing this check could verify
+       AGAINST — a code sent wherever the page asks is theatre wearing a
+       padlock. Refused plainly, with the way out named. */
+    return res.status(409).json({ error: 'This link was issued without a named email address, so a signing code cannot be sent. Ask the sender to reissue the link to the signer\'s own email address.' });
   const code = code6(), expires = Date.now() + 10 * 60 * 1000;
   db.prepare('INSERT INTO share_otp (token,email,code_hash,verify,verified,expires) VALUES (?,?,?,?,0,?) ' +
     'ON CONFLICT(token) DO UPDATE SET email=excluded.email, code_hash=excluded.code_hash, verify=NULL, verified=0, expires=excluded.expires')
-    .run(req.params.token, email, sha(code + req.params.token), null, expires);
-  sendEmail(email, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
+    .run(req.params.token, invited, sha(code + req.params.token), null, expires);
+  sendEmail(invited, 'Your HaTi signing code', `Your one-time code to sign this contract is ${code}. It expires in 10 minutes.`, `OTP for signing: ${code}`);
   // The code is NEVER returned to the caller. This endpoint is public and the
   // caller is the party being verified — handing them the code makes the check
   // theatre. With no mail provider the code queues to the admin-only outbox
   // (dev_hint above), which is what the documentation has always promised.
-  res.json({ ok: true, emailSent: EMAIL_ON() });
+  // `sentTo` is safe to return: it is the address the sender already chose,
+  // shown so the page can say where to look rather than implying the typed
+  // address was used.
+  res.json({ ok: true, emailSent: EMAIL_ON(), sentTo: invited });
 });
 app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: verify the code
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
-  const { email, code } = req.body || {};
-  if (!row || row.email !== String(email || '').toLowerCase()) return res.status(400).json({ error: 'Request a code first' });
+  const { code } = req.body || {};
+  /* The typed email is no longer part of the check — the server chose the
+     destination (W8 above), so matching against what the page typed would
+     only re-admit the page's opinion. Possession of the code IS the proof. */
+  if (!row) return res.status(400).json({ error: 'Request a code first' });
   if (Date.now() > row.expires) return res.status(400).json({ error: 'Code expired — request a new one' });
   if (row.code_hash !== sha(String(code || '') + req.params.token)) return res.status(400).json({ error: 'Incorrect code' });
   const verify = rid(12);
@@ -3249,6 +3928,7 @@ app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: ver
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
@@ -3266,6 +3946,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
       : 'This copy of the contract has been superseded — a newer version was sent to you on '
         + String(stale.at).slice(0, 10) + '. Open the most recent link and respond there.',
     superseded: stale.at });
+  /* AND THE DEAL MAY SIMPLY BE OVER. Checked here, in front of every action,
+     rather than in the signing branch alone: a redline, an acceptance and a
+     decline are each as impossible on an executed contract as a second
+     signature, and each was being stored and then silently discarded. See
+     contractExecution above. */
+  const done = contractExecution(s.contract_id);
+  if (done) return res.status(409).json({
+    error: 'This contract has been executed and sealed'
+      + (done.at ? ' (' + String(done.at).slice(0, 10) + ')' : '')
+      + ' — it can no longer be answered from this link. If something has to change,'
+      + ' ask the sender to record an amendment.',
+    executed: done.at || true });
   const r = req.body || {};
   /* 'decisions' and 'ready' were missing from this list, and the portal had
      been sending 'decisions' for a whole release. Every batch of per-change
@@ -3274,6 +3966,34 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
   if (r.action === 'sign') {
+    /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
+       A bound link signs one step of the route, in that step's turn. Out of
+       order is REFUSED, never refiled onto whichever row happens to be next —
+       misfiling is the recorded fault this exists to close: the FD signing
+       before the MD used to land the FD's signature on the MD's row, with the
+       official running order silently wrong from then on.
+
+       The binding travels ON the response, stamped here from the share row —
+       server-stamped, never client-claimed, because the page holding the link
+       is not ours and a crafted response naming somebody else's row must not
+       be able to choose where it is filed. */
+    if (s.signer_id) {
+      const turn = signerTurn(s.contract_id, s.signer_id);
+      if (turn.reason === 'awaiting') {
+        const w = turn.waitingOn;
+        return res.status(409).json({ error: w.party === 'counterparty'
+          ? `It is not your turn to sign yet — ${w.name || 'an earlier signer'} signs before you on the agreed order. This page will come alive when they have signed.`
+          : `It is not your turn to sign yet — the sender's own signatures are not complete. This page will come alive when they are.` });
+      }
+      if (turn.reason === 'already-signed')
+        return res.status(409).json({ error: 'This signing step has already been completed.' });
+      if (turn.reason === 'unknown')
+        return res.status(409).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.' });
+      if (turn.ok) { r.signerId = s.signer_id; r.signerOrder = turn.signer.order || null; }
+      // 'no-route': the plan was cleared after issue — the link falls back to
+      // behaving as an ordinary signing link, and nothing is stamped that the
+      // contract could no longer match.
+    }
     /* The signature is normally attributed by a one-time code emailed to the
        signer. A workspace with NO mail provider cannot send that code, and
        blocking signature there strands a deal at its least recoverable moment
@@ -3302,6 +4022,33 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     // against the share open; this pins it to the signature itself.
     r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
   }
+  /* ---------- WHO ACTUALLY SENT THIS, ON EVERY ACTION ----------
+     Verification used to be computed only for `sign`, because a signature is
+     the act that obviously needs a name on it. But a REJECTION is evidence
+     too: a year from now the history screen says "rejected by Jane on 6 March,
+     reason: outside our insurance cover", and the whole value of that sentence
+     is that Jane really sent it. Every other action was landing attributed to
+     whatever name was typed into the box, with nothing recording whether
+     anyone had checked.
+
+     RECORDED, NOT REQUIRED. This does not start demanding a code before
+     somebody may reject a clause — that would put a mail round trip in front
+     of ordinary negotiation and people would stop using the link. It records
+     what is true: verified against the invited address, or not verified. An
+     honest "unverified" is worth more than a confident name nobody checked,
+     and it is the difference between a record that survives being questioned
+     and one that does not.
+
+     The invited address, never the typed one. `otp.email` is the address the
+     code was sent to; a signer who types a different address into the page has
+     verified control of that mailbox and nothing about who they are. */
+  if (r.action !== 'sign') {
+    const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
+    const ok = !!(otp && otp.verified && r.verify && otp.verify === r.verify);
+    r.verified = ok;
+    r.verifiedEmail = ok ? (otp.email || null) : null;
+    r.invitedEmail = s.recipient_email || null;
+  }
   const at = now();
   if (s.durable) {
     // every round's answer is kept, and applied to the contract on its own
@@ -3312,13 +4059,43 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     db.prepare('UPDATE shares SET response=?, responded_at=?, applied=0 WHERE token=?').run(JSON.stringify(r), at, req.params.token);
   }
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* W7 sequential release: this signature may be the one the next signer's
+     dormant link is waiting on. Fired from here — the moment the signature is
+     STORED — so the route runs unattended whether or not the owner's browser
+     ever opens. */
+  if (r.action === 'sign' && s.signer_id) releaseNextSignerLink(req, s.contract_id);
   res.json({ ok: true });
 });
 
-// Close the loop by email: the sender learns the outcome without opening HaTi,
-// and the counterparty gets a receipt of what they submitted.
+/* ---------- WHICH RESPONSES ARE WORTH AN EMAIL ----------
+   Every response used to send two: one to the sender and one back to the
+   responder as a receipt. Answering three changes over a morning therefore put
+   six messages in two inboxes, most of them saying that something had been
+   recorded which both parties could already see on the contract — and when the
+   two addresses belong to the same person, as they do in a workspace that
+   negotiates with itself, all six land in one inbox.
+
+   An email is now sent for exactly two kinds of event: WORDING MOVED (they
+   proposed something, decided something we proposed, or returned a redline or
+   a value), and THE DEAL ENDED (somebody signed, or declined). Everything else
+   — a readiness signal, an acceptance that changes no words, a receipt for the
+   sender's own act — is visible on the contract and does not need an inbox.
+
+   The receipt is gone entirely. It told the responder what the responder had
+   just done. */
+function responseIsWorthEmail(r) {
+  if (!r) return false;
+  if (r.action === 'sign' || r.action === 'decline') return true;   // the deal ended
+  const moved = (Array.isArray(r.negoDecisions) && r.negoDecisions.length)
+    || (Array.isArray(r.negoProposed) && r.negoProposed.length)
+    || !!r.proposedText || r.proposedValue != null;
+  return !!moved;                                                   // wording moved
+}
+
+// Close the loop by email: the sender learns the outcome without opening HaTi.
 function notifyShareResponse(s, r) {
   try {
+    if (!responseIsWorthEmail(r)) return;
     let p = {}; try { p = JSON.parse(s.payload) || {}; } catch (_) {}
     const cName = (p.contract && p.contract.name) || s.contract_id || 'a contract';
     const who = r.name + (r.title ? `, ${r.title}` : '');
@@ -3328,29 +4105,28 @@ function notifyShareResponse(s, r) {
       : r.action === 'decisions' ? `Decisions returned: "${cName}"`
       : `Changes requested: "${cName}"`;
     const n = Array.isArray(r.negoDecisions) ? r.negoDecisions.length : 0;
+    /* Wording of their own travels on the same response. An email that counted
+       only the decisions told an owner "answered 0 proposed changes" for a round
+       that was entirely new asks. */
+    const np = Array.isArray(r.negoProposed) ? r.negoProposed.length : 0;
+    const answered = [np ? `proposed ${np} change${np === 1 ? '' : 's'}` : '',
+      n ? `answered ${n} of yours` : ''].filter(Boolean).join(' and ') || 'replied';
     const detail = r.action === 'sign'
       ? `${who} approved and signed "${cName}"${r.email ? ` (email-verified as ${r.email})` : ''}.`
       : r.action === 'ready'
         ? `${who} has signalled they are ready to sign "${cName}".`
-          + `${n ? `\n\nThey answered ${n} proposed change${n === 1 ? '' : 's'} in the same step.` : ''}`
+          + `${(n || np) ? `\n\nThey ${answered} in the same step.` : ''}`
           + `\n\nNothing has been signed. Open the contract in HaTi and issue a signing link to take it forward.`
       : r.action === 'decisions'
-        ? `${who} answered ${n} proposed change${n === 1 ? '' : 's'} on "${cName}".`
-          + `\n\nThe decisions have been recorded on the contract — open Negotiation to see where the deal stands.`
+        ? `${who} ${answered} on "${cName}".`
+          + `\n\nIt is recorded on the contract — open Negotiation to see where the deal stands.`
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
-          `${r.proposedValue ? `\n\nProposed value: KES ${Number(r.proposedValue).toLocaleString('en-KE')}` : ''}` +
+          `${r.proposedValue ? `\n\nProposed value: ${orgJx().currency} ${Number(r.proposedValue).toLocaleString(orgJx().locale)}` : ''}` +
           `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
-    const rcpt = String(r.email || s.recipient_email || '').trim();
-    if (/.+@.+\..+/.test(rcpt)) {
-      const did = r.action === 'sign' ? 'signed' : r.action === 'decline' ? 'declined' : 'sent back requested changes on';
-      sendEmail(rcpt, `Your response to "${cName}" was delivered`,
-        `You ${did} "${cName}", shared by ${p.sharedBy || 'the sender'} at ${p.org || 'HaTi'}. The sender has been notified and your response is recorded on the contract.`,
-        'share receipt');
-    }
   } catch (_) {}
 }
 
@@ -3442,7 +4218,13 @@ app.delete('/api/batches/:id', auth, editor, (req, res) => {
 
 /* ---------- outbox (admin can see what was emailed / dev codes) ---------- */
 app.get('/api/outbox', auth, admin, (req, res) => {
-  const rows = db.prepare('SELECT id,to_addr,subject,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
+  /* The body travels too. This is the sender's own outgoing mail on an
+     admin-only diagnostics route that already returns the recipient and the
+     subject — and what an email actually SAYS is the thing that turned out to
+     be wrong: the executed copy was telling counterparties to "open it in
+     HaTi" and handing them the platform's front door. What cannot be read
+     back cannot be checked. */
+  const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
   res.json({ emailConfigured: EMAIL_ON(), items: rows });
 });
 
@@ -3481,7 +4263,11 @@ function runReminders() {
   const TERM_CHANGING = new Set(['amendment', 'variation', 'renewal', 'addendum']);
   const parsed = new Map();
   for (const r of rows) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
-  const ownExp = (r) => { const f = parsed.get(r.id) || {}; return (f.metadata && f.metadata.expiryDate) || r.expiry || null; };
+  /* Normalised at the one place the term is read, so every comparison, sort
+     and piece of arithmetic below it is working on a real calendar day or on
+     null — see dateOnly(). */
+  const ownExp = (r) => { const f = parsed.get(r.id) || {};
+    return dateOnly((f.metadata && f.metadata.expiryDate) || r.expiry || null); };
   const amendDate = (r) => { const f = parsed.get(r.id) || {};
     return (f.metadata && f.metadata.effectiveDate) || (f.fields && f.fields.effDate) ||
       (f.signedAt && String(f.signedAt).slice(0, 10)) || (f.migration && f.migration.importedAt && String(f.migration.importedAt).slice(0, 10)) || ''; };
@@ -3525,9 +4311,14 @@ function runReminders() {
       const termSetter = (kidsOf.get(c.id) || []).find(k => ownExp(k) === expiry);
       const termMeta = termSetter ? ((parsed.get(termSetter.id) || {}).metadata || {}) : meta;
       const notice = Number(termMeta.noticePeriodDays) || Number(meta.noticePeriodDays) || 0;
-      if (notice > 0) {
-        const dd = new Date(expiry + 'T00:00:00'); dd.setDate(dd.getDate() - notice);
-        const ddIso = dd.toISOString().slice(0, 10); const ddDays = daysTo(ddIso);
+      const dd = notice > 0 ? new Date(expiry + 'T00:00:00') : null;
+      if (dd) dd.setDate(dd.getDate() - notice);
+      // arithmetic can still land outside the range a Date can hold
+      if (dd && !isNaN(dd.getTime())) {
+        /* isoDay, not toISOString: the latter converts to UTC first, so on a
+           server standing east of Greenwich — Nairobi, the market this is built
+           for — the decision deadline came out a day early. */
+        const ddIso = isoDay(dd); const ddDays = daysTo(ddIso);
         const dms = [14, 7, 1].find(m => ddDays === m);
         if (dms != null && fire(`${c.id}:${ddIso}:decide:${dms}`,
           `Renewal decision due in ${dms} day${dms === 1 ? '' : 's'}: ${c.name}`,
@@ -3537,18 +4328,29 @@ function runReminders() {
     }
     // 3) obligations newly overdue (fire once per obligation)
     (full.obligations || []).forEach(o => {
-      if (o.status === 'done' || !o.due) return;
-      const od = daysTo(o.due);
-      if (od === -1 && fire(`${c.id}:ob:${o.id || o.due}:overdue`,
+      if (o.status === 'done') return;
+      // through the same normalisation: an obligation due "31 March 2027" gave
+      // daysTo NaN, NaN never equals -1, and the overdue notice was never sent
+      const due = dateOnly(o.due);
+      if (!due) return;
+      const od = daysTo(due);
+      if (od === -1 && fire(`${c.id}:ob:${o.id || due}:overdue`,
         `Obligation overdue: ${c.name}`,
-        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${o.due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
+        `The obligation "${o.desc}" on "${c.name}" (${c.id}) was due ${due} and is now overdue${o.assignee ? ` (assigned to ${o.assignee})` : ''}.`,
         `obligation overdue: ${c.name}`)) queued++;
     });
   }
   return { checked, queued };
 }
 app.post('/api/reminders/run', auth, admin, (req, res) => res.json(runReminders()));
-setInterval(() => { try { runReminders(); } catch (e) {} }, 12 * 60 * 60 * 1000); // twice daily
+/* Twice daily. The catch is deliberate — a sweep that throws must not take the
+   process with it — but it used to be EMPTY, and that is how one malformed
+   expiry switched every renewal reminder in a workspace off in perfect silence.
+   Whatever stops the sweep now says so where an operator can see it. */
+setInterval(() => {
+  try { runReminders(); }
+  catch (e) { console.warn('[reminders] sweep failed, no reminders went out this cycle:', (e && e.message) || e); }
+}, 12 * 60 * 60 * 1000);
 
 app.post('/api/shares/:token/applied', auth, editor, (req, res) => {
   // A durable link is never "used up", so marking it applied wholesale would
@@ -3722,15 +4524,941 @@ app.put('/api/advice/requests/:id', auth, editor, (req, res) => {
   res.json({ ok: true, request: r });
 });
 
+/* ============================================================
+   TEMPLATE LIBRARY — company standard templates
+   ============================================================
+   A template and a contract are different objects; the template is the
+   parent. A template lives in the library, is versioned, and is never sent,
+   filled or signed. Creating a contract copies the current PUBLISHED version
+   into the contract instance, which is independent from that moment on.
+
+   Distinct from the older custom-templates feature (settings blob,
+   PUT /api/settings/templates) which stays untouched — this is the
+   structured, block-based library from the Template Library brief.
+
+   Immutability rules enforced here, not in the client:
+     - a published version's content can never be edited (edits go to a new
+       draft version);
+     - a template that has spawned contracts can never be hard-deleted, only
+       archived;
+     - a contract's template provenance columns are written once. */
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS templates (
+    id TEXT PRIMARY KEY,
+    org_id TEXT NOT NULL DEFAULT '${WORKSPACE_ID}',
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL DEFAULT 'other',
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','archived')),
+    origin TEXT NOT NULL DEFAULT 'built_in_hati' CHECK (origin IN ('upload','saved_from_contract','built_in_hati')),
+    source_contract_id TEXT,
+    last_used_at TEXT,
+    created_by TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE IF NOT EXISTS template_versions (
+    id TEXT PRIMARY KEY,
+    template_id TEXT NOT NULL,
+    version_number INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','published','superseded')),
+    published_at TEXT, published_by TEXT,
+    change_note TEXT,
+    error_note TEXT,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE INDEX IF NOT EXISTS idx_template_versions_template ON template_versions(template_id);
+  CREATE TABLE IF NOT EXISTS template_blocks (
+    id TEXT PRIMARY KEY,
+    template_version_id TEXT NOT NULL,
+    order_index INTEGER NOT NULL DEFAULT 0,
+    block_type TEXT NOT NULL CHECK (block_type IN ('heading','fixed_text','field_group','signature_block','branding')),
+    content TEXT);
+  CREATE INDEX IF NOT EXISTS idx_template_blocks_version ON template_blocks(template_version_id);
+  CREATE TABLE IF NOT EXISTS template_fields (
+    id TEXT PRIMARY KEY,
+    template_version_id TEXT NOT NULL,
+    field_key TEXT NOT NULL,
+    label TEXT, section TEXT, order_index INTEGER NOT NULL DEFAULT 0,
+    field_type TEXT NOT NULL DEFAULT 'short_text',
+    control TEXT NOT NULL DEFAULT 'free' CHECK (control IN ('free','guided')),
+    options TEXT,
+    required INTEGER NOT NULL DEFAULT 0,
+    default_value TEXT, help_text TEXT,
+    detection_confidence TEXT NOT NULL DEFAULT 'manual' CHECK (detection_confidence IN ('high','medium','low','manual')),
+    human_reviewed INTEGER NOT NULL DEFAULT 0);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_template_fields_key ON template_fields(template_version_id, field_key);
+  CREATE INDEX IF NOT EXISTS idx_template_fields_version ON template_fields(template_version_id);
+  CREATE TABLE IF NOT EXISTS org_branding (
+    org_id TEXT PRIMARY KEY,
+    logo_url TEXT, company_name TEXT, registration_number TEXT,
+    address TEXT, default_footer_text TEXT, updated_at TEXT);
+  CREATE TABLE IF NOT EXISTS org_profile_values (
+    org_id TEXT NOT NULL, field_key TEXT NOT NULL, value TEXT, updated_at TEXT,
+    PRIMARY KEY (org_id, field_key));
+`);
+// Provenance: which template and which version a contract came from. Written
+// once at creation (COALESCE in upsertContract keeps them set-once at the SQL
+// layer), never overwritten — this is the audit trail that answers "which live
+// contracts contain our old payment terms?".
+addColumnIfMissing('contracts', 'template_id', 'TEXT');
+addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
+db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
+
+const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
+const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
+
+/* The field library — the fixed catalogue of field types the whole feature is
+   built on. ONE registry, shared with the browser (js/fieldlib.js is both a
+   window global and a CommonJS module): the client validates for immediacy,
+   this re-check is the answer that counts. Adding a future type is a single
+   entry in that file, nowhere else. */
+const { FIELD_LIB: TPL_FIELD_LIB, fieldLibValidate } = require(path.join(__dirname, '..', 'js', 'fieldlib.js'));
+const { templateFormDocHtml, templateFormResolveDefaults } = require(path.join(__dirname, '..', 'js', 'templateform.js'));
+/* Same registry, template_fields row shape (options may arrive as a JSON
+   string straight from SQLite). Empty is a `required` question, not a type
+   question — fieldLibValidate answers it first and separately. */
+const tplValidateValue = (field, value) => fieldLibValidate({ ...field, options: tplParseOptions(field.options) }, value);
+const tplParseOptions = raw => {
+  if (Array.isArray(raw)) return raw.map(String);
+  try { const v = JSON.parse(raw || '[]'); return Array.isArray(v) ? v.map(String) : []; } catch (_) { return []; }
+};
+const TPL_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
+const tplSlugKey = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').replace(/^([0-9])/, 'f$1').slice(0, 64) || 'field';
+
+const tplGet = id => db.prepare('SELECT * FROM templates WHERE id=?').get(id);
+const tplVersion = vid => db.prepare('SELECT * FROM template_versions WHERE id=?').get(vid);
+const tplVersionsOf = tid => db.prepare('SELECT * FROM template_versions WHERE template_id=? ORDER BY version_number').all(tid);
+const tplPublishedVersion = tid => db.prepare("SELECT * FROM template_versions WHERE template_id=? AND status='published' ORDER BY version_number DESC LIMIT 1").get(tid);
+const tplBlocksOf = vid => db.prepare('SELECT * FROM template_blocks WHERE template_version_id=? ORDER BY order_index').all(vid);
+const tplFieldsOf = vid => db.prepare('SELECT * FROM template_fields WHERE template_version_id=? ORDER BY order_index').all(vid)
+  .map(f => ({ ...f, options: tplParseOptions(f.options), required: !!f.required, human_reviewed: !!f.human_reviewed }));
+const tplIsManager = u => u && (u.role === 'admin' || u.role === 'legal');
+// Managers see the whole library; everyone else sees a draft template exactly
+// as if it did not exist yet — it becomes visible the moment it is published.
+// Archived templates stay visible to all: the audit trail of their children
+// still points here.
+const tplVisibleTo = (t, u) => !!t && (tplIsManager(u) || t.status !== 'draft');
+const tplUsage = tid => db.prepare("SELECT COUNT(*) n FROM contracts WHERE template_id=?").get(tid).n;
+
+function tplNewVersion(templateId, versionNumber) {
+  const v = { id: 'tv_' + rid(8), template_id: templateId, version_number: versionNumber };
+  db.prepare('INSERT INTO template_versions (id,template_id,version_number,status,created_at,updated_at) VALUES (?,?,?,?,?,?)')
+    .run(v.id, v.template_id, v.version_number, 'draft', now(), now());
+  return v;
+}
+function tplListView(t) {
+  const pub = tplPublishedVersion(t.id);
+  const latest = db.prepare('SELECT MAX(version_number) m FROM template_versions WHERE template_id=?').get(t.id).m || 0;
+  return {
+    id: t.id, name: t.name, description: t.description || '', category: t.category,
+    status: t.status, origin: t.origin, sourceContractId: t.source_contract_id || null,
+    publishedVersion: pub ? pub.version_number : null,
+    publishedVersionId: pub ? pub.id : null,
+    latestVersion: latest,
+    contractsCreated: tplUsage(t.id),
+    lastUsedAt: t.last_used_at || null,
+    createdBy: t.created_by || null, createdAt: t.created_at, updatedAt: t.updated_at,
+  };
+}
+function tplTouch(id) { db.prepare('UPDATE templates SET updated_at=? WHERE id=?').run(now(), id); }
+
+/* ---- library routes ---- */
+app.get('/api/templates', auth, (req, res) => {
+  const rows = db.prepare('SELECT * FROM templates ORDER BY updated_at DESC').all()
+    .filter(t => tplVisibleTo(t, req.user));
+  res.json({ templates: rows.map(tplListView), canManage: tplIsManager(req.user) });
+});
+
+app.post('/api/templates', auth, templateManager, passwordCurrent, (req, res) => {
+  const b = req.body || {};
+  const name = clean(b.name).slice(0, 160);
+  if (!name) return res.status(400).json({ error: 'A template needs a name' });
+  const category = TPL_CATEGORIES.includes(b.category) ? b.category : 'other';
+  const origin = TPL_ORIGINS.includes(b.origin) ? b.origin : 'built_in_hati';
+  const t = {
+    id: 'tpl_' + rid(8), name, description: clean(b.description).slice(0, 2000), category,
+    origin, source_contract_id: null, created_by: req.user.name,
+  };
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft',?,?,?,?,?)`)
+      .run(t.id, WORKSPACE_ID, t.name, t.description, t.category, t.origin, t.source_contract_id, t.created_by, now(), now());
+    tplNewVersion(t.id, 1);
+  });
+  res.json({ ok: true, template: tplListView(tplGet(t.id)) });
+});
+
+app.get('/api/templates/:id', auth, (req, res) => {
+  const t = tplGet(req.params.id);
+  // Out of sight reads exactly like "does not exist" — same rule as contracts.
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const manager = tplIsManager(req.user);
+  const versions = tplVersionsOf(t.id)
+    // a non-manager has no business seeing unpublished drafts-in-progress
+    .filter(v => manager || v.status !== 'draft')
+    .map(v => ({ id: v.id, versionNumber: v.version_number, status: v.status,
+      publishedAt: v.published_at, publishedBy: v.published_by,
+      changeNote: v.change_note || '', errorNote: v.error_note || '', createdAt: v.created_at }));
+  res.json({ template: tplListView(t), versions, canManage: manager });
+});
+
+app.patch('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const b = req.body || {};
+  const sets = [], args = [];
+  if (b.name !== undefined) { const n = clean(b.name).slice(0, 160); if (!n) return res.status(400).json({ error: 'A template needs a name' }); sets.push('name=?'); args.push(n); }
+  if (b.description !== undefined) { sets.push('description=?'); args.push(clean(b.description).slice(0, 2000)); }
+  if (b.category !== undefined) {
+    if (!TPL_CATEGORIES.includes(b.category)) return res.status(400).json({ error: 'Unknown category' });
+    sets.push('category=?'); args.push(b.category);
+  }
+  if (b.status !== undefined) {
+    // Status is a lifecycle, not a free field: archive is allowed from
+    // anywhere; restore returns to published/draft depending on whether a
+    // published version exists. Publishing happens on a VERSION, never here.
+    if (b.status === 'archived') { sets.push('status=?'); args.push('archived'); }
+    else if (b.status === 'restore' && t.status === 'archived') { sets.push('status=?'); args.push(tplPublishedVersion(t.id) ? 'published' : 'draft'); }
+    else return res.status(400).json({ error: 'Only archive and restore are allowed here — publishing happens on a version' });
+  }
+  if (!sets.length) return res.status(400).json({ error: 'Nothing to change' });
+  sets.push('updated_at=?'); args.push(now(), req.params.id);
+  db.prepare(`UPDATE templates SET ${sets.join(', ')} WHERE id=?`).run(...args);
+  res.json({ ok: true, template: tplListView(tplGet(req.params.id)) });
+});
+
+app.delete('/api/templates/:id', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const used = tplUsage(t.id);
+  // Never hard-delete a template that has spawned contracts — those contracts
+  // permanently cite it. Archive keeps the audit trail intact.
+  if (used > 0) return res.status(409).json({
+    error: `${used} contract${used === 1 ? ' was' : 's were'} created from “${t.name}” — it can be archived, never deleted`,
+  });
+  txn(() => {
+    for (const v of tplVersionsOf(t.id)) {
+      db.prepare('DELETE FROM template_blocks WHERE template_version_id=?').run(v.id);
+      db.prepare('DELETE FROM template_fields WHERE template_version_id=?').run(v.id);
+    }
+    db.prepare('DELETE FROM template_versions WHERE template_id=?').run(t.id);
+    db.prepare('DELETE FROM templates WHERE id=?').run(t.id);
+  });
+  res.json({ ok: true });
+});
+
+/* ---- version content ---- */
+app.get('/api/templates/:id/versions/:vid', auth, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status === 'draft' && !tplIsManager(req.user)) return res.status(404).json({ error: 'Version not found' });
+  res.json({
+    version: { id: v.id, versionNumber: v.version_number, status: v.status,
+      publishedAt: v.published_at, publishedBy: v.published_by,
+      changeNote: v.change_note || '', errorNote: v.error_note || '' },
+    blocks: tplBlocksOf(v.id).map(bl => ({ id: bl.id, orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' })),
+    fields: tplFieldsOf(v.id),
+  });
+});
+
+const TPL_BLOCK_TYPES = ['heading', 'fixed_text', 'field_group', 'signature_block', 'branding'];
+const TPL_CONFIDENCE = ['high', 'medium', 'low', 'manual'];
+/* Replace a DRAFT version's content wholesale. A published or superseded
+   version is immutable — the 409 is the product behaving, not failing. */
+app.put('/api/templates/:id/versions/:vid', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status !== 'draft') return res.status(409).json({
+    error: `v${v.version_number} is ${v.status} and can never be edited — make your changes on a new draft version`,
+  });
+  const b = req.body || {};
+  const blocks = Array.isArray(b.blocks) ? b.blocks : [];
+  const fields = Array.isArray(b.fields) ? b.fields : [];
+  if (blocks.length > 500) return res.status(400).json({ error: 'Too many blocks (max 500)' });
+  if (fields.length > 300) return res.status(400).json({ error: 'Too many fields (max 300)' });
+  const seen = new Set();
+  const cleanFields = [];
+  for (const f of fields) {
+    const key = TPL_KEY_RE.test(String(f.fieldKey || '')) ? f.fieldKey : tplSlugKey(f.fieldKey || f.label);
+    if (seen.has(key)) return res.status(400).json({ error: `Duplicate field key “${key}” — keys are unique within a version` });
+    seen.add(key);
+    if (f.fieldType !== undefined && !TPL_FIELD_LIB[f.fieldType]) return res.status(400).json({ error: `Unknown field type “${f.fieldType}”` });
+    cleanFields.push({
+      id: 'tf_' + rid(8), field_key: key,
+      label: clean(f.label).slice(0, 200), section: clean(f.section).slice(0, 200) || null,
+      order_index: Number(f.orderIndex) || 0,
+      field_type: TPL_FIELD_LIB[f.fieldType] ? f.fieldType : 'short_text',
+      control: f.control === 'guided' ? 'guided' : 'free',
+      options: f.control === 'guided' ? JSON.stringify((Array.isArray(f.options) ? f.options : []).map(o => String(o).slice(0, 200)).slice(0, 50)) : null,
+      required: f.required ? 1 : 0,
+      default_value: f.defaultValue != null && String(f.defaultValue).trim() !== '' ? String(f.defaultValue).slice(0, 2000) : null,
+      help_text: f.helpText != null && String(f.helpText).trim() !== '' ? String(f.helpText).slice(0, 1000) : null,
+      detection_confidence: TPL_CONFIDENCE.includes(f.detectionConfidence) ? f.detectionConfidence : 'manual',
+      human_reviewed: f.humanReviewed ? 1 : 0,
+    });
+  }
+  const cleanBlocks = [];
+  for (const bl of blocks) {
+    if (!TPL_BLOCK_TYPES.includes(bl.blockType)) return res.status(400).json({ error: `Unknown block type “${bl.blockType}”` });
+    cleanBlocks.push({
+      id: 'tb_' + rid(8), order_index: Number(bl.orderIndex) || 0,
+      block_type: bl.blockType, content: String(bl.content == null ? '' : bl.content).slice(0, 60000),
+    });
+  }
+  txn(() => {
+    db.prepare('DELETE FROM template_blocks WHERE template_version_id=?').run(v.id);
+    db.prepare('DELETE FROM template_fields WHERE template_version_id=?').run(v.id);
+    for (const bl of cleanBlocks)
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run(bl.id, v.id, bl.order_index, bl.block_type, bl.content);
+    for (const f of cleanFields)
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(f.id, v.id, f.field_key, f.label, f.section, f.order_index, f.field_type, f.control, f.options, f.required, f.default_value, f.help_text, f.detection_confidence, f.human_reviewed);
+    db.prepare('UPDATE template_versions SET updated_at=? WHERE id=?').run(now(), v.id);
+    tplTouch(t.id);
+  });
+  res.json({ ok: true, blocks: cleanBlocks.length, fields: cleanFields.length });
+});
+
+/* Publish: validates, freezes the draft as the published version, and
+   supersedes the previous published one. Contracts already created from the
+   superseded version are copies and are not touched — by design and by test. */
+app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const v = tplVersion(req.params.vid);
+  if (!v || v.template_id !== t.id) return res.status(404).json({ error: 'Version not found' });
+  if (v.status !== 'draft') return res.status(409).json({ error: `v${v.version_number} is already ${v.status}` });
+  if (t.status === 'archived') return res.status(409).json({ error: 'Restore the template from the archive before publishing' });
+  const fields = tplFieldsOf(v.id);
+  const blocks = tplBlocksOf(v.id);
+  const problems = [];
+  if (!blocks.length && !fields.length) problems.push('The version is empty — add blocks or fields before publishing');
+  for (const f of fields) {
+    if (!clean(f.label)) problems.push(`Field “${f.field_key}” has no label`);
+    if (f.control === 'guided' && !f.options.length) problems.push(`Guided field “${f.label || f.field_key}” has no options to choose from`);
+  }
+  /* Marker ↔ field consistency, both directions. An orphaned {{marker}} is
+     how deleted fields once reached contracts as literal code — it BLOCKS
+     publish and names itself, so the fix is one obvious edit away. */
+  const fieldKeys = new Set(fields.map(f => f.field_key));
+  const placed = new Set();
+  for (const bl of blocks) {
+    for (const m of String(bl.content || '').matchAll(/\{\{([a-z0-9_.]+)\}\}/gi)) {
+      placed.add(m[1]);
+      if (!fieldKeys.has(m[1]))
+        problems.push(`The wording still mentions “${m[1]}” but no field with that name exists — remove the marker from the wording, or add the field back`);
+    }
+  }
+  if (problems.length) return res.status(400).json({ error: problems[0], problems });
+  const warnings = [];
+  if (!blocks.some(b => b.block_type === 'signature_block') && !fields.some(f => f.field_type === 'signature_name_title'))
+    warnings.push('No signature block — contracts from this template will have nowhere to sign');
+  for (const f of fields) {
+    // signature/stamp fields live in the signing flow, never inline — only
+    // typed fields are expected to sit somewhere in the wording
+    if (!placed.has(f.field_key) && !['signature_name_title', 'stamp_image'].includes(f.field_type))
+      warnings.push(`Field “${f.label || f.field_key}” is not placed in any wording block — it will appear only on the fill form`);
+  }
+  const changeNote = clean((req.body || {}).changeNote).slice(0, 500);
+  txn(() => {
+    db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
+    db.prepare("UPDATE template_versions SET status='published', published_at=?, published_by=?, change_note=?, updated_at=? WHERE id=?")
+      .run(now(), req.user.name, changeNote || null, now(), v.id);
+    db.prepare("UPDATE templates SET status='published', updated_at=? WHERE id=?").run(now(), t.id);
+  });
+  res.json({ ok: true, versionNumber: v.version_number, warnings });
+});
+
+/* A new draft to edit next — seeded from the newest version so a manager
+   iterates on what is live rather than starting blank. */
+app.post('/api/templates/:id/versions', auth, templateManager, passwordCurrent, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!t) return res.status(404).json({ error: 'Template not found' });
+  const existing = tplVersionsOf(t.id);
+  const openDraft = existing.find(v => v.status === 'draft');
+  if (openDraft) return res.status(409).json({ error: `v${openDraft.version_number} is still a draft — finish or publish it first`, versionId: openDraft.id });
+  const source = existing[existing.length - 1];
+  const v = tplNewVersion(t.id, (source ? source.version_number : 0) + 1);
+  if (source) txn(() => {
+    for (const bl of tplBlocksOf(source.id))
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run('tb_' + rid(8), v.id, bl.order_index, bl.block_type, bl.content);
+    for (const f of db.prepare('SELECT * FROM template_fields WHERE template_version_id=?').all(source.id))
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run('tf_' + rid(8), v.id, f.field_key, f.label, f.section, f.order_index, f.field_type, f.control, f.options, f.required, f.default_value, f.help_text, f.detection_confidence, f.human_reviewed);
+  });
+  tplTouch(t.id);
+  res.json({ ok: true, versionId: v.id, versionNumber: v.version_number });
+});
+
+/* ---- save-as-template: a deal that went well becomes the standard ----
+   Copies a contract's wording into a NEW draft template, converting the
+   party-specific values it can recognise (names, emails, amounts, dates —
+   read from the contract's own structured record, not guessed) into empty
+   typed fields, and leaving everything else as fixed wording. The draft then
+   opens in the builder; nothing publishes without a manager looking at it. */
+const TPL_HEADING_RE = /^(article|section|schedule|part|clause)\s+[0-9ivxlc]+\b/i;
+function tplTextBlocks(text) {
+  // Paragraphs are blank-line separated; single newlines inside a paragraph
+  // stay (addresses, signature lines). A heading is short, and either
+  // ALL-CAPS or an Article/Section/Schedule label — deliberately conservative:
+  // "1. The Supplier shall…" is a clause, not a heading.
+  const out = [];
+  for (const para of String(text || '').split(/\n{2,}/)) {
+    const p = para.replace(/[ \t]+$/gm, '').trim();
+    if (!p) continue;
+    const oneLine = !p.includes('\n');
+    const caps = p === p.toUpperCase() && /[A-Z]/.test(p);
+    if (oneLine && p.length <= 80 && (caps || TPL_HEADING_RE.test(p)) && !/[.;:]$/.test(p))
+      out.push({ block_type: 'heading', content: p });
+    else out.push({ block_type: 'fixed_text', content: p });
+  }
+  return out;
+}
+function tplRichBlocks(html) {
+  // The rich format is a sanitised fragment with a fixed tag allowlist, so a
+  // scan for block elements is dependable — no DOM needed on this side.
+  const out = [];
+  const re = /<(h[1-4]|p|li|blockquote|pre)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  let m;
+  while ((m = re.exec(html)) != null) {
+    const text = richBodyToSearchText(m[2]);
+    if (!text) continue;
+    out.push({ block_type: /^h/i.test(m[1]) ? 'heading' : 'fixed_text', content: text });
+  }
+  return out.length ? out : tplTextBlocks(richBodyToSearchText(html));
+}
+app.post('/api/contracts/:id/save-as-template', auth, templateManager, passwordCurrent, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c; try { c = JSON.parse(row.json); } catch (_) { return res.status(500).json({ error: 'The contract record could not be read' }); }
+  const bodyText = c.format === 'rich' ? null : (c.redlineText || (c.upload && c.upload.extractedText) || '');
+  const blocks = c.format === 'rich' && c.redlineText ? tplRichBlocks(c.redlineText) : tplTextBlocks(bodyText);
+  if (!blocks.length) return res.status(400).json({ error: 'This contract has no document text to turn into a template' });
+
+  /* Party-specific values, read from the record the contract already carries.
+     Every literal occurrence in the wording becomes a {{placeholder}} and an
+     empty field of the right type. Nothing is invented: a value that does not
+     appear in the text creates no field. */
+  const money = Number(c.value) || 0;
+  const candidates = [
+    { key: 'counterparty_name', label: 'Counterparty name', type: 'short_text', required: true,
+      needles: [c.counterparty].filter(Boolean) },
+    { key: 'counterparty_email', label: 'Counterparty email', type: 'email',
+      needles: [c.counterpartyEmail].filter(Boolean) },
+    { key: 'contract_value', get label(){ return `Contract value (${orgJx().currency})`; }, type: 'currency',
+      needles: money > 0 ? [money.toLocaleString('en-US'), String(money)] : [] },
+    { key: 'effective_date', label: 'Effective date', type: 'date',
+      needles: [c.fields && c.fields.effDate].filter(Boolean) },
+    { key: 'expiry_date', label: 'Expiry date', type: 'date',
+      needles: [c.expiry].filter(Boolean) },
+  ];
+  const fields = [];
+  let section = null;
+  const sectionOf = [];
+  blocks.forEach(b => { if (b.block_type === 'heading') section = b.content.slice(0, 120); sectionOf.push(section); });
+  for (const cand of candidates) {
+    let found = false;
+    blocks.forEach((b, i) => {
+      for (const needle of cand.needles) {
+        if (needle && needle.length >= 3 && b.content.includes(needle)) {
+          b.content = b.content.split(needle).join(`{{${cand.key}}}`);
+          b.block_type = b.block_type === 'heading' ? 'heading' : 'field_group';
+          if (!found) { fields.push({ ...cand, section: sectionOf[i] }); found = true; }
+        }
+      }
+    });
+  }
+  // Every agreement signs; give the draft the signature scaffolding so the
+  // builder starts from something publishable. The manager adjusts from here.
+  blocks.push({ block_type: 'signature_block', content: 'Company' });
+  blocks.push({ block_type: 'signature_block', content: 'Counterparty' });
+  fields.push({ key: 'company_signature', label: 'Signed for the company', type: 'signature_name_title', section: 'Signatures' });
+  fields.push({ key: 'counterparty_signature', label: 'Signed for the counterparty', type: 'signature_name_title', section: 'Signatures' });
+
+  const FOLDER_CATEGORY = { proc: 'procurement', sales: 'sales', corp: 'other', mfg: 'other', dist: 'other', mktg: 'other' };
+  const name = clean((req.body || {}).name).slice(0, 160) || `${c.name} — standard template`;
+  const tid = 'tpl_' + rid(8);
+  let vid;
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft','saved_from_contract',?,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Saved from ${c.id} (${c.name})`, FOLDER_CATEGORY[c.folder] || 'other', c.id, req.user.name, now(), now());
+    const v = tplNewVersion(tid, 1);
+    vid = v.id;
+    blocks.forEach((b, i) =>
+      db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+        .run('tb_' + rid(8), vid, i, b.block_type, b.content.slice(0, 60000)));
+    fields.forEach((f, i) =>
+      db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+        VALUES (?,?,?,?,?,?,?,'free',NULL,?,NULL,NULL,'high',0)`)
+        .run('tf_' + rid(8), vid, f.key, f.label, f.section || null, i, f.type, f.required ? 1 : 0));
+  });
+  res.json({ ok: true, templateId: tid, versionId: vid,
+    fieldsCreated: fields.length, blocksCreated: blocks.length });
+});
+
+/* ---- create a contract FROM a template (Phase C) ----
+   Copies the PUBLISHED version's blocks and fields into a new, independent
+   contract instance and stamps the provenance columns. Enforced here, not in
+   the client: a draft cannot spawn contracts, an archived template cannot
+   spawn new ones, and the copy means a later template edit never reaches
+   contracts already created — there is nothing left pointing back to follow. */
+function tplOrgValues() {
+  const b = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID) || {};
+  const base = { company_name: b.company_name, registration_number: b.registration_number, address: b.address };
+  for (const r of db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID))
+    base[r.field_key] = r.value;
+  return base;
+}
+const TPL_CATEGORY_FOLDER = { procurement: 'proc', sales: 'sales', employment: 'corp', nda: 'corp', other: 'corp' };
+app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
+  const t = tplGet(req.params.id);
+  if (!tplVisibleTo(t, req.user)) return res.status(404).json({ error: 'Template not found' });
+  if (t.status === 'archived') return res.status(409).json({ error: `“${t.name}” is archived — it cannot spawn new contracts` });
+  const pub = tplPublishedVersion(t.id);
+  if (t.status !== 'published' || !pub) return res.status(409).json({ error: `“${t.name}” is a draft — publish it before creating contracts from it` });
+
+  const b = req.body || {};
+  const scope = folderScopeFor(req.user);
+  const folder = b.folder && typeof b.folder === 'string' ? b.folder : (TPL_CATEGORY_FOLDER[t.category] || 'corp');
+  if (!inScope(scope, folder)) return res.status(403).json({ error: 'You do not have access to that value stream' });
+
+  const fields = tplFieldsOf(pub.id).map(f => ({
+    fieldKey: f.field_key, label: f.label, section: f.section || '', orderIndex: f.order_index,
+    fieldType: f.field_type, control: f.control, options: f.options,
+    required: f.required, defaultValue: f.default_value || '', helpText: f.help_text || '',
+  }));
+  const blocks = tplBlocksOf(pub.id).map(bl => ({ orderIndex: bl.order_index, blockType: bl.block_type, content: bl.content || '' }));
+  /* Company answers arrive pre-filled: {{org.…}} defaults resolve from the
+     org profile at CREATION time. Later profile edits do not reach this
+     contract — same copy semantics as the template content itself. */
+  const values = templateFormResolveDefaults(fields, tplOrgValues());
+  const form = {
+    templateId: t.id, templateVersionId: pub.id, templateName: t.name,
+    versionNumber: pub.version_number, blocks, fields, values,
+  };
+  const branding = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  const uid = (Number(getSetting('uid')) || 100) + 1;
+  const c = {
+    id: 'MK-' + uid,
+    name: clean(b.name).slice(0, 200) || t.name,
+    counterparty: '', counterpartyEmail: '', value: 0, valueType: 'none',
+    status: 'Draft', template: null, folder, source: null,
+    lastAction: 'Created from template', expiry: null, hash: null, signedAt: null,
+    format: 'rich', redlineText: templateFormDocHtml(form),
+    templateForm: form,
+    libraryTemplateId: t.id, libraryTemplateVersionId: pub.id,
+    /* the branding snapshot travels on the contract so the portal (which has
+       no session and no org routes) renders the same header the owner sees */
+    branding: branding ? { logoUrl: branding.logo_url || null, companyName: branding.company_name || '',
+      registrationNumber: branding.registration_number || '', address: branding.address || '',
+      footerText: branding.default_footer_text || '' } : null,
+    fields: {}, comments: [],
+    audit: [{ at: now(), user: req.user.name, action: 'Created',
+      detail: `Created from template “${t.name}” v${pub.version_number} (${t.id})` }],
+    signatures: [], obligations: [], rounds: [],
+  };
+  c._seq = nextSeq();
+  txn(() => {
+    upsertContract(c, 1);
+    setSetting('uid', uid);
+    db.prepare('UPDATE templates SET last_used_at=? WHERE id=?').run(now(), t.id);
+  });
+  c._v = 1;
+  res.json({ ok: true, contract: c, uid });
+});
+
+/* ---- counterparty fills the form: per-field autosave on the share ----
+   Public (the counterparty has no login), rate-limited, and narrow: it
+   accepts ONLY field values, validates every one against the field
+   definitions the payload itself carries (the same single registry as the
+   client), and rewrites only templateForm.values + the rendered wording.
+   Fixed wording is untouchable by construction — there is no path from this
+   route to any other part of the payload. A half-finished form survives a
+   closed tab because the values land on the share row, not in the tab. */
+app.post('/api/shares/:token/template-values', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  let payload; try { payload = JSON.parse(s.payload); } catch (_) { return res.status(500).json({ error: 'This link’s copy could not be read' }); }
+  const c = payload && payload.contract;
+  const form = c && c.templateForm;
+  if (!form) return res.status(409).json({ error: 'This contract has no form to fill' });
+  if (c.executed || (s.contract_id && contractExecution(s.contract_id)))
+    return res.status(409).json({ error: 'This contract is executed — its record can no longer change' });
+  const incoming = (req.body || {}).values;
+  if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming))
+    return res.status(400).json({ error: 'values must be an object of field_key → value' });
+  const problems = {};
+  let changed = 0;
+  form.values = form.values || {};
+  for (const [key, raw] of Object.entries(incoming).slice(0, 300)) {
+    const f = form.fields.find(x => x.fieldKey === key);
+    if (!f) continue;                       // never invent a field
+    if (f.fieldType === 'signature_name_title') continue; // the signing flow owns these
+    const value = raw == null ? '' : String(raw).slice(0, 10000);
+    const problem = fieldLibValidate({ label: f.label, field_key: f.fieldKey, field_type: f.fieldType,
+      control: f.control, options: f.options, required: f.required }, value);
+    if (problem && value.trim() !== '') { problems[key] = problem; continue; } // an emptied field may clear itself
+    if (value.trim() === '') delete form.values[key]; else form.values[key] = value.trim();
+    changed++;
+  }
+  if (changed) {
+    c.docText = undefined; // stale projection; the portal renders from the form
+    db.prepare('UPDATE shares SET payload=? WHERE token=?').run(JSON.stringify(payload), s.token);
+  }
+  res.json({ ok: true, saved: changed, problems, values: form.values });
+});
+
+/* ---- upload-and-convert: a Word document becomes a draft template ----
+   HaTi is a converter, not a PDF filler: the original file's formatting is
+   deliberately discarded. The upload is checked by its real bytes (PK zip
+   magic + word/document.xml inside), the original is stored for reprocessing,
+   the ordered structure (headings, paragraphs, tables with label↔blank cell
+   pairing) is extracted HERE — deterministic code — and only the judgement
+   call "which parts are fixed wording and which are blanks" goes to the
+   model. The output is ALWAYS a draft opened behind the confirmation screen;
+   there is no path from upload to published that skips a human. */
+
+/* A minimal ZIP reader (central-directory walk + inflateRawSync). The client
+   has one in js/docx.js built on DecompressionStream; the server cannot use
+   that, and needs only enough to pull one entry out of a .docx. */
+function tplZipEntry(buf, wantedName) {
+  const eocd = buf.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  if (eocd < 0) return null;
+  const count = buf.readUInt16LE(eocd + 10);
+  let off = buf.readUInt32LE(eocd + 16);
+  for (let i = 0; i < count; i++) {
+    if (buf.readUInt32LE(off) !== 0x02014b50) return null;
+    const method = buf.readUInt16LE(off + 10);
+    const csize = buf.readUInt32LE(off + 20);
+    const nameLen = buf.readUInt16LE(off + 28);
+    const extraLen = buf.readUInt16LE(off + 30);
+    const commentLen = buf.readUInt16LE(off + 32);
+    const localOff = buf.readUInt32LE(off + 42);
+    const name = buf.slice(off + 46, off + 46 + nameLen).toString('utf8');
+    if (name === wantedName) {
+      const lNameLen = buf.readUInt16LE(localOff + 26);
+      const lExtraLen = buf.readUInt16LE(localOff + 28);
+      const dataStart = localOff + 30 + lNameLen + lExtraLen;
+      const raw = buf.slice(dataStart, dataStart + csize);
+      return method === 0 ? raw : require('node:zlib').inflateRawSync(raw);
+    }
+    off += 46 + nameLen + extraLen + commentLen;
+  }
+  return null;
+}
+const tplXmlText = xml => String(xml)
+  .replace(/<w:tab[^>]*\/>/g, '\t')
+  .replace(/<[^>]+>/g, '')
+  .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+/* Ordered structure out of WordprocessingML: headings (by pStyle), paragraphs,
+   and tables with their cells kept together per row so a label and the empty
+   cell beside it stay adjacent — that adjacency IS the blank. */
+function tplDocxStructure(bytes) {
+  const xml = tplZipEntry(bytes, 'word/document.xml');
+  if (!xml) return null;
+  const body = String(xml);
+  const out = [];
+  const topLevel = /<w:(p|tbl)\b[\s\S]*?<\/w:\1>/g;
+  // tables contain <w:p> inside cells, so walk top-level elements only: track
+  // the end of the last match and skip matches that start inside it
+  let m, lastEnd = 0;
+  while ((m = topLevel.exec(body)) !== null) {
+    if (m.index < lastEnd) continue;
+    lastEnd = m.index + m[0].length;
+    if (m[1] === 'tbl') {
+      for (const row of m[0].match(/<w:tr\b[\s\S]*?<\/w:tr>/g) || []) {
+        const cells = (row.match(/<w:tc\b[\s\S]*?<\/w:tc>/g) || [])
+          .map(c => tplXmlText((c.match(/<w:t[^>]*>[\s\S]*?<\/w:t>/g) || []).join('')).trim());
+        out.push({ kind: 'table_row', cells });
+      }
+      continue;
+    }
+    const styleM = /<w:pStyle[^>]*w:val="([^"]+)"/.exec(m[0]);
+    const text = tplXmlText((m[0].match(/<w:t[^>]*>[\s\S]*?<\/w:t>/g) || []).join('')).trim();
+    if (!text) continue;
+    const heading = styleM && /^(Heading|Title|berschrift)/i.test(styleM[1]);
+    out.push({ kind: heading ? 'heading' : 'paragraph', text });
+  }
+  return out;
+}
+/* The extraction the model reads: one line per element, labelled, in reading
+   order. (empty) marks a blank table cell — the shape the detection rules in
+   the prompt are written against. */
+function tplExtractionText(structure) {
+  return structure.map(el => {
+    if (el.kind === 'table_row')
+      return 'TABLE ROW: ' + el.cells.map(c => c || '(empty)').join(' | ');
+    return (el.kind === 'heading' ? 'HEADING: ' : 'PARA: ') + el.text;
+  }).join('\n').slice(0, 60000);
+}
+
+const TPL_CONVERT_MODEL = 'claude-sonnet-4-6';
+const TPL_UPLOAD_MAX = 8 * 1024 * 1024; // decoded bytes
+const TPL_CONVERT_TOOL = {
+  name: 'propose_template',
+  description: 'Return the document rebuilt as template blocks and typed fields.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      blocks: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            order_index: { type: 'integer' },
+            block_type: { type: 'string', enum: ['heading', 'fixed_text', 'field_group', 'signature_block'] },
+            content: { type: 'string', description: 'Text with {{field_key}} where each blank sits. For signature_block: who signs.' },
+          },
+          required: ['order_index', 'block_type', 'content'],
+        },
+      },
+      fields: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string' },
+            field_key: { type: 'string', description: 'machine-safe: lowercase letters, digits, underscores' },
+            section: { type: 'string', description: 'the nearest heading above the field' },
+            field_type: { type: 'string', enum: Object.keys(TPL_FIELD_LIB) },
+            required: { type: 'boolean' },
+            confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+          },
+          required: ['label', 'field_key', 'field_type', 'confidence'],
+        },
+      },
+    },
+    required: ['blocks', 'fields'],
+  },
+};
+const TPL_CONVERT_PROMPT = `You are converting a company's standard document into a reusable contract template. The extraction below lists the document's elements in reading order: HEADING lines, PARA lines, and TABLE ROW lines whose cells are separated by | with (empty) marking a blank cell.
+
+Rebuild it as blocks and fields:
+- A field is anything a human must supply per deal. A heading is never a field.
+- Recognise blanks in ALL these shapes: an empty table cell beside a label; underscore runs (____); bracket placeholders like [INSERT NAME], [●] or [ ]; and inline phrases such as "whose registered address is ______".
+- An asterisk or the word "required" beside a label means required: true.
+- Legal articles, clauses and boilerplate paragraphs are fixed_text blocks, never fields.
+- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block. NEVER place a signature or stamp field's {{marker}} inside any block's content: the whole execution area ("Signed for X … Name … Title … Date …") is replaced by one signature_block per signing party whose content names who signs (e.g. "Buyer director"), and its longhand wording is dropped.
+- Where a blank sits inside wording, emit a field_group block whose content keeps the wording with {{field_key}} in the blank's place. A table of label/blank pairs becomes one field_group block listing "Label: {{field_key}}" lines.
+- Choose the most specific field_type the label supports (kenya_tax_id for KRA PIN, email for email addresses, phone for telephone numbers, national_id for ID numbers, date for dates, currency for amounts). Unsure of the type: use short_text with confidence: low.
+- Never invent a field that is not in the source document. Every field's {{field_key}} must appear in exactly one block.
+
+Return the result via the propose_template tool only.`;
+
+const tplSafeParse = v => { try { return JSON.parse(v); } catch (_) { return null; } };
+function tplConvertClean(input) {
+  // Defensive shape-check of the model's structured output. Anything that
+  // fails validation is dropped with a note rather than crashing the upload.
+  const problems = [];
+  const rawBlocks = Array.isArray(input && input.blocks) ? input.blocks : null;
+  const rawFields = Array.isArray(input && input.fields) ? input.fields : null;
+  if (!rawBlocks || !rawFields) return { blocks: null, fields: null, problems: ['response missing blocks or fields'] };
+  const fields = [];
+  const seen = new Set();
+  for (const f of rawFields.slice(0, 300)) {
+    if (!f || typeof f !== 'object') continue;
+    let key = TPL_KEY_RE.test(String(f.field_key || '')) ? f.field_key : tplSlugKey(f.field_key || f.label);
+    if (seen.has(key)) { let n = 2; while (seen.has(`${key}_${n}`)) n++; key = `${key}_${n}`; }
+    seen.add(key);
+    if (!TPL_FIELD_LIB[f.field_type]) problems.push(`field “${key}”: unknown type “${f.field_type}” — kept as short_text`);
+    fields.push({
+      field_key: key, label: clean(f.label).slice(0, 200) || key,
+      section: clean(f.section).slice(0, 200) || null,
+      field_type: TPL_FIELD_LIB[f.field_type] ? f.field_type : 'short_text',
+      required: !!f.required,
+      detection_confidence: ['high', 'medium', 'low'].includes(f.confidence) ? f.confidence : 'low',
+    });
+  }
+  const blocks = [];
+  for (const b of rawBlocks.slice(0, 500)) {
+    if (!b || typeof b !== 'object') continue;
+    if (!['heading', 'fixed_text', 'field_group', 'signature_block'].includes(b.block_type)) continue;
+    blocks.push({ order_index: Number(b.order_index) || blocks.length, block_type: b.block_type,
+      content: String(b.content == null ? '' : b.content).slice(0, 60000) });
+  }
+  blocks.sort((a, b) => a.order_index - b.order_index);
+  /* Signature reconciliation. The prompt forbids signature/stamp markers
+     inside wording, but the model sometimes writes the execution area out
+     longhand ("Signed for BUYER … {{buyer_signature}} …") AND the renderer
+     draws a signature block — the user then sees the area twice, once as
+     code. Any wording block that carries a signature-type marker IS the
+     signature area: it becomes a signature_block named for who signs, and
+     the longhand wording (markers and all) is dropped. */
+  const sigKeys = new Set(fields.filter(f => ['signature_name_title', 'stamp_image'].includes(f.field_type)).map(f => f.field_key));
+  const reconciled = [];
+  for (const b of blocks) {
+    const carriesSig = b.block_type !== 'signature_block'
+      && [...sigKeys].some(k => b.content.includes(`{{${k}}}`));
+    if (!carriesSig) { reconciled.push(b); continue; }
+    // "Signed for BUYER: GULIZ LLC By (Signature) …" → "BUYER: GULIZ LLC"
+    const m = /signed\s+for\s+(?:the\s+)?["“]?([^{]{2,60}?)\s*(?:\bby\b|\{\{|$)/i.exec(b.content);
+    const party = clean(m ? m[1] : '').replace(/["”:,\s]+$/, '').trim() || 'Signature';
+    const prev = reconciled[reconciled.length - 1];
+    if (!(prev && prev.block_type === 'signature_block' && prev.content === party))
+      reconciled.push({ order_index: b.order_index, block_type: 'signature_block', content: party.slice(0, 120) });
+    problems.push(`signature wording (“${party}”) was rebuilt as a signature block`);
+  }
+  return { blocks: reconciled, fields, problems };
+}
+
+app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {
+  const b = req.body || {};
+  const dataUrl = String(b.dataUrl || '');
+  const m = /^data:([\w.+-]+\/[\w.+-]+);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl);
+  if (!m) return res.status(400).json({ error: 'Send the document as a base64 data URL' });
+  let bytes;
+  try { bytes = Buffer.from(m[2], 'base64'); } catch (_) { return res.status(400).json({ error: 'The file could not be decoded' }); }
+  if (bytes.length > TPL_UPLOAD_MAX) return res.status(400).json({ error: `Keep the document under ${Math.round(TPL_UPLOAD_MAX / 1024 / 1024)} MB` });
+  // The real file signature, not the extension: a .docx is a PK zip that
+  // contains word/document.xml. Anything else is refused, whatever it is named.
+  if (!(bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04))
+    return res.status(400).json({ error: 'That is not a Word (.docx) file — the converter reads .docx only (PDF arrives in a later phase)' });
+  const structure = tplDocxStructure(bytes);
+  if (!structure) return res.status(400).json({ error: 'The file has a zip wrapper but no Word document inside (word/document.xml is missing)' });
+  if (!structure.length) return res.status(400).json({ error: 'No readable text found in the document' });
+  const key = aiKey();
+  if (!key) return res.status(409).json({ error: 'The converter needs the Copilot engine — an admin adds the Anthropic API key under Team & Settings', needsKey: true });
+
+  const fileName = clean(b.fileName).slice(0, 200) || 'upload.docx';
+  const name = clean(b.name).slice(0, 160) || fileName.replace(/\.docx$/i, '');
+  // store the original for reprocessing before anything can fail
+  const fileId = 'f_' + rid(10);
+  db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
+    .run(fileId, fileName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', dataUrl, now());
+
+  const extraction = tplExtractionText(structure);
+  let converted = null, errorNote = null, notice = null;
+  try {
+    const out = await anthropicMessages(key, 'deep', {
+      max_tokens: 8192,
+      system: TPL_CONVERT_PROMPT,
+      tools: [TPL_CONVERT_TOOL],
+      tool_choice: { type: 'tool', name: 'propose_template' },
+      messages: [{ role: 'user', content: extraction }],
+    }, { feature: 'template_convert', model: TPL_CONVERT_MODEL });
+    if (!out.ok) {
+      errorNote = `The converter could not reach the model (HTTP ${out.status}) — the original file is stored; try again from the template's page`;
+      console.error('[template-convert] model call failed:', out.status, String(out.error).slice(0, 500));
+    } else {
+      const block = (out.data.content || []).find(x => x.type === 'tool_use');
+      const cleaned = tplConvertClean(block && block.input);
+      if (!cleaned.blocks || !cleaned.blocks.length) {
+        errorNote = 'The model returned nothing usable — the original file is stored; try again from the template’s page';
+        console.error('[template-convert] unusable response:', JSON.stringify(out.data.content || []).slice(0, 2000));
+      } else {
+        converted = cleaned;
+        if (cleaned.problems.length) notice = cleaned.problems.join(' · ');
+        if (out.fellBack) notice = `${notice ? notice + ' · ' : ''}model “${out.rejectedModel}” was rejected; the tier default answered instead`;
+      }
+    }
+  } catch (e) {
+    errorNote = 'The conversion failed: ' + e.message + ' — the original file is stored; try again from the template’s page';
+    console.error('[template-convert] threw:', e);
+  }
+
+  const tid = 'tpl_' + rid(8);
+  let vid;
+  txn(() => {
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
+      VALUES (?,?,?,?,?,'draft','upload',NULL,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', req.user.name, now(), now());
+    const v = tplNewVersion(tid, 1);
+    vid = v.id;
+    if (errorNote) db.prepare('UPDATE template_versions SET error_note=? WHERE id=?').run(errorNote.slice(0, 500), vid);
+    if (converted) {
+      converted.blocks.forEach((bl, i) =>
+        db.prepare('INSERT INTO template_blocks (id,template_version_id,order_index,block_type,content) VALUES (?,?,?,?,?)')
+          .run('tb_' + rid(8), vid, i, bl.block_type, bl.content));
+      converted.fields.forEach((f, i) =>
+        db.prepare(`INSERT INTO template_fields (id,template_version_id,field_key,label,section,order_index,field_type,control,options,required,default_value,help_text,detection_confidence,human_reviewed)
+          VALUES (?,?,?,?,?,?,?,'free',NULL,?,NULL,NULL,?,0)`)
+          .run('tf_' + rid(8), vid, f.field_key, f.label, f.section, i, f.field_type, f.required ? 1 : 0, f.detection_confidence));
+    }
+  });
+  res.json({
+    ok: true, templateId: tid, versionId: vid, fileId,
+    converted: !!converted, errorNote, notice,
+    fieldsDetected: converted ? converted.fields.length : 0,
+    blocksDetected: converted ? converted.blocks.length : 0,
+  });
+});
+
+/* ---- org branding & profile values ---- */
+app.get('/api/org/branding', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM org_branding WHERE org_id=?').get(WORKSPACE_ID);
+  res.json({ branding: r ? { logoUrl: r.logo_url || null, companyName: r.company_name || '',
+    registrationNumber: r.registration_number || '', address: r.address || '',
+    defaultFooterText: r.default_footer_text || '' } : null });
+});
+app.put('/api/org/branding', auth, templateManager, passwordCurrent, (req, res) => {
+  const b = req.body || {};
+  const logo = b.logoUrl == null ? null : String(b.logoUrl);
+  // The logo travels as a data URL (house transport for files) and lands on
+  // every contract header, the portal included — so it is validated here, once.
+  if (logo && !/^data:image\/(png|jpe?g|webp|svg\+xml);base64,/.test(logo)) return res.status(400).json({ error: 'The logo must be a PNG, JPEG, WebP or SVG image' });
+  if (logo && logo.length > 700000) return res.status(400).json({ error: 'Keep the logo under 500 KB' });
+  db.prepare(`INSERT INTO org_branding (org_id,logo_url,company_name,registration_number,address,default_footer_text,updated_at)
+    VALUES (?,?,?,?,?,?,?)
+    ON CONFLICT(org_id) DO UPDATE SET logo_url=excluded.logo_url, company_name=excluded.company_name,
+      registration_number=excluded.registration_number, address=excluded.address,
+      default_footer_text=excluded.default_footer_text, updated_at=excluded.updated_at`)
+    .run(WORKSPACE_ID, logo, clean(b.companyName).slice(0, 200), clean(b.registrationNumber).slice(0, 100),
+      clean(b.address).slice(0, 500), clean(b.defaultFooterText).slice(0, 500), now());
+  res.json({ ok: true });
+});
+app.get('/api/org/profile-values', auth, (req, res) => {
+  const rows = db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID);
+  res.json({ values: Object.fromEntries(rows.map(r => [r.field_key, r.value])) });
+});
+app.put('/api/org/profile-values', auth, templateManager, passwordCurrent, (req, res) => {
+  const values = (req.body || {}).values;
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return res.status(400).json({ error: 'values must be an object of field_key → value' });
+  const entries = Object.entries(values).slice(0, 200);
+  txn(() => {
+    for (const [k, val] of entries) {
+      const key = tplSlugKey(k);
+      if (val == null || String(val).trim() === '') db.prepare('DELETE FROM org_profile_values WHERE org_id=? AND field_key=?').run(WORKSPACE_ID, key);
+      else db.prepare(`INSERT INTO org_profile_values (org_id,field_key,value,updated_at) VALUES (?,?,?,?)
+        ON CONFLICT(org_id,field_key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at`)
+        .run(WORKSPACE_ID, key, String(val).slice(0, 2000), now());
+    }
+  });
+  res.json({ ok: true });
+});
+
 /* ---------- frontend ---------- */
 const INDEX = path.join(__dirname, '..', 'index.html');
 app.get('/', (req, res) => res.sendFile(INDEX));
 app.get('/index.html', (req, res) => res.sendFile(INDEX));
-// Serve exactly the two static trees the frontend loads — the native ES
-// modules (js/) and the bundled sample PDFs (importable from the template
-// library). Never the repo root, which would expose server/data (the SQLite
-// database) to the network.
+// Serve exactly the static trees the frontend loads — the native ES modules
+// (js/), the design's two typefaces (fonts/) and the bundled sample PDFs
+// (importable from the template library). Never the repo root, which would
+// expose server/data (the SQLite database) to the network.
 app.use('/js', express.static(path.join(__dirname, '..', 'js')));
+/* THE FONTS HAVE TO BE REACHABLE OR THE WHOLE DESIGN FALLS BACK.
+   index.html links fonts/fonts.css, which carries Inter and Plus Jakarta Sans
+   inline as data URIs. Without this route that link 404s, no @font-face ever
+   registers, and every screen renders in whatever sans the operating system
+   happens to default to — the platform quietly stops looking like the design,
+   with nothing in the console to say why. It reproduced only against this
+   server: a dev static server rooted at the repo serves fonts/ by accident and
+   hides the fault completely. */
+app.use('/fonts', express.static(path.join(__dirname, '..', 'fonts'), {
+  // The faces are content-addressed by their own bytes and never edited in
+  // place, so they can be cached hard; a redeploy that changes them changes
+  // the file, and index.html is served with no cache lifetime either way.
+  maxAge: '30d', immutable: true,
+}));
 app.use('/sample-contracts', express.static(path.join(__dirname, '..', 'sample-contracts')));
 
 // Log the port actually bound, not the one requested — with PORT=0 the OS

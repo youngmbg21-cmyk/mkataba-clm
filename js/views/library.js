@@ -47,13 +47,15 @@ function createFromCustomTemplate(tid){
   buildFromCustomTemplate(t, {});
 }
 /* The actual creation, shared by the guided fill and the no-blanks path. */
-function buildFromCustomTemplate(t, values){
+function buildFromCustomTemplate(t, values, opts){
   const u=currentUser();
   const fs=templateFields(t);
   const tFmt=templateFormat(t);
   const body=fillTemplateBody(templateBody(t), values, tFmt);
   const cp=(()=>{ const f=fs.find(x=>x.maps==='counterparty'); return f?String(values[f.key]||''):''; })();
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'', value:0, status:'Draft',
+  const cpEmail=String((opts&&opts.counterpartyEmail)||'').trim();
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
+    counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
     template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{iprs:false,pki:false},
@@ -94,7 +96,16 @@ function openTemplateFillModal(t){
   openModal(`<div style="padding:20px 22px">
     <h3 style="font-family:var(--font-heading);font-weight:600;font-size:19px;margin:0 0 3px">${_tplEsc(t.name)}</h3>
     <p style="font-size:11.5px;color:var(--color-neutral-600);margin:0 0 14px;line-height:1.55">Fill in the blanks. Everything you type is filed as contract data as well as printed into the document — the register, filters, folder routing and reports pick it up with no second data-entry step.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(inp).join('')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">${fs.map(inp).join('')}
+      ${''/* THE SAME QUESTION THE BUILT-IN TEMPLATES ASK, because this is the
+             same act. Saved templates create contracts through their own fill
+             form, so adding the address to the guided wizard alone left every
+             contract made from "My templates" back where it started: asked in
+             the negotiation room, and again by the share dialog. */}
+      <label style="display:block">
+        <span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px">Their email<span style="font-weight:400;color:var(--color-neutral-500)"> → so you can send it to them</span></span>
+        <input id="tf-cpemail" type="email" placeholder="them@company.co.ke" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font:inherit;font-size:13px;outline:none"/></label>
+    </div>
     <div id="tf-err" style="font-size:11px;color:#8f322b;min-height:15px;margin-top:8px"></div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
       <button id="tf-cancel" class="ui-btn">Cancel</button>
@@ -105,8 +116,11 @@ function openTemplateFillModal(t){
     const values={}, errs=[];
     for(const f of fs){ const el=document.getElementById('tf-'+f.key); const raw=el?el.value.trim():'';
       const e=validateField(f, raw); if(e) errs.push(e); else values[f.key]=raw; }
+    const cpEmail=(document.getElementById('tf-cpemail')||{}).value||'';
+    if(cpEmail.trim() && !/.+@.+\..+/.test(cpEmail.trim()))
+      errs.push(`"${cpEmail.trim()}" is not an email address — leave it blank if you do not have it yet.`);
     if(errs.length){ document.getElementById('tf-err').textContent=errs[0]; return; }
-    closeModal(); buildFromCustomTemplate(t, values);
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim() });
   });
 }
 
@@ -1168,7 +1182,7 @@ function openTemplatePreview(tpl){
 
 /* ============================================================ TEMPLATES PAGE */
 function renderTemplatesPage(){
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:10px';
+  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
   const H4='font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0';
   const my=customTemplates();
   const canManage=tplCanManage();
@@ -1177,9 +1191,9 @@ function renderTemplatesPage(){
   const tplTile=folder=>{ const t=TPL_TONE[folder]||'steel'; return `background:var(--tile-${t}-bg);color:var(--tile-${t}-fg)`; };
 
   const myCards=my.map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon('copy','w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_tplEsc(t.name)}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder]?.name||'—'} · ${(t.chars||t.text.length).toLocaleString()} chars</span>
@@ -1195,6 +1209,7 @@ function renderTemplatesPage(){
         ${canManage?`<button data-tpl-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11.5px;padding:4px 10px;flex:1">Use</button>`:''}
         ${canManage?`<button data-tpl-edit="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Edit</button>`:''}
         <button data-tpl-prev="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 10px">Preview</button>
+        <button data-tpl-vers="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 9px" title="Version history — ${templateVersions(t).length+1} version${templateVersions(t).length?'s':''}">${icon('history','w-3 h-3')}</button>
         ${canManage?`<button data-tpl-del="${t.id}" class="ui-btn" style="font-size:11.5px;padding:4px 8px;border-color:#e6c9c1;color:#8f322b" title="Delete template">${icon('trash','w-3 h-3')}</button>`:''}
       </div>
       ${canManage?`<div style="display:flex;gap:6px">
@@ -1205,9 +1220,9 @@ function renderTemplatesPage(){
 
   const myRole=currentUser()?.role||'viewer';
   const builtinCards=Object.values(TEMPLATES).filter(t=>!canManage||templateAllowedForRole(t.id,myRole)).map(t=>`
-    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:14px;display:flex;flex-direction:column;gap:6px">
+    <div class="lift" style="${CARD};border-left:4px solid ${folderColor(t.folder)};padding:18px;display:flex;flex-direction:column;gap:7px">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
+        <span style="width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:10px;${tplTile(t.folder)}">${icon(t.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.name}</span>
           <span style="display:block;font-size:10px;color:var(--color-neutral-600)">${FOLDERS[t.folder].name} · Template ${t.id}</span>
@@ -1239,6 +1254,10 @@ function renderTemplatesPage(){
 
     <div>${folderLegendHtml()}</div>
 
+    <!-- Company standard templates (the versioned library) render here — one
+         page for every kind of paper, not a second screen to know about. -->
+    <div id="tpl-company-section"></div>
+
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
         <h4 style="${H4}">My templates</h4>
@@ -1254,7 +1273,7 @@ function renderTemplatesPage(){
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
         <h4 style="${H4}">HaTi standard templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, Kenyan practice defaults</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, ${jxAdjective()} practice defaults</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${builtinCards}</div>
     </section>
@@ -1262,7 +1281,7 @@ function renderTemplatesPage(){
     <section style="${CARD}">
       <div style="display:flex;align-items:baseline;gap:10px;padding:13px 16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="${H4}">HaTi sample documents</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world Kenyan examples — import one to start your library</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world ${jxAdjective()} examples — import one to start your library</span>
       </div>
       ${sampleRows}
     </section>
@@ -1272,6 +1291,7 @@ function renderTemplatesPage(){
   document.querySelectorAll('[data-tpl-use]').forEach(b=>b.addEventListener('click',()=>createFromCustomTemplate(b.getAttribute('data-tpl-use'))));
   document.querySelectorAll('[data-tpl-prev]').forEach(b=>b.addEventListener('click',()=>{ const t=customTemplates().find(x=>x.id===b.getAttribute('data-tpl-prev')); if(t) openTemplatePreview(t); }));
   document.querySelectorAll('[data-tpl-edit]').forEach(b=>b.addEventListener('click',()=>openTemplateEditor(b.getAttribute('data-tpl-edit'))));
+  document.querySelectorAll('[data-tpl-vers]').forEach(b=>b.addEventListener('click',()=>openTemplateVersions(b.getAttribute('data-tpl-vers'))));
   document.querySelectorAll('[data-tpl-dup]').forEach(b=>b.addEventListener('click',()=>duplicateBuiltinTemplate(b.getAttribute('data-tpl-dup'))));
   // deletion puts the usage count in front of the decision rather than after it
   document.querySelectorAll('[data-tpl-del]').forEach(b=>b.addEventListener('click',()=>deleteTemplateGuarded(b.getAttribute('data-tpl-del'))));
@@ -1283,6 +1303,7 @@ function renderTemplatesPage(){
     if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast('That template is not open to your role','err'); return; }
     openBulkCreateModal(t); }));
   document.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
+  if(window.renderCompanyTemplatesSection) renderCompanyTemplatesSection();
   setActiveNav('templates');
 }
 

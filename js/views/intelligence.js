@@ -22,7 +22,7 @@ function buildGraph(){
   const trunc=(s,n=24)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
   // contract nodes
   state.contracts.forEach(c=>{
-    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?fmtKESshort(c.value):'\u2014'),
+    nodes.push({ id:c.id, type:'contract', c, label:trunc(c.name), sub:c.id+' \u00b7 '+(c.value?fmtMoneyShort(c.value):'\u2014'),
       kind:c.folder, bar:STATUS_BAR[c.status], w:0,h:0,x:0,y:0 });
   });
   // party nodes (aggregate)
@@ -31,7 +31,7 @@ function buildGraph(){
     (parties[c.counterparty]||(parties[c.counterparty]=[])).push(c); });
   Object.entries(parties).forEach(([name,cs])=>{
     const val=cs.filter(x=>x.status!=='Declined').reduce((s,x)=>s+Number(x.value||0),0);
-    nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtKESshort(val),
+    nodes.push({ id:'p:'+name, type:'party', party:name, cs, label:trunc(name), sub:cs.length+' deal'+(cs.length===1?'':'s')+' \u00b7 '+fmtMoneyShort(val),
       kind:'party', bar:'#2c455d', w:0,h:0,x:0,y:0 });
     cs.forEach(c=>edges.push({from:c.id, to:'p:'+name, label:'party to'}));
   });
@@ -117,7 +117,7 @@ window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
 const igEsc = s => String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
-function valueBand(v){ v=Number(v||0); if(!v) return 'Non-monetary'; if(v>=50e6) return '≥ KES 50M'; if(v>=10e6) return 'KES 10–50M'; if(v>=1e6) return 'KES 1–10M'; return '< KES 1M'; }
+function valueBand(v){ v=Number(v||0); const c=jxCurrency(); if(!v) return 'Non-monetary'; if(v>=50e6) return `≥ ${c} 50M`; if(v>=10e6) return `${c} 10–50M`; if(v>=1e6) return `${c} 1–10M`; return `< ${c} 1M`; }
 function groupLabelOf(c, groupBy, override){
   if(override && override[c.id]) return override[c.id];
   switch(groupBy){
@@ -186,7 +186,7 @@ function graphInterpret(qRaw){
   else if(has('under review','pending','awaiting','in review')) { vis=cs.filter(c=>c.status==='Under Review'); note='In review'; }
   else if(has('signed','executed','sealed')) { vis=cs.filter(c=>c.status==='Signed'); note='Executed'; }
   else if(has('declined','closed','rejected')) { vis=cs.filter(c=>c.status==='Declined'); note='Closed'; }
-  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note='High-value (≥ KES 20M)'; }
+  else if(has('high value','high-value','biggest','largest','top ','most valuable')) { vis=cs.filter(c=>Number(c.value||0)>=20e6); note=`High-value (≥ ${jxCurrency()} 20M)`; }
   else if(has('non-monetary','no value')) { vis=cs.filter(c=>!isMonetary(c)); note='Non-monetary'; }
   else {
     // counterparty name match
@@ -481,7 +481,7 @@ function buildGraphModel(){
   const nodes=[], edges=[];
   hubs.forEach((h,i)=>{ nodes.push({id:'hub:'+h.label, kind:'hub', label:h.label, sub:h.ids.length+' contract'+(h.ids.length===1?'':'s')}); });
   cs.forEach(c=>{ const g=groupLabelOf(c,groupBy,override);
-    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#98989b',
+    nodes.push({id:c.id, kind:'contract', c, label:c.name, sub:c.id+(isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''), group:g, dot:STATUS_DOT[c.status]||'#98989b',
       hit: highlight&&act.ids.has(c.id), mut: highlight&&!act.ids.has(c.id), badge: act.badges?.[c.id]||null});
     edges.push({from:'hub:'+g, to:c.id});   // hub -> contract: arrows fan outward
   });
@@ -666,7 +666,7 @@ function renderIntel(){
   intelRAF++; const myRAF=intelRAF;
   const groupOpts=[['folder','Value stream'],['counterparty','Customer'],['status','Status'],['valueBand','Value'],['kind','Type']];
   document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="height:calc(100vh - 52px);display:flex;flex-direction:column;min-height:0">
+  <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     <header style="flex:none;display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--color-surface);border-bottom:1px solid var(--color-divider)">
       <span style="font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">${state.contracts.length.toLocaleString('en-KE')} contracts · ask the panel to read, summarise, quote or flag risky clauses</span>
       <span style="flex:1"></span>
@@ -729,7 +729,7 @@ function igMiniCard(id, extra){
     ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
     <span class="min-w-0 flex-1">
       <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+fmtKESshort(c.value):''} · ${statusLabel(c.status)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${c.id}${isMonetary(c)&&c.value?' · '+fmtMoneyShort(c.value):''} · ${statusLabel(c.status)}</span>
     </span>
   </button>`;
 }
@@ -755,7 +755,7 @@ function igExplainCard(id){
     </div>
     ${row('Type',igEsc(cKind(c)))}
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
-    ${row('Value',isMonetary(c)&&c.value?fmtKESshort(c.value):'Non-monetary')}
+    ${row('Value',isMonetary(c)&&c.value?fmtMoneyShort(c.value):'Non-monetary')}
     ${row('Status',statusLabel(c.status))}
     ${row('Expiry',c.expiry?(c.expiry+(d!=null?(d>=0?` · in ${d}d`:' · lapsed'):'')):'—')}
     ${row('Group',igEsc(groupLabelOf(c,intel.groupBy,intel.groups)))}
@@ -904,7 +904,7 @@ function openPartyModal(name){
   const trunc=(s,n=22)=>s.length>n?s.slice(0,n-1)+'\u2026':s;
   nodes.push({id:'p:'+name, type:'party', label:trunc(name), sub:own.length+' deals', bar:'#2c455d', kind:'party'});
   const addC=c=>{ if(nodes.some(n=>n.id===c.id)) return;
-    nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?fmtKESshort(c.value):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
+    nodes.push({id:c.id, type:'contract', c, label:trunc(c.name), sub:!isMonetary(c)?'non-monetary':(c.value?fmtMoneyShort(c.value):c.status), bar:STATUS_BAR[c.status], kind:c.folder}); };
   own.forEach(c=>{ addC(c); edges.push({from:c.id,to:'p:'+name,label:'party to'}); });
   linked.forEach(c=>{ addC(c);
     if(c.counterparty && c.counterparty!==name){
@@ -931,7 +931,7 @@ function openPartyModal(name){
       <span class="h-9 w-9 grid place-items-center rounded-lg bg-brand-900 text-gold-400">${icon('users')}</span>
       <div class="flex-1 min-w-0">
         <div class="font-display font-600 text-brand-900 truncate">${name}</div>
-        <div class="text-[11px] font-mono text-brand-800/65">${own.length} agreements \u00b7 ${fmtKES(val)} exposure \u00b7 relationship neighborhood</div>
+        <div class="text-[11px] font-mono text-brand-800/65">${own.length} agreements \u00b7 ${fmtMoney(val)} exposure \u00b7 relationship neighborhood</div>
       </div>
       <button id="pm-close" class="h-8 w-8 grid place-items-center rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-800 transition">${icon('x')}</button>
     </div>
@@ -943,7 +943,7 @@ function openPartyModal(name){
         <rect class="chipbg" x="${-n.w/2}" y="${-n.h/2}" width="${n.w}" height="${n.h}" rx="8"/>
         <rect x="${-n.w/2}" y="${-n.h/2}" width="4" height="${n.h}" rx="2" fill="${n.bar}"/>
         <text x="${-n.w/2+10}" y="${-2}" font-size="10" font-weight="600" fill="#2c455d">${n.label.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</text>
-        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="'IBM Plex Mono',monospace" fill="#7a7a7d">${n.sub}</text>
+        <text x="${-n.w/2+10}" y="${10}" font-size="7.5" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" fill="#7a7a7d">${n.sub}</text>
       </g>`).join('')}
     </svg>
     <div class="px-5 py-3 border-t border-brand-100/60 text-[11px] text-brand-800/65 flex items-center justify-between">

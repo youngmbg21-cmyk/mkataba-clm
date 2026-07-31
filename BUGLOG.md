@@ -4229,3 +4229,1517 @@ wants it folded on every contract they open.
 
 **979 automated tests / 0 failures** (966 before this round; `f54` is new with
 13, `f44` and `f49` rewritten), and **72 of 72 Chromium checks**.
+
+## Follow-up: a version is something a person took and named
+
+The half handed back above is now decided and built. A snapshot is a deliberate,
+named act; the automatic copies stay, unlisted.
+
+**`captureVersion(c, label, by, opts)`** grew two fields. `kind` — `named` or
+`auto`. `listed` — whether it belongs in the list a person reads. Undefined
+means listed, so **every version stored before this keeps appearing**: changing
+how versions are taken must not retire the ones already taken.
+
+**Unlisted (kept, not shown):** each individual change decided, a turn handed
+over, a share going out, the copy taken before a redline. These are not
+optional. Two things depend on them and would break silently:
+
+- the copy before a first edit is **the only record of the original wording**;
+- `resolveRound` diffs a returned redline against the most recent copy when the
+  response carries no base text of its own (`js/versioning.js:373`).
+
+**Listed:** named snapshots, the original, a round closing, signing.
+
+**PROMOTION, and without it the milestones disappear.** A round closes moments
+after the last change in it was accepted — same wording, so `captureVersion`
+deduplicates, and the record already stored is the *unlisted* per-change one.
+Returning it untouched let an internal baseline swallow the milestone, and
+"Round 1 closed" never appeared at all. A listed request now promotes an
+unlisted record and takes its name with it. Found because `f46` went red on the
+first attempt; the test was right and the model was wrong.
+
+**Taking one requires a name.** `takeNamedSnapshot` asks, and refuses to save
+without an answer — better no version than one nobody can identify six weeks
+later, which is what "Manual snapshot" filed three times over amounted to. A
+snapshot of wording that has not moved is refused with a reason rather than
+filed as a duplicate.
+
+**What the list now reads**, on a contract negotiated through the room:
+
+    Original Baseline · round 2      (live)
+    Working Version · round 2        (live)
+    v1 · Round 1 closed
+
+rather than `#CHG-001 accepted — Clause 4`, `Shared for review` and
+`Round 1 — sent to Juno Limited`.
+
+**Found by the browser pass:** a contract nobody has snapshotted now has nothing
+to compare against, which is correct and meant the Chromium fixture could no
+longer reach the compare screen at all. The fixture takes a named version, which
+is the flow it should have been exercising.
+
+**Still not built:** there is no way to restore a contract to an earlier
+version. Versions are for reading and comparing. I checked before saying so.
+
+**990 tests / 0 failures**, 72 of 72 Chromium checks.
+
+---
+
+## Loop: two-party in-app negotiation, Wanjiru & Erik
+
+Run as an improve-and-verify loop against the brief: make the two-party in-app
+negotiation good enough for a Nairobi SME owner with no training to get through
+six rounds and sign. Every finding below was walked in a real Chromium session
+against a running server with two browser pages — Wanjiru's workspace and
+Erik's share link — not read off the source. Nothing here was fixed on the
+strength of reading the code alone.
+
+**Caveat on the environment.** This container cannot reach `cdn.tailwindcss.com`,
+so every screen rendered without its stylesheet. Behaviour, wording, control
+presence and the whole data round-trip were verifiable; visual layout, spacing
+and hit targets were NOT, and nothing in this entry claims otherwise.
+
+### Cycle 1 — score 4/10
+
+Three findings, any one of which stops the scenario dead.
+
+**1. The first share of a negotiation went out as a SIGNING link.**
+`buildSharePayload` (`js/core.js`) fell back to `shareChanges.length ? 'negotiate'
+: 'sign'` when the caller stated no purpose. The Share button in the contract
+toolbar — the button a first-time user actually presses — stated none. A first
+draft has no changes, so the fallback read "nobody has negotiated" as "this is a
+signature request", which is exactly backwards. Verified live: Erik opened the
+link and met a green tick and the words **"Ready to sign — No changes were
+proposed on this contract"** on a draft nobody had discussed, five near-identical
+verbs, and no negotiation room anywhere.
+
+*Fixed.* `defaultSharePurpose(c)` now reads whether the deal is FINISHED rather
+than whether it has started — a contract with no changes is `negotiate`, one
+whose changes are all settled is `sign`. And the dialog no longer guesses in
+private: step 1 carries a two-option picker, **Negotiate** or **Sign**, each with
+a sentence saying which screen the other side lands on. Changing it moves the
+one-shot/standing default with it, because a signing link and a negotiation link
+want opposite answers there.
+
+**2. The counterparty could propose a change and had NO WAY TO SEND IT.**
+The worst defect in the product. Erik presses **Change** on a clause in the
+room, writes what he wants, saves. It is filed as `#CHG-001`, fingerprinted,
+shown as pending, authored by him. The room's buttons are then still exactly
+**Decline** and **Ready to sign**. The postbox in the change index
+(`negoIndexSendHtml`) counted `pendingDecisions` only — answers to the OWNER's
+asks — and `wirePortalNego`'s `onChange` collected only `authorSide==='owner'`.
+Verified live: after two proposals, no send existed anywhere on the screen, and
+Wanjiru's app never heard of them. Close the tab and the work was gone.
+
+*Fixed.* `PORTAL_NEGO_PROPOSED` holds wording the reader asks for, exactly as
+decisions are held; `portalNegoContract` puts it back on every repaint (and
+winds `negotiation.seq` and the hash chain forward with it, or the second ask
+collided with the first and the room told the reader in red that their own chain
+was broken); the postbox counts both and names them; `portalRespond` posts them
+as `negoProposed`; and `applyNegoProposals` on the owner's side RE-FILES each
+one through `negoFileChange` so the id, fingerprint and chain are minted on the
+record copy rather than trusted from a public page. `oldText` is read from our
+clause, never theirs.
+
+**3. And the room never named the act it exists for.** The per-clause control
+said **Edit** — a word a counterparty reads as "not for me", and wrong anyway,
+since it files a tracked change rather than editing anything. The empty change
+index said "Propose wording and each change becomes a fingerprint", which says
+what happens but not where to press.
+
+*Fixed.* The control is **Change**, with a title saying it goes to the other side
+to accept or reject; the empty index names the control and the pane; and the
+working pane's subtitle, on a round with nothing in it, reads "press Change on
+any clause to ask for different wording" instead of describing a redline that is
+not there yet. `f44` updated to assert the new label and why.
+
+Also fixed in this cycle, all found in the same walk:
+
+- **Two send buttons, two behaviours.** The contract page's "Send updated
+  version" refreshed the link Erik already had; Share and the room's "Send to …"
+  minted a SECOND link and left the first live. `openShareModal` now refreshes a
+  standing negotiation link to the same address in place, says so above the
+  result, and logs it honestly. Signing links stay exempt — one signature must
+  bind one copy of one text.
+- **Two competing next actions.** With Erik's changes waiting, the action bar
+  still read "Key terms are set — move it into review" beside a banner saying
+  "Changes returned". `wsNextAction` now answers "somebody is waiting on you"
+  first, and its button borrows the strip's own handler rather than growing a
+  second path to the same screen.
+
+### Cycle 2 — score 8/10
+
+A fresh six-round walk on the fixed code found the fixes holding, and one more
+defect that had been hidden behind them.
+
+**4. THE COUNTERPARTY'S ANSWERS WERE SILENTLY LOST.** Erik withdraws his refused
+ask, accepts Wanjiru's counter-wording, sends, and presses Ready to sign. His
+screen says sent. The server marks the response applied. Wanjiru's contract
+shows the change still pending, the ask still refused, no readiness, and her
+audit trail has no entry — and because the response is marked applied, it is
+never re-delivered. The round is gone.
+
+*Root cause*, found by instrumenting the apply path rather than guessing:
+`applyResponse` ended with `persist(c)`, which only marks the contract dirty and
+sets a 400 ms timer, and then immediately repainted. The repaint reloads the
+contract into the same object, so the SERVER's older copy was assigned over the
+answers that had just been applied, and the timer then saved that older copy
+back. `negoResolve` had returned success; the audit line had been written; both
+were overwritten before either reached disk.
+
+*Fixed.* `applyResponse` now awaits `flushSaves()` before anything repaints, so
+the write happens while the object still holds what arrived. Verified: after the
+fix the same walk ends with `CHG-002` withdrawn, `CHG-003` accepted, the
+readiness recorded, and Wanjiru's page showing **"Ready to sign — Erik Lindqvist
+signalled they are ready to sign … Issue a signing link"**, surviving two
+reloads.
+
+**5. Withdrawals sent with decisions were dropped.** Only the readiness branch
+of `applyResponse` read `negoWithdrawn`. A counterparty who took a refused ask
+off the table and pressed **Send** rather than **Ready** had the withdrawal
+discarded in silence: their screen said the point was settled, ours went on
+reporting a live disagreement, and neither side could see why the deal would not
+move. The loop is now `applyNegoWithdrawals`, called by both branches.
+
+**6. There was no way back to an earlier version.** Confirmed by search and by
+walking the panel: you could read any version and compare it, and then you had
+to retype. `restoreVersion` now exists — it snapshots the current wording FIRST,
+writes the old wording in as a new version on top, and logs both, so the history
+only ever grows and "we went back to Tuesday's draft" is itself on the record.
+It refuses while changes are pending or a round is open, and says why: every
+pending change is anchored to the wording it was proposed against.
+
+**7. And the version list was empty, so restore had nothing to act on.** A
+negotiation conducted entirely through the room produced **0 versions** in the
+panel a person reads — automatic copies are unlisted by design, and the
+hand-over capture only fires on a turn that actually moves. A share now files a
+listed "Sent to <recipient>" version, and a hand-over files a listed one too.
+These are the milestones a person can name afterwards; the per-change copies
+stay unlisted. Verified: v1 "Sent to Erik Lindqvist" → restore → v2 "Before
+going back to v1" and v3 "Restored from v1".
+
+### Verified, and how
+
+Two browser pages against a live server, driven through the real controls:
+share dialog → Erik's room → propose → send → owner's index → accept and reject
+with a reason → counter-propose → send on the same link → withdraw → settle →
+readiness → the owner's signing route. Plus the restore flow end to end. **990
+automated tests, 0 failures.**
+
+### NOT fixed, and why
+
+- **The five verbs on the counterparty's signing page** (Approve & sign / Accept
+  the wording / Propose edits / Request changes / Decline). Unguided, and three
+  of them overlap. Reachable only on a signing link now that negotiation links
+  open the room, so it stopped being the blocker it was — but it is still a fork
+  with no signpost. Left because collapsing it is a change to the signing flow,
+  not to the negotiation, and this loop's brief was the negotiation.
+- **No live signal on the owner's screen.** Answers land on reload or on the
+  45-second poll; nothing on the contract page updates itself when one arrives.
+  Correct data, late. A real fix means a push channel, which is infrastructure.
+- **Two copies of the negotiation component in the counterparty's DOM** — the
+  hidden `#pt-nego` mount plus the room — duplicating every id the room uses.
+  This is the exact hazard the code's own comments describe having fixed once;
+  it cost an hour of this session's debugging before I noticed I was driving the
+  invisible copy. Not user-visible today, so not fixed under time; it should be.
+- **The contract stays at status "Drafting"** through an entire negotiation.
+- **Signing was not driven to an executed contract in the browser.** The
+  readiness signal, the "Issue a signing link" route and the signing panel were
+  all confirmed present and correct; the signature pad and the one-time-code path
+  were not walked. Round 6 is therefore verified up to the signature and no
+  further, and the score reflects that.
+- **Layout was not verified.** No stylesheet in this container.
+
+### Cycle 3 — score 9/10, and round 6 walked to the end
+
+The gap left open in cycle 2 was closed: signing was driven all the way to an
+executed, sealed contract, in the browser, both sides. It works — and getting
+there surfaced four more defects, two of them the same class as the big one.
+
+**8. Erik signs, and the headline still told him to sign.** `portalSetDone`
+correctly spends every action button, but the green band at the top of his page
+went on reading *"Ready to sign — read the wording below, then sign or respond
+on the right"*, with the confirmation in a box far below it. The biggest thing
+on the screen instructed him to do the thing he had just done. `portalMarkSigned`
+now rewrites that band to *"Erik Lindqvist signed this contract … there is
+nothing further for you to do here"*, on both the verified and the unverified
+signing paths.
+
+**9. The owner was never told the counterparty had signed.** Erik's signature is
+filed, the audit trail records it, the share row reads Signed — and Wanjiru's
+action bar went on saying *"Key terms are set — move it into review"* with a
+button offering a step the contract passed three rounds earlier. The single act
+left in the whole deal was her signature and the screen never mentioned it.
+`wsNextAction` now answers *"Erik Lindqvist has signed. Your signature is the
+only thing left."*
+
+**10. The executed copies were never sent, and the reason shown was nonsense.**
+`finalizeExecution` called `persist(c)` — which only marks dirty and sets a
+400 ms timer — and then immediately called `distributeExecuted(c)`, which POSTs
+to `/distribute`. The server checks the STORED status before it will send an
+executed copy, so the request overtook the save, the server saw a contract that
+was not yet `Signed`, and answered **"Contract is not executed yet"**. That
+sentence was filed on the distribution record and printed in the signature panel
+of a contract the same panel had just marked *Executed & sealed*, with both
+parties listed as **Failed**. Nobody got their copy.
+
+Same shape as defect 4: a debounced write overtaken by a read that depends on
+it. Fixed the same way — `await flushSaves()` before distributing. Verified:
+both recipients now read **Sent**.
+
+**11. And the last screen of the journey did not repaint.** After signing, the
+action bar kept "your signature is the only thing left" on an executed contract
+until the reader reloaded. `renderActionBar` is now called with the rest of the
+post-execution repaint.
+
+**What the end of the journey now does.** Wanjiru presses *Issue a signing link*
+from the readiness strip; the share dialog opens on **Sign** (not by guessing —
+the caller states it and the picker shows it); Erik opens it, adopts a typed
+signature, is told plainly that his email cannot be verified on this workspace
+and that the record will say so, signs anyway; his page says he signed; her page
+says her signature is all that is left; she ticks intent-to-sign and signs; the
+contract goes to **Signed**, the seal and the text hash are written, a version
+"Signed & sealed" is filed, and the executed copies go out to both parties.
+
+**990 tests, 0 failures.**
+
+### Still not fixed after cycle 3
+
+Unchanged from cycle 2, and the reason the score is 9 rather than 10:
+
+- the five overlapping verbs on the counterparty's signing page;
+- no live signal on the owner's screen — answers arrive on reload or on the
+  45-second poll;
+- two copies of the negotiation component in the counterparty's DOM sharing
+  every id;
+- the contract reads "Drafting" throughout the negotiation;
+- **layout was never verified** — no stylesheet in this container.
+
+### Cycle 4 — the four I had listed and not fixed
+
+Called out in review: three of the four items I had been citing as reasons for
+the score were things I had chosen not to fix, not things I could not. Fixed.
+
+**12. The contract called itself "Drafting" through the whole negotiation.**
+The status only ever moved on the internal "Send for review" button, which
+nobody presses once there is a counterparty to send to. Sending it outside the
+building IS the transition. Draft → Under Review now happens on the send, with
+the chip AND the bar repainted — updating the status without repainting the bar
+left it offering to do the thing that had just been done, the same stale-bar
+fault as after signing.
+
+**And the bar then invited her to SIGN a draft she had just sent out to
+negotiate.** Found by re-walking rather than by reading: with the status finally
+moving, the "Under Review" branch fell straight through to "Approved — confirm
+intent and sign below" on a contract that had gone out ten seconds earlier for
+the other side to argue with. Two causes, both fixed: `negoHandOver` is now
+called on a negotiation send (it was only ever called by the room's own send, so
+a share from the toolbar left the record saying it was still our turn), and
+`wsNextAction` answers "it is with them" or "your turn" before it answers
+anything about signing.
+
+**13. Five overlapping verbs on the counterparty's signing page.** Approve &
+sign · Accept the wording (without signing) · Propose edits (redline) · Request
+changes · Decline — rendered as equals, three of them the same sentence in a
+first-time reader's head, and every one named after what the system does rather
+than what the person does. The link already states its purpose, and on a signing
+link the answer is: sign. So that is the button. The other four keep their ids,
+handlers and behaviour behind one line — "Not ready to sign?" — each relabelled
+as an act with a sentence saying what it does:
+
+    Change the wording yourself      — edit the clauses; they accept or reject each one
+    Tell them what you want changed  — describe it; the wording stays as it is
+    Agree to the wording — but don't sign yet
+    Decline this contract            — ends it; you will be asked why
+
+**14. Two copies of the negotiation on the counterparty's page.** The room and
+a hidden embedded mount underneath it, duplicating every id the room uses:
+`#nego-cards`, `#nego-count`, `#nego-progress`, `#nego-send-decisions`. Anything
+reaching by id found the hidden one, because it comes first.
+
+Not theoretical. `portalRespond` picks the button it reports progress on with
+`getElementById('nego-send-decisions')` — so "Sending…" and "sent" were written
+onto an invisible copy while the button the reader was looking at said nothing.
+
+The mount was being kept because a parity test read it. That is a bad reason to
+ship a duplicated id. The embedded mount is now skipped exactly when the room is
+the page; the host element stays, and on a signing link — where the room is a
+mode entered from the page rather than the page itself — the embedded copy is
+still the only mount and still renders. `f37` now diffs whichever copy is live,
+which is a better test than one that read a screen nobody sees; `f51`'s
+"prove the duplicate loses" case became "prove there is no duplicate".
+
+Found while doing it: a whole-page render is a fresh arrival, so `_ptRoomOpened`
+has to reset with it — left set, a link refreshed in place kept the reader
+looking at the room built from the copy before it.
+
+**15. Nothing on the owner's screen updated itself.** One fixed 45-second beat
+treated every situation alike, so someone sitting on the contract they had just
+sent out — the one case where the wait IS the experience — watched a screen that
+could be three quarters of a minute stale. Two cheap corrections, no new
+infrastructure: poll every 12 seconds instead of 45 while the open contract is
+with the other side, and poll on tab focus, rate-limited so alt-tabbing cannot
+hammer the server.
+
+**Verified live, with the owner's tab never reloaded:** Erik proposes a change
+and sends it; her screen goes from *"It is with Nordfrakt AB. Nothing needs you
+until they answer"* to *"Nordfrakt AB is waiting on you — 1 change to decide"*
+**17 seconds later, with no reload.**
+
+**990 tests, 0 failures.** Two tests rewritten with the reason recorded in them.
+
+### What is left after cycle 4
+
+One thing, and it is not fixable from here: **the layout has never been seen.**
+This container cannot reach the stylesheet the app loads from a CDN, so every
+screen in every cycle rendered as unstyled text. Wording, controls, behaviour
+and the whole data round-trip were testable and were tested. Spacing, alignment,
+contrast and tap-target size were not, and no score should be read as covering
+them.
+
+---
+
+## Cycle 5 — one negotiation, walked as the customer walks it
+
+Five faults, all reported from a single WH negotiation run end to end, and every
+one of them is a place where a screen or a message said something that was not
+quite true.
+
+**16. The pane selector offered the same document under several names.** A
+contract opened for the first time gave three choices — *Original Baseline*,
+*Working Version*, and `v1 · Template "WH"` — of which the first and the third
+were the identical wording. One round of negotiation added more of exactly that
+kind, so the list became something to pick through rather than read.
+
+Every milestone takes a snapshot, and all of them belong in the version history.
+A pane selector is not the version history: it asks which two DOCUMENTS to read
+side by side, and two entries holding word for word the same document are not
+two answers to that. `negoVersionChoices` now drops a version that says nothing
+an entry above it already says; `negoVersionOptions` still returns every one of
+them, so a key that resolved yesterday resolves today and the history panel is
+untouched. The live pair and anything a pane is currently showing are never
+dropped — a `<select>` whose own value is missing from its options renders
+blank.
+
+The order changed with it. It was the live pair followed by the snapshots
+newest-first, which put the original at the bottom of a list whose first entry
+changed every round; it now reads top to bottom as the sequence the document
+went through — the wording the round is measured against, each saved version in
+the order it was taken, then what is on the table now.
+
+**17. The redline could not be read as a contract.** Both panes are marked up —
+struck-through wording, inserted wording, a fingerprint against each — which is
+what deciding a change needs and the opposite of what reading the agreement
+needs. *"What does this actually say if we agree to all of it"* had no answer
+short of accepting everything to find out, which is a decision rather than a
+look.
+
+**Read as agreed** is one button on the working pane. Both documents go clean:
+removed wording is gone rather than struck, proposed wording is simply there, no
+badges and no verbs. It is built by `negoCleanBody`, the same builder that
+produces the agreed document when a change is really accepted — so it is the
+outcome, not an impression of it. A banner says plainly that nothing has been
+accepted and carries the way back. A refused ask is not assumed, and neither is
+a withdrawn one: silence still rejects.
+
+**18. A card showed half a conversation.** A comment on a fingerprint has two
+stores — `ch.thread` on the contract record, and the discussion channel a
+counterparty's public page has to use, because their copy of the contract is
+rebuilt from the share payload and thrown away on every repaint. Each side
+rendered only the store it wrote to. So the owner asked for input on a change,
+the counterparty answered, the answer was filed correctly — and the card that
+asked the question showed no reply.
+
+`negoThreadOf` merges the two and orders by time; the owner's room now posts its
+comments to the channel as well, so they reach the other side without waiting
+for a link refresh. Identical text from the same side in both stores is one
+message, not two.
+
+Found while doing it: **deciding and speaking were one permission.** A copy that
+can no longer move the negotiation — a spent one-shot link — was also a copy
+that could not answer a question. A comment opens no round, moves no wording and
+consumes no link; `canComment` is now its own question, and the embedded mount
+finally has the `onComment` handler the room always had (without it, the reply
+box on that copy reported "comment posted" and posted it nowhere).
+
+**19. "Fully executed" with one signature on it.** Sealing is a fact about the
+DOCUMENT — the wording has stopped moving, correctly, on the first signature —
+and execution is a fact about the PARTIES. The distribution notice read one for
+the other: it announced a finished agreement to both sides when only one had
+signed, with the seal and a link to the document in it.
+
+`signedParties` (server) and `executionParties` (client) answer the real
+question. Fully executed means both named sides have signed; a contract with no
+counterparty has one side to hear from, and one filed as executed outside HaTi
+carries the paper. Until then the subject names the party that has signed and
+the body names the one outstanding, and it carries **no seal and no link** —
+both parties sign before the contract is shared. Automatic distribution is held
+until the last signature; the panel says so rather than leaving a button that
+never fires.
+
+**20. Six emails for three answers.** Every share response sent two — one to the
+sender, one back to the responder as a receipt — and every discussion message
+sent two more. Where a workspace negotiates through one address, all of them
+land in one inbox, most saying that something had been recorded which both
+parties could already see on the contract.
+
+Email is now reserved for the two things that cannot be seen without opening the
+app: **wording that moved** (a proposal, a decision, a returned redline or
+value) and **the deal ending** (a signature, a decline). The receipt is gone
+outright — it told the responder what the responder had just done. Discussion
+messages are carried in-app: `/api/messages/waiting` raises them on the screen
+the owner already works in, and they reach the counterparty on the change's own
+card.
+
+**1008 tests, 0 failures.** Three tests rewritten where the new behaviour is the
+reverse of the old, with the reason recorded in them; `f55` is new and covers
+the clean read, the merged thread, the execution wording and the email rules.
+
+---
+
+## Cycle 6 — two faults with the same shape
+
+Both are a value that was ALMOST the right kind being used as if it were exactly
+the right kind, and the product carrying on as though nothing had happened.
+
+**21. One badly typed date killed two screens for the whole portfolio.**
+Everything downstream of an expiry assumes a clean `YYYY-MM-DD`, because the
+date pickers produce one. An expiry can also arrive from metadata extraction,
+from a bulk migration, or from a spreadsheet somebody typed — and then it reads
+`30 September 2026`. `new Date("30 September 2026" + "T00:00:00")` is an Invalid
+Date, and `toISOString()` on an Invalid Date **throws**.
+
+It threw out of `renewalDecisionDate`, out of `renderDashboard` and
+`renderCalendar`, and Home and Calendar went dead for every contract in the
+workspace — over one field on one record.
+
+And it went dead **silently**. The throw escaped `setView` before
+`setActiveNav` ran, so the nav button never highlighted: no error on the screen,
+no toast, nothing in the interface at all. A button that does nothing when you
+press it reads as a broken button, not as a broken screen, and there was no way
+for the person pressing it to know the difference.
+
+Three parts to the fix.
+
+`dateOnly()` normalises before any arithmetic touches the value: a leading
+`YYYY-MM-DD` is taken as-is, anything else goes to `Date.parse`, and a value
+that survives neither is `null`. Null is a real answer — *we do not know when
+this expires* — and every caller already handled it.
+
+`setView` catches the render. The rest of the switch then runs, so the shell
+arrives in a coherent state, and the failure is **said**: named view, the error,
+and the record when the error carries one (never guessed — a wrong id sends
+somebody to the wrong contract). The content area says it too, because a toast
+is gone in four seconds.
+
+Found while doing it: `toISOString()` was also **wrong**, not just fragile. It
+converts to UTC first, so midnight local in Nairobi (UTC+3) came back as the
+previous day — every renewal deadline reported one day early, in the market this
+product is built for. The day is now read in the reader's own timezone. The
+calendar's expiry events go through the same normalisation, because the grid is
+keyed by `YYYY-MM-DD`: an event carrying `30 September 2026` was built, counted,
+and then drawn on no day at all.
+
+**22. Compressed bytes were printed as if they were the contract.**
+`pdfFlatText` fell back with `inf ? pdfLatin(inf) : m[1]` — so when the inflate
+failed, the **raw compressed bytes** went to the string scraper. Deflate output
+is high-entropy, so across a few hundred kilobytes it reliably contains `Tj` or
+`BT` and plenty of `(`…`)` pairs. The test passed, `pdfStringsFrom` scraped the
+noise between the parentheses, and that was stored as `upload.extractedText` and
+printed by the PDF export.
+
+`pdfStreamBytes` had the same line in a different form — `return inf || arr` —
+so the STRUCTURED reader reached the fault by its own route: a stream that would
+not inflate came back as its own compressed bytes and was handed to the
+content-stream walker as drawing operators.
+
+A declared-Flate stream that will not inflate is skipped on both paths. An
+uncompressed content stream really is text and still reads as one, so this is
+not a blanket skip: `pdfStreamIsCompressed` reads the `/Filter` entry where
+there is one and the zlib/gzip header where there is not.
+
+`looksLikeText()` is the gate at the end — >85% printable over the opening few
+kilobytes — applied to every result of `extractPdfText`, again before the upload
+stores it, and again on the re-read repair path. Below the line the answer is
+the empty string, which is not a failure state: it is the existing "no
+machine-readable text" path, and it is what puts the OCR offer in front of
+somebody whose scan can actually be read.
+
+**1028 tests, 0 failures.** `f56` is new and covers both faults, including the
+two that were found while fixing them.
+
+---
+
+## Cycle 7 — the negotiation room was flattening the contract
+
+**23. Every line break in every clause was being eaten.** `clauseSegment` gives
+each clause two forms of itself and they are not interchangeable: `bodyHtml` is
+the document — paragraphs, numbered lists, emphasis, tables — and `text` is
+`richToText`'s projection, one line per block separated by real newline
+characters. The projection is the substance the diff runs on and the
+fingerprints bind, and that is exactly what it is for.
+
+Both panes rendered `<p>${text}</p>`, and no rule in `negoStyleHtml()` set
+`white-space` on those paragraphs. HTML collapses a newline to a space. So every
+line break in the projection vanished: the preamble and the recitals — the part
+of a contract most densely made of short lines — arrived as one unbroken run-on
+blob, and a numbered list of parties read as a sentence.
+
+Two fixes, in that order.
+
+`.nego-clause p{white-space:pre-wrap}` makes the projection's breaks visible.
+That is what a clause UNDER REDLINE needs and all it needs: its marked-up words
+have to stay the words the ops were computed over, so the redline rendering is
+untouched. `richToText` drops empty lines, so pre-wrap gives exactly one break
+where there was one break and nothing doubles up.
+
+A clause with NOTHING proposed against it is now drawn from its own markup
+instead — the whole baseline pane, every untouched clause in the working pane,
+and every clause whose ask was refused. There is no redline to line up against
+there, and no reason to show somebody a flattened copy of a document they are
+being asked to agree to. Same wrapper, same clause id, same tools and heading,
+so Change, Delete, badge anchoring and the synchronised highlight cannot tell
+the difference. `.nego-body` turns pre-wrap back off inside itself: real markup
+carries its own structure, and the source html's indentation between tags is not
+content.
+
+Found while doing it, and it would have shipped as a new fault: the Change
+editor reached for `block.querySelector('p')`. With a rich body that finds the
+FIRST paragraph inside it and swaps only that — the list and every paragraph
+after it stranded below the editor and outside what would be saved. It takes
+`.nego-body` when there is one.
+
+The clean read ("Read as agreed") went the same way, for the same reason: a
+screen whose whole purpose is to be read as a contract is the last place that
+should show a flattened one.
+
+Nothing here touches `richToText`, the diff engine, the fingerprints or the
+change model. Text remains the compared substance; this is what the reader sees.
+
+**1042 tests, 0 failures.** `f57` is new.
+
+---
+
+## Cycle 8 — the second instance of each fault
+
+A platform-wide sweep for the *other* examples of the patterns the last few
+cycles each fixed once. Twelve confirmed, twelve fixed. Every one was reproduced
+by a failing test before a line was changed.
+
+**24. The reminder sweep died on a hand-typed expiry, and said nothing.**
+`server/server.js` · `runReminders()`, the decision-deadline block.
+
+Root cause: exactly f56's fault, on the other side of the wire. The sweep
+computes expiry − noticePeriodDays and called `dd.toISOString()` on the result.
+An expiry of `"30 September 2026"` — the shape a migration, a Copilot extraction
+or a typed sheet produces — makes `new Date(expiry+'T00:00:00')` Invalid, and
+`toISOString()` on an Invalid Date throws `RangeError: Invalid time value`. The
+throw escaped the `for (const c of rows)` loop, so every contract behind the bad
+one was never looked at.
+
+Two consequences, and the second is the expensive one. `POST /api/reminders/run`
+answered a bare 500. And the scheduled sweep runs inside
+`setInterval(() => { try { runReminders(); } catch (e) {} }, 12h)` — an EMPTY
+catch — so one badly typed field on one contract stopped every renewal reminder
+for every contract in the workspace, twice a day, permanently, in silence.
+
+Fix: `dateOnly()` / `isoDay()` mirrored into `server/server.js` from
+js/obligations.js, applied at `ownExp()` — the one place the term is read — and
+at every obligation `due`. The decision-deadline arithmetic is guarded for range
+overflow. The interval's catch now logs `[reminders] sweep failed, no reminders
+went out this cycle: …`.
+
+Tests: `f65 — a malformed expiry does not take the whole sweep down`, and
+`… the contracts after it in the portfolio still get theirs`.
+
+**25. Milestone, decision and obligation reminders skipped in silence.**
+`server/server.js` · `daysTo()` callers.
+
+Root cause: the silent half of #24. `daysTo("30 September 2026")` is NaN, and
+NaN matches no milestone in `[90,60,30].find(m => days === m)` and never equals
+`-1` in the obligation branch. So even before the crash, a hand-typed expiry
+earned no 90/60/30-day warning and a hand-typed obligation date never fired its
+overdue notice. Fixed by the same normalisation.
+
+Tests: `f65 — a hand-typed expiry earns its own milestone rather than being
+skipped`, `… and so does its renewal-decision deadline`, `… an obligation whose
+due date a person typed still goes overdue`.
+
+**26. The decision deadline was a day early east of Greenwich.**
+`server/server.js` · `const ddIso = dd.toISOString().slice(0, 10)`.
+
+Root cause: the same timezone fault f56 called out in the browser. `toISOString`
+converts to UTC first, so midnight local on a Nairobi-hosted server comes back as
+the previous day. `daysTo` reads local, so the two disagreed. Fix: `isoDay(dd)`.
+
+**27. Our decision never reached the counterparty's live link.**
+`js/views/negotiation.js` · `decide()` · `js/views/contract.js` ·
+`openNegotiationOwnerRoom()`.
+
+Root cause: `refreshLiveShareQuietly()` was added so a counterparty's own answers
+stop being replayed at them, and it was wired into exactly one call site —
+`applyResponse`, the path that applies THEIR response. Nothing called it when WE
+answered THEM. The counterparty asks for a change, the owner accepts it, and a
+week later they reload their link to find their own ask marked pending again.
+
+Fix: a new `opts.onDecided(c, ch)` hook on the shared component, called from
+`decide()`, and `onDecided` / `onWithdraw` supplied only by the owner's mount —
+the counterparty has no link to catch up. Deliberately narrow: newly *proposed*
+wording is not pushed down a live link, because what the reader is asked to look
+at changes when somebody sends it, not as a side effect. The catch-up stays
+silent (no email, no new share row, no re-marking as sent, no reset of
+opened-state), and the test asserts it.
+
+Tests: `f64 — accepting their ask catches their link up`, `… rejecting it catches
+the link up as well`, `… withdrawing our own refused ask does too`, `… and the
+catch-up is the silent one — nothing is sent to anybody`.
+
+**28. `effectiveExpiry` handed out whatever was typed.**
+`js/family.js:87` · `ownExpiry`.
+
+Root cause: js/family.js's own header says every consumer of an expiry must come
+through this funnel — and it does; the funnel was the one thing not normalised.
+f56 fixed two consumers (`renewalDecisionDate`, `calendarEvents`) and left the
+source alone. So the Register's expiry cell printed the literal string
+`Invalid Date`; Home's expiring-in-30/60/90 buckets, Reports' twelve-month
+pipeline and `expiring90`, and the "expiring soonest" sort all silently dropped
+the contract, because `daysUntil` was NaN and NaN compares false.
+
+Fix: one line — `ownExpiry` returns `dateOnly(...)`. This also corrects
+`contractRisk`, the Copilot portfolio snapshot, the aichart expiry series and the
+Intelligence graph, all of which read through the same funnel.
+
+Tests: `f66 — the funnel itself normalises`, `… the Register prints the date
+rather than the words "Invalid Date"`, `… Home counts it among the contracts that
+are about to expire`, `… Reports puts its value into the renewal pipeline`,
+`… sorting by expiry puts it where its date says`.
+
+**29. Obligation due dates were never normalised.**
+`js/obligations.js` · `obState()` · `js/views/calendar.js` · `calendarEvents()` ·
+`js/app.js` · `updateSidebarCounts()`.
+
+Root cause: the expiry field was taught that a date can be typed by a human; the
+obligation due date is the same field with a different name and was left as it
+was. `/api/ai/obligations` passes the model's `due` straight through, and the
+tool description asks for ISO while the model regularly answers
+`"31 March 2027"`. Nothing throws, which is why it went unnoticed: the calendar
+grid is keyed by `YYYY-MM-DD` so the event was built, counted and drawn on no
+day at all; `daysUntil` was NaN so it never reached the 60-day agenda, never
+reached the sidebar count, and never became overdue however long ago it was due.
+The sidebar's `(o.due||'').slice(0,10)` made it worse — ten characters of
+`"31 March 2027"` is `"31 March 2"`.
+
+Fix: `obligationDue(o)` — the shared normaliser — used by `obState`, the calendar
+event builder and the sidebar count.
+
+Tests: `f64 — the event keys to a real grid cell`, `… and it appears in the
+sixty-day agenda`, `… a due date that has passed is overdue, however it was
+written`.
+
+**30. `dateOnly` accepted the engine's legacy guess.**
+`js/obligations.js:44` and the server mirror.
+
+Root cause: found while fixing #29, and it was inside the previous cycle's own
+fix. `dateOnly` offered any unrecognised string to `Date.parse`, and outside the
+ISO grammar V8 falls back to a parser that finds a date in almost anything:
+`Date.parse("Phase 2")` is 2001-02-01, `Date.parse("clause 4.2")` is 2001-04-02,
+`Date.parse("TBC 2027")` is 2027-01-01. So an expiry a migration left as a label
+did not come back as "we do not know" — it came back as a confident calendar day,
+and the contract read as long expired, sat in the expiring buckets and drew
+itself on a 2001 calendar.
+
+Fix: only shapes a person writes a date in reach the parser — `D Month YYYY`,
+`Month D, YYYY`, `YYYY/M/D` and the leading-ISO form — with the month token
+checked against a real month list. A `Date` instance is handled explicitly.
+Everything else is null, which every caller already handles.
+
+Tests: `f64 — free text the engine would guess at is refused`, `… the shapes
+people really write are still read`, `… a month that is not a month is a label,
+not a date`.
+
+**31. Copilot counted completed obligations as open.**
+`js/ai.js:882` · `aiPortfolioSnapshot()`.
+
+Root cause: `allObligations().filter(o => !o.done)`. Nothing in this product has
+ever written an obligation with a `done` property — completion is
+`status === 'done'`, which is what `obState()`, the workspace list, the overdue
+count and the calendar all read. So the filter passed every obligation ever
+recorded: a customer who had ticked off nine of ten was told by Copilot that ten
+were open. The overdue line had #29's fault as well, so the one sentence whose
+job is to raise the alarm went quiet on hand-typed dates.
+
+Fix: both lines route through `obState()`.
+
+Tests: `f67 — an obligation that has been completed is not open`, `… all of them
+done means none open, said plainly`, `… an overdue obligation is reported overdue
+however its date was typed`.
+
+**32. The obligations chart drew finished work as outstanding.**
+`js/aichart.js:247` · `obligationsDue()` and `AI_SERIES['obligations.due']`.
+
+Root cause: #31 copied into the chart recipe — `if (o.done) continue;` and
+`String(o.due).slice(0,7)`. The chart is built from live state precisely so the
+model cannot fake it, which means what it miscounts is presented as fact: done
+obligations drawn as open, and the Overdue bar empty on a portfolio with overdue
+obligations in it.
+
+Fix: `_acObState(o)` and `_acDue(o)`, which defer to `obState` / `obligationDue`.
+
+Tests: `f67 — a completed obligation is not drawn as an open one`, `… every
+obligation done means there is nothing to draw, not a full chart`, `… an overdue
+obligation lands in the Overdue bar however its date was typed`, `… and a
+hand-typed future date lands in its own month`.
+
+**33. The sidebar count did not follow the obligation it counts.**
+`js/obligations.js` · `renderObligationsSection()`, `openObligationForm()`,
+`openObligationsReview()`.
+
+Root cause: the Calendar badge ("due in the next sixty days") is recomputed at
+the end of `setView()` — a screen switch. All three writers of that number live
+in the workspace, which is not a screen switch. Complete the last obligation and
+the badge goes on reading 1 until the reader navigates away and back, at which
+point it silently corrects itself.
+
+Fix: `obligationSurfacesChanged()` — updates the sidebar counts and repaints the
+Calendar if that is the open screen — called from all four write paths.
+
+Tests: `f68 — completing one recomputes the badge`, `… reopening one recomputes
+it again`, `… removing one recomputes it too`.
+
+**1151 tests, 0 failures** (1119 before). `f64`, `f65`, `f66`, `f67` and `f68`
+are new; nothing existing was rewritten. The counterparty portal's own code is
+untouched, the diff engine and hash chain are untouched, and no permission or
+scoping check was altered.
+## Cycle 8 — a negotiation you could not read back
+
+Reported from a screenshot of a room reading **"Round 2 · 0 of 0 changes
+resolved"**, from somebody who had just spent a round negotiating and could find
+no trace of it.
+
+Nothing was broken, which is what made it worth fixing. `negoAdvanceRound`
+archives a round's decided changes onto `c.negotiation.rounds`, makes the
+resolved wording the new baseline, and empties `c.changes` — correct, and the
+whole point of a round. But the change index drew `negoChanges(c)` and nothing
+else, and `negoVersionOptions` offered the live pair plus `listedVersions(c)`
+and nothing else. So the moment round 1 closed:
+
+- every decision in it, every reason given, every discussion and every
+  fingerprint left the screen, and the panel read "No changes on the table";
+- `c.negotiation.rounds[0].baselineBody` — the wording the negotiation actually
+  started from — was stored, intact, and unreachable from the one page that
+  exists to put two wordings side by side.
+
+A record you cannot look at is not much of a record.
+
+### The names
+
+`Original Baseline · round 2` became `Round 2 - Baseline`. The round is what
+orders a list spanning several of them, so it leads the label instead of
+trailing it; the old shape read as a pile of similar phrases whose one ordering
+fact was the last thing on each row.
+
+Snapshots are numbered **within their round** — `Round 2 - V1` is the first
+snapshot of round 2, whatever its number in the version history. That number is
+not lost: it moves to `sub`, which `negoCompareDocHtml` prints under the pane.
+The keys are untouched (`v3` is still `v3`), so nothing that resolved stopped
+resolving.
+
+Which round a snapshot belongs to is now stamped at capture (`roundStamp`), and
+`negoAdvanceRound` passes the round that CLOSED rather than letting it read the
+counter it has already incremented — otherwise "Round 1 closed" files itself
+under round 2, the one entry nobody could place. Contracts negotiated before the
+stamp existed carry none, so `negoVersionRound` falls back to the clock: a
+snapshot taken before round 1 closed belongs to round 1.
+
+### The closed rounds, on the list and readable
+
+Each closed round contributes `Round N - Baseline` from its stored body. Its
+WORKING version is deliberately not a separate row — it is word for word the
+next round's baseline, which is the row directly below it.
+
+That exposed a real duplicate the moment it worked. Closing a round also saves a
+snapshot of the wording it produced, so `Round 1 - V1 · Round 1 closed` and
+`Round 2 - Baseline` are the same document, every time — and the live row can
+never be dropped, so first-seen-keeps-it put both on the menu. `negoVersionChoices`
+now seeds `seen` with the live pair's text before the pass, so **the live row
+wins a tie wherever it sits**. That is the rule the list already had, applied to
+the entries added to make history reachable.
+
+`negoHistoryHtml` puts the closed rounds under the live index, folded, one
+section per round with its count and outcome on the header. Drawn only when
+open — six rounds behind `display:none` is six rounds of cards, threads and
+fingerprints built on every repaint of a screen showing none of them, and it
+makes "is this readable" a question about a stylesheet.
+
+The cards are read-only and carry `data-nego-past`, not `data-nego-card`: there
+is no verb that could honestly be offered on a change settled two rounds ago —
+accepting it again would be inventing a second decision, and the wording it
+produced is already the baseline. What they carry is the decision, the reason,
+the discussion, the author and the full hash.
+
+### And a round no longer closes by surprise
+
+One control closes a round, and its words are `Send to Docs tab for signature` —
+about the step after, on a button that ends the round, archives its decisions,
+moves the counter, empties the table and cannot be undone. Nothing in this
+product reopens a closed round.
+
+`negoConfirmCloseRound` names the act before it happens, with the real counts off
+the contract, and it sits ABOVE the `opts.onReadyToSign` branch — a guard inside
+the fallback would have protected the one path nobody uses, since the
+Negotiations tab supplies its own hand-off. Cancel means the round never closed:
+no archive, no snapshot, no audit line, changes still live. A page with no
+`confirmDialog` goes ahead, because refusing to perform a deliberate act over a
+dialog that could not be drawn would break the only route out of a finished
+round.
+
+Nothing here touches the diff engine, the fingerprints, the change model or
+`richToText`. Accept All / Reject All are unchanged. The share payload does not
+carry `negotiation.rounds`, so the counterparty's page is unaffected.
+
+**1142 tests, 0 failures.** `f69` is new (25 tests). Four existing tests were
+rewritten to the new labels and the new list: `f36` (the hand-off is now
+asynchronous), `f38`, `f46` and `f54`.
+
+## Cycle 9 — one record, two screens, and the card that would not say whose it was
+
+Four faults from one sitting with the product, three of them reported as
+questions rather than bugs — which is usually where the real ones are.
+
+### 1. The counterparty's screen did not match ours
+
+Cycle 8 gave the OWNER the rounds that are over. The counterparty got neither
+the rows nor the history, because `buildSharePayload` never carried
+`negotiation.rounds`. And it was worse than an omission: the payload sends
+`negoAllChanges` — live AND archived — and `portalNegoContract` put the lot into
+`c.changes`, which is what the index draws as "on the table". So a change settled
+two rounds ago sat among this round's open questions looking exactly as live as
+they did.
+
+`shareNegoRounds` now carries each closed round's number, when it closed, the
+wording it was measured against, and **the ids of the changes that belonged to
+it**. Not the changes themselves — they already travel once, whole, in
+`shareChanges`, and two copies of one fingerprint on one page is an invitation
+for the two to disagree. The ids are the join; the portal partitions
+`c.changes` on them and files each round's own set onto `negotiation.rounds`.
+
+**The thing that would have broken quietly.** Taking the archived changes out of
+`c.changes` also took them out of the two counters rebuilt from it. `negoNextId`
+mints from `negotiation.seq` and `negoIssue` links onto `chainHead`/`chainSeq`,
+both derived from that array on every repaint — so five archived changes and
+nothing live would have restarted the count at CHG-001 and handed a reader's next
+ask a fingerprint that already belonged to something else, with a chain head
+pointing past it. Both now read `everyChange` — live plus archived.
+
+Payload cost: ~4KB per closed round on the test contract, against a 15MB server
+limit. Not capped, deliberately — a cap would mean the oldest rounds silently
+vanish from their dropdown, which is the fault being fixed. `negoVersionOptions`
+lifts a round's body from its text when a link carries no body, so an older
+payload degrades instead of offering an empty document.
+
+### 2. Nothing said whose ask a change was
+
+Reported as *"why do some cards have Change decision and some do not?"* — which
+is `!mine` working correctly on a screen that would not say which was which.
+Nobody rules on their own ask; the only thing carrying that fact was
+`(your side)` in grey italic at the bottom of the card, beside an author name
+that on a deal where one person is testing both sides says nothing at all.
+
+`negoWhoseHtml` puts it in the top row as a pill, named — "Nordfrakt Logistik
+AB's ask", not "counterparty" — and the card takes `.is-mine`, a dark blue left
+edge. Two channels on purpose: words survive a printed page, a colour-blind
+reader and a phone rendering its own controls; colour is what lets eight cards
+split into two groups without being read. The grey italic is gone rather than
+left beside it.
+
+**The edge cannot collide with the amber "not sent yet" edge**, and that is a
+property rather than a coincidence: `held` only ever lands on a decision made
+about the OTHER side's ask, because nobody decides their own. Asserted, so the
+styling rests on something.
+
+One component serves both screens and computes `mine` from the side looking, so
+the card we see as ours is the card they see as ours — no second implementation
+and no way for the two to disagree.
+
+### 3. Dark red for a round that is over
+
+On the selector rows (`option.closed`) and on the history below it, so the
+colour means one thing in both places. Deliberately not `--n-reject`: a closed
+round is finished, not refused, and two reds a shade apart meaning two different
+things is worse than no colour. Browsers on a computer honour a colour on an
+option; Safari and phones draw the OS menu and may ignore it — every label
+starts with `Round N - ` either way.
+
+### 4. Two buttons that move the deal, and one that was spare
+
+`Send to <them>` hands over the turn; `Send to Docs tab for signature` closes the
+round. Everything else in the room edits, reads or decides within it. Both now
+carry `.nego-go` — larger, filled, raised — instead of rendering at the same
+weight as the ghost button beside them.
+
+`Share Link` is removed from the bar. It opened the same dialog by the same
+route as `Send to <them>` (the send handler has said so in a comment since it was
+written), from a position beside Save Draft where nothing suggested it was how
+the contract reaches the other party. **`opts.onShareLink` is kept** — it is the
+route the send rides, and removing the hook with the button would have taken the
+send with it. There is a test for exactly that. Sharing outside the room is
+untouched (`#ws-share`, the contracts list).
+
+Nothing here touches the diff engine, the fingerprints, the change model or
+`richToText`. Accept All / Reject All are unchanged.
+
+**1165 tests, 0 failures.** `f70` is new (23 tests). Six existing assertions were
+updated: `f36`/`f37`/`f69` for the marker that moved out of the grey italic, and
+`f38`/`f49`/`f51` for Share Link leaving the bar.
+
+---
+
+## Run: Template Library & Document Converter (2026-07-30)
+
+Defects found and fixed during the build. Blunt, per the brief.
+
+**The baseline could not run.**
+- What was broken: `npm test` failed on every file at session start.
+- Root cause: the fresh container had no `node_modules` — `npm install`
+  had never run; the first "baseline" was measuring a missing dependency.
+- The fix: install, re-baseline (1672/1672 green), only then build.
+- How it was verified: the suite ran green before the first feature commit.
+
+**A stale library list could paint over the builder.**
+- What was broken: the library screen loads its list async; navigating into
+  the detail or builder before the fetch resolved let the late response
+  repaint the list over the screen the user was working in.
+- Root cause: the async callback checked only the current view name, which
+  is 'tpl-library' for list, detail, builder and confirmation alike.
+- The fix: a monotonic token (`tplLibCancelPending`) — drill-ins invalidate
+  any in-flight list response.
+- Files touched: js/views/templatelib.js, js/views/templatebuilder.js.
+- How it was verified: code path review; f103 pins the render outputs.
+
+**Cross-module const would have thrown in the real browser.**
+- What was broken: the confirmation screen referenced `TB_BLOCK_META`,
+  a top-level const of another ES module — module-scoped, not global, so
+  the browser would throw ReferenceError where the vm-sandbox tests (which
+  evaluate files into one context) would pass.
+- Root cause: the test harness is more permissive than the platform.
+- The fix: export it on window like every other cross-module symbol, and
+  read it as `window.TB_BLOCK_META` with a fallback.
+- Files touched: js/views/templatelib.js, js/views/templatebuilder.js.
+
+**Known-broken / not done (nothing else hides here):**
+- The ≥24-of-27 Brut acceptance number has not been run against the live
+  model — no API key in this environment. Everything around the model call
+  is tested; the call itself is one `anthropicMessages` invocation.
+- The Brut fixture is a synthetic reconstruction; the real form was not
+  supplied with the brief.
+- The builder has no live preview pane; the confirmation screen's block
+  list is read-only (blocks are edited in the builder one click later).
+- `guided` options and `{{org.…}}` defaults are settable in the builder
+  but the converter never emits them (the model is not asked to invent
+  options — deliberate, per "never invent a field").
+
+---
+
+## Run: Template Library fix work order (2026-07-31)
+
+User-reported, from a real uploaded contract (GULIZ LLC master procurement
+agreement). All four confirmed and fixed; proof in f106 + updated f101/f105.
+
+**Deleted fields reached contracts as literal {{code}}.**
+- What was broken: fields deleted on the upload-review screen left their
+  {{markers}} in the wording; the renderer showed unknown markers verbatim
+  ("visible mistakes" — a decision that turned one delete into corruption);
+  the model sometimes wrote the execution area longhand AND the renderer drew
+  its own signature block, so signatures printed twice, once as code.
+- Root cause: no marker cleanup on delete, no marker↔field check at publish,
+  a renderer that preferred honesty over safety, no signature reconciliation.
+- The fix: four layers — strip on delete, block publish on orphans (named),
+  render orphans as plain blanks, rebuild signature wording as signature
+  blocks; plus repair-on-open for records already damaged.
+- Files touched: js/templateform.js, js/views/templatelib.js,
+  js/views/templatebuilder.js, js/views/portal.js, server/server.js.
+
+**Blanks looked fillable but were inert, and were green.**
+- What was broken: the highlighted blanks in the document were render-only;
+  filling lived solely in a side panel the document never pointed at. Green
+  also reads as done/positive in this design — wrong for emptiness.
+- The fix: blanks are grey (neutral palette, dotted rule), carry
+  data-field-key (sanitiser admits it as narrowly as data-clause-id), and a
+  click opens the right typed input in place — owner and portal — validated
+  by the shared registry, autosaved through the same commit as the panel.
+  Print shows underscore blanks. Signature blanks route to the signing flow.
+- Files touched: index.html (CSS), js/richdoc.js (allowlist),
+  js/templateform.js, js/views/templatelib.js, js/views/portal.js.
+
+**The library was invisible from where users actually look.**
+- What was broken: published templates appeared neither on the Templates
+  page nor in + Draft new agreement — a third place nobody knew to visit.
+- The fix: the standalone page is folded into the Templates page as the
+  "Company standard templates" section; published templates join the
+  draft-new-agreement menu above the built-ins; the sidebar count includes
+  them. Deep screens (detail, builder, review) remain, returning to the
+  Templates page.
+- Files touched: js/views/templatelib.js, js/views/library.js, js/app.js,
+  index.html (nav item removed).
+
+**Known-not-done:** old settings-blob custom templates are still their own
+section (migration explicitly out of scope); the popover handles typed and
+guided fields — file/stamp fields route to the panel's file input by design.
+
+Two follow-on defects surfaced by the after-screenshot pass (real Chromium),
+both in the new click-to-fill popover, both fixed the same day:
+
+**Committing with Enter fired the commit twice.**
+- What was broken: Enter committed the value, the popover was removed, and
+  removing the focused input fired its `change` event — a second commit on a
+  popover that no longer existed. Chromium logged a DOM error
+  ("node to be removed is no longer a child").
+- The fix: a `done` flag — `close()` sets it, `commitPop()` checks it. One
+  door, crossed once. Same guard on the portal's popover.
+- Files touched: js/views/templatelib.js, js/views/portal.js.
+
+**The document repainted as escaped HTML after a popover commit.**
+- What was broken: after committing, the doc canvas showed the contract's raw
+  markup as text (`<h1>STANDARD SUPPLY AGREEMENT</h1>…`).
+- Root cause: `renderDocHtml(content, format)` treats a missing `format` as
+  plain text and escapes it; both repaint sites passed only the content. The
+  dom-sandbox tests stub `renderDocHtml` with a one-argument function, which
+  is exactly why they never caught it — the real browser did.
+- The fix: pass `window.RICH_FORMAT || 'rich'` at both repaint sites
+  (repair-on-open and tplFormCommit).
+- Files touched: js/views/templatelib.js.
+
+---
+
+## Run: the Copilot asking a question is not a redline (2026-07-31)
+
+Found from a single screenshot: a drafter selected the price-adjustment and
+invoicing sub-paragraphs of clause 4 and typed "combine them". Two defects,
+which fail apart and are fixed apart.
+
+### 1. A clarifying question was drawn as contract wording, under an Apply button
+
+**What was broken.** The Copilot replied in prose — "I need to see the full
+context of what the drafter wants me to combine… Please share: the full
+contract…" — and the whole reply, markdown asterisks and bullet list included,
+was rendered as the PROPOSED WORDING for clause 4.2 with an **Apply Redline**
+button under it. One press would have filed a question into the contract as a
+tracked change, authored, on the record and on its way to a counterparty. The
+chat bubble above it read "Here is a replacement for that passage" — the panel
+vouching for a reply it had not parsed.
+
+**Root cause.** `AI_NOT_WORDING` (`js/ai.js`) is the guard that keeps a model's
+remarks out of the proposal card, and every pattern in it described a model
+REFUSING: "I'm sorry", "I cannot", "As an AI", "this is not legal advice",
+"I would recommend". A model ASKING matches none of them, so
+`aiLooksConversational` returned false, `aiSplitDisclaimer` classified the reply
+as wording, and `aiParseProposal`'s no-JSON fallback handed all 786 characters
+back as `proposedText`. Nothing between the card and `negoEditClause` re-checks
+whether wording looks like wording.
+
+**The fix.** A second list, `AI_ASKS_BACK`, for the openers a model uses when it
+wants something before it will draft, plus two rules for the question itself:
+`AI_ASKS_WHOLE` (anchored at both ends — a candidate that is nothing but a
+question) and `aiAsksTheReader`, the one unanchored rule, kept safe by requiring
+a conjunction a clause cannot satisfy — a question mark AND the model speaking
+as "I". Contract wording is third-person about the parties; it does not say "I"
+and it does not ask the reader anything. `aiOpenProposal` already had the right
+behaviour waiting for an empty `proposedText` (one bubble, no card, session
+stays open); it simply never fired. "Please provide" and "Please confirm" are
+deliberately absent — a facility letter really does close "Please confirm your
+acceptance by countersigning", and eating real wording is the same harm in the
+other direction.
+
+**Files touched.** js/ai.js.
+**Verified.** f98a (the verbatim shipped reply yields no card, ten other ask
+shapes likewise), f98b (eight strings of real wording, each brushing a new
+pattern, still reach the card — including roman-numeral sub-paragraphs, which
+are the near miss the first-person test is written to survive).
+
+### 2. The panel never sent the conversation, so "them" had no antecedent
+
+**What was broken.** "combine them" reached the model with the passage and that
+one sentence. The turns before it were dropped, so the pronoun pointed at
+nothing and the model asked for context the panel was already holding. Worse:
+the drafter's ANSWER would have gone out the same way, so a session that once
+needed clarifying could never get out of the loop.
+
+**Root cause.** The seeded session (`aiOpenRephraseSession`) stored the passage
+and a callback, and nothing else. `aiSubmit` called `onPropose(q, session)`, and
+both views' `propose` called `copilotPropose` with no `history` at all. History
+existed only on the follow-up path (`aiRefineProposal`), which does not run
+until a card exists — so the first instruction in every session travelled blind,
+and a session that produced no card never got a second chance.
+
+**The fix.** The session keeps its turns (bounded to six, markup stripped).
+`aiSubmit` reads the history before recording the new sentence — the instruction
+is already stated on its own line, and repeating it would invite the model to
+answer the echo — and hands it to `onPropose` as `{ history }`, the same shape
+`onRefine` already receives. `aiOpenProposal` records a reply that produced no
+card, because that is exactly the reply the next sentence is answering.
+
+Two smaller things fixed alongside, both contributors to the same screenshot:
+`copilotPropose` now sends the clause label, because a passage reading "4.2 …
+4.3 …" arrived as bare text and the model concluded it was being shown two
+clauses — a thing this product does forbid combining, and not what it was
+looking at (a clause here runs heading to heading, so both are sub-paragraphs of
+clause 4). And a reply that missed the shape no longer claims "I have no
+reasoning to add"; it says the structure was missed and to read the wording
+before applying it.
+
+**Files touched.** js/ai.js, js/views/negotiation.js, js/views/doclab.js.
+**Verified.** f98c (turns kept, ordered, markup-free, bounded, not recorded once
+the session closes), f98d (the honest bubble), f98e (the history and the label
+reach `copilotPropose` and the composed prompt, end to end on the negotiation
+page). Full suite 1825/1825, plus 22/22 selection and 69/69 redline browser
+checks — the multi-clause and live-redline refusals still refuse.
+
+**Not done.** Nothing between **Apply Redline** and the contract inspects the
+wording; the guard is at the parse. A model that returns a plausible-looking
+non-clause the patterns do not catch still gets a button. A second check at
+Apply — length against the passage, or a "this does not read like a clause"
+confirm — was considered and not built: it needs a rule that will not fire on
+short real edits, and guessing at one is how the first guard got too narrow.
+
+---
+
+## Run: the market is a setting, not a sentence (2026-07-31)
+
+### 1. Kenya was hard-coded into ~90 places, none of them a setting
+
+**What was broken.** The product was written for one market and asserted it in
+code rather than configuration. The Copilot was told "you are helping negotiate
+a contract governed by Kenyan law" on every rewrite, on three separate prompt
+paths plus the server's own. Money formatted as KES through `fmtKES` — the
+formatter's *name* was a hard-code. The executed copy and the evidence pack
+cited the Business Laws (Amendment) Act 2020. The scanner asked whether a lease
+had been stamped under Cap 480 and named the Data Protection Act 2019. The
+playbook's governing-law position was "Kenyan law & forum", and its foreign-law
+test literally meant "not Kenya". The generated document header stamped
+"Republic of Kenya" on every contract the app produced.
+
+A pilot outside Kenya would have been advised to negotiate for Kenyan courts,
+shown shillings, and told its signatures rested on a Kenyan Act — each wrong in
+the same way, none of them saying so.
+
+**The tell nobody had noticed.** A Jurisdiction switcher (SE / KE) was already
+in the header. It set a `data-region` attribute and raised a toast saying the
+workspace had switched, while every sentence above stayed exactly where it was.
+A control that reports a change it did not make is worse than no control.
+
+**The fix.** `js/jurisdiction.js` — one table of packs (Kenya, Sweden), and
+every assertion above reads from the active one. A pack holds what the app must
+know to describe a market honestly: what the law is called, what money looks
+like, which statute a signature rests on, which statute-specific checks apply.
+It does NOT hold legal advice invented for a market nobody here has practised
+in — where a pack has nothing to say (Sweden levies no stamp duty on a
+commercial lease) the field is null and the check does not run, rather than
+firing with a blank where the statute name goes. `fmtKES`/`fmtKESshort` became
+`fmtMoney`/`fmtMoneyShort` and moved into the pack.
+
+The foreign-law test is now RELATIVE — "not home" rather than "not Kenya" — so
+a Kenyan-law contract is correctly foreign paper to a Stockholm workspace and
+the same code path serves both. The header switcher is wired to the record and
+repaints; it opens on the stored jurisdiction (which rides on the org, so a
+workspace carries its market across devices) rather than on whatever key this
+browser last held.
+
+**Kenya stays the default, deliberately.** Making the market configurable and
+changing it in the same breath would move every existing workspace's money,
+playbook and scan without anybody asking. A workspace that never touches the
+setting behaves exactly as it did.
+
+**One table, two hosts.** `server/server.js` requires the same module rather
+than restating the packs. The repo already carries one deliberate twin
+(`negoCopilotRecord` / `copilotNegotiation`) with a test holding it honest; a
+second was not worth the same cost when a plain require would do.
+
+**Files touched.** New js/jurisdiction.js. js/app.js, js/ai.js, js/core.js,
+js/playbook.js, js/metadata.js, js/versioning.js, js/approvals.js,
+js/aichart.js, js/advice.js, js/fieldlib.js, js/templates.js, js/wizard.js,
+js/views/{contract,negotiation,doclab,portal,settings,register,reports,advice,
+adviceportal,queue,home,intelligence,library,migration,templatebuilder}.js,
+server/server.js, and the four test harnesses that evaluate app modules onto a
+bare stage (test/dom.js, test/world.js, test/portalworld.js, the two Chromium
+pages) — a view that renders money now needs the pack on the stage with it.
+
+**Verified.** f99 (23 tests): default unchanged; switching moves currency, law,
+e-signature basis and playbook label together; foreign-is-relative in both
+directions; the stamp-duty check runs in Kenya and stays silent in Sweden; the
+data-protection finding names the right regime; every pack answers every field
+the app asks of it; the server requires the same module; the switcher is wired.
+One test is a source-level guard against the failure most likely to reappear —
+the next prompt somebody writes saying "Kenyan law" again.
+
+Beyond the suite: the real app was booted in Chromium, signed in with the
+30-contract sample portfolio, and swept across eleven views in BOTH markets —
+no unrendered `${…}` anywhere (the risk when a plain string becomes an
+interpolation), no KES leaking into the Swedish workspace, no page errors.
+Suite 1848/1848, browser 69/69, selection 22/22.
+
+**Not done / known.** The 12 built-in template papers, the seeded playbook
+clause wording and the 30 demo contracts are still Kenyan — deliberately, and
+agreed with the user before starting. They are CONTENT, not configuration:
+deleting them removes working features rather than un-hard-coding anything, and
+a Swedish pack of papers has to be written by someone who practises there, not
+generated here. A Swedish pilot gets correct law, currency, statutes and
+Copilot briefings with a Kenyan template library it can ignore or replace.
+
+Per-contract currency is also not done: money follows the workspace, so a
+contract denominated in USD still displays in the workspace currency. That was
+the explicit choice — the alternative needs the register, reports and charts to
+total across mixed currencies, which is a larger change than this one.
+
+---
+
+## Run: three things a person doing the work kept hitting (2026-07-31)
+
+All user-reported from one session, all the same shape: the product asking for
+something it already had, or showing something twice.
+
+### 1. The send dialog came back on every single change
+
+**What was broken.** After sending the first redline to a counterparty, pressing
+Send on the next one re-opened the whole "What you are sending" dialog — purpose
+picker, change list, covering note — once per change, for the life of the
+negotiation.
+
+**Root cause.** `#nego-send` has always taken a one-press route when a contact
+exists (`js/views/negotiation.js`), and the comment beside it even says the
+dialog "stops appearing the moment there is an address to remember". Nothing
+ever wrote that address. The contact is read from
+`counterpartyContact(c, cachedShares(c))`; `_shareCache` is only ever filled by
+`renderSharesSection`, which runs on the contract workspace page and never on
+the redline workbench, so on that screen it is permanently `[]`. The fallback is
+`c.counterpartyEmail`, and the share dialog — the very form that had just
+collected an address — did not set it. So the dialog collected the address, used
+it once, and forgot it.
+
+**The fix.** `shareRememberRecipient` in `js/core.js`, called from both send
+paths (server and static). First recipient wins: a later one-off — a copy to
+counsel, a second signatory — must not silently re-point where the next round
+goes, and the address is changed deliberately through the setup strip that owns
+it. A signing link records nobody: it goes to whoever signs, who need not be the
+person the contract is being argued with.
+
+**Files touched.** js/core.js.
+**Verified.** f100a — the recording rule in all four directions, plus that
+`counterpartyContact` then answers, which is the thing that turns the next Send
+into one press. One test asserts both send paths route through the single rule,
+because a second copy would drift and bring the dialog back on one path only.
+
+### 2. The change card carried a second copy of the redline
+
+**What was broken.** Every card in Tracked Changes rendered the redline clamped
+to two lines — beside a document pane already showing the same wording in full,
+in its clause, with its neighbours. The card's copy was the lesser one: cut
+mid-sentence, no surrounding text, nothing to act on. A column of six looked
+like six paragraphs.
+
+**The fix (specified by the user, mocked and agreed before coding).** The card
+is a handle: id, whose ask, clause and author, status, and the verbs. No
+wording. It is OPEN while there is something on it to press and a LINE when
+there is not — and that rule is read off the verbs the card actually offers
+rather than off a second enumeration of statuses, because two copies of "is
+there anything to do here" would disagree the first time either moved and the
+card that lost would hide a live control. `Edit` and the disabled `Sent` do not
+count: one navigates, one is a label.
+
+Pressing a folded card opens it AND jumps to the change (one press, not two —
+the reader has already said which change they mean). The caret is the only
+control that folds, deliberately separate: the card's own press means "take me
+to this change", and a reader navigating to a clause must not have it fold up
+underneath them. A hand-made choice survives repaints for the session.
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100b, plus f89/f92/f93 updated to the new contract (the amber
+`Sent` verb now lives one click inside a folded card; the badge on the head is
+what says "this has gone"). Browser: `test:browser` check 14 rewritten — it used
+to assert the card held only the marked runs, and now asserts it holds no copy
+at all while the document still marks it. Driven end to end in Chromium: fold,
+click-to-open-and-navigate, caret-to-fold, no page errors.
+
+### 3. Every message box in the product was one line
+
+**What was broken.** Six composers, all `<input type="text">`: the Copilot ask,
+reply-on-a-change (two mounts), start-a-thread, reply-on-a-point, comment-on-the
+-terms, and the counterparty's clause note. Past about a dozen words the start
+of your own sentence scrolled out of view, so you could not re-read what you
+were about to send — on a message going to another company.
+
+**The fix.** `chatFieldWire` / `chatFieldGrow` / `chatFieldSubmits` /
+`chatFieldReset` in `js/components.js`, and every composer is now a wrapping
+textarea that grows from one line and scrolls past `max-height` (a composer that
+can push its own send button off the panel has traded one problem for a worse
+one). Enter still sends — that habit is why these were inputs — with Shift+Enter
+for a newline, and the rule lives in one place so six composers cannot drift.
+IME composition is excluded: Enter mid-composition commits a candidate word, and
+treating that as "send" posts a half-typed message in exactly the languages
+least able to spot it.
+
+**The trap worth recording.** A textarea inside a `display:none` subtree reports
+`scrollHeight` 0, and the sidebar mounts one of its two faces at a time — so
+measuring the hidden one would write `height:0px` and leave a zero-height box
+the moment that panel was shown. `chatFieldGrow` leaves an unmeasurable field at
+`auto` and `rlSetSideMode` re-measures when the face appears.
+
+**Files touched.** js/components.js, index.html, js/ai.js, js/views/negotiation.js,
+js/discuss.js, js/views/contract.js, js/views/portal.js.
+**Verified.** f100c — all six composers converted, the wrap/cap/resize CSS on
+both stylesheets (the workbench also mounts as an embed on the counterparty
+portal, which does not carry the shell's head), the Enter rules including IME,
+growth and its cap, the hidden-field guard, reset-after-send, and that wiring a
+field three times binds its handlers once. Measured live in Chromium: the
+Copilot box 62→104px capped at 105, a thread reply 29→64px capped at 86.
+
+**Whole run.** Suite 1889/1889, browser 71/71, selection 22/22.
+
+**Not done.** The counterparty's incoming asks follow the same rule by choice —
+open while pending, folded once decided — which was the agreed answer but is a
+behaviour change on a screen the counterparty sees too. Nothing collapses on the
+older two-pane negotiation cards (`.nego-card`, `js/views/negotiation.js:1391`);
+that surface was not in the report and shares no markup with the workbench.
+
+### 4. Follow-up: "after send the cards are not collapsing" — they were
+
+**What was broken.** Reported from a live session with a screenshot: a sent card
+open, showing its Copilot note and Edit / Sent, beside a fresh draft.
+
+**Root cause, and it was not the collapse.** Driven end to end against the real
+server, the send folds the card correctly. What the reader had done next was
+press it — to check it had gone, the most natural move there is. That opened it,
+by design. The defect was that the choice was remembered against the change ID
+and nothing else, so it never expired: that card stayed open for the rest of the
+session, through every later state change, and the feature read as broken.
+
+The mirror of it is the one that mattered more. A card SHUT by hand while it was
+your own draft stayed shut when the counterparty answered and it came back
+carrying **Accept** and **Reject** — live controls on a decision waiting on you,
+hidden behind a preference expressed about a different card state entirely.
+Nobody would have gone looking.
+
+**The fix.** The choice is stored against the state it was made in. The card's
+verb set is that state — it is exactly what the open/shut rule reads, so
+anything that changes the rule's answer also changes the key — and the card
+carries it as `data-rl-state` so the handlers can record what was chosen. When
+the state moves, the choice lapses and the rule takes over. One card holds one
+choice: a stack of remembered choices per state would surprise a reader who
+returned to a state months later.
+
+The key is the ACTIONS on offer with the ids stripped out, so a clause renamed
+under a card is not read as "this is a different card now".
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100b — the peek not outliving its state, the dangerous mirror
+(Accept/Reject never behind a stale choice), the key ignoring ids but not
+actions, and the reported sequence end to end. Driven against the running
+server: draft → send → folds → peek → opens → caret → folds → a second draft
+alongside it, with the first still folded. Suite 1894/1894, browser 71/71,
+selection 22/22.
+
+### 5. The counterparty could not send a second batch of asks
+
+**What was broken.** Reported from Counterparty View: two drafts on the table,
+Send pressed, and a red **"It is already their turn"** — with nothing sent. The
+drafts had nowhere to go for the rest of the negotiation unless the owner
+happened to move first.
+
+**Root cause.** The turn and the send were one fact. `turn` is whose move it is;
+`turnAt` is when work last left the desk, and `negoUnsentAsks` measures against
+`turnAt` alone — it is the only thing that decides whether an ask has been sent.
+`negoHandOver` returned `null` whenever the target side already held the turn,
+which is exactly the state a counterparty is in after answering a round:
+
+    they answer round one and hand back   → turn = owner
+    they then raise two more asks         → still turn = owner
+    they press Send                       → refused, nothing sent
+
+The owner had the identical trap through the share path (`js/core.js` hands over
+after publishing), and it would have bitten on any second send inside one turn.
+
+**The fix.** A hand-over to a side that already holds the turn still SENDS when
+there is something of ours waiting: the turn does not move — it is already
+there — but the work leaves and `turnAt` records it. With nothing unsent it
+remains a no-op, which is the idempotency the share path relies on (two callers
+may both hand over after one send, and the second must not stamp again).
+
+`negoHandOver` now returns `moved`, and both sides' messages stopped claiming a
+turn change that did not happen: "Sent to X — it was already their turn, so the
+table has not moved". The audit line likewise distinguishes a hand-over from a
+further send, because anyone reconstructing the negotiation later reads it as
+the record of who held the table when.
+
+The refusal message was also wrong twice over — it named the turn while saying
+nothing about the drafts. It now fires only when there is genuinely nothing to
+do, and says so: "Nothing to send — it is already X's turn and every ask of
+yours has gone".
+
+**Files touched.** js/negotiation.js, js/views/negotiation.js.
+**Verified.** f100d — the counterparty's second batch, the owner's mirror, the
+no-op with nothing waiting, a real hand-over still moving the turn, and the
+audit distinguishing the two. Driven against the running server from the exact
+reported state (turn = owner, one unsent counterparty ask, Counterparty View):
+the send goes through, the toast is honest, and the unsent count drops to zero.
+Suite 1899/1899, browser 71/71, selection 22/22.
+
+### 6. Looking at a card is not deciding anything
+
+**What was asked for.** Working through a round left a column of cards the
+reader had opened and then had to close one at a time. Two requests: a sent card
+must read `Sent` with only Edit and Sent on it; and a card the reader has not
+committed to should collapse itself when they hover out or press elsewhere.
+
+**The first was already true and could not drift** — the badge and the buttons
+are both read from `negoUnsentAsks`, and `mineUnsent` / `mineSent` are mutually
+exclusive by construction. What had been seen was the send not registering
+(defect 5 above). Verified, not rebuilt.
+
+**The second is new behaviour.** Peek on hover or focus; pin on click; unpin on
+a press anywhere outside the column. At most one card open at a time, and it
+closes as soon as attention moves on.
+
+**Three things this needed, and one it did not get wrong by luck.**
+
+- *The peek is a class on the live node, never a repaint.* Re-rendering the
+  column on `mouseenter` would fight the pointer, drop the node the event came
+  from, and disturb a half-typed reply in the Discussion panel beside it. That
+  is why the card body is now always in the DOM and hidden with `display:none`
+  when shut — which also keeps a hidden verb out of the tab order and the
+  accessibility tree, not merely off the screen.
+- *A grace period.* A card is not one rectangle to a pointer: crossing from the
+  head to the buttons leaves the element for a frame, and an undelayed collapse
+  slams shut mid-reach. 180ms, cancelled if the pointer returns.
+- *The exemption, which is the whole safety argument.* A card with Accept,
+  Reject, Send, Retract, Undo or Withdraw on it never peeks and never
+  auto-collapses. Without it this feature would take a button off the screen
+  while the reader's mouse was travelling toward it — the same wound as defect 2
+  in this run, in a worse form: there the control was hidden before you looked,
+  here it would vanish while you watched.
+
+  The build goes one step further than asked: such a card cannot be folded **by
+  hand** either. Its caret is drawn faded and does nothing. A card that needs you
+  is simply always open, which removes the class of "a live control the reader
+  cannot see" rather than leaving a way to create it deliberately.
+
+**Decisions taken by the raiser before building.** A peek does not move the
+document (the page would slide about as the mouse crossed the column); a pin is
+not persisted and is dropped when the reader changes contract (a working
+preference is not a setting, and a carried pin would open a card they have never
+seen).
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100e (13 tests): the exemption in both halves, peek without
+repaint, the grace and its cancel, keyboard focus, pin surviving repaints,
+unpin on an outside press, one pin at a time, pins not travelling between
+contracts, no persistence, and no document movement on a peek. f100b/f89 updated
+to the render-and-hide contract. Driven with a real pointer in Chromium against
+the running server — at rest shut, hover opens, away closes, click pins and
+navigates, click elsewhere releases. Suite 1911/1911, browser 71/71,
+selection 22/22.
+
+**One test-harness trap worth recording.** `test/world.js` runs `setTimeout`
+synchronously so deferred UI work lands inside a test. That is right everywhere
+else and wrong for a grace period, whose entire behaviour is the delay — under
+the stub the card closes on the same tick as the `mouseleave` and the test
+passes while proving nothing. Both `setTimeout` and `clearTimeout` are restored
+for those two tests; restoring only the first makes the cancel a silent no-op.

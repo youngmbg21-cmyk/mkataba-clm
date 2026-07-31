@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server/server.js",
     "test": "node --test test/*.test.js",
-    "test:browser": "node test/chromium/verify.js"
+    "test:browser": "node test/chromium/redline-verify.js",
+    "test:selection": "node test/chromium/selection-verify.js",
+    "test:parity": "node test/chromium/parity-verify.js",
+    "test:all": "npm test && npm run test:browser && npm run test:selection && npm run test:parity"
   },
   "engines": {
     "node": ">=22.5"

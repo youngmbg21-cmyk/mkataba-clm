@@ -13,7 +13,7 @@ function approvalRules(){
   // migrate the legacy spend gate into a single default rule
   const legacy=s.approval||{}; const threshold=Number(legacy.threshold!=null?legacy.threshold:5000000);
   const rules=[];
-  if(threshold>0) rules.push({ id:'r-spend', name:`Value ≥ ${fmtKESshort(threshold)}`, order:1,
+  if(threshold>0) rules.push({ id:'r-spend', name:`Value ≥ ${fmtMoneyShort(threshold)}`, order:1,
     cond:{type:'value',op:'>=',value:threshold}, approver:{kind:'role', role:legacy.approverRole==='legal'?'legal':'admin'} });
   return rules;
 }
@@ -46,29 +46,94 @@ function userCanApprove(a, u){
   return u.role===a.role;
 }
 
+/* ---- WHAT WAS ACTUALLY APPROVED ----
+
+   An approval is a person saying yes to a specific contract: this amount, this
+   wording. The chain stored only that they had said yes, so the yes outlived
+   everything it was given for. An approver signed off KES 6,000,000 on Tuesday;
+   on Wednesday somebody typed 60,000,000 into the key-terms panel; the rule
+   ("value ≥ 5M") still matched, the step was still marked approved, and the
+   Sign button stayed unlocked. Nothing anywhere said the number had moved.
+
+   Nor was this a view the code did not hold elsewhere: resolveRound in
+   js/versioning.js voids the whole chain when a negotiation round changes the
+   value, with the comment "value changed — prior approvals are void". Only that
+   one path did it. Every other way the value moves — the key-terms field, the
+   document-synced input, a metadata fill — left the sign-off standing.
+
+   So an approval now carries a stamp of what it was given for, and a step whose
+   stamp no longer matches is STALE: not rejected, not approved, and not
+   silently re-issued. It needs looking at again by the person who gave it.
+
+   The stamp is deliberately cheap and synchronous — this runs on every repaint
+   of the signing panel — and covers the two things a rule can be about: the
+   amount, and the words. `null` for a record that was approved before stamps
+   existed, which is treated as "we cannot know" and left alone rather than
+   invalidated retroactively. */
+function approvalStamp(c){
+  const doc=String((c&&c.redlineText)||'')+'\u0000'+JSON.stringify((c&&c.fields)||{})
+    +'\u0000'+String((c&&c.upload&&c.upload.fileHash)||'');
+  let h=0; for(let i=0;i<doc.length;i++) h=(h*31+doc.charCodeAt(i))>>>0;
+  return { value:Number((c&&c.value)||0), doc:h.toString(16) };
+}
+/* What moved since this step was approved, in the words a person would use.
+   Empty means nothing did. An unstamped approval reports nothing moved, because
+   it cannot tell — see above. */
+function approvalDrift(step, c){
+  const was=step&&step.stamp, now=approvalStamp(c);
+  if(!was) return [];
+  const out=[];
+  if(Number(was.value||0)!==now.value)
+    out.push(`the value changed from ${fmtMoneyShort(was.value||0)} to ${fmtMoneyShort(now.value)}`);
+  if(String(was.doc||'')!==now.doc) out.push('the wording changed');
+  return out;
+}
+
 /* Build (or refresh) the ordered approval chain for a contract. */
 function buildApprovalChain(c){
   const matched=approvalRules().filter(r=>ruleMatches(r,c)).sort((a,b)=>(a.order||99)-(b.order||99));
-  // preserve prior approvals for rules that still match
+  // preserve prior decisions for rules that still match
   const prior=(c.approvalChain||[]);
   return matched.map(r=>{ const was=prior.find(p=>p.ruleId===r.id);
-    return { ruleId:r.id, name:r.name, approver:r.approver, order:r.order||99,
-      status: was&&was.status==='approved'?'approved':'pending', by:was?.by||null, at:was?.at||null, comment:was?.comment||null }; });
+    /* A REJECTION HAD TO BE PRESERVED TOO, and was not.
+
+       This kept only 'approved' and rebuilt everything else as 'pending'. But
+       approvalState — the only reader of the chain — calls this function every
+       time, so the 'rejected' status rejectApprovalStep had just written was
+       erased on the very next read. The panel's rose-coloured rejected step
+       could not be reached by any route; an approver pressed Reject, the audit
+       trail recorded it, and the screen went back to "needs an Admin" as though
+       nobody had ruled at all. The owner was never shown a refusal, so there
+       was nothing to answer and nothing to resubmit. */
+    const kept=was&&(was.status==='approved'||was.status==='rejected')?was.status:'pending';
+    const step={ ruleId:r.id, name:r.name, approver:r.approver, order:r.order||99,
+      status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
+      stamp:was?.stamp||null };
+    if(kept==='approved'){
+      const drift=approvalDrift(step, c);
+      if(drift.length){ step.status='stale'; step.drift=drift; }
+    }
+    return step; });
 }
 function approvalState(c){
   // legacy single-approval contracts still resolve (c.approval) if no chain rules
   const chain=buildApprovalChain(c);
   if(!chain.length){
     // no rules match -> not required (but honour a legacy manual approval)
-    return { required:false, ok:true, chain:[], next:null, canApproveNext:false };
+    return { required:false, ok:true, chain:[], next:null, canApproveNext:false,
+      rejected:[], stale:[] };
   }
-  // sequential: the next pending step whose predecessors are all approved
+  // sequential: the next step that is not a live approval — pending, refused,
+  // or approved over a contract that has since moved
   let next=null;
   for(const step of chain){ if(step.status!=='approved'){ next=step; break; } }
   const ok=chain.every(s=>s.status==='approved');
   const me=currentUser();
   const canApproveNext = !!next && userCanApprove(next.approver, me);
-  return { required:true, ok, chain, next, canApproveNext, approverLabel: next?approverLabelOf(next.approver):'' };
+  const rejected=chain.filter(s=>s.status==='rejected');
+  const stale=chain.filter(s=>s.status==='stale');
+  return { required:true, ok, chain, next, canApproveNext, rejected, stale,
+    approverLabel: next?approverLabelOf(next.approver):'' };
 }
 function approveContract(c, comment){
   const st=approvalState(c);
@@ -76,20 +141,54 @@ function approveContract(c, comment){
   if(!st.next){ toast('Approval chain already complete'); return; }
   if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
   const u=currentUser();
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null} : s);
-  logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`);
+  const stamp=approvalStamp(c);
+  const was=st.next.status;
+  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
+    ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
+    : s);
+  logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
+    +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
+    +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
   persist(c); renderSignButton(c); renderAuditSection(c);
   const done=approvalState(c).ok;
   toast(done?'All approvals complete — signing unlocked':'Step approved — next approver notified');
 }
-function rejectApprovalStep(c){
+function rejectApprovalStep(c, comment){
   const st=approvalState(c); if(!st.next) return;
   const u=currentUser(); if(!st.canApproveNext){ toast(`This step needs ${approverLabelOf(st.next.approver)}`,'err'); return; }
-  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId ? {...s, status:'rejected', by:u.name, at:nowISO()} : s);
+  c.approvalChain=st.chain.map(s=> s.ruleId===st.next.ruleId
+    ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
   if(c.status!=='Signed') c.status='Under Review';
-  logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`);
+  logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
+    +(comment?` — “${String(comment).slice(0,500)}”`:'')
+    +' — the contract goes back to its owner to revise and resubmit');
   persist(c); renderSignButton(c); renderAuditSection(c);
   toast('Approval step rejected');
+}
+/* THE WAY OUT OF A REFUSAL.
+
+   A rejection with no verb after it is a dead end: the contract sits refused,
+   the owner revises the clause the approver objected to, and there is nothing
+   on the screen that puts it back in front of them. The audit trail records
+   both the refusal and the resubmission, so "approved on the third ask" stays
+   readable afterwards — which is the reason this is a verb and not a quiet
+   reset of the status. */
+function resubmitApproval(c, note){
+  const st=approvalState(c);
+  if(!st.required) return false;
+  const back=st.chain.filter(s=>s.status==='rejected'||s.status==='stale');
+  if(!back.length){ toast('Nothing is waiting to be resubmitted'); return false; }
+  if(!canEdit()){ toast('Viewers cannot resubmit for approval','err'); return false; }
+  const u=currentUser();
+  c.approvalChain=st.chain.map(s=> (s.status==='rejected'||s.status==='stale')
+    ? {...s, status:'pending', by:null, at:null, comment:null, stamp:null, drift:undefined} : s);
+  logAudit(c,'Approval resubmitted',
+    `${back.map(s=>`"${s.name}"`).join(', ')} sent back for approval by ${(u&&u.name)||'System'}`
+    +(note?` — “${String(note).slice(0,500)}”`:'')
+    +` · now waiting on ${back.map(s=>approverLabelOf(s.approver)).join(', ')}`);
+  persist(c); renderSignButton(c); renderAuditSection(c);
+  toast(`Sent back for approval — waiting on ${approverLabelOf(back[0].approver)}`);
+  return true;
 }
 
 /* ---- multi-signer (E5-T3) ----
@@ -102,6 +201,33 @@ function allSigned(c){ const p=signerPlan(c); return p.length>0 && p.every(s=>s.
 // before a counterparty signer's link goes live.
 function internalAllSigned(c){ const p=signerPlan(c).filter(s=>s.party==='internal'); return p.length===0 || p.every(s=>s.signed); }
 function signersRemaining(c){ return signerPlan(c).filter(s=>!s.signed).length; }
+/* ---- who has actually signed, as against what the seal says ----
+   Sealing is a fact about the DOCUMENT — the wording has stopped moving — and
+   a single-signer route seals on the first signature, correctly. Execution is a
+   fact about the PARTIES, and the two are not the same: a contract can be
+   sealed, frozen and fingerprinted with only one side's mark on it.
+
+   Everything that speaks about the parties — the copy that goes out, the notice
+   that announces it — reads this rather than c.status. The server computes the
+   same thing from the stored record (signedParties) so a stale page cannot talk
+   the server into sending a copy of a half-signed contract.
+
+   A contract with no counterparty named has one side to hear from. One filed as
+   executed outside HaTi carries the paper, which is already both. */
+function executionParties(c){
+  const sigs=Array.isArray(c&&c.signatures)?c.signatures:[];
+  const isTheirs=s=>!!s&&(s.party==='counterparty'||s.party==='external');
+  const theirs=sigs.filter(isTheirs), ours=sigs.filter(s=>s&&!isTheirs(s));
+  const offPlatform=!!(window.isExternallyExecuted&&isExternallyExecuted(c));
+  const expectsCounterparty=!!String((c&&c.counterparty)||'').trim();
+  const nameOf=list=>String((list[0]&&(list[0].name||list[0].email))||'').trim();
+  return { ours:ours.length, theirs:theirs.length,
+    ourName:nameOf(ours)||(window.FIRST_PARTY||'this workspace'),
+    theirName:nameOf(theirs)||String((c&&c.counterparty)||'the counterparty'),
+    fully: offPlatform || (ours.length>0 && (theirs.length>0 || !expectsCounterparty)) };
+}
+const bothPartiesSigned = c => executionParties(c).fully;
+
 // Everyone who should receive the executed copy: unique emails across the plan
 // and the recorded signatures, plus an optional workspace records mailbox.
 function distributionRecipients(c){
@@ -200,20 +326,40 @@ function openSignerPlanEditor(c){
 function approvalPanelHtml(c){
   const st=approvalState(c);
   if(!st.required && !signerPlan(c).length) return '';
-  const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':'text-ink/50';
+  const stepChip=s=>s.status==='approved'?'text-brand-600':s.status==='rejected'?'text-rose-600':s.status==='stale'?'text-gold-700':'text-ink/50';
+  const esc1=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  const stepRight=s=>s.status==='approved'?`✓ ${esc1(s.by)}`
+    :s.status==='rejected'?`✕ refused by ${esc1(s.by)}`
+    :s.status==='stale'?`↻ re-approval needed`
+    :'needs '+approverLabelOf(s.approver);
   let html='';
   if(st.required){
-    html+=`<div class="rounded-xl border border-line bg-white p-3 mb-2">
+    /* THE REFUSAL, AND THE WAY OUT OF IT — both on the panel the owner reads.
+       A rejected step used to be erased before it could be drawn (see
+       buildApprovalChain); now that it survives, the owner is told what was
+       refused, by whom and why, and given the one control that moves it on. */
+    const blocked=(st.rejected||[]).concat(st.stale||[]);
+    const owner=canEdit()&&c.status!=='Signed'&&blocked.length;
+    html+=`<div class="rounded-xl border ${st.rejected&&st.rejected.length?'border-rose-200':'border-line'} bg-white p-3 mb-2">
       <div class="text-[11px] font-600 text-ink mb-1.5">Approval chain</div>
       ${st.chain.map((s,i)=>`<div class="flex items-center gap-2 text-[11.5px] py-0.5">
-        <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.status==='approved'?'bg-brand-600 text-white':s.status==='rejected'?'bg-rose-500 text-white':'bg-slate-200 text-ink/60'}">${i+1}</span>
-        <span class="${stepChip(s)}">${s.name}</span>
-        <span class="ml-auto text-[10px] text-ink/50">${s.status==='approved'?`✓ ${s.by}`:s.status==='rejected'?`✕ ${s.by}`:'needs '+approverLabelOf(s.approver)}</span>
+        <span class="h-4 w-4 grid place-items-center rounded-full text-[8px] font-700 ${s.status==='approved'?'bg-brand-600 text-white':s.status==='rejected'?'bg-rose-500 text-white':s.status==='stale'?'bg-gold-500 text-white':'bg-slate-200 text-ink/60'}">${i+1}</span>
+        <span class="${stepChip(s)}">${esc1(s.name)}</span>
+        <span class="ml-auto text-[10px] text-ink/50">${stepRight(s)}</span>
+      </div>`).join('')}
+      ${(st.rejected||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-[11px] text-rose-700 leading-relaxed">
+        <b>${esc1(s.by)||'An approver'} refused “${esc1(s.name)}”.</b>${s.comment?` “${esc1(s.comment)}”`:''}
+        <span class="block text-rose-700/80 mt-0.5">Nothing can be sent for signature until this is settled. Revise the contract, then send it back for approval.</span>
+      </div>`).join('')}
+      ${(st.stale||[]).map(s=>`<div class="mt-1.5 rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-2 text-[11px] text-gold-700 leading-relaxed">
+        <b>“${esc1(s.name)}” needs approving again.</b> ${esc1(s.by)||'It'} approved it, and since then ${esc1((s.drift||[]).join(' and '))}.
+        <span class="block text-gold-700/80 mt-0.5">A sign-off covers the contract it was given for, not the one it became.</span>
       </div>`).join('')}
       ${st.next&&st.canApproveNext?`<div class="flex gap-2 mt-2">
-        <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">Approve “${st.next.name}”</button>
+        <button id="ap-approve" class="rounded-lg bg-brand-900 text-white px-3 py-1.5 text-[11px] font-600 hover:bg-brand-800">${st.next.status==='pending'?'Approve':'Approve again'} “${esc1(st.next.name)}”</button>
         <button id="ap-reject" class="rounded-lg border border-rose-200 text-rose-600 px-3 py-1.5 text-[11px] font-600 hover:bg-rose-50">Reject</button></div>`
         :st.next?`<div class="mt-1.5 text-[10px] text-ink/55">Waiting on ${approverLabelOf(st.next.approver)}.</div>`:''}
+      ${owner?`<button id="ap-resubmit" class="mt-2 w-full rounded-lg border border-brand-200 text-brand-700 px-3 py-1.5 text-[11px] font-600 hover:bg-brand-50">Revise &amp; send back for approval</button>`:''}
     </div>`;
   }
   const plan=signerPlan(c);
@@ -257,7 +403,30 @@ function approvalPanelHtml(c){
 }
 function wireApprovalPanel(c){
   document.getElementById('ap-approve')?.addEventListener('click',()=>approveContract(c));
-  document.getElementById('ap-reject')?.addEventListener('click',()=>rejectApprovalStep(c));
+  /* A refusal with no reason on it is the thing that pushes the argument into
+     email — the same reasoning js/versioning.js gives for the reply that
+     travels with a rejected round. Asked here, once, and shown to the owner on
+     the panel above. */
+  document.getElementById('ap-reject')?.addEventListener('click',async()=>{
+    let why='';
+    if(typeof window.promptDialog==='function'){
+      why=await window.promptDialog({ title:'Reject this approval step?',
+        message:'The contract goes back to its owner. Say what has to change and they can revise it and send it back.',
+        label:'Why are you refusing?', placeholder:'e.g. the liability cap is below our floor', optional:true });
+      if(why===null) return;                 // dismissed — nothing was refused
+    }
+    rejectApprovalStep(c, String(why||'').trim()||null);
+  });
+  document.getElementById('ap-resubmit')?.addEventListener('click',async()=>{
+    let note='';
+    if(typeof window.promptDialog==='function'){
+      note=await window.promptDialog({ title:'Send back for approval?',
+        message:'This puts the contract back in front of the approver who refused it, with your note.',
+        label:'What changed?', placeholder:`e.g. cap raised to ${jxCurrency()} 10M as asked`, optional:true });
+      if(note===null) return;
+    }
+    resubmitApproval(c, String(note||'').trim()||null);
+  });
   document.getElementById('sp-edit')?.addEventListener('click',()=>openSignerPlanEditor(c));
 }
 
@@ -277,4 +446,4 @@ async function loadEngagement(c){
       <span class="ml-auto font-mono text-ink/45">${fmtDT(e.at)}${e.ip?' · '+e.ip:''}</span></div>`).join('')}</div></div>`;
 }
 
-Object.assign(window,{approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});
+Object.assign(window,{approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,nextSigner,allSigned,internalAllSigned,signersRemaining,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,approvalPanelHtml,wireApprovalPanel,loadEngagement});

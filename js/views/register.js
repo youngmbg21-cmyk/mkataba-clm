@@ -60,7 +60,7 @@ function renderFolder(){
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
-          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtKESshort(val)} active value`}</div>
+          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
@@ -158,10 +158,10 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
-      <td style="text-align:right;padding-right:12px;white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
+      <td style="text-align:right;padding-right:12px;white-space:nowrap">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
     </tr>`; }).join('') + (cs.length>shown
       ? `<tr><td colspan="7" style="padding:0"><button id="folder-more" style="width:100%;padding:11px;font-size:12.5px;font-weight:600;color:var(--color-accent-700);background:none;border:0;border-top:1px solid var(--color-divider);cursor:pointer">Show ${Math.min(FOLDER_PAGE,cs.length-shown)} more · ${cs.length-shown} remaining</button></td></tr>`
       : '');
@@ -187,7 +187,7 @@ function folderExportSelectedCsv(){
   const rows=folderContracts(state.folderId).filter(c=>ids.includes(c.id));
   if(!rows.length){ toast('Nothing selected','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Type','Value stream','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Type','Value stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
@@ -240,6 +240,7 @@ const REG_VIEWS=[
   {k:'expiring90', label:'Expiring ≤ 90 days'},
   {k:'expiring60', label:'Expiring ≤ 60 days'},
   {k:'expiring30', label:'Expiring ≤ 30 days'},
+  {k:'expired',    label:'Term already ended'},
   {k:'autosoon',   label:'Auto-renewing soon'},
   {k:'overdueob',  label:'Overdue obligations'},
 ];
@@ -283,7 +284,7 @@ function regFooterText(cs){
   const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
   const R=regState();
   const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`}${flatBtn}`;
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtMoneyShort(regAggregate(cs))}</b>`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -310,6 +311,10 @@ function regFiltered(){
   if(R.view==='expiring90') cs=cs.filter(expWithin(90));
   else if(R.view==='expiring60') cs=cs.filter(expWithin(60));
   else if(R.view==='expiring30') cs=cs.filter(expWithin(30));
+  /* Executed contracts whose term has run out. They match none of the three
+     buckets above — each is `days >= 0` — so before this there was no filter
+     anywhere in the product that would list them. */
+  else if(R.view==='expired') cs=cs.filter(c=>!c.parentId&&!!(window.contractExpired&&contractExpired(c)));
   else if(R.view==='autosoon') cs=cs.filter(c=>{ const dd=renewalDecisionDate(c); return (c.metadata&&c.metadata.renewalType==='auto-renew')&&dd&&daysUntil(dd)>=0&&daysUntil(dd)<=60; });
   else if(R.view==='overdueob') cs=cs.filter(c=>(c.obligations||[]).some(o=>obState(o)==='overdue'));
   const q=R.query.trim().toLowerCase();
@@ -349,42 +354,6 @@ function regGroupFamilies(cs){
   return out;
 }
 function regOwnerInitials(){ const u=currentUser(); const n=(u&&u.name)||FIRST_PARTY||'HaTi'; return n.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-/* Measure the stream-filter row and fold any pills that don't fit into a
-   "More ▾" dropdown. Runs after each full render and on window resize, so the
-   chips stay on one line no matter how many custom streams get added. */
-function layoutStreamPills(){
-  const R=regState();
-  const row=document.getElementById('reg-streams');
-  const wrap=document.getElementById('reg-more-wrap');
-  const menu=document.getElementById('reg-more-menu');
-  const moreBtn=document.getElementById('reg-more');
-  if(!row||!wrap||!menu) return;
-  const pills=Array.from(row.children);
-  pills.forEach(p=>{ p.style.display=''; });
-  menu.innerHTML=''; menu.classList.add('hidden'); wrap.style.display='none';
-  if(moreBtn){ moreBtn.style.borderColor='var(--color-divider)'; moreBtn.style.background='var(--color-surface)'; moreBtn.style.color='var(--color-neutral-700)'; }
-  const avail=row.getBoundingClientRect().width;
-  if(!avail) return;
-  const gap=6, widths=pills.map(p=>p.getBoundingClientRect().width);
-  const total=widths.reduce((s,w,i)=>s+w+(i?gap:0),0);
-  if(total<=avail) return;              // everything fits on one line — no More needed
-  const reserve=74;                     // room reserved for the "More ▾" button
-  let used=0; const hidden=[];
-  pills.forEach((p,i)=>{ used+=widths[i]+(i?gap:0); if(used>avail-reserve) hidden.push(p); });
-  if(!hidden.length) return;
-  wrap.style.display='';
-  let activeHidden=false;
-  hidden.forEach(p=>{ p.style.display='none';
-    const k=p.getAttribute('data-reg-type'); const on=p.getAttribute('data-active')==='1'; if(on) activeHidden=true;
-    const item=document.createElement('button'); item.type='button'; item.setAttribute('data-reg-type',k); item.textContent=p.textContent;
-    item.style.cssText='display:block;width:100%;text-align:left;white-space:nowrap;border:0;background:'+(on?'var(--color-accent-100)':'none')+';font:inherit;font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer;color:'+(on?'var(--color-accent-800)':'var(--color-neutral-700)')+';font-weight:'+(on?'600':'400');
-    item.addEventListener('mouseenter',()=>{ if(!on) item.style.background='var(--color-neutral-100)'; });
-    item.addEventListener('mouseleave',()=>{ if(!on) item.style.background='none'; });
-    item.addEventListener('click',()=>{ R.type=k; R.page=1; renderRegister(); });
-    menu.appendChild(item);
-  });
-  if(moreBtn && activeHidden){ moreBtn.style.borderColor='var(--color-accent)'; moreBtn.style.background='var(--color-accent)'; moreBtn.style.color='#fff'; }
-}
 // Row ⋯ actions — label + which real handler runs. All close the menu first.
 const REG_ROW_ACTIONS=[
   {k:'open',   label:'Open workspace'},
@@ -395,6 +364,30 @@ const REG_ROW_ACTIONS=[
   // permanent delete — only offered while a contract is still a draft or in review
   {k:'delete', label:'Delete permanently', ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
 ];
+/* THE ROW'S PRIMARY VERB, as the reference writes it.
+   The prototype does not repeat one generic "Open" down the column — each row
+   offers the thing that stage actually calls for: a contract in review is
+   opened to be argued over, an executed one is opened to be read. The wording
+   is the reference's; the destination is the engine's own workspace either
+   way, so nothing here routes anywhere the ⋯ menu could not. */
+/* THE TITLE COLUMN IS THE TITLE, not the party.
+   Everywhere else in HaTi a contract is headed by the OTHER SIDE — cPrimary
+   returns the counterparty and falls back to the name (see js/core.js): on a
+   card or a board tile, "Naivas Ltd" is what a reader is scanning for. The
+   reference's register is built the other way, with Contract Title and
+   Counterparty as two separate columns, so reusing cPrimary here printed the
+   same company twice on every row. cPrimary is left alone — the Queue board,
+   the calendar and the cards are all still party-led and correct. */
+function regTitleOf(c){
+  return esc((c && c.name && c.name.trim()) || cParty(c) || 'Untitled contract');
+}
+function regPrimaryAction(c){
+  const s = String((c && c.status) || 'Draft');
+  if (s === 'Signed')       return 'View Vault';
+  if (s === 'Under Review') return 'Review Terms';
+  if (s === 'Declined')     return 'View record';
+  return 'Open DocLab';
+}
 function regRowsHtml(cs){
   const R=regState();
   if(!cs.length){
@@ -404,7 +397,7 @@ function regRowsHtml(cs){
     const btn  = filtered
       ? `<button id="reg-empty-clear" class="ui-btn" style="font-size:12px;padding:6px 14px">Clear all filters</button>`
       : `<button id="reg-empty-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
-    return `<tr><td colspan="12" style="padding:48px 12px;text-align:center">
+    return `<tr><td colspan="7" style="padding:48px 12px;text-align:center">
       <div style="max-width:340px;margin:0 auto">
         <div style="width:44px;height:44px;margin:0 auto 12px;display:grid;place-items:center;border-radius:8px;background:var(--color-bg);color:var(--color-neutral-500)">${icon('list','w-5 h-5')}</div>
         <div style="font-size:14px;font-weight:600;color:var(--color-text)">${line}</div>
@@ -414,11 +407,8 @@ function regRowsHtml(cs){
   }
   const p=regCurPage(cs); const start=(p-1)*REG_PAGE;
   const pageRows=cs.slice(start, start+REG_PAGE);
-  const ini=regOwnerInitials();
-  const ownerT=((currentUser()&&currentUser().name)||FIRST_PARTY||'').replace(/"/g,'&quot;');
   const actBtns=c=>REG_ROW_ACTIONS.filter(a=>!a.when||a.when(c)).map(a=>`<button data-act="${a.k}" data-id="${c.id}" style="border:0;background:none;font:inherit;font-size:11.5px;text-align:left;padding:6px 9px;cursor:pointer;color:${a.ruby?'#8f322b':'inherit'}">${a.label}</button>`).join('');
   return pageRows.map((c,i)=>{
-    const risk=contractRisk(c), rp=riskPal(risk);
     const eff=effectiveExpiry(c);
     const din=eff?daysUntil(eff):null;
     const renDate=eff?new Date(eff+'T00:00:00').toLocaleDateString('en-KE',{day:'2-digit',month:'short',year:'2-digit'}):'—';
@@ -427,37 +417,25 @@ function regRowsHtml(cs){
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
     const renColor=din==null?'transparent':(renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-500)');
     const renDateColor=renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-700)';
-    const appr=approvalLabel(c);
-    const apprColor=appr==='Approved'?'#1e6b4d':appr==='Rejected'?'#8f322b':appr==='—'?'var(--color-neutral-400)':/escalat/i.test(appr)?'#8f322b':'#7d5a14';
-    const val=!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—');
+    const val=!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—');
     return `
     <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
-      <td style="padding-left:12px;border-left:4px solid ${folderColor(c)}" onclick="event.stopPropagation()"><input type="checkbox" data-sel="${c.id}" ${R.sel[c.id]?'checked':''} style="accent-color:var(--color-accent)"></td>
-      <td style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">${c.id}</td>
-      <td style="max-width:230px${c._famChild?';padding-left:22px':''}">
-        <span style="display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${cPrimary(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:999px;font:inherit;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
-        <span style="display:block;font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}`:cSecondary(c)}</span>
+      <td class="reg-mk" style="border-left:4px solid ${folderColor(c)}">${c.id}</td>
+      <td style="max-width:280px${c._famChild?';padding-left:30px':''}">
+        <span class="reg-title" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:10.5px;font-weight:400" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc(c.parentId)}">↳ </span>`:''}${regTitleOf(c)}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:999px;font:inherit;font-weight:400;font-size:9.5px;font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
+        ${c._famChild?`<span style="display:block;font-size:10.5px;font-weight:400;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${RELATION_LABEL[c.relation]||'Amendment'} of ${c.parentId}</span>`:''}
       </td>
-      <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:${folderColor(c)};flex:none"></span>${streamLabel(c)}</span></td>
-      <td><span style="width:22px;height:22px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:inline-grid;place-items:center;font-size:9px;font-weight:700" title="${ownerT}">${ini}</span></td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
-      <td>
-        <span style="display:inline-flex;align-items:center;gap:5px">
-          <span style="width:40px;height:5px;background:var(--color-neutral-200);display:inline-block;border-radius:999px;overflow:hidden"><span style="display:block;width:${Math.min(100,risk)}%;height:100%;background:${rp.dot};border-radius:999px"></span></span>
-          <span style="font-size:11px;font-weight:600;color:${rp.fg};font-variant-numeric:tabular-nums">${risk}</span>
-        </span>
-      </td>
-      <td style="white-space:nowrap"><span style="font-size:11.5px;font-weight:${renUrgent?600:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
-      <td style="white-space:nowrap">${statusChip(c.status)}${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</td>
-      <td><span style="font-size:10.5px;font-weight:500;white-space:nowrap;color:${apprColor}">${appr}</span></td>
-      <td style="text-align:right;padding-right:12px;font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
-      <td style="position:relative;width:30px" onclick="event.stopPropagation()">
-        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px" title="Row actions">⋯</button>
-        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:26px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:4px;padding:4px;flex-direction:column">${actBtns(c)}</div>
+      <td style="color:var(--color-neutral-700);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.counterparty||'—')}</td>
+      <td style="white-space:nowrap"><span style="display:inline-flex;align-items:center"><span style="display:inline-flex;align-items:center;min-width:19px;flex:none">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}</span>${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></td>
+      <td style="text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}">${val}</td>
+      <td style="white-space:nowrap"><span style="font-weight:${renUrgent?700:400};color:${renDateColor}">${renDate}</span> <span style="font-size:9.5px;font-weight:600;color:${renColor}">${renIn}</span></td>
+      <td style="position:relative;text-align:right;white-space:nowrap" onclick="event.stopPropagation()">
+        <button class="reg-actlink" data-act="open" data-id="${c.id}">${regPrimaryAction(c)}</button>
+        <button data-menu="${c.id}" style="border:0;background:none;cursor:pointer;padding:2px 4px;margin-left:6px;color:var(--color-neutral-600);font-size:14px;letter-spacing:1px;vertical-align:middle" title="More actions">⋯</button>
+        <div data-menu-pop="${c.id}" style="display:none;position:absolute;right:8px;top:34px;z-index:30;width:180px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:4px;flex-direction:column;text-align:left">${actBtns(c)}</div>
       </td>
     </tr>`;}).join('');
 }
-function regSelCount(){ const R=regState(); return Object.keys(R.sel).filter(k=>R.sel[k]).length; }
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&isMonetary(c)).reduce((s,c)=>s+Number(c.value||0),0); }
 function renderRegisterBody(){
   const cs=regFiltered();
@@ -465,12 +443,6 @@ function renderRegisterBody(){
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs);
     document.getElementById('reg-flat')?.addEventListener('click',()=>{ const R=regState(); R.flat=!R.flat; renderRegisterBody(); }); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
-  renderRegSelBar();
-}
-function renderRegSelBar(){
-  const bar=document.getElementById('reg-selbar'); if(!bar) return; const n=regSelCount();
-  bar.classList.toggle('hidden',n===0);
-  const lbl=document.getElementById('reg-sel-count'); if(lbl) lbl.textContent=n+' selected';
 }
 function regCloseMenus(){ document.querySelectorAll('#reg-tbody [data-menu-pop]').forEach(m=>m.style.display='none'); }
 function wireRegRows(){
@@ -482,7 +454,6 @@ function wireRegRows(){
     R.collapsed=R.collapsed||{}; if(R.collapsed[id]) delete R.collapsed[id]; else R.collapsed[id]=true;
     renderRegisterBody();
   }));
-  document.querySelectorAll('#reg-tbody [data-sel]').forEach(el=>el.addEventListener('change',e=>{ const R=regState(); const id=el.getAttribute('data-sel'); if(el.checked) R.sel[id]=true; else delete R.sel[id]; renderRegSelBar(); }));
   // ⋯ popover: toggle one open at a time
   document.querySelectorAll('#reg-tbody [data-menu]').forEach(btn=>btn.addEventListener('click',e=>{ e.stopPropagation(); const id=btn.getAttribute('data-menu'); const pop=document.querySelector('#reg-tbody [data-menu-pop="'+id+'"]'); const open=pop&&pop.style.display==='flex'; regCloseMenus(); if(pop&&!open) pop.style.display='flex'; }));
   document.querySelectorAll('#reg-tbody [data-act]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); regCloseMenus();
@@ -497,26 +468,37 @@ function wireRegRows(){
   document.getElementById('reg-empty-clear')?.addEventListener('click',()=>{ const R=regState(); R.query=''; R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; const cs=document.getElementById('cmd-search'); if(cs) cs.value=''; renderRegister(); });
   document.getElementById('reg-empty-new')?.addEventListener('click',()=>{ const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu'); if(nm){ if(window.renderNewMenu) renderNewMenu(); nm.classList.remove('hidden'); } else if(nb){ nb.click(); } });
 }
-function regExportSelectedCsv(){
-  const R=regState(); const ids=Object.keys(R.sel).filter(k=>R.sel[k]);
-  const rows=state.contracts.filter(c=>ids.includes(c.id));
-  if(!rows.length){ toast('Nothing selected','err'); return; }
+/* Exports what the register is showing — every row the current filters, search
+   and stage/stream pills resolve to, not just the page on screen. The old body
+   read a tick-box selection; with the reference's seven columns there is no
+   tick box, so that version could only ever have said "Nothing selected". */
+function regExportCsv(){
+  const rows=regFiltered();
+  if(!rows.length){ toast('Nothing to export','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Type','Folder','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Type','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='hati-register-selection.csv'; a.click(); URL.revokeObjectURL(url);
+  const a=document.createElement('a'); a.href=url; a.download='hati-register.csv'; a.click(); URL.revokeObjectURL(url);
   toast(`Exported ${rows.length} contract${rows.length===1?'':'s'} to CSV`);
 }
 function renderRegister(){
   const R=regState(); R.page=1;
   const cs=regFiltered();
-  // Industry filter pill: accent fill when active, hairline box + accent-border hover when not.
-  const pill=(active)=>`display:inline-flex;align-items:center;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};font-size:11.5px;font-weight:500;padding:5px 13px;border-radius:999px;cursor:pointer`;
   const selStyle='font:inherit;font-size:12px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:4px 6px;color:inherit;cursor:pointer';
-  const stagePills=REG_STAGES.map(s=>`<button class="reg-pill" data-reg-stage="${s.k}" style="${pill(R.stage===s.k)}">${s.label}</button>`).join('');
-  const typePills=regTypes().map(t=>`<button class="reg-pill" data-reg-type="${t.k}" data-active="${R.type===t.k?'1':'0'}" style="${pill(R.type===t.k)}">${t.label}</button>`).join('');
+  /* ---- ONE FILTER BAR, NOT THREE TIERS OF PILLS ----
+     Stages, streams and saved views used to be three full-width rows of pills
+     (plus a legend band and an export band) stacked above the table — the
+     register's own data started below the fold. Each filter is now a compact
+     dropdown on a single row; an active one carries the accent border so a
+     narrowed set is still visible at a glance, and Clear puts everything back. */
+  const selFilter=(id,opts,active,title)=>`<select id="${id}" title="${title}" style="${selStyle};max-width:180px${active?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${opts}</select>`;
+  const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
+  const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
+  const viewOpts=`<option value="" ${R.view?'':'selected'}>Saved views</option>`
+    +REG_VIEWS.map(v=>`<option value="${v.k}" ${R.view===v.k?'selected':''}>${v.label}</option>`).join('');
+  const filtered=R.stage!=='all'||R.type!=='all'||!!R.view||(R.renewal&&R.renewal!=='all');
   const sortOpts=visibleSorts(REG_SORTS).map(s=>`<option value="${s.k}" ${R.sort===s.k?'selected':''}>${s.label}</option>`).join('');
   // Clickable, sortable column header: shows a dim ↕ when inactive and a solid
   // ▲/▼ for the active sort direction. Clicking toggles asc/desc (see wiring below).
@@ -524,9 +506,9 @@ function renderRegister(){
     ? `<span style="margin-left:4px;font-size:9px;color:var(--color-accent-700)">${R.dir===1?'▲':'▼'}</span>`
     : `<span class="reg-sort-idle" style="margin-left:4px;font-size:9px;color:var(--color-neutral-400)">↕</span>`;
   const sortableTh=(key,label,extra='')=>`<th class="reg-th-sort${R.sort===key?' active':''}" data-reg-sort="${key}" title="Sort by ${label}" aria-sort="${R.sort===key?(R.dir===1?'ascending':'descending'):'none'}" style="cursor:pointer;user-select:none;${extra}">${label}${sortCaret(key)}</th>`;
-  const viewPills=REG_VIEWS.map(v=>`<button class="reg-pill" data-reg-view="${v.k}" style="${pill(R.view===v.k)}">${v.label}</button>`).join('');
+  const renewalActive=!!(R.renewal&&R.renewal!=='all');
   const renewalSel=`<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Renewal
-    <select id="reg-renewal" style="${selStyle}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
+    <select id="reg-renewal" style="${selStyle}${renewalActive?';border-color:var(--color-accent);color:var(--color-accent-800);font-weight:600':''}">${[['all','Any'],['auto-renew','Auto-renew'],['fixed','Fixed'],['evergreen','Evergreen']].map(([k,l])=>`<option value="${k}" ${(R.renewal||'all')===k?'selected':''}>${l}</option>`).join('')}</select></label>`;
   // Server-mode full-text search + semantic ask live in a secondary strip (the
   // command bar owns the primary search); kept here so FTS wiring stays intact.
   const ftsBlock=API_MODE()?`
@@ -537,55 +519,55 @@ function renderRegister(){
     </div>`:'';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 14px;display:flex;flex-direction:column">
     <style>
-      .reg-table{width:100%;border-collapse:collapse;font-size:12.5px}
+      /* ---- THE PROTOTYPE'S TABLE ----
+         The reference is a rounded card with an uppercase 10px header band, p-4
+         cells, hairline dividers between rows and a hover tint. Written in the
+         design's tokens rather than its raw slate classes so the same rules
+         carry the dark theme — the header band used to be a hardcoded #fafbfc,
+         which is a light-mode value sitting on a dark surface. */
+      .reg-table{width:100%;border-collapse:collapse;font-size:12px}
       .reg-table thead th{position:sticky;top:0;z-index:3}
-      .reg-table th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 60%,transparent);padding:6.8px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:#fafbfc}
-      .reg-table td{padding:6.8px;border-bottom:1px solid color-mix(in srgb,var(--color-text) 8%,transparent);vertical-align:middle}
+      .reg-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:.06em;
+        text-transform:uppercase;color:var(--color-neutral-500);padding:14px 16px;
+        border-bottom:1px solid var(--color-divider);white-space:nowrap;
+        background:var(--color-neutral-100)}
+      .reg-table td{padding:14px 16px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
+      .reg-table tbody tr:last-child td{border-bottom:0}
+      .reg-table tbody tr{transition:background .12s}
       .reg-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-      .reg-pill:hover{border-color:var(--color-accent)}
+      /* The tracking number leads the row, so it is set in the figure face and
+         never wraps — an id that breaks across two lines stops being an id. */
+      .reg-mk{font-family:var(--font-mono);font-size:11px;font-weight:600;
+        color:var(--color-neutral-600);white-space:nowrap;font-variant-numeric:tabular-nums}
+      .reg-title{font-weight:700;color:var(--color-text)}
+      /* The prototype's row action is a text link, not a button. The ⋯ beside it
+         keeps the rest of the engine's actions reachable. */
+      .reg-actlink{border:0;background:none;font:inherit;font-size:11.5px;font-weight:700;
+        color:var(--color-accent-600);cursor:pointer;padding:0}
+      .reg-actlink:hover{text-decoration:underline}
       .reg-th-sort:hover{color:var(--color-accent-700)!important}
       .reg-th-sort:hover .reg-sort-idle{color:var(--color-accent-700)}
       .reg-th-sort.active{color:var(--color-accent-800)!important}
     </style>
-    <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
-      <!-- filter row 1: stage pills · Sort -->
-      <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-        ${stagePills}
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-height:0">
+      <!-- THE ONE FILTER BAR: stage · stream · saved view · renewal · clear,
+           then sort, full-text search (server mode) and the export — a single
+           compact strip where three tiers of pills used to stack, so the table
+           itself starts above the fold. -->
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        ${selFilter('reg-stage-sel',stageOpts,R.stage!=='all','Lifecycle stage')}
+        ${selFilter('reg-type-sel',typeOpts,R.type!=='all','Value stream')}
+        ${selFilter('reg-view-sel',viewOpts,!!R.view,'Saved views — expiry, auto-renewal and obligation presets')}
+        ${renewalSel}
+        ${filtered?`<button id="reg-clear-filters" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;padding:2px 4px">Clear</button>`:''}
         <span style="flex:1;min-width:8px"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700);flex:none">Sort
           <select id="reg-sort" style="${selStyle}">${sortOpts}</select>
         </label>
-      </div>
-      <!-- filter row 2: stream pills on their own full-width line, overflow → More ▾ -->
-      <div id="reg-streambar" style="display:flex;gap:6px;align-items:center;min-width:0;position:relative">
-        <div id="reg-streams" style="display:flex;gap:6px;align-items:center;flex-wrap:nowrap;overflow:hidden;min-width:0;flex:1">${typePills}</div>
-        <div id="reg-more-wrap" style="position:relative;flex:none;display:none">
-          <button id="reg-more" type="button" class="reg-pill" style="${pill(false)}">More ▾</button>
-          <div id="reg-more-menu" class="hidden" style="position:absolute;top:calc(100% + 4px);right:0;z-index:40;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:6px;padding:6px;min-width:180px;max-height:300px;overflow:auto"></div>
-        </div>
-      </div>
-      <!-- secondary controls: saved views · renewal · full-text (server mode) -->
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
-          <span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);margin-right:2px">Saved views</span>
-          ${viewPills}
-          ${R.view?`<button data-reg-view="" style="font-size:11px;font-weight:600;color:var(--color-accent-700);background:none;border:0;cursor:pointer;margin-left:2px">clear</button>`:''}
-        </div>
-        <span style="flex:1;min-width:8px"></span>
-        ${renewalSel}
         ${ftsBlock}
-      </div>
-      <!-- legend: explains the coloured row edge-stripe (value stream) -->
-      <div style="padding-top:2px;border-top:1px solid var(--color-divider)">${folderLegendHtml({style:'padding-top:8px'})}</div>
-
-      <div id="reg-selbar" class="flex hidden items-center justify-between" style="gap:12px;border:1px solid var(--color-accent-800);background:var(--color-accent-800);color:#fff;border-radius:4px;padding:8px 12px">
-        <span id="reg-sel-count" style="font-size:12px;font-weight:600">0 selected</span>
-        <div style="display:flex;align-items:center;gap:8px">
-          <button id="reg-export" style="display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:4px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">${icon('download','w-3.5 h-3.5')} Export CSV</button>
-          <button id="reg-clear" style="border:0;background:none;color:rgba(255,255,255,.72);padding:5px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer">Clear</button>
-        </div>
+        <button id="reg-export" class="ui-btn" title="Exports the set the filters are showing" style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:5px 12px;flex:none">${icon('download','w-3.5 h-3.5')} Export CSV</button>
       </div>
 
       <section class="blueprint bp-round" style="background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden">
@@ -593,19 +575,19 @@ function renderRegister(){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <table class="reg-table">
             <thead>
+              <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
+                   Sorting is kept on the four columns that carried it before —
+                   the reference has no sort affordance, but losing the ability
+                   to order a register by value or renewal date would be losing
+                   a tool, not a decoration. -->
               <tr>
-                <th style="width:26px;padding-left:12px"><input id="reg-selall" type="checkbox" style="accent-color:var(--color-accent)"></th>
-                <th>ID</th>
-                ${sortableTh('name','Contract')}
-                <th>Stream</th>
-                <th>Owner</th>
+                <th style="width:96px">MK</th>
+                ${sortableTh('name','Contract Title')}
+                <th>Counterparty</th>
+                ${sortableTh('stage','Status')}
                 ${sortableTh('value','Value','text-align:right')}
-                ${sortableTh('risk','Risk')}
-                ${sortableTh('expiry','Renewal')}
-                ${sortableTh('stage','Stage')}
-                <th>Approval</th>
-                ${sortableTh('updated','Updated','text-align:right;padding-right:12px')}
-                <th style="width:30px"></th>
+                ${sortableTh('expiry','Expiry Date')}
+                <th style="text-align:right">Actions</th>
               </tr>
             </thead>
             <tbody id="reg-tbody" class="stagger">${regRowsHtml(cs)}</tbody>
@@ -614,6 +596,9 @@ function renderRegister(){
         <div style="flex:none;border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;padding:5px 12px;font-size:11px;color:var(--color-neutral-600)">
           <span id="reg-showing">${regFooterText(cs)}</span>
           <div id="reg-pager" style="display:flex;align-items:center;gap:6px">${regPager(cs)}</div>
+          <!-- the legend explains the coloured row edge-stripe, so it lives
+               with the table it annotates rather than as a band above it -->
+          ${folderLegendHtml({style:'font-size:10.5px'})}
           <span>${REG_PAGE} per page · CSV export respects filters</span>
         </div>
       </section>
@@ -622,14 +607,12 @@ function renderRegister(){
 
   wireRegRows();
   wireRegPager();
-  renderRegSelBar();
   const si=document.getElementById('reg-search');
   if(si){
     si.addEventListener('input',()=>{ R.query=si.value; R.page=1; renderRegisterBody(); if(API_MODE()) ftsSearch(si.value); });
   }
   // outside click closes the FTS dropdown and any open row ⋯ menu
-  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); const mm=document.getElementById('reg-more-menu'); if(mm&&!mm.classList.contains('hidden')&&!e.target.closest('#reg-more-wrap')) mm.classList.add('hidden'); });
-  document.getElementById('reg-more')?.addEventListener('click',e=>{ e.stopPropagation(); document.getElementById('reg-more-menu')?.classList.toggle('hidden'); });
+  document.addEventListener('click',e=>{ const box=document.getElementById('reg-fts'); if(box&&!box.contains(e.target)&&e.target!==si) box.classList.add('hidden'); if(!e.target.closest('[data-menu-pop]')&&!e.target.closest('[data-menu]')) regCloseMenus(); });
   document.getElementById('reg-sort')?.addEventListener('change',e=>{ R.sort=e.target.value; R.dir=REG_SORT_DEFDIR[R.sort]||-1; R.page=1; renderRegister(); });
   // Column-header sorting: click a header to sort by it; click the active header
   // again to flip ascending/descending. First click uses the column's natural
@@ -639,15 +622,12 @@ function renderRegister(){
     if(R.sort===key) R.dir=-R.dir; else { R.sort=key; R.dir=REG_SORT_DEFDIR[key]||-1; }
     R.page=1; renderRegister();
   }));
-  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegisterBody(); });
-  document.querySelectorAll('[data-reg-stage]').forEach(el=>el.addEventListener('click',()=>{ R.stage=el.getAttribute('data-reg-stage'); R.page=1; renderRegister(); }));
-  document.querySelectorAll('[data-reg-type]').forEach(el=>el.addEventListener('click',()=>{ R.type=el.getAttribute('data-reg-type'); R.page=1; renderRegister(); }));
-  document.querySelectorAll('[data-reg-view]').forEach(el=>el.addEventListener('click',()=>{ R.view=el.getAttribute('data-reg-view')||null; R.page=1; renderRegister(); }));
-  document.getElementById('reg-selall')?.addEventListener('change',e=>{ const on=e.target.checked; const cs=regFiltered(); const p=regCurPage(cs); cs.slice((p-1)*REG_PAGE, (p-1)*REG_PAGE+REG_PAGE).forEach(c=>{ if(on) R.sel[c.id]=true; else delete R.sel[c.id]; }); renderRegisterBody(); });
-  document.getElementById('reg-export')?.addEventListener('click',regExportSelectedCsv);
-  document.getElementById('reg-clear')?.addEventListener('click',()=>{ R.sel={}; renderRegisterBody(); });
-  layoutStreamPills();
-  if(!window._regStreamResizeBound){ window._regStreamResizeBound=true; window.addEventListener('resize',()=>{ if(state.view==='register') layoutStreamPills(); }); }
+  document.getElementById('reg-renewal')?.addEventListener('change',e=>{ R.renewal=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; renderRegister(); });
+  document.getElementById('reg-view-sel')?.addEventListener('change',e=>{ R.view=e.target.value||null; R.page=1; renderRegister(); });
+  document.getElementById('reg-clear-filters')?.addEventListener('click',()=>{ R.stage='all'; R.type='all'; R.view=null; R.renewal='all'; R.page=1; renderRegister(); });
+  document.getElementById('reg-export')?.addEventListener('click',regExportCsv);
   setActiveNav('register');
 }
 
@@ -671,4 +651,4 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportSelectedCsv,regFiltered,regOwnerInitials,regRowsHtml,regSelCount,regState,renderRegSelBar,renderRegister,renderRegisterBody,wireRegRows,layoutStreamPills});
+Object.assign(window,{REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,renderRegister,renderRegisterBody,wireRegRows});

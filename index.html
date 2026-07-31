@@ -4,95 +4,137 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>HaTi — Contract Lifecycle Management</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Interface faces. The application chrome stays on IBM Plex. -->
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Document faces, for contract text only (see --font-doc / --font-doc-mono).
-     Both come from Google Fonts. Google Sans Flex is a variable face: weight
-     300-700 plus a real slant axis (slnt, -10..0), so emphasis in a contract
-     is a true oblique rather than a browser-synthesised fake — this family has
-     no separate italic. Google Sans Code carries the columnar blocks. -->
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,400..700;1,400..700&family=Google+Sans+Flex:slnt,wght@-10..0,300..700&display=swap" rel="stylesheet">
 <script>
-  // HaTi — Industry design system (steel-blue on a light technical ground).
-  // Barlow / Barlow Condensed typography, white surfaces on a very light-grey
-  // ground (#eff0f2), a steel accent (#5980a6), hairline borders, 4–6px radii
-  // and a grey / amber / emerald / ruby status model. The Tailwind palette
-  // below is repointed onto the Industry tokens so class-based views inherit
-  // the flip; new work sources exact values from the CSS variables in :root.
-  tailwind.config = {
+  // Apply the saved theme before first paint (class strategy — see toggleTheme
+  // in js/app.js). Default is light; 'hati-theme' persists the choice.
+  try{ if(localStorage.getItem('hati-theme')==='dark') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
+<script>
+  // HaTi — CLM redesign (teal brand on slate, light/dark via the `dark` class).
+  // Inter / Plus Jakarta Sans typography, white surfaces on slate-50, a teal
+  // accent (#0d9488), 12px radii and an amber / emerald / rose status model.
+  // The Tailwind palette below is repointed onto the new tokens so class-based
+  // views inherit the flip; new work sources exact values from the CSS
+  // variables in :root (with dark overrides under html.dark).
+  window.__twConfig = {
+    darkMode: 'class',
     theme: { extend: {
       fontFamily: {
-        display: ['"IBM Plex Sans"','system-ui','sans-serif'],
-        heading: ['"IBM Plex Sans"','system-ui','sans-serif'],
-        serif:   ['"IBM Plex Sans"','system-ui','sans-serif'],
-        sans:    ['"IBM Plex Sans"','system-ui','sans-serif'],
-        mono:    ['"IBM Plex Mono"','ui-monospace','monospace'],
+        display: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
+        heading: ['"Plus Jakarta Sans"','system-ui','sans-serif'],
+        serif:   ['Inter','system-ui','sans-serif'],
+        sans:    ['Inter','system-ui','sans-serif'],
+        // `font-mono` marks data (ids, counts, timestamps) in this codebase,
+        // not code — so it resolves to the figure face, same as --font-mono.
+        mono:    ['Inter','system-ui','sans-serif'],
+        code:    ['ui-monospace','SFMono-Regular','Menlo','Monaco','Consolas','"Liberation Mono"','"Courier New"','monospace'],
       },
-      fontWeight: { 400:'400', 500:'500', 600:'600', 700:'700', 800:'700', 900:'700' },
       colors: {
-        white:'#ffffff',
-        canvas:'#f4f3f0',     // page ground (warm off-white)
-        ink:'#1d1f20',        // text
-        // steel accent ramp (Industry)
-        brand:{50:'#eef6ff',100:'#d6ebff',200:'#d6ebff',300:'#b5d9fd',400:'#94bce3',500:'#749dc4',600:'#5980a6',700:'#416180',800:'#2c455d',900:'#1d2d3d'},
+        canvas:'#f8fafc',     // page ground (slate-50)
+        ink:'#1e293b',        // text
+        // teal brand ramp (HaTi redesign)
+        brand:{50:'#f0fdfa',100:'#ccfbf1',200:'#99f6e4',300:'#5eead4',400:'#2dd4bf',500:'#14b8a6',600:'#0d9488',700:'#0f766e',800:'#115e59',900:'#134e4a',accent:'#06b6d4',purple:'#8b5cf6'},
         // amber (In Review / pending)
-        gold:{300:'#f1e6cd',400:'#b8862b',500:'#b8862b',600:'#7d5a14'},
-        // neutral ramp
-        slate:{50:'#f5f5f8',100:'#e7e7ea',200:'#e7e7ea',300:'#d4d4d7',400:'#b7b7ba',500:'#98989b',600:'#7a7a7d',700:'#5d5d60',800:'#424244',900:'#2b2b2d'},
-        // ruby (Closed / Expired / risk / danger)
-        rose:{50:'#f1dcd8',100:'#f1dcd8',200:'#e6c9c1',300:'#dca99d',400:'#b0453c',500:'#b0453c',600:'#8f322b',700:'#8f322b',900:'#3e1712'},
+        gold:{300:'#fde68a',400:'#f59e0b',500:'#f59e0b',600:'#b45309'},
+        // rose (Closed / Expired / risk / danger)
+        rose:{50:'#fff1f2',100:'#ffe4e6',200:'#fecdd3',300:'#fda4af',400:'#fb7185',500:'#f43f5e',600:'#e11d48',700:'#be123c',900:'#881337'},
         // emerald (Executed / active)
-        emerald:{50:'#d9eae0',100:'#d9eae0',200:'#c7ddce',400:'#2e8763',500:'#2e8763',600:'#1e6b4d',700:'#1e6b4d'},
+        emerald:{50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857'},
         // chrome tokens (hairline dividers)
-        hair:'#eeece7',
-        line:'#dcdcdf',
-        inputln:'#d4d4d7',
-        faint:'#ffffff',
-        docbg:'#f4f3f0',
-        amber:'#b8862b',
-        danger:'#b0453c',
+        hair:'#e2e8f0',
+        line:'#cbd5e1',
+        inputln:'#cbd5e1',
+        faint:'#f8fafc',
+        docbg:'#f8fafc',
+        amber:'#f59e0b',
+        danger:'#dc2626',
       },
     }},
   };
 </script>
+<!-- Tailwind, compiled ahead of time from the classes these views actually
+     use — no CDN, no network dependency, identical rendering offline and
+     behind any content policy. window.__twConfig above documents the token
+     set this build was compiled against. -->
+<style data-tw="compiled">
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:Inter,system-ui,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.container{width:100%}@media (min-width:640px){.container{max-width:640px}}@media (min-width:768px){.container{max-width:768px}}@media (min-width:1024px){.container{max-width:1024px}}@media (min-width:1280px){.container{max-width:1280px}}@media (min-width:1536px){.container{max-width:1536px}}.visible{visibility:visible}.invisible{visibility:hidden}.collapse{visibility:collapse}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.sticky{position:sticky}.inset-0{inset:0}.bottom-0{bottom:0}.bottom-4{bottom:1rem}.bottom-6{bottom:1.5rem}.left-4{left:1rem}.left-\[13px\]{left:13px}.right-0{right:0}.right-4{right:1rem}.right-6{right:1.5rem}.right-\[18px\]{right:18px}.top-0{top:0}.top-1\/2{top:50%}.top-7{top:1.75rem}.z-10{z-index:10}.z-40{z-index:40}.z-50{z-index:50}.z-\[60\]{z-index:60}.z-\[80\]{z-index:80}.m-1{margin:.25rem}.-mx-2{margin-left:-.5rem;margin-right:-.5rem}.mx-auto{margin-left:auto;margin-right:auto}.mb-0\.5{margin-bottom:.125rem}.mb-1{margin-bottom:.25rem}.mb-1\.5{margin-bottom:.375rem}.mb-2{margin-bottom:.5rem}.mb-2\.5{margin-bottom:.625rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}.mb-5{margin-bottom:1.25rem}.mb-6{margin-bottom:1.5rem}.ml-1{margin-left:.25rem}.ml-1\.5{margin-left:.375rem}.ml-2{margin-left:.5rem}.ml-auto{margin-left:auto}.mt-0\.5{margin-top:.125rem}.mt-1{margin-top:.25rem}.mt-1\.5{margin-top:.375rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}.mt-5{margin-top:1.25rem}.mt-8{margin-top:2rem}.\!block{display:block!important}.block{display:block}.inline-block{display:inline-block}.inline{display:inline}.flex{display:flex}.inline-flex{display:inline-flex}.table{display:table}.\!grid{display:grid!important}.grid{display:grid}.contents{display:contents}.\!hidden{display:none!important}.hidden{display:none}.h-1\.5{height:.375rem}.h-10{height:2.5rem}.h-14{height:3.5rem}.h-2\.5{height:.625rem}.h-3{height:.75rem}.h-3\.5{height:.875rem}.h-4{height:1rem}.h-5{height:1.25rem}.h-6{height:1.5rem}.h-7{height:1.75rem}.h-8{height:2rem}.h-9{height:2.25rem}.h-\[15px\]{height:15px}.h-\[18px\]{height:18px}.h-\[calc\(100vh-235px\)\]{height:calc(100vh - 235px)}.h-full{height:100%}.max-h-44{max-height:11rem}.max-h-56{max-height:14rem}.max-h-64{max-height:16rem}.max-h-\[45vh\]{max-height:45vh}.max-h-\[50vh\]{max-height:50vh}.max-h-\[calc\(100vh-235px\)\]{max-height:calc(100vh - 235px)}.min-h-0{min-height:0}.min-h-\[420px\]{min-height:420px}.min-h-\[560px\]{min-height:560px}.min-h-screen{min-height:100vh}.w-0\.5{width:.125rem}.w-1\.5{width:.375rem}.w-10{width:2.5rem}.w-14{width:3.5rem}.w-2\.5{width:.625rem}.w-3{width:.75rem}.w-3\.5{width:.875rem}.w-4{width:1rem}.w-5{width:1.25rem}.w-6{width:1.5rem}.w-7{width:1.75rem}.w-8{width:2rem}.w-9{width:2.25rem}.w-\[15px\]{width:15px}.w-\[18px\]{width:18px}.w-full{width:100%}.min-w-0{min-width:0}.max-w-\[1100px\]{max-width:1100px}.max-w-\[85\%\]{max-width:85%}.max-w-\[88\%\]{max-width:88%}.max-w-full{max-width:100%}.max-w-lg{max-width:32rem}.max-w-sm{max-width:24rem}.flex-1{flex:1 1 0%}.flex-shrink,.shrink{flex-shrink:1}.shrink-0{flex-shrink:0}.grow{flex-grow:1}.border-collapse{border-collapse:collapse}.-translate-y-1\/2{--tw-translate-y:-50%}.-translate-y-1\/2,.rotate-180{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.rotate-180{--tw-rotate:180deg}.transform{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}@keyframes pulse{50%{opacity:.5}}.animate-pulse{animation:pulse 2s cubic-bezier(.4,0,.6,1) infinite}@keyframes spin{to{transform:rotate(1turn)}}.animate-spin{animation:spin 1s linear infinite}.cursor-grab{cursor:grab}.cursor-grabbing{cursor:grabbing}.cursor-not-allowed{cursor:not-allowed}.cursor-pointer{cursor:pointer}.select-none{-webkit-user-select:none;-moz-user-select:none;user-select:none}.resize{resize:both}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}.place-items-start{place-items:start}.place-items-center{place-items:center}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-2\.5{gap:.625rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.space-y-1>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.25rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.25rem*var(--tw-space-y-reverse))}.space-y-1\.5>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.375rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.375rem*var(--tw-space-y-reverse))}.space-y-2>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.5rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.5rem*var(--tw-space-y-reverse))}.space-y-3>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(.75rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(.75rem*var(--tw-space-y-reverse))}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}.overflow-auto{overflow:auto}.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}.overflow-y-auto{overflow-y:auto}.truncate{overflow:hidden;text-overflow:ellipsis}.truncate,.whitespace-nowrap{white-space:nowrap}.whitespace-pre-wrap{white-space:pre-wrap}.break-all{word-break:break-all}.rounded{border-radius:.25rem}.rounded-2xl{border-radius:1rem}.rounded-\[3px\]{border-radius:3px}.rounded-\[4px\]{border-radius:4px}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-xl{border-radius:.75rem}.rounded-br-md{border-bottom-right-radius:.375rem}.rounded-tl-md{border-top-left-radius:.375rem}.border{border-width:1px}.border-2{border-width:2px}.border-b{border-bottom-width:1px}.border-l-2{border-left-width:2px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-\[\#DED5C6\]{--tw-border-opacity:1;border-color:rgb(222 213 198/var(--tw-border-opacity,1))}.border-\[\#E2D2AE\]{--tw-border-opacity:1;border-color:rgb(226 210 174/var(--tw-border-opacity,1))}.border-\[\#E6C9C1\]{--tw-border-opacity:1;border-color:rgb(230 201 193/var(--tw-border-opacity,1))}.border-blue-200{--tw-border-opacity:1;border-color:rgb(191 219 254/var(--tw-border-opacity,1))}.border-brand-100{--tw-border-opacity:1;border-color:rgb(204 251 241/var(--tw-border-opacity,1))}.border-brand-100\/50{border-color:rgba(204,251,241,.5)}.border-brand-100\/60{border-color:rgba(204,251,241,.6)}.border-brand-200{--tw-border-opacity:1;border-color:rgb(153 246 228/var(--tw-border-opacity,1))}.border-brand-300{--tw-border-opacity:1;border-color:rgb(94 234 212/var(--tw-border-opacity,1))}.border-brand-500{--tw-border-opacity:1;border-color:rgb(20 184 166/var(--tw-border-opacity,1))}.border-brand-600{--tw-border-opacity:1;border-color:rgb(13 148 136/var(--tw-border-opacity,1))}.border-brand-900{--tw-border-opacity:1;border-color:rgb(19 78 74/var(--tw-border-opacity,1))}.border-emerald-200{--tw-border-opacity:1;border-color:rgb(167 243 208/var(--tw-border-opacity,1))}.border-gold-400,.border-gold-500{--tw-border-opacity:1;border-color:rgb(245 158 11/var(--tw-border-opacity,1))}.border-gold-500\/25{border-color:rgba(245,158,11,.25)}.border-gold-500\/30{border-color:rgba(245,158,11,.3)}.border-hair{--tw-border-opacity:1;border-color:rgb(226 232 240/var(--tw-border-opacity,1))}.border-inputln,.border-line{--tw-border-opacity:1;border-color:rgb(203 213 225/var(--tw-border-opacity,1))}.border-rose-200{--tw-border-opacity:1;border-color:rgb(254 205 211/var(--tw-border-opacity,1))}.border-slate-200{--tw-border-opacity:1;border-color:rgb(226 232 240/var(--tw-border-opacity,1))}.border-slate-300{--tw-border-opacity:1;border-color:rgb(203 213 225/var(--tw-border-opacity,1))}.border-t-brand-500{--tw-border-opacity:1;border-top-color:rgb(20 184 166/var(--tw-border-opacity,1))}.bg-\[\#9A9484\]{--tw-bg-opacity:1;background-color:rgb(154 148 132/var(--tw-bg-opacity,1))}.bg-\[\#B23A2E\]{--tw-bg-opacity:1;background-color:rgb(178 58 46/var(--tw-bg-opacity,1))}.bg-\[\#C79A3E\]{--tw-bg-opacity:1;background-color:rgb(199 154 62/var(--tw-bg-opacity,1))}.bg-\[\#ECE7DC\]{--tw-bg-opacity:1;background-color:rgb(236 231 220/var(--tw-bg-opacity,1))}.bg-\[\#F0E6CF\]{--tw-bg-opacity:1;background-color:rgb(240 230 207/var(--tw-bg-opacity,1))}.bg-\[\#F4E2DD\]{--tw-bg-opacity:1;background-color:rgb(244 226 221/var(--tw-bg-opacity,1))}.bg-blue-50{--tw-bg-opacity:1;background-color:rgb(239 246 255/var(--tw-bg-opacity,1))}.bg-brand-100{--tw-bg-opacity:1;background-color:rgb(204 251 241/var(--tw-bg-opacity,1))}.bg-brand-300{--tw-bg-opacity:1;background-color:rgb(94 234 212/var(--tw-bg-opacity,1))}.bg-brand-400{--tw-bg-opacity:1;background-color:rgb(45 212 191/var(--tw-bg-opacity,1))}.bg-brand-50{--tw-bg-opacity:1;background-color:rgb(240 253 250/var(--tw-bg-opacity,1))}.bg-brand-50\/30{background-color:rgba(240,253,250,.3)}.bg-brand-50\/40{background-color:rgba(240,253,250,.4)}.bg-brand-50\/50{background-color:rgba(240,253,250,.5)}.bg-brand-500{--tw-bg-opacity:1;background-color:rgb(20 184 166/var(--tw-bg-opacity,1))}.bg-brand-600{--tw-bg-opacity:1;background-color:rgb(13 148 136/var(--tw-bg-opacity,1))}.bg-brand-800{--tw-bg-opacity:1;background-color:rgb(17 94 89/var(--tw-bg-opacity,1))}.bg-brand-900{--tw-bg-opacity:1;background-color:rgb(19 78 74/var(--tw-bg-opacity,1))}.bg-canvas{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.bg-canvas\/60{background-color:rgba(248,250,252,.6)}.bg-docbg{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.bg-emerald-50{--tw-bg-opacity:1;background-color:rgb(236 253 245/var(--tw-bg-opacity,1))}.bg-gold-500{--tw-bg-opacity:1;background-color:rgb(245 158 11/var(--tw-bg-opacity,1))}.bg-gold-500\/10{background-color:rgba(245,158,11,.1)}.bg-gold-500\/15{background-color:rgba(245,158,11,.15)}.bg-gold-500\/5{background-color:rgba(245,158,11,.05)}.bg-green-100{--tw-bg-opacity:1;background-color:rgb(220 252 231/var(--tw-bg-opacity,1))}.bg-indigo-100{--tw-bg-opacity:1;background-color:rgb(224 231 255/var(--tw-bg-opacity,1))}.bg-ink\/60{background-color:rgba(30,41,59,.6)}.bg-red-100{--tw-bg-opacity:1;background-color:rgb(254 226 226/var(--tw-bg-opacity,1))}.bg-rose-50{--tw-bg-opacity:1;background-color:rgb(255 241 242/var(--tw-bg-opacity,1))}.bg-rose-500{--tw-bg-opacity:1;background-color:rgb(244 63 94/var(--tw-bg-opacity,1))}.bg-slate-200{--tw-bg-opacity:1;background-color:rgb(226 232 240/var(--tw-bg-opacity,1))}.bg-slate-50{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.bg-slate-50\/60{background-color:rgba(248,250,252,.6)}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity,1))}.bg-gradient-to-br{background-image:linear-gradient(to bottom right,var(--tw-gradient-stops))}.from-brand-50{--tw-gradient-from:#f0fdfa var(--tw-gradient-from-position);--tw-gradient-to:rgba(240,253,250,0) var(--tw-gradient-to-position);--tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to)}.to-white{--tw-gradient-to:#fff var(--tw-gradient-to-position)}.p-1{padding:.25rem}.p-1\.5{padding:.375rem}.p-10{padding:2.5rem}.p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-1{padding-left:.25rem;padding-right:.25rem}.px-1\.5{padding-left:.375rem;padding-right:.375rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-3\.5{padding-left:.875rem;padding-right:.875rem}.px-4{padding-left:1rem;padding-right:1rem}.px-5{padding-left:1.25rem;padding-right:1.25rem}.px-8{padding-left:2rem;padding-right:2rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-2\.5{padding-top:.625rem;padding-bottom:.625rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.py-3\.5{padding-top:.875rem;padding-bottom:.875rem}.py-4{padding-top:1rem;padding-bottom:1rem}.py-px{padding-top:1px;padding-bottom:1px}.pb-1{padding-bottom:.25rem}.pb-2{padding-bottom:.5rem}.pb-3{padding-bottom:.75rem}.pb-5{padding-bottom:1.25rem}.pl-2{padding-left:.5rem}.pl-3\.5{padding-left:.875rem}.pr-0\.5{padding-right:.125rem}.pr-1{padding-right:.25rem}.pr-16{padding-right:4rem}.pt-0\.5{padding-top:.125rem}.pt-1{padding-top:.25rem}.pt-2{padding-top:.5rem}.pt-2\.5{padding-top:.625rem}.pt-3{padding-top:.75rem}.text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}.align-top{vertical-align:top}.font-display{font-family:Plus Jakarta Sans,system-ui,sans-serif}.font-mono{font-family:var(--font-mono)}.font-serif{font-family:Inter,system-ui,sans-serif}.text-\[10\.5px\]{font-size:10.5px}.text-\[10px\]{font-size:10px}.text-\[11\.5px\]{font-size:11.5px}.text-\[11px\]{font-size:11px}.text-\[12\.5px\]{font-size:12.5px}.text-\[12px\]{font-size:12px}.text-\[13\.5px\]{font-size:13.5px}.text-\[13px\]{font-size:13px}.text-\[17px\]{font-size:17px}.text-\[8\.5px\]{font-size:8.5px}.text-\[8px\]{font-size:8px}.text-\[9\.5px\]{font-size:9.5px}.text-\[9px\]{font-size:9px}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xs{font-size:.75rem;line-height:1rem}.font-medium{font-weight:500}.font-normal{font-weight:400}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.lowercase{text-transform:lowercase}.italic{font-style:italic}.leading-\[1\.7\]{line-height:1.7}.leading-\[1\.85\]{line-height:1.85}.leading-\[1\.9\]{line-height:1.9}.leading-relaxed{line-height:1.625}.leading-snug{line-height:1.375}.leading-tight{line-height:1.25}.tracking-\[0\.14em\]{letter-spacing:.14em}.tracking-\[0\.2em\]{letter-spacing:.2em}.tracking-tight{letter-spacing:-.025em}.tracking-wide{letter-spacing:.025em}.tracking-wider{letter-spacing:.05em}.text-\[\#6B6559\]{--tw-text-opacity:1;color:rgb(107 101 89/var(--tw-text-opacity,1))}.text-\[\#8A5E1B\]{--tw-text-opacity:1;color:rgb(138 94 27/var(--tw-text-opacity,1))}.text-\[\#9A342A\]{--tw-text-opacity:1;color:rgb(154 52 42/var(--tw-text-opacity,1))}.text-amber{--tw-text-opacity:1;color:rgb(245 158 11/var(--tw-text-opacity,1))}.text-blue-900{--tw-text-opacity:1;color:rgb(30 58 138/var(--tw-text-opacity,1))}.text-brand-100{--tw-text-opacity:1;color:rgb(204 251 241/var(--tw-text-opacity,1))}.text-brand-300{--tw-text-opacity:1;color:rgb(94 234 212/var(--tw-text-opacity,1))}.text-brand-400{--tw-text-opacity:1;color:rgb(45 212 191/var(--tw-text-opacity,1))}.text-brand-500{--tw-text-opacity:1;color:rgb(20 184 166/var(--tw-text-opacity,1))}.text-brand-600{--tw-text-opacity:1;color:rgb(13 148 136/var(--tw-text-opacity,1))}.text-brand-700{--tw-text-opacity:1;color:rgb(15 118 110/var(--tw-text-opacity,1))}.text-brand-800{--tw-text-opacity:1;color:rgb(17 94 89/var(--tw-text-opacity,1))}.text-brand-800\/35{color:rgba(17,94,89,.35)}.text-brand-800\/45{color:rgba(17,94,89,.45)}.text-brand-800\/60{color:rgba(17,94,89,.6)}.text-brand-800\/65{color:rgba(17,94,89,.65)}.text-brand-800\/70{color:rgba(17,94,89,.7)}.text-brand-800\/75{color:rgba(17,94,89,.75)}.text-brand-800\/80{color:rgba(17,94,89,.8)}.text-brand-800\/85{color:rgba(17,94,89,.85)}.text-brand-900{--tw-text-opacity:1;color:rgb(19 78 74/var(--tw-text-opacity,1))}.text-emerald-700{--tw-text-opacity:1;color:rgb(4 120 87/var(--tw-text-opacity,1))}.text-gold-400,.text-gold-500{--tw-text-opacity:1;color:rgb(245 158 11/var(--tw-text-opacity,1))}.text-gold-600{--tw-text-opacity:1;color:rgb(180 83 9/var(--tw-text-opacity,1))}.text-green-800{--tw-text-opacity:1;color:rgb(22 101 52/var(--tw-text-opacity,1))}.text-indigo-800{--tw-text-opacity:1;color:rgb(55 48 163/var(--tw-text-opacity,1))}.text-ink{--tw-text-opacity:1;color:rgb(30 41 59/var(--tw-text-opacity,1))}.text-ink\/40{color:rgba(30,41,59,.4)}.text-ink\/45{color:rgba(30,41,59,.45)}.text-ink\/50{color:rgba(30,41,59,.5)}.text-ink\/55{color:rgba(30,41,59,.55)}.text-ink\/60{color:rgba(30,41,59,.6)}.text-ink\/65{color:rgba(30,41,59,.65)}.text-ink\/70{color:rgba(30,41,59,.7)}.text-ink\/80{color:rgba(30,41,59,.8)}.text-red-800{--tw-text-opacity:1;color:rgb(153 27 27/var(--tw-text-opacity,1))}.text-rose-500{--tw-text-opacity:1;color:rgb(244 63 94/var(--tw-text-opacity,1))}.text-rose-600{--tw-text-opacity:1;color:rgb(225 29 72/var(--tw-text-opacity,1))}.text-rose-700{--tw-text-opacity:1;color:rgb(190 18 60/var(--tw-text-opacity,1))}.text-rose-700\/80{color:rgba(190,18,60,.8)}.text-rose-800{--tw-text-opacity:1;color:rgb(159 18 57/var(--tw-text-opacity,1))}.text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.underline{text-decoration-line:underline}.line-through{text-decoration-line:line-through}.decoration-dotted{text-decoration-style:dotted}.underline-offset-2{text-underline-offset:2px}.accent-brand-700{accent-color:#0f766e}.opacity-80{opacity:.8}.shadow{--tw-shadow:0 1px 3px 0 rgba(0,0,0,.1),0 1px 2px -1px rgba(0,0,0,.1);--tw-shadow-colored:0 1px 3px 0 var(--tw-shadow-color),0 1px 2px -1px var(--tw-shadow-color)}.shadow,.shadow-2xl{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgba(0,0,0,.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color)}.shadow-\[0_6px_22px_-12px_rgba\(60\2c 40\2c 10\2c \.3\)\]{--tw-shadow:0 6px 22px -12px rgba(60,40,10,.3);--tw-shadow-colored:0 6px 22px -12px var(--tw-shadow-color)}.shadow-\[0_6px_22px_-12px_rgba\(60\2c 40\2c 10\2c \.3\)\],.shadow-lg{box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-lg{--tw-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);--tw-shadow-colored:0 10px 15px -3px var(--tw-shadow-color),0 4px 6px -4px var(--tw-shadow-color)}.shadow-sm{--tw-shadow:0 1px 2px 0 rgba(0,0,0,.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.shadow-brand-900\/20{--tw-shadow-color:rgba(19,78,74,.2);--tw-shadow:var(--tw-shadow-colored)}.shadow-brand-900\/25{--tw-shadow-color:rgba(19,78,74,.25);--tw-shadow:var(--tw-shadow-colored)}.outline-none{outline:2px solid transparent;outline-offset:2px}.outline{outline-style:solid}.ring{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color)}.ring,.ring-4{box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.ring-4{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(4px + var(--tw-ring-offset-width)) var(--tw-ring-color)}.drop-shadow{--tw-drop-shadow:drop-shadow(0 1px 2px rgba(0,0,0,.1)) drop-shadow(0 1px 1px rgba(0,0,0,.06))}.drop-shadow,.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.backdrop-blur-sm{--tw-backdrop-blur:blur(4px);-webkit-backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia);backdrop-filter:var(--tw-backdrop-blur) var(--tw-backdrop-brightness) var(--tw-backdrop-contrast) var(--tw-backdrop-grayscale) var(--tw-backdrop-hue-rotate) var(--tw-backdrop-invert) var(--tw-backdrop-opacity) var(--tw-backdrop-saturate) var(--tw-backdrop-sepia)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.transition-all{transition-property:all;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.ease-in-out{transition-timing-function:cubic-bezier(.4,0,.2,1)}.ease-out{transition-timing-function:cubic-bezier(0,0,.2,1)}.\[writing-mode\:vertical-rl\]{writing-mode:vertical-rl}.file\:mr-3::file-selector-button{margin-right:.75rem}.file\:rounded-lg::file-selector-button{border-radius:.5rem}.file\:border-0::file-selector-button{border-width:0}.file\:bg-brand-900::file-selector-button{--tw-bg-opacity:1;background-color:rgb(19 78 74/var(--tw-bg-opacity,1))}.file\:px-3::file-selector-button{padding-left:.75rem;padding-right:.75rem}.file\:py-2::file-selector-button{padding-top:.5rem;padding-bottom:.5rem}.file\:text-xs::file-selector-button{font-size:.75rem;line-height:1rem}.file\:font-medium::file-selector-button{font-weight:500}.file\:text-white::file-selector-button{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity,1))}.last\:border-0:last-child{border-width:0}.empty\:hidden:empty{display:none}.hover\:border-brand-300:hover{--tw-border-opacity:1;border-color:rgb(94 234 212/var(--tw-border-opacity,1))}.hover\:border-brand-400:hover{--tw-border-opacity:1;border-color:rgb(45 212 191/var(--tw-border-opacity,1))}.hover\:border-indigo-300:hover{--tw-border-opacity:1;border-color:rgb(165 180 252/var(--tw-border-opacity,1))}.hover\:bg-brand-50:hover{--tw-bg-opacity:1;background-color:rgb(240 253 250/var(--tw-bg-opacity,1))}.hover\:bg-brand-50\/50:hover{background-color:rgba(240,253,250,.5)}.hover\:bg-brand-50\/60:hover{background-color:rgba(240,253,250,.6)}.hover\:bg-brand-700:hover{--tw-bg-opacity:1;background-color:rgb(15 118 110/var(--tw-bg-opacity,1))}.hover\:bg-brand-800:hover{--tw-bg-opacity:1;background-color:rgb(17 94 89/var(--tw-bg-opacity,1))}.hover\:bg-gold-500\/10:hover{background-color:rgba(245,158,11,.1)}.hover\:bg-rose-50:hover{--tw-bg-opacity:1;background-color:rgb(255 241 242/var(--tw-bg-opacity,1))}.hover\:bg-slate-50:hover{--tw-bg-opacity:1;background-color:rgb(248 250 252/var(--tw-bg-opacity,1))}.hover\:bg-white\/10:hover{background-color:hsla(0,0%,100%,.1)}.hover\:text-brand-800:hover{--tw-text-opacity:1;color:rgb(17 94 89/var(--tw-text-opacity,1))}.hover\:text-brand-900:hover{--tw-text-opacity:1;color:rgb(19 78 74/var(--tw-text-opacity,1))}.hover\:text-ink:hover{--tw-text-opacity:1;color:rgb(30 41 59/var(--tw-text-opacity,1))}.hover\:text-ink\/70:hover{color:rgba(30,41,59,.7)}.hover\:text-rose-600:hover{--tw-text-opacity:1;color:rgb(225 29 72/var(--tw-text-opacity,1))}.hover\:text-rose-700:hover{--tw-text-opacity:1;color:rgb(190 18 60/var(--tw-text-opacity,1))}.hover\:shadow-sm:hover{--tw-shadow:0 1px 2px 0 rgba(0,0,0,.05);--tw-shadow-colored:0 1px 2px 0 var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.focus\:border-brand-400:focus{--tw-border-opacity:1;border-color:rgb(45 212 191/var(--tw-border-opacity,1))}.focus\:border-brand-500:focus{--tw-border-opacity:1;border-color:rgb(20 184 166/var(--tw-border-opacity,1))}.focus\:border-brand-600:focus{--tw-border-opacity:1;border-color:rgb(13 148 136/var(--tw-border-opacity,1))}.focus\:ring-\[3px\]:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 #0000)}.focus\:ring-\[rgba\(11\2c 122\2c 95\2c \.1\)\]:focus{--tw-ring-color:rgba(11,122,95,.1)}.disabled\:opacity-30:disabled{opacity:.3}.group:hover .group-hover\:text-brand-500{--tw-text-opacity:1;color:rgb(20 184 166/var(--tw-text-opacity,1))}.group:hover .group-hover\:text-brand-600{--tw-text-opacity:1;color:rgb(13 148 136/var(--tw-text-opacity,1))}@media (min-width:640px){.sm\:block{display:block}.sm\:inline{display:inline}.sm\:inline-flex{display:inline-flex}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:p-6{padding:1.5rem}}@media (min-width:768px){.md\:inline-flex{display:inline-flex}}
+</style>
+<!-- The design's two faces, and only those: Inter for body copy, Plus Jakarta
+     Sans for headings. Served from the repo rather than Google Fonts so the
+     platform renders identically offline, behind a restrictive network and
+     inside a strict content policy — a silent fallback to a system face is the
+     exact drift this redesign removes. -->
+<link rel="stylesheet" href="fonts/fonts.css">
+</head>
+<body>
+<!-- The design's two faces, and only those: Inter for body copy, Plus Jakarta
+     Sans for headings. Served from the repo rather than Google Fonts so the
+     platform renders identically offline, behind a restrictive network and
+     inside a strict content policy — a silent fallback to a system face is the
+     exact drift this redesign removes. See fonts/fonts.css. -->
+
+
+<!-- The separate document faces (Google Sans Flex / Google Sans Code) are
+     retired: the platform runs on the design's two families throughout, contract
+     text included, so --font-doc now resolves to Inter. -->
+
 <style>
   /* ============================================================
      INDUSTRY DESIGN TOKENS — source of truth for the redesign.
      ============================================================ */
   :root{
-    --color-bg:#f4f3f0;
+    --color-bg:#f8fafc;
     --color-surface:#ffffff;
-    --color-text:#1d1f20;
-    --color-accent:#5980a6;
-    --color-divider:#eeece7;
+    --color-text:#1e293b;
+    --color-accent:#0d9488;
+    --color-divider:#e2e8f0;
 
-    --color-neutral-100:#f5f5f8; --color-neutral-200:#e7e7ea; --color-neutral-300:#d4d4d7;
-    --color-neutral-400:#b7b7ba; --color-neutral-500:#98989b; --color-neutral-600:#7a7a7d;
-    --color-neutral-700:#5d5d60; --color-neutral-800:#424244; --color-neutral-900:#2b2b2d;
+    --color-neutral-100:#f1f5f9; --color-neutral-200:#e2e8f0; --color-neutral-300:#cbd5e1;
+    --color-neutral-400:#94a3b8; --color-neutral-500:#64748b; --color-neutral-600:#475569;
+    --color-neutral-700:#334155; --color-neutral-800:#1e293b; --color-neutral-900:#0f172a;
 
-    --color-accent-100:#eef6ff; --color-accent-200:#d6ebff; --color-accent-300:#b5d9fd;
-    --color-accent-400:#94bce3; --color-accent-500:#749dc4; --color-accent-600:#597ea3;
-    --color-accent-700:#416180; --color-accent-800:#2c455d; --color-accent-900:#1d2d3d;
+    --color-accent-100:#ccfbf1; --color-accent-200:#99f6e4; --color-accent-300:#5eead4;
+    --color-accent-400:#2dd4bf; --color-accent-500:#14b8a6; --color-accent-600:#0d9488;
+    --color-accent-700:#0f766e; --color-accent-800:#115e59; --color-accent-900:#134e4a;
 
-    --font-heading:"IBM Plex Sans",system-ui,sans-serif;
-    --font-body:"IBM Plex Sans",system-ui,sans-serif;
-    --font-mono:"IBM Plex Mono",ui-monospace,monospace;
+    /* solid brand fills that must NOT flip with the theme (nav active, primary
+       buttons, the Copilot header) — always teal, always white-on-top */
+    --accent-solid:#0d9488; --accent-solid-hover:#0f766e;
+    --brand-grad:linear-gradient(135deg,#0d9488,#06b6d4);
+
+    /* HOW TALL A FULL-HEIGHT VIEW MAY BE. The views that fill the window —
+       the register, the calendar, the workspace, the queue — used to subtract a
+       hardcoded 52px, which was already the wrong number and became wronger
+       when the command strip was replaced by a per-page header whose height
+       depends on whether the page has a subtitle and whether it wraps.
+       renderPageHeader measures the scroll container and writes the real value
+       here after every render; this is only the value before the first one. */
+    --view-h:calc(100vh - 126px);
+    --font-heading:"Plus Jakarta Sans",Inter,system-ui,sans-serif;
+    --font-body:Inter,system-ui,sans-serif;
+    /* THE FIGURE FACE, not a code face. This token is used ~160 times for
+       reference ids, dates, day counts and money — data, not code — and the
+       design sets all of that in Inter. Pointing it at a monospace stack made
+       every zero in the product a slashed or dotted zero (SF Mono, Consolas and
+       DejaVu Sans Mono all draw one), so "0" in a metric did not match "0" in
+       the sentence beside it. Inter's digits are uniform-width by default, so
+       columns still line up without borrowing a typewriter face to do it. */
+    --font-mono:Inter,system-ui,sans-serif;
+    /* True monospace, kept for the two things that are genuinely code: a
+       SHA-256 fingerprint and a keyboard chip. */
+    --font-code:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
-       the PDF export. The application interface (nav, register, cards,
-       buttons, panels) stays on IBM Plex, so the difference between "the
-       product" and "the paper" is legible at a glance.
-       Google Sans Flex is a variable face: wght 300-700, plus a real slant
-       axis (slnt -10..0), so emphasis is a true oblique rather than a
-       browser-synthesised fake. Google Sans Code carries the columnar blocks —
-       fee schedules drawn with rules, side-by-side signature blocks — where
-       character alignment is the content. */
-    --font-doc:"Google Sans Flex","Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-    --font-doc-mono:"Google Sans Code",ui-monospace,"IBM Plex Mono",monospace;
+       the PDF export.
+       They used to be a separate pair (Google Sans Flex / Google Sans Code) so
+       that "the product" and "the paper" were distinguishable at a glance. The
+       redesign runs one type system end to end, so they now resolve to the
+       interface faces. Contract text is still governed by its own tokens — the
+       .doc-surface size, leading and ink below are unchanged — so the paper
+       keeps its own measure even though it shares a family with the app. */
+    --font-doc:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
        modifier. `text-brand-800/85` composited the blue-grey #2c455d onto the
@@ -110,11 +152,11 @@
     --color-doc-rule:#c9ccd1;
 
     --space-1:3.4px; --space-2:6.8px; --space-3:10.2px; --space-4:13.6px; --space-6:20.4px; --space-8:27.2px;
-    --radius-sm:5px; --radius-md:10px; --radius-lg:10px;
+    --radius-sm:8px; --radius-md:12px; --radius-lg:12px;
 
-    --shadow-sm:0 1px 2px rgba(43,43,45,.05), 0 10px 26px -12px rgba(43,43,45,.20);
-    --shadow-md:0 4px 10px rgba(43,43,45,.08), 0 18px 40px -14px rgba(43,43,45,.28);
-    --shadow-lg:0 12px 32px color-mix(in srgb,#2b2b2d 22%,transparent);
+    --shadow-sm:0 1px 2px rgba(15,23,42,.05), 0 10px 26px -12px rgba(15,23,42,.18);
+    --shadow-md:0 4px 10px rgba(15,23,42,.07), 0 18px 40px -14px rgba(15,23,42,.25);
+    --shadow-lg:0 12px 32px color-mix(in srgb,#0f172a 22%,transparent);
 
     /* legacy elevation aliases kept so un-migrated views still separate cleanly */
     --ring:0 0 0 1px var(--color-divider);
@@ -123,26 +165,60 @@
     --ease:cubic-bezier(.2,.7,.3,1);
 
     /* danger / destructive-action tone (used by confirmDialog, delete, decline) */
-    --danger:#b0453c; --danger-hover:#8f322b; --red-tint:rgba(176,69,60,.1);
+    --danger:#dc2626; --danger-hover:#b91c1c; --red-tint:rgba(220,38,38,.1);
 
     /* status palette (wash bg / fg / dot) */
-    --st-gray-bg:#eceae6;  --st-gray-fg:#5d5d60;  --st-gray-dot:#98989b;
-    --st-amber-bg:#fbf4e3; --st-amber-fg:#7d5a14; --st-amber-dot:#b8862b;
-    --st-green-bg:#e8f4ee; --st-green-fg:#1e6b4d; --st-green-dot:#2e8763;
-    --st-ruby-bg:#fdece9;  --st-ruby-fg:#8f322b;  --st-ruby-dot:#b0453c;
-    --st-steel-bg:#eef4fb; --st-steel-fg:#2c455d; --st-steel-dot:#5980a6;
+    --st-gray-bg:#f1f5f9;  --st-gray-fg:#475569;  --st-gray-dot:#94a3b8;
+    --st-amber-bg:#fef3c7; --st-amber-fg:#b45309; --st-amber-dot:#f59e0b;
+    --st-green-bg:#d1fae5; --st-green-fg:#047857; --st-green-dot:#10b981;
+    --st-ruby-bg:#ffe4e6;  --st-ruby-fg:#be123c;  --st-ruby-dot:#f43f5e;
+    --st-steel-bg:#ccfbf1; --st-steel-fg:#115e59; --st-steel-dot:#14b8a6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
-    --tile-steel-bg:#e2edf9;   --tile-steel-fg:#2c455d;
-    --tile-emerald-bg:#d6ece0; --tile-emerald-fg:#1e6b4d;
-    --tile-amber-bg:#f5e7c6;   --tile-amber-fg:#7d5a14;
-    --tile-ruby-bg:#f6d8d2;    --tile-ruby-fg:#8f322b;
+    --tile-steel-bg:#ccfbf1;   --tile-steel-fg:#115e59;
+    --tile-emerald-bg:#d1fae5; --tile-emerald-fg:#047857;
+    --tile-amber-bg:#fef3c7;   --tile-amber-fg:#b45309;
+    --tile-ruby-bg:#ffe4e6;    --tile-ruby-fg:#be123c;
 
     /* tone gradients (hero stat cards only) */
-    --grad-steel:linear-gradient(135deg,#6f9bd1,#4f76c9);
-    --grad-emerald:linear-gradient(135deg,#4ec295,#2e8763);
-    --grad-amber:linear-gradient(135deg,#e8b85e,#c78a2c);
-    --grad-ruby:linear-gradient(135deg,#e58176,#c34d41);
+    --grad-steel:linear-gradient(135deg,#14b8a6,#0891b2);
+    --grad-emerald:linear-gradient(135deg,#34d399,#059669);
+    --grad-amber:linear-gradient(135deg,#fbbf24,#d97706);
+    --grad-ruby:linear-gradient(135deg,#fb7185,#e11d48);
+  }
+
+  /* ============================================================
+     DARK THEME — html.dark (toggled from the top header, persisted
+     as 'hati-theme'). Surfaces and neutrals flip; the teal accent
+     ramp and the document paper (--color-doc-*) deliberately do not:
+     a contract still reads as paper in a dark room. Views are being
+     re-skinned page-by-page; anything still reading these tokens
+     inherits a coherent dark automatically.
+     ============================================================ */
+  html.dark{
+    --color-bg:#020617;
+    --color-surface:#0f172a;
+    --color-text:#e2e8f0;
+    --color-divider:#1e293b;
+
+    --color-neutral-100:#1e293b; --color-neutral-200:#334155; --color-neutral-300:#475569;
+    --color-neutral-400:#64748b; --color-neutral-500:#94a3b8; --color-neutral-600:#94a3b8;
+    --color-neutral-700:#cbd5e1; --color-neutral-800:#e2e8f0; --color-neutral-900:#f1f5f9;
+
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4), 0 10px 26px -12px rgba(0,0,0,.55);
+    --shadow-md:0 4px 10px rgba(0,0,0,.45), 0 18px 40px -14px rgba(0,0,0,.6);
+    --shadow-lg:0 12px 32px rgba(0,0,0,.6);
+
+    --st-gray-bg:rgba(148,163,184,.14);  --st-gray-fg:#94a3b8;  --st-gray-dot:#64748b;
+    --st-amber-bg:rgba(245,158,11,.15);  --st-amber-fg:#fbbf24; --st-amber-dot:#f59e0b;
+    --st-green-bg:rgba(16,185,129,.15);  --st-green-fg:#34d399; --st-green-dot:#10b981;
+    --st-ruby-bg:rgba(244,63,94,.15);    --st-ruby-fg:#fb7185;  --st-ruby-dot:#f43f5e;
+    --st-steel-bg:rgba(20,184,166,.15);  --st-steel-fg:#5eead4; --st-steel-dot:#14b8a6;
+
+    --tile-steel-bg:rgba(20,184,166,.16);  --tile-steel-fg:#5eead4;
+    --tile-emerald-bg:rgba(16,185,129,.16);--tile-emerald-fg:#34d399;
+    --tile-amber-bg:rgba(245,158,11,.16);  --tile-amber-fg:#fbbf24;
+    --tile-ruby-bg:rgba(244,63,94,.16);    --tile-ruby-fg:#fb7185;
   }
 
   *,*::before,*::after{box-sizing:border-box;}
@@ -188,11 +264,11 @@
   .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;letter-spacing:.03em;padding:3px 9px;border-radius:999px;white-space:nowrap;font-family:var(--font-body);}
   .badge>.dot{width:6px;height:6px;border-radius:50%;flex:none;}
 
-  /* buttons (Industry) */
-  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
+  /* buttons */
+  .ui-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;line-height:1.2;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-divider);border-radius:8px;padding:6px 12px;transition:background .15s,border-color .15s,color .15s;}
   .ui-btn:hover{background:color-mix(in srgb,var(--color-text) 7%,transparent);}
-  .ui-btn-primary{background:var(--color-accent);color:#fff;border-color:var(--color-accent);}
-  .ui-btn-primary:hover{background:var(--color-accent-600);}
+  .ui-btn-primary{background:var(--accent-solid);color:#fff;border-color:var(--accent-solid);box-shadow:0 4px 14px -4px color-mix(in srgb,var(--accent-solid) 55%,transparent);}
+  .ui-btn-primary:hover{background:var(--accent-solid-hover);}
   .ui-btn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* view enter */
@@ -206,7 +282,7 @@
   @keyframes rowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
   /* live ping (workspace status + activity live dots) */
-  @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(89,128,166,.45)}70%{box-shadow:0 0 0 6px rgba(89,128,166,0)}100%{box-shadow:0 0 0 0 rgba(89,128,166,0)}}
+  @keyframes livePing{0%{box-shadow:0 0 0 0 rgba(13,148,136,.45)}70%{box-shadow:0 0 0 6px rgba(13,148,136,0)}100%{box-shadow:0 0 0 0 rgba(13,148,136,0)}}
   .live-ping{animation:livePing 2.4s infinite;}
   .live-dot{position:relative;}
   .live-dot::after{content:'';position:absolute;inset:-3px;border-radius:9999px;background:currentColor;opacity:.35;animation:ping 1.8s cubic-bezier(0,0,.2,1) infinite;}
@@ -219,26 +295,48 @@
   main{scrollbar-width:thin;scrollbar-color:var(--color-neutral-300) transparent;}
 
   /* ============================================================
-     SHELL — sidebar / command bar / context panel
+     SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
-  .nav-item{position:relative;display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;color:var(--color-neutral-800);font:inherit;font-family:var(--font-body);font-size:12.5px;font-weight:500;padding:7px 8px 7px 10px;cursor:pointer;text-align:left;border-radius:4px;transition:background .12s,color .12s;}
+  .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:12px;font-weight:600;padding:9px 12px;cursor:pointer;text-align:left;border-radius:12px;transition:background .12s,color .12s,border-color .12s;}
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:2px;}
-  .nav-item svg{flex:none;opacity:.85;}
-  /* hover AND active share the same treatment: dark-blue fill, white text */
-  .nav-item:hover{background:var(--color-accent-800);color:#fff;}
+  .nav-item svg,.nav-item i{flex:none;opacity:.85;}
+  .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
   .nav-item:hover svg{opacity:1;}
-  .nav-item:hover .nav-count{color:rgba(255,255,255,.72);}
-  .nav-item.active{background:var(--color-accent-800);color:#fff;font-weight:600;}
-  .nav-item.active .nav-rail{background:#fff;}
+  .nav-item.active{background:color-mix(in srgb,var(--accent-solid) 10%,transparent);color:var(--color-accent-600);border-color:color-mix(in srgb,var(--accent-solid) 20%,transparent);}
+  html.dark .nav-item.active{color:#2dd4bf;}
   .nav-item.active svg{opacity:1;}
-  .nav-count{font-size:10px;font-family:var(--font-mono);color:var(--color-neutral-500);}
-  .nav-item.active .nav-count{color:rgba(255,255,255,.75);}
-  /* Collapsible nav sections: the group label is now a +/- toggle that shows or
-     hides its tabs. On login only "Work" is open (see .open in the markup); the
-     section holding the active view is auto-opened in setActiveNav(). */
-  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-700);padding:10px 8px 5px;text-align:left;transition:color .12s;}
+  /* Portfolio Intel keeps the accent whether or not it is the current page —
+     the reference tints this one glyph on purpose, because the contract graph
+     is the thing it wants a reader's eye to find in the list. */
+  .nav-item[data-view="intel"] svg{color:var(--accent-solid);opacity:1;}
+  html.dark .nav-item[data-view="intel"] svg{color:#2dd4bf;}
+  .nav-item[data-view="intel"].active svg{color:inherit;}
+  /* Nav counts as tinted pills (the design's "AI Active" / "3 Open" tags):
+     teal for portfolio totals, amber for work waiting on someone, neutral
+     gray for everything else — and a zero always renders neutral, because a
+     colored tag with nothing behind it is a false alarm. */
+  .nav-count{flex:none;font-size:9.5px;font-family:var(--font-mono);font-weight:700;padding:1px 7px;border-radius:999px;background:var(--color-neutral-100);color:var(--color-neutral-500);white-space:nowrap;}
+  .nav-count:empty{display:none;}
+  .nav-count[data-tone="teal"]{background:color-mix(in srgb,var(--accent-solid) 14%,transparent);color:var(--color-accent-600);}
+  html.dark .nav-count[data-tone="teal"]{color:#2dd4bf;}
+  .nav-count[data-tone="amber"]{background:rgba(245,158,11,.18);color:#b45309;}
+  html.dark .nav-count[data-tone="amber"]{color:#fcd34d;}
+  /* the design's right-aligned tag on a nav row ("2 Open" on Redline) */
+  .nav-badge{margin-left:auto;flex:none;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;
+    background:rgba(245,158,11,.2);color:#b45309;white-space:nowrap;}
+  html.dark .nav-badge{color:#fcd34d;}
+  /* Collapsible nav sections: the group label is a +/- toggle that shows or
+     hides its tabs. Only ADMINISTRATION folds now — its header is the one
+     button left carrying data-section-toggle and the +/− glyph; every other
+     section is permanently open under a .static label, because a nav that can
+     hide its own destinations makes people hunt for tabs they use daily. The
+     section holding the active view is still auto-opened in setActiveNav(). */
+  .nav-section-head{display:flex;align-items:center;gap:6px;width:100%;border:0;background:none;cursor:pointer;font:inherit;font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-400);padding:12px 12px 6px;text-align:left;transition:color .12s;}
   .nav-section:first-child .nav-section-head{padding-top:4px;}
-  .nav-section-head:hover{color:var(--color-accent-800);}
+  .nav-section-head:hover{color:var(--color-accent-600);}
+  /* a label, not a control: no pointer, no hover invitation, nothing to press */
+  .nav-section-head.static{cursor:default;}
+  .nav-section-head.static:hover{color:var(--color-neutral-400);}
   .nav-plus{margin-left:auto;position:relative;width:12px;height:12px;flex:none;opacity:.8;}
   .nav-plus::before,.nav-plus::after{content:'';position:absolute;background:currentColor;border-radius:1px;transition:opacity .15s;}
   .nav-plus::before{left:1px;right:1px;top:5px;height:2px;}   /* horizontal bar (always shown) */
@@ -247,13 +345,35 @@
   .nav-section-head:hover .nav-plus{opacity:1;}
   .nav-section:not(.open) .nav-section-body{display:none;}
 
-  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
-  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-800);}
+  .panel-tab{flex:1;border:0;border-bottom:2px solid transparent;background:none;font:inherit;font-family:var(--font-heading);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:9px 0;cursor:pointer;color:var(--color-neutral-500);}
+  .panel-tab.active{border-bottom-color:var(--color-accent);color:var(--color-accent-600);}
   .panel-tab:hover{color:var(--color-text);}
 
-  /* command-bar search */
-  .cmd-search{display:flex;align-items:center;gap:6px;border:1px solid var(--color-divider);background:var(--color-bg);padding:5px 9px;width:250px;border-radius:4px;}
-  .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12px;flex:1;min-width:0;color:inherit;}
+  /* top-header global search (⌘K) — a flex item that may shrink, so the
+     jurisdiction switcher and the search never overlap on narrower shells */
+  .cmd-search{display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);background:var(--color-neutral-100);padding:6px 12px;flex:0 1 24rem;min-width:130px;border-radius:12px;transition:border-color .15s,box-shadow .15s;}
+  .cmd-search:focus-within{border-color:var(--color-accent-500);box-shadow:0 0 0 1px var(--color-accent-500);}
+  .cmd-search input{border:0;outline:0;background:transparent;font:inherit;font-family:var(--font-body);font-size:12.5px;flex:1;min-width:0;color:inherit;}
+
+  /* top-header square icon buttons (theme toggle, notifications) */
+  .hdr-icon-btn{position:relative;width:36px;height:36px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-neutral-100);border-radius:12px;color:var(--color-neutral-600);cursor:pointer;transition:background .15s,color .15s;}
+  .hdr-icon-btn:hover{background:var(--color-neutral-200);color:var(--color-text);}
+
+  /* jurisdiction switcher (Sweden / Kenya) */
+  .region-btn{display:flex;align-items:center;gap:6px;border:0;background:none;font:inherit;font-family:var(--font-body);font-size:11px;font-weight:600;padding:4px 10px;border-radius:9px;cursor:pointer;color:var(--color-neutral-500);transition:background .15s,color .15s;white-space:nowrap;}
+  .region-btn:hover{color:var(--color-text);}
+  .region-btn.active{background:var(--accent-solid);color:#fff;box-shadow:0 1px 4px rgba(15,23,42,.18);}
+
+  /* theme toggle: both glyphs live in the button; html.dark picks which shows */
+  #theme-icon-sun{display:none;color:#fbbf24;}
+  html.dark #theme-icon-moon{display:none;}
+  html.dark #theme-icon-sun{display:block;}
+  #side-copilot:hover{filter:brightness(1.07);}
+  /* narrow shells: shed the "Jurisdiction:" caption first, then the switcher,
+     then the global search and the profile text */
+  @media (max-width:1620px){ #region-switch>span:first-child{display:none;} }
+  @media (max-width:1430px){ #region-switch{display:none!important;} }
+  @media (max-width:1000px){ .cmd-search{display:none!important;} #hdr-profile-meta{display:none!important;} .cmd-ai-label{display:none!important;} }
 
   @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}html{scroll-behavior:auto;}}
 
@@ -319,8 +439,41 @@
   #ai-panel.expanded{max-width:clamp(430px,72vw,940px)!important;}
   #ai-scrim{position:fixed;inset:0;z-index:40;}
   #ai-panel.open{transform:none;}
+  /* DOCKED: an overlay drawer, and nothing behind it moves.
+     The drawer floats on top of the right-hand side of the screen — it does not
+     take a column, so no width behind it changes, no clause frame shifts left
+     and no line re-wraps at the moment it opens. A reader who selected a phrase
+     and pressed a button must be able to find that phrase again in the same
+     place. The shadow is what separates the layer from the page now that there
+     is no scrim doing it. */
+  #ai-panel.docked{
+    position:fixed; top:0; right:0; height:100vh; z-index:100;
+    box-shadow:-5px 0 25px rgba(0,0,0,.15);
+    border-left:1px solid var(--color-divider);
+  }
+  /* Belt and braces on the shell itself: nothing may reserve room for the
+     drawer, whatever else on the page thinks it is doing. */
+  #app-shell{right:0!important;}
+  /* THE PANEL'S OWN LAYOUT, not borrowed from a utility framework.
+     Its column was carried entirely by Tailwind classes, so on a page where the
+     CDN does not answer — the offline stage this app is checked on — the header
+     grew to fit its content, the feed grew to fit the conversation, and a
+     proposal card three messages down sat a thousand pixels below the bottom of
+     the window with nothing to scroll. That is survivable for a chat you are
+     only reading; it is not survivable now that the panel carries buttons that
+     file redlines. These rules say the same thing the classes do, so they are a
+     no-op when the framework loads and the whole layout when it does not. */
+  /* width, not just max-width: a fixed-position element with only a maximum
+     shrinks to fit its content, so without the framework's w-full the panel
+     came out about a hundred pixels wide. */
+  #ai-panel{display:flex;flex-direction:column;width:100%;box-shadow:var(--shadow-lg);}
+  #ai-panel > *{flex:none;}
+  #ai-panel > header{display:flex;align-items:center;gap:12px;padding:16px 20px;}
+  #ai-feed{flex:1 1 0%;min-height:0;overflow-y:auto;padding:16px 20px;}
+  #ai-feed > * + *{margin-top:16px;}
+  #ai-panel > footer{padding:12px 20px 20px;}
   #ai-badge.pulse,.ai-badge-dot.pulse{animation:aiPulse 1.6s ease-in-out infinite;}
-  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(89,128,166,.6);}50%{box-shadow:0 0 0 8px rgba(89,128,166,0);}}
+  @keyframes aiPulse{0%,100%{box-shadow:0 0 0 0 rgba(13,148,136,.6);}50%{box-shadow:0 0 0 8px rgba(13,148,136,0);}}
   #ai-scrim{opacity:0;pointer-events:none;transition:opacity .25s;}
   #ai-scrim.open{opacity:1;pointer-events:auto;}
   .ai-msg{animation:viewIn .25s cubic-bezier(.22,.61,.36,1);}
@@ -348,17 +501,11 @@
     print-color-adjust:exact;
     -webkit-print-color-adjust:exact;
   }
-  /* Google Sans Flex ships no italic — it ships a SLANT AXIS. Using it gives a
-     drawn oblique instead of the browser shearing the upright, which on a
-     contract's defined terms is the difference between emphasis and a smear.
-     The font-style declaration stays as the fallback for anyone who does not
-     get the variable font. */
-  @supports (font-variation-settings:'slnt' -10){
-    .doc-surface em, .doc-surface i, .doc-surface cite{
-      font-style:normal;
-      font-variation-settings:'slnt' -10;
-    }
-  }
+  /* The slant-axis rule that used to live here existed because Google Sans Flex
+     ships no italic, only a `slnt` axis. Inter ships a true italic, so emphasis
+     in a contract is a drawn italic again and the override is not just
+     unnecessary but harmful — it would force the upright and lose the emphasis
+     entirely. */
   .doc-surface strong,.doc-surface b{font-weight:600;color:var(--color-doc-text);}
   .doc-surface h1,.doc-surface h2,.doc-surface h3,.doc-surface h4,
   .doc-surface h5,.doc-surface h6{font-family:var(--font-doc);color:var(--color-doc-text);}
@@ -425,9 +572,17 @@
      rules, side-by-side signature blocks — so their alignment must survive */
   .hati-doc pre{font-family:var(--font-doc-mono);font-size:.86em;line-height:1.5;
     white-space:pre;overflow-x:auto;margin:1em 0;}
-  /* an unfilled blank, marked for display only */
-  .hati-doc .hati-field{background:var(--color-accent-100);
-    border-bottom:1px solid var(--color-accent-400);padding:0 3px;border-radius:2px;}
+  /* An unfilled blank. GREY on purpose: green already means done/positive in
+     this design, and an empty space to complete is neither. The dotted rule
+     says "blank line on a paper form"; the pointer + hover appear only where
+     the blank knows which field it belongs to (data-field-key) and can
+     therefore take a click. Filled values render as plain document text with
+     none of this — the styling belongs to emptiness, not to fields. */
+  .hati-doc .hati-field{background:var(--color-neutral-100);color:var(--color-neutral-600);
+    border-bottom:1px dotted var(--color-neutral-500);padding:0 3px;border-radius:2px;}
+  .hati-doc .hati-field[data-field-key]{cursor:pointer;}
+  .hati-doc .hati-field[data-field-key]:hover{background:var(--color-neutral-200);
+    border-bottom-style:solid;}
 
   /* the paste/edit surface — a contenteditable, because a textarea can only
      ever hold plain text, which is the thing we are trying to stop losing */
@@ -482,149 +637,225 @@
   }
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 </style>
-</head>
-<body>
+
+
+
 
 <div id="auth-root"></div>
 <div id="share-root"></div>
 
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:210px 1fr;background:var(--color-bg);">
+<!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
+     stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:240px minmax(0,1fr);grid-template-rows:64px minmax(0,1fr);background:var(--color-bg);">
 
-  <!-- ================= SIDEBAR (210px) ================= -->
-  <aside style="display:flex;flex-direction:column;background:#f6f8fc;border-right:1px solid var(--color-divider);min-height:0;">
-    <!-- brand block -->
-    <div style="display:flex;align-items:center;gap:9px;padding:14px 14px 12px;border-bottom:1px solid var(--color-divider);">
-      <div id="brand-mark" style="width:30px;height:30px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:.02em;">HT</div>
-      <div style="line-height:1.15;">
-        <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;letter-spacing:.01em;">HaTi</div>
-        <div style="font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);">Contract Lifecycle</div>
+  <!-- ================= TOP HEADER (64px, spans both columns) ================= -->
+  <header id="top-header" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);min-width:0;">
+
+    <!-- brand + jurisdiction switcher -->
+    <div style="display:flex;align-items:center;gap:20px;min-width:0;">
+      <div style="display:flex;align-items:center;gap:11px;flex:none;">
+        <div id="brand-mark" style="width:40px;height:40px;border-radius:12px;background:var(--brand-grad);color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(13,148,136,.55);">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h5M8 17h8"/></svg>
+        </div>
+        <div style="line-height:1.15;">
+          <div style="display:flex;align-items:center;gap:7px;">
+            <span style="font-family:var(--font-heading);font-weight:800;font-size:19px;letter-spacing:-.02em;">HaTi</span>
+            <span style="font-size:10px;padding:1px 8px;border-radius:999px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 22%,transparent);color:var(--color-accent-600);font-weight:700;">CLM</span>
+          </div>
+          <div style="font-size:10px;color:var(--color-neutral-500);font-weight:500;">SME Contract Platform</div>
+        </div>
+      </div>
+
+      <!-- Jurisdiction / compliance switcher (SE / KE) — presentation profile
+           only; wired in js/app.js (setRegion), persisted as 'hati-region' -->
+      <div id="region-switch" style="display:flex;align-items:center;background:var(--color-neutral-100);border:1px solid var(--color-divider);padding:3px;border-radius:12px;flex:none;">
+        <span style="font-size:11px;color:var(--color-neutral-500);padding:0 8px;font-weight:500;">Jurisdiction:</span>
+        <button id="region-se" class="region-btn" title="Swedish workspace — EU/GDPR compliance profile"><span>🇸🇪</span> Sweden (EU/GDPR)</button>
+        <button id="region-ke" class="region-btn" title="Kenyan workspace — KICA/ODPC compliance profile"><span>🇰🇪</span> Kenya (KICA/ODPC)</button>
       </div>
     </div>
 
-    <nav id="nav" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:1px;" class="scroll-thin">
-      <!-- Collapsible sections: each header toggles its tabs open/closed. "Work"
-           opens on login; the others start collapsed (see .open below). -->
+    <!-- central global search (filters the register; ⌘K opens the jump palette) -->
+    <div class="cmd-search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.45;flex:none;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="cmd-search" placeholder="Search contracts, clauses, counterparties…"/>
+      <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9.5px;border:1px solid var(--color-divider);padding:2px 6px;color:var(--color-neutral-500);font-family:var(--font-code);border-radius:6px;background:var(--color-surface);cursor:pointer;flex:none;">⌘K</button>
+    </div>
+
+    <!-- right actions: Copilot · theme · notifications · profile -->
+    <div style="display:flex;align-items:center;gap:10px;flex:none;">
+      <button id="cmd-ai" title="Ask HaTi Copilot" style="position:relative;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent-solid) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent-solid) 30%,transparent);color:var(--color-accent-600);cursor:pointer;font-family:var(--font-body);font-size:11.5px;font-weight:600;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
+        <span class="cmd-ai-label">Ask HaTi Intel</span>
+        <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
+      </button>
+
+      <button id="theme-toggle-btn" class="hdr-icon-btn" title="Toggle light / dark theme">
+        <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+
+      <button id="hdr-notify" class="hdr-icon-btn" title="Notifications — the Activity panel carries the live feed">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span style="position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--accent-solid);border:2px solid var(--color-surface);"></span>
+      </button>
+
+      <button id="cmd-panel" class="hdr-icon-btn" title="Toggle the Activity panel">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></svg>
+      </button>
+
+      <!-- regional profile badge — renderSideUser() (js/core.js) fills these -->
+      <div style="display:flex;align-items:center;gap:10px;padding-left:12px;border-left:1px solid var(--color-divider);">
+        <button id="rail-avatar" title="Team &amp; settings" style="display:flex;align-items:center;gap:9px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
+          <span id="side-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--brand-grad);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;font-family:var(--font-heading);flex:none;border:1px solid color-mix(in srgb,var(--accent-solid) 40%,transparent);">AM</span>
+          <span id="hdr-profile-meta" style="line-height:1.25;min-width:0;">
+            <span id="side-name" style="display:block;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Amina Mwangi</span>
+            <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;">Admin</span>
+          </span>
+        </button>
+        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" class="hdr-icon-btn" style="width:32px;height:32px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= SIDEBAR (240px) ================= -->
+  <aside style="display:flex;flex-direction:column;background:var(--color-surface);border-right:1px solid var(--color-divider);min-height:0;">
+
+    <nav id="nav" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
+      <!-- The standard sections are ALWAYS OPEN — their headers are labels, not
+           toggles: a nav that can hide its own destinations makes people hunt
+           for tabs they use daily. Only ADMINISTRATION keeps the fold (its
+           header stays a button with data-section-toggle), because its items
+           are reached rarely and by choice. -->
       <div class="nav-section open" data-section="work">
-        <button class="nav-section-head" data-section-toggle="work" aria-expanded="true">Work<span class="nav-plus"></span></button>
+        <div class="nav-section-head static">Core Workspace</div>
         <div class="nav-section-body">
           <button data-view="dashboard" class="nav-item active" title="Home">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-            <span style="flex:1;">Home</span><span class="nav-count" data-count="dashboard"></span>
-          </button>
-          <button data-view="pipeline" class="nav-item" title="Queue">
-            <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M9 3v18M15 3v18"/></svg>
-            <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
-          </button>
-          <button data-view="advice" class="nav-item" title="Advice Desk">
-            <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+            <!-- pie chart (the design's fa-chart-pie), drawn solid so it reads
+                 at 15px the way the flat glyph does -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.25 2.05v9.2H2.05a10 10 0 0 1 9.2-9.2Z" opacity=".5"/><path d="M12.75 2.05a10 10 0 0 1 9.2 9.2h-9.2v-9.2ZM11.25 12.75v9.2a10 10 0 0 1-9.2-9.2h9.2ZM21.95 12.75a10 10 0 0 1-9.2 9.2v-9.2h9.2Z"/></svg>
+            <span style="flex:1;">Dashboard</span><span class="nav-count" data-count="dashboard"></span>
           </button>
           <button data-view="workspace" class="nav-item" title="Doc">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9h-5a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/><path d="M7.2 16.4c1-1.3 1.7-.3 2.6 0s1.5-.5 2.5 0" fill="none" stroke="var(--color-surface)" stroke-width="1.5" stroke-linecap="round"/></svg>
             <span style="flex:1;">Doc</span><span class="nav-count" data-count="workspace"></span>
+          </button>
+          <!-- Redline workbench (the design's `nav-redline`): highlighter glyph,
+               and an amber "N Open" tag carrying the count of open changes.
+               Routed to `redline`, which renders the negotiation workbench as a
+               page (renderRedline in js/views/negotiation.js). The Doc Lab
+               module is still loaded but no longer reachable from the nav; it
+               is retired in the next step. -->
+          <button data-view="redline" class="nav-item" title="Redline workbench — tracked changes, rounds and discussion">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M14.6 2.6a2 2 0 0 1 2.8 0l4 4a2 2 0 0 1 0 2.8l-7.1 7.1-6.8-6.8 7.1-7.1Z"/><path d="M6.4 10.9l6.7 6.7-2.6 2.6H8.9l-1.2 1.2H3.4l-.9-.9 1.4-1.4v-1.9l2.5-6.3Z"/></svg>
+            <span style="flex:1;">Redline</span>
+            <span id="nav-redline-count" class="nav-badge hidden"></span>
           </button>
         </div>
       </div>
 
-      <div class="nav-section" data-section="contracts">
-        <button class="nav-section-head" data-section-toggle="contracts" aria-expanded="false">Contracts<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="contracts">
+        <div class="nav-section-head static">Contracts</div>
         <div class="nav-section-body">
           <button data-view="register" class="nav-item" title="Register">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M10.2 4.5H4a2 2 0 0 0-2 2V18a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9.5a2 2 0 0 0-2-2h-7.4l-2.4-3Z"/></svg>
             <span style="flex:1;">Register</span><span class="nav-count" data-count="register"></span>
           </button>
           <button data-view="calendar" class="nav-item" title="Calendar">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="1"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v2H3V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Z"/><path fill-rule="evenodd" d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9Zm4 2.6h2.2v2.2H7v-2.2Zm3.9 0h2.2v2.2h-2.2v-2.2Zm3.9 0H17v2.2h-2.2v-2.2Z"/></svg>
             <span style="flex:1;">Calendar</span><span class="nav-count" data-count="calendar"></span>
           </button>
           <button data-view="migration" class="nav-item" title="Migration">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2H7a2 2 0 0 0-2 2v6h4.2l-1.6-1.6a1 1 0 0 1 1.4-1.4l3.3 3.3a1 1 0 0 1 0 1.4l-3.3 3.3a1 1 0 0 1-1.4-1.4L9.2 12H5v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8h-4a2 2 0 0 1-2-2V2Z"/><path d="M15 2.4V6a1 1 0 0 0 1 1h3.6L15 2.4Z"/></svg>
             <span style="flex:1;">Migration</span><span class="nav-count" data-count="migration"></span>
           </button>
         </div>
       </div>
 
-      <div class="nav-section" data-section="build">
-        <button class="nav-section-head" data-section-toggle="build" aria-expanded="false">Build<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="build">
+        <div class="nav-section-head static">Build</div>
         <div class="nav-section-body">
           <button data-view="templates" class="nav-item" title="Templates">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
           </button>
           <button data-view="playbook" class="nav-item" title="Playbook">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 2.5h13a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 18.5v-14a2 2 0 0 1 1-1.73V2.5Z"/><path d="M7.5 6.5h8v1.6h-8V6.5Zm0 3.4h8v1.6h-8V9.9Zm0 3.4h5v1.6h-5v-1.6Z" fill="var(--color-surface)"/></svg>
             <span style="flex:1;">Playbook</span><span class="nav-count" data-count="playbook"></span>
           </button>
         </div>
       </div>
 
-      <div class="nav-section" data-section="insight">
-        <button class="nav-section-head" data-section-toggle="insight" aria-expanded="false">Insight<span class="nav-plus"></span></button>
+      <div class="nav-section open" data-section="insight">
+        <div class="nav-section-head static">Insight</div>
         <div class="nav-section-body">
-          <button data-view="reports" class="nav-item" title="Reports">
-            <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6"/></svg>
-            <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
-          </button>
           <button data-view="intel" class="nav-item" title="Intel">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12m0 0-5.2 5m5.2-5 5.2 5"/></svg>
-            <span style="flex:1;">Intel</span><span class="nav-count" data-count="intel"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 7.4V11m0 0-5 4.4M12 11l5 4.4"/><circle cx="12" cy="5" r="2.6" fill="currentColor" stroke="none"/><circle cx="5.6" cy="18" r="2.6" fill="currentColor" stroke="none"/><circle cx="18.4" cy="18" r="2.6" fill="currentColor" stroke="none"/></svg>
+            <span style="flex:1;">Portfolio Intel</span><span class="nav-count" data-count="intel"></span>
           </button>
         </div>
       </div>
 
       <div class="nav-section" data-section="settings">
-        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Settings<span class="nav-plus"></span></button>
+        <button class="nav-section-head" data-section-toggle="settings" aria-expanded="false">Administration<span class="nav-plus"></span></button>
         <div class="nav-section-body">
           <button data-view="team" class="nav-item" title="Team">
             <span class="nav-rail"></span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            <span style="flex:1;">Team &amp; settings</span><span class="nav-count" data-count="team"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="7.5" r="3.7"/><path d="M9 12.6c-3.6 0-6.6 2-6.6 4.6v2.3a1 1 0 0 0 1 1h11.2a1 1 0 0 0 1-1v-2.3c0-2.6-3-4.6-6.6-4.6Z"/><circle cx="17.6" cy="8.6" r="2.8"/><path d="M17.6 13c-1 0-2 .2-2.8.6 1.3 1.1 2.1 2.6 2.1 4.3v2.6h4.1a1 1 0 0 0 1-1v-2c0-2.2-2-4.5-4.4-4.5Z"/></svg>
+            <span style="flex:1;">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+          </button>
+          <!-- Operational desks filed under Settings & Rules: day-to-day work
+               lives in Core Workspace; these are run-the-shop surfaces. -->
+          <button data-view="pipeline" class="nav-item" title="Queue">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="2.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="9.5" y="3.5" width="5" height="17" rx="1.3"/><rect x="16.5" y="3.5" width="5" height="17" rx="1.3"/></svg>
+            <span style="flex:1;">Queue</span><span class="nav-count" data-count="pipeline"></span>
+          </button>
+          <button data-view="advice" class="nav-item" title="Advice Desk">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.6L5 21.2a1 1 0 0 1-1.7-.7V17H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/><path d="M7.5 8.5h9v1.6h-9V8.5Zm0 3.2h6v1.6h-6v-1.6Z" fill="var(--color-surface)"/></svg>
+            <span style="flex:1;">Advice Desk</span><span class="nav-count" data-count="advice"></span>
+          </button>
+          <button data-view="reports" class="nav-item" title="Reports">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="4.2" height="9" rx="1.1"/><rect x="9.9" y="7" width="4.2" height="14" rx="1.1"/><rect x="16.8" y="3" width="4.2" height="18" rx="1.1"/></svg>
+            <span style="flex:1;">Reports</span><span class="nav-count" data-count="reports"></span>
           </button>
         </div>
       </div>
     </nav>
 
-    <!-- HaTi Copilot launcher — pinned above the footer, deliberately dark
-         blue (accent-800/900) so it stands off the light sidebar -->
-    <div class="copilot-wrap" style="padding:8px 10px;">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--color-accent-800);color:#fff;border:0;border-radius:5px;padding:9px 10px;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;letter-spacing:.02em;box-shadow:0 2px 10px rgba(29,45,61,.28);transition:background .15s;" onmouseover="this.style.background='var(--color-accent-900)'" onmouseout="this.style.background='var(--color-accent-800)'">
+    <!-- HaTi Copilot launcher — pinned above the footer, on the brand gradient
+         so it stands off the surface in both themes -->
+    <div class="copilot-wrap" style="padding:8px 12px;">
+      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" style="position:relative;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--brand-grad);color:#fff;border:0;border-radius:12px;padding:10px;cursor:pointer;font-family:var(--font-heading);font-weight:700;font-size:12px;letter-spacing:.01em;box-shadow:0 6px 16px -6px rgba(13,148,136,.55);transition:filter .15s;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
         <span class="sc-label">HaTi Copilot</span>
-        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
+        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;background:#f59e0b;border:2px solid var(--color-surface);"></span>
       </button>
     </div>
 
-    <!-- footer: live status + user -->
-    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:10px 12px;display:flex;flex-direction:column;gap:8px;">
-      <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);">
-        <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#2e8763;"></span>
-        <span id="side-status">Server mode · SQLite · 4 online</span>
-      </div>
-      <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
-        <span style="width:7px;height:7px;border-radius:50%;background:#c79a3e;flex:none;"></span>
-        <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
-      </button>
-      <div class="foot-id" style="display:flex;align-items:center;gap:6px;min-width:0;">
-        <button id="rail-avatar" title="Team &amp; settings" style="flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;cursor:pointer;padding:0;text-align:left;color:inherit;min-width:0;">
-          <span id="side-avatar" style="width:26px;height:26px;border-radius:50%;background:var(--color-accent-200);color:var(--color-accent-800);display:grid;place-items:center;font-size:10px;font-weight:700;font-family:var(--font-heading);flex:none;">AM</span>
-          <span class="foot-id-text" style="line-height:1.2;min-width:0;">
-            <span id="side-name" style="display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Amina Mwangi</span>
-            <span id="side-role" style="display:block;font-size:10px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Admin</span>
-          </span>
-        </button>
-        <button id="side-logout" title="Log out of HaTi" aria-label="Log out" style="flex:none;width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:5px;color:var(--color-neutral-600);cursor:pointer;transition:color .15s,border-color .15s;" onmouseover="this.style.color='#b0453c';this.style.borderColor='#e6c9c1'" onmouseout="this.style.color='var(--color-neutral-600)';this.style.borderColor='var(--color-divider)'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    <!-- footer: live status card (the profile badge lives in the top header) -->
+    <div class="foot-wrap" style="border-top:1px solid var(--color-divider);padding:12px;">
+      <div style="background:var(--color-neutral-100);border:1px solid var(--color-divider);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;">
+        <div class="foot-status" style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);min-width:0;">
+          <span class="live-ping" style="width:7px;height:7px;border-radius:50%;background:#10b981;flex:none;"></span>
+          <span id="side-status" style="min-width:0;">Server mode · SQLite · 4 online</span>
+        </div>
+        <button id="side-ai-usage" type="button" title="Real Anthropic API calls made today across the workspace — resets at local midnight. Click for Copilot cost controls." style="display:none;align-items:center;gap:7px;font-size:11px;color:var(--color-neutral-700);border:0;background:none;cursor:pointer;padding:0;text-align:left;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#f59e0b;flex:none;"></span>
+          <span id="side-ai-usage-txt" style="font-variant-numeric:tabular-nums;"></span>
         </button>
       </div>
     </div>
@@ -633,36 +864,25 @@
   <!-- ================= MAIN COLUMN ================= -->
   <div style="display:flex;flex-direction:column;min-width:0;min-height:0;">
 
-    <!-- Command bar (52px) -->
-    <header style="display:flex;align-items:center;gap:12px;padding:0 16px;height:52px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none;">
-      <div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
-        <h1 id="cmd-title" style="font-size:19px;margin:0;white-space:nowrap;">Portfolio</h1>
-        <span id="cmd-sub" style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw;"></span>
-      </div>
-      <div style="flex:1;"></div>
-      <div class="cmd-search">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="opacity:.5;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input id="cmd-search" placeholder="Filter register…"/>
-        <button id="cmd-k-hint" title="Open global search (Ctrl/Cmd+K)" style="font-size:9px;border:1px solid var(--color-divider);padding:1px 5px;color:var(--color-neutral-600);font-family:var(--font-mono);border-radius:3px;background:var(--color-surface);cursor:pointer;">⌘K</button>
-      </div>
-      <button id="cmd-export" class="ui-btn" title="Export the working set">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-        Export
-      </button>
-      <div style="position:relative;">
-        <button id="cmd-new" class="ui-btn ui-btn-primary" style="padding:6px 14px;">
-          + New contract
-        </button>
-        <div id="new-menu" class="hidden" style="position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:5px;padding:6px;z-index:50;max-height:70vh;overflow-y:auto;"></div>
-      </div>
-      <button id="cmd-ai" class="ui-btn" title="Ask HaTi Copilot" style="position:relative;width:30px;height:30px;padding:0;background:var(--color-accent-800);border-color:var(--color-accent-800);color:#fff;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 14.06 8 20l-1.94-5.94L0 12l6.06-2.06L8 4l1.94 5.94L16 12z"/><path d="M18 4v4M22 6h-4M18 16v4M22 18h-4"/></svg>
-        <span id="cmd-ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#c79a3e;border:2px solid var(--color-surface);"></span>
-      </button>
-      <button id="cmd-panel" class="ui-btn" title="Toggle context panel" style="width:30px;height:30px;padding:0;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M15 3v18"/></svg>
-      </button>
-    </header>
+    <!-- ---- THE PAGE'S OWN HEADER, not a bar over it ----
+         This was a 48px strip on its own surface with its own bottom rule,
+         carrying a title, Export, "+ New contract" and the panel toggle on
+         every screen. It stacked a second chrome layer above content that
+         already had a header of its own — most visibly on the dashboard, where
+         "+ New contract" sat directly above a hero whose whole job is to offer
+         "Draft new agreement". Two buttons, one act, one on top of the other.
+
+         The reference has no such strip: a page states its own name and offers
+         its own verbs, and the dashboard states nothing because its hero is the
+         statement. So this is now a transparent block on the page ground that
+         renderPageHeader fills per view — empty on the dashboard — and the
+         panel toggle has moved up beside the bell, where the global chrome
+         lives. -->
+    <div id="page-head" style="flex:none;"></div>
+    <!-- Anchored at body level and positioned under whichever button opened it,
+         because the trigger is now re-rendered per view rather than living in a
+         strip that never moved. -->
+    <div id="new-menu" class="hidden" style="position:fixed;width:300px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);border-radius:12px;padding:6px;z-index:60;max-height:70vh;overflow-y:auto;"></div>
 
     <!-- body grid: content + context panel -->
     <div id="body-grid" style="flex:1;display:grid;grid-template-columns:1fr 292px;min-height:0;">
@@ -683,7 +903,7 @@
 
 <!-- ================= Copilot ASSISTANT (slide-over) ================= -->
 <div id="ai-scrim" class="fixed inset-0 z-40" style="background:rgba(29,45,61,.35);backdrop-filter:blur(2px);"></div>
-<section id="ai-panel" class="fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);box-shadow:var(--shadow-lg);">
+<section id="ai-panel" class="hati-copilot-panel fixed top-0 right-0 bottom-0 w-full z-50 flex flex-col" style="max-width:430px;background:var(--color-surface);border-left:1px solid var(--color-divider);">
   <header class="px-5 py-4 flex items-center gap-3" style="background:var(--color-accent-900);color:#fff;">
     <div class="h-9 w-9 grid place-items-center shrink-0" style="background:var(--color-accent);color:#fff;border-radius:4px;" data-ic-big="sparkle"></div>
     <div class="flex-1 leading-tight">
@@ -709,7 +929,7 @@
 
   <footer class="px-5 pb-5 pt-3" style="border-top:1px solid var(--color-divider);background:var(--color-surface);">
     <div class="flex items-center gap-2">
-      <input id="ai-input" type="text" placeholder="Search, summarize, or ask about your contracts…" class="flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;"/>
+      <textarea id="ai-input" rows="1" placeholder="Search, summarize, or ask about your contracts…  (Shift+Enter for a new line)" class="chat-field flex-1 px-3.5 py-2.5 text-sm outline-none transition" style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;"></textarea>
       <button id="ai-send" class="h-10 w-10 shrink-0 grid place-items-center text-white transition" style="background:var(--color-accent);border-radius:4px;" data-ic-big="send"></button>
     </div>
   </footer>
@@ -737,6 +957,18 @@
 #ai-feed .ai-table th,#ai-feed .ai-table td{border:1px solid var(--color-divider);padding:4px 7px;text-align:left}
 #ai-feed .ai-table th{background:var(--color-bg);font-weight:600}
 #ai-feed hr{border:0;border-top:1px solid var(--color-divider);margin:.6em 0}
+/* THE PASSAGE A REPHRASE IS ABOUT, shown rather than remembered. The drawer
+   covers the right of the screen and the reader is about to type a sentence
+   about wording they can no longer necessarily see, so the wording comes with
+   the question. Quoted and set in the document face, so it reads as the
+   contract's words rather than as the Copilot's. */
+#ai-feed .ai-target{border-left:2px solid var(--color-accent-300);
+  background:var(--color-bg);border-radius:0 6px 6px 0;padding:8px 11px;margin:0 0 8px}
+#ai-feed .ai-target-head{font-size:9.5px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:4px}
+#ai-feed .ai-target-body{font-family:var(--font-doc);font-size:12.5px;line-height:1.6;
+  color:var(--color-neutral-800);max-height:9.6em;overflow:auto;white-space:pre-wrap}
+#ai-feed .ai-target-ask{font-size:13px;line-height:1.55}
 .ai-tone{font-weight:600;border-radius:3px;padding:0 3px}
 .ai-tone-pos{color:#1e6b4d;background:rgba(46,135,99,.10)}
 .ai-tone-neg{color:#8f322b;background:rgba(176,69,60,.10)}
@@ -749,6 +981,19 @@
 .ai-chart-src{font-size:10px;color:var(--color-neutral-600);margin-top:6px;line-height:1.45}
 .ai-chart-note{font-size:11.5px;color:var(--color-neutral-700);line-height:1.5}
 @media (max-width:640px){ .ai-chart-canvas{height:168px} }
+
+  /* ---- A MESSAGE BOX YOU CAN READ BACK ----
+     Every composer in the product was a one-line <input>, so anything past a
+     dozen words scrolled out of view as it was typed. These are textareas that
+     wrap and grow: one line at rest, taller as you write, and scrolling once
+     they hit max-height — a composer that can push its own send button off the
+     panel has traded one problem for a worse one. Wired by chatFieldWire
+     (js/components.js), which also owns Enter-sends / Shift+Enter-newline. */
+  textarea.chat-field{resize:none;overflow-y:auto;max-height:7.5em;line-height:1.5;
+    white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box;
+    scrollbar-width:thin}
+  textarea.chat-field::-webkit-scrollbar{width:6px}
+  textarea.chat-field::-webkit-scrollbar-thumb{background:var(--color-divider);border-radius:3px}
 </style>
 
 <script type="module" src="js/app.js"></script>

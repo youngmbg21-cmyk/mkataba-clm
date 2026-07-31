@@ -66,6 +66,16 @@ describe('F31 — the server carries a conversation that is not a round', () => 
     assert.equal(view.messages[0].body, 'Would you take Net-45?');
   });
 
+  /* Quiet is not un-heard. The owner is told where they already look — the
+     screen, not the inbox — which is what makes the email unnecessary rather
+     than merely absent. */
+  test('and the owner is told about it where they already look', async () => {
+    const w = await W.admin.json('/api/messages/waiting');
+    const mine = (w.items || []).find(i => i.contractId === CID);
+    assert.ok(mine, 'a question waiting on the owner must reach the screen they work in');
+    assert.match(mine.latest.body, /Net-45/);
+  });
+
   test('and it opens no round and changes no wording', async () => {
     const c = await W.admin.json('/api/contracts/' + CID);
     const rec = c.contract || c;
@@ -86,7 +96,6 @@ describe('F31 — the server carries a conversation that is not a round', () => 
     assert.equal(r.ok, true);
     assert.equal(r.message.side, 'owner');
     assert.equal(r.message.author, 'Amina Otieno', 'the reply is attributed to the person who wrote it');
-    assert.equal(r.to, 'erik@nordkust.se', 'the reply is addressed to the counterparty on the share');
   });
 
   test('the answer reaches the counterparty’s page without a reshare', async () => {
@@ -98,13 +107,27 @@ describe('F31 — the server carries a conversation that is not a round', () => 
     assert.match(view.messages[1].body, /Net-45 works/);
   });
 
-  test('both sides are notified — a question nobody hears is not a channel', async () => {
+  /* THIS ASSERTION IS THE REVERSE OF THE ONE IT REPLACES, deliberately.
+
+     Both sides used to be emailed on every sentence, so the LIGHTEST act in the
+     product generated as much inbox traffic as returning a redline: a
+     three-line exchange about payment terms filled six slots in two mailboxes
+     with copies of words both parties were already reading on the same screen.
+     Where a workspace negotiates through one address, all six arrive in one
+     inbox.
+
+     Email is now reserved for the two things that cannot be seen without
+     opening the app — wording that moved, and a signature. A question is
+     neither, and it is not un-heard for being quiet: the two tests above show
+     it reaching the owner's contract and the counterparty's page, and the test
+     below shows it raised on the screen the owner already works in. */
+  test('a question is carried in-app, not into an inbox', async () => {
     const out = await W.admin.json('/api/outbox');
     const subjects = (out.items || []).map(i => i.subject);
-    assert.ok(subjects.some(s => /Question on "Supply Agreement"/.test(s)),
-      'the owner must be told a question is waiting — got ' + JSON.stringify(subjects));
-    assert.ok(subjects.some(s => /Message about "Supply Agreement"/.test(s)),
-      'the counterparty must be told an answer arrived — got ' + JSON.stringify(subjects));
+    assert.ok(!subjects.some(s => /Question on "Supply Agreement"/.test(s)),
+      'a message must not email the owner — got ' + JSON.stringify(subjects));
+    assert.ok(!subjects.some(s => /Message about "Supply Agreement"/.test(s)),
+      'nor the counterparty — got ' + JSON.stringify(subjects));
   });
 
   test('the thread survives the link being refreshed to new wording', async () => {

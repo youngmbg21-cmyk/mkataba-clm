@@ -20,6 +20,10 @@ const assert = require('node:assert/strict');
 const { buildWorld } = require('./world');
 const { buildPortal, sharePayloadFor, supplyContract } = require('./portalworld');
 
+/* Control handlers on the workbench may finish on a microtask; one turn of the
+   loop is all any of them needs. */
+const tick = () => new Promise(r => setTimeout(r, 0));
+
 const BASE = [
   'WAREHOUSING AND LOGISTICS SERVICES AGREEMENT',
   '1. SCOPE',
@@ -54,9 +58,13 @@ async function negotiated(opts = {}){
     .replace('sixty (60) days', 'thirty (30) days'),
     { side: 'counterparty', author: 'Erik Lindqvist · Nordfrakt Logistik AB' });
   if (opts.before) await opts.before(win, c, filed);
-  win.renderNegotiationTab(c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau' });
+  /* The owner's surface is the workbench page — the same one the counterparty's
+     embed is drawn from. The retired tab is not what parity is measured on. */
+  win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+  win.getContract = id => (id === c.id ? c : null);
+  win.renderRedline();
   return { w, win, c, filed,
-    ownerDoc: () => win.document.getElementById('nego-tab'),
+    ownerDoc: () => win.document.getElementById('view-redline'),
   };
 }
 
@@ -91,23 +99,34 @@ function counterpartyView(c, over = {}){
   };
 }
 
+/* WHERE THE COUNTERPARTY'S NEGOTIATION ACTUALLY IS.
+
+   On a negotiation link the room is the page, and the embedded mount under it
+   is no longer rendered — two copies of one component meant two elements for
+   every id the room uses, and everything reaching by id found the hidden one.
+   So the parity diff reads whichever copy is live: the room when the link is a
+   negotiation, the embedded host when it is a signing link the reader has
+   opened the room from. The claim under test is unchanged — one component,
+   both sides — and it is now diffed against the copy a person can actually
+   see. */
+function liveNego(win){
+  return win.document.getElementById('pt-nego');
+}
+
 /* What a rendered negotiation says, reduced to the facts both sides must agree
    on. Read out of the DOM on each side, never out of the model — the point is
    that the two SCREENS match, and reading the model twice would prove nothing. */
 function readScreen(root, win){
   const q = sel => Array.from(root.querySelectorAll(sel));
   return {
-    clauses: q('.nego-pane.baseline .nego-clause').map(n => n.getAttribute('data-clause')),
-    badges: q('.nego-pane.working .nego-badge').map(n => n.textContent.trim()),
-    cards: q('.nego-card').map(n => ({
-      id: n.querySelector('.nego-id').textContent.trim(),
-      status: Array.from(n.querySelectorAll('.nego-st')).map(x => x.textContent.trim()).join('/'),
-      hash: n.querySelector('.nego-hash').getAttribute('title'),
-      author: (n.textContent.match(/Author:\s*([^\n(]+)/) || [])[1]?.trim() || null,
+    clauses: q('[id="rl-doc"] .rl-clause').map(n => n.getAttribute('data-clause')),
+    tags: q('[id="rl-doc"] .rl-asktag').map(n => n.textContent.replace(/Their ask|Your ask/, 'ask').trim()),
+    cards: q('[id="rl-changes"] [data-nego-card]').map(n => ({
+      id: n.getAttribute('data-nego-card'),
+      meta: (n.querySelector('.rl-card-meta') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
     })),
-    progress: root.querySelector('#nego-progress')?.textContent.trim() || null,
-    inserted: q('.nego-pane.working .nego-ins').map(n => n.textContent).join(' | '),
-    deleted: q('.nego-pane.working .nego-del').map(n => n.textContent).join(' | '),
+    inserted: q('[id="rl-doc"] ins, [id="rl-doc"] .nego-ins').map(n => n.textContent).join(' | '),
+    deleted: q('[id="rl-doc"] del, [id="rl-doc"] .nego-del').map(n => n.textContent).join(' | '),
   };
 }
 
@@ -116,10 +135,10 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     const o = await negotiated();
     const v = counterpartyView(o.c);
     assert.ok(v.$('#pt-nego'), 'the negotiation host must be on the page');
-    assert.ok(v.$('.nego-pane.baseline'), 'baseline pane');
-    assert.ok(v.$('.nego-pane.working'), 'working pane');
-    assert.ok(v.$('.nego-pane.index'), 'change index');
-    assert.ok(v.$('#nego-status'), 'and the same status strip');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'and the workbench mounts in it');
+    assert.ok(v.$('#pt-nego [id="rl-doc"]'), 'the document canvas');
+    assert.ok(v.$('#pt-nego [id="rl-changes-col"]'), 'the tracked changes column');
+    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'and the discussion column');
   });
 
   /* REWRITTEN. This asserted a sentence — "this is the same screen they are
@@ -135,24 +154,26 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
   test('they land on the component itself, not on a card describing one', async () => {
     const o = await negotiated();
     const v = counterpartyView(o.c);
-    assert.equal(v.$('#pt-nego-wrap'), null,
-      'a card in a column, behind the room, is a second copy nobody can reach');
-    assert.equal(v.$('#pt-nego-open'), null, 'and a second way into a room they are already in');
-    assert.ok(v.$('#nego-room'), 'the room is what they were sent');
-    assert.equal(v.$$('#nego-room .nego-pane').length, 3, 'at full size, all three panes');
+    assert.equal(v.$('#pt-nego-open'), null, 'no door — the workbench is already open');
+    assert.equal(v.$('#nego-room'), null, 'and no room anywhere: the surface is one');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench itself is what they were sent');
+    assert.ok(!v.$('#pt-nego').classList.contains('hidden'), 'visible, in the page');
   });
 
   test('the fingerprints, statuses, hashes and authors are identical on both sides', async () => {
     const o = await negotiated();
     const v = counterpartyView(o.c);
     const mine = readScreen(o.ownerDoc(), o.win);
-    const theirs = readScreen(v.$('#pt-nego'), v.p.win);
+    const theirs = readScreen(liveNego(v.p.win), v.p.win);
 
-    assert.deepEqual([...theirs.clauses], [...mine.clauses], 'the same clauses');
-    assert.deepEqual([...theirs.badges], [...mine.badges], 'the same fingerprints, in the same order');
-    assert.equal(JSON.stringify(theirs.cards), JSON.stringify(mine.cards),
-      'the same ids, statuses, full hashes and authors');
-    assert.equal(theirs.progress, mine.progress, 'the same progress');
+    assert.equal([...theirs.clauses].join(','), [...mine.clauses].join(','), 'the same clauses');
+    assert.equal([...theirs.tags].join(','), [...mine.tags].join(','),
+      'the same fingerprints on the same clauses — sides swapped, facts identical');
+    assert.equal(theirs.cards.map(x => x.id).join(','), mine.cards.map(x => x.id).join(','),
+      'the same ids in the same order');
+    for (let i = 0; i < mine.cards.length; i++)
+      assert.equal(theirs.cards[i].meta, mine.cards[i].meta,
+        'the same clause labels, authors and organisations on the card');
     assert.ok(mine.cards.length === 3 && theirs.cards.length === 3);
   });
 
@@ -160,7 +181,7 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
     const o = await negotiated();
     const v = counterpartyView(o.c);
     const mine = readScreen(o.ownerDoc(), o.win);
-    const theirs = readScreen(v.$('#pt-nego'), v.p.win);
+    const theirs = readScreen(liveNego(v.p.win), v.p.win);
     assert.equal(theirs.inserted, mine.inserted);
     assert.equal(theirs.deleted, mine.deleted);
     // wordDiff segments per whitespace token, so a run is per word on both sides
@@ -172,12 +193,10 @@ describe('the counterparty gets the same component, not a lesser screen', () => 
   test('the full SHA-256 travels — not a truncation they cannot quote back', async () => {
     const o = await negotiated();
     const v = counterpartyView(o.c);
-    for (const card of v.$$('#pt-nego .nego-hash'))
-      assert.match(card.getAttribute('title'), /^0x[0-9a-f]{64}$/);
-    // and it is the same digest the owner holds
-    const theirs = v.$$('#pt-nego .nego-hash').map(n => n.getAttribute('title'));
+    const theirs = (v.payload.contract.changes || []).map(x => x.hash);
+    for (const h of theirs) assert.match(String(h), /^0x[0-9a-f]{64}$/);
     const ours = o.win.negoChanges(o.c).map(x => x.hash);
-    assert.equal(theirs.join(','), ours.join(','));
+    assert.equal(theirs.join(','), ours.join(','), 'the same digest the owner holds');
   });
 
   test('entry stays no-login: the page is rendered from a link, with no account', async () => {
@@ -227,7 +246,7 @@ describe('the payload is what makes the two screens agree', () => {
     assert.equal(ch.status, 'accepted', 'the decision travels');
     assert.equal(ch.resolvedBy, undefined, 'the individual who made it does not');
     p.open(payload);
-    assert.ok(!/Wanjiru Kamau/.test(p.win.document.getElementById('pt-nego').textContent),
+    assert.ok(!/Wanjiru Kamau/.test(liveNego(p.win).textContent),
       'the organisation speaks, not a named employee');
   });
 });
@@ -237,30 +256,35 @@ describe('an action by one side shows up on the other', () => {
     const o = await negotiated();
     const ch = o.filed.find(x => /forty-five/.test(x.newText));
 
-    // before: pending on both sides
+    // before: live on both sides — a card on the table, the old wording still marked
     let v = counterpartyView(o.c);
-    assert.match(v.$(`#nego-card-${ch.id}`).textContent, /pending/);
-    assert.match(v.$('#pt-nego').textContent, /thirty \(30\) days from the date of issue/);
+    assert.match(v.$(`[data-nego-card="${ch.id}"] .rl-badge`).textContent, /Sent/);
+    /* The old wording is still in the document, struck through — the redline
+       runs "thirty (30)" and "forty-five (45)" side by side, del beside ins. */
+    assert.match(liveNego(v.p.win).textContent, /thirty \(30\)/);
+    assert.match(liveNego(v.p.win).textContent, /days from the date of issue/);
 
-    // Wanjiru presses Accept in her own tab — the real control, not the model
+    // Wanjiru presses Accept on her own page — the real control, not the model
     o.win.document.querySelector(`[data-nego-accept="${ch.id}"]`).click();
+    await tick();
     assert.equal(o.win.negoChangeById(o.c, ch.id).status, 'accepted');
 
-    // after: Erik's link reflects it
+    /* after: Erik's link reflects it. A settled change leaves the Tracked
+       Changes column — the column is for what still needs an answer — and the
+       decision rides the clause's own tag in the document instead. */
     v = counterpartyView(o.c);
-    const card = v.$(`#nego-card-${ch.id}`);
-    assert.match(card.textContent, /accepted/);
-    /* The pill is a READ of verifyChangeChain, so it has to be walked before
-       it can say anything. Erik's page verifies the chain he was sent — the
-       same records, the same hashes — and reaches the same answer Wanjiru's
-       does, which is the point of sending the chain rather than a summary. */
-    const verdict = await v.p.win.verifyChangeChain(v.p.win.portalNegoContract
-      ? v.p.win.portalNegoContract(v.payload) : o.c);
+    assert.equal(v.$(`[data-nego-card="${ch.id}"]`), null,
+      'a settled change is no longer "tracked" — it lives in the document now');
+    const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
+    assert.match(tag.textContent, /adopted/, 'the clause tag says the ask was adopted');
+    /* The chain is a READ, so it has to be walked before it can say anything.
+       Erik's page verifies the chain he was sent — the same records, the same
+       hashes — and reaches the same answer Wanjiru's does, which is the point
+       of sending the chain rather than a summary. */
+    const verdict = await v.p.win.verifyChangeChain(v.p.win.portalNegoContract(v.payload));
     assert.ok(verdict.ok, `the chain Erik received must verify: ${verdict.detail}`);
-    await v.p.win.negoRefreshVerification(o.c);
-    assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✓/);
-    assert.match(v.$('#pt-nego').textContent, /forty-five \(45\) days/,
-      'the agreed wording is on his page too');
+    assert.match(v.p.win.docPlainText(v.p.win.portalNegoContract(v.payload)),
+      /forty-five \(45\) days/, 'the agreed wording is his document now');
   });
 
   test('Wanjiru rejects a change and Erik sees the baseline kept, with her reason', async () => {
@@ -270,45 +294,79 @@ describe('an action by one side shows up on the other', () => {
       { by: 'Wanjiru Kamau', reply: 'One hundred and twenty days is the whole point of the facility.' });
 
     const v = counterpartyView(o.c);
-    const card = v.$(`#nego-card-${ch.id}`);
-    assert.match(card.textContent, /rejected/);
-    assert.match(card.textContent, /One hundred and twenty days is the whole point of the facility\./,
+    /* His refused ask does not vanish: refused-and-not-withdrawn blocks the
+       whole deal, and the person who can clear it needs something to press. */
+    const card = v.$(`[data-nego-card="${ch.id}"]`);
+    assert.ok(card, 'a refused ask of his own stays on his table');
+    assert.match(card.textContent, /Refused/);
+    assert.ok(card.querySelector(`[data-nego-withdraw="${ch.id}"]`),
+      'withdrawing it is the settlement he is offered');
+    // her reason rides the clause tag, where the refusal is marked
+    const tag = v.$$('.rl-asktag').find(n => n.textContent.includes(ch.id));
+    assert.match(tag.textContent, /refused/);
+    assert.match(tag.getAttribute('title') || '',
+      /One hundred and twenty days is the whole point of the facility\./,
       'a refusal he cannot understand is a refusal he will send again');
-    assert.match(v.$(`[data-badge="${ch.id}"]`).textContent, /✕/);
-    assert.match(v.$('#pt-nego').textContent, /Rejected — baseline kept/);
-    assert.ok(!/ninety \(90\)/.test(v.$('.nego-pane.baseline').textContent),
-      'the refused wording is not in the document');
+    // and the wording stayed at baseline
+    const applied = v.p.win.docPlainText(v.p.win.portalNegoContract(v.payload));
+    assert.match(applied, /one hundred and twenty \(120\) days/);
+    assert.ok(!/ninety \(90\)/.test(applied), 'the refused wording is not in the document');
   });
 
   test('a comment Wanjiru leaves on a fingerprint is on Erik\'s copy of it', async () => {
     const o = await negotiated();
     const ch = o.filed[0];
+    /* Shared, said so. The default visibility is internal — a forgotten field
+       stays home — so a comment meant for Erik is marked for him. */
     o.win.negoPostComment(o.c, ch.id, 'Would you take Net-45 with a 1% early-settlement discount?',
-      { side: 'owner', author: 'Wanjiru Kamau' });
+      { side: 'owner', author: 'Wanjiru Kamau', visibility: 'shared' });
 
     const v = counterpartyView(o.c);
-    const card = v.$(`#nego-card-${ch.id}`);
-    assert.match(card.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
-    assert.match(card.textContent, /Discuss \(1\)/);
+    const threads = v.$('#pt-nego [id="rl-threads"]');
+    assert.match(threads.textContent, /Would you take Net-45 with a 1% early-settlement discount\?/);
+    assert.match(threads.textContent, new RegExp(`Change ${ch.id}`),
+      'the thread names the change it hangs off');
+    assert.match(v.$('#pt-nego [id="rl-thread-count"]').textContent, /1 thread/);
   });
 
   test('progress and the resolved count move together on both sides', async () => {
     const o = await negotiated();
+    let v = counterpartyView(o.c);
+    assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 0 of 3/);
+    assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /0 of 3 resolved/);
+
     o.win.document.querySelector('#nego-bulk-acc').click();
-    const v = counterpartyView(o.c);
-    assert.match(v.$('#nego-progress').textContent, /^3 of 3 changes resolved$/);
-    assert.match(v.$('#nego-status').textContent, /Resolved: 3 \/ 3/);
-    assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /^3 of 3 changes resolved$/);
+    await tick();
+    // the owner's page repainted itself; Erik's repaints from a fresh read of the link
+    v = counterpartyView(o.c);
+    assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 3 of 3/);
+    assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /3 of 3 resolved/);
   });
 
   test('Ready to sign appears on both, and only the owner is offered the hand-off', async () => {
     const o = await negotiated();
-    o.win.document.querySelector('#nego-bulk-acc').click();
+    for (const ch of o.filed) o.win.negoResolve(o.c, ch.id, 'accepted', { by: 'Wanjiru Kamau' });
+
+    // Erik holds the deal verb, live once everything is settled — and not the hand-off
     const v = counterpartyView(o.c);
-    assert.ok(v.$('#nego-ready'), 'Erik is told the negotiation is finished');
-    assert.equal(v.$('#nego-to-docs'), null, 'but sending it for signature is not his to do');
-    assert.match(v.$('#nego-ready').textContent, /will send it for signature/);
-    assert.ok(o.ownerDoc().querySelector('#nego-to-docs'), 'Wanjiru holds the hand-off');
+    const ready = v.$('#pt-nego-ready');
+    assert.ok(ready, 'Erik is offered Ready to sign');
+    assert.ok(!ready.hasAttribute('disabled'), 'and it is live: the parties are aligned');
+    assert.equal(v.$('#nego-issue-signing'), null, 'issuing the signing link is not his to do');
+
+    // he signals; Wanjiru's page carries the signal and the hand-off
+    o.win.negoSignalReady(o.c, { side: 'counterparty', by: 'Erik Lindqvist' });
+    o.win.renderRedline();
+    const sig = o.ownerDoc().querySelector('#nego-ready-signal');
+    assert.ok(sig, 'the signal reaches the owner\'s page');
+    assert.match(sig.textContent, /Erik Lindqvist/);
+    assert.match(sig.textContent, /Nothing is signed yet/);
+    assert.ok(o.ownerDoc().querySelector('#nego-issue-signing'), 'Wanjiru holds the hand-off');
+
+    // and the signal travels back to Erik's copy too, still without the owner's verb
+    const v2 = counterpartyView(o.c);
+    assert.ok(v2.$('#nego-ready-signal'), 'his own signal is visible on his page');
+    assert.equal(v2.$('#nego-issue-signing'), null);
   });
 });
 
@@ -327,17 +385,18 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
   test('he may decide our asks, and may not decide his own', async () => {
     const o = await ownerProposed();
     const v = counterpartyView(o.c);
-    const card = v.$(`#nego-card-${o.filed[0].id}`);
+    const card = v.$(`[data-nego-card="${o.filed[0].id}"]`);
     assert.ok(card.querySelector('[data-nego-accept]'), 'ours is his to answer');
     assert.ok(card.querySelector('[data-nego-reject]'));
 
     // and the reverse, on the same page: a change he authored offers no verdict
     const o2 = await negotiated();
     const v2 = counterpartyView(o2.c);
-    const own = v2.$(`#nego-card-${o2.filed[0].id}`);
+    const own = v2.$(`[data-nego-card="${o2.filed[0].id}"]`);
     assert.equal(own.querySelector('[data-nego-accept]'), null,
       'nobody rules on their own ask');
-    assert.match(own.textContent, /\(your side\)/);
+    const tag = v2.$$('.rl-asktag').find(n => n.textContent.includes(o2.filed[0].id));
+    assert.match(tag.textContent, /Your ask/, 'his own ask is named as his in the document');
   });
 
   test('his decisions are held on the page until he sends them', async () => {
@@ -358,7 +417,10 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const v = counterpartyView(o.c);
     const id = o.filed[0].id;
     v.$(`[data-nego-accept="${id}"]`).click();
-    v.p.setValue('pt-name', 'Erik Lindqvist');
+    /* The name field moved out of the respond aside (deleted by W2) and into
+       the workbench's own #nego-cp-name, which the send path already
+       preferred. One box, not two that can disagree. */
+    v.p.setValue('nego-cp-name', 'Erik Lindqvist');
     await v.p.click('pt-nego-send');
 
     /* CORRECTED, and the old shape is why the bug lived.
@@ -488,15 +550,19 @@ describe('the durable link keeps showing current state', () => {
     const p = buildPortal();
 
     p.open(sharePayloadFor(p, o.c));
-    assert.match(p.win.document.getElementById('pt-nego').textContent, /pending/);
+    assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 3,
+      'three asks are live on his table');
+    assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 0 of 3/);
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
     o.win.document.querySelector('#nego-bulk-acc').click();
+    await tick();
     p.open(sharePayloadFor(p, o.c));
-    const txt = p.win.document.getElementById('pt-nego').textContent;
-    assert.ok(!/pending/.test(txt), 'the old statuses must not survive the refresh');
-    assert.match(txt, /accepted/);
-    assert.match(txt, /Resolved: 3 \/ 3/);
+    assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 0,
+      'the settled cards must not survive the refresh');
+    assert.match(liveNego(p.win).textContent, /adopted/,
+      'the decisions are on the clause tags now');
+    assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 3 of 3/);
   });
 
   test('a superseded copy is read-only, and says why', async () => {
@@ -506,7 +572,7 @@ describe('the durable link keeps showing current state', () => {
     assert.equal(p.win.document.querySelector('[data-nego-accept]'), null,
       'an older copy must not be able to answer');
     assert.match(p.win.document.getElementById('pt-nego-foot').textContent,
-      /read-only — decisions have to be sent from the current link/);
+      /superseded — a newer link was sent to you/);
   });
 });
 
@@ -514,29 +580,35 @@ describe('a rich contract survives the trip to the counterparty and back', () =>
   test('the formatted document is negotiated clause by clause on both sides', async () => {
     const w = buildWorld({ negotiationView: true });
     const { win } = w;
+    win.promptDialog = async () => '';
     const c = supplyContract();
     win.negoInit(c);
     const filed = await win.negoFileProposal(c,
       win.negoBaseText(c).replace('thirty (30) days of a valid invoice', 'forty-five (45) days of a valid invoice'),
       { side: 'counterparty', author: 'Erik Lindqvist' });
-    win.renderNegotiationTab(c, { hostId: 'nego-tab', side: 'owner', by: 'Wanjiru Kamau' });
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
 
     const v = counterpartyView(c);
-    // the working pane shows it as a redline, so the words arrive in runs
-    assert.match(v.$('.nego-pane.working').textContent, /forty-five/);
-    assert.match(v.$('.nego-pane.working').textContent, /\(45\)/);
+    // the document canvas shows it as a redline, so the words arrive in runs
+    const doc = v.$('#pt-nego [id="rl-doc"]');
+    assert.match(doc.textContent, /forty-five/);
+    assert.match(doc.textContent, /\(45\)/);
     /* The clause is the <h2>2. PAYMENT</h2> heading plus the list under it, so
        it is labelled from its own heading — "Clause 2 · PAYMENT". The old model
        read the <li> LINE as the clause and labelled it "Clause 3" from the
        list's start="3", which named a list item rather than a term. The
-       numbering itself still has to reach his screen, and it does: it is in the
-       document pane, which is where a reader looks for it. */
-    assert.match(v.$(`#nego-card-${filed[0].id}`).textContent, /Clause 2 · PAYMENT/,
+       numbering itself still has to reach his screen, and it does: the list
+       arrives with its own start attribute, in the document, where a reader
+       looks for it. */
+    assert.match(v.$(`[data-nego-card="${filed[0].id}"] .rl-card-meta`).textContent, /Clause 2 · PAYMENT/,
       'the clause is labelled from its own heading, not from a list item number');
-    assert.match(v.$('.nego-pane.working').textContent, /3\.\s*Payment shall be made/,
+    assert.match(doc.textContent, /3\.\s*Payment shall be made/,
       'the ol start="3" numbering reaches his screen too');
 
     win.document.querySelector(`[data-nego-accept="${filed[0].id}"]`).click();
+    await tick();
     assert.equal(win.docFormat(c.format), 'rich', 'and the document is still formatted');
     assert.match(c.redlineText, /<ol start="3">/);
     assert.match(c.redlineText, /<h1>RAW MATERIAL SUPPLY AGREEMENT<\/h1>/);

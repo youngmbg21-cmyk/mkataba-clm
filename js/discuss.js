@@ -84,14 +84,87 @@ const discussUnansweredBy = (messages, side) => {
 /* ---------- the shared rendering ----------
    `mine` is which side is reading, so each message is attributed the way that
    reader would say it out loud. */
+/* ---- who can read this ----
+   A message carries a visibility, and the badge is drawn from it wherever the
+   bubble is drawn — this component renders on the owner's screen, in the
+   negotiation room and on the counterparty's portal, and a thread that reported
+   its own privacy differently in three places would be worse than one that
+   never mentioned it.
+
+   ABSENT MEANS SHARED, and only here. Every message written before this field
+   existed did travel to the other side, so reading a missing value as internal
+   would relabel the entire history of every contract as private — a claim that
+   is false and that a reader would reasonably act on. The safe default runs the
+   other way at the WRITE end (js/negotiation.js), which is where a forgotten
+   field could still cause a leak. */
+const DISCUSS_SHARED = 'shared';
+const DISCUSS_INTERNAL = 'internal';
+const discussIsInternal = m => !!m && m.visibility === DISCUSS_INTERNAL;
+function discussVisBadgeHtml(m){
+  const internal = discussIsInternal(m);
+  const pal = internal
+    ? 'background:#f4ecd8;color:#8a6a2a;border:1px solid rgba(138,106,42,.3)'
+    : 'background:var(--color-accent-100);color:var(--color-accent-800);border:1px solid var(--color-accent-300)';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;font-size:9.5px;font-weight:700;
+    letter-spacing:.04em;border-radius:999px;padding:2px 7px;white-space:nowrap;${pal}">${
+    internal ? '🔒 Internal only' : '🌐 Shared with counterparty'}</span>`;
+}
+
+/* ---------- WHO WROTE THIS NOTE, AS A COLOUR ----------
+   Reviewing a thread means reading a column of bubbles that all look alike, and
+   the single most important thing about any one of them — did this come from my
+   own side or from the people across the table — was carried only by a name in
+   small grey type. On a clause with nine notes on it that is a paragraph of
+   reading to answer a question the eye should answer instantly.
+
+   So the side owns the colour. OUR notes are blue/indigo, THEIRS are amber. The
+   two are far apart on the wheel and differ in lightness as well as hue, so the
+   distinction survives a mediocre screen and the commoner forms of colour
+   blindness — and the explicit label carries it for anyone the colour does not
+   reach, which is why every bubble is tagged in words as well.
+
+   Note that internal-versus-shared is a DIFFERENT question, answered by a
+   different mark. "Who wrote it" and "who can see it" are independent, and
+   collapsing them into one colour would make an internal note from our side
+   indistinguishable from a shared one. */
+const DISCUSS_NOTE_OWNER = 'owner';
+const DISCUSS_NOTE_COUNTERPARTY = 'counterparty';
+function discussNoteTone(note, viewerSide){
+  const n = note || {};
+  /* An unmarked note is treated as OURS. It is the safer default of the two:
+     mistaking our own note for theirs would have a reader answer a colleague as
+     though they were the opposition, and every note this product writes on our
+     behalf carries the side already. */
+  const side = n.side || n.authorSide || (n.authorRef && n.authorRef.side) || viewerSide || DISCUSS_NOTE_OWNER;
+  const theirs = side === DISCUSS_NOTE_COUNTERPARTY;
+  const internal = discussIsInternal(n);
+  return {
+    who: theirs ? DISCUSS_NOTE_COUNTERPARTY : DISCUSS_NOTE_OWNER,
+    theirs,
+    /* The utility classes the spec names, and inline colours saying the same
+       thing — the panel has to read correctly whether or not a utility
+       framework is on the page. */
+    classes: theirs
+      ? 'note-bubble note-counterparty bg-amber-50 border-amber-200 text-amber-900'
+      : 'note-bubble note-owner bg-blue-50 border-blue-200 text-blue-900',
+    style: theirs
+      ? 'background:#fffbeb;border:1px solid #fde68a;color:#78350f'
+      : 'background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a',
+    label: theirs ? '🌐 Counterparty Note'
+      : internal ? '🔒 Internal Note' : '👔 Owner Note'
+  };
+}
+
 function discussBubbleHtml(m, mine){
   const isMine = m.side === mine;
   const e = window.esc || (s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])));
   const when = window.fmtDT ? fmtDT(m.at) : String(m.at || '');
+  const internal = discussIsInternal(m);
   return `
     <div style="display:flex;flex-direction:column;gap:2px;align-items:${isMine ? 'flex-end' : 'flex-start'}">
-      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono)">${e(m.author)}${when ? ` · ${when}` : ''}</div>
-      <div style="max-width:92%;border:1px solid ${isMine ? 'var(--color-divider)' : 'var(--color-accent-300)'};background:${isMine ? 'var(--color-bg)' : 'var(--color-accent-100)'};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
+      <div style="font-size:10px;color:var(--color-neutral-500);font-family:var(--font-mono);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e(m.author)}${when ? ` · ${when}` : ''}${
+        internal ? ' ' + discussVisBadgeHtml(m) : ''}</div>
+      <div style="max-width:92%;border:1px solid ${internal ? 'rgba(138,106,42,.35)' : (isMine ? 'var(--color-divider)' : 'var(--color-accent-300)')};background:${internal ? '#fdfaf1' : (isMine ? 'var(--color-bg)' : 'var(--color-accent-100)')};border-radius:7px;padding:8px 11px;font-size:12px;line-height:1.55;color:var(--color-neutral-800);white-space:pre-wrap">${e(m.body)}</div>
     </div>`;
 }
 /* The whole panel: what has been said, grouped by what it is about, and one
@@ -166,8 +239,8 @@ function discussPointReplyHtml(topic, messages, opts){
     <div style="margin-top:7px;font-size:11px;color:var(--color-neutral-600)">${e(disabledNote)}</div>` : '');
   return `${thread}
     <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
-      <input data-point-body="${e(idp)}" type="text" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
-        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"/>
+      <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
+        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
       <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">Send</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
@@ -178,6 +251,9 @@ function discussPointReplyHtml(topic, messages, opts){
    same kind of thing and land in the same thread. */
 function wireDiscussPoints(opts){
   const { send, onSent } = opts || {};
+  /* The composers this panel just drew are growing textareas; measuring them
+     here is what makes a two-line reply visible as it is typed. */
+  if (typeof window !== 'undefined' && window.chatFieldWire) chatFieldWire(document);
   document.querySelectorAll('[data-point-send]').forEach(btn => {
     const idp = btn.getAttribute('data-point-send');
     btn.addEventListener('click', async () => {
@@ -230,7 +306,104 @@ function wireDiscussPanel(opts){
   });
 }
 
+/* ---------- TAKING BACK A DRAFT NOBODY HAS SEEN ----------
+   A conversation about a change and the change itself sit on the same card, and
+   until now that card had three verbs on it — send, accept, reject — none of
+   which is what somebody means by "forget I said that" about wording that has
+   never left the building.
+
+   The route that existed was to overwrite the draft with the original text,
+   which is not the same act and does not read as one: the change record stays,
+   the id stays in the series, the card stays in the sidebar, and the history
+   now says a clause was changed and changed back rather than that nothing was
+   ever proposed. On a clause somebody was thinking out loud on, that is a
+   fingerprint in the index nobody asked for.
+
+   SO THE BUTTON ONLY EXISTS WHERE DISCARDING IS THE HONEST ACT, and the test is
+   made of both locks the wall already uses. `stage === 'internal_draft'` says
+   this is work in progress; `sent !== true` says it has not travelled; and
+   `status === 'pending'` says nobody has ruled on it. All three, because any
+   one of them alone can be wrong in a record written by an older version, and
+   a Discard offered on wording the counterparty is part-way through answering
+   would delete a question out from under them.
+
+   The button is rendered here, beside the visibility badge, because this is the
+   module both sides draw a conversation from — the counterparty's copy runs the
+   same code and gets no button, since nothing of theirs is ever an internal
+   draft of ours. */
+const DISCUSS_DRAFT_STAGE = 'internal_draft';
+function discussIsDiscardable(change){
+  const ch = change || {};
+  return ch.stage === DISCUSS_DRAFT_STAGE && ch.sent !== true
+    && (ch.status || 'pending') === 'pending';
+}
+/* The button, or nothing. `viewer` guards the counterparty's copy explicitly
+   rather than trusting that their payload never carries a draft: the payload
+   filter is the wall, and this is a second reading of the same rule at the
+   place a reader would press. */
+function discussDiscardBtnHtml(change, opts){
+  const o = opts || {};
+  if (o.external || o.readOnly) return '';
+  if (!discussIsDiscardable(change)) return '';
+  const e = window.esc || (s => String(s == null ? '' : s));
+  const id = e(change.id);
+  return `<button type="button" class="discuss-discard ui-btn" data-discuss-discard="${id}"
+    title="Discard ${id} — it has not been sent, so nothing is withdrawn from anyone"
+    aria-label="Discard draft change ${id}"
+    style="margin-left:auto;flex:none;font-size:10.5px;padding:3px 8px;line-height:1.4;
+      border:1px solid rgba(143,50,43,.28);background:#fdf6f5;color:#8f322b;border-radius:5px;cursor:pointer">🗑️ Discard</button>`;
+}
+
+/* Wire every Discard on the page. The three steps are in this order for a
+   reason a reader would notice if they were not:
+
+     1. the RECORD goes first, through Redline.removeChange(), which is the one
+        place the "may this be discarded" rule lives and the one place the
+        stacked children get re-parented. A refusal comes back as a message and
+        nothing else happens.
+     2. the MARKUP goes next, off the live canvas, so the struck-through wording
+        disappears on the same frame as the press. A repaint would do it a beat
+        later, and that beat reads as "the button did nothing".
+     3. the VIEW is rebuilt last, from the record that has already changed.
+
+   `persist` and `again` are supplied by the caller because this module knows
+   what a conversation looks like and deliberately knows nothing about where any
+   particular screen stores one. */
+function wireDiscussDiscard(opts){
+  const { store, persist, again, confirm: ask, onDiscarded } = opts || {};
+  document.querySelectorAll('[data-discuss-discard]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-discuss-discard');
+      const engine = window.Redline;
+      if (!engine || typeof engine.removeChange !== 'function'){
+        if (window.toast) toast('The redline engine is not loaded, so nothing was discarded', 'err');
+        return;
+      }
+      if (typeof ask === 'function' && ask(id) === false) return;
+      const res = engine.removeChange(store, id);
+      if (!res.ok){
+        if (window.toast) toast(res.message || 'That change cannot be discarded', 'err');
+        return;
+      }
+      if (typeof engine.clearMarkup === 'function')
+        try{ engine.clearMarkup(id, document.querySelector('.document-canvas') || document); }catch(_){}
+      if (typeof persist === 'function') persist();
+      if (typeof onDiscarded === 'function') onDiscarded(res);
+      if (typeof again === 'function') again();
+      if (window.toast) toast(res.reparented.length
+        /* Said out loud, because a colleague's pass surviving its parent is the
+           one outcome a reader would not predict from the word "discard". */
+        ? `${id} discarded — ${res.reparented.join(', ')} stacked on it and now stand${res.reparented.length === 1 ? 's' : ''} on their own`
+        : `${id} discarded — it was never sent, so nothing was withdrawn`);
+    });
+  });
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
-  DISCUSS_GENERAL, discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
+  DISCUSS_DRAFT_STAGE, discussIsDiscardable, discussDiscardBtnHtml, wireDiscussDiscard,
+  DISCUSS_GENERAL, DISCUSS_SHARED, DISCUSS_INTERNAL, discussIsInternal, discussVisBadgeHtml,
+  DISCUSS_NOTE_OWNER, DISCUSS_NOTE_COUNTERPARTY, discussNoteTone,
+  discussTopics, discussTopicLabel, discussClauseKey, discussGroups,
   discussUnansweredBy, discussBubbleHtml, discussPanelHtml, wireDiscussPanel, discussTrim,
   discussPointReplyHtml, wireDiscussPoints });

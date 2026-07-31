@@ -496,3 +496,87 @@ The browser run failed on the first attempt at a clean checkout —
 `playwright-core` was installed in the working tree and declared in no
 manifest, so `npm install` did not bring it. Declared, and the run above is
 after that fix. Doing the clean-checkout run is what found it.
+
+---
+
+## Template Library & Document Converter (2026-07-30)
+
+A line reads PASS only where the named automated test proves it and the full
+suite is green.
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Draft templates invisible to non-managers (404, not 403) | f101 | PASS |
+| Viewer writes refused on every template route | f101, f102, f104, f105 | PASS |
+| Published version immutable; edits 409 to a new draft | f101 | PASS |
+| Publish validation: empty labels, optionless guided fields | f101 | PASS |
+| Template with children: archive only, never delete | f101 | PASS |
+| Contract provenance write-once (tamper restored) | f101 | PASS |
+| Branding + org profile round-trip, manager-only writes | f101 | PASS |
+| Save-as-template: party values → empty typed fields; wording fixed | f102 | PASS |
+| Save-as-template: source contract untouched; folder scope holds | f102 | PASS |
+| Library / detail / builder render real markup, role-aware | f103 | PASS |
+| Draft cannot spawn; archived spawns nothing new | f104 | PASS |
+| {{org.…}} defaults pre-fill from the org profile at creation | f104 | PASS |
+| Publish v2 → earlier contract byte-identical | f104 | PASS |
+| Portal per-field autosave validates via the shared registry | f104 | PASS |
+| Portal autosave survives a closed tab (values on the share row) | f104 | PASS |
+| Upload judged by real bytes; junk never reaches the model | f105 | PASS |
+| Extraction: labels, (empty) cells, ____ runs, [INSERT …], inline blanks, reading order | f105 | PASS |
+| Upload lands as a draft with confidence + human_reviewed=0 | f105 | PASS |
+| Garbage model response → draft + error note, original stored | f105 | PASS |
+| E2E: upload → confirm → publish → contract → fill → clean render | f105 | PASS |
+| Brut form ≥24/27 blanks typed correctly by claude-sonnet-4-6 | manual, needs live key | NOT RUN |
+
+Suite at close: **1692 tests, 0 failures** (`npm test`). Test files added:
+f101-template-library, f102-save-as-template, f103-template-library-ui,
+f104-contract-from-template, f105-upload-convert.
+
+---
+
+## Template Library fix work order (2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Orphaned {{marker}} renders as a plain blank, never raw syntax | f106 | PASS |
+| Deleting a field strips its marker (shared helper, both screens) | f106 | PASS |
+| Publish blocks on wording that names a nonexistent field | f106 | PASS |
+| Unplaced typed field warns at publish (never silent) | f106, f101 | PASS |
+| Blank carries data-field-key; sanitiser admits it narrowly | f106 | PASS |
+| Blanks grey (neutral palette), pointer only when routable | f106 | PASS |
+| Stored {{code}} repairs on open; commit path regenerates wording | f106 | PASS |
+| Model's longhand signature wording rebuilt as a signature block | f105 | PASS |
+| Company section renders on the Templates page, role-aware | f103 | PASS |
+| Published templates feed the menu/count caches | f103 | PASS |
+| In-place popover fill on workspace and portal | manual (Chromium shots) | PASS |
+
+---
+
+## Stage 4 — the signing route (W7 + W8, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| A share can be bound to one row of `c.signerPlan` (`shares.signer_id`); unknown / internal / non-sign bindings refused | f115 | PASS |
+| One signer, one link: re-issuing refreshes the live bound link, never mints a second | f115 | PASS |
+| A bound link before its turn is created HELD — no email until its turn | f115 | PASS |
+| A held link opens to a dormant notice, serves none of the contract, stamps no `first_opened_at` | f115 | PASS |
+| Signing out of turn is refused at the respond route, naming who signs first — never refiled | f115 | PASS |
+| Signer *n* signing releases signer *n+1*'s link from the respond route — unattended, no owner browser | f115 | PASS |
+| The stored response carries the binding, server-stamped; a crafted response cannot choose its row | f115 | PASS |
+| The external turn email delivers the signer's own link, "no account is needed" | f115 | PASS |
+| issueSigningRouteLinks issues per-signer bound links in route order; partial routes refused whole | f116 | PASS |
+| The dormant page names who is waited on (colleague by name, sender org collectively) and self-updates | f116 | PASS |
+| An incoming signature lands on its BOUND row; FD-before-MD no longer lands on the MD's row | f117 | PASS |
+| Replay of a signed step refused; deleted-row signature kept with the gap named, no row guessed | f117 | PASS |
+| The seal fires when the last bound signature lands | f117 | PASS |
+| Unbound (pre-W7 / static-mode) responses keep next-in-order behaviour | f117 | PASS |
+| The one-time code goes only to the share's recorded address; typed addresses never a destination | f118 | PASS |
+| A forwarded signing link cannot be used by a third party with their own mailbox | f118 | PASS |
+| The verified signature records the VERIFIED (invited) address, not the typed one | f118 | PASS |
+| An address-less signing link fails closed on OTP, with the way out named | f118 | PASS |
+| The code is never returned to the caller (destination rule changed; leak rule intact) | f118, regression | PASS |
+
+Suite at close: **2078 tests, 0 failures** (`npm test`); Chromium redline
+71/71, parity 18/18, selection 22/22. Test files added: f115-the-signing-route,
+f116-links-from-the-route, f117-the-signature-lands-on-its-row,
+f118-the-code-goes-to-the-invited-address.

@@ -26,7 +26,7 @@ function pipeCard(c){
   const r = contractRisk(c);
   const rp = riskPal(r);
   const stream = streamLabel(c);
-  const val = !isMonetary(c) ? 'n/m' : (c.value ? fmtKESshort(c.value) : '—');
+  const val = !isMonetary(c) ? 'n/m' : (c.value ? fmtMoneyShort(c.value) : '—');
   return `
     <div data-card="${c.id}" class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-left:4px solid ${folderColor(c)};border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:pointer;display:flex;flex-direction:column;gap:5px">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
@@ -59,7 +59,7 @@ function renderPipeline(){
         <span style="font-family:var(--font-mono);font-weight:600;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
         <span style="font-size:10.5px;background:rgba(89,128,166,.1);padding:1px 8px;border-radius:999px;color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
-        <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtKESshort(g.val)}</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtMoneyShort(g.val)}</span>
       </div>
       <div class="pipe-col scroll-thin" style="background:rgba(89,128,166,.05);border:1px solid var(--color-divider);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow-y:auto">
         ${pipeColumnInner(g.col, g.list)}
@@ -67,7 +67,7 @@ function renderPipeline(){
     </div>`).join('');
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:calc(100vh - 52px);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
+  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:14px 16px 18px;display:flex;flex-direction:column">
     <style>
       .q-card{transition:border-color .12s ease,box-shadow .12s ease}
       /* keep the category stripe (border-left) on hover — only the other three sides + shadow react */

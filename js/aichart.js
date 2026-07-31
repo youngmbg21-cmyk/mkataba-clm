@@ -62,11 +62,17 @@ function aiChartSweep(){
 const _acContracts = () => ((window.state && Array.isArray(state.contracts)) ? state.contracts : [])
   .filter(c => c && c.status !== 'Declined');
 const _acAll = () => ((window.state && Array.isArray(state.contracts)) ? state.contracts : []);
-const _acMoney = n => (typeof window.fmtKES === 'function' ? fmtKES(n) : 'KES ' + Number(n || 0).toLocaleString('en-KE'));
+const _acMoney = n => (typeof window.fmtMoney === 'function' ? fmtMoney(n) : `${typeof jxCurrency==='function'?jxCurrency():''} ` + Number(n || 0).toLocaleString());
 const _acVal = c => Number((c && c.value) || 0);
 const _acExpiry = c => (typeof window.effectiveExpiry === 'function' ? effectiveExpiry(c) : (c && c.expiry)) || null;
 const _acDays = iso => (typeof window.daysUntil === 'function' ? daysUntil(iso)
   : Math.ceil((new Date(iso + 'T00:00:00') - Date.now()) / 86400000));
+/* An obligation's due date and its state, read the way the rest of the product
+   reads them — see js/obligations.js. A chart is a claim about the portfolio,
+   so it has to be counting the same things every other surface counts. */
+const _acDue = o => (typeof window.obligationDue === 'function' ? obligationDue(o) : ((o && o.due) || null));
+const _acObState = o => (typeof window.obState === 'function' ? obState(o)
+  : ((o && o.status === 'done') ? 'done' : 'open'));
 const _acMonthKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 const _acMonthLabel = k => {
   const [y, m] = String(k).split('-').map(Number);
@@ -244,10 +250,16 @@ const AI_CHART_RECIPES = {
     const open = Object.fromEntries(months.map(m => [m, 0]));
     let overdue = 0, any = false;
     for (const o of allObligations()){
-      if (o.done) continue;
-      if (!o.due){ continue; }
-      if (_acDays(o.due) < 0){ overdue++; any = true; continue; }
-      const k = String(o.due).slice(0, 7);
+      /* `o.done` is a field no obligation has ever carried — completion is
+         `status === 'done'`, which is what obState() reads. Every completed
+         obligation in the workspace was being drawn as still open. And the due
+         date goes through the same normaliser the calendar uses, or one typed
+         "31 March 2027" landed in no month and in no overdue bar either. */
+      if (_acObState(o) === 'done') continue;
+      const due = _acDue(o);
+      if (!due){ continue; }
+      if (_acDays(due) < 0){ overdue++; any = true; continue; }
+      const k = String(due).slice(0, 7);
       if (k in open){ open[k]++; any = true; }
     }
     if (!any) return null;
@@ -276,7 +288,8 @@ const AI_SERIES = {
       ? cs.filter(c => String(renewalDecisionDate(c) || '').slice(0, 7) === k).length : 0 },
   'obligations.due':     { label: 'Obligations due',        unit: 'count',
     at: (_, k) => typeof window.allObligations === 'function'
-      ? allObligations().filter(o => !o.done && String(o.due || '').slice(0, 7) === k).length : 0 },
+      ? allObligations().filter(o => _acObState(o) !== 'done'
+          && String(_acDue(o) || '').slice(0, 7) === k).length : 0 },
 };
 /* The slug a counterparty series is addressed by. Stable for a given name and
    safe inside a JSON string, so the model can copy it back verbatim. */

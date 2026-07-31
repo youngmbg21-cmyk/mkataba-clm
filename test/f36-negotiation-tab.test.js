@@ -125,9 +125,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
      readable. Rewrite a clause and LCS latches onto whatever words the two
      versions happen to share — "the", "of", "value" — and interleaves them, so
      the passage is in the right boxes and cannot be read. */
+  /* ins and del are ELEMENTS now, carrying the nego-* hooks on their class list
+     alongside the utility names — see js/redline.js. */
   const strip = html => html
-    .replace(/<span class="nego-ins">/g, '[+').replace(/<span class="nego-del">/g, '[-')
-    .replace(/<\/span>/g, ']');
+    .replace(/<ins class="[^"]*nego-ins[^"]*">/g, '[+').replace(/<del class="[^"]*nego-del[^"]*">/g, '[-')
+    .replace(/<\/(ins|del|span)>/g, ']');
 
   test('a small edit marks only the words that moved, as one decision', async () => {
     const m = await mounted();
@@ -165,9 +167,11 @@ describe('the redline stays readable when a clause is rewritten', () => {
     const before = 'The cap shall not exceed the full replacement value of the affected goods.';
     const after = 'The cap shall not exceed EUR 250,000 in the aggregate per contract year.';
     const html = m.win.negoDiffHtml(before, after);
-    const dels = [...html.matchAll(/<span class="nego-del">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const inss = [...html.matchAll(/<span class="nego-ins">([^<]*)<\/span>/g)].map(x => x[1]).join(' ');
-    const eq = html.replace(/<span class="nego-(ins|del)">[^<]*<\/span>/g, '').trim();
+    /* <del> and <ins> elements now, carrying the nego-* hooks in their class
+       list — the reconstruction invariant is unchanged and is what this asserts. */
+    const dels = [...html.matchAll(/<del class="[^"]*">([^<]*)<\/del>/g)].map(x => x[1]).join(' ');
+    const inss = [...html.matchAll(/<ins class="[^"]*">([^<]*)<\/ins>/g)].map(x => x[1]).join(' ');
+    const eq = html.replace(/<(ins|del) class="[^"]*">[^<]*<\/\1>/g, '').trim();
     // nothing invented, nothing lost: context + deletions reconstructs the old
     assert.equal((eq + ' ' + dels).replace(/\s+/g, ' ').trim(), before.replace(/\s+/g, ' ').trim());
     assert.equal((eq + ' ' + inss).replace(/\s+/g, ' ').trim(), after.replace(/\s+/g, ' ').trim());
@@ -294,7 +298,10 @@ describe('the change index card carries what a reader needs to decide', () => {
     assert.equal(card.querySelector('[data-nego-accept]'), null,
       'a party must not be able to mark its own wording adopted');
     assert.ok(card.querySelector('[data-nego-discuss]'), 'but they can still discuss it');
-    assert.match(card.textContent, /\(your side\)/);
+    /* The marker moved out of the grey italic beside the author and into a
+       pill in the top row of the card — see f70. */
+    assert.match(card.textContent, /Your ask/);
+    assert.match(card.className, /is-mine/, 'and the card carries an edge, so it reads without being read');
   });
 });
 
@@ -371,7 +378,8 @@ describe('accept, reject and undo do what they say to the document', () => {
     assert.ok(!/ninety \(90\)/.test(m.win.docPlainText(m.c)),
       'the refused wording must not be in the contract');
     const clause = m.work(ch.clauseId);
-    assert.match(clause.textContent, /Rejected — baseline kept/);
+    // the label names the change it belongs to — see f58
+    assert.match(clause.textContent, /#CHG-\d+ rejected — baseline kept/);
     assert.match(clause.textContent, /one hundred and twenty \(120\) days/);
   });
 
@@ -613,7 +621,9 @@ describe('the one transition out', () => {
   test('the hand-off closes the round and makes the agreed wording the baseline', async () => {
     const m = await mounted();
     m.click('#nego-bulk-acc');
+    /* It asks before it closes the round — see f69. The stage confirms. */
     m.click('#nego-to-docs');
+    for (let i = 0; i < 4; i++) await new Promise(r => setImmediate(r));
     assert.equal(m.win.negoRound(m.c), 2);
     assert.match(m.win.negoBaseText(m.c), /forty-five \(45\) days/);
     assert.equal(m.win.negoChanges(m.c).length, 0, 'the decided set is archived onto the round');
@@ -691,7 +701,10 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /--n-slate:#33475c/, 'the prototype\'s slate');
     assert.match(css, /--n-canvas:#f2f4f7/, 'the prototype\'s cool canvas');
-    assert.match(css, /--n-font-doc:Georgia/, 'the prototype\'s serif document face');
+    // The document face resolves from the design's global token since the
+    // redesign unified typography — the room still declares its OWN --n-font-*
+    // handles, so its sheet never names a family directly.
+    assert.match(css, /--n-font-doc:var\(--font-doc\)/, 'the document face comes from the design token');
     assert.match(css, /--n-ins-bg:#e4f1ea/);
     assert.match(css, /--n-del-fg:#b0453c/);
   });
@@ -699,7 +712,12 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
   test('they are declared on the room, never on :root', async () => {
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
-    assert.match(css, /\.nego-room, #nego-root\{\s*--n-slate:#33475c/,
+    /* [^{]* after #nego-root: the block also carries the two body-level
+       floating layers (see the test above), which are nego-namespaced like
+       everything else here. What must not change is that the room and the
+       embedded root lead it and that the tokens live on a component selector
+       rather than :root — both still asserted, here and just below. */
+    assert.match(css, /\.nego-room, #nego-root[^{]*\{\s*--n-slate:#33475c/,
       'the token block must be scoped to the room and the embedded root');
     assert.ok(!/:root\s*\{/.test(css),
       'a :root block here would restyle the whole product from inside a component');
@@ -713,12 +731,33 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
         `every selector must be namespaced to the component — found "${sel}"`);
   });
 
-  test('the room does not borrow the app\'s tokens either', async () => {
+  test('the floating layers can reach the tokens they are painted with', async () => {
+    /* .nego-selmenu and .nego-aipop are appended to document.body on purpose,
+       so a popover is not clipped by the pane it belongs to. That puts them
+       outside .nego-room and #nego-root — where every --n-* is undefined, so
+       background:var(--n-paper) resolved to nothing and the selection menu
+       rendered TRANSPARENT, with the clause text showing through it. The
+       "washed out" menu was never an alpha value; it was a token that did not
+       reach the element using it. */
+    const m = await mounted();
+    const css = m.doc.getElementById('nego-style').textContent;
+    const block = /([^{}]*)\{[^}]*--n-paper:#ffffff/.exec(css);
+    assert.ok(block, 'the paper token must be declared somewhere');
+    for (const sel of ['.nego-selmenu', '.nego-aipop'])
+      assert.ok(block[1].includes(sel),
+        `${sel} floats at body level, so it must be in the token block or it paints with nothing`);
+  });
+
+  test('the room does not borrow the app\'s palette', async () => {
+    /* Typography is the one deliberate exception since the redesign: the
+       room's --n-font-* tokens resolve from the app's global faces, so one
+       design's type reads everywhere. Colour is not — the room keeps its own
+       slate-and-paper ramp, and a room styled half from each palette would
+       read as neither. */
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.ok(!/var\(--color-/.test(css),
       'a room styled half from each palette reads as neither');
-    assert.ok(!/var\(--font-(heading|body|mono)\)/.test(css));
     // including the markup the component generates
     assert.ok(!/var\(--color-/.test(m.html()),
       'inline styles must use the room\'s ramp too');

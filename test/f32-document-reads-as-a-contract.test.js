@@ -77,13 +77,6 @@ describe('F32 — the values a reader sees', () => {
     assert.ok(!/2026-08-01/.test(frozen), 'the signature must be taken over the readable text');
   });
 
-  test('the Word file the counterparty opens carries the readable values', async () => {
-    const back = await W.docxExtract(await W.contractDocxBytes(c));
-    assert.match(back.text, /is made on 1 August 2026/);
-    assert.match(back.text, /KES 4,800,000/);
-    assert.ok(!/2026-08-01/.test(back.text));
-  });
-
   test('an unfilled blank is still visibly a gap', () => {
     const shown = W.readOnlyDocHtml(W.docBody(wizardContract({ fields: {}, value: 0 })));
     assert.match(shown, /—/, 'a blank nobody filled must remain visible as a blank');

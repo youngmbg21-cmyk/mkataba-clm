@@ -5,6 +5,270 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 4 — the signing route (W7 + W8, Sessions 10–11 in one pass)
+
+**Done** (`server/server.js`, `js/core.js`, `js/views/contract.js`,
+`js/views/portal.js`; new `test/f115` 13, `f116` 8, `f117` 6, `f118` 5;
+suite 2078/0 · redline 71/71 · parity 18/18 · selection 22/22; merged to
+`main` per current instruction — stage-boundary merges are back on)
+
+Four commits, one per task, W7 before W8 as ordered:
+
+- **W7 server — the binding and the sequence.** `shares.signer_id` (additive
+  column, the `addColumnIfMissing` precedent; the contract side is a JSON blob
+  and needed nothing). `signerRouteFor`/`signerTurn` read whose turn it is from
+  TWO stores deliberately: internal steps from the contract JSON, counterparty
+  steps from the bound shares' stored responses — the contract only learns of a
+  counterparty signature when the owner's browser polls, and the route must run
+  unattended with that browser closed. A bound link before its turn is created
+  HELD (no email, dormant GET, no `first_opened_at` — an early click on a
+  waiting notice is not "they saw the contract"). Signing out of turn is
+  refused at `/respond` naming who signs first; the moment signer *n*'s
+  signature is STORED, `releaseNextSignerLink` emails signer *n+1*'s link from
+  the respond route. One signer, one link: re-issue refreshes in place, and the
+  refresh is the release when the turn arrived while held.
+- **W7 client — links from the route, and the waiting page.**
+  `issueSigningRouteLinks` issues one bound link per unsigned counterparty
+  signer in route order (flushing saves first — the server binds against the
+  STORED plan; same overtaking that once broke /distribute). A route missing an
+  address is reported whole, never partially issued. `issueSigningAct` is the
+  owner's one "issue a signing link" act (ready strip, room button, and
+  signDocument's internal-completion moment — which used to open the dialog to
+  hand-type ONE recipient, W7 fault 2). The dormant link renders a waiting page
+  naming who is waited on — an earlier signer by name, the sender org
+  collectively — and polls itself alive. `notifyNextSigner`'s internal-only
+  early return is now deliberate and its comment says where counterparty
+  signers ARE handled (fault 1).
+- **W7 fault 3 — the live data-integrity bug.** `applyResponse` stamped an
+  incoming signature on whichever row `nextSigner()` said was next, so the FD
+  signing before the MD landed on the MD's row. A bound response now carries
+  its row (`r.signerId`, server-stamped, never client-claimed) and is checked
+  BEFORE anything is written: out-of-order and replays refused with nothing
+  pushed; a bound row edited off the route keeps the signature with the gap
+  named in the audit and marks NO row; unbound (pre-W7 / static-mode) responses
+  keep next-in-order because that is all they carry. Background refusals are
+  safe: the poller retries and succeeds once the earlier signature lands.
+- **W8 — the code goes to the invited address.** `/otp` sent the code to
+  whatever address the signer typed — proof of control of A mailbox, not the
+  RIGHT one. It now goes only to the share's recorded recipient; `verify-otp`
+  drops its typed-email match (the server chose the destination; the code is
+  the proof); an address-less link fails closed with the way out named. The
+  portal copy that blessed the forward-the-link handover ("signing with a
+  different address is allowed") is rewritten — that handover is what W8
+  removes, and W7's recorded route is its replacement. **Release-note flag:**
+  forwarding a signing link so someone else types their own address and signs
+  no longer works, deliberately.
+
+**What the next session needs to know.**
+- `test/regression.test.js`'s never-return-the-code case was rewritten (share
+  now carries a recipient email; body carries none) — its claim was about
+  leaking the code and stands unchanged.
+- Stage 6 (X6): signing events for the timeline are on the record — link
+  issued (`Shared` audit line naming each signer sent/held), signer emailed
+  (outbox + `sent_at`), signature recorded (`Countersigned … step N of the
+  signing route, on their own bound link`), seal fired (`Signed`).
+- CHECKLIST.md gained Stage 4's behaviour → proving-test table. Stages 0–3
+  never appended theirs (noted here rather than silently backfilled).
+- The dormancy answer on GET `/api/shares/:token` is a 200 with a `dormant`
+  envelope and NO payload — 410 stays reserved for links that are genuinely
+  dead (revoked/expired/route-edited-away/step-already-signed).
+
+**Next:** Stage 5 — the renumber button (N2, Session 12). Entry check:
+`negoNumberingLocked` exists on `main` (arrived with the Stage 0 merge).
+
+---
+
+## Stage 1 — foundations: the view-only link and the signing-step lock
+
+**Done** (`server/server.js`, `js/core.js`; new `test/f108` 12 tests and
+`test/f109` 5; suite 1870/0)
+
+- **WP-1.1 + WP-1.2 — the view-only share link, server side.** A third purpose
+  alongside negotiate and sign. `refuseIfViewOnly` is written once and called
+  from every mutating token route (`respond`, `messages`, `template-values`,
+  and the owner's payload refresh — a view link is a snapshot that states the
+  date it was frozen, so refreshing it would make that a lie). One shared guard
+  rather than four copies of a condition, because the route this must survive is
+  the fifth one, added later by someone who never reads the comment.
+  `viewerPayload()` starts from an empty object and adds the wording, the marks,
+  the round and the as-of date — never deletes from the full payload. f108
+  plants six internal strings and asserts none reaches the response, and asserts
+  the negotiate payload does carry them so the check cannot pass vacuously.
+- **W9 — reserved signing steps, enforced on the server.** Asked as a
+  difference ("did this save newly sign a step reserved for someone else")
+  rather than a state ("is the caller the next signer"), which would have
+  refused every ordinary save on a contract with a signing route. Two of the
+  five tests exist to stop the rule over-firing.
+
+**Still open in Stage 1:** N1 (linked cross-references, closes OI-1) and
+WP-2.2/WP-2.3 (verified identity on counterparty decisions, decision-reason
+nudge). N1's ground — `negoNumberingGaps`, f98 — arrived with the E1 merge.
+
+**Next:** finish Stage 1, then Stage 2 (the counterparty workbench, W1/W2/W4/W5
+plus the Chromium parity harness). See `EXECUTION-PLAN.md` §9 for the live
+build log.
+
+---
+
+## Stage 0 — the execution lock (E1–E5, WORKORDER-execution-lock.md)
+
+**Done** (`js/negotiation.js`, `js/views/negotiation.js`, `js/views/contract.js`,
+`js/core.js`, `server/server.js`; new `test/f106` 29 tests and `test/f107` 10;
+suite 1853/0, browser 69/69)
+
+MK-248 was reported Executed with a live Save change bar on its clause body, and
+the edit filed. negoResolve had carried the signed door for a long time; the
+authoring side asked nothing at all, so the real rule was "you may not rule on a
+change to a signed agreement, but you may author one".
+
+- **E1** merged `origin/claude/clm-clause-renumbering-4imkqd` rather than writing
+  a second `negoExecuted`. That branch already named the predicate, with the
+  argument for reading all three signals (status, seal, execution stamp), plus
+  `negoNumberingLocked`, `negoNumberingGaps` and f98. One definition, not two
+  that agree today. **This also closes the gap recorded in the master work order
+  (X0): those helpers were never on `main`.**
+- **E2** guards `negoFileChange` at the funnel, not at its callers — the fifth
+  caller, the Word-import walk, inherits it without knowing it needs to.
+- **E3** `renderRedline` derives `readonly` from `negoExecuted`, which closes
+  every `canAct`/`editable` gate at once; the room mount in `contract.js` stops
+  asking `status === 'Signed'`; the change index says why it has no verbs.
+- **E4** the server guard already existed (`EXECUTED_IMMUTABLE`) — the work
+  order was wrong to say the route checked nothing. It had two real gaps: the
+  negotiation record (`changes`, `rounds`, `negotiation`, `versions`) was not on
+  the list, so a request could leave the sealed wording alone and rewrite the
+  story of how the parties reached it; and `isExecutedRow` read two signals
+  where the browser reads three (the delete route had already patched the same
+  hole locally, which was the tell). Both closed. `SEAL_ACQUIRABLE` keeps
+  sealing possible on a signed-but-unsealed record, once.
+- **E5** `executedDivergence()` — and the finding that made it necessary:
+  **verifySeal never compared the live body to the sealed copy.** It verifies
+  the frozen copy against itself, so a post-execution edit left the seal
+  reporting valid while the screen showed wording nobody signed. Reports, never
+  repairs; both "repairs" destroy evidence.
+
+**Tests rewritten, not worked around.** f52's room helper filed changes onto an
+already-Signed contract as setup; its `negoResolve` calls were already silent
+no-ops against the signed door, so the acceptances it arranged never existed.
+Now it negotiates first and stamps execution after. f102 gave a Signed fixture a
+document body by PUT, which the guard correctly refuses — MK-A1 ships with its
+body instead (`FIXTURE_BODY_A1` in helpers.js).
+
+**Next:** Stage 1 (WP-1.1 view ticket, N1 linked references, WP-2.2/2.3 capture,
+W9 signer identity) per `EXECUTION-PLAN.md`.
+## Template Library fix work order (user-reported defects, 2026-07-31)
+
+**Done** (WORKORDER-template-library-fixes.md, all four steps; SUMMARY.md
+Run 7 follow-up, BUGLOG.md, LOOP_REPORT.md Loop 5, CHECKLIST.md updated)
+
+- Marker hygiene, four layers: delete strips `{{markers}}` from wording;
+  publish blocks server-side on orphaned markers (plain-English message) and
+  warns on unplaced fields; renderer draws unknown markers as blanks, never
+  raw syntax; converter rebuilds inline signature wording as signature
+  blocks. Damaged drafts repair themselves on open.
+- Blanks are grey (neutral palette, dotted underline) and clickable: an
+  in-place typed popover (owner + portal) validated by the shared registry,
+  committing through the same autosave path as the side panel; filled values
+  are plain text; print shows underscore blanks; signature blanks route to
+  signing.
+- One template world: library folded into the Templates page ("Company
+  standard templates" section), published templates in the + Draft new
+  agreement menu, sidebar count includes them, standalone nav item removed.
+
+**Tested.** New f106 (10); f105 +1 signature-reconciliation case; f103
+re-pinned to the folded-in section; suite 1789/0; both Chromium checks
+green; six real-browser after-screenshots. The screenshot pass caught two
+popover bugs (double commit on Enter; repaint escaping rich HTML — missing
+`format` arg) — fixed same day, see BUGLOG.
+
+**Skipped/deferred.** Migrating old settings-blob custom templates into the
+library (explicitly out of scope for the order).
+
+---
+
+## Template Library & Document Converter (Runs under TEMPLATE_LIBRARY_BRIEF)
+
+**Done** (all four phases; RECON.md, SUMMARY.md Run 7, BUGLOG.md, LOOP_REPORT.md,
+CHECKLIST.md updated; new `js/fieldlib.js`, `js/templateform.js`,
+`js/views/templatelib.js`, `js/views/templatebuilder.js`; server: `/api/templates*`,
+org branding/profile, portal template-values, save-as-template, upload-convert)
+
+- Versioned, permissioned template library with immutable published versions;
+  contracts are independent copies stamped with write-once provenance.
+- Manual builder + save-as-template + upload-and-convert (claude-sonnet-4-6,
+  forced tool_use, unskippable confirmation screen, no auto-approve).
+- Typed fill forms with ONE shared validation registry, owner and portal alike,
+  per-field autosave; signing gates on a complete valid form; org letterhead.
+
+**Tested.** f101–f105 (29 new tests); suite 1692/0. Live-model Brut acceptance
+(≥24/27) marked NOT RUN — needs a real key.
+
+**Skipped/deferred** per the brief's out-of-scope list: PDF/OCR, clause
+library, auto-updating open contracts, cross-org sharing, pricing.
+---
+
+## Clause numbering — the gap a deletion leaves, and the lock after signature
+
+**Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js`;
+new `test/f98-numbering-gaps-and-the-lock.test.js`, 25 tests; no server changes)
+
+Deleting a clause takes its heading and body out and closes nothing up, so a
+contract that loses clause 9 reads 1..8, 10..24. That behaviour is right and
+stays — a number is the text the file carries, and printing one it does not
+carry is a renumbering however small. What was missing is that nothing said so,
+and a lawyer meeting 8 followed by 10 reads a mangled document.
+
+- **`clauseNumberGap(nums, num)`** — is one number missing, and what are its
+  nearest siblings. Sibling-aware and depth-aware: `8.2` is missing from a
+  document carrying `8.1` and `8.3`, is not missing from one carrying only `8`
+  and `9`, and `12` never answers for `1.2`. Numeric ordering throughout, so the
+  notice cannot print its own sentence backwards.
+- **`negoNumberingGaps(c)`** — the gaps this contract's own deletions made.
+  Attributed to an accepted `deleteClause`, never scanned for. Read from
+  `negoAllChanges`, not `c.changes`: closing the round both creates the gap and
+  archives the change that caused it, so the live set is empty of exactly the
+  records this needs. It times itself — an accepted deletion is struck through
+  and stays in the document until the round closes, so nothing is announced
+  before the hole exists.
+- **`negoExecuted(c)` / `negoNumberingLocked(c)`** — the execution test
+  (`status === 'Signed' || hash || execution.at`) had been written out longhand
+  in `negoResolve` with a comment warning that narrowing it to the status alone
+  would drop the seal. The numbering lock needed the same fact, so it is now one
+  named predicate and `negoResolve` calls it rather than a second copy.
+- **The notice** — in the room's working pane and on the redline workbench,
+  inside the document above the first clause. Deliberately NOT in the banner
+  slot: that slot answers one question (where does this stand?) with one answer
+  at a time, and f52 exists because it used to stack.
+
+**Why no scan for skipped numbers.** The obvious implementation is wrong on the
+product's own primary fixture. The prototype's contract is numbered 1, 4, 5, 6,
+9, 12 because it is an extract of a longer agreement, and `clausefixtures.js`
+keeps it that way so nothing can treat a number as an index. A scan reports six
+faults on a perfectly good document and would do the same to every uploaded
+contract shaped like it. `f98` holds that line explicitly.
+
+**Why the notice offers no button.** Closing the gap is a renumbering, and a
+renumbering is a deliberate act — telling somebody what happened is not the same
+as inviting them to undo it. A notice that quietly offers the undo is how a
+contract gets renumbered by somebody who thought they were tidying.
+
+**The lock.** Once a contract is executed its clause numbers are cited by every
+amendment that varies it and by anyone arguing about it afterwards, so tidying
+1..8, 10..24 into 1..23 repoints all of that silently. The notice switches voice
+at execution — "the gap stays exactly where it is" rather than "renumbering is a
+separate, deliberate act" — and `negoNumberingLocked` is the gate any future
+renumbering must pass. There is no renumbering action yet;
+`clauseReplaceHeading` is the primitive it will be built on and still has no
+callers. The gate is written and tested ahead of it on purpose.
+
+**Not built:** the `Renumber clauses` action itself (preview, format-preserving,
+hierarchy-aware) — steps 2 to 4 of OI-2 in `OPEN-ISSUES.md`. Cross-references to
+a deleted clause are still not detected at all — OI-1, untouched.
+
+**1774 tests, 0 failures.** `f98` is new (25 tests). No existing assertion
+needed changing.
+
+---
+
 ## AI assistant chrome — delete history, minimize, unread glow
 
 **Done** (`js/ai.js`, `js/components.js`, `index.html`; no server changes)

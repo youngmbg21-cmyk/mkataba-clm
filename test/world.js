@@ -34,6 +34,7 @@ const ROOT = path.join(__dirname, '..');
 
 /* The modules a negotiation actually runs through, in js/app.js order. */
 const MODULES = [
+  'js/jurisdiction.js', // first, as js/app.js loads it: money and law read from it
   'js/richdoc.js',
   'js/aimd.js',      // the markdown/tone renderer: pure, no DOM beyond escaping
   'js/aichart.js',   // the chart recipes: pure functions of state
@@ -69,6 +70,12 @@ const PLAYBOOK = 'js/playbook.js';
    the tests drive is the pair of pure functions the readiness surface is built
    from, not the full boot. */
 const HOME_VIEW = 'js/views/home.js';
+/* The Doc Lab (buildWorld({docLabView:true})). Loaded on request, and loaded
+   AFTER the negotiation view — the order js/app.js imports them in, which is
+   the whole reason a test would ask for it. Both files publish a function
+   called rlToggleDiscussion, so a stage that holds only one of them cannot see
+   what the other does to it. See test/f90-redline-name-collision.test.js. */
+const DOCLAB_VIEW = 'js/views/doclab.js';
 
 /* The element ids the render paths write into. Present so a render call lands
    somewhere readable rather than silently doing nothing. */
@@ -77,9 +84,15 @@ const HOST_IDS = ['content', 'modal-root', 'print-root', 'share-root', 'app-shel
   'nego-tab'];
 
 function buildWorld(opts = {}) {
+  /* A REAL ORIGIN, so localStorage works. Without a url jsdom serves the
+     document from an opaque origin and every localStorage access throws — which
+     the product survives (every one of them is wrapped, because a no-login
+     portal origin can throw for real) but which means anything REMEMBERED per
+     browser could not be exercised here at all: the pane layout, and now which
+     discussion threads this reader has already opened. */
   const dom = new JSDOM(
     `<!doctype html><html><body>${HOST_IDS.map(id => `<div id="${id}"></div>`).join('')}</body></html>`,
-    { runScripts: 'outside-only', pretendToBeVisual: true });
+    { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://hati.test/' });
   const win = dom.window;
 
   /* Platform pieces the modules reach for that jsdom does not carry. The .docx
@@ -134,7 +147,6 @@ function buildWorld(opts = {}) {
     nowISO: () => new Date().toISOString(),
     todayStr: () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     fmtDT: iso => String(iso || ''),
-    fmtKES: n => 'KES ' + Number(n || 0).toLocaleString('en-KE'),
     esc: s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])),
     icon: () => '<svg></svg>',
 
@@ -260,6 +272,9 @@ function buildWorld(opts = {}) {
   if (opts.contractView) files.push(CONTRACT_VIEW);
   if (opts.playbook) files.push(PLAYBOOK);
   if (opts.homeView) files.push(HOME_VIEW);
+  /* Last, because js/app.js imports it last and the ordering is load-bearing:
+     whichever of these two files evaluates second owns any name they share. */
+  if (opts.docLabView) files.push(DOCLAB_VIEW);
   for (const rel of files) {
     const abs = path.join(ROOT, rel);
     if (!fs.existsSync(abs)) continue;            // docxwrite.js arrives with fix 3

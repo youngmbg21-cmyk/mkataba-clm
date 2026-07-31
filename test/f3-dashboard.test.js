@@ -16,7 +16,7 @@ const { loadViews } = require('./dom');
 
 const VIEWS = ['js/views/home.js'];
 
-function renderWith(contracts, { money = true, shareOverview = {} } = {}) {
+function renderWith(contracts, { money = true, shareOverview = {}, kpis = null } = {}) {
   const sb = loadViews(VIEWS, {
     canViewValues: () => money,
     state: {
@@ -25,6 +25,11 @@ function renderWith(contracts, { money = true, shareOverview = {} } = {}) {
       shareOverview, shareByContract: shareOverview.byContract || {},
     },
   });
+  /* The redesigned ribbon defaults to four money-free cards; a metric outside
+     the default set is chosen through Customize, which the module reads back
+     from per-user storage. Seeding that storage is how a test asks for a card
+     the way a person would. */
+  if (kpis) sb.localStorage.setItem('hati.v1.kpis.u_test', JSON.stringify(kpis));
   sb.renderDashboard();
   return sb.document.getElementById('content').innerHTML;
 }
@@ -55,16 +60,17 @@ describe('F3 — the dashboard only ever contains scoped contracts', () => {
   });
 
   test('every dashboard panel is built from the scoped list', async () => {
-    // "Decisions due", "Needs your action", "Waiting longest", the stage cards
-    // and the share strip all derive from state.contracts / state.shareOverview.
-    // Feed a share overview that (wrongly) mentions folder B and confirm the
-    // scoped contract list is what the panels key off.
+    // The redesigned dashboard is the KPI ribbon, the lifecycle pipeline and
+    // "Decisions due" (which absorbed the old Waiting-longest rows) — all of
+    // them derive from state.contracts / state.shareOverview. Feed a share
+    // overview that (wrongly) mentions folder B and confirm the scoped
+    // contract list is what the panels key off.
     const page = await W.restricted.json('/api/contracts?limit=200');
     const overview = await W.restricted.json('/api/shares/overview');
     const html = renderWith(page.rows, { shareOverview: overview });
     assert.deepEqual(mentionsFolderB(html), []);
-    assert.ok(html.includes('Waiting longest'));
-    assert.ok(html.includes('Needs your action'));
+    assert.ok(html.includes('Key metrics'));
+    assert.ok(html.includes('Active contract lifecycle pipeline'));
     assert.ok(html.includes('Decisions due'));
   });
 });
@@ -76,31 +82,36 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
   ]);
 
   test('"Active value" is not in the KPI ribbon or the customizer', () => {
-    const html = renderWith(sample(), { money: false });
+    // Asking for the money card by seeded preference is the strongest form of
+    // the claim: even chosen explicitly, without the right it does not render —
+    // the catalog filters it out before the preference is honoured.
+    const html = renderWith(sample(), { money: false, kpis: ['under_mgmt', 'active_value'] });
     assert.ok(!html.includes('Active value'), 'the Active value card must not be rendered');
-    assert.ok(html.includes('Under management'), 'the non-money cards are still there');
+    assert.ok(html.includes('Active contracts'), 'the non-money cards are still there');
   });
 
   test('an admin (or anyone with the right) still gets "Active value"', () => {
-    const html = renderWith(sample(), { money: true });
+    // Not in the default four — the redesign leads money-free — but one click
+    // away under Customize, which this seeded preference stands in for.
+    const html = renderWith(sample(), { money: true, kpis: ['under_mgmt', 'active_value'] });
     assert.ok(html.includes('Active value'));
   });
 
   test('the expiring cards drop the KES exposure delta and say when instead', () => {
-    const withMoney = renderWith(sample(), { money: true });
+    const withMoney = renderWith(sample(), { money: true, kpis: ['expiring90'] });
     assert.match(withMoney, /exposure/, 'with the right, the exposure delta is shown');
-    const without = renderWith(sample(), { money: false });
+    const without = renderWith(sample(), { money: false, kpis: ['expiring90'] });
     assert.ok(!without.includes('exposure'), 'the KES exposure delta must go');
     assert.match(without, /soonest in \d+d|none due/, 'the card should say when, not how much');
   });
 
-  test('the renewal pipeline shows counts, with no KES figure', () => {
-    const without = renderWith(sample(), { money: false });
-    const pipeStart = without.indexOf('Renewal pipeline');
-    assert.ok(pipeStart > 0, 'the pipeline panel should still render');
-    const panel = without.slice(pipeStart, without.indexOf('Approvals waiting'));
-    assert.ok(!/KES/.test(panel), 'the pipeline must not print a KES figure');
-    assert.match(panel, /contract[s]? expiring in the next 6 months/);
+  test('the renewal pipeline no longer sits on the dashboard', () => {
+    // The redesign moved it off this page (see the note above the hero section
+    // in js/views/home.js): renewal decisions are dates, so they surface on
+    // the Calendar and in "Decisions due". What is pinned here is that the
+    // old money-bearing panel is genuinely gone rather than renamed.
+    const html = renderWith(sample(), { money: true });
+    assert.ok(!html.includes('Renewal pipeline'));
   });
 
   test('no KES figure appears anywhere on the dashboard without the right', () => {
@@ -109,8 +120,10 @@ describe('F3 — money KPIs are absent, not greyed out, without the right', () =
     assert.ok(!html.includes('48000000') && !html.includes('36000000'), 'a raw amount survived');
   });
 
-  test('the stage cards show contract counts instead of stage totals', () => {
+  test('the pipeline columns show document counts, never stage totals', () => {
     const without = renderWith(sample(), { money: false });
-    assert.match(without, /1 contract/, 'a stage card should count contracts');
+    assert.match(without, /1 doc</, 'a pipeline column should count documents');
+    assert.ok(!/KES/.test(without.slice(without.indexOf('lifecycle pipeline'))),
+      'a pipeline column must not print a money figure');
   });
 });

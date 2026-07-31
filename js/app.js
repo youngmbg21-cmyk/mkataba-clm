@@ -2,12 +2,12 @@
 // execution order, then nav + shell wiring + boot.
 import './components.js';
 import './templates.js';
+import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './core.js';
 import './docx.js';
 import './richdoc.js';
 import './clausemodel.js'; // what a clause IS: read from the DOM, identified by a durable id
 import './redline.js';   // the negotiation's diff: Myers ops, stored and rendered from storage
-import './docxwrite.js';   // the .docx writer (needs richdoc's sanitiser + docx.js's classifier)
 import './richpaste.js';
 import './api.js';
 import './aimd.js';    // markdown + tone markers, escaped: a model's words are untrusted input
@@ -17,7 +17,6 @@ import './metadata.js';
 import './versioning.js';
 import './discuss.js';    // the light channel: talking about a point, not redrafting it
 import './negotiation.js'; // the fingerprinted change model every intake path converges on
-import './wordflow.js';
 import './obligations.js';
 import './playbook.js';
 import './approvals.js';
@@ -33,6 +32,9 @@ import './dedupe.js';
 import './family.js';
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/contract.js';
+// the sandbox beside the Doc page: internal-vs-shared tried on a page that
+// cannot write to a contract or reach a share payload (see views/doclab.js)
+import './views/doclab.js';
 import './pdfrich.js';
 import './views/intelligence.js';
 import './ai.js';
@@ -42,6 +44,10 @@ import './views/advice.js';
 import './views/adviceportal.js';
 import './templatefields.js';
 import './views/library.js';
+import './fieldlib.js';            // the template-library field catalogue (shared with the server)
+import './templateform.js';        // template-form rendering + validation (shared with the server)
+import './views/templatelib.js';   // the versioned company standard-template library
+import './views/templatebuilder.js';  // edits one draft version of a library template
 import './views/migration.js';
 
 /* ============================================================ NAV */
@@ -65,7 +71,7 @@ function openNavSection(sec, open){
 function commandMeta(view){
   const cs=state.contracts, count=cs.length;
   const m=(window.metrics?metrics():{totalValue:0});
-  const totalV=fmtKESshort(m.totalValue||0);
+  const totalV=fmtMoneyShort(m.totalValue||0);
   switch(view){
     case 'dashboard': {
       // agreements, not files: a master agreement plus six addenda is ONE
@@ -76,12 +82,15 @@ function commandMeta(view){
       return ['Portfolio', `${head} · ${totalV} active value`];
     }
     case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
-    case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
+    case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
-    case 'intel':     return ['Portfolio Intelligence', 'Copilot contract graph · clustered by value stream'];
-    case 'calendar':  return ['Renewal Calendar', 'expiries, renewal decisions and obligation due dates'];
+    // Named to match the nav item exactly. One feature answering to two names —
+    // "Portfolio Intel" in the sidebar, "Portfolio Intelligence" on the page —
+    // is one name too many for a reader trying to describe where they were.
+    case 'intel':     return ['Portfolio Intel', 'Copilot contract graph · clustered by value stream'];
+    case 'calendar':  return ['Renewal Calendar & Obligations', 'expiry, renewal-decision deadlines and obligations — surfaced automatically from every contract'];
     case 'migration': return ['Migration', 'bulk-import an existing portfolio · Copilot extraction with human review'];
     case 'reports':   return ['Reports', 'cycle time, bottlenecks, value concentration and the renewal pipeline'];
     case 'team':      return ['Team & Settings', 'members, roles, approval gate and the Copilot engine'];
@@ -92,15 +101,88 @@ function commandMeta(view){
       const c=getContract(state.activeId);
       return ['Contract Workspace', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
     }
+    case 'doclab': {
+      const c=getContract(state.activeId);
+      return ['Doc Lab (sandbox)', c?`${c.id} · trying internal vs shared — nothing here is saved to the contract`:'open a contract from the register'];
+    }
+    case 'redline': {
+      const c=getContract(state.activeId);
+      return ['Redline', c?`${c.id} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:'open a contract from the register'];
+    }
     default: return ['HaTi', ''];
   }
 }
-function updateCommandBar(view){
-  const [t,s]=commandMeta(view);
-  const te=document.getElementById('cmd-title'), se=document.getElementById('cmd-sub');
-  if(te) te.textContent=t;
-  if(se) se.textContent=s;
+/* ---------- THE PAGE HEADER ----------
+   Each page states its own name and offers its own verbs. Two rules decide
+   what appears, and both come from the reference:
+
+     · THE DASHBOARD GETS NO HEADER AT ALL. Its hero already says what the
+       screen is and already carries "Draft new agreement". A title bar above
+       it repeated the name and put a second create button directly over the
+       first — the duplication that prompted this.
+
+     · A PAGE OFFERS ONLY ITS OWN VERBS. Export belongs where there is a
+       working set to export; drafting belongs where a reader is looking at
+       contracts, not at a calendar or an import queue. Anything a page
+       already renders for itself is not repeated here — Templates draws its
+       own "Create template", so it gets no create button from this. */
+const PAGE_ACTIONS = {
+  register: ['export', 'new'],
+  folder:   ['export', 'new'],
+  workspace:['export'],
+  pipeline: ['new'],
+  reports:  ['export'],
+};
+function pageActionHtml(kind){
+  if(kind==='export') return `<button data-page-export class="ui-btn" style="font-size:12px;padding:6px 12px" title="Export the working set">`+
+    `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export</button>`;
+  if(kind==='new') return `<button data-page-new class="ui-btn ui-btn-primary" style="font-size:12px;padding:6px 14px">+ New contract</button>`;
+  return '';
 }
+/* PAGES THAT ALREADY STATE THEIR OWN NAME get no header from here — putting
+   one above them is the second layer this whole change removes.
+
+     dashboard  the hero says what the screen is and carries its one verb
+     redline    the workbench's own head card names the contract and the round,
+                and carries the view toggle, Accept All and Publish Round
+     workspace  the contract page leads with the contract's own name
+     doclab     the lab's status strip does the same for the sandbox
+
+   Everything else is a list or a tool with no name of its own, and says who it
+   is here. */
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'doclab'];
+function renderPageHeader(view){
+  const host=document.getElementById('page-head'); if(!host) return;
+  if(PAGE_OWNS_HEADER.includes(view)){ host.innerHTML=''; host.style.padding='0'; syncViewHeight(); return; }
+  const [t,sub]=commandMeta(view);
+  const acts=(PAGE_ACTIONS[view]||[]).map(pageActionHtml).join('');
+  host.style.padding='16px 20px 0';
+  host.innerHTML=`
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="min-width:0">
+        <h1 style="margin:0;font-family:var(--font-heading);font-size:21px;font-weight:700;letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${esc(t)}</h1>
+        ${sub?`<p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-500);line-height:1.5">${esc(sub)}</p>`:''}
+      </div>
+      ${acts?`<div style="display:flex;align-items:center;gap:8px;flex:none">${acts}</div>`:''}
+    </div>`;
+  syncViewHeight();
+}
+/* The full-height views size themselves against this rather than a constant,
+   so a page header that grows a line — or a dashboard that has none at all —
+   never leaves them overflowing or short. Measured from the scroll container
+   itself, which is exactly the room a view has. */
+function syncViewHeight(){
+  const sc=document.getElementById('content-scroll');
+  const root=document.documentElement;
+  /* Both guarded: the node tests render this switch against a cut-down
+     document that has neither a scroll container nor a documentElement. */
+  if(sc && root && root.style) root.style.setProperty('--view-h', sc.clientHeight+'px');
+}
+/* Kept under its old name because the shell and several views call it. */
+function updateCommandBar(view){ renderPageHeader(view); }
+/* Guarded rather than assumed: this module is evaluated on a cut-down stage in
+   the node tests, where there is no global addEventListener to bind to. */
+if(typeof addEventListener==='function') addEventListener('resize', syncViewHeight);
 function updateSidebarCounts(){
   const cs=state.contracts;
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
@@ -109,35 +191,100 @@ function updateSidebarCounts(){
     register: total,
     pipeline: cs.filter(c=>c.status==='Under Review').length,
     advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
-    calendar: (window.allObligations?allObligations().filter(o=>{ const d=window.daysUntil?daysUntil((o.due||'').slice(0,10)):null; return d!=null&&d>=0&&d<=60; }).length:0),
+    /* obligationDue, not `.slice(0,10)`: slicing ten characters off "31 March
+       2027" produces "31 March 2", which is not a date either — the count
+       simply left out every obligation whose date a person had typed. */
+    calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
+      const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
-    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
+    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
+      + (window.tplLibCount?tplLibCount():0),
   };
+  /* Tone of the count pill: teal = size of the portfolio, amber = items
+     waiting on a person. A zero drops to neutral so an amber tag never cries
+     wolf over an empty queue. */
+  const NAV_COUNT_TONE={dashboard:'teal',register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString('en-KE');
+    const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
+    if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
 }
 
 /* ============================================================ SHELL VIEW SWITCH */
+const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
+  calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
+  pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
+  team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
+  redline:'the Redline workbench' };
+
+/* WHAT THE SCREEN SAYS WHEN A RENDER THROWS.
+
+   A view is built from the whole portfolio, so one malformed record inside one
+   contract can take the screen down for every other contract on it. That is not
+   hypothetical — an expiry typed as "30 September 2026" made `toISOString()`
+   throw out of renewalDecisionDate, out of renderDashboard, and Home and
+   Calendar both went dead. And "dead" meant SILENT: the throw escaped before
+   setActiveNav ran, so the nav button never highlighted and pressing it looked
+   like a button that did nothing at all. Nothing on the screen, nothing in the
+   toast, nothing to report.
+
+   Two things follow, and the second matters more than the first. The render is
+   caught, so the rest of setView runs and the shell arrives in a coherent state
+   — the nav highlights, the sidebar counts update, the view is switched. And
+   the failure is SAID: named view, the error, and the record if the error
+   carries one. A screen that cannot draw itself must not pretend it was never
+   asked to. */
+function renderFailedHtml(view, e, cid){
+  const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
+  return `<div style="max-width:640px;margin:40px auto;border:1px solid #e6c9c1;border-left:4px solid #b0453c;
+      background:#fdf4f2;border-radius:8px;padding:16px 20px">
+    <div style="font-size:14px;font-weight:600;color:#8f322b;margin-bottom:6px">${esc(VIEW_LABEL[view]||view)} could not be drawn</div>
+    <div style="font-size:12.5px;line-height:1.6;color:var(--color-neutral-800)">
+      Something in the portfolio stopped this screen from rendering${cid?` — the record involved is <b>${esc(cid)}</b>`:''}.
+      Every other screen still works, and nothing has been changed or lost.
+    </div>
+    <div style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:#8f322b;word-break:break-word">${esc((e&&e.message)||String(e))}</div>
+  </div>`;
+}
 function setView(view){
   // remember where the workspace was opened from, so its Back button returns
   // there (register, a folder, the queue, …) instead of always the folder view
   if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
+  // focus mode is a posture, not a setting: arriving at the Redline tab from
+  // any other view always lands on the full screen with its exits visible
+  if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
   state.view=view;
-  if(view==='dashboard') renderDashboard();
-  else if(view==='folder') renderFolder();
-  else if(view==='intel') renderIntel();
-  else if(view==='calendar') renderCalendar();
-  else if(view==='reports') renderReports();
-  else if(view==='register') renderRegister();
-  else if(view==='migration') renderMigration();
-  else if(view==='pipeline') renderPipeline();
-  else if(view==='advice') renderAdviceDesk();
-  else if(view==='templates') renderTemplatesPage();
-  else if(view==='playbook') renderPlaybookPage();
-  else if(view==='team') renderTeam();
-  else renderWorkspace();
+  try{
+    if(view==='dashboard') renderDashboard();
+    else if(view==='folder') renderFolder();
+    else if(view==='intel') renderIntel();
+    else if(view==='calendar') renderCalendar();
+    else if(view==='reports') renderReports();
+    else if(view==='register') renderRegister();
+    else if(view==='migration') renderMigration();
+    else if(view==='pipeline') renderPipeline();
+    else if(view==='advice') renderAdviceDesk();
+    else if(view==='templates') renderTemplatesPage();
+    else if(view==='playbook') renderPlaybookPage();
+    else if(view==='team') renderTeam();
+    else if(view==='doclab') renderDocLab();
+    else if(view==='redline') renderRedline();
+    else renderWorkspace();
+  }catch(e){
+    /* The id, when the record can be named. An error raised deep in a helper
+       does not know which contract it was reading, so nothing is invented: the
+       id travels only when the thrower attached one, or when the view is about
+       a single contract and there is therefore no doubt which. */
+    const cid=(e&&e.contractId)||((view==='workspace'||view==='doc')?state.activeId:null);
+    try{ console.error('[hati] '+view+' failed to render', e); }catch(_){}
+    try{
+      const host=document.getElementById('content');
+      if(host) host.innerHTML=renderFailedHtml(view, e, cid);
+    }catch(_){}
+    if(window.toast) toast(`${VIEW_LABEL[view]||view} could not be drawn${cid?` — check ${cid}`:''}: ${(e&&e.message)||e}`,'err');
+  }
   setActiveNav(view);
   updateCommandBar(view);
   updateSidebarCounts();
@@ -145,6 +292,10 @@ function setView(view){
   renderContextPanel();
   if(getOrg()&&!API_MODE()) persist();
   else if(getOrg()) lsSet(LS.ui,{ view:state.view, activeId:state.activeId, folderId:state.folderId });
+  /* Opening a contract that is out with the other side is the moment to start
+     watching closely, and leaving it is the moment to stop. */
+  if(window.schedulePolling) schedulePolling();
+  if(view==='workspace' && window.pollNow) pollNow('opened a contract');
   const sc=document.getElementById('content-scroll'); if(sc) sc.scrollTo({top:0});
 }
 function openFolder(fid){
@@ -183,15 +334,23 @@ function renderNewMenu(){
   const menu=document.getElementById('new-menu'); if(!menu) return;
   const creatable=(window.myCreatableTemplates?myCreatableTemplates():Object.values(TEMPLATES));
   const item=(ic,bg,fg,title,sub,attrs='')=>`
-    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:4px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(89,128,166,.1)'" onmouseout="this.style.background='none'">
+    <button ${attrs} class="new-menu-item" style="width:100%;display:flex;align-items:center;gap:10px;border:0;background:none;cursor:pointer;padding:8px;border-radius:8px;text-align:left;color:inherit;" onmouseover="this.style.background='rgba(13,148,136,.09)'" onmouseout="this.style.background='none'">
       <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:4px;background:${bg};color:${fg};">${icon(ic,'w-[15px] h-[15px]')}</span>
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   const myTpls=(window.customTemplates&&canEdit())?customTemplates():[];
+  /* Company standard templates (the versioned library) sit above the built-in
+     papers: the whole point of publishing one is that it becomes the team's
+     one-click default. Served from the library cache; a background refresh
+     re-renders the open menu when the list has moved. */
+  const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   menu.innerHTML=`
     ${item('upload','#f1e6cd','#7d5a14','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--color-accent-100)','var(--color-accent-800)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
     ${item('sparkle','var(--color-accent-200)','var(--color-accent-800)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${libTpls.length?`
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
+    ${libTpls.map(t=>item('copy','#e8f4ee','#1e6b4d',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
     ${myTpls.map(t=>item('copy','var(--color-accent-100)','var(--color-accent-800)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
@@ -204,6 +363,8 @@ function renderNewMenu(){
   // contract's data (counterparty, value, dates, payment terms).
   menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
+  menu.querySelectorAll('[data-newlib]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); tplLibNewContract(el.getAttribute('data-newlib')); }));
+  if(API_MODE()&&window.tplLibRefresh) tplLibRefresh().then(changed=>{ if(changed&&!menu.classList.contains('hidden')) renderNewMenu(); });
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
@@ -215,7 +376,7 @@ function exportWorkingSetCsv(){
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
   if(!rows.length){ toast('Nothing to export','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Stream','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
@@ -374,6 +535,53 @@ function renderContextPanel(){
   body.querySelectorAll('[data-sel-act]').forEach(el=>el.addEventListener('click',()=>selectContract(el.getAttribute('data-sel-act'))));
 }
 
+/* ============================================================ THEME + JURISDICTION (shell header) */
+/* Light / dark via the `dark` class on <html> (Tailwind darkMode:'class' and
+   the html.dark token block in index.html). A tiny head script applies the
+   saved choice before first paint, so this only handles the live toggle. */
+/* Guarded rather than assumed: this module is evaluated on a cut-down stage in
+   the node tests, where document.documentElement does not exist. */
+function applyTheme(mode){ const root=document.documentElement; if(root&&root.classList) root.classList.toggle('dark', mode==='dark'); }
+function toggleTheme(){
+  const root=document.documentElement; if(!root||!root.classList) return;
+  const dark=!root.classList.contains('dark');
+  applyTheme(dark?'dark':'light');
+  try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
+  if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
+}
+/* ---------- Jurisdiction switcher (top header) ----------
+   This control existed and did nothing: it set a data attribute and told the
+   reader their jurisdiction had switched, while the app went on formatting
+   money as KES, telling the Copilot the contract was under Kenyan law, and
+   citing a Kenyan Act on the executed copy. A switch that reports a change it
+   did not make is worse than no switch, because the reader believes it.
+
+   It is wired now. The code is the pack id from js/jurisdiction.js, so
+   pressing it moves the currency, the governing-law sentences, the scanner's
+   statute checks and the playbook's positions together — and the screen is
+   repainted, because half the app would otherwise keep showing the old market
+   until something else happened to redraw it. */
+const REGIONS={ SE:{ id:'sweden', label:'Sweden (EU/GDPR)' }, KE:{ id:'kenya', label:'Kenya (KICA/ODPC)' } };
+const regionCodeFor = id => Object.keys(REGIONS).find(k=>REGIONS[k].id===id) || 'KE';
+function applyRegion(code){
+  state.region=code;
+  const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
+  const se=document.getElementById('region-se'), ke=document.getElementById('region-ke');
+  if(se&&se.classList) se.classList.toggle('active',code==='SE');
+  if(ke&&ke.classList) ke.classList.toggle('active',code==='KE');
+}
+function setRegion(code,opts){
+  if(!REGIONS[code]) return;
+  /* The jurisdiction is the record; the code is this control's label for it. */
+  if(window.jxSet) jxSet(REGIONS[code].id);
+  applyRegion(code);
+  try{ localStorage.setItem('hati-region',code); }catch(e){}
+  if(opts&&opts.silent) return;
+  /* Everything on screen was rendered against the old market. */
+  if(window.setView) setView(state.view||'dashboard');
+  if(window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label} — money, governing-law checks and Copilot briefings follow it`);
+}
+
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */
 function wireShell(){
   // nav
@@ -405,14 +613,30 @@ function wireShell(){
   // global jump palette (⌘K hint button in the search box)
   document.getElementById('cmd-k-hint')?.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); openCommandPalette(); });
 
-  // export
-  document.getElementById('cmd-export')?.addEventListener('click',exportWorkingSetCsv);
-
-  // new-contract menu (re-rendered on open so newly saved templates appear)
+  // Export and + New contract are drawn into the page header per view, so they
+  // are bound by delegation — binding once at startup would hold a reference to
+  // a button that the next render replaces.
   renderNewMenu();
-  const nb=document.getElementById('cmd-new'), nm=document.getElementById('new-menu');
-  nb&&nb.addEventListener('click',e=>{ e.stopPropagation(); if(nm.classList.contains('hidden')) renderNewMenu(); nm.classList.toggle('hidden'); });
-  document.addEventListener('click',e=>{ if(nm&&!nm.classList.contains('hidden')&&!nm.contains(e.target)&&e.target!==nb&&!nb.contains(e.target)) nm.classList.add('hidden'); });
+  const nm=document.getElementById('new-menu');
+  document.addEventListener('click',e=>{
+    const exp=e.target.closest?.('[data-page-export]');
+    if(exp){ exportWorkingSetCsv(); return; }
+    const nb=e.target.closest?.('[data-page-new]');
+    if(nb){
+      e.stopPropagation();
+      if(nm.classList.contains('hidden')){
+        renderNewMenu();
+        // Anchored under its trigger and clamped to the viewport, because the
+        // trigger is no longer in a fixed strip at a known position.
+        const r=nb.getBoundingClientRect();
+        nm.style.top=Math.round(r.bottom+6)+'px';
+        nm.style.left=Math.round(Math.min(Math.max(8,r.right-300),window.innerWidth-308))+'px';
+      }
+      nm.classList.toggle('hidden');
+      return;
+    }
+    if(nm&&!nm.classList.contains('hidden')&&!nm.contains(e.target)) nm.classList.add('hidden');
+  });
 
   // Copilot
   document.getElementById('cmd-ai')?.addEventListener('click',()=>openAI());
@@ -420,6 +644,18 @@ function wireShell(){
 
   // panel toggle (Activity feed only)
   document.getElementById('cmd-panel')?.addEventListener('click',()=>{ state.panelOpen=!state.panelOpen; applyPanelLayout(); if(state.panelOpen){ refreshActivityFeed(true); renderContextPanel(); } });
+  // header bell = the same live Activity feed (no second notification system)
+  document.getElementById('hdr-notify')?.addEventListener('click',()=>document.getElementById('cmd-panel')?.click());
+
+  // theme toggle + jurisdiction switcher (top header)
+  document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
+  document.getElementById('region-se')?.addEventListener('click',()=>setRegion('SE'));
+  document.getElementById('region-ke')?.addEventListener('click',()=>setRegion('KE'));
+  /* The stored JURISDICTION is the truth, not this control's own key: a
+     workspace that set its market on another device (it rides on the org
+     record) must not have it silently reverted by whatever this browser last
+     had in localStorage. */
+  setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
 }
 
 // default panel state — closed on load/refresh; the user opens it with the
@@ -459,4 +695,4 @@ if(state.panelOpen===undefined) state.panelOpen=false;
 // which calls startApp() directly.
 wireShell();
 
-Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,wireShell,openCommandPalette,commandPaletteResults});
+Object.assign(window,{createFromTemplate,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,renderContextPanel,selectContract,applyPanelLayout,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setRegion,buildActivityFeed,refreshActivityFeed,relTime});

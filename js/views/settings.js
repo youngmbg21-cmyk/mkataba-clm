@@ -776,7 +776,7 @@ function renderPlaybookView(){
   }));
   document.getElementById('pb-add')?.addEventListener('click',()=>openPlaybookEditor(null));
   document.getElementById('pb-reset')?.addEventListener('click',async()=>{
-    if(!await confirmDialog({title:'Reset the playbook to defaults?', message:'This discards your custom positions, thresholds and contract types and restores the built-in Kenyan-practice playbook.', confirmLabel:'Reset playbook', danger:true})) return;
+    if(!await confirmDialog({title:'Reset the playbook to defaults?', message:`This discards your custom positions, thresholds and contract types and restores the built-in ${jxPlaybookLabel()} playbook.`, confirmLabel:'Reset playbook', danger:true})) return;
     state.settings=state.settings||{}; delete state.settings.playbook; if(typeof saveSettings==='function') saveSettings();
     renderPlaybookView(); toast('Playbook reset to defaults');
   });
@@ -881,10 +881,10 @@ function openClauseEditor(idx){
 }
 
 /* ---- E5 approval rules builder (Admin) ---- */
-const AR_CONDS=[['value','Value ≥ (KES)'],['folder','Value stream is'],['kind','Type contains'],['foreignLaw','Foreign governing law'],['deviation','Playbook deviation present']];
+const AR_CONDS=()=>[['value',`Value ≥ (${jxCurrency()})`],['folder','Value stream is'],['kind','Type contains'],['foreignLaw','Foreign governing law'],['deviation','Playbook deviation present']];
 function condLabel(cond){
   switch(cond.type){
-    case 'value': return `Value ${cond.op||'>='} ${fmtKESshort(cond.value)}`;
+    case 'value': return `Value ${cond.op||'>='} ${fmtMoneyShort(cond.value)}`;
     case 'folder': return `Folder = ${(FOLDERS[cond.value]||{}).name||cond.value}`;
     case 'kind': return `Type contains “${cond.value}”`;
     case 'foreignLaw': return 'Foreign governing law';
@@ -915,7 +915,7 @@ function openApprovalRuleEditor(idx){
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Order (lower approves first)</span>
       <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Condition</span>
-      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${AR_CONDS.map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
     <div id="ar-condval" class="mb-2.5"></div>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">Approver</span>
       <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">
@@ -927,7 +927,7 @@ function openApprovalRuleEditor(idx){
       <button id="ar-save" class="rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-600 hover:bg-brand-700">Save rule</button></div>
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
-    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Threshold (KES)</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
+    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Threshold (${jxCurrency()})</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
     else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Value stream</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
     else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">Type contains</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="e.g. lease" class="mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">No extra value needed for this condition.</p>`; };

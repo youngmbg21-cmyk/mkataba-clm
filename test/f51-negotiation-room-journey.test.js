@@ -113,8 +113,8 @@ function theirLink(c, o = {}){
       }
       return el;
     },
-    readyBtn: () => $('#nego-cp-ready'),
-    why: () => ($('#nego-ready-why') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
+    readyBtn: () => $('#pt-nego-ready'),
+    why: () => ($('#pt-ready-why') || {}).textContent?.replace(/\s+/g, ' ').trim() || '',
     /* The response IS the body, on every action. Read exactly that, so a
        regression that re-wrapped it would fail here rather than be tolerated. */
     sent: () => p.log.sent.map(x => x.body).filter(Boolean),
@@ -138,56 +138,68 @@ const auditText = c => (c.audit || []).map(e => `${e.action}: ${e.detail}`).join
 /* ============================================================
    STEP 2 — they land on the room, and there is nothing else
    ============================================================ */
-describe('the link they were sent is the room, and the room is all there is', () => {
-  test('a negotiation link opens on the room without anyone pressing anything', async () => {
+describe('the link they were sent is the workbench, and there is no room', () => {
+  /* THE ROOM IS RETIRED. The counterparty's link now lands on the same
+     Redline Workbench the owner works on — the document with the marks on it,
+     the Tracked Changes column, the Discussion column — mounted in their page
+     with their transport wired to it. One surface, both sides; the old
+     three-pane room exists on no route on either side. */
+  test('a negotiation link opens on the workbench without anyone pressing anything', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'negotiate');
-    assert.ok(v.$('#nego-room'), 'the full-window room is the landing');
-    assert.equal(v.$$('#nego-room .nego-pane').length, 3);
+    assert.equal(v.$('#nego-room'), null, 'the room is retired — no route opens it');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench embed is the landing');
+    for (const id of ['rl-doc', 'rl-changes-col', 'rl-disc-col'])
+      assert.ok(v.$('#pt-nego [id="' + id + '"]'), 'the design\'s column: #' + id);
   });
 
-  test('and it stays the room when everything on it is resolved', async () => {
+  test('and it stays the workbench when everything on it is resolved', async () => {
     const { win, c, filed } = await ownerProposed();
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirLink(c);
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'negotiate',
       'the link carries its purpose; the change count does not get a vote');
-    assert.ok(v.$('#nego-room'));
+    assert.ok(v.$('#pt-nego .rl-embed'));
   });
 
-  test('there is no exit, no Esc route, and no page behind it', async () => {
+  test('Escape does not disturb the page — there is no overlay to fall out of', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    assert.equal(v.$('#nego-exit'), null, '"← Doc" points at a workspace they do not have');
-    assert.equal(v.$('.nego-exit'), null);
     const ev = new v.win.Event('keydown'); ev.key = 'Escape';
     v.win.document.dispatchEvent(ev);
-    assert.ok(v.$('#nego-room'), 'Escape must not empty the window under them');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'the workbench is page content, not a mode');
   });
 
-  /* Everything the card carried was unreachable behind a fixed full-window
-     overlay — but it was still in the page: a second "open the room" button and
-     a second send a keyboard could tab to, and a second element for every id
-     the room uses. */
-  test('and nothing of the old lobby is left in the page behind it', async () => {
+  test('the workbench panel IS the page — no lobby, no second door', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     const doc = v.win.document;
-    assert.equal(doc.querySelector('#pt-nego-wrap'), null, 'no card describing the room');
-    assert.equal(doc.querySelector('#pt-nego-open'), null, 'no second way into a room they are in');
-    assert.equal(doc.querySelector('#pt-nego-send'), null, 'and no second send');
-    assert.equal(doc.querySelectorAll('[id="nego-cp-ready"]').length, 1,
+    /* #pt-nego-wrap was the CARD the workbench used to be mounted inside — a
+       titled panel in a 1100px column, which is precisely what W1 removed: it
+       is what squeezed the contract pane to 419px against the owner's 925px.
+       The claim this test makes is unchanged and is the same one W1 makes more
+       strongly — the workbench IS the page, with no lobby in front of it — so
+       it is now asserted against the page itself rather than against the card
+       that used to stand in for it. */
+    assert.ok(doc.querySelector('#pw-page'), 'the workbench is the page');
+    assert.ok(doc.getElementById('pt-nego'), 'and the shared component is mounted in it');
+    assert.ok(!doc.getElementById('pt-nego').classList.contains('hidden'));
+    assert.equal(doc.querySelector('#pt-nego-open'), null,
+      'no door to a room that no longer exists');
+    assert.equal(doc.querySelectorAll('[id="pt-nego-ready"]').length, 1,
       'one Ready to sign in the document, so a press cannot reach a copy of it');
   });
 
   test('the owner-only controls are still absent, and the bulk verbs still present', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-share-link', 'nego-insert-lib'])
-      assert.equal(v.$('#nego-room #' + id), null, id + ' is ours');
-    assert.ok(v.$('#nego-room #nego-bulk-acc'), '"I agree to all of it" is a real answer');
-    assert.ok(v.$('#nego-room #nego-bulk-rej'));
+    for (const id of ['nego-copilot', 'nego-save-draft', 'nego-insert-lib', 'nego-share-link', 'nego-send'])
+      assert.equal(v.$('#pt-nego [id="' + id + '"]'), null, id + ' is ours');
+    assert.ok(!/AI Assist/.test(v.$('#pt-nego').textContent),
+      'no Copilot panel on their page, so no AI Assist pointing at one');
+    assert.ok(v.$('#pt-nego [id="nego-bulk-acc"]'), '"I agree to all of it" is a real answer');
+    assert.ok(v.$('#pt-nego [id="nego-bulk-rej"]'));
   });
 
   /* The button that did nothing. It is not disabled or relabelled — it is not
@@ -211,15 +223,17 @@ describe('the link they were sent is the room, and the room is all there is', ()
    STEP 3 — deciding changes, one at a time and in bulk
    ============================================================ */
 describe('they work through the changes', () => {
-  test('Accept, Reject, Discuss and Undo are all on the card', async () => {
+  test('Accept and Reject are on the card; a held decision keeps its Undo', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
     assert.ok(v.$(`[data-nego-accept="${id}"]`));
     assert.ok(v.$(`[data-nego-reject="${id}"]`));
-    assert.ok(v.$(`[data-nego-discuss="${id}"]`));
+    // discussion is a COLUMN on this surface, not a per-card toggle
+    assert.ok(v.$('#pt-nego [id="rl-disc-col"]'), 'the thread column is on their screen');
     await v.press(`[data-nego-accept="${id}"]`);
-    assert.ok(v.$(`[data-nego-undo="${id}"]`), 'and every decision is reversible');
+    assert.ok(v.$(`[data-nego-undo="${id}"]`),
+      'held is not sent — every decision is reversible until it leaves the page');
   });
 
   test('a decision is held on the page, and the send appears in the index with it', async () => {
@@ -227,8 +241,8 @@ describe('they work through the changes', () => {
     const v = theirLink(c);
     assert.equal(v.$('#nego-send-decisions'), null, 'nothing decided, nothing to send');
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
-    const send = v.$('#nego-room .nego-pane.index #nego-send-decisions');
-    assert.ok(send, 'the send belongs with the decisions, not in the deal-verb bar');
+    const send = v.$('#pt-nego [id="nego-send-decisions"]');
+    assert.ok(send, 'the send belongs with the decisions, in the Tracked Changes column');
     assert.match(send.textContent, /Send 1 decision/);
     assert.equal(v.last(), null, 'and nothing has actually left yet');
   });
@@ -247,11 +261,20 @@ describe('they work through the changes', () => {
      document.getElementById, which returns the FIRST match in the document:
      always the hidden one. So on their page the room's bulk verbs, index fold,
      drawer and per-change reply boxes had no handlers on them at all. */
-  test('the room\'s own bulk verbs are wired to the room, not to the copy underneath', async () => {
+  test('there is only ONE copy of the negotiation on the page, and the verbs reach it', async () => {
+    /* This used to assert there were TWO — the room, and a hidden embedded
+       mount underneath it — and then prove that a press reached the visible
+       one. The right answer was never "make sure the duplicate loses"; it was
+       to stop rendering the duplicate. Two copies meant two elements for every
+       id the room uses, and portalRespond picked the button it reports
+       progress on with getElementById — so "Sending…" was being written onto a
+       copy nobody could see. On a negotiation link the room IS the page, so
+       the embedded mount is skipped and every id is unique again. */
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
-    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 2,
-      'the fixture must really have two copies, or this proves nothing');
+    assert.equal(v.$$('[id="nego-bulk-acc"]').length, 1,
+      'exactly one negotiation on the page');
+    assert.equal(v.$$('[id="nego-cards"]').length, 1, 'and one change index');
     await v.press('#nego-bulk-acc');
     assert.match(v.$('#nego-send-decisions').textContent,
       new RegExp(`Send ${filed.length} decisions`), 'the press must reach the room');
@@ -261,9 +284,11 @@ describe('they work through the changes', () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     const id = filed[0].id;
-    await v.press(`[data-nego-discuss="${id}"]`);
     const box = v.$(`[id="nego-ti-${id}"]`);
-    assert.ok(box, 'the thread opens in the room');
+    assert.ok(box, 'the discussion column offers the change its composer');
+    // the starter defaults INTERNAL — a forgotten field stays home. Sending to
+    // them is the deliberate act, so the switch is pressed like a person does.
+    await v.press(`[data-nego-vis="shared"][data-for="${id}"]`);
     box.value = 'Net-45 works for us if delivery stays at 14 days.';
     await v.press(`[data-nego-send="${id}"]`);
     const msg = v.p.log.messages[v.p.log.messages.length - 1];
@@ -282,19 +307,22 @@ describe('they work through the changes', () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
     const id = filed[0].id;
-    await v.press(`[data-nego-discuss="${id}"]`);
+    await v.press(`[data-nego-vis="shared"][data-for="${id}"]`);
     v.$(`[id="nego-ti-${id}"]`).value = 'Who is this from?';
     await v.press(`[data-nego-send="${id}"]`);
     assert.equal(v.p.log.messages.length, 0);
     assert.match(v.toasts(), /Enter your full name/);
   });
 
-  test('and the index fold', async () => {
+  test('and the sidebar\'s mode tabs', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    await v.press('#nego-fold');
-    assert.ok(v.$('[id="nego-unfold"]') || v.win.negoLayout().idxOff,
-      'folding the index away is a room control, and must act on the room');
+    const root = v.$('#pt-nego .rl-embed');
+    await v.press('#pt-nego [data-rl-mode="disc"]');
+    assert.equal(root.getAttribute('data-rl-side-mode'), 'disc',
+      'switching the sidebar is a workbench control, and must act on this mount');
+    await v.press('#pt-nego [data-rl-mode="changes"]');
+    assert.equal(root.getAttribute('data-rl-side-mode'), 'changes');
   });
 
   test('Reject All does too, and leaves the deal contested rather than settled', async () => {
@@ -310,10 +338,15 @@ describe('they work through the changes', () => {
    STEP 4 — who is answering, asked in the room
    ============================================================ */
 describe('their name is collected where the sending happens', () => {
-  test('the field is in the room and prefilled from the share\'s recipient', async () => {
+  test('the field is on the page and prefilled from the share\'s recipient', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    const box = v.$('#nego-room #nego-cp-name');
+    /* #pt-name lived in the respond aside, which W2 deleted along with the
+       duplicate document and the standalone clause editor. The field itself is
+       not gone — it could not be, it gates every send — it is the workbench's
+       own #nego-cp-name, which portalAuthor() already preferred over #pt-name.
+       One box, on the page that sends, exactly as this test has always said. */
+    const box = v.$('#nego-cp-name');
     assert.ok(box, 'the field that gates every send must be on the page that sends');
     assert.equal(box.value, 'Erik Lindqvist');
   });
@@ -334,7 +367,7 @@ describe('their name is collected where the sending happens', () => {
     assert.match(v.toasts(), /Enter your full name — the box is at the top of this page/);
   });
 
-  test('the name typed in the room is the one that travels', async () => {
+  test('the name typed on the page is the one that travels', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
     v.$('#nego-cp-name').value = 'Erik Lindqvist';
@@ -377,29 +410,26 @@ describe('Ready to sign is gated, visible, and explains itself', () => {
     assert.equal(v.$('#nego-ready-why'), null, 'nothing outstanding, nothing to explain');
   });
 
-  /* Comparing two old versions disables the bulk verbs — nothing on that screen
-     is a live proposal. It used to empty the whole top bar as well, taking the
-     name they had typed with it. */
-  test('comparing two versions disables the gate without emptying the bar', async () => {
-    const { win, c, filed } = await ownerProposed();
-    for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
+  test('Decline has no precondition, whatever state the gate is in', async () => {
+    const { c } = await ownerProposed();
     const v = theirLink(c);
-    v.$('#nego-cp-name').value = 'Erik Lindqvist Jr';
-    const opts = v.$$('[data-nego-vsel="left"] option').map(o => o.value);
-    const old = opts.find(x => x !== 'baseline' && x !== 'working');
-    if (!old) return;                       // no snapshot to compare against
-    v.win.negoSetComparePair(old, 'working');
-    v.win.openPortalNegoRoom(v.win.portalNegoContract(v.payload), v.payload);
-    assert.ok(v.$('#nego-cp-decline'), 'ending a deal has no precondition');
-    assert.equal(v.$('#nego-cp-name').value, 'Erik Lindqvist Jr',
-      'and who they are does not depend on which version they are reading');
-    assert.equal(v.readyBtn().disabled, true);
-    assert.match(v.why(), /Not while you are comparing versions/);
+    assert.equal(v.readyBtn().disabled, true, 'the gate is shut — changes pending');
+    const dec = v.$('#pt-nego-decline');
+    assert.ok(dec && !dec.disabled, 'ending a deal has no precondition');
+  });
+
+  test('a withdrawal reopens the gate', async () => {
+    const { win, c, filed } = await ownerProposed();
+    win.negoResolve(c, filed[0].id, 'accepted', { side: 'counterparty', by: 'Erik' });
+    win.negoResolve(c, filed[1].id, 'rejected', { side: 'counterparty', by: 'Erik' });
+    win.negoWithdraw(c, filed[1].id, { side: 'owner', by: 'Wanjiru Kamau' });
+    const v = theirLink(c);
+    assert.equal(v.readyBtn().disabled, false, 'withdrawn is settled');
   });
 
   test('a contract with no changes at all is aligned from the start', async () => {
     const v = theirLink(contract());
-    assert.ok(v.$('#nego-room'), 'still the room — they were invited to negotiate');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'still the workbench — they were invited to negotiate');
     assert.equal(v.readyBtn().disabled, false,
       'there is nothing to disagree about, so there is nothing to settle first');
   });
@@ -424,7 +454,7 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
-    await v.press('#nego-cp-ready');
+    await v.press('#pt-nego-ready');
     assert.equal(v.sent().length, 1, 'ONE call — not "send, then remember to say you are done"');
     const r = v.last();
     assert.equal(r.action, 'ready');
@@ -437,7 +467,7 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
-    await v.press('#nego-cp-ready');
+    await v.press('#pt-nego-ready');
     assert.match(v.p.log.sent[0].pathname, /^shares\/tok_test\/respond$/);
   });
 
@@ -445,8 +475,8 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
-    await v.press('#nego-cp-ready');
-    assert.match(v.readyBtn().textContent, /Sent — they know you are ready/);
+    await v.press('#pt-nego-ready');
+    assert.match(v.readyBtn().textContent, /Readiness sent/);
     assert.equal(v.readyBtn().disabled, true, 'pressing it again is not a second fact');
     assert.match(v.toasts(), /Nothing is signed yet/);
   });
@@ -455,7 +485,7 @@ describe('Ready to sign posts the decisions and the readiness together', () => {
     const { win, c, filed } = await ownerProposed();
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirLink(c);
-    await v.press('#nego-cp-ready');
+    await v.press('#pt-nego-ready');
     assert.equal(v.last().action, 'ready');
     assert.equal(v.last().negoDecisions.length, 0, 'they had already answered everything');
   });
@@ -660,7 +690,8 @@ describe('signing arrives on a new link', () => {
     assert.ok(v.payload.contract.changes.find(x => x.id === filed[1].id).withdrawn,
       'without it their copy would refuse over a point we had already let go');
     assert.equal(v.readyBtn().disabled, false);
-    assert.ok(v.$(`[data-withdrawn="${filed[1].id}"]`), 'and their card says so');
+    assert.equal(v.$(`[data-nego-card="${filed[1].id}"]`), null,
+      'withdrawn is settled — it leaves the table like an adopted change does');
   });
 
   test('a signing link opens on the document and the respond panel, not the room', async () => {
@@ -669,6 +700,10 @@ describe('signing arrives on a new link', () => {
     const v = theirLink(c, { purpose: 'sign' });
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'sign');
     assert.equal(v.$('#nego-room'), null);
+    /* Still #pt-name here, deliberately: W1/W2 rebuilt the NEGOTIATE seat.
+       The signing screen is untouched and keeps the respond panel it has
+       always had, which is where its name field lives. W6 is what will
+       revisit this one. */
     assert.ok(v.$('#pt-doc') && v.$('#pt-name'));
     assert.ok(v.$('#pt-sign'), 'the existing respond panel — no signing is built here');
   });
@@ -780,7 +815,7 @@ describe('the mirror: we refuse their ask, and they withdraw it', () => {
     const v = theirLink(c);
     await v.press(`[data-nego-withdraw="${theirs.id}"]`);
     assert.equal(v.readyBtn().disabled, false, 'nothing is outstanding now');
-    await v.press('#nego-cp-ready');
+    await v.press('#pt-nego-ready');
     assert.deepEqual(Array.from(v.last().negoWithdrawn), [theirs.id],
       'a withdrawal that never left the browser is a deadlock they think they cleared');
   });
@@ -814,18 +849,24 @@ describe('the mirror: we refuse their ask, and they withdraw it', () => {
    The awkward cases, tested because they are where this breaks
    ============================================================ */
 describe('the awkward cases', () => {
-  test('a refresh mid-journey loses UNSENT decisions, and the page says they are unsent', async () => {
+  /* THIS STAGE HAS NO ORIGIN, so every localStorage call in it throws — which
+     is a fair stand-in for private browsing, a locked-down device or a full
+     quota. On a browser that CAN remember, an unsent answer now survives the
+     reload; see f63. What must hold either way is the line below: the page
+     never claims an answer has travelled when it has not. */
+  test('an unsent decision is never reported as having travelled', async () => {
     const { c, filed } = await ownerProposed();
     const v1 = theirLink(c);
     await v1.press(`[data-nego-accept="${filed[0].id}"]`);
     assert.match(v1.$('#nego-send-decisions').parentElement.textContent.replace(/\s+/g, ' '),
       /Nothing has reached .* yet/, 'the page never claims a decision has travelled');
-    // reload: a fresh page on the same unchanged payload
+    assert.ok(v1.$(`[data-unsent="${filed[0].id}"]`), 'and the card itself says so');
+    // and where the browser cannot remember, the answer is simply not there
     const v2 = theirLink(c);
     assert.equal(v2.$('#nego-send-decisions'), null,
-      'they were held in the browser, and the browser is what was refreshed');
+      'nothing half-answered is left behind claiming to be ready to send');
     assert.equal(v2.$(`[data-nego-accept="${filed[0].id}"]`) != null, true,
-      'so the change is back to undecided rather than silently half-answered');
+      'the change is an open question again rather than a silent half-answer');
   });
 
   /* The send succeeds, the room repaints — and the room repaints from a payload
@@ -846,11 +887,20 @@ describe('the awkward cases', () => {
     assert.equal(v.$('#nego-send-decisions'), null, 'with nothing left waiting to go');
   });
 
-  test('but changing their mind is still allowed, and travels as a new decision', async () => {
+  /* Still allowed, and now a DELIBERATE act rather than the default state of
+     the card. Accept and Reject used to stay on a sent decision, so pressing
+     Send made the verbs reappear a moment later and there was no way to tell
+     from the card whether anything had gone — while the owner's copy of the
+     same change settled. See f59: the two sides render the same. */
+  test('but changing their mind is still allowed, behind Change decision', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c);
     await v.press('#nego-bulk-acc');
     await v.press('#nego-send-decisions');
+    assert.equal(v.$(`[data-nego-reject="${filed[0].id}"]`), null,
+      'a sent decision is a decision, not a question still on the table');
+
+    await v.press(`[data-nego-redecide="${filed[0].id}"]`);
     v.win.promptDialog = async () => 'On reflection, no.';
     await v.press(`[data-nego-reject="${filed[0].id}"]`);
     assert.ok(v.$('#nego-send-decisions'), 'a new answer is a new thing to send');
@@ -868,12 +918,12 @@ describe('the awkward cases', () => {
     assert.equal(v.readyBtn().disabled, false);
   });
 
-  test('reopening the link after signalling readiness still opens the room', async () => {
+  test('reopening the link after signalling readiness still opens the workbench', async () => {
     const { win, c, filed } = await ownerProposed();
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     win.negoSignalReady(c, { side: 'counterparty', by: 'Erik Lindqvist' });
     const v = theirLink(c);
-    assert.ok(v.$('#nego-room'), 'until a signing link exists, this link is what they have');
+    assert.ok(v.$('#pt-nego .rl-embed'), 'until a signing link exists, this link is what they have');
     assert.ok(v.$('#nego-ready-signal'), 'and it tells them where the deal stands');
     const banner = v.$('#nego-ready-signal').textContent.replace(/\s+/g, ' ');
     assert.match(banner, /You signalled ready to sign/);
@@ -884,27 +934,27 @@ describe('the awkward cases', () => {
   test('Decline is available at every stage, including with everything outstanding', async () => {
     const { win, c, filed } = await ownerProposed();
     const fresh = theirLink(c);
-    assert.ok(fresh.$('#nego-cp-decline') && !fresh.$('#nego-cp-decline').disabled,
+    assert.ok(fresh.$('#pt-nego-decline') && !fresh.$('#pt-nego-decline').disabled,
       'ending a deal has no per-change equivalent and no precondition');
     win.negoResolve(c, filed[0].id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const mid = theirLink(c);
-    assert.ok(!mid.$('#nego-cp-decline').disabled);
+    assert.ok(!mid.$('#pt-nego-decline').disabled);
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const done = theirLink(c);
-    assert.ok(!done.$('#nego-cp-decline').disabled);
+    assert.ok(!done.$('#pt-nego-decline').disabled);
   });
 
   /* Declining requires a reason, and the box it was read from is on the page
      UNDERNEATH the room — the same trap that made the name check unpassable.
      The requirement is right; what was missing was anywhere to satisfy it. */
-  test('declining from the room asks for the reason IN the room', async () => {
+  test('declining asks for the reason on the page, in a dialog', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     const asked = [];
     v.win.promptDialog = async o => { asked.push(o); return 'The liability cap is below our board mandate.'; };
-    await v.press('#nego-cp-decline');
+    await v.press('#pt-nego-decline');
     assert.equal(asked.length, 1, 'it must ask, not fail on a field they cannot reach');
-    assert.match(asked[0].message, /ends the negotiation/);
+    assert.match(asked[0].message, /ends the negotiation/i);
     assert.equal(v.last().action, 'decline');
     assert.equal(v.last().comment, 'The liability cap is below our board mandate.');
   });
@@ -913,7 +963,7 @@ describe('the awkward cases', () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     v.win.promptDialog = async () => null;
-    await v.press('#nego-cp-decline');
+    await v.press('#pt-nego-decline');
     assert.equal(v.last(), null, 'ending a deal must not be one misplaced click away');
   });
 
@@ -921,7 +971,7 @@ describe('the awkward cases', () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
     v.win.promptDialog = async () => '   ';
-    await v.press('#nego-cp-decline');
+    await v.press('#pt-nego-decline');
     assert.equal(v.last(), null);
     assert.match(v.toasts(), /A reason is required to decline/);
   });
@@ -982,7 +1032,7 @@ describe('the awkward cases', () => {
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirLink(c);
     v.win.api = async () => { throw new Error('Network unreachable'); };
-    await v.press('#nego-cp-ready');
+    await v.press('#pt-nego-ready');
     assert.match(v.toasts(), /Network unreachable/);
     assert.equal(v.readyBtn().disabled, false, 'they must be able to try again');
     assert.match(v.readyBtn().textContent, /Ready to sign/, 'and it must not claim to have been sent');
@@ -995,7 +1045,7 @@ describe('the awkward cases', () => {
     const { win, c, filed } = await ownerProposed();
     for (const ch of filed) win.negoResolve(c, ch.id, 'accepted', { side: 'counterparty', by: 'Erik' });
     const v = theirLink(c, { opts: { token: null } });
-    assert.equal(v.$('#nego-cp-ready'), null);
+    assert.equal(v.$('#pt-nego-ready'), null, 'no channel, no verbs');
     assert.match(v.$('#nego-readonly-why').textContent, /no channel back/);
   });
 

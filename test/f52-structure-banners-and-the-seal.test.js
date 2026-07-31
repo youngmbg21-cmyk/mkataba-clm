@@ -39,9 +39,27 @@ function contract(over = {}){
     folder: 'dist', fields: {}, metadata: {}, audit: [], rounds: [], versions: [],
     signatures: [], comments: [], redlineText: F.protoRich(), format: 'rich', ...over };
 }
+/* THE CONTRACT IS NEGOTIATED FIRST AND EXECUTED AFTER, which is both how it
+   happens and, since f106, the only order the model permits. This helper used
+   to stamp `status: 'Signed'` on the record and then file changes against it,
+   which worked only because negoFileChange asked nothing about execution — the
+   fault MK-248 was reported for. The negoResolve calls in those setups were
+   already no-ops against the signed door, so the "accepted" they claimed to set
+   up never existed; the banner assertions below never depended on it.
+
+   So the executed fields are held back, the negotiation happens on a draft, and
+   the record is stamped executed at the end — the same end state, arrived at
+   the way a real contract arrives at it. */
+const EXECUTED_KEYS = ['status', 'signedAt', 'hash', 'execution'];
 async function room(over = {}, opts = {}){
   const { win } = buildWorld({ negotiationView: true });
-  const c = contract(over);
+  const executedAfter = {};
+  const draftOver = { ...over };
+  if (String(over.status || '') === 'Signed'){
+    for (const k of EXECUTED_KEYS)
+      if (k in draftOver){ executedAfter[k] = draftOver[k]; delete draftOver[k]; }
+  }
+  const c = contract(draftOver);
   win.negoInit(c);
   const filed = [];
   for (const n of (opts.asks || ['4', '6'])){
@@ -50,6 +68,7 @@ async function room(over = {}, opts = {}){
       { side: 'owner', author: 'Wanjiru Kamau', summary: F.PROTO_ASKS[n].summary }));
   }
   if (opts.before) opts.before(win, c, filed);
+  Object.assign(c, executedAfter);
   win.openNegotiationRoom(c, { side: 'owner', by: 'Wanjiru Kamau', persist: false,
     readonly: !!opts.readonly, ...(opts.render || {}) });
   const d = win.document;
