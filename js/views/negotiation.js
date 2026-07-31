@@ -2233,6 +2233,9 @@ function negoIndexSendHtml(c, opts = {}){
 function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
+  /* Which chair. Same reason as redlinePanesHtml: this markup is shared, and
+     the risk-derived bulk verb is the owner's alone (D2). */
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const L = negoLayout();
   const pair = negoComparePair();
   const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
@@ -2318,11 +2321,34 @@ function negoPanesHtml(c, opts = {}){
         : `
         <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
         <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+        ${''/* ---- WHOSE PLAYBOOK, AND WHOSE COUNTERPARTY ----
+               D2. "Accept All Non-Risk" sorts by OUR playbook and OUR scan
+               signals. Offering it to the other side both hands them a verb
+               they cannot reason about and tells them how we score their asks
+               — the playbook is our negotiating position, and this button is a
+               readout of it. Owner only.
+
+               "Reject All Counterparty" was worse than useless from their
+               seat: read from their chair, "counterparty" means US. The verbs
+               are named from the reader's chair on each side; the ACT is
+               identical either way, and unchanged — both only ever touch the
+               other side's pending asks.
+
+               The capability stays, and so does the ID. What differs by side is
+               the LABEL and what the button claims to do, not the DOM contract —
+               changing the id would have broken every page and test that reaches
+               for the bulk verbs by name, to express a difference the label
+               already carries. "I agree to all of it" is a real and common
+               answer, and withholding the button would not withhold the
+               decision, only make them press Accept six times to say it. */}
         ${canAct ? `<div class="nego-bulk">
           <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}
-            title="Accepts only the pending changes that trip no playbook, scan or review signal">Accept All Non-Risk</button>
+            title="${side === 'owner'
+              ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
+              : `Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.`}"
+            >${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}
-            title="Rejects every pending change from the other side. Your own asks are untouched.">Reject All Counterparty</button>
+            title="Rejects every pending change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.">${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
         </div>` : ''}
         ${negoIndexSendHtml(c, opts)}`}
       </div>
@@ -2401,6 +2427,15 @@ function negoRoomHasExit(opts = {}){
   if (opts.noExit != null) return !opts.noExit;
   return (opts.side || 'owner') !== 'counterparty';
 }
+/* The other party, named from the reader's chair. On the owner's screen that
+   is the counterparty; on the counterparty's screen it is us. A label that
+   says "counterparty" to the counterparty is telling them about themselves. */
+function negoOtherSideName(opts){
+  const side = (opts && opts.side) || 'owner';
+  if (side === 'owner') return 'the counterparty';
+  return String((opts && opts.org) || (window.FIRST_PARTY || 'the sender'));
+}
+
 function negoRoomActionsHtml(c, opts){
   const side = opts.side || 'owner';
   const p = negoProgress(c);
@@ -7107,6 +7142,10 @@ function redlineWallHtml(c, opts = {}){
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
+  /* Which chair this is being rendered for. The panes are shared markup and
+     were reading only opts.readonly, which is why the owner's risk-derived
+     bulk verb rendered on the counterparty's screen (D2). */
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   /* Before anything reads the baseline: an UNTOUCHED negotiation re-reads it
      from the document, so key terms filled on the Doc page after the first
      paint show here too. Guarded inside the engine — one filed change, one
@@ -7186,9 +7225,11 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>Hide</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${p.done} of ${p.total} resolved</div>
+          ${''/* Owner-only risk verb, and verbs named from the reader's chair —
+                 see the note at the room's bulk bar for why. */}
           ${canAct ? `<div class="nego-bulk">
-            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>
-            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
+            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
+            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
           </div>` : (opts.readonlyWhy
             /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
                the counterparty's action bar has carried for a while, applied
