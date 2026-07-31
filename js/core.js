@@ -1872,6 +1872,34 @@ function counterpartyContact(c, shares){
   if(!email) return null;
   return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email, phone:'', channel:'email', token:null };
 }
+/* ---------- WHERE THIS CONTRACT'S CHANGES GO ----------
+   The share dialog is not a confirmation step. It is the form that collects the
+   address the app does not have yet — #nego-send takes a one-press route the
+   moment a contact exists (js/views/negotiation.js), and the dialog is the
+   fallback for when there is nowhere to send.
+
+   Nothing wrote that contact. So the address was asked for, used once, and
+   forgotten, and the next Send re-opened the whole dialog to re-ask a question
+   answered on the first round — a pop-up between the reader and a button they
+   had already used, once per change, for the life of the negotiation.
+
+   FIRST ONE WINS. A later share to a different person is a one-off (a copy to
+   counsel, a second signatory); quietly re-pointing the negotiation at them
+   would send the next round somewhere nobody chose. The recorded address is
+   changed deliberately, through the setup strip that writes it.
+
+   A SIGNING LINK IS NOT A NEGOTIATING CONTACT. It goes to whoever signs, who
+   need not be the person the contract is being argued with. */
+function shareRememberRecipient(c, info){
+  const o = info || {};
+  if (!c || o.purpose === 'sign') return false;
+  const email = String(o.email || '').trim();
+  if (!email || String(c.counterpartyEmail || '').trim()) return false;
+  c.counterpartyEmail = email;
+  const name = String(o.name || '').trim();
+  if (name && !String(c.counterpartyName || '').trim()) c.counterpartyName = name;
+  return true;
+}
 async function reshareToLastRecipient(c, opts={}){
   if(!canEdit()) throw new Error('Viewers cannot share contracts');
   const shares=opts.shares||await contractShares(c);
@@ -2255,6 +2283,9 @@ async function openShareModal(c, opts={}){
          negoHandOver is idempotent and returns null if the turn is already
          theirs, so the room's send and this one cannot fight. A signing link is
          excluded — a signature request is not a negotiating turn. */
+      /* The address this dialog collected, kept — see shareRememberRecipient
+         for why every later Send was re-asking for it. */
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
       }
@@ -2285,6 +2316,7 @@ async function openShareModal(c, opts={}){
         window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link, emailSent:false, emailConfigured:false }); }catch(e){}
@@ -2978,4 +3010,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

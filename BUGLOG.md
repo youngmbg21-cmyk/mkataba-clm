@@ -5489,3 +5489,113 @@ Per-contract currency is also not done: money follows the workspace, so a
 contract denominated in USD still displays in the workspace currency. That was
 the explicit choice — the alternative needs the register, reports and charts to
 total across mixed currencies, which is a larger change than this one.
+
+---
+
+## Run: three things a person doing the work kept hitting (2026-07-31)
+
+All user-reported from one session, all the same shape: the product asking for
+something it already had, or showing something twice.
+
+### 1. The send dialog came back on every single change
+
+**What was broken.** After sending the first redline to a counterparty, pressing
+Send on the next one re-opened the whole "What you are sending" dialog — purpose
+picker, change list, covering note — once per change, for the life of the
+negotiation.
+
+**Root cause.** `#nego-send` has always taken a one-press route when a contact
+exists (`js/views/negotiation.js`), and the comment beside it even says the
+dialog "stops appearing the moment there is an address to remember". Nothing
+ever wrote that address. The contact is read from
+`counterpartyContact(c, cachedShares(c))`; `_shareCache` is only ever filled by
+`renderSharesSection`, which runs on the contract workspace page and never on
+the redline workbench, so on that screen it is permanently `[]`. The fallback is
+`c.counterpartyEmail`, and the share dialog — the very form that had just
+collected an address — did not set it. So the dialog collected the address, used
+it once, and forgot it.
+
+**The fix.** `shareRememberRecipient` in `js/core.js`, called from both send
+paths (server and static). First recipient wins: a later one-off — a copy to
+counsel, a second signatory — must not silently re-point where the next round
+goes, and the address is changed deliberately through the setup strip that owns
+it. A signing link records nobody: it goes to whoever signs, who need not be the
+person the contract is being argued with.
+
+**Files touched.** js/core.js.
+**Verified.** f100a — the recording rule in all four directions, plus that
+`counterpartyContact` then answers, which is the thing that turns the next Send
+into one press. One test asserts both send paths route through the single rule,
+because a second copy would drift and bring the dialog back on one path only.
+
+### 2. The change card carried a second copy of the redline
+
+**What was broken.** Every card in Tracked Changes rendered the redline clamped
+to two lines — beside a document pane already showing the same wording in full,
+in its clause, with its neighbours. The card's copy was the lesser one: cut
+mid-sentence, no surrounding text, nothing to act on. A column of six looked
+like six paragraphs.
+
+**The fix (specified by the user, mocked and agreed before coding).** The card
+is a handle: id, whose ask, clause and author, status, and the verbs. No
+wording. It is OPEN while there is something on it to press and a LINE when
+there is not — and that rule is read off the verbs the card actually offers
+rather than off a second enumeration of statuses, because two copies of "is
+there anything to do here" would disagree the first time either moved and the
+card that lost would hide a live control. `Edit` and the disabled `Sent` do not
+count: one navigates, one is a label.
+
+Pressing a folded card opens it AND jumps to the change (one press, not two —
+the reader has already said which change they mean). The caret is the only
+control that folds, deliberately separate: the card's own press means "take me
+to this change", and a reader navigating to a clause must not have it fold up
+underneath them. A hand-made choice survives repaints for the session.
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100b, plus f89/f92/f93 updated to the new contract (the amber
+`Sent` verb now lives one click inside a folded card; the badge on the head is
+what says "this has gone"). Browser: `test:browser` check 14 rewritten — it used
+to assert the card held only the marked runs, and now asserts it holds no copy
+at all while the document still marks it. Driven end to end in Chromium: fold,
+click-to-open-and-navigate, caret-to-fold, no page errors.
+
+### 3. Every message box in the product was one line
+
+**What was broken.** Six composers, all `<input type="text">`: the Copilot ask,
+reply-on-a-change (two mounts), start-a-thread, reply-on-a-point, comment-on-the
+-terms, and the counterparty's clause note. Past about a dozen words the start
+of your own sentence scrolled out of view, so you could not re-read what you
+were about to send — on a message going to another company.
+
+**The fix.** `chatFieldWire` / `chatFieldGrow` / `chatFieldSubmits` /
+`chatFieldReset` in `js/components.js`, and every composer is now a wrapping
+textarea that grows from one line and scrolls past `max-height` (a composer that
+can push its own send button off the panel has traded one problem for a worse
+one). Enter still sends — that habit is why these were inputs — with Shift+Enter
+for a newline, and the rule lives in one place so six composers cannot drift.
+IME composition is excluded: Enter mid-composition commits a candidate word, and
+treating that as "send" posts a half-typed message in exactly the languages
+least able to spot it.
+
+**The trap worth recording.** A textarea inside a `display:none` subtree reports
+`scrollHeight` 0, and the sidebar mounts one of its two faces at a time — so
+measuring the hidden one would write `height:0px` and leave a zero-height box
+the moment that panel was shown. `chatFieldGrow` leaves an unmeasurable field at
+`auto` and `rlSetSideMode` re-measures when the face appears.
+
+**Files touched.** js/components.js, index.html, js/ai.js, js/views/negotiation.js,
+js/discuss.js, js/views/contract.js, js/views/portal.js.
+**Verified.** f100c — all six composers converted, the wrap/cap/resize CSS on
+both stylesheets (the workbench also mounts as an embed on the counterparty
+portal, which does not carry the shell's head), the Enter rules including IME,
+growth and its cap, the hidden-field guard, reset-after-send, and that wiring a
+field three times binds its handlers once. Measured live in Chromium: the
+Copilot box 62→104px capped at 105, a thread reply 29→64px capped at 86.
+
+**Whole run.** Suite 1889/1889, browser 71/71, selection 22/22.
+
+**Not done.** The counterparty's incoming asks follow the same rule by choice —
+open while pending, folded once decided — which was the agreed answer but is a
+behaviour change on a screen the counterparty sees too. Nothing collapses on the
+older two-pane negotiation cards (`.nego-card`, `js/views/negotiation.js:1391`);
+that surface was not in the report and shares no markup with the workbench.

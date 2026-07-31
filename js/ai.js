@@ -735,6 +735,10 @@ function renderAIFeed(typing=false){
   }
   feed.querySelectorAll('[data-ai-open]').forEach(el=>el.addEventListener('click',()=>{ closeAI(); openWorkspace(el.getAttribute('data-ai-open')); }));
   if(typeof aiWireProposals==='function') aiWireProposals();
+  /* The panel's own composer and any the feed drew: re-measured on every paint
+     so a half-typed question is not clipped back to one line by an answer
+     landing above it. */
+  if(window.chatFieldWire) chatFieldWire(document.getElementById('ai-panel')||document);
   // keep the brain indicator current (a key can be added/removed mid-session)
   if(typeof updateAiBrainPill==='function') updateAiBrainPill();
 }
@@ -2192,7 +2196,9 @@ function aiRephraseHistory(session){
 async function aiSubmit(){
   const inp=document.getElementById('ai-input');
   const q=inp.value.trim(); if(!q||ai.busy) return;
-  inp.value='';
+  /* Back to one line, or the next question is typed into the hole the last one
+     grew to. */
+  if(window.chatFieldReset) chatFieldReset(inp); else inp.value='';
   aiPush('user',{text:q});
   ai.busy=true;
   /* A live proposal owns the next sentence. Anything typed while a card is open
@@ -2276,7 +2282,12 @@ async function aiSubmit(){
 
 document.getElementById('ai-send').addEventListener('click',aiSubmit);
 document.getElementById('ai-expand')?.addEventListener('click',()=>toggleAIExpand());
-document.getElementById('ai-input').addEventListener('keydown',e=>{if(e.key==='Enter')aiSubmit();});
+/* Enter sends, Shift+Enter breaks the line — chatFieldSubmits owns that rule
+   for every composer in the product so the six cannot drift apart. */
+document.getElementById('ai-input').addEventListener('keydown',e=>{
+  if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') aiSubmit();
+});
+if(window.chatFieldWire) chatFieldWire(document);
 document.getElementById('ai-close').addEventListener('click',closeAI);
 document.getElementById('ai-min').addEventListener('click',minimizeAI);
 document.getElementById('ai-clear').addEventListener('click',clearAIHistory);

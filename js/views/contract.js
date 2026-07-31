@@ -2684,7 +2684,7 @@ function renderWorkspace(){
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
               <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
               <div style="display:flex;gap:6px">
-                <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
               </div>
             </div>
@@ -3009,7 +3009,10 @@ function wireComments(c){
     input.value=''; renderFeed(c); renderAuditSection(c);
   };
   send.addEventListener('click',post);
-  input.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+  input.addEventListener('keydown',e=>{
+    if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') post();
+  });
+  if(window.chatFieldWire) chatFieldWire(input.parentNode||document);
 }
 
 /* -------- compliance + signing -------- */

@@ -246,11 +246,16 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      a two-line pointer is not the document. */
   const type = await page.evaluate(() => {
     const body = document.querySelector('#rl-doc .nego-body');
-    const diff = document.querySelector('#rl-changes .rl-card-diff');
-    return { body: getComputedStyle(body).fontSize, diff: getComputedStyle(diff).fontSize };
+    /* The card's own scale, read off the head — the diff it used to be read
+       from is gone, because the card no longer carries a copy of the wording. */
+    const meta = document.querySelector('#rl-changes .rl-card-meta');
+    return { body: getComputedStyle(body).fontSize,
+      cardScale: getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-type').trim(),
+      meta: meta ? getComputedStyle(meta).fontSize : null };
   });
   check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
-  check('7 the card diff stays at the compact card scale', type.diff === '11.5px', type.diff);
+  check('7 the card scale stays compact', type.cardScale === '11.5px', type.cardScale);
+  check('7 and the card head is set smaller still', type.meta === '10.5px', type.meta);
 
   /* ---- 8. attribution on every mark ---- */
   const marks = await page.evaluate(() => {
@@ -325,19 +330,24 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('11 Edit is slate-200 on slate-800', cards.edit && cards.edit.bg === 'rgb(226, 232, 240)',
     cards.edit && `${cards.edit.bg} / ${cards.edit.fg}`);
 
-  /* ---- 14. the card holds the delta and nothing else ---- */
+  /* ---- 14. the card is a handle, not a second copy of the wording ----
+     It used to carry the redline clamped to two lines, beside a document pane
+     already showing the same words in full. The copy is gone; what has to hold
+     is that the wording is still reachable and the card still points at it. */
   const delta = await page.evaluate(() => {
-    const card = document.querySelector('#rl-changes .rl-card-diff');
-    const marked = [...card.querySelectorAll('ins, del')].map(n => n.textContent).join('');
-    const shown = card.textContent.replace(/…/g, '');
+    const card = document.querySelector('#rl-changes .rl-card');
     const clause = document.querySelector('#rl-doc .rl-clause.is-changed .nego-body').textContent;
     const sq = s => s.replace(/\s+/g, ' ').trim();
-    return { equal: sq(shown) === sq(marked), cardLen: sq(shown).length,
-      clauseLen: sq(clause).length, sample: sq(shown).slice(0, 70) };
+    const phrase = sq(clause).split(' ').slice(3, 9).join(' ');
+    return { noDiff: !document.querySelector('#rl-changes .rl-card-diff'),
+      repeatsClause: phrase.length > 0 && sq(card.textContent).includes(phrase),
+      marked: document.querySelectorAll('#rl-doc ins, #rl-doc del').length,
+      caret: !!card.querySelector('[data-rl-caret]'),
+      sample: sq(card.textContent).slice(0, 70) };
   });
-  check('14 the card renders only the marked runs', delta.equal, delta.sample);
-  check('14 and is shorter than the clause it summarises',
-    delta.cardLen < delta.clauseLen, `${delta.cardLen} vs ${delta.clauseLen} chars`);
+  check('14 the card carries no copy of the wording', delta.noDiff && !delta.repeatsClause, delta.sample);
+  check('14 and the document still marks it, so nothing was lost', delta.marked > 0, delta.marked);
+  check('14 the card says it can fold', delta.caret);
 
   /* ---- 15. clause <-> card, both directions, with real scrolling ---- */
   const sync = await page.evaluate(async () => {

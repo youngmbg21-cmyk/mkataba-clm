@@ -1356,7 +1356,7 @@ function negoLiveCardsHtml(c, opts){
             <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">\uD83D\uDD12 Internal</button>
             <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">\uD83C\uDF10 Send to them</button>
           </div>
-          <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
           ${''/* "Send", because that is what it does: the comment goes to the
                   other side on the discussion channel the moment it is
                   pressed. It was briefly "Save" to keep it apart from the
@@ -3920,7 +3920,9 @@ function wireNegotiationTab(c, opts = {}){
     const inp = byId('nego-ti-' + id);
     if (inp){
       inp.addEventListener('click', e => e.stopPropagation());
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); send(); } });
+      inp.addEventListener('keydown', e => {
+        if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && (e.preventDefault(), true))) send();
+      });
     }
   });
 
@@ -4419,15 +4421,33 @@ function redlineLayoutCss(){
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
   html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
-  .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px;line-height:1.5}
-  /* The same size as the clause it is a diff of — see --rl-type.
-     CLAMPED TO TWO LINES: the card is a pointer at the redline, not the
-     redline itself — the full expanded scope lives on the contract canvas,
-     one click away, and a stack of uniform two-line cards scans in a way a
-     stack of variable ones cannot. The marked runs keep their colours inside
-     the clamp: what shows is redline, what overflows is reachable. */
+  .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
+  /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
+     It used to, clamped to two lines, which put the changed wording on screen
+     twice: once in the document pane being read and again in a lesser copy
+     beside it — cut mid-sentence, no surrounding clause, nothing to act on.
+     The card is the HANDLE; the wording lives in the document, one click away
+     (the click is already wired, see rlLinkFocus). .rl-card-diff is kept as a
+     rule so an embed that still emits one is not left unstyled. */
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
+  .redline-page .rl-card-note,.redline-page .rl-card-verbs{margin-top:8px}
+  /* ---- OPEN, OR A LINE ----
+     A collapsed card is the head alone. The caret is the only thing saying
+     there is more under it, so it is always drawn rather than revealed on
+     hover — a control you have to discover by hovering is a control half the
+     readers never find. It is a button in its own right because collapsing is
+     its job alone: pressing the CARD means "take me to this change", and a
+     reader navigating to a clause must not have the card fold up for it. */
+  .redline-page .rl-caret{flex:none;border:0;background:none;padding:0 2px;margin:0;cursor:pointer;
+    font-size:9px;line-height:1;color:var(--color-neutral-500);transition:transform .15s,color .15s;
+    display:inline-block;transform:rotate(0deg)}
+  .redline-page .rl-caret:hover{color:var(--color-text)}
+  .redline-page .rl-caret-open{transform:rotate(180deg)}
+  .redline-page .rl-caret:focus-visible{outline:2px solid var(--color-accent);border-radius:3px}
+  /* Tighter, because a collapsed card is a row in a list rather than a panel. */
+  .redline-page .rl-card-shut{padding:9px 12px}
+  .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
@@ -4532,13 +4552,21 @@ function redlineLayoutCss(){
     white-space:pre-wrap;overflow-wrap:anywhere}
   .redline-page .rl-reply,.redline-page .rl-starter{margin-top:9px}
   .redline-page .rl-starter{border-top:1px solid var(--color-divider);padding:11px 14px;flex:none}
-  .redline-page .rl-reply-row{display:flex;align-items:center;gap:6px}
-  .redline-page .rl-reply-row input{flex:1;min-width:0;border:1px solid var(--color-divider);
+  /* flex-end, not centre: the composer is a textarea that grows now, and a
+     send button centred against a five-line box floats in the middle of it. */
+  .redline-page .rl-reply-row{display:flex;align-items:flex-end;gap:6px}
+  .redline-page .rl-reply-row input,.redline-page .rl-reply-row textarea{flex:1;min-width:0;
+    border:1px solid var(--color-divider);
     background:var(--color-neutral-100);border-radius:8px;padding:6px 10px;font:inherit;font-size:11.5px;
     color:inherit;outline:none}
-  .redline-page .rl-reply-row input:focus{border-color:var(--color-accent-500)}
+  .redline-page .rl-reply-row input:focus,.redline-page .rl-reply-row textarea:focus{border-color:var(--color-accent-500)}
   .redline-page .rl-reply-row button{flex:none;width:28px;height:28px;border:0;border-radius:8px;
     background:var(--accent-solid);color:#fff;cursor:pointer;font-size:13px}
+  /* The shared composer look, repeated inside this page's own stylesheet
+     because the workbench also mounts as an EMBED on the counterparty portal,
+     which does not carry the shell's head. Same declarations as index.html. */
+  .redline-page textarea.chat-field{resize:none;overflow-y:auto;max-height:7.5em;line-height:1.5;
+    white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box}
   .redline-page .nego-visswitch{display:flex;gap:4px;margin-bottom:6px}
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:7px;padding:3px 8px;font:inherit;font-size:10px;font-weight:600;cursor:pointer;
@@ -5200,6 +5228,11 @@ function renderRedline(){
     }));
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
+  /* The composers on this page are rebuilt by every repaint, and a textarea
+     that grows is a textarea that has to be re-measured — otherwise a reply
+     half-written when a card lands elsewhere comes back one line tall with the
+     rest of it hidden. chatFieldWire is idempotent by design. */
+  if (window.chatFieldWire) chatFieldWire(host);
   Object.keys(_keepScroll).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.scrollTop = _keepScroll[id];
@@ -5742,6 +5775,63 @@ function rlTagInternalNote(ctx){
    the `nb-`/`nw-` ids the two-pane comparison mints, and this page draws one
    document with `data-nego-card-anchor` instead. Calling it would silently do
    nothing, which is what it did. */
+/* ---------- WHEN A CARD IS OPEN, AND WHEN IT IS A LINE ----------
+   The card used to carry the redline itself, which put the changed wording on
+   the screen twice: once in the document pane the reader is looking at, and
+   again in a two-line clamp beside it. The clamp was the lesser copy — cut
+   mid-sentence, no surrounding clause, no way to act on it — and a column of
+   them made six asks look like six paragraphs.
+
+   So the card is a HANDLE now: who asked, on what, where it stands, and the
+   verbs. The wording lives in exactly one place, and clicking the card takes
+   you there (rlLinkFocus, unchanged).
+
+   OPEN WHILE IT NEEDS YOU, A LINE WHEN IT DOES NOT. That is the whole rule,
+   and it falls out of the record rather than being set anywhere:
+
+     · your unsent draft      — open. It has verbs you are about to press.
+     · their pending ask      — open. Accept and Reject have to be in reach.
+     · your sent ask          — collapsed. The next move is theirs.
+     · anything decided       — collapsed. It is history until you reopen it.
+
+   A reader can always overrule it by pressing the card, and that choice is
+   remembered for the session — including collapsing something the rule would
+   open, because a reader working through a long column knows which ones they
+   have finished with better than the rule does. */
+const _rlCardOpen = new Set();      // ids the reader opened by hand
+const _rlCardShut = new Set();      // ids the reader closed by hand
+/* READ OFF THE VERBS, not off the status. Enumerating states here would be a
+   second copy of the rule that builds the verbs a hundred lines below, and the
+   two would disagree the first time either moved — a held decision whose Undo
+   the reader cannot see, or a settled card kept open for nothing.
+
+   So the question is asked of the card itself: does it offer anything to DO?
+   Edit and Sent do not count. Edit navigates (it opens the clause in the
+   document, which pressing the card does anyway) and Sent is a disabled label.
+   Everything else — Accept, Reject, Withdraw, Undo, Change decision, Retract,
+   Send — is a move waiting on this reader, and a move you cannot see is a move
+   you do not make. Matched on the data attributes the handlers and the tests
+   both query, so a new verb cannot be added without this seeing it. */
+const RL_CARD_INERT = /data-rl-edit|data-rl-sent/;
+function rlCardNeedsYou(verbs){
+  return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
+}
+function rlCardIsOpen(ch, verbs){
+  const id = ch && ch.id;
+  if (id && _rlCardOpen.has(id)) return true;
+  if (id && _rlCardShut.has(id)) return false;
+  return rlCardNeedsYou(verbs);
+}
+/* Pressing a collapsed card opens it; pressing the caret on an open one shuts
+   it. Deliberately NOT a toggle on the whole card: the card's click already
+   means "take me to this change in the contract", and a reader navigating to a
+   clause must not have the card fold up underneath them for doing it. */
+function rlCardSetOpen(id, open){
+  if (!id) return;
+  if (open){ _rlCardOpen.add(id); _rlCardShut.delete(id); }
+  else { _rlCardShut.add(id); _rlCardOpen.delete(id); }
+}
+
 function rlLinkFocus(c, changeId, source){
   const page = document.getElementById('view-redline')
     || document.querySelector('.redline-page.rl-embed');
@@ -5867,7 +5957,35 @@ function rlWireClauseTools(c, host, opts){
      stop propagation, so Accept does not also drag the document somewhere on
      its way to deciding a change. */
   host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
-    card.addEventListener('click', () => rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card')));
+    card.addEventListener('click', () => {
+      const id = card.getAttribute('data-nego-card');
+      /* A COLLAPSED CARD OPENS ON THE SAME PRESS THAT NAVIGATES. Two presses to
+         reach the verbs on a card you have just scrolled to would be one press
+         too many, and the reader has already said which change they mean. An
+         open card is left open — see rlCardSetOpen for why this is not a
+         toggle. */
+      if (card.getAttribute('data-rl-open') === '0'){
+        rlCardSetOpen(id, true);
+        again();
+        /* The card was re-rendered underneath us, so the focus runs against the
+           new one rather than the node this handler was bound to. */
+        rlLinkFocus(c, id, 'card');
+        return;
+      }
+      rlLinkFocus(c, id, 'card');
+    }));
+
+  /* ---- AND THE CARET SHUTS IT AGAIN ----
+     Its own control, and the only one that closes: it stops propagation so
+     collapsing a card does not also drag the document to that clause, which is
+     the opposite of what somebody tidying a column wants. */
+  host.querySelectorAll('#rl-changes [data-rl-caret]').forEach(btn =>
+    btn.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      const id = btn.getAttribute('data-rl-caret');
+      rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true');
+      again();
+    }));
 
   /* ---- CONTRACT → CARD ----
      And the same in reverse, from the clause. Two things are deliberately not
@@ -5961,6 +6079,9 @@ function rlSetSideMode(mode){
   /* Every mounted workbench root — the page or an embed — so a preference
      set on one is what any other paints with. */
   document.querySelectorAll('.redline-page').forEach(root => rlApplySideMode(root, m));
+  /* The face that just appeared has composers in it that could not be measured
+     while it was hidden — see chatFieldGrow. */
+  if (window.chatFieldWire) document.querySelectorAll('.redline-page').forEach(r => chatFieldWire(r));
   return m;
 }
 /* The old fold's name, kept as the compatibility surface: the master design
@@ -6518,9 +6639,6 @@ function redlineChangeCardsHtml(c, opts = {}){
        either one answers the same question with the same words. */
     const lastBy = String(ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
-    const diff = window.redlineOpsHtml && ch.ops
-      ? redlineOpsHtml(rlDeltaOps(ch.ops), { title: tip })
-      : _ne(ch.proposedText || ch.newText || '');
     /* A note is the AUTHOR's aside — the 🔒 on it is a promise, and the wall
        applies to the toggle too: it renders only on the side that wrote it.
        A Copilot rationale filed with an owner ask must not appear the moment
@@ -6603,16 +6721,27 @@ function redlineChangeCardsHtml(c, opts = {}){
     const origin = theirs
       ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Counterparty</span>`
       : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your Ask</span>`;
-    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+    /* Open or a line — see rlCardIsOpen. A collapsed card keeps its head and
+       nothing else; the note and the verbs are what unfold. The caret is the
+       only affordance saying there is more, so it is drawn on every card that
+       can collapse rather than on hover. */
+    const open = rlCardIsOpen(ch, verbs);
+    const body = open
+      ? `${note}${verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}`
+      : '';
+    const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
+        data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
+        title="${open ? 'Collapse this card' : 'Open this card'}"
+        aria-label="${open ? 'Collapse' : 'Open'} ${_nea(ch.id)}">&#9662;</button>`;
+    return `<article class="rl-card${open ? '' : ' rl-card-shut'}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
-      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} tabindex="0">
-      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
+      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}" tabindex="0">
+      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
-      <div class="rl-card-diff">${diff}</div>
-      ${note}${verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}
+      ${body}
     </article>`;
   }).join('');
 }
@@ -6831,7 +6960,7 @@ function redlineDiscussionHtml(c, opts = {}){
           <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
         </div>
         <div class="rl-reply-row">
-          <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"/>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
           <button data-nego-send="${_ne(ch.id)}" title="Send this reply">&uarr;</button>
         </div>
       </div>` : ''}
@@ -6858,7 +6987,7 @@ function redlineDiscussionHtml(c, opts = {}){
         <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(target.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
-        <input type="text" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"/>
+        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"></textarea>
         <button data-nego-send="${_ne(target.id)}" title="Start the thread">&uarr;</button>
       </div>
       <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>
@@ -6907,6 +7036,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
