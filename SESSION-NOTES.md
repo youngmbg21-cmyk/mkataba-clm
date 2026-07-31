@@ -5,6 +5,37 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stages 7–9 — live numbering, extensions, hardening, release (Sessions 15–21)
+
+**Done** (suite green at every commit; final counts in EXECUTION-PLAN §9;
+all merged to `main`)
+
+- **Stage 7 / N3 (f122, 6).** `numbering:'live'` at the two template-born
+  creation paths; live numbering implemented as AUTOMATIC RENUMBERING AT
+  ROUND BOUNDARIES through the N2 engine — the design decision and its
+  reasons are at `negoLiveNumbered`: one stored-text authority, so no surface
+  formats a number and every freeze path carries literal numbers (X2 by
+  construction). Literal contracts/uploads untouched; crafted flags on
+  uploads refused. Remainder recorded: T6's gap prompt at template save.
+- **Stage 8 (f123 4, f124 3).** WP-1.6 derived view links: `parent_token`
+  column, `/api/shares/:token/derive-view` (negotiate-only, live-only),
+  child dies with parent checked live on every open, owner sees and revokes.
+  N4-T1 decision documented in f124: sub-clauses are heading-addressable
+  dotted units at any rank (DoD proven verbatim); lettered body runs stay
+  body, citations into them follow the base clause.
+- **Stage 9 (f125, 6).** Adversarial sweep — forged/revoked/view tickets on
+  every mutating door, sealed-record PUT attacks (rewrite wording, renumber
+  by PUT, invent changes, erase audit), rate limits, folder scope. All fail
+  closed on first run. SECURITY.md + DESIGN-multi-signature.md addenda;
+  RELEASE-NOTES-stages-4-9.md written (W8 handover removal flagged).
+
+**Open follow-ups, recorded:** the Playwright render check for the timeline
+screen (behaviour jsdom-proven); T6's template-save gap prompt; the
+counterparty-side derive-view BUTTON (the server route is live and proven —
+the portal UI door is a small follow-up).
+
+---
+
 ## Stage 6, Session 14 — verify and export (WP-2.5 + WP-2.4)
 
 **Done** (`js/negotiation.js` negoIntegrityReport; `js/views/negotiation.js`

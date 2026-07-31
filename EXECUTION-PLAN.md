@@ -2,7 +2,7 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** IN BUILD. Stages 0–5 complete; merged to `main` as each lands.
+**Status:** COMPLETE. All ten stages (0–9) built and merged to `main`.
 See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
@@ -649,9 +649,40 @@ screen rides with Session 20's real-browser adversarial pass — the screen's
 behaviour is jsdom-proven (f120/f121); the deferral is about pixels, not
 claims.
 
-### ⬜ Stages 7–9 — not started
-Then 7 (live numbering — the freeze shares a session with nothing else),
-8 (extensions), 9 (hardening).
+### ✅ Stage 7 — live numbering (COMPLETE)
+**f122 (6) · suite 2119/0 at close.** `numbering:'live'` set at the wizard and
+custom-template creation paths only. **Decided implementation, recorded at
+`negoLiveNumbered`:** live numbering is automatic renumbering at round
+boundaries through the N2 engine — the stored document stays the ONE
+numbering authority every surface and every freeze path reads. T2 ("no
+renderer formats its own number") and X2/T5 ("frozen copies carry literal
+numbers; the seal is self-contained forever") hold by construction; T7's
+round-boundary rule is the trigger itself. Literal contracts and uploads are
+untouched; an upload can never acquire the flag, even crafted. T4's link
+upgrade is answered by design (references follow by text); T6's
+gap-prompt-at-save remainder is recorded in SESSION-NOTES.
+
+### ✅ Stage 8 — extensions (COMPLETE)
+**f123 (4) + f124 (3).** WP-1.6: a live negotiate token mints a strictly
+weaker view ticket — parent's expiry ceiling, dead with the parent (checked
+live on every open), owner-visible with `parentToken` named, owner-revocable;
+view cannot mint view, sign cannot derive. N4-T1 decided and documented in
+f124: a sub-clause is a heading-addressable dotted unit at any rank (the
+grammar N1/N2/N3 already speak — the DoD "delete 2.2 live → 2.3 becomes 2.2,
+clause 3 untouched; upload leaves the gap and flags the citation" is proven
+verbatim); lettered runs inside a body stay body deliberately — one clause,
+one badge, one decision — with citations into them following the base clause.
+
+### ✅ Stage 9 — hardening and release (COMPLETE)
+**f125 (6).** The adversarial sweep with the browser bypassed: forged,
+revoked and view tickets against every mutating door (derive included);
+crafted PUTs attempting to rewrite sealed wording, renumber by PUT, invent
+changes or erase the audit trail — the stored record never moved; rate limits
+engage; folder scope holds on the shares panel. SECURITY.md and
+DESIGN-multi-signature.md updated; RELEASE-NOTES-stages-4-9.md flags W8's
+removal of the forward-the-link handover. The deferred Playwright timeline
+screen check is recorded as the one open follow-up (behaviour jsdom-proven,
+f120/f121).
 
 ### Notes for whoever picks this up
 - **Branching history:** Stages 0–1 were built on one shared branch
