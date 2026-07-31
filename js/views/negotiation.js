@@ -279,6 +279,11 @@ function negoStyleHtml(){
   .nego-gaps .body{flex:1;min-width:200px;font-size:11.5px;line-height:1.55;color:var(--n-ink)}
   .nego-gaps .body b{font-weight:700}
   .nego-gaps .why{display:block;margin-top:3px;color:var(--n-ink-soft)}
+  /* The one door out of the notice (N2-T5) — drafts only; the executed notice
+     never renders it at all. */
+  .nego-gaps .renum{display:inline-block;margin-top:7px;font:inherit;font-size:11px;font-weight:700;
+    color:#7d5a14;background:#fff;border:1px solid #b8862b;border-radius:5px;padding:4px 10px;cursor:pointer}
+  .nego-gaps .renum:hover{background:#b8862b;color:#fff}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
     border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
@@ -930,19 +935,26 @@ function negoRichBody(cl){
    lawyer reaches for first, because a contract that skips a number is normally
    a contract somebody mangled.
 
-   So the gap is named, and the act that made it is named with it. That is all
-   this does — it offers no button, because closing the gap is a renumbering and
-   a renumbering is a deliberate act with consequences of its own (see
-   negoNumberingLocked). Telling somebody what happened is not the same as
-   inviting them to undo it, and the notice that quietly offers the undo is how
-   a signed contract gets renumbered by somebody who thought they were tidying.
+   So the gap is named, and the act that made it is named with it — and on a
+   DRAFT, on the owner's own surface, the notice now carries the one door out
+   of it: `Renumber clauses…`, which opens a full preview and writes nothing
+   until it is confirmed (N2-T5). The button appears only where the caller
+   states the owner seat (opts.offer) — opt-IN, so a surface that forgets the
+   flag shows no button rather than showing one to the wrong seat — and never
+   when the numbering is locked. The old rule here was "no button at all",
+   argued on the ground that a notice offering the undo is how a signed
+   contract gets renumbered by accident; what actually holds that line is the
+   lock plus the preview, not the absence of the door on drafts, and N2 built
+   both before this button existed.
 
    TWO VOICES, and the difference is the lock. On a draft the gap is a loose end
    the owner may want to deal with before signing. On an executed contract it is
    part of the record: the numbers have been cited by the act of signing and
    every amendment that follows will cite them again, so the gap is not a defect
-   to be fixed but a fact to be read correctly. The same notice saying "you may
-   want to tidy this" over an executed agreement would be advice to corrupt it. */
+   to be fixed but a fact to be read correctly. The executed notice is therefore
+   buttonless — the action is ABSENT, not disabled, because a disabled button
+   says "this exists and you may not", and no such act exists against a signed
+   agreement. */
 function negoNumberingNoticeHtml(c, opts = {}){
   const gaps = window.negoNumberingGaps ? negoNumberingGaps(c) : [];
   const broken = window.negoBrokenRefs ? negoBrokenRefs(c) : [];
@@ -970,10 +982,15 @@ function negoNumberingNoticeHtml(c, opts = {}){
     : 'Numbers are printed exactly as the document carries them, so nothing else moved '
       + 'and no reference to another clause was repointed. Renumbering is a separate, '
       + 'deliberate act — and once this contract is signed its numbering is final.';
+  /* Two clicks to close the gap: this one, then the preview's confirm. */
+  const door = (!locked && opts.offer)
+    ? `<button type="button" class="renum" data-renumber-open="${_ne(c.id)}"
+        onclick="window.negoRenumberOpen&&negoRenumberOpen(this.getAttribute('data-renumber-open'))">Renumber clauses…</button>`
+    : '';
   return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
       data-gaps="${gaps.length}" data-brokenrefs="${broken.length}" role="status">
     <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
-    <span class="body">${what}${run}${negoBrokenRefsLine(broken)}<span class="why">${_ne(why)}</span></span>
+    <span class="body">${what}${run}${negoBrokenRefsLine(broken)}<span class="why">${_ne(why)}</span>${door}</span>
   </div>`;
 }
 
@@ -1020,6 +1037,90 @@ function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
     <span class="body">${what}${more}<span class="why">${_ne(why)}</span></span>
   </div>`;
 }
+/* ---------- THE RENUMBER PREVIEW (N2-T3) ----------
+   Everything that would move, shown before anything is written: every heading
+   old → new, every cross-reference old → new, and — just as deliberately —
+   everything that will NOT be touched, with its reason. A preview that only
+   shows the tidy half invites a confirm from somebody who has not seen the
+   whole act. Nothing outside the plan is ever touched, and Cancel leaves the
+   document byte-identical because the plan never wrote anything to cancel. */
+function negoRenumberPreviewHtml(c, plan){
+  const hRows = plan.headings.map(h => `
+    <div class="flex items-start gap-2 py-1.5 border-b border-line/60 text-[12px]" data-renum-head="${_ne(h.clauseId)}">
+      <span class="font-mono text-[10.5px] px-1.5 py-0.5 rounded bg-slate-100 text-ink/70 shrink-0">${_ne(h.oldNum)} → ${_ne(h.newNum)}</span>
+      <span class="min-w-0 text-ink/80"><s class="text-ink/45">${_ne(h.oldHeading)}</s><br>${_ne(h.newHeading)}</span>
+    </div>`).join('');
+  const refRows = plan.refs.map(r => `
+    <div class="flex items-start gap-2 py-1 text-[11.5px]" data-renum-ref="${_ne(r.clauseId)}">
+      <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-ink/70 shrink-0">${_ne(r.from)} → ${_ne(r.to)}</span>
+      <span class="text-ink/70">in Clause ${_ne(r.fromNum || '?')} — “${_ne(r.refText)}”</span>
+    </div>`).join('');
+  const dangling = plan.untouched.filter(u => u.reason === 'dangling');
+  const unreachable = plan.untouched.filter(u => u.reason === 'formatting')
+    .reduce((a, u) => a + (u.count || 1), 0);
+  const leftAlone = (dangling.length || unreachable) ? `
+    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">Will not be touched</div>
+    ${dangling.map(u => `<div class="text-[11.5px] text-ink/60 py-0.5" data-renum-untouched="dangling">“${_ne(u.refText)}” — unresolvable: no clause here carries ${_ne(u.num)}, so it is left exactly as written.</div>`).join('')}
+    ${unreachable ? `<div class="text-[11.5px] text-ink/60 py-0.5" data-renum-untouched="formatting">${unreachable} reference${unreachable === 1 ? '' : 's'} sit${unreachable === 1 ? 's' : ''} across formatting and cannot be rewritten safely — left as ${unreachable === 1 ? 'it is' : 'they are'}.</div>` : ''}` : '';
+  return `<div class="p-6" style="max-width:640px" id="renum-preview">
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">Renumber clauses</h3>
+    <p class="text-xs text-ink/60 mb-3">The gaps close, and nothing else moves: every clause keeps its identity, every
+      cross-reference below is repointed to keep citing the same clause, and no other wording changes.
+      Nothing is written until you confirm.</p>
+    <div class="text-[11px] font-700 text-ink/70 mb-1">Headings — ${plan.headings.length}</div>
+    <div class="max-h-52 overflow-y-auto pr-1">${hRows}</div>
+    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">Cross-references repointed to follow — ${plan.refs.length}</div>
+    ${plan.refs.length ? `<div class="max-h-36 overflow-y-auto pr-1">${refRows}</div>`
+      : '<div class="text-[11.5px] text-ink/50">None cite a renumbered clause.</div>'}
+    ${leftAlone}
+    <div class="flex justify-end gap-2 mt-4">
+      <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">Renumber ${plan.headings.length} clause${plan.headings.length === 1 ? '' : 's'}</button>
+    </div>
+  </div>`;
+}
+/* The door's handler. Looks the contract up by id because the notice is
+   generated markup on two different canvases — the inline handler carries the
+   one durable fact (the contract id), and everything else is asked fresh. */
+function negoRenumberOpen(cId){
+  const c = (typeof window.getContract === 'function') ? getContract(cId) : null;
+  if (!c) return;
+  const blocked = window.negoRenumberBlocked ? negoRenumberBlocked(c) : 'locked';
+  if (blocked === 'locked'){
+    // The button never renders here — this answers a crafted call, not a click.
+    if (window.toast) toast('This contract is executed — its numbering is final', 'err');
+    return;
+  }
+  if (blocked === 'table'){
+    if (window.toast) toast('Settle the changes on the table first — renumbering rewrites the document underneath asks that cite it', 'err');
+    return;
+  }
+  const plan = window.negoRenumberPlan ? negoRenumberPlan(c) : null;
+  if (!plan || !plan.changed){
+    if (window.toast) toast('Nothing to renumber — the numbering already runs without gaps');
+    return;
+  }
+  if (typeof window.openModal !== 'function') return;
+  openModal(negoRenumberPreviewHtml(c, plan));
+  document.getElementById('renum-cancel')?.addEventListener('click', () => closeModal());
+  document.getElementById('renum-apply')?.addEventListener('click', () => {
+    const applied = window.negoRenumberApply ? negoRenumberApply(c) : null;
+    closeModal();
+    if (!applied){
+      if (window.toast) toast('Nothing was renumbered — the document may have changed underneath the preview', 'err');
+      return;
+    }
+    if (window.persist) persist(c);
+    if (window.toast) toast(`Renumbered ${applied.headings.length} clause${applied.headings.length === 1 ? '' : 's'}`
+      + (applied.refs.length ? ` and repointed ${applied.refs.length} cross-reference${applied.refs.length === 1 ? '' : 's'}` : ''));
+    /* Repaint whichever surface the reader is on — the room if it is open,
+       the workspace behind it either way. */
+    let painted = false;
+    try{ painted = !!(window.negoRepaintOpenRoom && negoRepaintOpenRoom(c)); }catch(_){}
+    try{ if (!painted && window.renderWorkspace) renderWorkspace(); }catch(_){}
+  });
+}
+
 function negoDocHtml(c, opts){
   const baseline = !!opts.baseline;
   const clauses = negoClauseList(c);
@@ -1230,8 +1331,11 @@ function negoDocHtml(c, opts){
 
   /* ON THE WORKING PANE ONLY. The baseline is the wording this round is
      measured against and carries the same gap — saying so twice, side by side,
-     reads as two different faults rather than one document. */
-  const gaps = baseline ? '' : negoNumberingNoticeHtml(c, { noticeId: 'nego-gaps' });
+     reads as two different faults rather than one document. The renumber door
+     is offered only on the owner's editable seat: the counterparty reads the
+     notice, but renumbering is the document owner's act. */
+  const gaps = baseline ? '' : negoNumberingNoticeHtml(c, { noticeId: 'nego-gaps',
+    offer: opts.side !== 'counterparty' && (typeof window.canEdit !== 'function' || window.canEdit()) });
 
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -6789,7 +6893,8 @@ function redlineDocHtml(c, opts = {}){
      silently unreachable on this page. */
   return `<article class="nego-doc rl-paper">
     ${head}
-    ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps' })}
+    ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
+      offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
     ${body || '<p class="rl-clause-p">This contract has no clause structure yet.</p>'}
   </article>`;
 }
@@ -7416,6 +7521,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
+  negoRenumberPreviewHtml, negoRenumberOpen,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

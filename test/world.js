@@ -151,10 +151,13 @@ function buildWorld(opts = {}) {
     icon: () => '<svg></svg>',
 
     // the audit trail: a RECORDER. The product decides the actor and the
-    // wording; these assertions are about exactly that decision.
-    logAudit(c, action, detail, actor) {
+    // wording; these assertions are about exactly that decision. The optional
+    // structured `data` (X3 — first used by renumbering) travels through
+    // exactly as js/core.js carries it, so its shape is assertable here.
+    logAudit(c, action, detail, actor, data) {
       c.audit = c.audit || [];
-      const entry = { at: shell.nowISO(), user: actor || user.name, action, detail };
+      const entry = { at: shell.nowISO(), user: actor || user.name, action, detail,
+        ...(data ? { data } : {}) };
       c.audit.push(entry);
       log.audit.push({ id: c.id, ...entry });
     },
