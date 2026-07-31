@@ -5113,6 +5113,26 @@ function renderRedline(){
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
   const opts = { hostId: 'redline-host', side,
+    /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
+       The closed banner at negoBannerHtml has fired on 'Signed' for a long
+       time, and the panes underneath it went on rendering Direct Edit, Propose
+       deletion and a live Save change bar — the banner said finished and the
+       buttons said otherwise, and the buttons won (MK-248).
+
+       Everything in the workbench that can act is gated on this one flag —
+       canAct in the cards, the index, the action bar and the panes, editable in
+       the document — so the fix is to ask the question once, here, rather than
+       to hunt those gates down individually. negoExecuted, not `status ===
+       'Signed'`: a contract carrying a seal or an execution stamp is executed
+       whatever its status field says.
+
+       This is the sign on the door. The lock is in negoFileChange, which
+       refuses the write even if a caller reaches it another way; both ship,
+       because a lock with no sign is a button that errors at a reader who
+       should never have been offered it. */
+    readonly: (typeof negoExecuted === 'function') ? negoExecuted(c) : false,
+    readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
+      ? 'This contract is executed — its wording is sealed. Record an amendment instead.' : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     /* Highlighting wording on this page drives the SIDE PANEL, never a
@@ -6802,7 +6822,15 @@ function redlinePanesHtml(c, opts = {}){
           ${canAct ? `<div class="nego-bulk">
             <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>
             <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
-          </div>` : ''}
+          </div>` : (opts.readonlyWhy
+            /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
+               the counterparty's action bar has carried for a while, applied
+               here because this is where the owner's verbs were. An executed
+               contract used to render this column silently: no bulk verbs, no
+               Direct Edit, and nothing anywhere saying the wording is sealed,
+               which reads as a page that failed to load rather than a record
+               that is closed. */
+            ? `<div class="nego-why" id="nego-readonly-why">${_ne(opts.readonlyWhy)}</div>` : '')}
           <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
           </div>
           <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box

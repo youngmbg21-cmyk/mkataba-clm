@@ -498,6 +498,30 @@ function negoSummariseOps(changeType, ops, oldText, newText){
    round. Quietly folding it into the decided change would rewrite what the
    other side agreed to. */
 async function negoFileChange(c, draft, opts = {}){
+  /* ---------- AN EXECUTED CONTRACT TAKES NO NEW CHANGES ----------
+     The signed door in negoResolve refused to DECIDE on an executed contract
+     and this refused nothing at all, so the product's real rule was: you may
+     not rule on a change to a signed agreement, but you may author one. MK-248
+     was reported Executed with a live Save change bar on its clause body, and
+     it filed.
+
+     What that costs is not a stray record. negoCommitBody rewrites c.body — the
+     text the seal was computed over — while execution.html keeps the wording
+     that was actually signed, so an edit here walks the live document away from
+     the sealed evidence in silence. Afterwards verifySeal reports a break on a
+     contract nobody tampered with, or the screen shows wording the evidence
+     does not contain. Either way the seal stops meaning what it says, and the
+     seal is the whole claim.
+
+     GUARDED AT THE FUNNEL, NOT AT THE CALLERS. negoEditClause, negoInsertClause
+     and negoDeleteClause all arrive here; the fourth caller written next year
+     will too, and it inherits this without knowing it needs to. Before
+     negoInit, because a refusal must not leave initialisation behind as its
+     only trace. */
+  if (negoExecuted(c)){
+    if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
+    return null;
+  }
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
