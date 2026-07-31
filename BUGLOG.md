@@ -5743,3 +5743,70 @@ else and wrong for a grace period, whose entire behaviour is the delay — under
 the stub the card closes on the same tick as the `mouseleave` and the test
 passes while proving nothing. Both `setTimeout` and `clearTimeout` are restored
 for those two tests; restoring only the first makes the cancel a silent no-op.
+
+## Run: the same column, read from the counterparty's chair (2026-07-31)
+
+The two items WORKORDER-change-card-behaviour.md left open, both on the same
+seat. The counterparty's page mounts the SAME renderer with
+`side:'counterparty'`, so Draft/Sent and peek/pin arrive there by construction —
+but "by construction" is a claim, not a reading, and neither had been read back
+from that chair since the send-vs-turn fix (`0c41ffc`). One of them was not fine.
+
+### 1. WO-1 · Sent, on the counterparty's own portal page — verified, no fault
+
+**What was checked.** WO-1 item 3: that a sent ask of the counterparty's OWN
+reads `Sent` and carries exactly **Edit** and **Sent** from their seat, as it
+does from the owner's.
+
+**What was found.** It holds, and it cannot drift: the portal passes its held
+asks as `unsentIds` (`PORTAL_NEGO_PROPOSED`), and pressing the postbox moves
+them to `PORTAL_NEGO_PROPOSED_SENT` and clears the held set — so the badge and
+the verbs flip off the same one reading the owner's do. No code changed.
+
+**Verified.** f100f, three tests: held it is a Draft with Edit/Retract/Send; sent
+it is `Sent` with exactly Edit and Sent, Sent disabled, and no `data-rl-send` or
+`data-rl-retract` anywhere on the card — the fault as originally reported, which
+was never a rendering fault on either seat.
+
+### 2. WO-2 · the unpin repainted the owner's workbench from inside the portal
+
+**What was broken.** On the counterparty's page, pressing anywhere outside the
+Tracked Changes column released the pin in the record and left the card open on
+screen. The reader could not put a card away.
+
+**Root cause.** The document-level unpin handler
+(`js/views/negotiation.js`) ended `if (rlCardUnpinAll()) renderRedline()`.
+`renderRedline` is the OWNER's page — it paints `#content` from
+`state.activeId` — and this handler is wired by `rlWireClauseTools`, which
+already carries `again` for exactly this reason and says so at the top of the
+function: "falling back to renderRedline from inside an embed would paint the
+owner's workbench over a page that is not the owner's." The mount that had to
+redraw the card was never asked to. On the portal the owner's shell is hidden,
+so the visible fault was only the stuck card; the wrong paint still happened,
+into `#content`, behind it.
+
+The same handler read its column with `document.getElementById('rl-changes')` —
+"outside the column" answered by whichever mount the document held first, rather
+than by this one.
+
+**The fix.** `again()` instead of `renderRedline()`, and the column read off the
+mount (`host.querySelector`). No change on the owner's seat, where `again` IS
+`() => renderRedline()`.
+
+**And one the same reading turned up.** `rlCardForgetPins` was called only by
+`renderRedline`, so a pin made on a mount outlived the contract it was made on —
+the rule the owner's page keeps, not kept by the embed. Now called by
+`redlineEmbed` on the same terms (it clears only when the contract id moves, so
+the portal's rebuild-on-every-change does not drop a live pin).
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100f (5 tests). The two behavioural ones fail against the
+unfixed file for the right reasons — the card stays open, and a marker left in
+`#content` is destroyed by the owner's paint — and pass with it. The three WO-1
+tests pass either way, which is what a verification item should do. Suite
+1916/1916.
+
+**Not done.** The mixed toolbar in Counterparty View (the owner's **Send All
+Redlines** and **Publish Round** still drawn while previewing the counterparty's
+seat), noticed during the original investigation and explicitly excluded by the
+work order. Still open, still unspecified.
