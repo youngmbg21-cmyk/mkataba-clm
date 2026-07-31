@@ -26,10 +26,9 @@ entry if it does not.
 > 5. The exact upload-screen strings and fixture files named in §4 and §6 differ
 >    from what is on disk (§4, §6).
 >
-> The branch name above (`feature/pdf-upload`) is unchanged and still governs the
-> build session. Confirm it at the start of that session, since an automated
-> session may be handed a different branch by its harness — if so, the branch it
-> was given wins, and the mismatch belongs in `SUMMARY.md`.
+> **Settled by Young after the review pass:** the branch is `feature/pdf-upload`,
+> as originally written — build there, and do not use a harness-assigned branch
+> instead. Swedish is not needed; new text is English only (§2).
 >
 > No feature code was written during this review pass.
 
@@ -112,13 +111,15 @@ All guardrails from the Phase A–D brief still apply (no destructive migrations
 no mutation of published versions, server-side access enforcement, document
 blockers instead of silently working around them).
 
-**[Corrected] The EN/SV bilingual requirement is struck.** It was inherited from a
-brief template written for a different product. HaTi has no translation layer of
-any kind and is built for the Kenyan market (KRA PINs, Kenyan national IDs).
-Building one to satisfy this line would be a large detour for no user. **New
-user-facing text in this brief is English only**, matching every other string in
-the app. If a Swedish or multilingual market is ever added, that is its own piece
-of work covering the whole product, not a clause in a PDF-upload brief.
+**[Corrected — confirmed by Young] The EN/SV bilingual requirement is struck.** It
+was inherited from a brief template written for a different product. HaTi has no
+translation layer of any kind and is built for the Kenyan market (KRA PINs, Kenyan
+national IDs). Building one to satisfy this line would be a large detour for no
+user. **New user-facing text in this brief is English only**, matching every other
+string in the app. Young confirmed this directly after the review pass: "no Swedish
+needed." Do not add translation scaffolding, language keys, or an i18n layer to
+this route. If a multilingual market is ever added, that is its own piece of work
+covering the whole product, not a clause in a PDF-upload brief.
 
 Additional guardrails for this brief:
 
