@@ -2214,12 +2214,7 @@ function openNegotiationOwnerRoom(c){
     onIssueSigningLink(){
       closeNegotiationRoom();
       renderWorkspace();
-      openShareModal(c, { purpose:'sign',
-        onSent(){
-          logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
-          persist(c);
-          renderWorkspace();
-        } });
+      issueSigningAct(c);
     },
     /* The transition point, and nothing past it. It closes the round so the
        agreed wording becomes the baseline, then puts the reader on the Docs
@@ -2438,6 +2433,36 @@ function returnedChangesStrip(c){
    than on the paper, so it cannot be scrolled past. Its verb is the owner's:
    the deal does not advance by itself, and the wording says both that nothing
    is signed and what the next act is. */
+/* The owner's "issue a signing link" act, from the strip or the room — one
+   code path for both, as before, but now it asks the signing route FIRST.
+   A route naming counterparty signers means the recipients were already
+   decided, in order, with addresses (D5: signing is strict identity) — so the
+   links are generated from it, bound and sequenced, and the dialog with its
+   one hand-typed recipient is only the planless fallback (W7 fault 2). */
+async function issueSigningAct(c){
+  const supersededLine=()=>{
+    logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
+    persist(c); renderWorkspace();
+  };
+  if(window.issueSigningRouteLinks){
+    let out=null;
+    try{ out=await issueSigningRouteLinks(c); }
+    catch(e){ toast(e.message||'The signing links could not be issued','err'); return; }
+    if(out && out.links){
+      supersededLine();
+      const held=out.links.filter(x=>x.heldForTurn).length;
+      const first=out.links.find(x=>!x.heldForTurn);
+      toast(first
+        ? `${first.signer.name} ${first.emailSent?'has been emailed their own signing link':'gets their own signing link (nothing was emailed — check the outbox)'}${held?`; ${held} more release${held===1?'s':''} automatically as each signer signs`:''}`
+        : 'Signing links created and held — they go out in order once internal signing is complete');
+      return;
+    }
+    if(out && out.missingEmails){
+      toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it to the route, or send a link by hand below`,'err');
+    }
+  }
+  openShareModal(c,{ purpose:'sign', onSent(){ supersededLine(); } });
+}
 function readyToSignStrip(c){
   const sig=window.negoReadySignal?negoReadySignal(c,'counterparty'):null;
   if(!sig) return '';
@@ -2473,11 +2498,7 @@ function wireChangesStrip(c){
   document.getElementById('ready-issue')?.addEventListener('click',()=>{
     /* The same act as the room's button, and deliberately the same code path —
        two ways to reach one thing, not two things that could drift. */
-    openShareModal(c,{ purpose:'sign',
-      onSent(){
-        logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
-        persist(c); renderWorkspace();
-      } });
+    issueSigningAct(c);
   });
 }
 /* ---- the header, folded away ----
@@ -3170,8 +3191,27 @@ async function signDocument(c){
       persist(c); renderSignButton(c); renderAuditSection(c);
       const nxt=nextSigner(c);
       if(nxt && nxt.party==='counterparty' && internalAllSigned(c)){
-        toast('Internal signing complete — now share it with the counterparty');
-        setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
+        /* W7 fault 2, closed: this used to open the share dialog for the owner
+           to hand-type ONE recipient, on a contract whose route already names
+           every counterparty signer with an address. The route issues the
+           links itself now — the first signer is emailed and the rest release
+           in order — and the dialog remains only where the route cannot drive
+           it (static mode, or a plan missing an address). */
+        let out=null;
+        try{ out=window.issueSigningRouteLinks ? await issueSigningRouteLinks(c) : null; }catch(e){ out=null; }
+        if(out && out.links){
+          const first=out.links.find(x=>!x.heldForTurn);
+          toast(`Internal signing complete — ${first&&first.emailSent
+            ? `${first.signer.name} has been emailed their own signing link`
+            : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`);
+          renderSignButton(c); renderAuditSection(c);
+        } else {
+          if(out && out.missingEmails)
+            toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
+          else
+            toast('Internal signing complete — now share it with the counterparty');
+          setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
+        }
       } else {
         toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`);
         notifyNextSigner(c, nxt);
@@ -3394,7 +3434,13 @@ async function distributeExecuted(c, opts={}){
   persist(c); renderSignButton(c);
 }
 
-/* Best-effort "it's your turn" nudge to the next internal signer. */
+/* Best-effort "it's your turn" nudge to the next INTERNAL signer — internal
+   only, on purpose. This early return used to be W7's fault 1: counterparty
+   signers were skipped in silence, because the only email anyone could send
+   them said "sign in to HaTi" and they have no account. They are now emailed
+   their own bound link by the signing route instead — issueSigningRouteLinks
+   at issue time, the server's releaseNextSignerLink for every turn after —
+   so a counterparty landing here is handled elsewhere, not unhandled. */
 async function notifyNextSigner(c, nxt){
   if(!API_MODE() || !nxt || nxt.party!=='internal' || !/.+@.+\..+/.test(nxt.email||'')) return;
   try{ await api('contracts/'+c.id+'/notify-signer','POST',{ email:nxt.email, name:nxt.name, order:nxt.order }); }catch(e){}
@@ -3437,5 +3483,5 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+Object.assign(window,{wsChromeFolded,applyWsCollapse,wireWsCollapse,WS_FOLD_KEY,applyDocZoom,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,distributeExecuted,distributionPanelHtml,docBody,docBodyHtml,docFileUrl,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,frozenDocBody,inflateBytes,keyTermsProgress,notifyNextSigner,openDocReader,openEditDocModal,openUploadModal,pdfRunsToText,pdfRunsToLines,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,renderSignButton,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabBtn,wsTabDefaults,applyWsTabs,wireWsTabs,negoTabCountHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal});

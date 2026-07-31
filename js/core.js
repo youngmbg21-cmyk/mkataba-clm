@@ -1980,6 +1980,59 @@ async function reshareToLastRecipient(c, opts={}){
   return record(r||{}, false);
 }
 
+/* ---- W7: THE SIGNING LINKS COME FROM THE ROUTE, NOT FROM A TYPED BOX ----
+
+   The owner already named every counterparty signer, in order, with an email
+   address, when they set the signing route. Opening the share dialog at that
+   point and asking them to hand-type ONE recipient threw that record away —
+   and left every signer after the first with no link at all.
+
+   This issues one bound link per unsigned counterparty signer, in one pass.
+   The server holds each link until its turn (signer n+1's email goes out when
+   signer n signs — see releaseNextSignerLink in server/server.js), so calling
+   this early simply creates the route dormant, and calling it again is safe:
+   one signer, one link, reused in place, and the reuse is the release when
+   the turn has arrived in the meantime.
+
+   Returns null where the route cannot drive this (static mode, no counterparty
+   signers), and { missingEmails } where it should but the plan is incomplete —
+   the caller decides whether to fall back to the hand-typed dialog, because
+   only the caller knows whether an owner is watching. */
+async function issueSigningRouteLinks(c){
+  if(!API_MODE() || !window.signerPlan) return null;
+  const cps=signerPlan(c).filter(s=>s && s.party==='counterparty' && !s.signed)
+    .slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  if(!cps.length) return null;
+  const missingEmails=cps.filter(s=>!/.+@.+\..+/.test(String(s.email||'')));
+  if(missingEmails.length) return { missingEmails };
+  /* The server binds and sequences against the STORED plan, and `persist` is a
+     400 ms timer — the same overtaking that once had /distribute refuse a
+     contract its own screen had just sealed. The plan must be on disk before
+     the first share request reads it back. */
+  try{ await flushSaves(); }catch(_){}
+  try{ await ensureFull(c); }catch(_){}
+  const docHash=await sha256(canonicalDoc(c));
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent for signature',null,{auto:true}); if(v) persist(c); }
+  const links=[];
+  for(const s of cps){
+    const payload=buildSharePayload(c, docHash, null, { purpose:'sign' });
+    const r=await api('shares','POST',{ payload, channel:'email',
+      recipient:{ name:s.name, email:s.email }, expiryDays:30, durable:false,
+      purpose:'sign', signerId:s.id });
+    links.push({ signer:s, ...r });
+  }
+  /* One audit line for the act, naming what actually went and what is held —
+     "3 links created" hides exactly the fact the route exists to record. */
+  const made=links.filter(x=>!x.reused).length;
+  const sent=links.find(x=>x.emailSent);
+  if(made || sent){
+    const bit=x=>`${x.signer.name} (${x.emailSent?'emailed their link':x.heldForTurn?'link held until their turn':'link ready'})`;
+    logAudit(c,'Shared',`Signing links issued from the route — ${links.map(bit).join(', ')}. Each link is bound to its signer and released in order.`);
+    persist(c);
+  }
+  return { links };
+}
+
 /* opts.onSent — a callback fired when a share is really created, carrying what
    actually happened: which channel, whether the email left the building, and
    the link. The negotiation room uses it to hand the turn over ONLY on a
@@ -3036,4 +3089,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

@@ -1420,6 +1420,17 @@ async function portalRefreshNow(reason){
        expired. That is a whole-page answer and it is shown immediately. */
     if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
     if(!ok || !d) return 'error';
+    /* Still waiting for an earlier signer. Painted once — a waiting page that
+       repainted on every tick would flicker for nobody's benefit — and the
+       poll carries on, because this page's whole promise is that it notices
+       the turn arriving by itself. */
+    if(d.dormant){
+      if(!document.getElementById('pt-dormant')) renderSharePortal(null,{ dormant:d.dormant, token:_ptPollToken });
+      return 'dormant';
+    }
+    /* The turn just arrived on a page that was dormant: repaint regardless of
+       the content signature — the previous paint had no contract on it. */
+    if(document.getElementById('pt-dormant')){ portalRepaint(_ptPollToken, d); return 'repaint'; }
     const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
     if(what==='repaint'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
     if(what==='notify'){ portalShowUpdatedNotice(); return 'notify'; }
@@ -1446,6 +1457,10 @@ async function portalEntry(encoded){
       const { status, ok, d }=await portalFetchShare(token);
       if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
       if(!ok) throw new Error(d?.error||'not found');
+      /* A dormant bound link (W7): show the waiting page AND start polling —
+         the poll is what turns it into the signing page when the earlier
+         signer signs. */
+      if(d.dormant){ renderSharePortal(null,{ dormant:d.dormant, token }); portalStartPolling(token, d); return; }
       renderSharePortal(d.payload, portalRenderOpts(token, d));
       portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
@@ -1709,7 +1724,35 @@ function renderShareWorkbench(p, opts={}){
      process that never exits. */
 }
 
+/* ---- W7: THE WAITING PAGE A DORMANT SIGNING LINK OPENS TO ----
+   A bound link before its turn serves no contract at all — the server answers
+   a `dormant` envelope instead of a payload, so there is nothing on this page
+   to hide and nothing on it to press. It is deliberately NOT the gone/expired
+   card: the link is real and will work, and a signer told "invalid link"
+   phones the sender, while one told "you are after the MD" waits — or chases
+   the right person. The page keeps polling and comes alive by itself the
+   moment the turn arrives. */
+function renderShareDormant(d, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  const who = d.waitingOnParty==='counterparty'
+    ? `<strong>${esc(d.waitingOn||'an earlier signer')}</strong> signs before you on the agreed order`
+    : `${esc(d.org||'the sender')}'s own signatures are not yet complete`;
+  root.innerHTML=`<div id="pt-dormant" style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:26rem;">
+      <div style="color:#b8862b;margin-bottom:12px;display:flex;justify-content:center;">${icon('clock','w-8 h-8')}</div>
+      <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">Not your turn to sign yet</h1>
+      <p style="font-size:13px;color:var(--color-neutral-700);margin-top:8px;line-height:1.6;">This is your personal signing link${d.contractName?` for <strong>“${esc(d.contractName)}”</strong>`:''}${d.org?` from ${esc(d.org)}`:''}${d.order&&d.total?` — you are signer ${d.order} of ${d.total}`:''}. ${who}.</p>
+      <p style="font-size:12px;color:var(--color-neutral-600);margin-top:10px;line-height:1.6;">Keep this link. This page checks automatically and will come alive the moment it is your turn — nothing is needed from you until then.${d.expiresAt?` The link expires on ${esc(String(d.expiresAt).slice(0,10))}.`:''}</p>
+    </div></div>`;
+}
+
 function renderSharePortal(p, opts={}){
+  /* A dormant bound link routes out even ahead of the view link: the server
+     sent no payload at all, so every branch below would read as an invalid
+     link when the truth is "not yet". */
+  if(opts&&opts.dormant) return renderShareDormant(opts.dormant, opts);
   /* ---- THE VIEW LINK LEAVES HERE, BEFORE ANYTHING IS ASSEMBLED ----
      First statement in the function, ahead of portalLoadHeld and the whole
      page build. A view link has no held decisions to restore, no respond
@@ -2675,4 +2718,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning});
