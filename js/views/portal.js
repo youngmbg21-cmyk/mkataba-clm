@@ -931,6 +931,19 @@ function portalNegoContract(p){
    Read from the record, so it cannot claim a state the changes do not support.
    `superseded` and `responded` copies stay on the reading view either way —
    they are history, and history is not signable. */
+/* Did the SENDER issue this link for signature, as against did this page work
+   out that a signing screen is the sensible one to show?
+
+   portalNegoPhase answers the second question and is right to infer — a link
+   created before purposes existed still has to open on something. This answers
+   the first, and never infers: purposeChosen is set only where somebody picked
+   'Sign' in the share dialog. Everything else — a legacy link, a link on a
+   contract with nothing proposed yet — is not a signing link and keeps every
+   verb it has always had. */
+function portalIssuedForSigning(p){
+  return !!(p && (p.purposeChosen==='sign'
+    || (PORTAL_OPTS && PORTAL_OPTS.purpose==='sign')));
+}
 function portalNegoPhase(p){
   const src=(p&&p.contract)||{};
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
@@ -1144,7 +1157,26 @@ function wirePortalNego(c, p){
   const host=document.getElementById('pt-nego');
   if(!host) return;
   const who=portalResponderLabel(c);
-  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  /* ---- A SIGNING LINK SHOWS WHAT WAS SETTLED; IT DOES NOT REOPEN IT ----
+     W6/D4. The signing screen keeps a read-only view of the tracked changes,
+     reachable from "Review what changed", because signing on trust with no
+     account of what was agreed is the thing this product exists to remove.
+     What it must not carry is a way to start negotiating again: the workbench
+     was being mounted live there, so a signing link rendered Direct Edit and
+     the send-decisions postbox — a second, quieter route back into a
+     negotiation the sender had already declared finished by issuing this link.
+
+     The link states what it is (portalNegoPhase reads the stored purpose), and
+     the seat is derived from that rather than from what is left pending. */
+  /* THE LINK MUST SAY SO. Not portalNegoPhase, which also INFERS a signing
+     phase for a link that stated no purpose at all — every link created before
+     purposes existed, and every one with nothing proposed on it yet. Those keep
+     the reading they have always had, or this quietly takes the ability to
+     propose edits away from links that were never meant to be signing links.
+     Only a link the sender explicitly issued for signature loses the
+     negotiating verbs. */
+  const signing=portalIssuedForSigning(p);
+  const live=!!PORTAL_OPTS.token && !portalReadOnly() && !signing;
   const org=(p&&p.org)||'the sender';
   const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
@@ -1160,6 +1192,18 @@ function wirePortalNego(c, p){
   redlineEmbed(host, c, {
     side:'counterparty',
     readonly:!live,
+    /* Said, not merely absent — the panel a reader opened expecting to be able
+       to answer must explain why it has no verbs. */
+    /* THE MORE SPECIFIC REASON WINS. A link can be read-only for several
+       reasons at once, and they are not equally useful: "a newer copy was sent
+       to you" and "this contract is executed" tell a reader what to do next,
+       while "this is a signing link" only explains the absence of buttons.
+       So this one speaks only when it is the ONLY thing to say — otherwise it
+       would talk over the notice the reader actually needs. */
+    readonlyWhy:(signing && !portalReadOnly() && !PORTAL_OPTS.superseded)
+      ? 'This is the agreed wording, shown so you can see what changed before you sign. '
+        + 'The negotiation is closed on this link — ask ' + esc(org) + ' if something still needs to change.'
+      : undefined,
     holdsDecisions:true,
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     seenScope:PORTAL_OPTS.token||'',
@@ -1277,7 +1321,10 @@ function portalRenderOpts(token, d){
     /* The server states it on the envelope as well as inside the payload, and
        the render reads whichever arrives — a reader who may do nothing must not
        depend on one of two flags surviving a refactor. */
-    viewOnly:d.viewOnly===true||d.purpose==='view' };
+    viewOnly:d.viewOnly===true||d.purpose==='view',
+    /* The share ROW's purpose — what the sender chose, as against what the
+       payload guessed. See portalIssuedForSigning. */
+    purpose:d.purpose||null };
 }
 /* A fingerprint of everything on this page a reader would notice moving. Kept
    deliberately narrow: the engagement log ticks on every open, and a page that
@@ -1713,6 +1760,13 @@ function renderSharePortal(p, opts={}){
      so on this page not one of them could ever fire. The executed fact now
      travels (see buildSharePayload) and the server reports it live, so the
      record this page builds can tell the truth about which of the two it is. */
+  /* What is left below this line renders the SIGNING screen and the
+     read-only/expired states — the negotiate seat left at the top of this
+     function (renderShareWorkbench). So "propose your edits" has no business
+     here: a signing link is issued when the sender has declared the wording
+     final, and a standalone clause editor on it is a second route back into a
+     negotiation that was closed. W6. */
+  const signingSeat=portalIssuedForSigning(p);   // chosen, never inferred
   const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   /* Display-side repair: a copy shared before delete-time marker cleanup can
@@ -1763,6 +1817,7 @@ function renderSharePortal(p, opts={}){
         <!-- Rewriting a contract used to happen in a twelve-row box inside the
              360px column on the right. It happens here now, at the size of the
              document it replaces. -->
+        ${signingSeat ? '' : `
         <div id="portal-redline" class="hidden" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-md);overflow:hidden">
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
@@ -1782,6 +1837,7 @@ function renderSharePortal(p, opts={}){
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">Submit proposed edits</button>
           </div>
         </div>
+        `}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">Respond to ${esc(p.org)}</h2>
@@ -1896,19 +1952,19 @@ function renderSharePortal(p, opts={}){
       // carry whatever they have already changed across, rather than losing it
       ta.value=portalProposedText(c);
       plain.classList.remove('hidden'); clauses.classList.add('hidden');
-      document.getElementById('pt-plain-toggle').textContent='Back to editing clause by clause';
+      const _pt=document.getElementById('pt-plain-toggle'); if(_pt) _pt.textContent='Back to editing clause by clause';
       setTimeout(()=>ta.focus(),120);
     } else {
       plain.classList.add('hidden'); clauses.classList.remove('hidden');
-      document.getElementById('pt-plain-toggle').textContent='Edit the whole document instead';
+      const _pt=document.getElementById('pt-plain-toggle'); if(_pt) _pt.textContent='Edit the whole document instead';
     }
   });
-  document.getElementById('pt-redline').addEventListener('click',()=>
+  document.getElementById('pt-redline')?.addEventListener('click',()=>
     showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
   /* CANCEL IS A DISCARD, so it says so and asks first — but only when there is
      something to lose. Closing an editor nobody typed into is not a decision
      worth a dialog. */
-  document.getElementById('pt-redline-cancel').addEventListener('click',async()=>{
+  document.getElementById('pt-redline-cancel')?.addEventListener('click',async()=>{
     const n=stagedEdits();
     if(!n){ showRedline(false); return; }
     let ok=true;
@@ -1920,7 +1976,7 @@ function renderSharePortal(p, opts={}){
     if(!ok) return;
     showRedline(false,{ fresh:true });
   });
-  document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
+  document.getElementById('pt-redline-submit')?.addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
   if(opts.share){
     const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
@@ -2619,4 +2675,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning});
