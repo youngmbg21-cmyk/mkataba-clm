@@ -1528,6 +1528,41 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
+     The browser has always refused to let one member sign another member's
+     step (js/views/contract.js, "This step is reserved for …"). That is a sign
+     on the door: it stops the honest mistake of a colleague signing on the
+     wrong row, and it stops nothing else, because the request that carries the
+     signature is an ordinary contract save and this route never asked.
+     DESIGN-multi-signature.md listed server-side enforcement as Phase 2
+     hardening and recorded that it was never built.
+
+     Asked as a DIFFERENCE, not as a state: the question is not "is this user
+     the next signer" — a save that touches nothing about signing would fail
+     that — but "does this save newly mark a reserved step as signed, and is the
+     caller the member it was reserved for". Any other save passes untouched.
+
+     Only steps carrying a memberId are reserved. A route row naming somebody
+     with no account (a counterparty signer, an internal name typed by hand) is
+     not bound to a member and is not this rule's business; W7/W8 are what bind
+     those, through the link and the code sent to the invited address. */
+  if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
+    const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
+    const stolen = c.signerPlan.find(s => {
+      if (!s || !s.signed || !s.memberId) return false;
+      const before = was.get(String(s.id || s.order));
+      if (before && before.signed) return false;          // already signed — not this save
+      return String(s.memberId) !== String(req.user.id);
+    });
+    if (stolen) {
+      return res.status(403).json({
+        error: `That signing step is reserved for ${stolen.name || 'another member'}. `
+          + 'Only they can sign it.',
+        reservedFor: stolen.name || null,
+      });
+    }
+  }
+
   /* Template provenance is written once, at creation, and never overwritten or
      removed — it is the audit trail that answers "which live contracts came
      from which template version". The columns are set-once via COALESCE in
