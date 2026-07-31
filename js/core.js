@@ -1491,6 +1491,8 @@ const SHARE_PURPOSE_COPY={
     blurb:'They land in the negotiation room. Every clause they want changed comes back as its own item you accept or reject. Nothing can be signed on this link.' },
   sign:{ label:'Sign', title:'They sign this exact wording',
     blurb:'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.' },
+  view:{ label:'View only', title:'They read it, and can do nothing else',
+    blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
 };
 function sharePurposePickerHtml(c, sel){
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
@@ -1636,7 +1638,10 @@ function shareVersions(c, org){
    So the sender says what the link is when they create it, the reader's page
    reads that and nothing else, and a negotiation link stays the room until a
    NEW link supersedes it. */
-const SHARE_PURPOSE = p => (p === 'sign' ? 'sign' : p === 'negotiate' ? 'negotiate' : null);
+/* Three purposes now. 'view' is the read-only pass an outside advisor gets —
+   it is enforced by the server (refuseIfViewOnly, server/server.js), and named
+   here so the share dialog can offer it and the portal can route on it. */
+const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
