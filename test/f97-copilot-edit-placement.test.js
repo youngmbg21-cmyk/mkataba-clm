@@ -92,9 +92,14 @@ describe('F97a — the placement survives the parse, or fails safe', () => {
   beforeEach(() => { ai = loadAi(); });
 
   test('the edit format names the field and the four values', () => {
-    assert.match(ai.AI_EDIT_FORMAT, /"placement"/);
-    for (const p of ['replace', 'after', 'before', 'newClause'])
-      assert.ok(ai.AI_EDIT_FORMAT.includes(p), `the model is told about "${p}"`);
+    /* A function since the advice field answers to the Plain/Legal register
+       (F107). The placement contract is the same in both. */
+    for (const style of ['plain', 'legal']){
+      ai.aiSetStyle(style);
+      assert.match(ai.AI_EDIT_FORMAT(), /"placement"/);
+      for (const p of ['replace', 'after', 'before', 'newClause'])
+        assert.ok(ai.AI_EDIT_FORMAT().includes(p), `the model is told about "${p}" in ${style}`);
+    }
   });
 
   test('and it forbids the one answer that loses wording', () => {
@@ -102,13 +107,13 @@ describe('F97a — the placement survives the parse, or fails safe', () => {
        building on. That instruction is the difference between this feature
        working and it being the bug it replaces, so it is stated to the model
        rather than hoped for. */
-    assert.match(ai.AI_EDIT_FORMAT, /ADD.*placement MUST NOT be "replace"/s);
+    assert.match(ai.AI_EDIT_FORMAT(), /ADD.*placement MUST NOT be "replace"/s);
   });
 
   test('and it asks for list items one per line', () => {
     /* docRichFromText rebuilds real list markup from line openers, so bullets
        have to ARRIVE as lines to survive as items. */
-    assert.match(ai.AI_EDIT_FORMAT, /ONE ITEM PER LINE/);
+    assert.match(ai.AI_EDIT_FORMAT(), /ONE ITEM PER LINE/);
   });
 
   test('a stated placement is read back', () => {

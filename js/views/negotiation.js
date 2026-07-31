@@ -5315,6 +5315,12 @@ function redlineEmbed(host, c, opts = {}){
   redlineLayoutCss();
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const o = { ...opts, side };
+  /* A pin is a working preference on THIS contract's column — the same rule the
+     owner's page keeps (see renderRedline). A mount is not exempt from it: the
+     portal rebuilds its contract from the payload on every change, and a host
+     that reused this mount for a second contract would open a card on it that
+     this reader has never seen. */
+  rlCardForgetPins(c && c.id);
   /* .redline-page carries every rule this layout is drawn with; without it the
      mount renders as unstyled stacked divs. The height bound matters just as
      much: the panes scroll INSIDE themselves, and panes with no bounded
@@ -6602,16 +6608,25 @@ function rlWireClauseTools(c, host, opts){
      Bound once per mount, on the document, because "somewhere else" is by
      definition outside the column. Capture is deliberate: a handler inside the
      page that stops propagation (the clause tools do) would otherwise leave a
-     pin standing after the reader had plainly moved on. */
+     pin standing after the reader had plainly moved on.
+
+     THE COLUMN IS THIS MOUNT'S, AND SO IS THE REPAINT. Read by id off the
+     document, "outside the column" would be answered by whichever #rl-changes
+     the document happened to hold first; repainted with renderRedline, the
+     unpin would paint the OWNER's workbench from inside the counterparty's
+     portal — the mistake this function's own `again` exists to prevent (see the
+     top of rlWireClauseTools). On that page the visible fault was the plain
+     one: the pin was released in the record and the card stayed open on screen,
+     because the page that had to redraw it was never asked to. */
   if (!host._rlUnpinBound){
     host._rlUnpinBound = true;
     document.addEventListener('click', ev => {
-      const col = document.getElementById('rl-changes');
+      const col = host.querySelector && host.querySelector('#rl-changes');
       /* Gone from the page — a repaint into another view. Nothing to do. */
       if (!col || !col.isConnected) return;
       const t = ev && ev.target;
       if (t && col.contains && col.contains(t)) return;
-      if (rlCardUnpinAll()) renderRedline();
+      if (rlCardUnpinAll()) again();
     }, true);
   }
 

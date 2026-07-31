@@ -696,3 +696,128 @@ describe('F100e — looking at a card is not deciding anything', () => {
       'nothing in the document lit up for a look');
   });
 });
+
+describe('F100f — and all of it from the counterparty\'s own chair', () => {
+  /* The work order left two items open on this seat, and they are the same
+     seat: the counterparty's page mounts the SAME renderer with
+     side:'counterparty', so Draft/Sent and peek/pin arrive there by
+     construction — but "by construction" is the claim, not the proof, and
+     neither had been read back since the send-vs-turn fix.
+
+     One of them was not fine. The unpin repainted with renderRedline — the
+     OWNER's page — from inside a mount that is not the owner's, so on the
+     counterparty's page the pin was released in the record and the card stayed
+     open on screen, because the page that had to redraw it was never asked. */
+
+  async function page(){
+    const w = buildWorld({ negotiationView: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    win.openShareModal = () => {};
+    win.counterpartyContact = () => null;
+    win.cachedShares = () => [];
+    const c = supplyContract();
+    win.negoInit(c);
+    /* Filed from THEIR side: on this seat it is the reader's own ask, which is
+       the card the Draft/Sent rule is about. */
+    await win.negoFileProposal(c, win.negoBaseText(c).replace('thirty (30) days', 'sixty (60) days'),
+      { side: 'counterparty', author: 'Amina Wanjiru' });
+    win.rlSetCardFilter('all');
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    return { w, win, c, doc: win.document };
+  }
+
+  /* The opts the portal passes (js/views/portal.js), cut to what the column
+     reads. unsentIds is the portal's PORTAL_NEGO_PROPOSED — the asks it is
+     still holding — so [] is "the postbox has been pressed". */
+  const seatOpts = (over = {}) => ({ side: 'counterparty', org: 'Wanjiru Catering Ltd',
+    hiddenIds: [], holdsDecisions: true, heldDecisionIds: [], sentDecisionIds: [],
+    unsentIds: [], ...over });
+  const seat = (p, over = {}) => {
+    const box = p.doc.createElement('div');
+    box.innerHTML = p.win.redlineChangeCardsHtml(p.c, seatOpts(over));
+    return box;
+  };
+  const verbsOf = card => [...card.querySelectorAll('.rl-card-verbs button')]
+    .map(b => b.textContent.trim());
+
+  test('WO-1 · held on their page, it is a Draft with Retract and Send', async () => {
+    const p = await page();
+    const card = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
+    assert.match(card.querySelector('.rl-badge').textContent, /Draft/,
+      'nothing has left their page yet');
+    assert.deepEqual(verbsOf(card), ['Edit', 'Retract', 'Send']);
+  });
+
+  test('WO-1 · once it has gone it reads Sent, and carries EXACTLY Edit and Sent', async () => {
+    /* The item the work order left open. It is the same reading as the owner's
+       badge — one set, one answer — but it had not been read back from this
+       chair since the send-vs-turn fix, and this seat is where the fault was
+       reported from. */
+    const p = await page();
+    const card = seat(p).querySelector('[data-rl-origin="us"]');
+    assert.equal(card.querySelector('.rl-badge').textContent.trim(), 'Sent');
+    assert.deepEqual(verbsOf(card), ['Edit', 'Sent'],
+      'two buttons, and no third: Retract is not honest once it has gone');
+    assert.equal(card.querySelector('[data-rl-sent]').disabled, true,
+      'a state, not a control — the next move is theirs');
+    assert.equal(card.querySelector('[data-rl-send]'), null,
+      'the fault as reported: a Sent badge beside a live Send');
+    assert.equal(card.querySelector('[data-rl-retract]'), null);
+  });
+
+  test('WO-2 · and a sent card is the one that peeks there too', async () => {
+    const p = await page();
+    const box = seat(p);
+    const done = box.querySelector('[data-rl-origin="us"]');
+    assert.equal(done.getAttribute('data-rl-open'), '0');
+    assert.equal(done.hasAttribute('data-rl-peek'), true);
+    /* And the exemption holds on this seat: while it is still theirs to send,
+       Send must not vanish under a moving mouse. */
+    const live = seat(p, { unsentIds: [p.c.changes[0].id] }).querySelector('[data-rl-origin="us"]');
+    assert.equal(live.hasAttribute('data-rl-peek'), false);
+    assert.equal(live.getAttribute('data-rl-open'), '1');
+  });
+
+  /* ---- THE MOUNT REPAINTS ITSELF, OR THE PIN NEVER LETS GO ---- */
+  const mountPortal = p => {
+    const host = p.doc.getElementById('share-root');
+    const o = seatOpts();
+    o.rerender = () => p.win.redlineEmbed(host, p.c, o);
+    p.win.redlineEmbed(host, p.c, o);
+    return host;
+  };
+
+  test('WO-2 · pressing outside the column lets the pin go ON THIS PAGE', async () => {
+    const p = await page();
+    /* A marker in the owner's mount. If the unpin reaches for renderRedline it
+       paints the workbench over it, and the counterparty is looking at a page
+       that was never theirs. */
+    p.doc.getElementById('content').innerHTML = '<b id="owner-mount-untouched"></b>';
+    const host = mountPortal(p);
+    const card = () => host.querySelector('#rl-changes .rl-card');
+    assert.equal(card().getAttribute('data-rl-open'), '0');
+    card().click();
+    assert.equal(card().getAttribute('data-rl-open'), '1', 'a click pins it here too');
+    p.doc.body.click();
+    assert.equal(card().getAttribute('data-rl-open'), '0',
+      'the card the reader is looking at is the card that closes');
+    assert.ok(p.doc.getElementById('owner-mount-untouched'),
+      'and the owner\'s workbench was not painted from inside their portal');
+  });
+
+  test('WO-2 · a pin does not survive the mount being handed another contract', async () => {
+    /* The owner's page drops pins when the reader moves on (renderRedline);
+       a mount is not exempt from the rule, or a pin arrives on a card this
+       reader has never seen. */
+    const p = await page();
+    const host = mountPortal(p);
+    host.querySelector('#rl-changes .rl-card').click();
+    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    p.win.redlineEmbed(host, Object.assign({}, p.c, { id: 'MK-OTHER' }), seatOpts());
+    assert.equal(host.querySelector('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
+  });
+});
