@@ -2237,6 +2237,12 @@ function openNegotiationOwnerRoom(c){
 function openNegoProposeModal(c){
   if(!canEdit()){ toast('Viewers cannot propose changes','err'); return; }
   if(c.status==='Signed'){ toast('Executed contracts are sealed and read-only','err'); return; }
+  /* A library-template contract's wording is the template manager's, not the
+     deal-maker's: fixed wording is read-only on both sides, and the blanks
+     are filled through the form, not rewritten through a redline. Changing
+     the standard is a template edit (a new published version), not a per-deal
+     negotiation over company boilerplate. */
+  if(c.templateForm){ toast('This contract comes from a standard template — fixed wording is read-only. Fill the open fields in the form instead.','err'); return; }
   const base=negoBaseText(c);
   if(!base.trim()){ toast('This contract has no wording to propose changes to','err'); return; }
   const COL='width:100%;max-width:860px;margin-left:auto;margin-right:auto';
@@ -2634,8 +2640,9 @@ function renderWorkspace(){
             :`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-50 border border-brand-100 px-3 py-2 text-[11px] text-brand-700" style="max-width:660px;margin:0 auto 14px">${icon('sparkle','w-3.5 h-3.5')}<span>Highlighted fields are editable — changes sync live to the key terms on the right.</span></div>`}
           ${templateProvenanceHtml(c)}
           <div class="blueprint" style="background:#fbfbfc;box-shadow:var(--shadow-md);padding:30px 36px;max-width:${DOC_PAGE_W}px;margin:0 auto;border-radius:4px">
-            
+            ${window.templateBrandingHeaderHtml?templateBrandingHeaderHtml(c):''}
             <article id="doc-canvas" class="doc-surface" style="background:transparent">${docBody(c)}</article>
+            ${window.templateBrandingFooterHtml?templateBrandingFooterHtml(c):''}
           </div>
           </div>
         </div>
@@ -2652,6 +2659,8 @@ function renderWorkspace(){
 
         <!-- ===== DRAFT & REVIEW: review → fix → negotiate (everything pre-signature) ===== -->
         <div data-top-pane="screening" style="display:flex;flex-direction:column;gap:12px">
+          <!-- template form: the open fields of a library-template contract -->
+          <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <!-- review & fix -->
           <div id="playbook-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           <div id="scan-section" style="${CARD};overflow:hidden"></div>
@@ -2771,6 +2780,7 @@ function renderWorkspace(){
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Docs by default; the choice persists per contract
   wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderVersionsSection(c); renderObligationsSection(c); loadEngagement(c); renderFamilySection(c); renderAuditSection(c);
+  if(window.renderTemplateFormSection) renderTemplateFormSection(c);
   wireDocTabs();   // Draft & Review | Signing top tabs; Signing has Signing/Obligations/Audit inner tabs
   wireWsTabs(c);   // Docs | Negotiation — the workspace-level pair
   wireDocResizer();   // draggable divider — sets the contract's width, and with it the page zoom
@@ -2806,7 +2816,13 @@ function renderWorkspace(){
   document.getElementById('ws-compare')?.addEventListener('click',()=>openCompareModal(c));
   // No ws-edit wiring: the button is gone, and leaving the listener behind is
   // how a removed feature comes back the next time someone re-adds the markup.
-  document.getElementById('ws-tpl')?.addEventListener('click',()=>saveContractAsTemplate(c));
+  /* API mode: "Save as template" lands in the versioned Template Library (a
+     draft opened in the builder). The older settings-blob flow remains the
+     local-mode path, where the server-backed library does not exist. */
+  document.getElementById('ws-tpl')?.addEventListener('click',()=>{
+    if(API_MODE()&&window.saveContractToLibrary) saveContractToLibrary(c);
+    else saveContractAsTemplate(c);
+  });
   document.getElementById('ws-pdf')?.addEventListener('click',()=>exportPDF(c));
   // The text-size stepper on the tab row: the control, its styles and its
   // state all live with the workbench (rlTypeStepHtml/rlWireTypeStep), so the
@@ -3099,6 +3115,17 @@ async function signDocument(c){
   if(blockers.length){
     toast(`Not signed — ${blockers.join('; ')}. Settle the negotiation first: every change has to be accepted, or refused and withdrawn.`,'err');
     return;
+  }
+  /* A template contract signs only when its form holds together: every
+     required blank filled and every value valid per the shared registry. The
+     signature seals the RENDERED wording, so a blank that slipped through
+     would be sealed as the label of a missing answer. */
+  if(c.templateForm && window.templateFormProblems){
+    const probs=templateFormProblems(c.templateForm);
+    if(probs.length){
+      toast(`Not signed — ${probs.length} field${probs.length===1?' needs':'s need'} attention first: ${probs.slice(0,3).map(p=>p.label).join(', ')}${probs.length>3?'…':''}`,'err');
+      return;
+    }
   }
   const u=currentUser(), at0=nowISO();
   // capture server-stamped IP + time where available (honest attribution)

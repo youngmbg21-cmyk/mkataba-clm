@@ -5,6 +5,28 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Template Library & Document Converter (Runs under TEMPLATE_LIBRARY_BRIEF)
+
+**Done** (all four phases; RECON.md, SUMMARY.md Run 7, BUGLOG.md, LOOP_REPORT.md,
+CHECKLIST.md updated; new `js/fieldlib.js`, `js/templateform.js`,
+`js/views/templatelib.js`, `js/views/templatebuilder.js`; server: `/api/templates*`,
+org branding/profile, portal template-values, save-as-template, upload-convert)
+
+- Versioned, permissioned template library with immutable published versions;
+  contracts are independent copies stamped with write-once provenance.
+- Manual builder + save-as-template + upload-and-convert (claude-sonnet-4-6,
+  forced tool_use, unskippable confirmation screen, no auto-approve).
+- Typed fill forms with ONE shared validation registry, owner and portal alike,
+  per-field autosave; signing gates on a complete valid form; org letterhead.
+
+**Tested.** f101–f105 (29 new tests); suite 1692/0. Live-model Brut acceptance
+(≥24/27) marked NOT RUN — needs a real key.
+
+**Skipped/deferred** per the brief's out-of-scope list: PDF/OCR, clause
+library, auto-updating open contracts, cross-org sharing, pricing.
+
+---
+
 ## AI assistant chrome — delete history, minimize, unread glow
 
 **Done** (`js/ai.js`, `js/components.js`, `index.html`; no server changes)

@@ -5191,3 +5191,49 @@ Nothing here touches the diff engine, the fingerprints, the change model or
 **1165 tests, 0 failures.** `f70` is new (23 tests). Six existing assertions were
 updated: `f36`/`f37`/`f69` for the marker that moved out of the grey italic, and
 `f38`/`f49`/`f51` for Share Link leaving the bar.
+
+---
+
+## Run: Template Library & Document Converter (2026-07-30)
+
+Defects found and fixed during the build. Blunt, per the brief.
+
+**The baseline could not run.**
+- What was broken: `npm test` failed on every file at session start.
+- Root cause: the fresh container had no `node_modules` — `npm install`
+  had never run; the first "baseline" was measuring a missing dependency.
+- The fix: install, re-baseline (1672/1672 green), only then build.
+- How it was verified: the suite ran green before the first feature commit.
+
+**A stale library list could paint over the builder.**
+- What was broken: the library screen loads its list async; navigating into
+  the detail or builder before the fetch resolved let the late response
+  repaint the list over the screen the user was working in.
+- Root cause: the async callback checked only the current view name, which
+  is 'tpl-library' for list, detail, builder and confirmation alike.
+- The fix: a monotonic token (`tplLibCancelPending`) — drill-ins invalidate
+  any in-flight list response.
+- Files touched: js/views/templatelib.js, js/views/templatebuilder.js.
+- How it was verified: code path review; f103 pins the render outputs.
+
+**Cross-module const would have thrown in the real browser.**
+- What was broken: the confirmation screen referenced `TB_BLOCK_META`,
+  a top-level const of another ES module — module-scoped, not global, so
+  the browser would throw ReferenceError where the vm-sandbox tests (which
+  evaluate files into one context) would pass.
+- Root cause: the test harness is more permissive than the platform.
+- The fix: export it on window like every other cross-module symbol, and
+  read it as `window.TB_BLOCK_META` with a fallback.
+- Files touched: js/views/templatelib.js, js/views/templatebuilder.js.
+
+**Known-broken / not done (nothing else hides here):**
+- The ≥24-of-27 Brut acceptance number has not been run against the live
+  model — no API key in this environment. Everything around the model call
+  is tested; the call itself is one `anthropicMessages` invocation.
+- The Brut fixture is a synthetic reconstruction; the real form was not
+  supplied with the brief.
+- The builder has no live preview pane; the confirmation screen's block
+  list is read-only (blocks are edited in the builder one click later).
+- `guided` options and `{{org.…}}` defaults are settable in the builder
+  but the converter never emits them (the model is not asked to invent
+  options — deliberate, per "never invent a field").
