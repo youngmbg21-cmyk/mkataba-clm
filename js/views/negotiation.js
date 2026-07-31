@@ -5409,6 +5409,31 @@ function renderRedline(){
   const sendTarget = side === 'counterparty' ? 'nego-send-decisions' : 'nego-send';
   const sendWho = side === 'counterparty' ? (window.FIRST_PARTY || 'the owner')
     : (c.counterparty || 'the counterparty');
+  /* ---- AND THE HEADER'S PROXIES ARE NAMED FROM THE READER'S CHAIR TOO ----
+     The rule is D2's, stated where the bulk verbs are built and honoured
+     there: "Accept All Non-Risk" sorts by OUR playbook and OUR scan signals,
+     so from the other seat it both offers a verb they cannot reason about and
+     reads out how we score their asks; "Publish Round" is the owner's act, and
+     what the other chair does is send answers back.
+
+     These two buttons are PROXIES onto those same controls and kept the
+     owner's words in either seat — so Counterparty View, whose entire job is
+     to show the owner what the other side sees, showed them a header the other
+     side never gets. `Close Round` beside them was already gated on the seat,
+     so the mechanism was here and had simply not been extended.
+
+     Nothing leaks: the counterparty's own page mounts the panes and no header
+     at all. What was broken is the PREVIEW, which is the only reason anybody
+     flips this toggle. The act, the target and the counts were already
+     seat-relative and are untouched. */
+  const bulkLabel = side === 'owner' ? 'Accept All Non-Risk' : 'Accept all';
+  const bulkTip = side === 'owner'
+    ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
+    : `Accepts every change ${sendWho} has proposed. Your own asks are untouched.`;
+  const sendLabel = side === 'owner' ? 'Publish Round' : 'Send Response';
+  const sendTip = side === 'owner'
+    ? `Publish this round's changes to ${c.counterparty || 'the counterparty'}`
+    : `Send the answers and counter-proposals held on this page to ${sendWho}`;
   /* ONE TEXT NODE, and both halves of that matter. Written on one line because
      a newline in inline text renders as a space; and the count is NOT wrapped
      in a span, because .rl-btn is an inline-flex row with gap:6px — a wrapped
@@ -5489,12 +5514,12 @@ function renderRedline(){
         <div class="rl-actions">
           ${blast}
           <div class="rl-segwrap">${seg('owner', 'Internal View')}${seg('counterparty', 'Counterparty View')}</div>
-          <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt">
+          <button data-redline-proxy="nego-bulk-acc" class="rl-btn rl-btn-alt" title="${_nea(bulkTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 9-9"/><path d="M15 4V2M15 10V8M11 6h2M17 6h2M19 13v-2M19 17v-2M17 15h2M21 15h-2"/><path d="m14 7-1.5 1.5a2.1 2.1 0 0 0 0 3l.5.5a2.1 2.1 0 0 0 3 0L17.5 10"/></svg>
-            Accept All Non-Risk</button>
-          <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go">
+            ${_ne(bulkLabel)}</button>
+          <button data-redline-proxy="${sendTarget}" class="rl-btn rl-btn-go" title="${_nea(sendTip)}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            Publish Round</button>
+            ${_ne(sendLabel)}</button>
           ${closer}
         </div>
       </section>

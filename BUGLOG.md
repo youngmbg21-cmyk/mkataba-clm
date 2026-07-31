@@ -6041,3 +6041,50 @@ width, on the unfiltered and the filtered screen. Suite 2170/2170 · redline
 **Recorded, not fixed:** OI-5 — a `<del>` and its following `<ins>` run together
 in `.ht-redline` with no separation at the join. Cosmetic, and it lives in the
 shared redline renderer, so it moves every surface that draws one.
+
+---
+
+## Run: two buttons for one act, and only one of them following the rule (2026-07-31)
+
+**What was broken.** In Counterparty View the workbench header read **Accept All
+Non-Risk** and **Publish Round** — the owner's words — while the controls those
+buttons press, three inches below, read **Accept all** and *"Send 2 changes you
+have asked for and 1 decision to …"*. Two buttons for one act, saying different
+things.
+
+**Root cause.** D2's rule is written down where the bulk verbs are built
+(`js/views/negotiation.js`): the verbs are named from the READER's chair,
+because "Accept All Non-Risk" sorts by our playbook and our scan signals — from
+the other seat it offers a verb they cannot reason about and reads out how we
+score their asks — and "Publish Round" is the owner's act where the other chair
+is sending answers back. The panes honour it. The header's two PROXIES onto
+those same controls did not, and were never extended when the rule was written.
+
+**Severity, stated honestly.** Nothing leaks. The counterparty's own page mounts
+the panes and no header at all, so these words never reach them. What was broken
+is the PREVIEW — and showing the owner what the other side sees is the only
+reason anybody presses that toggle, so the preview is the whole feature. A
+reader could also conclude from that header that the counterparty is being
+offered "Accept All Non-Risk", which is precisely what D2 decided they must not
+be offered.
+
+**Not broken, and untouched:** the act, the target and the counts were already
+seat-relative — `sendTarget` points at the counterparty postbox, `sendWho` and
+the unsent count follow the seat (fixed once before, found in the six-round
+simulation). `Close Round` beside them was already gated on the seat, which is
+how we know the mechanism was here and had simply not been extended.
+
+**The fix.** `bulkLabel` / `bulkTip` / `sendLabel` / `sendTip`, computed beside
+`sendTarget` from the same `side`, mirroring the panes' own vocabulary:
+`Accept all` and `Send Response`. The buttons also gained the titles they never
+had; `redlineSyncProxies` already stashes a proxy's own title so a sync cannot
+overwrite it with the unavailable message.
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f84 gained 6 tests. Three fail without the change; the other three
+are regression guards that must pass either way — the act and the ids unchanged,
+the owner's words restored on flipping back, and Close Round still owner-only.
+The strongest of the six asserts the proxy and the control it presses carry the
+SAME text, which is the durable form of the claim: two buttons for one act,
+only one following the rule, is exactly how this drifted. Suite 2176/2176 ·
+redline 71/71 · selection 22/22 · parity 18/18 · timeline 19/19.

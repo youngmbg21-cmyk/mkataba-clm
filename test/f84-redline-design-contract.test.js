@@ -370,6 +370,68 @@ describe('F84 — the header actions press the engine, not a lookalike', () => {
     assert.ok(labels.some(t => /Publish Round/.test(t)));
   });
 
+  /* ---- AND THE SAME BUTTONS, READ FROM THE OTHER CHAIR ----
+     D2's rule — the bulk verbs are named from the reader's chair — is stated
+     where the panes build them and was honoured only there. These two header
+     controls are PROXIES onto those same controls and kept the owner's words
+     in either seat, so Counterparty View showed the owner a header the other
+     side never gets. Since showing them what the other side sees is the only
+     reason anybody presses that toggle, the preview was the whole feature. */
+  const asCounterparty = async () => {
+    const p = await page();
+    p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'counterparty').click();
+    return p;
+  };
+  const headerLabels = p => p.$$('.rl-actions button').map(b => b.textContent.trim());
+
+  test('THE FIX: our playbook\'s verb is not offered from their chair', async () => {
+    const labels = headerLabels(await asCounterparty()).join(' | ');
+    assert.ok(!/Non-Risk/.test(labels),
+      '"Accept All Non-Risk" sorts by OUR playbook and reads out how we score their asks');
+    assert.ok(!/Publish Round/.test(labels),
+      'publishing a round is the owner\'s act; the other chair sends answers back');
+  });
+
+  test('and it carries their words instead', async () => {
+    const labels = headerLabels(await asCounterparty()).join(' | ');
+    assert.ok(/Accept all/.test(labels), labels);
+    assert.ok(/Send Response/.test(labels), labels);
+  });
+
+  test('the header and the control it presses do not disagree', async () => {
+    /* The durable form of the claim. Two buttons for one act, and only one of
+       them following the rule, is exactly how this drifted. */
+    const p = await asCounterparty();
+    const pane = p.doc.getElementById('nego-bulk-acc');
+    const proxy = p.$('[data-redline-proxy="nego-bulk-acc"]');
+    assert.ok(pane && proxy);
+    assert.equal(proxy.textContent.trim(), pane.textContent.trim(),
+      'the proxy and the control it presses must say the same thing');
+  });
+
+  test('the ACT is untouched — only the words moved', async () => {
+    const p = await asCounterparty();
+    assert.ok(p.$('[data-redline-proxy="nego-bulk-acc"]'), 'same control, same id');
+    assert.ok(p.$('[data-redline-proxy="nego-send-decisions"]'),
+      'and the send still points at the counterparty postbox, as it already did');
+  });
+
+  test('flipping back restores the owner\'s own words', async () => {
+    const p = await asCounterparty();
+    p.$$('[data-redline-side]').find(b => b.getAttribute('data-redline-side') === 'owner').click();
+    const labels = headerLabels(p).join(' | ');
+    assert.ok(/Accept All Non-Risk/.test(labels), labels);
+    assert.ok(/Publish Round/.test(labels), labels);
+  });
+
+  test('Close Round stays owner-only, as it already was', async () => {
+    /* The one control on this row that was already gated on the seat — which
+       is how we know the mechanism was here and simply had not been extended.
+       Guarded so a later tidy-up does not take it back the other way. */
+    const p = await asCounterparty();
+    assert.equal(p.$('[data-rl-close-round]'), null);
+  });
+
   test('Accept All Non-Risk fires the engine\'s own bulk control', async () => {
     const p = await page();
     const engine = p.doc.getElementById('nego-bulk-acc');
