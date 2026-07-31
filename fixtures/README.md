@@ -16,7 +16,7 @@ legal articles, KRA PIN / email / company telephone / receiver ID number /
 company stamp / director signature). Detection counts asserted against it are
 therefore against this reconstruction, not the original paper.
 
-`test/f100-upload-convert.test.js` uses all three: it asserts the server's
+`test/f105-upload-convert.test.js` uses all three: it asserts the server's
 structure extraction (labels, blank markers, reading order) reaches the model
 verbatim, and drives the full pipeline against a stubbed detection response.
 The ≥24-of-27 acceptance number requires a live Anthropic key and a real

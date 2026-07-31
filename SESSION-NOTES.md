@@ -19,7 +19,7 @@ org branding/profile, portal template-values, save-as-template, upload-convert)
 - Typed fill forms with ONE shared validation registry, owner and portal alike,
   per-field autosave; signing gates on a complete valid form; org letterhead.
 
-**Tested.** f96–f100 (29 new tests); suite 1692/0. Live-model Brut acceptance
+**Tested.** f101–f105 (29 new tests); suite 1692/0. Live-model Brut acceptance
 (≥24/27) marked NOT RUN — needs a real key.
 
 **Skipped/deferred** per the brief's out-of-scope list: PDF/OCR, clause

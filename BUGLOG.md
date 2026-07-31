@@ -5214,7 +5214,7 @@ Defects found and fixed during the build. Blunt, per the brief.
 - The fix: a monotonic token (`tplLibCancelPending`) — drill-ins invalidate
   any in-flight list response.
 - Files touched: js/views/templatelib.js, js/views/templatebuilder.js.
-- How it was verified: code path review; f98 pins the render outputs.
+- How it was verified: code path review; f103 pins the render outputs.
 
 **Cross-module const would have thrown in the real browser.**
 - What was broken: the confirmation screen referenced `TB_BLOCK_META`,

@@ -38,7 +38,7 @@ library/permission/lifecycle routes, the library + detail screens, and f96.
 gained two set-once provenance columns (COALESCE keeps them write-once at
 the SQL layer), and the contract save route gained the matching JSON guard.
 The field catalogue went into ONE dual-environment registry
-(js/fieldlib.js) required verbatim by the server. f96: 9/9. Full suite
+(js/fieldlib.js) required verbatim by the server. f101: 9/9. Full suite
 green. One test-side fix: an error-message regex written before the message
 ("archived, never deleted").
 
@@ -57,7 +57,7 @@ expectation was wrong, not the code: a paragraph containing the contract
 value correctly became wording-with-blanks, so the "boilerplate stays
 fixed" assertion needed a genuinely fixed article to point at. The old
 `ws-tpl` button now routes to the library in API mode (settings-blob flow
-kept for local mode). f97: 4/4, f98: 4/4, full suite 1680 green.
+kept for local mode). f102: 4/4, f103: 4/4, full suite 1680 green.
 
 **Decided next:** Phase C, server-spawn route first (it enforces
 draft/archived rules), then the fill/portal/signing integration.
@@ -95,7 +95,7 @@ fixed-vs-blank judgement goes to the model, and the house forced-tool_use
 pattern replaces the brief's "JSON only, no fences" prompting (strictly
 stronger; the defensive parse survives as schema shape-checking — recorded
 as a deviation). The Brut form is a synthetic reconstruction (the original
-was not supplied) — noted in fixtures/README.md. f100: 6/6 against a
+was not supplied) — noted in fixtures/README.md. f105: 6/6 against a
 purpose-built detection stub; the ≥24-of-27 live-model acceptance number
 is marked in CHECKLIST.md as requiring a real key.
 

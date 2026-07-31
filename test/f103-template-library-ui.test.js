@@ -1,5 +1,5 @@
 /* ============================================================
-   f98 — the Template Library screens render real markup
+   f103 — the Template Library screens render real markup
 
    Render-sandbox checks (test/dom.js) for the three new screens: the library
    list, the template detail with its version history, and the builder. The
@@ -77,7 +77,7 @@ function stage({ canManage = true, responses = {} } = {}) {
 
 const settle = () => new Promise(r => setTimeout(r, 0));
 
-describe('f98 — template library screens', () => {
+describe('f103 — template library screens', () => {
   test('the library list renders both templates with status, version and usage', async () => {
     const { sandbox, content } = stage();
     sandbox.renderTemplateLibrary();

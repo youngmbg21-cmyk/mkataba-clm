@@ -3900,18 +3900,18 @@ reconstruction — the original was not supplied with the brief.
   standard is a new published version, not a per-deal redline.
 - The ≥24-of-27 Brut detection acceptance requires a live model call and
   is marked NOT RUN in CHECKLIST.md; everything either side of the model
-  call is pinned by f100 against a real-shaped stub.
+  call is pinned by f105 against a real-shaped stub.
 
 **Acceptance criteria** — A: manager creates shell / non-manager sees it
 only once published / archive hides from new-contract flow without breaking
-children (f96). B: hand-build + publish; contract→template with party names
-as empty short_text fields (f96, f97, f98). C: pre-filled company details,
+children (f101). B: hand-build + publish; contract→template with party names
+as empty short_text fields (f101, f102, f103). C: pre-filled company details,
 fill, sign-gate, export-clean render, and the byte-identical immutability
-test (f99). D: fixture detection through the full pipeline with fields
-typed correctly and Articles 1–7 as fixed_text (f100); live-model count
+test (f104). D: fixture detection through the full pipeline with fields
+typed correctly and Articles 1–7 as fixed_text (f105); live-model count
 pending a key.
 
-**Tests: 1692 passing, 0 failures** (f96–f100 new: 29 tests). Negotiation
+**Tests: 1692 passing, 0 failures** (f101–f105 new: 29 tests). Negotiation
 room, tracked changes, DOCX round-trip, counterparty portal, signing flow
 and the existing Templates page all still green — nothing that worked at
 session start is broken.

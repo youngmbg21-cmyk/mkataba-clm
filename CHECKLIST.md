@@ -506,28 +506,28 @@ suite is green.
 
 | Behavior | Proving test | Status |
 |---|---|---|
-| Draft templates invisible to non-managers (404, not 403) | f96 | PASS |
-| Viewer writes refused on every template route | f96, f97, f99, f100 | PASS |
-| Published version immutable; edits 409 to a new draft | f96 | PASS |
-| Publish validation: empty labels, optionless guided fields | f96 | PASS |
-| Template with children: archive only, never delete | f96 | PASS |
-| Contract provenance write-once (tamper restored) | f96 | PASS |
-| Branding + org profile round-trip, manager-only writes | f96 | PASS |
-| Save-as-template: party values → empty typed fields; wording fixed | f97 | PASS |
-| Save-as-template: source contract untouched; folder scope holds | f97 | PASS |
-| Library / detail / builder render real markup, role-aware | f98 | PASS |
-| Draft cannot spawn; archived spawns nothing new | f99 | PASS |
-| {{org.…}} defaults pre-fill from the org profile at creation | f99 | PASS |
-| Publish v2 → earlier contract byte-identical | f99 | PASS |
-| Portal per-field autosave validates via the shared registry | f99 | PASS |
-| Portal autosave survives a closed tab (values on the share row) | f99 | PASS |
-| Upload judged by real bytes; junk never reaches the model | f100 | PASS |
-| Extraction: labels, (empty) cells, ____ runs, [INSERT …], inline blanks, reading order | f100 | PASS |
-| Upload lands as a draft with confidence + human_reviewed=0 | f100 | PASS |
-| Garbage model response → draft + error note, original stored | f100 | PASS |
-| E2E: upload → confirm → publish → contract → fill → clean render | f100 | PASS |
+| Draft templates invisible to non-managers (404, not 403) | f101 | PASS |
+| Viewer writes refused on every template route | f101, f102, f104, f105 | PASS |
+| Published version immutable; edits 409 to a new draft | f101 | PASS |
+| Publish validation: empty labels, optionless guided fields | f101 | PASS |
+| Template with children: archive only, never delete | f101 | PASS |
+| Contract provenance write-once (tamper restored) | f101 | PASS |
+| Branding + org profile round-trip, manager-only writes | f101 | PASS |
+| Save-as-template: party values → empty typed fields; wording fixed | f102 | PASS |
+| Save-as-template: source contract untouched; folder scope holds | f102 | PASS |
+| Library / detail / builder render real markup, role-aware | f103 | PASS |
+| Draft cannot spawn; archived spawns nothing new | f104 | PASS |
+| {{org.…}} defaults pre-fill from the org profile at creation | f104 | PASS |
+| Publish v2 → earlier contract byte-identical | f104 | PASS |
+| Portal per-field autosave validates via the shared registry | f104 | PASS |
+| Portal autosave survives a closed tab (values on the share row) | f104 | PASS |
+| Upload judged by real bytes; junk never reaches the model | f105 | PASS |
+| Extraction: labels, (empty) cells, ____ runs, [INSERT …], inline blanks, reading order | f105 | PASS |
+| Upload lands as a draft with confidence + human_reviewed=0 | f105 | PASS |
+| Garbage model response → draft + error note, original stored | f105 | PASS |
+| E2E: upload → confirm → publish → contract → fill → clean render | f105 | PASS |
 | Brut form ≥24/27 blanks typed correctly by claude-sonnet-4-6 | manual, needs live key | NOT RUN |
 
 Suite at close: **1692 tests, 0 failures** (`npm test`). Test files added:
-f96-template-library, f97-save-as-template, f98-template-library-ui,
-f99-contract-from-template, f100-upload-convert.
+f101-template-library, f102-save-as-template, f103-template-library-ui,
+f104-contract-from-template, f105-upload-convert.

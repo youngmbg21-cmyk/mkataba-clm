@@ -1,5 +1,5 @@
 /* ============================================================
-   f99 — create contract from template (Phase C of the brief)
+   f104 — create contract from template (Phase C of the brief)
 
    A contract is a COPY of the template's published version, independent from
    the moment it is born. Pinned here, server-side:
@@ -24,7 +24,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startHati, seedWorkspace } = require('./helpers');
 
-describe('f99 — contract from template', () => {
+describe('f104 — contract from template', () => {
   let h, w, tplId, v1Id;
 
   before(async () => {

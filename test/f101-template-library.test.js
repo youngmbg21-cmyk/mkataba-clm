@@ -1,5 +1,5 @@
 /* ============================================================
-   f96 — the Template Library foundation (Phase A of the brief)
+   f101 — the Template Library foundation (Phase A of the brief)
 
    A template and a contract are different objects, and the template is the
    parent. This file pins the library's ground rules server-side, because the
@@ -22,7 +22,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startHati, seedWorkspace } = require('./helpers');
 
-describe('f96 — template library foundation', () => {
+describe('f101 — template library foundation', () => {
   let h, w, viewer;
 
   before(async () => {

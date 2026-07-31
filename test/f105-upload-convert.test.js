@@ -1,5 +1,5 @@
 /* ============================================================
-   f100 — upload-and-convert: a Word document becomes a draft template
+   f105 — upload-and-convert: a Word document becomes a draft template
 
    Phase D of the Template Library brief. What this file can prove without a
    live Anthropic key, it proves; the parts that need the real model are
@@ -84,7 +84,7 @@ const brutDetection = () => ({
   })),
 });
 
-describe('f100 — upload-and-convert', () => {
+describe('f105 — upload-and-convert', () => {
   let h, w, stub;
   // the stub speaks for the model; each test sets its next answer
   let stubMode = 'brut';
