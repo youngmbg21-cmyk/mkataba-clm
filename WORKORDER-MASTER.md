@@ -16,6 +16,19 @@
    parity and the signing route end to end (work items **W1 … W9**,
    decisions **D1–D5**)
 
+**Pending — logged, not yet sequenced into the stages below:**
+
+4. `WORKORDER-pdf-upload.md` — Phase 2 addendum: PDF and scanned-document
+   upload, producing the same field-detection output the Word route produces
+   (vision-based extraction, scan warning, forced confidence downgrade on
+   number-heavy fields). Its own brief states it **depends on the Template
+   Library brief (Phases A–D) being merged and working**, and that it must not
+   start if Phase D's Word-upload route is broken or absent. That brief is not
+   in this repository, so this work order stays parked here until its
+   dependency is present and verified. It is otherwise self-contained (own
+   branch `feature/pdf-upload`, own fixtures, own stop conditions) and does not
+   interact with Stages 0–9.
+
 ---
 
 ## What this document is
