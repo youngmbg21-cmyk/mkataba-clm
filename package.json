@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server/server.js",
     "test": "node --test test/*.test.js",
-    "test:browser": "node test/chromium/redline-verify.js"
+    "test:browser": "node test/chromium/redline-verify.js",
+    "test:selection": "node test/chromium/selection-verify.js"
   },
   "engines": {
     "node": ">=22.5"

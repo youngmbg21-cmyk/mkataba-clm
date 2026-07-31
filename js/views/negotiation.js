@@ -410,6 +410,10 @@ function negoStyleHtml(){
     color:var(--n-ink-soft);padding:5px 9px 4px}
   .nego-selmenu .nego-selquote{font-size:11px;color:var(--n-ink-soft);padding:0 9px 6px;
     max-width:236px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic}
+  /* The reason a highlight leads nowhere. Wraps, unlike the quote above it —
+     this is a sentence to be read, not a label to be recognised. */
+  .nego-selmenu .nego-selnote{font-size:11.5px;line-height:1.55;color:var(--n-ink-soft);
+    padding:0 9px 8px;max-width:248px}
 
   /* ---- the AI proposal popover ----
      A proposal, never an edit. Nothing has moved when this is on screen: it
@@ -987,7 +991,7 @@ function negoDocHtml(c, opts){
   /* THE STATUS SITS WITH THE VERBS, ON ONE LINE.
 
      "Accepted", "Rejected — baseline kept" and "Needs review" used to be pushed
-     inside the clause's own <h2>, which put a status pill in the middle of the
+     inside the clause's own <h2 data-nego-chrome>, which put a status pill in the middle of the
      document's heading — "Clause 4 · Payment Terms Accepted" reads as part of
      the title of the clause, and on a narrow pane it wrapped the heading onto
      two lines. It belongs with the controls that act on that clause, which
@@ -1029,7 +1033,7 @@ function negoDocHtml(c, opts){
   const clauseBlock = (cl, ch, domPrefix) => {
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-        ${tools(cl)}${head(cl) ? `<h2>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
+        ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
 
     let body, badgeCls = '', badgeSuffix = '', note = '';
     if (ch.status === 'pending'){
@@ -1082,7 +1086,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
       ${row}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${head(cl) ? `<h2>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
+      ${head(cl) ? `<h2 data-nego-chrome>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
   };
 
   const insertBlock = ch => {
@@ -1099,7 +1103,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
       <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}"
         aria-label="New clause ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${sfx}</button>
-      <h2>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
+      <h2 data-nego-chrome>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
   };
 
   const prefix = baseline ? 'nb' : 'nw';
@@ -1647,17 +1651,17 @@ function negoCompareDocHtml(c, cmp, whichSide){
     if (whichSide === 'left'){
       if (r.state === 'added') return '';
       return `<div class="nego-clause" id="nb-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-        ${r.label ? `<h2>${_ne(r.label)}</h2>` : ''}<p>${_ne(r.oldText)}</p></div>`;
+        ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}</h2>` : ''}<p>${_ne(r.oldText)}</p></div>`;
     }
     if (r.state === 'removed')
       return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-        ${r.label ? `<h2>${_ne(r.label)}<span class="nego-note no">Removed</span></h2>` : ''}
+        ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}<span class="nego-note no">Removed</span></h2>` : ''}
         <p><span class="nego-del">${_ne(r.oldText)}</span></p></div>`;
     const note = r.state === 'added' ? `<span class="nego-note ok">Added</span>` : '';
     const inner = r.state === 'same' ? _ne(r.newText)
       : (window.redlineOpsHtml ? redlineOpsHtml(r.ops) : _ne(r.newText));
     return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-      ${r.label ? `<h2>${_ne(r.label)}${note}</h2>` : ''}<p>${inner}</p></div>`;
+      ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}${note}</h2>` : ''}<p>${inner}</p></div>`;
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -1696,7 +1700,7 @@ function negoCleanDocHtml(c, whichSide){
        and a screen whose whole purpose is "read it as a contract" is the last
        place that should show a flattened one. */
     return `<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-      ${label ? `<h2>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
+      ${label ? `<h2 data-nego-chrome>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -2897,6 +2901,25 @@ function _negoAnchor(rect, w, h){
   if (top + h > window.innerHeight - pad) top = Math.max(pad, rect.top - h - 8);
   return { left, top };
 }
+/* An answer where the menu would have been. Used when a highlight is real and
+   legible but cannot lead anywhere — front matter, or two highlights at once.
+   It is the menu's own layer with no items in it, so it dismisses on the same
+   click-away and Escape as the menu, and it says the reason at the wording it
+   is about rather than in a toast that is gone before the sentence is read. */
+function _negoSayAtSelection(rect, head, body){
+  _negoKillSelMenu();
+  const menu = document.createElement('div');
+  menu.className = 'nego-selmenu';
+  menu.setAttribute('role', 'status');
+  menu.innerHTML = `<div class="nego-selhead">${_ne(head)}</div>
+    <div class="nego-selnote">${_ne(body)}</div>`;
+  document.body.appendChild(menu);
+  const box = menu.getBoundingClientRect();
+  const at = _negoAnchor(rect, box.width, box.height);
+  menu.style.left = at.left + 'px';
+  menu.style.top = at.top + 'px';
+  return menu;
+}
 
 /* Ask the Copilot for wording, then show what it would change — never change
    anything. The popover is the whole safety argument for putting a model
@@ -2948,6 +2971,23 @@ async function negoAiPropose(c, ctx){
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
+  /* ---- A CLAUSE THAT IS ITSELF STILL A PROPOSAL ----
+     The room draws a clause somebody has asked to ADD, and it reads like any
+     other — but it is not in the round baseline, which is what "proposed"
+     means, so negoEditClause has nothing to file against and answers null. The
+     popover happily proposed wording for it and Apply then reported "that
+     wording matches the clause already", a claim about the document that was
+     not true. Said before the model is asked, and only where the clause really
+     is a pending insertion; any other absence keeps the old fallback. */
+  if (!cl && window.negoChanges){
+    const ins = negoChanges(c).find(x =>
+      x && x.clauseId === clauseId && x.changeType === 'insertClause' && x.status !== 'superseded');
+    if (ins){
+      fail('This clause is itself still a proposal — it has not been accepted into the document yet, '
+        + 'so there is no agreed wording to redline. Revise it from its change card, or accept it first.');
+      return;
+    }
+  }
   const clauseText = cl ? cl.text : text;
   const pbLine = (() => {
     try{
@@ -2996,23 +3036,27 @@ async function negoAiPropose(c, ctx){
      selects five words inside a clause under redline — where the visible text
      mixes kept, inserted and struck-through wording and exists in no single
      version — the lookup misses, and the entire clause is silently swapped. */
-  /* `marked` was read off the selection's own fragment when the menu opened,
-     so "pending edits" is claimed only when marks sit inside the chosen words
-     — not merely somewhere in the clause or the document. */
-  /* Matched tolerantly, spliced exactly: negoFindPassage straightens smart
-     quotes, strips zero-width characters and collapses whitespace on BOTH
-     sides before matching, then answers with real offsets into the stored
-     clause text — a selection is no longer refused over a line break the
-     renderer added. */
+  /* `marked` was read off the selection's own fragment when the menu opened and
+     is true only where the marks inside the chosen words belong to a LIVE
+     redline — not merely somewhere in the clause, and not a change that was
+     settled weeks ago and still renders its marks in the document. */
+  /* Matched tolerantly, spliced exactly: negoResolvePassage straightens smart
+     quotes, strips zero-width characters, collapses whitespace, forgives the
+     list markers the projection prints, tries the clause as the round baseline
+     holds it, and honours WHICH occurrence of the phrase was highlighted — then
+     answers with real offsets into the stored clause text. */
+  /* Two facts, checked separately, each said only when it is true — see the
+     note in rlAiPropose for why coupling them made the message so often wrong. */
+  if (replacement && ctx.marked === true){
+    fail('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
+    return;
+  }
   const hit = replacement
-    ? (window.negoFindPassage ? negoFindPassage(clauseText, text)
-       : (clauseText.includes(text) ? { start: clauseText.indexOf(text), end: clauseText.indexOf(text) + text.length } : null))
+    ? negoResolvePassage(clauseText, ctx.passage || { text })
     : null;
   const found = !!hit;
   if (replacement && !found){
-    fail(ctx.marked === false
-      ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
-      : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
+    fail('This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.');
     return;
   }
   const proposed = found ? clauseText.slice(0, hit.start) + replacement + clauseText.slice(hit.end) : clauseText;
@@ -3066,6 +3110,175 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRiskOf, negoBatchSplit, negoBatchConfirm, NEGO_AI_ACTIONS,
   negoAiPropose, negoLinkedBarHtml, negoModeHtml
 });
+
+/* ============================================================
+   READING A HIGHLIGHT — the Range, not the string it prints to
+   ============================================================
+   `sel.toString()` was the whole of what a selection used to hand on, and
+   everything downstream was an attempt to find that string again in a clause
+   the reader could plainly see it in. It fails in both directions at once, and
+   the failures are not exotic — they are the ordinary shapes of a contract:
+
+     the screen shows what the record does not — the clause HEADING, the
+       "#3 · Your ask" tag, and the hover toolbar, all of which sit inside the
+       clause's own box and all of which a drag from above the first word
+       sweeps straight into the string;
+     the record holds what the screen does not — the list markers richToText
+       prints ("a. ", "2.1. ", "• "), which the browser draws as ::marker and
+       no selection can contain;
+     and the same string appears twice — "thirty (30) days" for invoices and
+       again for a cure period — where a bare indexOf always answers the first,
+       so a redline lands on wording nobody pointed at and nothing about the
+       result looks wrong.
+
+   So the Range is read while it is still live, and what travels on is what the
+   Range knew: the wording with the page's furniture taken out of it, the
+   readings that make sense against a clause carrying a change, WHICH occurrence
+   of the phrase was under the cursor, and which clauses genuinely have words in
+   the highlight — not merely which ones a boundary happens to touch. */
+const _NEGO_SEL_BLOCK = new Set(['P', 'DIV', 'LI', 'OL', 'UL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'BLOCKQUOTE', 'PRE', 'TABLE', 'TR', 'TD', 'TH']);
+/* THE PAGE'S FURNITURE IS NOT THE CONTRACT. Every one of these renders inside
+   `[data-clause]` and none of it is wording anybody negotiated: the heading is
+   the document's own (and is stored apart from the clause body, so including it
+   guarantees a miss), the ask tag, the badge and the status notes are
+   marginalia about the clause, and the toolbar is a control. They are cut from
+   the reading, not from the page.
+
+   `data-nego-chrome` is the explicit way to say so, and the clause headings
+   carry it because they cannot be told apart by shape: the workbench heads a
+   clause with h4.rl-clause-h, the room with a bare h2, and a clause BODY under
+   redline legitimately renders sub-headings of its own (redlineOpsBlocksHtml
+   emits h4.rl-line for them) which ARE stored wording and must not be cut. A
+   rule guessing from the tag name would take those with it. */
+const _NEGO_SEL_CHROME = '[data-nego-chrome],.rl-tools,.rl-tool,.nego-tool,.rl-asktag,.nego-badge,'
+  + '.nego-note,.rl-clause-h,.nego-edit-bar,[data-nego-editor],button,input,textarea,select';
+/* One reading of a node's wording. `mode` says how to treat tracked marks:
+   'baseline' keeps struck wording and drops inserted (what the round baseline
+   still holds), 'current' does the reverse, and null takes the page at its
+   word. Block edges emit a newline so two paragraphs cannot run their last and
+   first words together into a phrase that is in no document anywhere. */
+function _negoNodeText(node, mode){
+  let out = '';
+  const walk = n => {
+    if (!n) return;
+    if (n.nodeType === 3){ out += String(n.nodeValue || ''); return; }
+    /* A cloned Range arrives as a DocumentFragment (11), never an element, so
+       the walk has to enter one — reading only elements answered "" for every
+       selection ever made and made every passage unmatchable. */
+    if (n.nodeType === 11 || n.nodeType === 9){
+      for (const ch of Array.from(n.childNodes)) walk(ch);
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    const tag = n.tagName;
+    if (tag === 'BR'){ out += '\n'; return; }
+    try { if (n.matches && n.matches(_NEGO_SEL_CHROME)) return; } catch (e){}
+    const cls = n.classList;
+    const isIns = tag === 'INS' || !!(cls && cls.contains('nego-ins'));
+    const isDel = tag === 'DEL' || !!(cls && cls.contains('nego-del'));
+    if (mode === 'baseline' && isIns) return;
+    if (mode === 'current' && isDel) return;
+    const block = _NEGO_SEL_BLOCK.has(tag);
+    if (block && out && !out.endsWith('\n')) out += '\n';
+    for (const ch of Array.from(n.childNodes)) walk(ch);
+    if (block && out && !out.endsWith('\n')) out += '\n';
+  };
+  walk(node);
+  return out;
+}
+/* The part of `range` that lies inside `el`, or null if the two do not really
+   overlap. "Really" is the load-bearing word: a drag that overshoots into the
+   margin below a clause leaves its end at offset 0 of the NEXT one, touching it
+   without selecting a character of it, and reading that as a second clause is
+   what refused a single-clause highlight as spanning two. */
+function _negoRangeIn(range, el){
+  try{
+    const doc = el.ownerDocument;
+    const full = doc.createRange();
+    full.selectNodeContents(el);
+    const r = range.cloneRange();
+    if (r.compareBoundaryPoints(1, full) <= 0) return null;   // this.end ≤ el.start
+    if (r.compareBoundaryPoints(3, full) >= 0) return null;    // this.start ≥ el.end
+    if (r.compareBoundaryPoints(0, full) < 0) r.setStart(full.startContainer, full.startOffset);
+    if (r.compareBoundaryPoints(2, full) > 0) r.setEnd(full.endContainer, full.endOffset);
+    return r.collapsed ? null : r;
+  }catch(e){ return null; }
+}
+/* Which occurrence of this wording the highlight sits on, counted over what the
+   SCREEN shows — because that is the thing the reader was looking at when they
+   chose. Everything before the selection's start, inside the clause, is read
+   the same way the passage itself is read, and the answer is how many complete
+   copies of the phrase are already behind it. */
+function _negoOccurrenceIn(range, clauseEl, needle){
+  try{
+    const want = window.negoNormalizeText ? negoNormalizeText(needle) : String(needle || '').trim();
+    if (!want) return 0;
+    const before = clauseEl.ownerDocument.createRange();
+    before.selectNodeContents(clauseEl);
+    before.setEnd(range.startContainer, range.startOffset);
+    const seen = window.negoNormalizeText
+      ? negoNormalizeText(_negoNodeText(before.cloneContents(), null))
+      : _negoNodeText(before.cloneContents(), null);
+    let n = 0;
+    for (let i = seen.indexOf(want); i >= 0; i = seen.indexOf(want, i + 1)) n++;
+    return n;
+  }catch(e){ return 0; }
+}
+/* Everything the highlight knows about itself, read off the live Range.
+   `root` bounds the search for clauses — the working pane, never the document,
+   so a stray match in the baseline pane cannot be counted as a second clause. */
+function negoReadPassage(range, root){
+  const out = { text: '', readings: [], occurrence: 0, hasMarks: false,
+    clauses: [], clauseIds: [], parts: [], multiRange: false };
+  if (!range) return out;
+  let frag = null;
+  try { frag = range.cloneContents(); } catch (e){ return out; }
+  const read = mode => _negoNodeText(frag, mode).replace(/[ \t]+\n/g, '\n').trim();
+  out.text = read(null);
+  /* The two readings that make a clause under change findable at all. Offered
+     only when they DIFFER from what the page shows — a clean clause has one
+     reading and three copies of it would just be three attempts at the same
+     lookup. */
+  for (const mode of ['baseline', 'current']){
+    const t = read(mode);
+    if (t && t !== out.text) out.readings.push(t);
+  }
+  /* A mark with no words of its own is not wording under change: a highlight
+     that stops exactly where an insertion begins clones an empty <ins>, and
+     counting it announced pending edits on a selection that contained none. */
+  try{
+    out.hasMarks = !!(frag.querySelectorAll && [...frag.querySelectorAll(
+      'ins, del, .nego-ins, .nego-del, [data-change-id]')]
+      .some(n => String(n.textContent || '').trim()));
+  }catch(e){}
+  const scope = root && root.querySelectorAll ? root : null;
+  if (scope){
+    for (const el of scope.querySelectorAll('[data-clause]')){
+      const r = _negoRangeIn(range, el);
+      if (!r) continue;
+      const frag2 = r.cloneContents();
+      const own = _negoNodeText(frag2, null).replace(/[ \t]+\n/g, '\n').trim();
+      if (!own) continue;                              // touched, not selected
+      out.clauses.push(el);
+      out.clauseIds.push(el.getAttribute('data-clause'));
+      /* THE HIGHLIGHT'S SHARE OF THIS CLAUSE, kept per clause. A span that runs
+         across blocks is not one passage to be found in one place: it is a head,
+         some whole middles and a tail, and each end has to be located in its own
+         clause before any of it can be spliced. */
+      const part = { clauseId: el.getAttribute('data-clause'), text: own, readings: [],
+        occurrence: _negoOccurrenceIn(r, el, own) };
+      for (const mode of ['baseline', 'current']){
+        const t = _negoNodeText(frag2, mode).replace(/[ \t]+\n/g, '\n').trim();
+        if (t && t !== own) part.readings.push(t);
+      }
+      out.parts.push(part);
+    }
+  }
+  if (out.clauses.length) out.occurrence = _negoOccurrenceIn(range, out.clauses[0], out.text);
+  return out;
+}
+if (typeof window !== 'undefined') Object.assign(window, { negoReadPassage, _negoNodeText });
 
 function wireNegotiationTab(c, opts = {}){
   const side = opts.side || 'owner';
@@ -3388,37 +3601,74 @@ function wireNegotiationTab(c, opts = {}){
     const openSelMenu = () => {
       const sel = window.getSelection && window.getSelection();
       if (!sel || sel.isCollapsed){ _negoKillSelMenu(); return; }
-      const text = String(sel.toString() || '').trim();
-      if (text.length < 3){ _negoKillSelMenu(); return; }
       const anchorNode = sel.anchorNode;
       const pane = anchorNode && anchorNode.nodeType === 1
         ? anchorNode.closest(paneSel)
         : (anchorNode && anchorNode.parentElement ? anchorNode.parentElement.closest(paneSel) : null);
       if (!pane || !host.contains(pane)){ _negoKillSelMenu(); return; }
-      const clauseEl = (anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentElement)
-        ?.closest('[data-clause]');
-      if (!clauseEl){ _negoKillSelMenu(); return; }
-      const clauseId = clauseEl.getAttribute('data-clause');
+      let range;
+      try { range = sel.getRangeAt(0); } catch (e){ return; }
       let rect;
-      try { rect = sel.getRangeAt(0).getBoundingClientRect(); } catch (e){ return; }
+      try { rect = range.getBoundingClientRect(); } catch (e){ return; }
       if (!rect || (!rect.width && !rect.height)) return;
-      /* ---- READ FROM THE SELECTION'S OWN FRAGMENT, while the range is live.
-         `marked` — redline marks strictly INSIDE the chosen words. Asking the
-         clause (or the document) answers for wording the person never chose,
-         which is how a clean selection two clauses down from a redline got
-         refused as "pending edits". `spans` — the drag crossed a clause
-         boundary, which is a different fact needing a different message. */
-      let marked = false, spans = false;
-      try{
-        const frag = sel.getRangeAt(0).cloneContents();
-        marked = !!(frag.querySelectorAll
-          && frag.querySelectorAll('ins, del, .nego-ins, .nego-del, [data-change-id]').length);
-        const focusEl = sel.focusNode
-          && (sel.focusNode.nodeType === 1 ? sel.focusNode : sel.focusNode.parentElement);
-        const focusClause = focusEl && focusEl.closest ? focusEl.closest('[data-clause]') : null;
-        spans = (!!focusClause && focusClause !== clauseEl)
-          || (frag.querySelectorAll && frag.querySelectorAll('[data-clause]').length > 1);
-      }catch(e){}
+      /* ---- READ THE RANGE, NOT THE STRING IT PRINTS TO ----
+         negoReadPassage takes the page's furniture out of the wording, offers
+         the readings that make a clause under change findable, counts WHICH
+         occurrence of the phrase this is, and reports only the clauses that
+         genuinely have words in the highlight. */
+      const passage = negoReadPassage(range, pane);
+      const text = passage.text;
+      /* ---- A SELECTION WITH NO NEGOTIABLE WORDING IN IT ----
+         The recital, the title, the party block: real text on a page that
+         claims to show the document, and none of it a clause anybody can file
+         against. This used to end here in silence — the gesture did nothing and
+         said nothing, which reads as a broken page rather than as an answer.
+         Front matter is now told what it is, in the same floating layer the
+         menu would have used. Chrome alone (a drag over the toolbar) is not
+         worth a message and still ends quietly. */
+      const clauseEl = passage.clauses[0]
+        || ((anchorNode.nodeType === 1 ? anchorNode : anchorNode.parentElement)?.closest('[data-clause]'));
+      if (!clauseEl){
+        _negoKillSelMenu();
+        if (text.length >= 3) _negoSayAtSelection(rect,
+          'Not a negotiable clause',
+          'This wording is the document\'s front matter — its title, kicker or recital. '
+          + 'Changes are filed against numbered clauses, so there is nothing here to redraft.');
+        return;
+      }
+      if (text.length < 3){ _negoKillSelMenu(); return; }
+      const clauseId = clauseEl.getAttribute('data-clause');
+      /* ---- ONE HIGHLIGHT, OR SEVERAL PRETENDING TO BE ONE ----
+         Ctrl-dragging a second phrase leaves two ranges on the page and every
+         one of them looks highlighted. Reading only the first would redraft
+         wording the reader can see they also chose, so it is refused rather
+         than half-honoured. */
+      if (sel.rangeCount > 1){
+        _negoKillSelMenu();
+        _negoSayAtSelection(rect, 'More than one highlight',
+          'There are ' + sel.rangeCount + ' separate highlights on the page. '
+          + 'The Copilot rewrites one passage at a time — clear the others and select the wording once.');
+        return;
+      }
+      /* ---- WHAT KIND OF MARKS ARE INSIDE THE CHOSEN WORDS ----
+         `marked` is the refusal: wording under a LIVE redline cannot be
+         redrafted, because there is no single version of it to redraft. A
+         SETTLED change — accepted last week, refused the week before — still
+         renders its marks in the document, and counting those refused clean
+         selections with the one instruction that could never help: "accept or
+         reject the current redline first", about a redline already decided. */
+      const changeId = clauseEl.getAttribute('data-change')
+        || clauseEl.getAttribute('data-nego-card-anchor');
+      const chOf = changeId && window.negoChangeById ? negoChangeById(c, changeId) : null;
+      const live = !!chOf && chOf.status === 'pending' && !chOf.withdrawn;
+      const marked = passage.hasMarks && live;
+      const settled = passage.hasMarks && !live;
+      /* ---- DID THE DRAG REALLY CROSS A CLAUSE? ----
+         Counted from the clauses that have words in the highlight, so
+         overshooting into the margin below a clause — which leaves the range's
+         end at offset 0 of the next one — is the single-clause selection it
+         looks like. */
+      const spans = passage.clauses.length > 1;
       _negoKillSelMenu();
       /* ---- THE HOST DECIDES WHAT A SELECTION OFFERS ----
          The contract tab and the room keep the engine's own menu below. The
@@ -3430,7 +3680,8 @@ function wireNegotiationTab(c, opts = {}){
          to, whether the reader may propose at all — is the same question on
          every surface and must keep exactly one answer. */
       if (typeof opts.selMenu === 'function'){
-        opts.selMenu({ c, opts, text, clauseId, rect, side, again, marked, spans });
+        opts.selMenu({ c, opts, text, clauseId, rect, side, again, marked, settled, spans,
+          passage, clauseIds: passage.clauseIds });
         return;
       }
       const menu = document.createElement('div');
@@ -3452,7 +3703,8 @@ function wireNegotiationTab(c, opts = {}){
         ev.preventDefault(); ev.stopPropagation();
         const action = NEGO_AI_ACTIONS.find(a => a.id === b.getAttribute('data-nego-ai'));
         _negoKillSelMenu();
-        if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again, marked, spans });
+        if (action) negoAiPropose(c, { action, text, clauseId, rect, side, opts, again,
+          marked, settled, spans, passage });
       }));
     };
     /* A MOUSEUP ON A CONTROL IS NOT A SELECTION GESTURE, and treating it as one
@@ -4312,6 +4564,18 @@ function redlineLayoutCss(){
      opacity so an invisible button can never swallow a click aimed at the
      text beneath it. */
   .redline-page .rl-clause{position:relative}
+  /* ---- THE FURNITURE IS NOT THE CONTRACT ----
+     The toolbar sits INSIDE the clause's box at opacity:0, and an invisible
+     control is still selectable text: a drag that began above the first word
+     and ended below the last swept "Add Note/Tag ✎ Direct Edit 🗑 Propose
+     deletion" into the highlight, and the passage then matched nothing in the
+     clause. The ask tag reads the same way — "#3 · Your ask · ✓ adopted" is the
+     workbench talking about the clause, not wording anybody negotiated. Both
+     are cut from the reading as well (see _NEGO_SEL_CHROME); this stops them
+     joining the highlight in the first place, so what is highlighted on screen
+     is what the Copilot is asked about. */
+  .redline-page .rl-tools,.redline-page .rl-asktag,.redline-page .nego-badge{
+    -webkit-user-select:none;user-select:none}
   .redline-page .rl-tools{position:absolute;right:6px;bottom:-9px;z-index:3;margin:0;
     display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;
     opacity:0;pointer-events:none;transition:opacity .15s ease}
@@ -4968,32 +5232,88 @@ async function rlAiPropose(ctx){
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
-  if (!cl){ rlSayInPanel('This clause is no longer in the document. Select a current clause and try again.'); return; }
-  /* A drag across a clause boundary is its own fact, said as such — it used
-     to fall through the includes() check below and be misreported as pending
-     edits on a selection that had none. */
-  if (ctx.spans){
+  if (!cl){
+    /* ---- A CLAUSE THAT IS ITSELF STILL A PROPOSAL ----
+       A clause somebody has asked to ADD is on the page and reads like any
+       other, but it is not in the round baseline — that is what "proposed"
+       means — so there is no agreed wording under it to redline against.
+       negoEditClause answers null for exactly this, and the toast that
+       followed said "that wording matches the clause already", which is a
+       claim about the document and is not true. Two different absences, told
+       apart, because the way out of them is different. */
+    const ins = (window.negoChanges ? negoChanges(c) : []).find(x =>
+      x && x.clauseId === clauseId && x.changeType === 'insertClause' && x.status !== 'superseded');
+    rlSayInPanel(ins
+      ? 'This clause is itself still a proposal — it has not been accepted into the document yet, so there is no agreed wording to redline. Revise it from its card in Tracked Changes, or accept it first.'
+      : 'This clause is no longer in the document. Select a current clause and try again.');
+    return;
+  }
+  const passage = ctx.passage || { text, readings: [], occurrence: ctx.occurrence || 0, parts: [] };
+  /* ---- A HIGHLIGHT ACROSS BLOCKS OF A DOCUMENT THAT HAS NO CLAUSES ----
+     An uploaded contract that arrived as a wall of paragraphs has no headings
+     to segment on, so clauseSegment falls back to one clause PER PARAGRAPH.
+     Those boundaries are an artefact of the parse, not of the agreement, and
+     refusing "select within a single clause" over them asked the reader to
+     respect a structure their document does not have — on exactly the documents
+     where a rewrite across two sentences is most often what is wanted.
+
+     Where the covered blocks are all headingless the span is rewritten as one
+     passage: the head block takes the new wording and the blocks the highlight
+     consumed are proposed for deletion, each a tracked change of its own that
+     somebody has to accept. A document WITH headings keeps the refusal — merging
+     two numbered clauses renumbers an instrument that is cited by those numbers,
+     and that is a deliberate act, not a side effect of a drag. */
+  const spanParts = (ctx.spans && Array.isArray(passage.parts) && passage.parts.length > 1)
+    ? passage.parts : null;
+  const headingless = spanParts && spanParts.every(p => {
+    const x = window.negoClauseById ? negoClauseById(c, p.clauseId) : null;
+    return !!x && (x.headingless || !String(x.headingText || '').trim());
+  });
+  if (ctx.spans && !headingless){
     rlSayInPanel('The selection covers more than one clause. Select within a single clause — the Copilot rewrites one clause at a time.');
+    return;
+  }
+  const parts = headingless ? spanParts : null;
+  /* ---- WORDING UNDER A LIVE REDLINE IS REFUSED ON ITS OWN TERMS ----
+     Said here rather than left to fall out of a failed lookup below. It used to
+     BE that failure — the visible text of a clause under change mixes kept,
+     inserted and struck wording and exists in no single version, so the match
+     missed and the miss was reported as pending edits. That coupling is why the
+     message was so often wrong: anything else that missed got the same
+     accusation, and once the reading learned to see through a redline (it tries
+     the clause as the round baseline holds it) the true case would have stopped
+     being refused at all. Two facts, checked separately, each said only when it
+     is true. */
+  if (ctx.marked === true){
+    rlSayInPanel('This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
     return;
   }
   /* THE SELECTION HAS TO BE FINDABLE IN THE CLAUSE, and it is checked before a
      token is spent. The old fallback for a miss was to swap the whole clause
-     for whatever came back, which loses wording nobody agreed to lose.
-     Which message a miss gets depends on what was actually selected: `marked`
-     was read off the selection's own fragment, so "pending edits" is claimed
-     only when redline marks sit inside the chosen words. */
+     for whatever came back, which loses wording nobody agreed to lose. */
   const clauseText = String(cl.text || '');
-  /* Both reads are tolerant of typography — smart quotes, non-breaking and
-     zero-width characters, whitespace the renderer introduced — because
-     negoNormalizeText/negoFindPassage straighten them on both sides before
-     comparing. The splice itself happens later, at the REAL offsets the
-     match reports, never against normalised text. */
-  const whole = String(text).trim() === clauseText.trim()
-    || (window.negoNormalizeText && negoNormalizeText(text) === negoNormalizeText(clauseText));
-  if (!whole && !(window.negoFindPassage ? negoFindPassage(clauseText, text) : clauseText.includes(text))){
-    rlSayInPanel(ctx.marked === false
-      ? 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.'
-      : 'This text already has pending edits. Accept or reject the current redline first, or select a section without changes.');
+  /* Tolerant of typography and of the list markers the projection prints, and
+     tolerant of a clause under change — negoResolvePassage tries the wording as
+     shown and as the round baseline holds it. The splice happens later at the
+     REAL offsets the match reports, never against normalised text. */
+  const whole = !parts && window.negoPassageIsWhole && negoPassageIsWhole(clauseText, passage);
+  const findable = parts
+    ? parts.every(p => {
+      const x = window.negoClauseById ? negoClauseById(c, p.clauseId) : null;
+      return !!x && !!negoResolvePassage(String(x.text || ''), p);
+    })
+    : (whole || !!negoResolvePassage(clauseText, passage));
+  if (!findable){
+    /* ---- WHY IT COULD NOT BE FOUND, WHERE THAT IS KNOWABLE ----
+       A drag that begins in the recital and ends inside clause 1 covers one
+       clause and a stretch of document that belongs to no clause at all. The
+       passage genuinely cannot be matched, so the refusal is true either way —
+       but "reselect and try again" sends somebody to do the identical thing
+       again, and the part that has to change is the START of the drag. */
+    const only = passage.parts && passage.parts.length === 1 ? passage.parts[0] : null;
+    rlSayInPanel(only && only.text !== passage.text
+      ? 'This selection reaches outside the clause, into wording that belongs to no clause — the title, the recital or the space between clauses. Select from the first word of the passage inside the clause and try again.'
+      : 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.');
     return;
   }
   const party = side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');
@@ -5008,34 +5328,68 @@ async function rlAiPropose(ctx){
      this closure was read when the panel opened, and a conversation can run for
      minutes — so the live one is re-read and the passage re-checked, rather
      than writing an older copy back over whatever moved in between. */
+  const note = `Copilot — ${action.label.replace(/^\S+\s/, '')}`;
+  /* One filing, whatever it took. Every change goes through negoEditClause /
+     negoDeleteClause like any other proposal — same model, same fingerprint,
+     same chain — and the toast names what was actually filed rather than
+     claiming a single change when a span took several. */
+  const fileAll = jobs => {
+    Promise.all(jobs.map(j => j.kind === 'delete'
+      ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note })
+      : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note })))
+      .then(chs => {
+        const filed = chs.filter(Boolean);
+        if (!filed.length){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
+        if (window.negoInvalidateVerification) negoInvalidateVerification(c);
+        if (opts && opts.persist !== false && window.persist) persist(c);
+        if (window.toast) toast(filed.length === 1
+          ? `#${filed[0].id} filed from the Copilot — it is a proposal until the other side answers it`
+          : `${filed.length} changes filed from the Copilot (${filed.map(x => '#' + x.id).join(', ')})`
+            + ' — they are proposals until the other side answers them');
+        again();
+      })
+      .catch(err => { if (window.toast) toast(`Could not file that change: ${(err && err.message) || err}`, 'err'); });
+    return { ok: true };
+  };
+  const asHtml = t => (window.negoRichFromLines ? negoRichFromLines(t) : `<p>${_ne(t)}</p>`);
+
   const applyWording = wording => {
+    /* ---- THE SPAN CASE: a head that takes the new wording, and the blocks the
+       highlight ate proposed for deletion. The tail of the last block — wording
+       the reader did NOT highlight — is kept and re-filed as that block's text,
+       because a rewrite of two sentences must not silently carry off a third. */
+    if (parts){
+      const jobs = [];
+      for (let i = 0; i < parts.length; i++){
+        const p = parts[i];
+        const x = window.negoClauseById ? negoClauseById(c, p.clauseId) : null;
+        if (!x) return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
+        const t = String(x.text || '');
+        const hit = negoResolvePassage(t, p);
+        if (!hit) return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
+        if (i === 0){
+          jobs.push({ kind: 'edit', clauseId: p.clauseId, html: asHtml(t.slice(0, hit.start) + String(wording)) });
+        } else if (i === parts.length - 1){
+          const rest = t.slice(hit.end);
+          if (rest.trim()) jobs.push({ kind: 'edit', clauseId: p.clauseId, html: asHtml(rest.replace(/^\s+/, '')) });
+          else jobs.push({ kind: 'delete', clauseId: p.clauseId });
+        } else {
+          jobs.push({ kind: 'delete', clauseId: p.clauseId });
+        }
+      }
+      return fileAll(jobs);
+    }
     const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
     if (!live) return { ok: false, message: 'This clause is no longer in the document. Select a current clause and try again.' };
     const nowText = String(live.text || '');
-    const isWhole = String(text).trim() === nowText.trim()
-      || (window.negoNormalizeText && negoNormalizeText(text) === negoNormalizeText(nowText));
-    const hit = isWhole ? null
-      : (window.negoFindPassage ? negoFindPassage(nowText, text)
-         : (nowText.includes(text) ? { start: nowText.indexOf(text), end: nowText.indexOf(text) + text.length } : null));
+    const isWhole = window.negoPassageIsWhole && negoPassageIsWhole(nowText, passage);
+    const hit = isWhole ? null : negoResolvePassage(nowText, passage);
     if (!isWhole && !hit)
       return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
     const proposed = isWhole ? String(wording)
       : nowText.slice(0, hit.start) + String(wording) + nowText.slice(hit.end);
     if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
-    const html = window.negoRichFromLines ? negoRichFromLines(proposed) : `<p>${_ne(proposed)}</p>`;
-    /* Awaited nowhere the card can see it, so the card settles immediately and
-       the toast reports what actually happened. */
-    Promise.resolve(negoEditClause(c, clauseId, html, { side, author: opts && opts.by,
-      note: `Copilot — ${action.label.replace(/^\S+\s/, '')}` }))
-      .then(ch => {
-        if (!ch){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
-        if (window.negoInvalidateVerification) negoInvalidateVerification(c);
-        if (opts && opts.persist !== false && window.persist) persist(c);
-        if (window.toast) toast(`#${ch.id} filed from the Copilot — it is a proposal until the other side answers it`);
-        again();
-      })
-      .catch(err => { if (window.toast) toast(`Could not file that change: ${(err && err.message) || err}`, 'err'); });
-    return { ok: true };
+    return fileAll([{ kind: 'edit', clauseId, html: asHtml(proposed) }]);
   };
 
   const refine = async (instruction, prev, extra) => {
