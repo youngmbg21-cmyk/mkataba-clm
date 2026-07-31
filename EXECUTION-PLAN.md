@@ -558,10 +558,28 @@ in the portfolio as dangling; and the report only fires once the round closes,
 because until then the baseline both sides measure against still carries the
 clause — the warning appears when the gap does.
 
-### ⬜ Stages 2–9 — not started
-Sessions 6–21 as scheduled above. **Next: Stage 2** — the counterparty
-workbench (W1, W2, W4, W5, and W3 now that D5 is answered), starting with the
-Chromium visual-parity harness, since jsdom cannot see the defect being fixed.
+### 🟡 Stage 3 — partly built, ahead of Stage 2
+**Suite 1908/0.**
+
+| Item | Status |
+|---|---|
+| **WP-1.4 + the `view` branch of X5** | ✅ Done. `portalNegoPhase` learns the third purpose; `renderShareViewer` is a separate screen, routed out at the **top** of `renderSharePortal` before any of the negotiate page is assembled — which is what makes "nothing on that screen to hide" true rather than aspirational. Banner, watermark, painted marks, print stylesheet. f112 (9) asserts zero buttons, zero fields, nothing editable, none of the negotiate ids — and asserts the negotiate page *does* render buttons so it cannot pass vacuously. |
+| WP-1.3 snapshot semantics | ⬜ Server already freezes the payload at creation and refuses a refresh (f108); the "as of" date renders. Needs its own proving test. |
+| WP-1.5 expiry / revoke / OTP / open-tracking | 🟡 Revoke and expiry already reach view links (f108). The owner-side overview listing and the OTP toggle are not built. |
+| **W6** (the `sign` / `negotiate` split) | ⬜ Not started. |
+
+**Why out of order:** the viewer screen was built before Stage 2 because its
+server half was already finished and the two are one feature. X5's rule that
+the viewer must sit on W1's new shell is **not violated** — the viewer does not
+use the portal's card-in-a-page layout at all; it renders its own full-width
+sheet, so W1's rework of the negotiate page cannot strand it.
+
+### ⬜ Stages 2, 4–9 — not started
+**Next: Stage 2** — the counterparty workbench (W1, W2, W4, W5, and W3 now
+that D5 is answered), starting with the Chromium visual-parity harness, since
+jsdom cannot see the defect being fixed. Then Stage 4 (signing route), 5
+(renumber), 6 (history), 7 (live numbering), 8 (extensions), 9 (hardening +
+the merge to main).
 
 ### Notes for whoever picks this up
 - **Branching deviated from §2 deliberately.** This session was instructed to
