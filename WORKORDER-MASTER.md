@@ -3,8 +3,11 @@
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31 (revised same day to absorb the counterparty/signing order)
 **Status:** Approved plan — no code written
-**Combines three source work orders, all travelling on this branch:**
+**Combines four source work orders, all travelling on this branch:**
 
+0. `WORKORDER-execution-lock.md` — **an executed contract must take no new
+   edits** (items **E1 … E5**). Raised 31 Jul 2026 from MK-248; high severity,
+   ships before everything else.
 1. `WORKORDER-view-share-and-history.md` — view-only share link + negotiation
    history (work packages **WP-1.1 … WP-3.3**)
 2. `WORKORDER-clause-numbering.md` — linked references, renumbering, live
@@ -92,6 +95,21 @@ screen exposing exactly its own verbs and nothing of the others'.
 *Size: absorbed into W6 + WP-1.4; the rule costs nothing, ignoring it costs a
 rebuild.*
 
+### X0 — Nothing is built on a record that can still move
+The execution-lock order (E1–E5) is not merely first by severity; three later
+stages *assume* it. The numbering phases require a `negoNumberingLocked(c)`
+gate that, on `main`, **does not exist** — the predicate lives only on the
+unmerged branch `origin/claude/clm-clause-renumbering-4imkqd`, and no
+`test/f98-*` file exists on `main` (see the execution-lock order §2.6). **E1**
+builds that predicate on `main`, which is why it is a prerequisite of N2/N3
+rather than a parallel concern. The history stages (WP-2.1, WP-2.4) present
+the record as evidence, and the view-link snapshot (WP-1.3) freezes it — both
+are worth less than nothing if the record underneath them can still be
+rewritten after execution. **Rule:** Stage 0 completes before any other stage
+starts, and when the numbering branch merges, its `negoExecuted` /
+`negoNumberingLocked` must be the *same* definition E1 built, not a second one
+that happens to agree. *Size: the rule is free; E1–E5 are their own order.*
+
 ### X6 — Signatures must land on the right row *before* history presents them
 Order 3 documents a **live data-integrity bug** (W7, fault 3): an incoming
 counterparty signature is stamped on whichever signer row is *next*, not the
@@ -115,9 +133,10 @@ The source documents state overlapping doctrines. Merged, the programme runs
 on seven rules; the source docs carry the detail.
 
 1. **The server refuses; the UI merely hides.** Every restriction is enforced
-   in `server/server.js` before any screen work: view tickets (WP-1.1), the
-   execution lock (`negoNumberingLocked`), reserved signing steps (W9),
-   one-time codes bound to the invited address (W8).
+   in `server/server.js` before any screen work: the execution lock (E2/E4 —
+   currently enforced in *neither* place, which is what MK-248 exposed), view
+   tickets (WP-1.1), reserved signing steps (W9), one-time codes bound to the
+   invited address (W8).
 2. **Safety nets before moving parts.** The server lock (WP-1.1) before the
    rest of the view link; linked references (N1) before anything moves a
    number (N2, N3); signer binding (W7) before address-bound codes (W8) and
@@ -125,10 +144,13 @@ on seven rules; the source docs carry the detail.
    preferences.
 3. **Frozen things are self-contained** (X2). Snapshots, exports, and sealed
    copies carry their numbers and content as literal text, forever.
-4. **Evidence is never rewritten — and never mis-filed.** History assembles
-   existing records; renumbering never touches hashes; nothing prunes or
-   reorders the audit trail; a signature lands on the row it belongs to or is
-   refused (never silently re-attributed).
+4. **Evidence is never rewritten — and never mis-filed.** An executed contract
+   takes no new edits, from any seat, however it came to be executed (E1–E4);
+   history assembles existing records; renumbering never touches hashes;
+   nothing prunes or reorders the audit trail; a signature lands on the row it
+   belongs to or is refused (never silently re-attributed). Where evidence has
+   *already* diverged, it is reported to a human, never silently repaired
+   (E5).
 5. **The wall holds.** Internal threads, notes, unsent drafts, playbook and
    risk signals never reach the counterparty — and nothing on their screen
    may reveal that held-back items exist. The viewer allow-list (WP-1.2), the
@@ -145,11 +167,28 @@ on seven rules; the source docs carry the detail.
 
 ---
 
-## The programme: nine stages
+## The programme: ten stages
 
 Stages are ordered; a stage may span more than one session. **Every stage
 ships real value on its own** — the programme can pause after any stage and
 the product is still ahead. Task detail lives in the source documents.
+
+### Stage 0 — The execution lock ⚠ ships first, before anything else
+**E1** name the `negoExecuted` predicate once → **E2** refuse authored changes
+at `negoFileChange` (the fix that closes the report) → **E3** the workbench
+renders no edit control on an executed contract → **E4** the server refuses a
+sealed-content write → **E5** detect-and-report already-damaged contracts,
+plus the proving tests.
+
+One session, two at most. **Done when:** the execution-lock order's Definition
+of Done — no authored change of any type can be filed against an executed
+contract from any seat, the server refuses with the browser bypassed, draft
+contracts are demonstrably unaffected, and MK-248 reopened offers no edit
+control anywhere on the page.
+
+*Why it is Stage 0 and not a track inside Stage 1:* see **X0**. Every later
+stage either presents this record as evidence, freezes a copy of it, or gates
+on the predicate E1 builds.
 
 ### Stage 1 — Foundations (four independent tracks, parallel-safe)
 | Track | Tasks | Size | Why now |
@@ -254,7 +293,8 @@ migrations, safe rollback.
 
 | # | Stage | Contents | Sessions (est.) | Hard dependencies |
 |---|---|---|---|---|
-| 1 | Foundations | WP-1.1 · WP-2.2 + 2.3 · N1 · W9 | 2–3 | — |
+| **0** | **Execution lock ⚠** | **E1 → E2 → E3 · E4 · E5** | **1–2** | **— (blocks all)** |
+| 1 | Foundations | WP-1.1 · WP-2.2 + 2.3 · N1 · W9 | 2–3 | Stage 0 |
 | 2 | Counterparty workbench | W1 → W2, W4, W5 (+ W3 if D5 answered) + Chromium parity harness | 2 | — |
 | 3 | Three screens + view link | X5: W6 + WP-1.4 · WP-1.2 → 1.3 → 1.5 | 2 | WP-1.1, Stage 2 |
 | 4 | Signing route | W7 → W8 (together, W7 first) | 2 | W9 helpful; Stage 3's W6 |
@@ -264,11 +304,12 @@ migrations, safe rollback.
 | 8 | Extensions | WP-1.6 · N4 | 2–3 | Stages 1–5 as per source docs |
 | 9 | Hardening & release | WP-3.1–3.3 (+ X4 final) | 1 | everything |
 
-**Total: roughly 16–19 sessions.** One phase per session at most; N3's freeze
+**Total: roughly 17–21 sessions.** One phase per session at most; N3's freeze
 session shares a session with nothing that would rush it.
 
 Some stages can swap or interleave (2↔1 tracks, 4↔5) — the unbreakable
-orderings are: WP-1.1 before the rest of the view link; Stage 2 before
+orderings are: **Stage 0 before everything** (X0); WP-1.1 before the rest of
+the view link; Stage 2 before
 WP-1.4; W6 and WP-1.4 together (X5); N1 → N2 → N3, N4 last among numbering;
 W7 before W8; W7 before WP-2.1 ships (X6); X1 present from WP-2.1's first
 render; X2 complete before any live-numbered contract is sealed, snapshotted,
@@ -300,6 +341,18 @@ From the counterparty/signing order (locked — D1–D4):
 12. **Decline stays on the counterparty's negotiation screen**, reason
     required.
 13. **The signing screen keeps a read-only view of what was settled.**
+
+From the execution-lock order:
+19. **The lock guards the funnel, not the callers** — one refusal in
+    `negoFileChange` covers modify/insert/delete, so a fourth caller added
+    later cannot miss it.
+20. **Both the lock and the sign** ship together (E2 *and* E3): a server that
+    refuses without a screen that stops offering is a button that errors at a
+    user who should never have seen it.
+21. **Executed ≠ frozen record.** Signatures, engagement stamps and audit
+    appends still land on an executed contract; only its *sealed content* is
+    immutable (E4).
+22. **Damaged records are reported, never auto-repaired** (E5).
 
 New in this master order:
 14. History displays **labels as of the event** (X1), never today's numbers.
@@ -341,6 +394,8 @@ verified (baking *inputs* at freeze time per X2 is rendering, not seal math).
 | History ships before signing attribution is fixed | Forbidden by X6 |
 | A stage adds fields the viewer payload silently inherits | Impossible by construction (allow-list) but verified anyway — X4 re-audit per stage |
 | Session drift across a long programme | One phase per session max; `SESSION-NOTES.md` entry per session; the next session reads this document, the relevant source order, and the previous notes before writing code |
+| A source order assumes shipped ground that is not on `main` | Found once already: `negoNumberingLocked` / f98 exist only on an unmerged branch (X0). Before starting any stage, verify its stated prerequisites exist in the code rather than in a document — the numbering order is otherwise accurate, so check, don't assume it is wrong either |
+| The execution lock over-fires and freezes drafts | E5's test suite asserts draft contracts are wholly unaffected; this is the regression that would hurt most, so it is tested first, not last |
 
 ## Session conventions
 
