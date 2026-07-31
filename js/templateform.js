@@ -17,18 +17,30 @@ const TPLFORM_ESC = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* An unfilled blank renders as the field's label inside the product's one
-   allowlisted span class (hati-field, see js/richdoc.js) — visible as a blank
-   to both parties, and gone the moment a value lands. Never raw {{syntax}}. */
+   allowlisted span class (hati-field, see js/richdoc.js), carrying the field
+   key as data-field-key so the document can route a click to the right input
+   — visible as a blank to both parties, gone the moment a value lands. */
 function tplFormSlot(field, value) {
   const v = value == null ? '' : String(value).trim();
   if (v) return TPLFORM_ESC(v);
-  return `<span class="hati-field">${TPLFORM_ESC((field && field.label) || 'to be completed')}</span>`;
+  const key = field && /^[a-z][a-z0-9_]{0,63}$/.test(String(field.fieldKey || '')) ? ` data-field-key="${field.fieldKey}"` : '';
+  return `<span class="hati-field"${key}>${TPLFORM_ESC((field && field.label) || 'to be completed')}</span>`;
+}
+
+/* The blank an ORPHANED marker leaves behind. Raw {{syntax}} never reaches a
+   document: a marker whose field no longer exists renders as a plain visible
+   blank — the last line of defence behind delete-time cleanup and the
+   publish-time consistency check. */
+const TPLFORM_ORPHAN_BLANK = '———';
+function templateFormStripMarker(content, fieldKey) {
+  if (!fieldKey) return String(content == null ? '' : content);
+  return String(content == null ? '' : content).split(`{{${fieldKey}}}`).join(TPLFORM_ORPHAN_BLANK);
 }
 
 function tplFormSubstitute(content, fields, values) {
   return String(content || '').replace(/\{\{([a-z0-9_.]+)\}\}/gi, (m, key) => {
     const f = fields.find(x => x.fieldKey === key);
-    if (!f) return TPLFORM_ESC(m); // an unknown placeholder stays visible — a builder mistake to fix, not to hide
+    if (!f) return `<span class="hati-field">${TPLFORM_ORPHAN_BLANK}</span>`;
     return tplFormSlot(f, values[key]);
   });
 }
@@ -125,7 +137,7 @@ function templateBrandingFooterHtml(c) {
 }
 
 if (typeof module !== 'undefined' && module.exports)
-  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems };
+  module.exports = { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems, templateFormStripMarker };
 if (typeof window !== 'undefined')
   Object.assign(window, { templateFormDocHtml, templateFormResolveDefaults, templateFormProblems,
-    templateBrandingHeaderHtml, templateBrandingFooterHtml });
+    templateFormStripMarker, templateBrandingHeaderHtml, templateBrandingFooterHtml });
