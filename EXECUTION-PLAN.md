@@ -625,11 +625,24 @@ OPEN-ISSUES' own rule.
 a draft's gap with a full preview; preview-then-cancel byte-identical; ids
 never move; executed contracts offer nothing anywhere.
 
-### ⬜ Stages 6–9 — not started
-**Next: Stage 6** — the negotiation history (Sessions 13–14: WP-2.1 with
-X1/X6/X3 built into the first render, then WP-2.5 verify + WP-2.4 export).
-The signing beats (Stage 4) and renumber beats (X3) are already shaped on the
-record. Then 7 (live numbering), 8 (extensions), 9 (hardening).
+### 🔶 Stage 6 — IN PROGRESS (Session 13 landed; Session 14 next)
+**Suite 2106/0 · redline 71/71 · parity 18/18 · selection 22/22.**
+**WP-2.1 ✅** — `negoTimeline` assembles one chronological story from changes
+(live + archived rounds), round closures and the audit trail's beats; the
+signing events (X6) and renumbering acts (X3, off the structured data) render
+as first-class beats; **X1 held from the first render** — labels as of the
+event, proven by renumbering the fixture after the events and asserting the
+story byte-identical (f120, 7). Filters (clause-by-durable-id, person, side,
+round, outcome) combine in the MODEL; the screen re-asks it rather than
+hiding DOM. Reached from the workspace History button; no canEdit gate —
+read-only by nature, viewers included.
+**Session 14 next:** WP-2.5 (verify-integrity button on the timeline) →
+WP-2.4 (exportable standalone report embedding the verification result). The
+plan's Playwright screen check rides with Session 14's proving work.
+
+### ⬜ Stages 7–9 — not started
+Then 7 (live numbering — the freeze shares a session with nothing else),
+8 (extensions), 9 (hardening).
 
 ### Notes for whoever picks this up
 - **Branching history:** Stages 0–1 were built on one shared branch
