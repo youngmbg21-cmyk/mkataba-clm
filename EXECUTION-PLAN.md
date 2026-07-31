@@ -2,7 +2,8 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** Plan only — no code written
+**Status:** IN BUILD. Stage 0 complete; Stage 1 three of four tracks complete.
+See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
 session is actually run** — what it opens with, what it commits, what proves
@@ -517,3 +518,51 @@ interacts with Stages 0–9.
 
 **21 sessions.** Each stage ships value on its own; the programme can pause at
 any stage boundary with the product ahead of where it started.
+
+---
+
+## 9. Build log
+
+Updated as sessions land. Suite figures are `npm test`; the browser figure is
+`npm run test:browser`.
+
+### ✅ Stage 0 — the execution lock (COMPLETE)
+**Suite 1853/0 · browser 69/69.** Commits: *An executed contract takes no new
+edits (E1–E3)*, *The server refuses, and divergence is reported (E4–E5)*.
+
+| Item | Outcome |
+|---|---|
+| E1 | Done by **merging** `origin/claude/clm-clause-renumbering-4imkqd` rather than writing a second predicate. That branch already carried `negoExecuted` with the argument for all three signals, plus `negoNumberingLocked`, `negoNumberingGaps` and f98. **This closes X0** — those helpers were never on `main`. |
+| E2 | `negoFileChange` refuses when executed, guarded at the funnel so all five callers inherit it. |
+| E3 | `renderRedline` derives `readonly` from `negoExecuted`; the room mount stopped asking `status === 'Signed'`; the change index says why it has no verbs. |
+| E4 | The route **already had** a guard — the work order was wrong and §2.4 is corrected. Two real gaps closed: the negotiation record (`changes`, `rounds`, `negotiation`, `versions`) was unprotected, and `isExecutedRow` read two signals where the browser reads three. `SEAL_ACQUIRABLE` keeps sealing possible once on a signed-but-unsealed record. |
+| E5 | `executedDivergence()`. **Finding: `verifySeal` never compared the live body to the sealed copy**, so a post-execution edit left the seal reporting valid while the screen showed unsigned wording — no error state at all. Reports, never repairs. |
+
+**Tests rewritten, not worked around:** f52 filed changes onto an already-Signed
+contract as setup (its `negoResolve` calls were already silent no-ops); f102 gave
+a Signed fixture a body by PUT. Both now do it the way the product does.
+
+### 🟡 Stage 1 — Foundations (3 of 4 tracks complete)
+**Suite 1870/0.**
+
+| Track | Status |
+|---|---|
+| A — **WP-1.1 + WP-1.2** | ✅ Done. `SHARE_PURPOSES` gains `view`; `refuseIfViewOnly` written once and called from `respond`, `messages`, `template-values` and the owner's payload refresh; `viewerPayload()` built by allow-list. f108 (12) plants six internal strings and asserts none appears in the response, and asserts the negotiate payload *does* carry them so the check cannot pass vacuously. |
+| D — **W9** | ✅ Done. Reserved signing steps enforced server-side, asked as a difference rather than a state. f109 (5). |
+| B — **WP-2.2 + WP-2.3** | ⬜ Not started. Verified identity stamped on counterparty decisions; the decision-reason nudge. |
+| C — **N1** | ⬜ Not started. Linked cross-references (T1–T5), closes OI-1. The ground it needs (`negoNumberingGaps`, f98) is now on the branch, courtesy of E1. |
+
+### ⬜ Stages 2–9 — not started
+Sessions 6–21 as scheduled above. The next session's first job is Stage 1's two
+remaining tracks (N1 and the capture improvements), then Stage 2.
+
+### Notes for whoever picks this up
+- **Branching deviated from §2 deliberately.** This session was instructed to
+  develop on `claude/contract-sharing-history-plan-zl54en`, so Stage 0 and
+  Stage 1 share one branch rather than one branch per session.
+- `npm install` is required before the suite runs — an empty `node_modules`
+  reads as a hanging test run, not as a missing dependency.
+- The entry-check discipline in §1 earned its place twice already: once finding
+  `negoNumberingLocked` absent from `main`, once finding the server guard
+  present when the work order said it was missing. Verify, do not trust the
+  document — including this one.

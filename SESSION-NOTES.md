@@ -5,6 +5,38 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 1 — foundations: the view-only link and the signing-step lock
+
+**Done** (`server/server.js`, `js/core.js`; new `test/f108` 12 tests and
+`test/f109` 5; suite 1870/0)
+
+- **WP-1.1 + WP-1.2 — the view-only share link, server side.** A third purpose
+  alongside negotiate and sign. `refuseIfViewOnly` is written once and called
+  from every mutating token route (`respond`, `messages`, `template-values`,
+  and the owner's payload refresh — a view link is a snapshot that states the
+  date it was frozen, so refreshing it would make that a lie). One shared guard
+  rather than four copies of a condition, because the route this must survive is
+  the fifth one, added later by someone who never reads the comment.
+  `viewerPayload()` starts from an empty object and adds the wording, the marks,
+  the round and the as-of date — never deletes from the full payload. f108
+  plants six internal strings and asserts none reaches the response, and asserts
+  the negotiate payload does carry them so the check cannot pass vacuously.
+- **W9 — reserved signing steps, enforced on the server.** Asked as a
+  difference ("did this save newly sign a step reserved for someone else")
+  rather than a state ("is the caller the next signer"), which would have
+  refused every ordinary save on a contract with a signing route. Two of the
+  five tests exist to stop the rule over-firing.
+
+**Still open in Stage 1:** N1 (linked cross-references, closes OI-1) and
+WP-2.2/WP-2.3 (verified identity on counterparty decisions, decision-reason
+nudge). N1's ground — `negoNumberingGaps`, f98 — arrived with the E1 merge.
+
+**Next:** finish Stage 1, then Stage 2 (the counterparty workbench, W1/W2/W4/W5
+plus the Chromium parity harness). See `EXECUTION-PLAN.md` §9 for the live
+build log.
+
+---
+
 ## Stage 0 — the execution lock (E1–E5, WORKORDER-execution-lock.md)
 
 **Done** (`js/negotiation.js`, `js/views/negotiation.js`, `js/views/contract.js`,
