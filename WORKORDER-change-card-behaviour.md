@@ -5,9 +5,10 @@
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
 **Baseline:** `main` at `0c41ffc` — after the card-as-handle work (`368ec30`),
 the stale open/shut choice fix (`671828f`) and the send-vs-turn fix (`0c41ffc`).
-**Status:** BUILT — WO-2 landed; WO-1 confirmed already closed by `0c41ffc`.
+**Status:** CLOSED — WO-2 landed; WO-1 confirmed already closed by `0c41ffc`.
 Proof in f100e (new, 13 tests), f100b/f89 (updated), and a real-pointer drive in
-Chromium. See BUGLOG.md.
+Chromium. The two items left open on the counterparty's seat are now read back
+too: f100f (5 tests), which found and fixed one fault there. See BUGLOG.md.
 **Scope:** the change cards in the Tracked Changes column
 (`redlineChangeCardsHtml`, `js/views/negotiation.js`). Nothing else.
 
@@ -55,11 +56,13 @@ happened.
 Fixed in `0c41ffc` (`negoHandOver` now sends what is waiting even when the turn
 is already theirs). Verified against the running server: unsent count 1 → 0.
 
-### What is left to do
+### What is left to do — all three now closed
 
 1. **Verify on the next deploy**, from Counterparty View: raise an ask, press
    Send, confirm the badge flips to `Sent` and the buttons become exactly
    **Edit** and **Sent** — nothing else, no Retract.
+   **DONE** — f100f. `Sent`, exactly Edit and Sent, Sent disabled, and no
+   `data-rl-send` or `data-rl-retract` on the card.
 2. **Decide whether `Sent` should be a button at all.** It is currently a
    disabled `<button>` styled amber. It is a *state*, not a control — nobody can
    press it. Options:
@@ -72,6 +75,15 @@ is already theirs). Verified against the running server: unsent count 1 → 0.
 3. **Check the same holds on the counterparty's own portal page**, which mounts
    the same renderer with `side: 'counterparty'`. The verb rules are seat-
    relative and should already be right; it has not been checked since `0c41ffc`.
+   **DONE, and it does** — and it cannot drift: the portal hands its held asks
+   to the column as `unsentIds` (`PORTAL_NEGO_PROPOSED`), and the postbox moves
+   them to `PORTAL_NEGO_PROPOSED_SENT` and clears the held set, so the badge and
+   the verbs flip off the same one reading the owner's do. No code changed.
+
+   The same read-back found a real fault in WO-2 on that seat — the unpin
+   repainted the OWNER's page from inside the portal, so the pin was released in
+   the record and the card stayed open on screen. Fixed; see BUGLOG.md and
+   f100f.
 
 **Risk:** low. No behaviour change proposed; this is a verification item.
 

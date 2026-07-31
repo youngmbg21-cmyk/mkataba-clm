@@ -1324,14 +1324,52 @@ function localCompareData(ids){
    stays live underneath, so the next sentence carries the exchange forward
    instead of restarting it. */
 
+/* ---------- HOW MUCH REASONING, AND IN WHOSE REGISTER ----------
+   PLAIN or LEGAL is the reader's answer to "how much do you want said"
+   (see `ai.style`), and this — the one field on a proposal that is prose — did
+   not ask. The register travelled: AI_STYLE_RULES rides in the brief on every
+   call, and its plain half says "short answers, two or three sentences". But
+   the advice field described itself as a four-part checklist — what changed,
+   which risk moves, what it costs, what to check — in the instruction sitting
+   directly beside the passage. A specific enumeration next to the question
+   beats a general rule in the background briefing, every time, so Plain bought
+   the reader nothing here and the button's own tooltip ("short answers") was
+   describing something the product did not do.
+
+   So the field answers to the setting. Four points where the reader asked for
+   depth; the answer and its reason where they asked for plain. LEGAL IS
+   UNCHANGED — literally the text that was here before — because the complaint
+   was never that the depth is wrong, only that it was compulsory.
+
+   The plain half makes the points CONDITIONAL as well as brief, and that is the
+   half doing the work: three sentences that must still cover four headings is
+   compression, not brevity, and comes back as a denser paragraph rather than a
+   shorter one. What it must not become is a licence to leave out a real risk —
+   hence "only where there is genuinely one", which drops the empty slot and
+   keeps the full one.
+
+   FUNCTIONS, not const strings, for the reason AI_GROUND_RULES is one: the
+   register is a setting the reader flips mid-session, and a string built at
+   load would go on asking for the depth they just turned off, for the rest of
+   the session. The SHAPE never varies — same fields, same names, whatever the
+   register — because the parser reads one contract and a second would be a
+   second thing to keep in step. */
+const AI_ADVICE_FIELD = made => aiStyle() === 'legal'
+  ? `  "advice": "Your reasoning: what you ${made}, which risk it moves, what it `
+    + 'costs to ask for it, and anything the drafter should check before proposing it.",\n'
+  : `  "advice": "Your reasoning in everyday language, two or three sentences. Lead with `
+    + `the answer — whether this is worth proposing at all — then why. Give a risk, a cost `
+    + `or something to check only where there is genuinely one: a point written to fill a `
+    + `heading is the padding this register exists to remove. No legal jargon unless you `
+    + `say what it means in the same breath.",\n`;
+
 /* The contract with the model, written once. Both the server-mediated and the
    browser-direct paths send this exact text, so the two cannot drift into
    accepting different shapes. */
-const AI_PROPOSAL_FORMAT = 'Reply with ONE JSON object and nothing else — no preamble, '
+const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else — no preamble, '
   + 'no commentary outside it, no markdown fence:\n'
   + '{\n'
-  + '  "advice": "Your reasoning: what you changed, which risk it moves, what it '
-  + 'costs to ask for it, and anything the drafter should check before proposing it.",\n'
+  + AI_ADVICE_FIELD('changed')
   + '  "proposedText": "The replacement wording for the selected passage, and nothing else — '
   + 'no quotation marks around it, no explanation inside it."\n'
   + '}';
@@ -1387,11 +1425,10 @@ const aiIsInsert = p => aiNormalizePlacement(p) !== 'replace';
    were building on. And a list emitted as a prose run-on is filed as one
    paragraph — docRichFromText reads line openers to rebuild real list markup
    (js/docx.js), so bullets have to ARRIVE as lines to survive as items. */
-const AI_EDIT_FORMAT = 'Reply with ONE JSON object and nothing else — no preamble, '
+const AI_EDIT_FORMAT = () => 'Reply with ONE JSON object and nothing else — no preamble, '
   + 'no commentary outside it, no markdown fence:\n'
   + '{\n'
-  + '  "advice": "Your reasoning: what you changed or added, which risk it moves, what it '
-  + 'costs to ask for it, and anything the drafter should check before proposing it.",\n'
+  + AI_ADVICE_FIELD('changed or added')
   + '  "placement": "replace" | "after" | "before" | "newClause",\n'
   + '  "proposedText": "The wording itself and nothing else — no quotation marks around it, '
   + 'no explanation inside it.",\n'
@@ -1788,7 +1825,9 @@ async function copilotPropose(opts){
         + '<br>, <p>, <ol>, <ul>, <li> — and add no others.'
       : placements ? '' : structural,
     '',
-    placements ? AI_EDIT_FORMAT : AI_PROPOSAL_FORMAT
+    /* Called, not read: the register is a setting, and the reader may have
+       flipped it since this module loaded. See AI_ADVICE_FIELD. */
+    placements ? AI_EDIT_FORMAT() : AI_PROPOSAL_FORMAT()
   ];
   /* Through the PUBLISHED binding, not the module-local one. Every module in
      this app is an ES module that exports by assigning to window, and every
@@ -2305,7 +2344,7 @@ if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
 Object.assign(window,{
-  AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
+  AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
   AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,aiAsksTheReader,aiLooksConversational,aiSplitDisclaimer,

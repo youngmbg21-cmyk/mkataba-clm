@@ -80,8 +80,13 @@ describe('F88a — the model is asked for a shape, and the parse survives missin
   beforeEach(() => { ai = loadAi(); });
 
   test('the format asked for names both fields', () => {
-    assert.match(ai.AI_PROPOSAL_FORMAT, /"advice"/);
-    assert.match(ai.AI_PROPOSAL_FORMAT, /"proposedText"/);
+    /* A function since the advice field answers to the Plain/Legal register
+       (F107) — the SHAPE it asks for is the same in both. */
+    for (const style of ['plain', 'legal']){
+      ai.aiSetStyle(style);
+      assert.match(ai.AI_PROPOSAL_FORMAT(), /"advice"/);
+      assert.match(ai.AI_PROPOSAL_FORMAT(), /"proposedText"/);
+    }
   });
 
   test('a clean object gives two separate things to render', () => {

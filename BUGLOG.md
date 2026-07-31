@@ -5790,3 +5790,138 @@ warning.
 `data`), test/f98 (draft-side assertion adjusted deliberately per the work
 order), test/f119.
 **Verified.** Suite 2099/0 · redline 71/71 · parity 18/18 · selection 22/22.
+
+---
+
+## Run: the same column, read from the counterparty's chair (2026-07-31)
+
+The two items WORKORDER-change-card-behaviour.md left open, both on the same
+seat. The counterparty's page mounts the SAME renderer with
+`side:'counterparty'`, so Draft/Sent and peek/pin arrive there by construction —
+but "by construction" is a claim, not a reading, and neither had been read back
+from that chair since the send-vs-turn fix (`0c41ffc`). One of them was not fine.
+
+### 1. WO-1 · Sent, on the counterparty's own portal page — verified, no fault
+
+**What was checked.** WO-1 item 3: that a sent ask of the counterparty's OWN
+reads `Sent` and carries exactly **Edit** and **Sent** from their seat, as it
+does from the owner's.
+
+**What was found.** It holds, and it cannot drift: the portal passes its held
+asks as `unsentIds` (`PORTAL_NEGO_PROPOSED`), and pressing the postbox moves
+them to `PORTAL_NEGO_PROPOSED_SENT` and clears the held set — so the badge and
+the verbs flip off the same one reading the owner's do. No code changed.
+
+**Verified.** f100f, three tests: held it is a Draft with Edit/Retract/Send; sent
+it is `Sent` with exactly Edit and Sent, Sent disabled, and no `data-rl-send` or
+`data-rl-retract` anywhere on the card — the fault as originally reported, which
+was never a rendering fault on either seat.
+
+### 2. WO-2 · the unpin repainted the owner's workbench from inside the portal
+
+**What was broken.** On the counterparty's page, pressing anywhere outside the
+Tracked Changes column released the pin in the record and left the card open on
+screen. The reader could not put a card away.
+
+**Root cause.** The document-level unpin handler
+(`js/views/negotiation.js`) ended `if (rlCardUnpinAll()) renderRedline()`.
+`renderRedline` is the OWNER's page — it paints `#content` from
+`state.activeId` — and this handler is wired by `rlWireClauseTools`, which
+already carries `again` for exactly this reason and says so at the top of the
+function: "falling back to renderRedline from inside an embed would paint the
+owner's workbench over a page that is not the owner's." The mount that had to
+redraw the card was never asked to. On the portal the owner's shell is hidden,
+so the visible fault was only the stuck card; the wrong paint still happened,
+into `#content`, behind it.
+
+The same handler read its column with `document.getElementById('rl-changes')` —
+"outside the column" answered by whichever mount the document held first, rather
+than by this one.
+
+**The fix.** `again()` instead of `renderRedline()`, and the column read off the
+mount (`host.querySelector`). No change on the owner's seat, where `again` IS
+`() => renderRedline()`.
+
+**And one the same reading turned up.** `rlCardForgetPins` was called only by
+`renderRedline`, so a pin made on a mount outlived the contract it was made on —
+the rule the owner's page keeps, not kept by the embed. Now called by
+`redlineEmbed` on the same terms (it clears only when the contract id moves, so
+the portal's rebuild-on-every-change does not drop a live pin).
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100f (5 tests). The two behavioural ones fail against the
+unfixed file for the right reasons — the card stays open, and a marker left in
+`#content` is destroyed by the owner's paint — and pass with it. The three WO-1
+tests pass either way, which is what a verification item should do. Suite
+1916/1916.
+
+**Not done.** The mixed toolbar in Counterparty View (the owner's **Send All
+Redlines** and **Publish Round** still drawn while previewing the counterparty's
+seat), noticed during the original investigation and explicitly excluded by the
+work order. Still open, still unspecified.
+
+## Run: Plain meant short everywhere except where it was asked (2026-07-31)
+
+**What was reported.** "Why is copilot coming back with long long explanations?"
+— with a screenshot of a Shorten & Simplify over a lease clause that needed no
+change at all, answered in a full paragraph.
+
+**What was broken.** Not the model. The advice field described itself to it as a
+FOUR-PART CHECKLIST — "what you changed, which risk it moves, what it costs to
+ask for it, and anything the drafter should check" — so four points came back,
+including the three whose honest answer was "none here". The screenshot answers
+them in order: *"No risk moves either way"*, *"a Lessor will likely accept it as
+neutral"*, *"check that 'throughout the term' is understood to include any
+extension period"*. Ask four questions, get four paragraphs.
+
+**Root cause.** The reader has a control for exactly this and it did not reach
+this path. PLAIN / LEGAL (`ai.style`) is the register, and its plain half — "short
+answers, two or three sentences" — DOES travel on every call, inside
+`AI_STYLE_RULES`, in the system brief. But the four-part checklist sat in
+`AI_PROPOSAL_FORMAT` / `AI_EDIT_FORMAT`, in the instruction directly beside the
+passage. A specific enumeration next to the question beats a general rule in the
+background briefing, every time. So the two contradicted each other on every
+plain-mode call, the nearer one won, and the button's own tooltip ("Everyday
+language, short answers, no legal jargon") described something the product did
+not do here.
+
+**The fix.** One shared `AI_ADVICE_FIELD(made)`, read by both formats, that
+answers to the register.
+
+- **Legal is byte-for-byte what it was.** The complaint was that the depth was
+  compulsory, never that it was wrong. A reader who asks for depth gets exactly
+  the text they got before.
+- **Plain asks for two or three sentences**, leading with the answer — and makes
+  the four points CONDITIONAL, which is the half doing the work: three sentences
+  that must still cover four headings is compression, not brevity, and comes
+  back as a denser paragraph rather than a shorter one. Guarded against the
+  obvious failure of the fix — a risk that is real is still asked for; only the
+  empty slot goes.
+- **Both formats became functions**, for the reason `AI_GROUND_RULES` is one
+  (see the jurisdiction run): the register is a setting the reader flips
+  mid-session, and a string built at load would keep asking for the depth they
+  just turned off for the rest of the session — the toggle would repaint and
+  change nothing that leaves the building.
+- **The shape never varies with the register.** Same fields, same names, both
+  registers; `aiParseProposal` reads one contract and a second would be a second
+  thing to keep in step.
+
+Both transports get it for free: the format travels in the user message, so the
+server-mediated (`ai/chat`) and browser-direct (`aiLocalClaude`) paths send the
+same text, which is what that pairing was written for.
+
+**Files touched.** js/ai.js. f88/f97 updated to call the two formats rather than
+read them.
+**Verified.** f107 (17 tests): the register in both formats, legal unchanged to
+the character, brief-and-instruction agreement in both directions, the shape and
+the placement rules surviving both, the prompt that actually leaves the building,
+and the frozen-const trap. 15 of the 17 fail against the unfixed file. One source
+guard is deliberately strict — "followed by a space is fine" would have passed
+the very line this change fixed (`placements ? AI_EDIT_FORMAT :
+AI_PROPOSAL_FORMAT`), so outside its declaration and the export list a mention
+must be a call. Suite 1933/1933, browser 71/71, selection 22/22.
+
+**Not done.** Nothing was capped in LEGAL, and nothing anywhere was given a hard
+word limit — the length in plain mode is asked for, not enforced. If the paragraphs
+come back long in plain after this, the next lever is a cap rather than a rewording.
+
