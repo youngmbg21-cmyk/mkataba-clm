@@ -5790,3 +5790,50 @@ warning.
 `data`), test/f98 (draft-side assertion adjusted deliberately per the work
 order), test/f119.
 **Verified.** Suite 2099/0 · redline 71/71 · parity 18/18 · selection 22/22.
+
+---
+
+## Run: the send that kept asking for an address it already had (field report)
+
+### 1. A copy-link share shadowed the counterparty's email for the life of the negotiation
+
+**What was broken.** Reported from the field: sending a redline popped the
+share dialog asking for the counterparty's email *on every round*, in some
+contracts but not others.
+
+**Root cause.** `counterpartyContact` (js/core.js) returned the newest share
+WHOLE. A copy-link share records only a name and a WhatsApp share only a
+phone — neither carries an email — so one link copied to the clipboard
+shadowed a perfectly good address: the one recorded on the contract, or the
+one an earlier email share went to. Every send afterwards read `email: ''`,
+concluded it had nowhere to send, and reopened the dialog. The address was in
+the record the whole time. Contracts whose first share went out *by email*
+never hit it, which is why it looked intermittent.
+
+**The fix.** The newest share still decides WHO this is — name, channel,
+token — and the ADDRESS is now a separate question answered best-first: the
+most recent share that actually carries one, then the address recorded on the
+contract. A share without an email is not evidence that there is no email.
+The workbench's send also re-resolves the contact at PRESS time rather than
+trusting the one computed when the screen painted, so a share list still in
+flight can no longer cost the first press.
+
+### 2. Two of the three creation paths did not record the counterparty they were told about
+
+**What was broken.** The guided wizard and the custom-template path wrote
+`counterparty:''` and folded the typed name into the display title only. So a
+contract drafted for Kabras was titled "… — Kabras" while the field the
+register filters on, the reports total by, and the signing readiness check
+reads ("Complete: counterparty name") stayed empty — and the operator re-typed
+in the workspace a fact they had already given the wizard. Uploads recorded it
+correctly all along, which is why the three categories behaved differently.
+
+**The fix.** Both template-born paths record the name they collected. All
+three categories now agree.
+
+**Files touched.** js/core.js, js/views/negotiation.js, js/wizard.js,
+js/views/library.js, test/f126.
+**Verified.** f126 (7) — the reported case reproduced against the fixed code,
+plus WhatsApp, earlier-email fallback, newest-email precedence, the honest
+null when nothing is known, first-one-wins memory, and the creation paths.
+Suite 2139/0 · redline 71/71 · parity 18/18 · selection 22/22.
