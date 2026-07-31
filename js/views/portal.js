@@ -1577,6 +1577,12 @@ function portalWorkbenchStyle(){
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pw-id .nego-who{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;}
+    .pw-id .nego-who .lbl{font-size:11px;font-weight:600;color:var(--color-neutral-700);
+      font-family:var(--font-mono);}
+    .pw-id .nego-who input{min-height:32px;min-width:180px;border:1px solid var(--color-divider);
+      border-radius:4px;padding:6px 10px;font:inherit;font-size:12.5px;background:var(--color-surface);
+      color:var(--color-text);outline:none;}
     /* The banners the old page carried in its main column — closed, revised,
        round, compare, message-from-sender. They carry facts the workbench does
        not render, so they are re-homed rather than dropped. */
@@ -1619,6 +1625,21 @@ function renderShareWorkbench(p, opts={}){
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
       </span>
+      ${''/* W3 — THE NAME, and it is load-bearing. It is stamped on every
+             fingerprinted change they file and every comment they post, and
+             portalNegoComment refuses to send without it. It used to live in
+             the aside this screen replaces, so deleting that aside without
+             putting the field back would have left a page whose Send could
+             never succeed. The workbench's own field is used rather than a
+             second one of this page's making — the send path already prefers
+             #nego-cp-name over the old #pt-name, so there is one box, not two
+             that can disagree.
+
+             Filled ONLY from the share's named recipient, never from the
+             counterparty ORGANISATION — see negoNameFieldHtml. An empty box
+             asks the question; a wrong one answers it. */}
+      ${window.negoNameFieldHtml
+        ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
     </section>
     <div class="pw-notes">
       ${portalClosedBanner()}
@@ -1634,7 +1655,11 @@ function renderShareWorkbench(p, opts={}){
      function, same options — this changes the room the workbench stands in,
      never the workbench. */
   wirePortalNego(c, p);
-  if(window.portalStartPolling) portalStartPolling(p);
+  /* Polling is NOT started here. portalEntry owns it — it holds the token and
+     the fetched envelope, which is what portalStartPolling actually takes.
+     Starting it from the renderer passed the wrong arguments AND left a live
+     interval behind on every render, which under the test harness is a node
+     process that never exits. */
 }
 
 function renderSharePortal(p, opts={}){

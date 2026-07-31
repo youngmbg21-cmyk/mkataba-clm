@@ -106,8 +106,10 @@ const MEASURE = () => {
     docSurfaces: document.querySelectorAll('.doc-surface, .nego-doc').length,
     ids: ['pt-doc', 'portal-redline', 'portal-plain', 'pt-name', 'pt-sign', 'pt-accept',
       'nego-copilot', 'nego-insert-lib', 'nego-save-draft', 'nego-bulk-acc',
-      'nego-exit', 'nego-publish-round', 'nego-close-round', 'nego-bulk-acc-all']
+      'nego-exit', 'nego-publish-round', 'nego-close-round']
       .filter(id => !!document.getElementById(id)),
+    bulkLabels: Array.from(document.querySelectorAll('.nego-bulk button'))
+      .map(el => (el.textContent || '').trim()),
     sideToggle: document.querySelectorAll('[data-redline-side]').length,
     backArrow: document.querySelectorAll('[data-rl-back]').length,
     shellActs: Array.from(document.querySelectorAll('[data-rl-shell]')).map(el => el.getAttribute('data-rl-shell')),
@@ -187,13 +189,17 @@ const MEASURE = () => {
   check('8 no AI or clause-library control on their side',
     !cp.ids.includes('nego-copilot') && !cp.ids.includes('nego-insert-lib') && !cp.ids.includes('nego-save-draft'),
     cp.ids.filter(i => /copilot|insert-lib|save-draft/.test(i)).join(', ') || 'none');
+  /* Checked by LABEL, not by presence. The button keeps its id on both sides —
+     it is the same act, accept the other side's pending asks — and what must
+     not cross to the counterparty is the claim that HaTi has sorted the
+     changes by risk, because that sorting reads our playbook and our scan
+     signals. So the assertion is about what the button says it does. */
   check('8 no risk-derived bulk verb on their side',
-    !cp.ids.includes('nego-bulk-acc'), cp.ids.includes('nego-bulk-acc') ? 'Accept All Non-Risk present' : 'none');
-  /* …and the capability is NOT withheld. "I agree to all of it" is a real
-     answer; taking the button away would only make them press Accept six
-     times to say the same thing. */
+    !/Non-Risk/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'none');
   check('8 but they DO keep a plain Accept all',
-    cp.ids.includes('nego-bulk-acc-all'), cp.ids.includes('nego-bulk-acc-all') ? 'present' : 'MISSING');
+    /Accept all/i.test(cp.bulkLabels.join(' ')), cp.bulkLabels.join(' | ') || 'MISSING');
+  check('8 and the owner still gets the risk-sorted one',
+    /Non-Risk/i.test(owner.bulkLabels.join(' ')), owner.bulkLabels.join(' | ') || 'MISSING');
 
   /* The owner's side is the control: if these were absent there too, every
      assertion above would be passing for the wrong reason. */

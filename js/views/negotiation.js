@@ -2233,6 +2233,9 @@ function negoIndexSendHtml(c, opts = {}){
 function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
+  /* Which chair. Same reason as redlinePanesHtml: this markup is shared, and
+     the risk-derived bulk verb is the owner's alone (D2). */
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const L = negoLayout();
   const pair = negoComparePair();
   const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
@@ -2331,14 +2334,19 @@ function negoPanesHtml(c, opts = {}){
                identical either way, and unchanged — both only ever touch the
                other side's pending asks.
 
-               The capability stays. "I agree to all of it" is a real and
-               common answer, and withholding the button would not withhold the
+               The capability stays, and so does the ID. What differs by side is
+               the LABEL and what the button claims to do, not the DOM contract —
+               changing the id would have broken every page and test that reaches
+               for the bulk verbs by name, to express a difference the label
+               already carries. "I agree to all of it" is a real and common
+               answer, and withholding the button would not withhold the
                decision, only make them press Accept six times to say it. */}
         ${canAct ? `<div class="nego-bulk">
-          ${side === 'owner' ? `<button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}
-            title="Accepts only the pending changes that trip no playbook, scan or review signal">Accept All Non-Risk</button>`
-          : `<button class="b-acc" id="nego-bulk-acc-all"${p.pending ? '' : ' disabled'}
-            title="Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.">Accept all</button>`}
+          <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}
+            title="${side === 'owner'
+              ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
+              : `Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.`}"
+            >${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}
             title="Rejects every pending change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.">${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
         </div>` : ''}
@@ -4117,13 +4125,7 @@ function wireNegotiationTab(c, opts = {}){
       : `${done} change${done === 1 ? '' : 's'} rejected — those clauses revert to the baseline`);
     again();
   };
-  /* nego-bulk-acc-all is the counterparty's plain "Accept all". It is a
-     different ID because it is a different VERB — the owner's button filters
-     by our playbook and theirs cannot, so wiring both to one id would have
-     one of the two lying about what it does. Same handler, because the ACT is
-     the same: accept the other side's pending asks. */
-  ['nego-bulk-acc', 'nego-bulk-acc-all', 'nego-all-acc']
-    .forEach(id => byId(id)?.addEventListener('click', () => bulk('accept')));
+  ['nego-bulk-acc', 'nego-all-acc'].forEach(id => byId(id)?.addEventListener('click', () => bulk('accept')));
   ['nego-bulk-rej', 'nego-all-rej'].forEach(id => byId(id)?.addEventListener('click', () => bulk('reject')));
 
   byId('nego-drawer')?.addEventListener('click', () =>
@@ -7226,9 +7228,7 @@ function redlinePanesHtml(c, opts = {}){
           ${''/* Owner-only risk verb, and verbs named from the reader's chair —
                  see the note at the room's bulk bar for why. */}
           ${canAct ? `<div class="nego-bulk">
-            ${side === 'owner'
-              ? `<button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>`
-              : `<button class="b-acc" id="nego-bulk-acc-all"${p.pending ? '' : ' disabled'}>Accept all</button>`}
+            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
             <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
           </div>` : (opts.readonlyWhy
             /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule

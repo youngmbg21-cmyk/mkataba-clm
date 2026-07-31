@@ -417,7 +417,10 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
     const v = counterpartyView(o.c);
     const id = o.filed[0].id;
     v.$(`[data-nego-accept="${id}"]`).click();
-    v.p.setValue('pt-name', 'Erik Lindqvist');
+    /* The name field moved out of the respond aside (deleted by W2) and into
+       the workbench's own #nego-cp-name, which the send path already
+       preferred. One box, not two that can disagree. */
+    v.p.setValue('nego-cp-name', 'Erik Lindqvist');
     await v.p.click('pt-nego-send');
 
     /* CORRECTED, and the old shape is why the bug lived.
