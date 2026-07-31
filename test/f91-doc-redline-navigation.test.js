@@ -10,7 +10,9 @@
      2  the sub-navigation says Redline, which is where it goes;
      3  pressing it hands the contract to the workbench at view-redline, and
         takes the PREVIOUS occupant of that bench off it, back to Drafting;
-     4  focus mode is gone from the workbench header.
+     4  the column-hiding focus mode is gone from the workbench header — and
+        stays gone: the chrome-hiding focus mode that later took the name
+        (f94) must never grow back into hiding the work columns.
 
    Item 3 is the one that needs holding down, because it MOVES A CONTRACT'S
    STAGE on its own. A stage is a claim: the register, the dashboard pipeline
@@ -134,20 +136,38 @@ describe('F91 (3) — the bench holds one contract, and says which', () => {
   });
 });
 
-describe('F91 (4) — focus mode is gone from the workbench', () => {
-  test('the header offers no focus toggle', async () => {
-    const b = bench(['MK-1']);
-    b.win.openRedlineWorkbench('MK-1');
-    assert.equal(b.$('[data-rl-focus]'), null, 'the control is gone');
-    assert.ok(!/Focus mode/.test(b.$('#view-redline').textContent), 'and so is its label');
-  });
-
-  test('the twelve-column override went with it', async () => {
+describe('F91 (4) — the COLUMN-HIDING focus mode stays gone from the workbench', () => {
+  /* What was removed — and must stay removed — is the toggle that gave the
+     document all twelve columns by hiding Tracked Changes and Discussion:
+     the fold's job done twice, leaving the workbench with nothing to work on,
+     and three other paths each had to remember to switch it off. The focus
+     mode on the page TODAY is a different animal wearing the same name: it
+     hides the CHROME above the grid (shell, toolbar, banner) and leaves every
+     working column standing, so no path needs to undo it to reach one. Its
+     own contract is pinned in f94; these tests pin that the old shape cannot
+     creep back under the new name. */
+  test('the focus rules never touch the work columns', async () => {
     const b = bench(['MK-1']);
     b.win.openRedlineWorkbench('MK-1');
     const css = b.win.document.getElementById('redline-layout-css').textContent;
-    assert.ok(!/\.rl-focus/.test(css),
-      'a rule for a state nothing can enter is a rule that will be re-entered by accident');
+    for (const rule of css.match(/\.redline-page\.rl-focus[^{]*\{[^}]*\}/g) || []){
+      assert.ok(!/#rl-changes-col|#rl-disc-col|#rl-side\b|\.rl-doc\b/.test(rule),
+        `a focus rule reaches into the grid: ${rule}`);
+      assert.ok(!/span 12/.test(rule),
+        'the twelve-column override must not return under the new mode');
+    }
+  });
+
+  test('what focus hides is the chrome, and only the chrome', async () => {
+    const b = bench(['MK-1']);
+    b.win.openRedlineWorkbench('MK-1');
+    b.win.rlSetFocus(true);
+    const view = b.$('#view-redline');
+    assert.ok(view.classList.contains('rl-focus'));
+    // the grid and both sidebar faces are still on the page, un-hidden by class
+    for (const id of ['rl-grid', 'rl-doc', 'rl-side', 'rl-changes-col', 'rl-disc-col'])
+      assert.ok(b.$('#' + id), `#${id} must survive focus mode`);
+    b.win.rlSetFocus(false);
   });
 
   test('and nothing is left calling the function', async () => {

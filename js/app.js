@@ -252,6 +252,9 @@ function setView(view){
   // remember where the workspace was opened from, so its Back button returns
   // there (register, a folder, the queue, …) instead of always the folder view
   if(view==='workspace' && state.view && state.view!=='workspace') state.wsReturn={view:state.view, folderId:state.folderId};
+  // focus mode is a posture, not a setting: arriving at the Redline tab from
+  // any other view always lands on the full screen with its exits visible
+  if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
   state.view=view;
   try{
     if(view==='dashboard') renderDashboard();

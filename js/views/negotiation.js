@@ -4083,6 +4083,38 @@ function rlSetCardFilter(v){
    one saying "No rounds yet" and one saying "Round 1", is worse than no figure
    at all. The open count is unresolvedRedlines, the same one the register uses. */
 let _redlineSide = 'owner';
+/* ---- FOCUS MODE ----
+   One boolean, and deliberately NOT persisted: focus is a posture you take for
+   a reading session, not a setting. Arriving at the Redline tab from anywhere
+   else always lands on the full screen (setView clears it via rlResetFocus),
+   so nobody can be trapped on a page whose exits are hidden.
+   Toggling flips a class on #view-redline rather than repainting the page —
+   the three scroll boxes keep their positions because nothing rebuilds them —
+   but renderRedline also reads the flag at paint time, so the repaints the
+   engine triggers mid-session (saving a redline, answering a card) come back
+   in the same mode they left. */
+let _rlFocus = false;
+function rlFocusOn(){ return _rlFocus; }
+function rlSetFocus(on){
+  _rlFocus = !!on;
+  const page = document.getElementById('view-redline');
+  if (page) page.classList.toggle('rl-focus', _rlFocus);
+}
+function rlResetFocus(){ _rlFocus = false; }
+/* Esc is the second exit, wired once onto the document and guarded twice: the
+   flag says focus is on, and the page must actually be mounted — the listener
+   outlives any single paint, and pressing Esc on another view must do nothing.
+   A dialog that swallowed the key first leaves defaultPrevented set, and is
+   respected. */
+let _rlFocusKeyWired = false;
+function rlWireFocusKey(){
+  if (_rlFocusKeyWired || typeof document === 'undefined') return;
+  _rlFocusKeyWired = true;
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    if (_rlFocus && document.getElementById('view-redline')) rlSetFocus(false);
+  });
+}
 /* THE DESIGN'S LAYOUT, APPLIED OVER THE ENGINE'S MARKUP.
    The workbench renders two documents side by side — the baseline and the
    working copy — because that is what the contract tab and the room are for,
@@ -4216,6 +4248,37 @@ function redlineLayoutCss(){
      ordinary laptop case — at 1400px this used to stack the actions into a
      second band, which is the vertical bloat the single strip removes. */
   @media (max-width:900px){ .redline-page .rl-head{flex-wrap:wrap} .redline-page .rl-actions{flex-wrap:wrap} }
+
+  /* ---- FOCUS MODE ----
+     .rl-focus on #view-redline hides the three tiers of chrome — the shell,
+     the toolbar strip and the banner block — with display:none, never by
+     removing them: the toolbar holds the proxies (#nego-send is pressed
+     through it) and the banner can hold the set-once counterparty email form,
+     and both must survive the mode intact. The grid inherits the freed height
+     through the flex column it already sits in; no measurements move.
+     The exit pill floats over the document, centred, always visible — a mode
+     whose only exit is a keyboard shortcut is a trap for anyone on a tablet. */
+  .redline-page{position:relative}
+  .redline-page .rl-focus-btn{width:34px;height:34px;flex:none;display:inline-grid;place-items:center;
+    background:#fff;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;color:#334155;
+    transition:background .12s,border-color .12s}
+  .redline-page .rl-focus-btn:hover{background:#f8fafc;border-color:#cbd5e1}
+  html.dark .redline-page .rl-focus-btn{background:rgba(15,23,42,.5);border-color:rgba(148,163,184,.32);color:#cbd5e1}
+  html.dark .redline-page .rl-focus-btn:hover{background:rgba(15,23,42,.75)}
+  .redline-page .rl-focus-exit{display:none}
+  .redline-page.rl-focus .rl-shell,
+  .redline-page.rl-focus .rl-head,
+  .redline-page.rl-focus #rl-banner{display:none}
+  .redline-page.rl-focus .rl-focus-exit{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:60;
+    display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer;font:inherit;
+    font-size:12px;font-weight:600;color:#fff;
+    background:color-mix(in srgb,var(--color-accent-800) 94%,transparent);
+    padding:8px 16px;border-radius:999px;box-shadow:0 6px 18px rgba(15,23,42,.28);backdrop-filter:blur(3px)}
+  .redline-page.rl-focus .rl-focus-exit:hover{background:var(--color-accent-800)}
+  .redline-page .rl-focus-exit .rl-focus-ctx{font-size:10px;font-weight:700;
+    background:rgba(255,255,255,.18);border-radius:6px;padding:2px 8px;white-space:nowrap}
+  .redline-page .rl-focus-exit kbd{font-family:var(--font-mono);font-size:10px;font-weight:600;opacity:.8;
+    border:1px solid rgba(255,255,255,.35);border-radius:4px;padding:1px 5px}
 
   /* the wall — one line, replacing the engine's two banners */
   .redline-page .rl-wall{display:flex;align-items:flex-start;gap:9px;flex:none;
@@ -4874,7 +4937,18 @@ function renderRedline(){
          its three columns scrolls inside itself, rather than the page growing
          past the viewport and taking the whole thing with it. --view-h is the
          room the shell actually leaves, measured after the header renders. -->
-    <div id="view-redline" class="view-enter redline-page" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+    <div id="view-redline" class="view-enter redline-page${_rlFocus ? ' rl-focus' : ''}" data-rl-side-mode="${rlSideMode()}" style="--rl-doc-type:${rlDocType()}px;height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;padding:10px 18px 14px;min-height:0;">
+      <!-- Focus mode's one way back, floating over the document. It names
+           where the reader is (round and view) because the strip that
+           normally says so is hidden — both figures are frozen for the
+           duration: the controls that could change them are behind the same
+           curtain. Rendered always, shown only under .rl-focus. -->
+      <button type="button" data-rl-unfocus class="rl-focus-exit" title="Back to the full Redline screen" aria-label="Exit focus mode">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>
+        Exit Focus
+        <span class="rl-focus-ctx">${esc(redlineRoundLabel(c))} &middot; ${side === 'counterparty' ? 'Counterparty' : 'Internal'} View</span>
+        <kbd>Esc</kbd>
+      </button>
       <!-- ---- THE SAME SHELL AS THE DOC PAGE ----
            The back arrow, the contract's name and status, and the document
            verbs (Share / Import / Compare), exactly where the Doc page puts
@@ -4909,6 +4983,9 @@ function renderRedline(){
           </div>
           <span class="rl-round">${esc(redlineRoundLabel(c))}</span>
           ${rlTypeStepHtml()}
+          <button type="button" data-rl-focus class="rl-focus-btn" title="Focus mode &mdash; hide the header and give the space to the document and the changes" aria-label="Enter focus mode">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
         </div>
         <div class="rl-actions">
           ${blast}
@@ -4941,6 +5018,12 @@ function renderRedline(){
     }));
   host.querySelectorAll('[data-redline-side]').forEach(el =>
     el.addEventListener('click', () => { _redlineSide = el.getAttribute('data-redline-side'); renderRedline(); }));
+  /* Focus in, focus out. A class flip, not a repaint — see rlSetFocus. */
+  host.querySelectorAll('[data-rl-focus]').forEach(el =>
+    el.addEventListener('click', () => rlSetFocus(true)));
+  host.querySelectorAll('[data-rl-unfocus]').forEach(el =>
+    el.addEventListener('click', () => rlSetFocus(false)));
+  rlWireFocusKey();
   /* The header's two actions are the design's, but they are not second copies
      of anything: each one presses the engine's own control, which is the only
      thing that can actually accept a change or publish a round. If the engine
@@ -6812,6 +6895,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   renderRedline, redlineRoundLabel, redlineLayoutCss, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
+  rlFocusOn, rlSetFocus, rlResetFocus, rlWireFocusKey,
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
