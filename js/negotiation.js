@@ -388,6 +388,84 @@ function negoRenumberApply(c, opts = {}){
   return plan;
 }
 
+/* ---------- THE NEGOTIATION HISTORY, AS A STORY (WP-2.1) ----------
+   One chronological sequence assembled from the change record (live and
+   archived rounds), the round closures, and the audit entries that mark acts
+   a reader needs in the same story — signing beats (X6: link issued, signature
+   recorded, seal, copies) and renumbering acts (X3, read from the entry's
+   structured data, never parsed out of prose).
+
+   X1 — LABELS AS OF THE EVENT. Every entry shows the clause label the change
+   record STORED when the event happened (ch.clauseLabel), with the durable
+   clause id carried underneath for filtering. Never a live lookup of today's
+   number: N2 makes numbers movable, and a timeline that looked numbers up
+   would silently rewrite its own story every time a document was tidied.
+
+   FILTERS COMBINE, and they are applied here in the model so a test can hold
+   them without a DOM: clauseId (the durable id, not the number), actor, side,
+   round, outcome. */
+function negoTimeline(c, f = {}){
+  if (!c) return [];
+  negoInit(c);
+  const ev = [];
+  const otherSide = s => s === 'owner' ? 'counterparty' : 'owner';
+  const pushChange = (ch, roundN) => {
+    if (!ch || ch.status === 'superseded') return;
+    const base = { round: roundN, clauseId: ch.clauseId || null,
+      clauseLabel: ch.clauseLabel || ch.clauseId || '', changeId: ch.id || null };
+    const sideWord = ch.authorSide === 'owner' ? 'owner side' : 'counterparty';
+    ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
+      side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
+      text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
+      note: ch.note || null, ch });
+    if (ch.status === 'accepted' || ch.status === 'rejected')
+      ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
+        actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
+        text: `${ch.status === 'accepted' ? 'Accepted' : 'Rejected'} by ${ch.resolvedBy || 'the other side'}`
+          + `${ch.status === 'accepted' ? ' — merged into the wording' : ch.reply ? ` — “${ch.reply}”` : ''}`,
+        reply: ch.reply || null, ch });
+    if (ch.withdrawn)
+      ev.push({ ...base, kind: 'withdrawn', at: ch.withdrawn.at || '',
+        actor: ch.withdrawn.by || '', side: ch.withdrawn.side || ch.authorSide || '',
+        outcome: 'withdrawn',
+        text: `${ch.withdrawn.by || ch.author || 'The proposer'} withdrew #${ch.id} — the ask came off the table`, ch });
+  };
+  for (const r of (c.negotiation.rounds || [])){
+    for (const ch of (r.changes || [])) pushChange(ch, r.n);
+    ev.push({ kind: 'round-closed', at: r.at || '', actor: '', side: '', outcome: '',
+      round: r.n, clauseId: null, clauseLabel: '',
+      text: `Round ${r.n} closed — the agreed wording became the baseline for round ${r.n + 1}` });
+  }
+  for (const ch of negoChanges(c)) pushChange(ch, c.negotiation.round);
+  /* The beats that come off the audit trail. The prose is the entry's own —
+     it was written in the house register at the moment of the act — and the
+     kind is read from the action (or, for renumbering, from the X3 data). */
+  const SIGNING_ACTS = { 'Shared': 'link', 'Countersigned': 'signature',
+    'Signature': 'signature', 'Signed': 'sealed', 'Distributed': 'copies' };
+  for (const a of (c.audit || [])){
+    if (!a) continue;
+    if (a.data && a.data.kind === 'renumber'){
+      ev.push({ kind: 'renumbered', at: a.at || '', actor: a.user || '', side: 'owner',
+        outcome: '', round: null, clauseId: null, clauseLabel: '',
+        text: a.detail || 'Clauses renumbered', data: a.data });
+    } else if (SIGNING_ACTS[a.action]){
+      ev.push({ kind: SIGNING_ACTS[a.action], at: a.at || '', actor: a.user || '',
+        side: '', outcome: '', round: null, clauseId: null, clauseLabel: '',
+        text: a.detail || a.action });
+    }
+  }
+  /* Chronological, with arrival order as the tiebreak — two acts in the same
+     second keep the order they were recorded in. */
+  const idx = new Map(ev.map((e, i) => [e, i]));
+  ev.sort((a, b) => String(a.at).localeCompare(String(b.at)) || (idx.get(a) - idx.get(b)));
+  return ev.filter(e =>
+    (!f.clauseId || e.clauseId === f.clauseId)
+    && (!f.actor || e.actor === f.actor)
+    && (!f.side || e.side === f.side)
+    && (!f.round || e.round === Number(f.round))
+    && (!f.outcome || e.outcome === f.outcome));
+}
+
 /* ---------- WHO THE RECORD SAYS DID THIS ----------
    The name a counterparty types into the box is a claim, not a fact, and until
    now it was stored as though it were a fact: "Rejected by Jane Mwangi", with
@@ -2613,7 +2691,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
-  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply,
+  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

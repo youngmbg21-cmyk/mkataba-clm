@@ -1037,6 +1037,110 @@ function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
     <span class="body">${what}${more}<span class="why">${_ne(why)}</span></span>
   </div>`;
 }
+/* ---------- THE HISTORY TIMELINE SCREEN (WP-2.1) ----------
+   The centrepiece of the history work: one chronological story of the whole
+   negotiation — proposals, decisions with their reasons, withdrawals, round
+   closures, the renumbering acts (X3) and the signing beats (X6) — with
+   filters that combine. Read-only by nature, so every signed-in role gets it,
+   viewers included.
+
+   THE SENTENCES COME FROM THE MODEL (negoTimeline), which reads stored labels
+   (X1) and stored prose; this renderer only lays the story out. Filtering
+   re-asks the model rather than hiding DOM — what is on the page is what the
+   filter produced, and a test can hold the model without a browser. */
+const _HT_KIND_META = {
+  proposed:   { mark: '✎', word: 'Proposed' },
+  decided:    { mark: '⚖', word: 'Decided' },
+  withdrawn:  { mark: '↩', word: 'Withdrawn' },
+  'round-closed': { mark: '▣', word: 'Round' },
+  renumbered: { mark: '§', word: 'Renumbered' },
+  link:       { mark: '✉', word: 'Link' },
+  signature:  { mark: '✍', word: 'Signature' },
+  sealed:     { mark: '🔏', word: 'Sealed' },
+  copies:     { mark: '📤', word: 'Copies' },
+};
+function negoTimelineEventHtml(c, e){
+  const m = _HT_KIND_META[e.kind] || { mark: '·', word: e.kind };
+  const when = e.at ? String(e.at).slice(0, 10) : '';
+  const meta = [when, e.round != null && e.round !== '' && e.kind !== 'round-closed' ? `round ${e.round}` : '',
+    e.outcome && e.kind === 'proposed' ? 'still pending' : '']
+    .filter(Boolean).join(' · ');
+  /* X1 on the face of it: the stored label, with the durable id beneath in
+     the DOM for filtering — never a lookup of today's number. */
+  const clause = e.clauseLabel
+    ? `<span class="ht-clause" data-ht-clause="${_nea(e.clauseId || '')}">${_ne(e.clauseLabel)}</span>` : '';
+  const body = e.kind === 'proposed' && e.ch
+    ? `<div class="ht-redline">${negoChangeHtml(e.ch)}</div>`
+      + (e.note ? `<div class="ht-note">Why they asked: ${_ne(e.note)}</div>` : '')
+    : e.kind === 'decided' && e.reply
+    ? `<div class="ht-note">Reply: ${_ne(e.reply)}</div>`
+    : '';
+  return `<div class="ht-ev" data-ht-kind="${_nea(e.kind)}" data-ht-outcome="${_nea(e.outcome || '')}">
+    <span class="ht-mark" aria-hidden="true">${m.mark}</span>
+    <div class="ht-body">
+      <div class="ht-text">${_ne(e.text)}</div>
+      <div class="ht-meta">${_ne(meta)}${clause ? ' · ' : ''}${clause}</div>
+      ${body}
+    </div>
+  </div>`;
+}
+function negoTimelineScreenHtml(c, f = {}){
+  const all = negoTimeline(c);
+  const list = negoTimeline(c, f);
+  const uniq = pairs => Array.from(new Map(pairs.filter(x => x && String(x[0])).map(x => [String(x[0]), x])).values());
+  const sel = (id, label, pairs, cur) => `<label class="ht-f"><span>${_ne(label)}</span>
+    <select id="${id}" data-ht-filter="${id.replace('ht-f-', '')}">
+      <option value="">All</option>
+      ${pairs.map(p => `<option value="${_nea(p[0])}"${String(cur || '') === String(p[0]) ? ' selected' : ''}>${_ne(String(p[1]).slice(0, 48))}</option>`).join('')}
+    </select></label>`;
+  return `<div id="history-timeline" class="ht" data-count="${list.length}">
+    <style>
+      .ht{padding:20px 22px;max-width:820px;max-height:82vh;overflow-y:auto}
+      .ht h3{font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 2px}
+      .ht .ht-sub{font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px}
+      .ht .ht-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f select{font:inherit;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:4px;padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
+      .ht .ht-ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
+      .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:11px}
+      .ht .ht-body{flex:1;min-width:0}
+      .ht .ht-text{font-size:12.5px;line-height:1.5;color:var(--color-text)}
+      .ht .ht-meta{font-size:10.5px;color:var(--color-neutral-600);margin-top:1px}
+      .ht .ht-clause{font-weight:600}
+      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px;line-height:1.55;background:var(--color-surface)}
+      .ht .ht-redline ins{background:#d9eae0;text-decoration:none}
+      .ht .ht-redline del{background:#f9ecea;color:#8f322b}
+      .ht .ht-note{font-size:11px;color:var(--color-neutral-700);margin-top:4px;border-left:2px solid var(--color-divider);padding-left:8px}
+    </style>
+    <h3>Negotiation history — ${_ne(c.name || c.id)}</h3>
+    <p class="ht-sub">${all.length} event${all.length === 1 ? '' : 's'}, oldest first. Labels read as they were when each event happened.</p>
+    <div class="ht-filters">
+      ${sel('ht-f-clauseId', 'Clause', uniq(all.map(e => [e.clauseId || '', e.clauseLabel || ''])), f.clauseId)}
+      ${sel('ht-f-actor', 'Person', uniq(all.map(e => [e.actor || '', e.actor || ''])), f.actor)}
+      ${sel('ht-f-side', 'Side', [['owner', 'Owner side'], ['counterparty', 'Counterparty']], f.side)}
+      ${sel('ht-f-round', 'Round', uniq(all.filter(e => e.round != null && e.round !== '').map(e => [e.round, 'Round ' + e.round])), f.round)}
+      ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
+      <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">Clear</button>
+    </div>
+    <div id="ht-list">${list.length
+      ? list.map(e => negoTimelineEventHtml(c, e)).join('')
+      : '<div style="font-size:12px;color:var(--color-neutral-600);padding:14px 0">Nothing matches these filters.</div>'}</div>
+  </div>`;
+}
+function openHistoryTimeline(c, f = {}){
+  if (!c || typeof window.openModal !== 'function') return;
+  openModal(negoTimelineScreenHtml(c, f));
+  /* Filters combine: every change re-renders the same screen with the whole
+     filter state, so the two sources of truth cannot drift. */
+  const read = () => {
+    const g = k => { const el = document.getElementById('ht-f-' + k); return el && el.value ? el.value : ''; };
+    return { clauseId: g('clauseId'), actor: g('actor'), side: g('side'), round: g('round'), outcome: g('outcome') };
+  };
+  document.querySelectorAll('#history-timeline [data-ht-filter]').forEach(s =>
+    s.addEventListener('change', () => openHistoryTimeline(c, read())));
+  document.getElementById('ht-clear')?.addEventListener('click', () => openHistoryTimeline(c, {}));
+}
+
 /* ---------- THE RENUMBER PREVIEW (N2-T3) ----------
    Everything that would move, shown before anything is written: every heading
    old → new, every cross-reference old → new, and — just as deliberately —
@@ -7522,6 +7626,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
+  negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
