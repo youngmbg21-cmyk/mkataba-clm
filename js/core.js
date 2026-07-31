@@ -1311,8 +1311,16 @@ async function verifySeal(c){
     }
   }
   const h=await sha256(sealString(c));
-  if(h===c.hash) toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
-  else toast('Seal MISMATCH — the record changed after signing','err');
+  if(h!==c.hash){ toast('Seal MISMATCH — the record changed after signing','err'); return; }
+  /* The seal can be perfectly valid and the workspace still be showing
+     different wording, because the seal is computed over the frozen copy and
+     this asks about the live one. Reported here rather than left to be noticed,
+     since "Seal valid" on a screen whose text nobody signed is the most
+     misleading thing this button could say. */
+  const div=(typeof executedDivergence==='function')?executedDivergence(c):null;
+  if(div){ toast('Seal valid, BUT the wording on screen is not the wording that was sealed — '
+    +'the sealed copy is the evidence of record','err'); return; }
+  toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -1481,6 +1489,8 @@ const SHARE_PURPOSE_COPY={
     blurb:'They land in the negotiation room. Every clause they want changed comes back as its own item you accept or reject. Nothing can be signed on this link.' },
   sign:{ label:'Sign', title:'They sign this exact wording',
     blurb:'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.' },
+  view:{ label:'View only', title:'They read it, and can do nothing else',
+    blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
 };
 function sharePurposePickerHtml(c, sel){
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
@@ -1626,7 +1636,10 @@ function shareVersions(c, org){
    So the sender says what the link is when they create it, the reader's page
    reads that and nothing else, and a negotiation link stays the room until a
    NEW link supersedes it. */
-const SHARE_PURPOSE = p => (p === 'sign' ? 'sign' : p === 'negotiate' ? 'negotiate' : null);
+/* Three purposes now. 'view' is the read-only pass an outside advisor gets —
+   it is enforced by the server (refuseIfViewOnly, server/server.js), and named
+   here so the share dialog can offer it and the portal can route on it. */
+const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -2843,12 +2856,16 @@ function negoTurnBack(c, who){
 function applyNegoDecisions(c, r, who){
   const list=Array.isArray(r.negoDecisions)?r.negoDecisions.slice(0,200):[];
   const done=[];
+  /* The identity that goes onto the decision is the honest one, not the typed
+     one — see counterpartyActor. `who` is kept as the fallback so a response
+     from before this existed still reads exactly as it always did. */
+  const actor=(typeof negoActorLabel==='function')?negoActorLabel(r, who):who;
   for(const d of list){
     const ch=window.negoChangeById?negoChangeById(c,String(d.id||'')):null;
     if(!ch || ch.authorSide!=='owner') continue;
     if(d.status!=='accepted' && d.status!=='rejected') continue;
-    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:who,
-      reply:d.reply||null })) done.push({ id:ch.id, status:d.status });
+    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:actor,
+      reply:d.reply||null })) done.push({ id:ch.id, status:d.status, reply:d.reply||null });
   }
   return done;
 }

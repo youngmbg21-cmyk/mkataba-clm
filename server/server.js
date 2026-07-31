@@ -281,12 +281,88 @@ addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`)
 // share is bound to a recipient and channel, expires, can be revoked, and
 // carries the lifecycle timestamps the derived share state is computed from.
 addColumnIfMissing('shares', 'durable', 'INTEGER NOT NULL DEFAULT 0');
-/* What the link is FOR — 'negotiate' or 'sign'. Stored on the row as well as
-   inside the payload, because supersession has to compare two links without
-   parsing both payloads, and because the owner's shares panel reads it. NULL
-   on every link created before purposes existed; those keep the old
+/* What the link is FOR — 'negotiate', 'sign' or 'view'. Stored on the row as
+   well as inside the payload, because supersession has to compare two links
+   without parsing both payloads, and because the owner's shares panel reads it.
+   NULL on every link created before purposes existed; those keep the old
    behaviour, where the reader's page inferred a phase from the change set. */
 addColumnIfMissing('shares', 'purpose', 'TEXT');
+
+/* ---------- THE THIRD PURPOSE: 'view' ----------
+   A view link shows the contract with its redlines painted in, to somebody
+   outside the deal — the counterparty's insurer, an advisor, a lawyer being
+   asked "is this normal". They may read. They may do nothing else.
+
+   ENFORCED HERE, NOT BY HIDING BUTTONS. A page that renders no verbs is a
+   courtesy; a route that refuses the request is the rule. The one below is the
+   whole of it, and it is written as a single guard every mutating token route
+   calls rather than a condition repeated at each of them, because the failure
+   mode this feature has to survive is the FIFTH route — the one added next
+   year by someone who never read this comment. A repeated condition protects
+   the four that exist today; a shared guard protects the one that does not. */
+const SHARE_PURPOSES = ['negotiate', 'sign', 'view'];
+const sharePurposeOf = s => String((s && s.purpose) || 'negotiate');
+const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
+/* Returns a response and true when the request must not proceed. Callers read
+   it as: `if (refuseIfViewOnly(s, res)) return;` */
+function refuseIfViewOnly(s, res){
+  if (!shareIsViewOnly(s)) return false;
+  res.status(403).json({ error: 'This is a view-only link. It can show the contract, and nothing else. '
+    + 'Ask the person who sent it if you need to respond.', purpose: 'view' });
+  return true;
+}
+
+/* ---------- THE VIEWER'S COPY, BUILT BY ALLOW-LIST ----------
+   Start from an empty object and add the few things an outside reader may see.
+   Never take the full payload and delete from it.
+
+   The difference is not stylistic. A deny-list is a list of everything secret
+   anyone has thought of so far, and it is wrong the moment a field is added
+   somewhere else in the product — the new field ships visible, and nobody finds
+   out until it is in front of the wrong reader. An allow-list ships new fields
+   invisible and fails in the safe direction. Everything not named below is not
+   omitted by decision; it simply never reaches the object.
+
+   WHAT IS DELIBERATELY ABSENT, because these are the ones somebody will
+   eventually be tempted to add: the internal comment threads, the discussion
+   messages, per-change notes and review flags, the audit trail, the version
+   list, the signature panel, the approval chain, and the counterparty's own
+   contact details. The redlines are here because showing them is the entire
+   point of the link — the advisor is being asked what they think of the marked
+   text. The people are not: an outside reader gets the argument, not the
+   arguers. */
+function viewerPayload(payload, s){
+  const c = (payload && payload.contract) || {};
+  const out = { kind: 'hati-share', purpose: 'view', viewOnly: true };
+  out.contract = {
+    id: c.id || null,
+    name: c.name || null,
+    counterparty: c.counterparty || null,
+    /* The body and the marks. redlineText carries the wording; the change list
+       is reduced to what it takes to PAINT the marks — the clause, the two
+       texts and the ops — with the outcome as visual state only. Who proposed
+       it, who ruled on it, when, and why are all internal: they are the
+       negotiation's story, and the story belongs to the parties. */
+    redlineText: c.redlineText || c.body || null,
+    format: c.format || 'text',
+    changes: Array.isArray(c.changes) ? c.changes.map(ch => ({
+      id: ch.id || null,
+      clauseId: ch.clauseId || null,
+      clauseLabel: ch.clauseLabel || null,
+      changeType: ch.changeType || 'modify',
+      oldText: ch.oldText == null ? '' : ch.oldText,
+      newText: ch.newText == null ? '' : ch.newText,
+      ops: Array.isArray(ch.ops) ? ch.ops : null,
+      status: ch.status || 'pending',
+    })) : [],
+  };
+  /* The snapshot's own honesty: what round this was, and when it was frozen.
+     A read-only copy with no date on it invites being read as current. */
+  out.asOf = (s && s.created_at) || null;
+  out.round = (c.negotiation && c.negotiation.round) || c.round || 1;
+  out.org = (payload && payload.org) || null;
+  return out;
+}
 /* A DURABLE share is one long-lived link per counterparty per contract: it
    always serves the current wording and accepts the next response, round after
    round. A one-shot share is the original behaviour and stays the default —
@@ -1369,8 +1445,45 @@ app.get('/api/contracts/:id', auth, (req, res) => {
 const EXECUTED_IMMUTABLE = [
   'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
   'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+  /* THE NEGOTIATION RECORD IS EVIDENCE TOO, and was not on this list. The
+     wording was protected and the account of how the parties reached it was
+     not, so a request could leave the sealed text untouched and rewrite the
+     changes that produced it — who asked for what, who refused it and why.
+     That record is what the history screen shows an auditor and what the
+     change-chain verification is computed over, and a seal that binds the text
+     while the story behind it stays editable protects the less interesting
+     half. Frozen at execution, along with the rounds they were archived into
+     and the versions that carry each round's body. */
+  'changes', 'rounds', 'negotiation', 'versions',
 ];
-const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash));
+/* THREE SIGNALS, MATCHING negoExecuted IN THE BROWSER (js/negotiation.js).
+   This read two — a seal or an execution stamp — and the client reads three.
+   A record marked Signed that carries neither was executed as far as every
+   screen in the product is concerned, and unprotected as far as this route was.
+   The two definitions must answer the same question or the lock and the sign
+   are guarding different doors.
+
+   Safe to tighten because status and seal are always written together: both
+   signing paths in js/views/contract.js set c.hash and c.status in the same
+   operation before persist(), so no legitimate save arrives carrying a new
+   Signed status against a stored record that was already Signed. */
+const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash || c.status === 'Signed'));
+
+/* THE SEAL MAY BE ACQUIRED ONCE, AND NEVER CHANGED AFTER.
+   Widening isExecutedRow to include the status caught a case it should not: a
+   record marked Signed that has not been sealed yet. Refusing there makes the
+   act of sealing impossible on exactly the contracts that most need it, which
+   is not the rule — the rule is that SEALED CONTENT is immutable, not that a
+   signed record can never receive its seal.
+
+   So these four fields may go from empty to set, once. Anything already
+   carrying a value is frozen like everything else on the list, which is what
+   stops a second write from re-sealing a contract over the top of the first.
+   Every other immutable field — the wording, the parties, the money, the
+   negotiation record — is refused outright, because none of them is something
+   an unsealed-but-signed record is waiting to be given. */
+const SEAL_ACQUIRABLE = new Set(['hash', 'execution', 'sealVersion', 'signedAt']);
+const isEmptyish = v => v === undefined || v === null || v === '';
 const stable = v => JSON.stringify(v === undefined ? null : v);
 
 // Save ONE contract with its own optimistic-lock version.
@@ -1412,7 +1525,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   }
 
   if (prev && isExecutedRow(prev)) {
-    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k]));
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,
@@ -1420,6 +1534,41 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- A SIGNING STEP RESERVED FOR SOMEONE IS RESERVED HERE TOO ----------
+     The browser has always refused to let one member sign another member's
+     step (js/views/contract.js, "This step is reserved for …"). That is a sign
+     on the door: it stops the honest mistake of a colleague signing on the
+     wrong row, and it stops nothing else, because the request that carries the
+     signature is an ordinary contract save and this route never asked.
+     DESIGN-multi-signature.md listed server-side enforcement as Phase 2
+     hardening and recorded that it was never built.
+
+     Asked as a DIFFERENCE, not as a state: the question is not "is this user
+     the next signer" — a save that touches nothing about signing would fail
+     that — but "does this save newly mark a reserved step as signed, and is the
+     caller the member it was reserved for". Any other save passes untouched.
+
+     Only steps carrying a memberId are reserved. A route row naming somebody
+     with no account (a counterparty signer, an internal name typed by hand) is
+     not bound to a member and is not this rule's business; W7/W8 are what bind
+     those, through the link and the code sent to the invited address. */
+  if (prev && Array.isArray(prev.signerPlan) && Array.isArray(c.signerPlan)) {
+    const was = new Map(prev.signerPlan.map(s => [String(s && s.id || s && s.order), s]));
+    const stolen = c.signerPlan.find(s => {
+      if (!s || !s.signed || !s.memberId) return false;
+      const before = was.get(String(s.id || s.order));
+      if (before && before.signed) return false;          // already signed — not this save
+      return String(s.memberId) !== String(req.user.id);
+    });
+    if (stolen) {
+      return res.status(403).json({
+        error: `That signing step is reserved for ${stolen.name || 'another member'}. `
+          + 'Only they can sign it.',
+        reservedFor: stolen.name || null,
+      });
+    }
+  }
+
   /* Template provenance is written once, at creation, and never overwritten or
      removed — it is the audit trail that answers "which live contracts came
      from which template version". The columns are set-once via COALESCE in
@@ -2890,8 +3039,8 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      always does. They are the same value, and the payload is the one the page
      obeys, so it is the one that wins here — a row that disagreed with the
      document it serves would supersede the wrong links. */
-  const purp = ['negotiate', 'sign'].includes(payload.purpose) ? payload.purpose
-    : ['negotiate', 'sign'].includes(purpose) ? purpose : null;
+  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
+    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
   db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose)
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
@@ -3098,6 +3247,22 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      place — and answering it once does not shut it: the next round comes back
      through the same link. What it does report is the last answer this reader
      sent, so the page can say so rather than looking untouched. */
+  /* ---- A VIEW LINK LEAVES HERE, WITH ITS OWN PAYLOAD ----
+     Before the negotiate payload is assembled, not after it: the reason the
+     viewer's copy is safe is that the fields it must not carry are never put
+     into the object in the first place. Everything below this line — the live
+     discussion, the prior copies, the supersession state, the recipient's own
+     details — is negotiation machinery, and none of it is built for a view
+     token. The lifecycle facts an outside reader legitimately needs (has this
+     link expired, was it withdrawn) were already answered above, which is why
+     this sits here rather than at the top of the route. */
+  if (shareIsViewOnly(s)){
+    let vp = null; try { vp = viewerPayload(JSON.parse(s.payload), s); } catch (_) {}
+    if (!vp) return res.status(500).json({ error: 'This link’s copy could not be read' });
+    return res.json({ payload: vp, viewOnly: true, purpose: 'view',
+      executed: contractExecution(s.contract_id),
+      share: { recipientName: s.recipient_name || '', expiresAt: s.expires_at || null } });
+  }
   const lastR = s.durable
     ? db.prepare('SELECT response, at FROM share_responses WHERE token=? ORDER BY id DESC LIMIT 1').get(s.token)
     : null;
@@ -3282,6 +3447,7 @@ const msgValid = b => b && typeof b.body === 'string' && b.body.trim()
 app.post('/api/shares/:token/messages', rlShare, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (!s.contract_id) return res.status(409).json({ error: 'This link cannot carry a discussion' });
   if (!db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
@@ -3378,6 +3544,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id)))
     return res.status(404).json({ error: 'Share not found' });
+  /* A view link is a SNAPSHOT (WP-1.3): it shows the contract as it stood when
+     it was shared, and says so on its face. Refreshing its payload would move
+     the wording under a reader who was told the date it was frozen. */
+  if (refuseIfViewOnly(s, res)) return;
   if (!s.durable) return res.status(409).json({ error: 'Only a durable link can be refreshed — create a new share instead' });
   if (s.revoked_at) return res.status(409).json({ error: 'This link was revoked' });
   const { payload } = req.body || {};
@@ -3509,6 +3679,7 @@ app.post('/api/shares/:token/verify-otp', rlOtp, (req, res) => {  // public: ver
 app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: counterparty responds
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available — your response could not be recorded. Contact the sender.' });
@@ -3573,6 +3744,33 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     // document face (F5). The counterparty's device was already recorded
     // against the share open; this pins it to the signature itself.
     r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
+  }
+  /* ---------- WHO ACTUALLY SENT THIS, ON EVERY ACTION ----------
+     Verification used to be computed only for `sign`, because a signature is
+     the act that obviously needs a name on it. But a REJECTION is evidence
+     too: a year from now the history screen says "rejected by Jane on 6 March,
+     reason: outside our insurance cover", and the whole value of that sentence
+     is that Jane really sent it. Every other action was landing attributed to
+     whatever name was typed into the box, with nothing recording whether
+     anyone had checked.
+
+     RECORDED, NOT REQUIRED. This does not start demanding a code before
+     somebody may reject a clause — that would put a mail round trip in front
+     of ordinary negotiation and people would stop using the link. It records
+     what is true: verified against the invited address, or not verified. An
+     honest "unverified" is worth more than a confident name nobody checked,
+     and it is the difference between a record that survives being questioned
+     and one that does not.
+
+     The invited address, never the typed one. `otp.email` is the address the
+     code was sent to; a signer who types a different address into the page has
+     verified control of that mailbox and nothing about who they are. */
+  if (r.action !== 'sign') {
+    const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
+    const ok = !!(otp && otp.verified && r.verify && otp.verify === r.verify);
+    r.verified = ok;
+    r.verifiedEmail = ok ? (otp.email || null) : null;
+    r.invitedEmail = s.recipient_email || null;
   }
   const at = now();
   if (s.durable) {
@@ -4605,6 +4803,7 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
 app.post('/api/shares/:token/template-values', rlShare, (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (refuseIfViewOnly(s, res)) return;
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
   let payload; try { payload = JSON.parse(s.payload); } catch (_) { return res.status(500).json({ error: 'This link’s copy could not be read' }); }
   const c = payload && payload.contract;

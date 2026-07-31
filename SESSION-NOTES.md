@@ -5,6 +5,83 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 1 — foundations: the view-only link and the signing-step lock
+
+**Done** (`server/server.js`, `js/core.js`; new `test/f108` 12 tests and
+`test/f109` 5; suite 1870/0)
+
+- **WP-1.1 + WP-1.2 — the view-only share link, server side.** A third purpose
+  alongside negotiate and sign. `refuseIfViewOnly` is written once and called
+  from every mutating token route (`respond`, `messages`, `template-values`,
+  and the owner's payload refresh — a view link is a snapshot that states the
+  date it was frozen, so refreshing it would make that a lie). One shared guard
+  rather than four copies of a condition, because the route this must survive is
+  the fifth one, added later by someone who never reads the comment.
+  `viewerPayload()` starts from an empty object and adds the wording, the marks,
+  the round and the as-of date — never deletes from the full payload. f108
+  plants six internal strings and asserts none reaches the response, and asserts
+  the negotiate payload does carry them so the check cannot pass vacuously.
+- **W9 — reserved signing steps, enforced on the server.** Asked as a
+  difference ("did this save newly sign a step reserved for someone else")
+  rather than a state ("is the caller the next signer"), which would have
+  refused every ordinary save on a contract with a signing route. Two of the
+  five tests exist to stop the rule over-firing.
+
+**Still open in Stage 1:** N1 (linked cross-references, closes OI-1) and
+WP-2.2/WP-2.3 (verified identity on counterparty decisions, decision-reason
+nudge). N1's ground — `negoNumberingGaps`, f98 — arrived with the E1 merge.
+
+**Next:** finish Stage 1, then Stage 2 (the counterparty workbench, W1/W2/W4/W5
+plus the Chromium parity harness). See `EXECUTION-PLAN.md` §9 for the live
+build log.
+
+---
+
+## Stage 0 — the execution lock (E1–E5, WORKORDER-execution-lock.md)
+
+**Done** (`js/negotiation.js`, `js/views/negotiation.js`, `js/views/contract.js`,
+`js/core.js`, `server/server.js`; new `test/f106` 29 tests and `test/f107` 10;
+suite 1853/0, browser 69/69)
+
+MK-248 was reported Executed with a live Save change bar on its clause body, and
+the edit filed. negoResolve had carried the signed door for a long time; the
+authoring side asked nothing at all, so the real rule was "you may not rule on a
+change to a signed agreement, but you may author one".
+
+- **E1** merged `origin/claude/clm-clause-renumbering-4imkqd` rather than writing
+  a second `negoExecuted`. That branch already named the predicate, with the
+  argument for reading all three signals (status, seal, execution stamp), plus
+  `negoNumberingLocked`, `negoNumberingGaps` and f98. One definition, not two
+  that agree today. **This also closes the gap recorded in the master work order
+  (X0): those helpers were never on `main`.**
+- **E2** guards `negoFileChange` at the funnel, not at its callers — the fifth
+  caller, the Word-import walk, inherits it without knowing it needs to.
+- **E3** `renderRedline` derives `readonly` from `negoExecuted`, which closes
+  every `canAct`/`editable` gate at once; the room mount in `contract.js` stops
+  asking `status === 'Signed'`; the change index says why it has no verbs.
+- **E4** the server guard already existed (`EXECUTED_IMMUTABLE`) — the work
+  order was wrong to say the route checked nothing. It had two real gaps: the
+  negotiation record (`changes`, `rounds`, `negotiation`, `versions`) was not on
+  the list, so a request could leave the sealed wording alone and rewrite the
+  story of how the parties reached it; and `isExecutedRow` read two signals
+  where the browser reads three (the delete route had already patched the same
+  hole locally, which was the tell). Both closed. `SEAL_ACQUIRABLE` keeps
+  sealing possible on a signed-but-unsealed record, once.
+- **E5** `executedDivergence()` — and the finding that made it necessary:
+  **verifySeal never compared the live body to the sealed copy.** It verifies
+  the frozen copy against itself, so a post-execution edit left the seal
+  reporting valid while the screen showed wording nobody signed. Reports, never
+  repairs; both "repairs" destroy evidence.
+
+**Tests rewritten, not worked around.** f52's room helper filed changes onto an
+already-Signed contract as setup; its `negoResolve` calls were already silent
+no-ops against the signed door, so the acceptances it arranged never existed.
+Now it negotiates first and stamps execution after. f102 gave a Signed fixture a
+document body by PUT, which the guard correctly refuses — MK-A1 ships with its
+body instead (`FIXTURE_BODY_A1` in helpers.js).
+
+**Next:** Stage 1 (WP-1.1 view ticket, N1 linked references, WP-2.2/2.3 capture,
+W9 signer identity) per `EXECUTION-PLAN.md`.
 ## Template Library fix work order (user-reported defects, 2026-07-31)
 
 **Done** (WORKORDER-template-library-fixes.md, all four steps; SUMMARY.md
@@ -54,6 +131,68 @@ org branding/profile, portal template-values, save-as-template, upload-convert)
 
 **Skipped/deferred** per the brief's out-of-scope list: PDF/OCR, clause
 library, auto-updating open contracts, cross-org sharing, pricing.
+---
+
+## Clause numbering — the gap a deletion leaves, and the lock after signature
+
+**Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js`;
+new `test/f98-numbering-gaps-and-the-lock.test.js`, 25 tests; no server changes)
+
+Deleting a clause takes its heading and body out and closes nothing up, so a
+contract that loses clause 9 reads 1..8, 10..24. That behaviour is right and
+stays — a number is the text the file carries, and printing one it does not
+carry is a renumbering however small. What was missing is that nothing said so,
+and a lawyer meeting 8 followed by 10 reads a mangled document.
+
+- **`clauseNumberGap(nums, num)`** — is one number missing, and what are its
+  nearest siblings. Sibling-aware and depth-aware: `8.2` is missing from a
+  document carrying `8.1` and `8.3`, is not missing from one carrying only `8`
+  and `9`, and `12` never answers for `1.2`. Numeric ordering throughout, so the
+  notice cannot print its own sentence backwards.
+- **`negoNumberingGaps(c)`** — the gaps this contract's own deletions made.
+  Attributed to an accepted `deleteClause`, never scanned for. Read from
+  `negoAllChanges`, not `c.changes`: closing the round both creates the gap and
+  archives the change that caused it, so the live set is empty of exactly the
+  records this needs. It times itself — an accepted deletion is struck through
+  and stays in the document until the round closes, so nothing is announced
+  before the hole exists.
+- **`negoExecuted(c)` / `negoNumberingLocked(c)`** — the execution test
+  (`status === 'Signed' || hash || execution.at`) had been written out longhand
+  in `negoResolve` with a comment warning that narrowing it to the status alone
+  would drop the seal. The numbering lock needed the same fact, so it is now one
+  named predicate and `negoResolve` calls it rather than a second copy.
+- **The notice** — in the room's working pane and on the redline workbench,
+  inside the document above the first clause. Deliberately NOT in the banner
+  slot: that slot answers one question (where does this stand?) with one answer
+  at a time, and f52 exists because it used to stack.
+
+**Why no scan for skipped numbers.** The obvious implementation is wrong on the
+product's own primary fixture. The prototype's contract is numbered 1, 4, 5, 6,
+9, 12 because it is an extract of a longer agreement, and `clausefixtures.js`
+keeps it that way so nothing can treat a number as an index. A scan reports six
+faults on a perfectly good document and would do the same to every uploaded
+contract shaped like it. `f98` holds that line explicitly.
+
+**Why the notice offers no button.** Closing the gap is a renumbering, and a
+renumbering is a deliberate act — telling somebody what happened is not the same
+as inviting them to undo it. A notice that quietly offers the undo is how a
+contract gets renumbered by somebody who thought they were tidying.
+
+**The lock.** Once a contract is executed its clause numbers are cited by every
+amendment that varies it and by anyone arguing about it afterwards, so tidying
+1..8, 10..24 into 1..23 repoints all of that silently. The notice switches voice
+at execution — "the gap stays exactly where it is" rather than "renumbering is a
+separate, deliberate act" — and `negoNumberingLocked` is the gate any future
+renumbering must pass. There is no renumbering action yet;
+`clauseReplaceHeading` is the primitive it will be built on and still has no
+callers. The gate is written and tested ahead of it on purpose.
+
+**Not built:** the `Renumber clauses` action itself (preview, format-preserving,
+hierarchy-aware) — steps 2 to 4 of OI-2 in `OPEN-ISSUES.md`. Cross-references to
+a deleted clause are still not detected at all — OI-1, untouched.
+
+**1774 tests, 0 failures.** `f98` is new (25 tests). No existing assertion
+needed changing.
 
 ---
 

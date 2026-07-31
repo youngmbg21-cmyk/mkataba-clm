@@ -952,6 +952,13 @@ function portalNegoPhase(p){
      old reading still applies, so an existing link opens on exactly the screen
      it opened on yesterday. */
   const purpose=p&&p.purpose;
+  /* THE THIRD PURPOSE, and the only one that is not a seat at the table. A
+     view link goes to somebody outside the deal, so it is checked before the
+     other two and before any inference: a reader who may do nothing must never
+     reach a screen assembled for a reader who may do something. The server
+     already refuses their requests (refuseIfViewOnly); this is what stops the
+     page offering them in the first place. */
+  if(purpose==='view'||(p&&p.viewOnly)) return { phase:'view', changes:changes.length, pending, reason:'link-is-view-only' };
   if(purpose==='negotiate') return { phase:'negotiate', changes:changes.length, pending, reason:'link-is-a-negotiation' };
   if(purpose==='sign') return { phase:'sign', changes:changes.length, pending, reason:'link-is-for-signature' };
   if(!changes.length) return { phase:'sign', changes:0, pending:0, reason:'nothing-proposed' };
@@ -1261,7 +1268,11 @@ function portalRenderOpts(token, d){
     /* Read LIVE, not from the payload: a signature that landed after this link
        was last refreshed is precisely the case that matters. */
     executed:d.executed||null,
-    emailConfigured:d.emailConfigured!==false, messages:d.messages||[] };
+    emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
+    /* The server states it on the envelope as well as inside the payload, and
+       the render reads whichever arrives — a reader who may do nothing must not
+       depend on one of two flags surviving a refactor. */
+    viewOnly:d.viewOnly===true||d.purpose==='view' };
 }
 /* A fingerprint of everything on this page a reader would notice moving. Kept
    deliberately narrow: the engagement log ticks on every open, and a page that
@@ -1390,7 +1401,134 @@ async function portalEntry(encoded){
   }
   renderSharePortal(b64d(encoded));    // static-mode share (payload in the URL)
 }
+/* ============================================================
+   THE VIEWER'S SCREEN — a read-only copy for somebody outside the deal
+   ============================================================
+   WP-1.4. The reader is an advisor, an insurer, a lawyer being asked whether
+   this is normal. They get the wording and the marks, and no way to touch
+   anything.
+
+   BUILT SEPARATELY FROM THE OTHER TWO SCREENS, not as the negotiate page with
+   its buttons hidden. Hiding controls leaves every id, every handler and every
+   tab stop in the document, and the next person to add a control to the shared
+   page adds it here too without knowing. This screen renders from the viewer
+   payload the server assembled by allow-list, and there is nothing on it to
+   hide because nothing was ever put on it.
+
+   IT SAYS WHAT IT IS, TWICE. A banner naming who shared it and the date it was
+   frozen, and a watermark that survives the reader printing it and passing the
+   paper on. A read-only copy that looks like the live contract will eventually
+   be read as the live contract.
+
+   PRINT IS THE POINT. The likeliest thing an advisor does with this link is
+   print it to PDF and mark it up in their own way. So the print stylesheet is
+   part of the feature, not a nicety: banner and chrome off, watermark and
+   marks kept. */
+function portalViewerRedlineHtml(c){
+  const changes=Array.isArray(c.changes)?c.changes:[];
+  if(!changes.length) return '';
+  const rows=changes.map(ch=>{
+    const marks=(Array.isArray(ch.ops)&&ch.ops.length&&window.redlineOpsHtml)
+      ? redlineOpsHtml(ch.ops)
+      : (window.redlineOps&&window.redlineOpsHtml)
+        ? redlineOpsHtml(redlineOps(String(ch.oldText||''),String(ch.newText||'')))
+        : esc(String(ch.newText||''));
+    /* Outcome as VISUAL STATE only. Who ruled on it, when, and why are the
+       negotiation's story and the story belongs to the parties — the payload
+       does not carry them (viewerPayload, server/server.js), so there is
+       nothing here to leak even by accident. */
+    const st=String(ch.status||'pending');
+    const chip=st==='accepted'?'Agreed':st==='rejected'?'Not agreed':'Still open';
+    return `<li class="pv-chg" data-status="${esc(st)}">
+      <div class="pv-chg-head"><span class="pv-chg-where">${esc(ch.clauseLabel||'Clause')}</span>
+        <span class="pv-chg-state">${chip}</span></div>
+      <div class="pv-chg-body">${marks}</div></li>`;
+  }).join('');
+  return `<section class="pv-changes" aria-label="Proposed changes">
+    <h2>Proposed changes</h2>
+    <p class="pv-note">Struck-through text is proposed for removal; underlined text is proposed
+      to be added. Whether each one was agreed is shown beside it.</p>
+    <ol class="pv-list">${rows}</ol></section>`;
+}
+
+function portalViewerStyle(){
+  if(document.getElementById('pv-style')) return;
+  const el=document.createElement('style'); el.id='pv-style';
+  el.textContent=`
+    .pv-wrap{min-height:100vh;background:var(--color-bg);}
+    .pv-banner{background:var(--color-accent-900);color:#fff;padding:13px 24px;}
+    .pv-banner b{font-family:var(--font-mono);font-weight:600;}
+    .pv-banner .pv-sub{display:block;font-size:11.5px;color:var(--color-accent-200);margin-top:3px;line-height:1.5;}
+    .pv-page{max-width:920px;margin:0 auto;padding:26px 24px 60px;}
+    .pv-sheet{position:relative;background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:34px 40px;overflow:hidden;}
+    /* The watermark is behind the words and never on top of them: a copy an
+       advisor cannot read is a copy they ask to be re-sent unmarked. */
+    .pv-sheet::before{content:attr(data-mark);position:absolute;inset:0;display:grid;place-items:center;
+      transform:rotate(-28deg);font-family:var(--font-mono);font-size:clamp(26px,7vw,58px);
+      font-weight:700;letter-spacing:.08em;color:rgba(17,24,39,.055);white-space:pre;pointer-events:none;z-index:0;}
+    .pv-sheet>*{position:relative;z-index:1;}
+    .pv-changes{margin-top:22px;}
+    .pv-changes h2{font-family:var(--font-heading);font-size:16px;font-weight:600;margin:0 0 4px;}
+    .pv-note{font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin:0 0 12px;}
+    .pv-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
+    .pv-chg{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:11px 13px;}
+    .pv-chg-head{display:flex;gap:10px;align-items:baseline;margin-bottom:5px;}
+    .pv-chg-where{font-family:var(--font-mono);font-size:11.5px;font-weight:600;}
+    .pv-chg-state{font-size:10.5px;color:var(--color-neutral-600);}
+    .pv-chg-body{font-size:13.5px;line-height:1.75;color:var(--color-doc-text);}
+    .pv-foot{margin-top:26px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.6;}
+    @media print{
+      .pv-banner,.pv-foot{display:none!important;}
+      .pv-wrap,.pv-page{background:#fff;padding:0;max-width:none;}
+      .pv-sheet{box-shadow:none;border-radius:0;padding:0;}
+      .pv-sheet::before{color:rgba(17,24,39,.09);}
+      .pv-chg{break-inside:avoid;}
+    }`;
+  document.head.appendChild(el);
+}
+
+function renderShareViewer(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  portalViewerStyle();
+  const c=(p&&p.contract)||{};
+  const org=(p&&p.org)||'the sender';
+  const asOf=(p&&p.asOf)?fmtDT(p.asOf):'';
+  const round=(p&&p.round)||1;
+  const to=(opts.share&&opts.share.recipientName)||'';
+  const mark=((opts.share&&opts.share.recipientEmail)||'').trim()||'CONFIDENTIAL — VIEW ONLY';
+  const body=window.readOnlyDocHtml?readOnlyDocHtml(c.redlineText||''):esc(c.redlineText||'');
+  root.innerHTML=`
+  <div class="pv-wrap">
+    <header class="pv-banner" role="status">
+      <b>Read-only copy shared by ${esc(org)}${to?` with ${esc(to)}`:''}</b>
+      <span class="pv-sub">${esc(c.name||'Contract')}${c.counterparty?` · with ${esc(c.counterparty)}`:''}
+        &middot; Round ${esc(String(round))}${asOf?` &middot; as it stood on ${esc(asOf)}`:''}.
+        You can read and print this copy. You cannot edit it, respond to it or sign it —
+        send any comments to ${esc(org)} directly.</span>
+    </header>
+    <div class="pv-page">
+      <div class="pv-sheet" data-mark="${esc(mark)}">
+        <article class="doc-surface">${body}</article>
+        ${portalViewerRedlineHtml(c)}
+      </div>
+      <p class="pv-foot">This is a fixed copy of the contract as it stood on ${esc(asOf||'the date it was shared')}.
+        The contract may have changed since. Ask ${esc(org)} for a current copy if you need one.</p>
+    </div>
+  </div>`;
+}
+
 function renderSharePortal(p, opts={}){
+  /* ---- THE VIEW LINK LEAVES HERE, BEFORE ANYTHING IS ASSEMBLED ----
+     First statement in the function, ahead of portalLoadHeld and the whole
+     page build. A view link has no held decisions to restore, no respond
+     panel, no send. Routing it out at the top rather than branching inside the
+     page is what makes "there is nothing on that screen to hide" true rather
+     than aspirational — the negotiate page's controls are never constructed at
+     all, so no future addition to them can leak onto a reader's copy. */
+  if((opts&&opts.viewOnly)||(p&&(p.viewOnly||p.purpose==='view')))
+    return renderShareViewer(p, opts);
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
   /* Whatever this reader had answered and not sent, put back — see
      portalLoadHeld. Before the room is built, because the room is built FROM
@@ -2330,4 +2468,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml});

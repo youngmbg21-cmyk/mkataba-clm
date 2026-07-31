@@ -2105,7 +2105,11 @@ function openNegotiationOwnerRoom(c){
   openNegotiationRoom(c, {
     side:'owner',
     org:window.FIRST_PARTY,
-    readonly:!canEdit()||c.status==='Signed',
+    /* negoExecuted, not `status === 'Signed'`, which is the narrowing the
+       predicate was named to prevent: a contract carrying a seal or an
+       execution stamp is executed whatever its status field says, and this
+       mount was letting that case through to a fully editable room. */
+    readonly:!canEdit()||(typeof negoExecuted==='function'?negoExecuted(c):c.status==='Signed'),
     by:currentUser()?.name,
     author:currentUser()?.name,
     /* The other half of every thread, and which of them this reader has read.

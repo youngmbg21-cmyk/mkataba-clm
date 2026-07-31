@@ -20,26 +20,11 @@
    ============================================================ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { startHati, seedWorkspace } = require('./helpers');
+const { startHati, seedWorkspace, FIXTURE_BODY_A1 } = require('./helpers');
 
-const TEXT_BODY = [
-  'SUPPLY AGREEMENT',
-  '',
-  'This agreement is made between Highland Corporate Ltd and Kabras Sugar,',
-  'whose email for notices is procurement@kabras.co.ke.',
-  '',
-  'Article 1 Payment',
-  '',
-  'The total contract value is KES 48,000,000 payable within thirty days.',
-  '',
-  'Article 2 Term',
-  '',
-  'This agreement expires on 2027-06-30.',
-  '',
-  'Article 3 Confidentiality',
-  '',
-  'Each party shall keep the terms of this agreement confidential.',
-].join('\n');
+/* The body MK-A1 ships with. Imported rather than restated so the fixture
+   and the assertions cannot drift apart. */
+const TEXT_BODY = FIXTURE_BODY_A1;
 
 describe('f102 — save-as-template', () => {
   let h, w, viewer;
@@ -52,11 +37,13 @@ describe('f102 — save-as-template', () => {
     viewer = h.client('viewer2');
     await viewer.json('/api/login', { method: 'POST', body: { email: 'viewer2@example.co.ke', password: 'temporary-pass-1' } });
 
-    // give MK-A1 a real document body (the fixtures ship without one)
-    const c = await w.admin.json('/api/contracts/MK-A1');
-    c.redlineText = TEXT_BODY; c.format = 'text'; c.counterpartyEmail = 'procurement@kabras.co.ke';
-    const v = c._v; delete c._v;
-    await w.admin.json('/api/contracts/MK-A1', { method: 'PUT', body: { contract: c, baseVersion: v } });
+    /* MK-A1 ships WITH its document body now (helpers.js, FIXTURE_BODY_A1).
+       It used to be written on here by a PUT, which stopped being legal when
+       the executed guard learned that a contract marked Signed is executed:
+       MK-A1 is a Signed fixture, and its sealed wording is exactly what that
+       guard exists to refuse. Saving an executed contract AS a template is
+       still perfectly good — it reads the record, it does not rewrite it —
+       so the test's subject is unchanged; only the way it got its body is. */
   });
   after(async () => { await h.stop(); });
 
