@@ -2971,6 +2971,23 @@ async function negoAiPropose(c, ctx){
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
+  /* ---- A CLAUSE THAT IS ITSELF STILL A PROPOSAL ----
+     The room draws a clause somebody has asked to ADD, and it reads like any
+     other — but it is not in the round baseline, which is what "proposed"
+     means, so negoEditClause has nothing to file against and answers null. The
+     popover happily proposed wording for it and Apply then reported "that
+     wording matches the clause already", a claim about the document that was
+     not true. Said before the model is asked, and only where the clause really
+     is a pending insertion; any other absence keeps the old fallback. */
+  if (!cl && window.negoChanges){
+    const ins = negoChanges(c).find(x =>
+      x && x.clauseId === clauseId && x.changeType === 'insertClause' && x.status !== 'superseded');
+    if (ins){
+      fail('This clause is itself still a proposal — it has not been accepted into the document yet, '
+        + 'so there is no agreed wording to redline. Revise it from its change card, or accept it first.');
+      return;
+    }
+  }
   const clauseText = cl ? cl.text : text;
   const pbLine = (() => {
     try{
@@ -5207,7 +5224,22 @@ async function rlAiPropose(ctx){
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
-  if (!cl){ rlSayInPanel('This clause is no longer in the document. Select a current clause and try again.'); return; }
+  if (!cl){
+    /* ---- A CLAUSE THAT IS ITSELF STILL A PROPOSAL ----
+       A clause somebody has asked to ADD is on the page and reads like any
+       other, but it is not in the round baseline — that is what "proposed"
+       means — so there is no agreed wording under it to redline against.
+       negoEditClause answers null for exactly this, and the toast that
+       followed said "that wording matches the clause already", which is a
+       claim about the document and is not true. Two different absences, told
+       apart, because the way out of them is different. */
+    const ins = (window.negoChanges ? negoChanges(c) : []).find(x =>
+      x && x.clauseId === clauseId && x.changeType === 'insertClause' && x.status !== 'superseded');
+    rlSayInPanel(ins
+      ? 'This clause is itself still a proposal — it has not been accepted into the document yet, so there is no agreed wording to redline. Revise it from its card in Tracked Changes, or accept it first.'
+      : 'This clause is no longer in the document. Select a current clause and try again.');
+    return;
+  }
   const passage = ctx.passage || { text, readings: [], occurrence: ctx.occurrence || 0, parts: [] };
   /* ---- A HIGHLIGHT ACROSS BLOCKS OF A DOCUMENT THAT HAS NO CLAUSES ----
      An uploaded contract that arrived as a wall of paragraphs has no headings

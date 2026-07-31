@@ -229,6 +229,68 @@ describe('F96 (B1) — a highlight that starts on the clause heading', () => {
   });
 });
 
+describe('F96 — the two ordinary highlights, which must simply work', () => {
+  test('two sentences inside one paragraph, rephrased and filed on exactly those words', async () => {
+    const p = await page();
+    const cl = p.clauseWith(/A party in breach/);
+    await p.press(p.highlight(cl, 'A party in breach', 'of notice,'));
+    assert.equal(p.panel.proposals.length, 1);
+    const r = await apply(p, 'A party in breach shall remedy it within fourteen (14) days of notice,');
+    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
+    const ch = p.changes()[0];
+    assert.match(ch.newText, /within fourteen \(14\) days of notice,/);
+    assert.match(ch.newText, /terminate on thirty \(30\) days written notice/,
+      'the wording after the highlight is untouched');
+  });
+
+  test('a highlight across a paragraph break inside ONE headed clause', async () => {
+    const p = await page();
+    const cl = p.clauseWith(/payable within thirty/);
+    /* Two paragraphs, one clause — the break is the renderer's, not the
+       document's, and the reader crossed it in a single drag. */
+    assert.match(p.clauseText(/payable within thirty/), /\n/,
+      'fixture: the clause body must really be more than one block');
+    const menu = p.highlight(cl, 'All invoices are payable', 'until settled.');
+    assert.ok(menu, 'the menu must open across a paragraph break');
+    await p.press(menu);
+    assert.ok(!p.said(/more than one clause|couldn.t be matched/i));
+    assert.equal(p.panel.proposals.length, 1);
+    const r = await apply(p, 'Invoices are payable in thirty days; late sums carry interest.');
+    assert.ok(r && r.ok, `apply refused: ${r && r.message}`);
+    assert.match(p.changes()[0].newText, /Invoices are payable in thirty days; late sums carry interest\./);
+  });
+});
+
+describe('F96 (B12) — a clause that is itself still a proposal', () => {
+  /* Found on the re-audit, not in the original register: a clause somebody has
+     asked to ADD is drawn like any other but is not in the round baseline, so
+     negoEditClause answers null — and the toast that followed said the wording
+     already matched the clause, which was a claim about the document and was
+     not true. */
+  test('the room says what it is, instead of claiming the wording already matched', async () => {
+    const p = await page();
+    const win = p.win;
+    const ch = await win.negoInsertClause(p.c, null,
+      { headingText: '6. CONFIDENTIALITY',
+        bodyHtml: '<p>Each party shall keep the other party information confidential.</p>' },
+      { side: 'owner', author: 'Wanjiru Kamau' });
+    assert.equal(win.negoClauseById(p.c, ch.clauseId), null,
+      'fixture: a proposed insertion is deliberately not in the round baseline');
+    let handed = null;
+    const real = win.wireNegotiationTab;
+    win.wireNegotiationTab = (cc, o) => { handed = o; return real(cc, o); };
+    win.renderRedline();
+    win.wireNegotiationTab = real;
+    handed.selMenu({ text: 'keep the other party information confidential', clauseId: ch.clauseId,
+      rect: { left: 10, top: 10, bottom: 30, right: 90, width: 80, height: 20 } });
+    await p.press(p.$('.nego-selmenu'));
+    assert.ok(p.said(/itself still a proposal|not been accepted/i));
+    assert.ok(!p.said(/matches the clause already/i),
+      'the old answer was false: nothing was compared, because there was nothing to compare against');
+    assert.equal(p.changes().filter(x => x.changeType === 'modify').length, 0);
+  });
+});
+
 describe('F96 (B2) — a highlight across two lettered sub-clauses', () => {
   test('the markers the projection prints do not exist on screen, and are forgiven', async () => {
     const p = await page();
