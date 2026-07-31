@@ -1030,24 +1030,129 @@ function negoNormalizeText(s){
   }
   return out.trim();
 }
-function negoFindPassage(hay, needle){
+/* Every place a passage occurs, in order. Overlapping occurrences count — the
+   scan resumes one character on, not one match on — because the DOM side counts
+   the same way, and an occurrence INDEX is only meaningful if both ends of the
+   comparison agree on what counts as an occurrence. */
+function _negoAllIndexOf(hay, needle){
+  const out = [];
+  if (!needle) return out;
+  for (let i = hay.indexOf(needle); i >= 0; i = hay.indexOf(needle, i + 1)) out.push(i);
+  return out;
+}
+/* ---------- THE LIST MARKER THE DOCUMENT PRINTS AND THE SCREEN DOES NOT ----
+   richToText writes a clause's list markers into the stored text — "a. ", "2.1.
+   ", "• " — because the projection has to read like the paper it came from. The
+   browser draws those markers as ::marker pseudo-elements, which are not text
+   and are not in what a selection hands back. So a lawyer who highlights across
+   two lettered sub-clauses produces "deliver X deliver Y" while the clause
+   stores "a. deliver X b. deliver Y", and an honest match over the two finds
+   nothing. Lettered and numbered sub-clauses are how contracts are written, so
+   this was most of a working day's selections.
+
+   A marker is only a marker at the head of a line. Mid-sentence "(a)" is
+   wording — a cross-reference to a sub-clause — and must never be skipped. */
+const NEGO_MARKER_RE = /^[ \t]*(?:[•·▪]|\(?(?:[0-9]+(?:\.[0-9]+)*|[a-zA-Z]|[ivxlcdmIVXLCDM]+)[.)])[ \t]+/;
+/* The clause flattened for comparison, with an index map home. `dropMarkers`
+   additionally skips the line-leading markers above, so a selection that never
+   contained them can still be located. The map means the ANSWER is still exact:
+   whatever was skipped to find the passage, the offsets returned index the
+   stored text and a splice at them touches only the chosen wording. */
+function _negoFlatten(H, dropMarkers){
+  let text = '';
+  const map = [];                                 // flat index → index into H
+  let atLineStart = true;
+  for (let i = 0; i < H.length; i++){
+    if (dropMarkers && atLineStart){
+      const m = NEGO_MARKER_RE.exec(H.slice(i));
+      if (m){ i += m[0].length - 1; atLineStart = false; continue; }
+    }
+    const ch = H[i];
+    if (ch === '\n') atLineStart = true;
+    else if (!/\s/.test(ch)) atLineStart = false;
+    const n = negoNormChar(ch);
+    if (!n) continue;
+    if (n === ' ' && (text === '' || text.endsWith(' '))) continue;
+    text += n; map.push(i);
+  }
+  return { text, map };
+}
+/* WHICH occurrence of the passage was pointed at. A clause can say "thirty (30)
+   days" twice — once for invoices and once for cure periods — and a match that
+   always answers the first one files a redline against wording nobody selected,
+   silently, because the offsets it returns are perfectly valid. The caller that
+   holds a live DOM Range knows which one it was; `opts.occurrence` is how it
+   says so. Out of range falls back to the first, which is what this always did.
+
+   `opts.occurrence` is counted on what the SCREEN shows, and the strategies
+   below run over what the RECORD stores; the two can disagree about how many
+   times a phrase appears (a clause under redline shows struck wording twice
+   over). So the index is a preference, never a requirement. */
+function negoFindPassage(hay, needle, opts){
   const H = String(hay == null ? '' : hay), N = String(needle == null ? '' : needle);
   if (!N.trim()) return null;
-  const exact = H.indexOf(N);                     // cheap, and offsets fall straight out
+  const nth = Math.max(0, Math.floor(Number((opts && opts.occurrence) || 0)) || 0);
+  const pick = list => (list.length ? (nth < list.length ? list[nth] : list[0]) : -1);
+
+  const exact = pick(_negoAllIndexOf(H, N));      // cheap, and offsets fall straight out
   if (exact >= 0) return { start: exact, end: exact + N.length };
-  let norm = '';
-  const map = [];                                 // norm index → index into H
-  for (let i = 0; i < H.length; i++){
-    const n = negoNormChar(H[i]);
-    if (!n) continue;
-    if (n === ' ' && (norm === '' || norm.endsWith(' '))) continue;
-    norm += n; map.push(i);
-  }
   const want = negoNormalizeText(N);
   if (!want) return null;
-  const at = norm.indexOf(want);
-  if (at < 0) return null;
-  return { start: map[at], end: map[at + want.length - 1] + 1 };
+  /* Typography first, markers only if that fails: dropping markers widens the
+     hay, and a passage that matched without doing so matched more exactly. */
+  for (const dropMarkers of [false, true]){
+    const flat = _negoFlatten(H, dropMarkers);
+    const at = pick(_negoAllIndexOf(flat.text, want));
+    if (at >= 0) return { start: flat.map[at], end: flat.map[at + want.length - 1] + 1 };
+  }
+  return null;
+}
+
+/* ---------- THE PASSAGE, AS THE SCREEN HANDED IT OVER ----------
+   A selection is captured from a live DOM Range and spent later — after a round
+   trip to a model, and on the workbench after a conversation that can run for
+   minutes. What travels between is this object, and it carries CANDIDATE
+   READINGS of the same highlight rather than one string, because the screen and
+   the record legitimately disagree about what the clause says:
+
+     as shown  — every word under the highlight. Right for a clean clause, and
+                 right for the prompt and the quote the reader is shown.
+     baseline  — struck wording kept, inserted wording dropped. What the round
+                 baseline holds for a clause carrying a change, decided or not:
+                 negoResolve commits to the working body and leaves the round
+                 baseline where it was, so the clause the model stores is still
+                 the pre-change one.
+     current   — struck wording dropped, inserted wording kept. The reading that
+                 answers once a baseline has been freshened past the change.
+
+   Trying all three is what stopped a settled redline — accepted last week,
+   nothing pending anywhere near it — from being refused as unmatchable, and it
+   is why the refusal that remains can be trusted. */
+function negoResolvePassage(clauseText, passage, opts){
+  const T = String(clauseText == null ? '' : clauseText);
+  if (!passage) return null;
+  const p = typeof passage === 'string' ? { text: passage } : passage;
+  const seen = new Set();
+  const tries = [p.text, ...(Array.isArray(p.readings) ? p.readings : [])]
+    .map(s => String(s == null ? '' : s))
+    .filter(s => s.trim() && !seen.has(s) && seen.add(s));
+  const occurrence = (opts && opts.occurrence != null) ? opts.occurrence : p.occurrence;
+  for (const needle of tries){
+    const hit = negoFindPassage(T, needle, { occurrence });
+    if (hit) return { start: hit.start, end: hit.end, needle };
+  }
+  return null;
+}
+/* Is this highlight the whole clause? Asked on every reading, and tolerant of
+   typography on both sides — otherwise "rephrase this clause" from a heading
+   down is a whole-clause rewrite the matcher would have to find inside itself. */
+function negoPassageIsWhole(clauseText, passage){
+  const T = String(clauseText == null ? '' : clauseText);
+  const p = typeof passage === 'string' ? { text: passage } : (passage || {});
+  const all = [p.text, ...(Array.isArray(p.readings) ? p.readings : [])];
+  const want = negoNormalizeText(T);
+  return all.some(s => s != null && String(s).trim()
+    && (String(s).trim() === T.trim() || negoNormalizeText(s) === want));
 }
 
 /* ---------- talking about a change ----------
@@ -2112,7 +2217,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoSummariseOps, negoFileChange, negoEditClause, negoInsertClause, negoDeleteClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
-  negoNormalizeText, negoFindPassage,
+  negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoCommentIsStale, negoTopicFor, negoThreadOf, negoMergedThread, negoThreadUnread,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,
