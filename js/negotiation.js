@@ -466,6 +466,41 @@ function negoTimeline(c, f = {}){
     && (!f.outcome || e.outcome === f.outcome));
 }
 
+/* ---------- THE WHOLE RECORD, VERIFIED IN ONE ANSWER (WP-2.5) ----------
+   Three separate facts, asked together because a reader pressing "verify"
+   means all of them: the change chain (every fingerprint recomputed from
+   stored content, every link checked — verifyChangeChain), the seal (does the
+   frozen copy still hash to what the record claims), and the divergence check
+   E5 built after finding that verifySeal alone never compared the live body
+   to the sealed one. Reported with the FIRST broken link named — "something
+   is wrong" is a verdict nobody can act on.
+
+   The answer carries its own timestamp because the export (WP-2.4) embeds it:
+   a verification result with no "when" reads as a permanent property of the
+   document, and it is a property of the moment it was run. */
+async function negoIntegrityReport(c){
+  const at = (window.nowISO ? window.nowISO() : new Date().toISOString());
+  const chain = await verifyChangeChain(c);
+  const executed = negoExecuted(c);
+  let seal = null;
+  if (executed && c.hash && window.sealString && window.sha256){
+    const expect = await sha256(sealString(c));
+    seal = expect === c.hash
+      ? { ok: true, detail: 'The seal matches the stored record' }
+      : { ok: false, detail: 'The seal does NOT match the stored record — the sealed content or the seal itself has been altered' };
+  }
+  const divergence = executed ? executedDivergence(c) : null;
+  const ok = chain.ok && (!seal || seal.ok) && !divergence;
+  const firstBroken = !chain.ok
+    ? `${chain.failedAt ? '#' + chain.failedAt + ': ' : ''}${chain.detail}`
+    : (seal && !seal.ok) ? seal.detail
+    : divergence ? divergence.detail : null;
+  return { ok, at, chain, seal, divergence, firstBroken,
+    detail: ok
+      ? `Record verified — ${chain.checked} entr${chain.checked === 1 ? 'y' : 'ies'} recomputed from stored content, no alteration found${seal ? '; the seal matches' : ''}`
+      : `Integrity check FAILED — ${firstBroken}` };
+}
+
 /* ---------- WHO THE RECORD SAYS DID THIS ----------
    The name a counterparty types into the box is a claim, not a fact, and until
    now it was stored as though it were a fact: "Rejected by Jane Mwangi", with
@@ -2691,7 +2726,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
-  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline,
+  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

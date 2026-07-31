@@ -1121,7 +1121,11 @@ function negoTimelineScreenHtml(c, f = {}){
       ${sel('ht-f-round', 'Round', uniq(all.filter(e => e.round != null && e.round !== '').map(e => [e.round, 'Round ' + e.round])), f.round)}
       ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
       <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">Clear</button>
+      <span style="flex:1"></span>
+      <button id="ht-verify" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="Recompute every fingerprint from the stored record, check the chain, the seal and the sealed-copy comparison">Verify integrity</button>
+      <button id="ht-export" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="A self-contained report for a reader with no HaTi login — the whole story, every filter off, with the verification result embedded">Export history</button>
     </div>
+    <div id="ht-verify-result"></div>
     <div id="ht-list">${list.length
       ? list.map(e => negoTimelineEventHtml(c, e)).join('')
       : '<div style="font-size:12px;color:var(--color-neutral-600);padding:14px 0">Nothing matches these filters.</div>'}</div>
@@ -1139,6 +1143,68 @@ function openHistoryTimeline(c, f = {}){
   document.querySelectorAll('#history-timeline [data-ht-filter]').forEach(s =>
     s.addEventListener('change', () => openHistoryTimeline(c, read())));
   document.getElementById('ht-clear')?.addEventListener('click', () => openHistoryTimeline(c, {}));
+  /* WP-2.5 — the one answer, with the first broken link named. The result
+     panel is written, never toasted: a verdict about the integrity of a legal
+     record does not scroll away. */
+  document.getElementById('ht-verify')?.addEventListener('click', async () => {
+    const box = document.getElementById('ht-verify-result');
+    if (!box || !window.negoIntegrityReport) return;
+    box.innerHTML = `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">Recomputing every fingerprint from the stored record…</div>`;
+    const r = await negoIntegrityReport(c);
+    box.innerHTML = negoVerifyResultHtml(r);
+  });
+  /* WP-2.4 — the standalone report. Verification runs FIRST and rides inside
+     it: an export that merely claims the record is intact, without saying when
+     that was checked, is the "Verified" pill fakery in file form. */
+  document.getElementById('ht-export')?.addEventListener('click', async () => {
+    if (!window.negoIntegrityReport) return;
+    const r = await negoIntegrityReport(c);
+    const html = negoHistoryExportHtml(c, r);
+    if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
+    if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
+  });
+}
+function negoVerifyResultHtml(r){
+  return r.ok
+    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1e6b4d">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
+    : `<div data-verify-ok="0" style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#8f322b"><b>Integrity check failed.</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:11px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
+}
+/* The report a reader with no login can hold: the whole story, every filter
+   off, each change as its rendered redline, and the integrity statement —
+   result, when it was run, and the seal it was run against. Self-contained by
+   construction: the styles ride inline and nothing references the app. */
+function negoHistoryExportHtml(c, report){
+  const ev = negoTimeline(c, {});
+  const sigs = (c.signatures || []).map(s =>
+    `<li>${_ne(s.name || '')}${s.title ? `, ${_ne(s.title)}` : ''} — ${_ne(s.party || '')}${s.verified === false ? ' (NOT independently verified)' : s.method ? ` (${_ne(s.method)})` : ''}</li>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8">
+<title>Negotiation history — ${_ne(c.name || c.id)}</title>
+<style>
+  body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
+  h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:12px;margin:0 0 18px}
+  .integrity{border:1.5px solid ${report.ok ? '#2e8763' : '#b0453c'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
+  .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
+  .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:11px}
+  .ht-body{flex:1;min-width:0} .ht-text{font-size:12.5px} .ht-meta{font-size:10.5px;color:#5a6470}
+  .ht-clause{font-weight:600}
+  .ht-redline{border:1px solid #e3e7ea;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px}
+  .ht-redline ins{background:#d9eae0;text-decoration:none} .ht-redline del{background:#f9ecea;color:#8f322b}
+  .ht-note{font-size:11px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
+  @media print{ body{margin:10mm auto} }
+</style></head><body>
+<h1>Negotiation history — ${_ne(c.name || c.id)}</h1>
+<p class="sub">${_ne(c.id)} · between ${_ne((window.FIRST_PARTY) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
+ · ${ev.length} events, oldest first · generated ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC by HaTi CLM</p>
+<div class="integrity">
+  <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
+  Run ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC · ${report.chain.checked} chained record${report.chain.checked === 1 ? '' : 's'} recomputed${c.hash ? ` · document seal (SHA-256): <span style="font-family:monospace;font-size:10.5px;word-break:break-all">${_ne(c.hash)}</span>` : ' · not yet executed, so no seal to check'}
+</div>
+${sigs ? `<p style="font-size:12px"><b>Signatures on the record:</b></p><ul style="font-size:12px">${sigs}</ul>` : ''}
+${ev.map(e => negoTimelineEventHtml(c, e)).join('')}
+<p style="font-size:10.5px;color:#5a6470;margin-top:22px">This report stands alone: every sentence above was generated from the stored
+negotiation record, labels read as they were when each event happened, and the integrity statement applies to the record as it stood at the
+generation time shown. HaTi retains the master copy.</p>
+</body></html>`;
 }
 
 /* ---------- THE RENUMBER PREVIEW (N2-T3) ----------
@@ -7627,6 +7693,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   negoRenumberPreviewHtml, negoRenumberOpen,
   negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
+  negoVerifyResultHtml, negoHistoryExportHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
