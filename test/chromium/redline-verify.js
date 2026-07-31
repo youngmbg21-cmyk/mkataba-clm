@@ -442,10 +442,18 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('5 AI Assist is gone from the clause toolbar', menu.noToolbarAi);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
-  check('5 they are rephrase, shorten, tag',
-    /Rephrase with Copilot/.test(menu.items[0] || '')
+  check('5 they are edit, shorten, tag',
+    /Edit with Copilot/.test(menu.items[0] || '')
     && /Shorten & Simplify/.test(menu.items[1] || '')
-    && /Tag with internal note/.test(menu.items[2] || ''));
+    && /Tag with internal note/.test(menu.items[2] || ''),
+    JSON.stringify(menu.items));
+  /* STILL THREE, and the first one renamed rather than joined. "Edit with
+     Copilot" is what "Rephrase with Copilot" became when a proposal learned to
+     add wording as well as replace it — rephrasing is what you get when your
+     instruction is a rephrase, and a fourth entry beside it would read the same
+     to anyone moving at speed. */
+  check('5 and rephrase is gone from the menu',
+    !menu.items.some(t => /Rephrase/.test(t)), JSON.stringify(menu.items));
   check('3 opening the menu opens no dialog', menu.dialogs === 0 && menu.modals === 0);
   await page.screenshot({ path: path.join(OUT, '03-selection-menu.png') });
 
