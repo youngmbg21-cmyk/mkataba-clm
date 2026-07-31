@@ -531,3 +531,21 @@ suite is green.
 Suite at close: **1692 tests, 0 failures** (`npm test`). Test files added:
 f101-template-library, f102-save-as-template, f103-template-library-ui,
 f104-contract-from-template, f105-upload-convert.
+
+---
+
+## Template Library fix work order (2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Orphaned {{marker}} renders as a plain blank, never raw syntax | f106 | PASS |
+| Deleting a field strips its marker (shared helper, both screens) | f106 | PASS |
+| Publish blocks on wording that names a nonexistent field | f106 | PASS |
+| Unplaced typed field warns at publish (never silent) | f106, f101 | PASS |
+| Blank carries data-field-key; sanitiser admits it narrowly | f106 | PASS |
+| Blanks grey (neutral palette), pointer only when routable | f106 | PASS |
+| Stored {{code}} repairs on open; commit path regenerates wording | f106 | PASS |
+| Model's longhand signature wording rebuilt as a signature block | f105 | PASS |
+| Company section renders on the Templates page, role-aware | f103 | PASS |
+| Published templates feed the menu/count caches | f103 | PASS |
+| In-place popover fill on workspace and portal | manual (Chromium shots) | PASS |

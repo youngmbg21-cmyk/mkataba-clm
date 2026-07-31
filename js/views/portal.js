@@ -1425,6 +1425,11 @@ function renderSharePortal(p, opts={}){
      record this page builds can tell the truth about which of the two it is. */
   const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
+  /* Display-side repair: a copy shared before delete-time marker cleanup can
+     carry literal {{code}} in its wording — the form the payload also carries
+     makes a clean re-render deterministic. Executed copies are left alone. */
+  if(c.templateForm && !portalExecuted() && /\{\{/.test(String(c.redlineText||'')) && window.templateFormDocHtml)
+    c.redlineText=templateFormDocHtml(c.templateForm);
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
     <input id="${id}" type="text" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
@@ -1942,6 +1947,78 @@ function wirePortalTemplateForm(p){
       r.onload=()=>commit(Number(el.getAttribute('data-ptf-file')),String(r.result));
       r.readAsDataURL(file);
     }));
+
+  /* The grey blanks in the document take clicks too: a typed input opens
+     right where the reader is looking, validated and autosaved through the
+     same commit as the panel above. Signature blanks route to the Sign
+     button; file/stamp blanks route to the panel's file input. */
+  const doc=document.getElementById('pt-doc');
+  if(doc && !doc._tplWired){
+    doc._tplWired=true;
+    doc.addEventListener('click', e=>{
+      const span=e.target.closest?.('.hati-field[data-field-key]');
+      if(!span || portalExecuted() || portalReadOnly()) return;
+      const key=span.getAttribute('data-field-key');
+      const idx=(form.fields||[]).findIndex(f=>f.fieldKey===key);
+      if(idx<0) return;
+      const f=form.fields[idx];
+      const flashPanel=()=>{
+        const input=box.querySelector(`[data-ptf="${idx}"]`)||box.querySelector(`[data-ptf-file="${idx}"]`);
+        if(!input) return;
+        try{ input.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+        input.style.outline='2px solid var(--accent-solid)'; input.style.outlineOffset='1px';
+        setTimeout(()=>{ input.style.outline=''; input.style.outlineOffset=''; },1600);
+        try{ input.focus(); }catch(_){}
+      };
+      if(f.fieldType==='signature_name_title'||f.fieldType==='stamp_image'){
+        toast('Signatures and stamps are captured when you press Sign — fill in the other details first');
+        return;
+      }
+      const lib=(window.FIELD_LIB||{})[f.fieldType]||{input:'text',hint:''};
+      if(lib.input==='file'||lib.input==='image'){ flashPanel(); return; }
+      // in-place popover, same validation and autosave as the panel
+      document.getElementById('ptf-pop')?.remove();
+      const r=span.getBoundingClientRect();
+      const pop=document.createElement('div');
+      pop.id='ptf-pop';
+      pop.style.cssText=`position:fixed;z-index:80;top:${Math.round(r.bottom+6)}px;left:${Math.round(Math.min(Math.max(8,r.left),(window.innerWidth||1200)-296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:10px;box-shadow:var(--shadow-md);padding:10px 12px`;
+      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
+      const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
+      const inputHtml=(f.control==='guided'||f.fieldType==='select')
+        ? `<select data-ptf-pop style="${INP}"><option value="">Choose…</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
+        : lib.input==='textarea'
+          ? `<textarea data-ptf-pop style="${INP};min-height:52px">${esc(v)}</textarea>`
+          : `<input type="${({email:'email',tel:'tel',date:'date'})[lib.input]||'text'}" data-ptf-pop value="${esc(v)}" placeholder="${esc(lib.hint||'')}" style="${INP}">`;
+      pop.innerHTML=`
+        <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:#8f322b">*</span>':''}</div>
+        ${inputHtml}
+        ${f.helpText?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
+        <div data-ptf-pop-err style="display:none;font-size:10.5px;color:#8f322b;margin-top:4px"></div>`;
+      document.body.appendChild(pop);
+      const input=pop.querySelector('[data-ptf-pop]');
+      let done=false; // Enter commits, then the focused input's blur fires change — one door only
+      const away=ev=>{ if(!pop.contains(ev.target)) closePop(); };
+      const closePop=()=>{ done=true; pop.remove(); document.removeEventListener('mousedown',away,true); };
+      document.addEventListener('mousedown',away,true);
+      const commitPop=()=>{
+        if(done) return;
+        const val=input?input.value:'';
+        const s2=String(val||'').trim();
+        if(s2 && window.fieldLibValidate){
+          const problem=fieldLibValidate({label:f.label,field_key:f.fieldKey,field_type:f.fieldType,
+            control:f.control,options:f.options,required:f.required}, s2);
+          if(problem){ const err=pop.querySelector('[data-ptf-pop-err]'); err.textContent=problem; err.style.display='block'; return; }
+        }
+        closePop();
+        commit(idx, val);
+        const panel=box.querySelector(`[data-ptf="${idx}"]`);
+        if(panel) panel.value=s2;
+      };
+      input?.addEventListener('change',commitPop);
+      input?.addEventListener('keydown',ev=>{ if(ev.key==='Enter') commitPop(); if(ev.key==='Escape') closePop(); });
+      try{ input?.focus(); }catch(_){}
+    });
+  }
 }
 
 async function portalSignUnverified(p, info){
@@ -2171,6 +2248,14 @@ function exportPDF(c){
        only, and let printExecutionBlock render the execution once, properly. */
     holder.innerHTML=docBody(c);
     holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
+    /* An unfilled blank prints as a paper form's blank line — an underscore
+       run, never the on-screen grey box and never the field's label. */
+    holder.querySelectorAll('.hati-field').forEach(n=>{
+      const line=document.createElement('span');
+      line.style.cssText='display:inline-block;min-width:130px;border-bottom:1px solid #777;';
+      line.innerHTML='&nbsp;';
+      n.replaceWith(line);
+    });
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";

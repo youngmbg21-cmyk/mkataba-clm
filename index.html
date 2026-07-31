@@ -572,9 +572,17 @@
      rules, side-by-side signature blocks — so their alignment must survive */
   .hati-doc pre{font-family:var(--font-doc-mono);font-size:.86em;line-height:1.5;
     white-space:pre;overflow-x:auto;margin:1em 0;}
-  /* an unfilled blank, marked for display only */
-  .hati-doc .hati-field{background:var(--color-accent-100);
-    border-bottom:1px solid var(--color-accent-400);padding:0 3px;border-radius:2px;}
+  /* An unfilled blank. GREY on purpose: green already means done/positive in
+     this design, and an empty space to complete is neither. The dotted rule
+     says "blank line on a paper form"; the pointer + hover appear only where
+     the blank knows which field it belongs to (data-field-key) and can
+     therefore take a click. Filled values render as plain document text with
+     none of this — the styling belongs to emptiness, not to fields. */
+  .hati-doc .hati-field{background:var(--color-neutral-100);color:var(--color-neutral-600);
+    border-bottom:1px dotted var(--color-neutral-500);padding:0 3px;border-radius:2px;}
+  .hati-doc .hati-field[data-field-key]{cursor:pointer;}
+  .hati-doc .hati-field[data-field-key]:hover{background:var(--color-neutral-200);
+    border-bottom-style:solid;}
 
   /* the paste/edit surface — a contenteditable, because a textarea can only
      ever hold plain text, which is the thing we are trying to stop losing */
@@ -779,11 +787,6 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 10 5-10 5L2 7l10-5Z"/><path d="m3.9 11.3-1.9.9 10 5 10-5-1.9-.9L12 15.2l-8.1-3.9Z"/><path d="m3.9 15.8-1.9.9 10 5 10-5-1.9-.9L12 19.7l-8.1-3.9Z"/></svg>
             <span style="flex:1;">Templates</span><span class="nav-count" data-count="templates"></span>
-          </button>
-          <button data-view="tpl-library" class="nav-item" title="Template Library — company standard templates, versioned and permissioned">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M8 4v16"/></svg>
-            <span style="flex:1;">Template Library</span><span class="nav-count" data-count="tpl-library"></span>
           </button>
           <button data-view="playbook" class="nav-item" title="Playbook">
             <span class="nav-rail"></span>

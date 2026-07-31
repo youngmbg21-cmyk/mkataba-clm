@@ -3915,3 +3915,63 @@ pending a key.
 room, tracked changes, DOCX round-trip, counterparty portal, signing flow
 and the existing Templates page all still green — nothing that worked at
 session start is broken.
+
+## Run 7 follow-up — the fix work order (2026-07-31)
+
+### Plain English first
+
+Young tested the library with a real uploaded contract and found four
+things: deleted fields came back as `{{computer_code}}` in the finished
+contract (with the signature area printed twice), the highlighted blanks in
+the document could not be typed into, the new templates appeared in neither
+the Templates page nor the + Draft new agreement menu, and the blanks were
+green when they should be grey. All four are fixed, per
+WORKORDER-template-library-fixes.md.
+
+The corruption can no longer happen: deleting a field now also removes its
+code from the wording; publishing refuses (in plain English) if wording
+still mentions a field that doesn't exist; and even if bad code slipped
+through, the document renders it as a plain blank, never as syntax. A
+contract already damaged repairs itself the next time it is opened.
+Signature wording the AI writes longhand is rebuilt as a proper signature
+block, so the execution area appears exactly once.
+
+Blanks now behave like blanks: grey with a dotted underline, and clicking
+one opens the right input in place — date picker for dates, dropdown for
+choices — with the same validation and autosave as the side panel, on the
+owner's screen and the customer's page alike. Filled values read as
+ordinary contract text. Print shows an underscore-style blank. Signature
+blanks route to the signing flow instead.
+
+And there is one template world now: the separate "Template Library" menu
+item is gone; company standard templates live on the Templates page with
+Use / Edit / Convert right there, published ones join the + Draft new
+agreement menu in their own group, and the sidebar count includes them.
+
+### Technical second
+
+Marker hygiene is layered: `templateFormStripMarker` (shared by the
+upload-review screen and the builder) strips on delete; the publish route
+blocks server-side on orphaned markers and warns on unplaced fields; the
+renderer draws unknown markers as `.hati-field` blanks; `tplConvertClean`
+reconciles inline signature markers into `signature_block`s; and
+`renderTemplateFormSection` regenerates any stored wording still containing
+`{{` from the contract's own form copy (drafts only — executed records are
+sealed). Click-to-fill: empty blanks carry `data-field-key` (sanitizer
+admits it only on `hati-field` spans in key shape), a doc-canvas click
+delegate opens a fixed-position popover wired to the same
+`tplFormCommit`/portal `commit` path as the panel. Integration:
+`renderCompanyTemplatesSection()` renders into a host div on the Templates
+page, `tplLibPublished()/tplLibCount()/tplLibRefresh()` feed the
+new-agreement menu and sidebar counts.
+
+The after-screenshot pass in real Chromium caught two follow-on popover
+bugs — a double commit on Enter (blur re-fired `change` after close) and a
+repaint that escaped rich HTML (`renderDocHtml` called without its `format`
+argument) — both fixed same day; details in BUGLOG.md.
+
+**Tests: 1789 passing, 0 failures**, both Chromium checks green (68/68,
+22/22). New f106 (marker hygiene, sanitizer narrowness, publish
+consistency, repair-on-open, grey-not-green stylesheet guard); f105 gained
+the signature-reconciliation case; f103 re-pinned to the folded-in section;
+f101–f105 renumbering rides to main with this merge.

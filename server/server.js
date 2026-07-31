@@ -4361,10 +4361,28 @@ app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, pass
     if (!clean(f.label)) problems.push(`Field “${f.field_key}” has no label`);
     if (f.control === 'guided' && !f.options.length) problems.push(`Guided field “${f.label || f.field_key}” has no options to choose from`);
   }
+  /* Marker ↔ field consistency, both directions. An orphaned {{marker}} is
+     how deleted fields once reached contracts as literal code — it BLOCKS
+     publish and names itself, so the fix is one obvious edit away. */
+  const fieldKeys = new Set(fields.map(f => f.field_key));
+  const placed = new Set();
+  for (const bl of blocks) {
+    for (const m of String(bl.content || '').matchAll(/\{\{([a-z0-9_.]+)\}\}/gi)) {
+      placed.add(m[1]);
+      if (!fieldKeys.has(m[1]))
+        problems.push(`The wording still mentions “${m[1]}” but no field with that name exists — remove the marker from the wording, or add the field back`);
+    }
+  }
   if (problems.length) return res.status(400).json({ error: problems[0], problems });
   const warnings = [];
   if (!blocks.some(b => b.block_type === 'signature_block') && !fields.some(f => f.field_type === 'signature_name_title'))
     warnings.push('No signature block — contracts from this template will have nowhere to sign');
+  for (const f of fields) {
+    // signature/stamp fields live in the signing flow, never inline — only
+    // typed fields are expected to sit somewhere in the wording
+    if (!placed.has(f.field_key) && !['signature_name_title', 'stamp_image'].includes(f.field_type))
+      warnings.push(`Field “${f.label || f.field_key}” is not placed in any wording block — it will appear only on the fill form`);
+  }
   const changeNote = clean((req.body || {}).changeNote).slice(0, 500);
   txn(() => {
     db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
@@ -4749,7 +4767,7 @@ Rebuild it as blocks and fields:
 - Recognise blanks in ALL these shapes: an empty table cell beside a label; underscore runs (____); bracket placeholders like [INSERT NAME], [●] or [ ]; and inline phrases such as "whose registered address is ______".
 - An asterisk or the word "required" beside a label means required: true.
 - Legal articles, clauses and boilerplate paragraphs are fixed_text blocks, never fields.
-- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block.
+- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block. NEVER place a signature or stamp field's {{marker}} inside any block's content: the whole execution area ("Signed for X … Name … Title … Date …") is replaced by one signature_block per signing party whose content names who signs (e.g. "Buyer director"), and its longhand wording is dropped.
 - Where a blank sits inside wording, emit a field_group block whose content keeps the wording with {{field_key}} in the blank's place. A table of label/blank pairs becomes one field_group block listing "Label: {{field_key}}" lines.
 - Choose the most specific field_type the label supports (kenya_tax_id for KRA PIN, email for email addresses, phone for telephone numbers, national_id for ID numbers, date for dates, currency for amounts). Unsure of the type: use short_text with confidence: low.
 - Never invent a field that is not in the source document. Every field's {{field_key}} must appear in exactly one block.
@@ -4788,7 +4806,28 @@ function tplConvertClean(input) {
       content: String(b.content == null ? '' : b.content).slice(0, 60000) });
   }
   blocks.sort((a, b) => a.order_index - b.order_index);
-  return { blocks, fields, problems };
+  /* Signature reconciliation. The prompt forbids signature/stamp markers
+     inside wording, but the model sometimes writes the execution area out
+     longhand ("Signed for BUYER … {{buyer_signature}} …") AND the renderer
+     draws a signature block — the user then sees the area twice, once as
+     code. Any wording block that carries a signature-type marker IS the
+     signature area: it becomes a signature_block named for who signs, and
+     the longhand wording (markers and all) is dropped. */
+  const sigKeys = new Set(fields.filter(f => ['signature_name_title', 'stamp_image'].includes(f.field_type)).map(f => f.field_key));
+  const reconciled = [];
+  for (const b of blocks) {
+    const carriesSig = b.block_type !== 'signature_block'
+      && [...sigKeys].some(k => b.content.includes(`{{${k}}}`));
+    if (!carriesSig) { reconciled.push(b); continue; }
+    // "Signed for BUYER: GULIZ LLC By (Signature) …" → "BUYER: GULIZ LLC"
+    const m = /signed\s+for\s+(?:the\s+)?["“]?([^{]{2,60}?)\s*(?:\bby\b|\{\{|$)/i.exec(b.content);
+    const party = clean(m ? m[1] : '').replace(/["”:,\s]+$/, '').trim() || 'Signature';
+    const prev = reconciled[reconciled.length - 1];
+    if (!(prev && prev.block_type === 'signature_block' && prev.content === party))
+      reconciled.push({ order_index: b.order_index, block_type: 'signature_block', content: party.slice(0, 120) });
+    problems.push(`signature wording (“${party}”) was rebuilt as a signature block`);
+  }
+  return { blocks: reconciled, fields, problems };
 }
 
 app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {

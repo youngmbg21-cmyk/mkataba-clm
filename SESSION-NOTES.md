@@ -5,6 +5,36 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Template Library fix work order (user-reported defects, 2026-07-31)
+
+**Done** (WORKORDER-template-library-fixes.md, all four steps; SUMMARY.md
+Run 7 follow-up, BUGLOG.md, LOOP_REPORT.md Loop 5, CHECKLIST.md updated)
+
+- Marker hygiene, four layers: delete strips `{{markers}}` from wording;
+  publish blocks server-side on orphaned markers (plain-English message) and
+  warns on unplaced fields; renderer draws unknown markers as blanks, never
+  raw syntax; converter rebuilds inline signature wording as signature
+  blocks. Damaged drafts repair themselves on open.
+- Blanks are grey (neutral palette, dotted underline) and clickable: an
+  in-place typed popover (owner + portal) validated by the shared registry,
+  committing through the same autosave path as the side panel; filled values
+  are plain text; print shows underscore blanks; signature blanks route to
+  signing.
+- One template world: library folded into the Templates page ("Company
+  standard templates" section), published templates in the + Draft new
+  agreement menu, sidebar count includes them, standalone nav item removed.
+
+**Tested.** New f106 (10); f105 +1 signature-reconciliation case; f103
+re-pinned to the folded-in section; suite 1789/0; both Chromium checks
+green; six real-browser after-screenshots. The screenshot pass caught two
+popover bugs (double commit on Enter; repaint escaping rich HTML — missing
+`format` arg) — fixed same day, see BUGLOG.
+
+**Skipped/deferred.** Migrating old settings-blob custom templates into the
+library (explicitly out of scope for the order).
+
+---
+
 ## Template Library & Document Converter (Runs under TEMPLATE_LIBRARY_BRIEF)
 
 **Done** (all four phases; RECON.md, SUMMARY.md Run 7, BUGLOG.md, LOOP_REPORT.md,

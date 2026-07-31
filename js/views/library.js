@@ -1254,6 +1254,10 @@ function renderTemplatesPage(){
 
     <div>${folderLegendHtml()}</div>
 
+    <!-- Company standard templates (the versioned library) render here — one
+         page for every kind of paper, not a second screen to know about. -->
+    <div id="tpl-company-section"></div>
+
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
         <h4 style="${H4}">My templates</h4>
@@ -1299,6 +1303,7 @@ function renderTemplatesPage(){
     if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast('That template is not open to your role','err'); return; }
     openBulkCreateModal(t); }));
   document.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
+  if(window.renderCompanyTemplatesSection) renderCompanyTemplatesSection();
   setActiveNav('templates');
 }
 

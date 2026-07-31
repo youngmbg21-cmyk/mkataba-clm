@@ -170,9 +170,12 @@ function tbPaint() {
     const uses = tbPlaceholderUse(f.fieldKey);
     if (uses) {
       const ok = typeof confirmDialog === 'function'
-        ? await confirmDialog({ title: `Remove “${f.label || f.fieldKey}”?`, message: `Its placeholder {{${f.fieldKey}}} still sits in ${uses} block${uses === 1 ? '' : 's'} and would render as literal text.`, confirmLabel: 'Remove field', danger: true })
+        ? await confirmDialog({ title: `Remove “${f.label || f.fieldKey}”?`, message: `Its marker sits in ${uses} block${uses === 1 ? '' : 's'} of wording — deleting the field replaces the marker with a plain blank there.`, confirmLabel: 'Remove field', danger: true })
         : true;
       if (!ok) return;
+      // the marker goes with the field — orphaned {{code}} never reaches a contract
+      if (window.templateFormStripMarker)
+        _tb.blocks = _tb.blocks.map(b => ({ ...b, content: templateFormStripMarker(b.content, f.fieldKey) }));
     }
     _tb.fields.splice(i, 1); _tb.dirty = true; tbPaint();
   }));
