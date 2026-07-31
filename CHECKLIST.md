@@ -605,3 +605,21 @@ f118-the-code-goes-to-the-invited-address.
 Suite at close: **2099 tests, 0 failures**; Chromium redline 71/71, parity
 18/18, selection 22/22. Test file added: f119-the-renumber-button. OI-1 and
 OI-2 closed and moved to BUGLOG.
+
+
+---
+
+## Stage 6, Session 13 — the history timeline (WP-2.1, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Multi-round history renders one complete, correctly ordered story | f120 | PASS |
+| X1: labels as of the event — renumber after the fact leaves the story byte-identical | f120 | PASS |
+| X6: signing beats render beside changes, in the record's own words | f120 | PASS |
+| X3: renumbering renders off its structured audit data | f120 | PASS |
+| Filters (clause-by-id, person, side, round, outcome) combine, model-level | f120 | PASS |
+| Screen renders redlines + reasons; filtering re-asks the model | f120 | PASS |
+| Workspace History door opens the screen; viewers included | f120 | PASS |
+
+Suite at close: **2106 tests, 0 failures**; Chromium 71/71 · 18/18 · 22/22.
+Playwright screen check: deferred to Session 14, recorded in SESSION-NOTES.

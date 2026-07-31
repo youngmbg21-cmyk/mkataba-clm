@@ -5,6 +5,37 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 6, Session 13 — the history timeline (WP-2.1 + X1/X6/X3)
+
+**Done** (`js/negotiation.js` negoTimeline; `js/views/negotiation.js` screen +
+openHistoryTimeline; workspace History button in `js/views/contract.js`; new
+`test/f120` 7; suite 2106/0 · redline 71/71 · parity 18/18 · selection 22/22)
+
+- `negoTimeline(c, filters)` — the model: proposals (with notes), decisions
+  (with replies), withdrawals, round closures, plus the audit trail's beats —
+  signing (X6: Shared/Countersigned/Signature/Signed/Distributed, in the
+  entries' own house-register prose) and renumbering (X3: matched by
+  `data.kind === 'renumber'`, never parsed from prose). Filters combine in
+  the model so tests hold them without a DOM. Chronological with arrival-order
+  tiebreak; change beats read `ch.createdAt` (there is no `ch.at`).
+- **X1 held from the first render:** labels come from the stored
+  `ch.clauseLabel`; f120 renumbers the fixture after the events exist and
+  asserts every pre-existing sentence byte-identical, with the deleted clause
+  still called Clause 9 — its name at the time.
+- The screen renders oldest-first with each proposal's exact redline
+  (negoChangeHtml) and re-renders through the model on every filter change.
+  Modal-hosted, from the workspace header; viewers get it too.
+
+**What Session 14 needs to know.** WP-2.5 wires `verifyChangeChain` + seal
+checks into this screen (a Verify button beside the filters); WP-2.4 exports
+the same `negoTimeline(c, {})` data print-optimised and embeds the WP-2.5
+result. The plan's Playwright check for the screen rides with Session 14 —
+recorded here rather than silently skipped. Share lifecycle events beyond the
+audit's Shared entries (opens, expiry) live server-side only and are not yet
+beats; decide in Session 14 whether the export needs them.
+
+---
+
 ## Stage 5 — the renumber button (N2, Session 12)
 
 **Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/core.js`,
