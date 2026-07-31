@@ -163,19 +163,48 @@ const FOLDER_A = 'proc';
 const FOLDER_B = 'sales';
 const B_MARKERS = ['Naivas Supermarkets', 'Modern Trade Listing', 'MK-B1', 'MK-B2'];
 
-function fixtureContract(id, name, counterparty, folder, value, status) {
+/* `body` is optional and seeded here rather than PUT on afterwards, because a
+   fixture that ships Signed can no longer be given a document body by a save —
+   the executed guard refuses to let the sealed wording change, which is the
+   whole point of it (f106). A test that needs an executed contract WITH a body
+   must therefore be born with one. */
+function fixtureContract(id, name, counterparty, folder, value, status, body) {
   return {
     id, name, counterparty, folder, value, valueType: 'standard',
     status: status || 'Under Review', template: 'RM',
     lastAction: '10 Jul 2026', expiry: '2027-06-30', hash: null, signedAt: null,
     fields: { value: String(value) }, metadata: { value, currency: 'KES' },
+    ...(body ? { redlineText: body, format: 'text' } : {}),
     comments: [], audit: [{ at: new Date().toISOString(), user: 'System', action: 'Created', detail: 'fixture' }],
     signatures: [], obligations: [], rounds: [],
   };
 }
 
+/* The document body MK-A1 carries. It lives here rather than in the one test
+   that reads it because a fixture's shape is the stage's business, not a
+   single test's. */
+const FIXTURE_BODY_A1 = [
+  'SUPPLY AGREEMENT',
+  '',
+  'This agreement is made between Highland Corporate Ltd and Kabras Sugar,',
+  'whose email for notices is procurement@kabras.co.ke.',
+  '',
+  'Article 1 Payment',
+  '',
+  'The total contract value is KES 48,000,000 payable within thirty days.',
+  '',
+  'Article 2 Term',
+  '',
+  'This agreement expires on 2027-06-30.',
+  '',
+  'Article 3 Confidentiality',
+  '',
+  'Each party shall keep the terms of this agreement confidential.',
+].join('\n');
+
 const FIXTURES = [
-  fixtureContract('MK-A1', 'Refined Sugar Supply', 'Kabras Sugar', FOLDER_A, 48000000, 'Signed'),
+  { ...fixtureContract('MK-A1', 'Refined Sugar Supply', 'Kabras Sugar', FOLDER_A, 48000000, 'Signed', FIXTURE_BODY_A1),
+    counterpartyEmail: 'procurement@kabras.co.ke' },
   fixtureContract('MK-A2', 'Raw Milk Collection', 'Nandi Dairy', FOLDER_A, 36000000, 'Under Review'),
   fixtureContract('MK-B1', 'Modern Trade Listing', 'Naivas Supermarkets', FOLDER_B, 85000000, 'Signed'),
   fixtureContract('MK-B2', 'Retail Supply — Coast', 'Naivas Supermarkets', FOLDER_B, 78000000, 'Under Review'),
@@ -226,5 +255,5 @@ function mentionsFolderB(text) {
   return B_MARKERS.filter(m => s.includes(m));
 }
 
-module.exports = { startHati, startAiStub, seedWorkspace, fixtureContract,
+module.exports = { startHati, startAiStub, seedWorkspace, fixtureContract, FIXTURE_BODY_A1,
   FIXTURES, FOLDER_A, FOLDER_B, B_MARKERS, mentionsFolderB, Client };

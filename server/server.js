@@ -1363,8 +1363,45 @@ app.get('/api/contracts/:id', auth, (req, res) => {
 const EXECUTED_IMMUTABLE = [
   'body', 'redlineText', 'format', 'execution', 'signatures', 'hash', 'sealVersion',
   'value', 'valueType', 'counterparty', 'template', 'fields', 'upload', 'signedAt',
+  /* THE NEGOTIATION RECORD IS EVIDENCE TOO, and was not on this list. The
+     wording was protected and the account of how the parties reached it was
+     not, so a request could leave the sealed text untouched and rewrite the
+     changes that produced it — who asked for what, who refused it and why.
+     That record is what the history screen shows an auditor and what the
+     change-chain verification is computed over, and a seal that binds the text
+     while the story behind it stays editable protects the less interesting
+     half. Frozen at execution, along with the rounds they were archived into
+     and the versions that carry each round's body. */
+  'changes', 'rounds', 'negotiation', 'versions',
 ];
-const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash));
+/* THREE SIGNALS, MATCHING negoExecuted IN THE BROWSER (js/negotiation.js).
+   This read two — a seal or an execution stamp — and the client reads three.
+   A record marked Signed that carries neither was executed as far as every
+   screen in the product is concerned, and unprotected as far as this route was.
+   The two definitions must answer the same question or the lock and the sign
+   are guarding different doors.
+
+   Safe to tighten because status and seal are always written together: both
+   signing paths in js/views/contract.js set c.hash and c.status in the same
+   operation before persist(), so no legitimate save arrives carrying a new
+   Signed status against a stored record that was already Signed. */
+const isExecutedRow = c => !!(c && ((c.execution && c.execution.at) || c.hash || c.status === 'Signed'));
+
+/* THE SEAL MAY BE ACQUIRED ONCE, AND NEVER CHANGED AFTER.
+   Widening isExecutedRow to include the status caught a case it should not: a
+   record marked Signed that has not been sealed yet. Refusing there makes the
+   act of sealing impossible on exactly the contracts that most need it, which
+   is not the rule — the rule is that SEALED CONTENT is immutable, not that a
+   signed record can never receive its seal.
+
+   So these four fields may go from empty to set, once. Anything already
+   carrying a value is frozen like everything else on the list, which is what
+   stops a second write from re-sealing a contract over the top of the first.
+   Every other immutable field — the wording, the parties, the money, the
+   negotiation record — is refused outright, because none of them is something
+   an unsealed-but-signed record is waiting to be given. */
+const SEAL_ACQUIRABLE = new Set(['hash', 'execution', 'sealVersion', 'signedAt']);
+const isEmptyish = v => v === undefined || v === null || v === '';
 const stable = v => JSON.stringify(v === undefined ? null : v);
 
 // Save ONE contract with its own optimistic-lock version.
@@ -1406,7 +1443,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   }
 
   if (prev && isExecutedRow(prev)) {
-    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k]));
+    const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
+      && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k])));
     if (changed.length) {
       return res.status(409).json({
         error: `${req.params.id} is executed — ${changed.join(', ')} cannot be changed after signature. Record an amendment instead.`,

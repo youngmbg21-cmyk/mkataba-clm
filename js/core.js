@@ -1313,8 +1313,16 @@ async function verifySeal(c){
     }
   }
   const h=await sha256(sealString(c));
-  if(h===c.hash) toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
-  else toast('Seal MISMATCH — the record changed after signing','err');
+  if(h!==c.hash){ toast('Seal MISMATCH — the record changed after signing','err'); return; }
+  /* The seal can be perfectly valid and the workspace still be showing
+     different wording, because the seal is computed over the frozen copy and
+     this asks about the live one. Reported here rather than left to be noticed,
+     since "Seal valid" on a screen whose text nobody signed is the most
+     misleading thing this button could say. */
+  const div=(typeof executedDivergence==='function')?executedDivergence(c):null;
+  if(div){ toast('Seal valid, BUT the wording on screen is not the wording that was sealed — '
+    +'the sealed copy is the evidence of record','err'); return; }
+  toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');

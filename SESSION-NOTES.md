@@ -5,6 +5,54 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 0 — the execution lock (E1–E5, WORKORDER-execution-lock.md)
+
+**Done** (`js/negotiation.js`, `js/views/negotiation.js`, `js/views/contract.js`,
+`js/core.js`, `server/server.js`; new `test/f106` 29 tests and `test/f107` 10;
+suite 1853/0, browser 69/69)
+
+MK-248 was reported Executed with a live Save change bar on its clause body, and
+the edit filed. negoResolve had carried the signed door for a long time; the
+authoring side asked nothing at all, so the real rule was "you may not rule on a
+change to a signed agreement, but you may author one".
+
+- **E1** merged `origin/claude/clm-clause-renumbering-4imkqd` rather than writing
+  a second `negoExecuted`. That branch already named the predicate, with the
+  argument for reading all three signals (status, seal, execution stamp), plus
+  `negoNumberingLocked`, `negoNumberingGaps` and f98. One definition, not two
+  that agree today. **This also closes the gap recorded in the master work order
+  (X0): those helpers were never on `main`.**
+- **E2** guards `negoFileChange` at the funnel, not at its callers — the fifth
+  caller, the Word-import walk, inherits it without knowing it needs to.
+- **E3** `renderRedline` derives `readonly` from `negoExecuted`, which closes
+  every `canAct`/`editable` gate at once; the room mount in `contract.js` stops
+  asking `status === 'Signed'`; the change index says why it has no verbs.
+- **E4** the server guard already existed (`EXECUTED_IMMUTABLE`) — the work
+  order was wrong to say the route checked nothing. It had two real gaps: the
+  negotiation record (`changes`, `rounds`, `negotiation`, `versions`) was not on
+  the list, so a request could leave the sealed wording alone and rewrite the
+  story of how the parties reached it; and `isExecutedRow` read two signals
+  where the browser reads three (the delete route had already patched the same
+  hole locally, which was the tell). Both closed. `SEAL_ACQUIRABLE` keeps
+  sealing possible on a signed-but-unsealed record, once.
+- **E5** `executedDivergence()` — and the finding that made it necessary:
+  **verifySeal never compared the live body to the sealed copy.** It verifies
+  the frozen copy against itself, so a post-execution edit left the seal
+  reporting valid while the screen showed wording nobody signed. Reports, never
+  repairs; both "repairs" destroy evidence.
+
+**Tests rewritten, not worked around.** f52's room helper filed changes onto an
+already-Signed contract as setup; its `negoResolve` calls were already silent
+no-ops against the signed door, so the acceptances it arranged never existed.
+Now it negotiates first and stamps execution after. f102 gave a Signed fixture a
+document body by PUT, which the guard correctly refuses — MK-A1 ships with its
+body instead (`FIXTURE_BODY_A1` in helpers.js).
+
+**Next:** Stage 1 (WP-1.1 view ticket, N1 linked references, WP-2.2/2.3 capture,
+W9 signer identity) per `EXECUTION-PLAN.md`.
+
+---
+
 ## Template Library & Document Converter (Runs under TEMPLATE_LIBRARY_BRIEF)
 
 **Done** (all four phases; RECON.md, SUMMARY.md Run 7, BUGLOG.md, LOOP_REPORT.md,

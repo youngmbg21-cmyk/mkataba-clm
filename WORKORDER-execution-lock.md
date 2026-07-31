@@ -4,7 +4,8 @@
 **Raised:** 31 Jul 2026 by Young Mbagaya, from MK-248 (Customer Information
 Request, status **Executed**)
 **Severity:** High — evidence integrity. Ships before anything else.
-**Status:** Specified, not started
+**Status:** BUILT — Stage 0 complete (suite 1853/0, browser 69/69). Sections
+2.4, 2.5 and 2.6 corrected against the code during the build.
 
 ---
 
@@ -66,37 +67,58 @@ unset flag renders every verb on a sealed contract. `negoClosedBannerHtml` at
 top of the page while remaining fully editable below it. The banner and the
 buttons disagree, and the buttons win.
 
-### 2.4 The server would not stop it either
+### 2.4 The server stops most of it — CORRECTED
 
-`PUT /api/contracts/:id` (`server/server.js:1371`) validates the id, the folder
-scope, the version, the money fields, and the audit trail. It never asks
-whether the contract it is overwriting has been executed. A crafted request —
-or simply a fixed browser that someone bypasses — writes over a sealed record
-today.
+**This section was wrong when written and is corrected here rather than
+quietly.** `PUT /api/contracts/:id` *does* carry an executed guard
+(`EXECUTED_IMMUTABLE` / `isExecutedRow`, `server/server.js:1363–1416`); the
+original note was written from a read that stopped a few lines short of it. The
+sealed wording, the parties, the money and the seal itself were already
+refused.
 
-This violates the programme's first ground rule: **the server refuses; the UI
-merely hides.** Right now neither does.
+It had two real gaps, and those are what E4 closes:
+
+1. **The negotiation record was not on the list.** `body` and `redlineText`
+   were protected; `changes`, `rounds`, `negotiation` and `versions` were not.
+   A request could leave the sealed wording untouched and rewrite the account
+   of how the parties reached it — who asked for what, who refused it, why.
+   That record is what the history screen (WP-2.1) shows an auditor and what
+   the change-chain verification is computed over.
+2. **The server read two signals where the browser reads three.**
+   `isExecutedRow` asked for a seal or an execution stamp; `negoExecuted` also
+   asks the status. A record marked Signed carrying neither was executed to
+   every screen and unprotected to this route. The delete route
+   (`server/server.js:1453`) had already patched the same hole locally —
+   `isExecutedRow(c) || c.status === 'Signed'` — which is the tell that the
+   two-signal definition was known to be short.
 
 ### 2.5 What the damage looks like
 
 `negoFileChange` writes the change and `negoCommitBody` rewrites `c.body` — the
 text the seal was computed over. The sealed copy (`c.execution.html`) stays as
 it was. So an edit after execution produces a contract whose live wording and
-whose sealed evidence silently disagree: `verifySeal` will report a break on a
-document nobody believes was tampered with, or — worse for the reader — the
-live screen shows wording that the sealed evidence does not contain. Either
-way the audit trail stops meaning what it says.
+whose sealed evidence silently disagree.
 
-### 2.6 One related finding, recorded so it is not assumed away
+**And it is quieter than first written.** `verifySeal` does not catch this: it
+hashes the *frozen copy* against its own `textHash` and the seal string, and
+never compares the live body to what was sealed. So a post-execution edit
+leaves the seal reporting **valid** while the screen shows wording nobody
+signed. There is no error state at all — which is why E5's divergence check is
+necessary rather than belt-and-braces.
+
+### 2.6 One related finding — RESOLVED in build
 
 `WORKORDER-clause-numbering.md` states as already-shipped ground that
 `negoExecuted`, `negoNumberingLocked` and the f98 tests exist, and requires
 every numbering gate to pass through `negoNumberingLocked(c)`. **They exist
 only on the unmerged branch `origin/claude/clm-clause-renumbering-4imkqd`, not
-on `main`.** No `test/f98-*` file exists on `main`. Whoever starts phase N2
-must merge that branch first or build the predicate — it is not there to call.
-This work order builds the same predicate on `main` as **E1**, which resolves
-the gap either way.
+on `main`.** No `test/f98-*` file exists on `main`.
+
+**Resolved at build time:** E1 merged that branch rather than writing a second
+definition of the same predicate. Its `negoExecuted` already carried the
+argument for reading all three signals, and its f98 tests came with it. The
+numbering phases now have the ground they assume, and there is one definition
+rather than two that agree today.
 
 ---
 

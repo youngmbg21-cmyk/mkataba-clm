@@ -289,3 +289,72 @@ describe('the executed workbench offers nothing to press', () => {
       'a reader who expected to edit must be told the contract is sealed');
   });
 });
+
+/* ============================================================
+   6 — the damage already done: reported, never repaired
+   ============================================================
+   The lock stops this happening again. It does nothing about contracts that
+   were already edited after execution while the door stood open, and those are
+   the dangerous ones, because verifySeal does not notice them: the seal is
+   computed over the FROZEN copy, so a rewritten live body leaves the seal
+   perfectly valid and the screen quietly showing wording nobody signed.
+
+   executedDivergence asks the question verifySeal never asked. It answers, and
+   stops. Copying the sealed wording back over the live body would throw away
+   whatever was written after signature with nobody reading it; re-sealing the
+   live body would certify wording the parties never agreed. Both destroy
+   evidence to make a warning go away, which is the failure this whole file
+   exists to prevent. */
+describe('a live document that walked away from its sealed copy', () => {
+  const W = buildWorld();
+  const win = W.win;
+
+  const SEALED = '<p>Payable within thirty (30) days.</p>';
+  function executed(over = {}){
+    return protoContract({ status: 'Signed', hash: 'd'.repeat(64),
+      execution: { at: '2026-07-30T09:00:00.000Z', html: SEALED, hashMode: 'text' },
+      redlineText: SEALED, format: 'rich', ...over });
+  }
+
+  test('an intact executed contract reports nothing', () => {
+    assert.equal(win.executedDivergence(executed()), null,
+      'the common case must be silent, or the warning is noise');
+  });
+
+  test('a reflow of the same words is not a divergence', () => {
+    const c = executed({ redlineText: '<p>Payable   within\n thirty (30)\tdays.</p>' });
+    assert.equal(win.executedDivergence(c), null,
+      'whitespace is not wording — a warning here would fire on every record');
+  });
+
+  test('the same words in a different format are not a divergence', () => {
+    const c = executed({ redlineText: 'Payable within thirty (30) days.', format: 'text' });
+    assert.equal(win.executedDivergence(c), null,
+      'the frozen copy is html and the live body may be text; comparing markup would report everything');
+  });
+
+  test('changed wording IS reported', () => {
+    const c = executed({ redlineText: '<p>Payable within ninety (90) days.</p>' });
+    const d = win.executedDivergence(c);
+    assert.ok(d && d.diverged, 'a live body that says something else must be reported');
+    assert.match(d.detail, /sealed copy remains the evidence/i);
+  });
+
+  test('it reports and changes nothing', () => {
+    const c = executed({ redlineText: '<p>Payable within ninety (90) days.</p>' });
+    const before = JSON.stringify(c);
+    win.executedDivergence(c);
+    assert.equal(JSON.stringify(c), before,
+      'the check is a read — repairing either side would destroy the evidence it found');
+  });
+
+  test('a draft is never asked the question', () => {
+    assert.equal(win.executedDivergence(protoContract({ redlineText: '<p>anything at all</p>' })), null);
+  });
+
+  test('an executed contract with no frozen copy reports nothing', () => {
+    const c = protoContract({ status: 'Signed', hash: 'e'.repeat(64), redlineText: '<p>x</p>' });
+    assert.equal(win.executedDivergence(c), null,
+      'with nothing sealed to compare against there is no claim to make');
+  });
+});

@@ -112,6 +112,51 @@ function negoExecuted(c){
    this first. */
 const negoNumberingLocked = c => negoExecuted(c);
 
+/* ---------- HAS THE LIVE DOCUMENT WALKED AWAY FROM THE SEALED ONE ----------
+   verifySeal (js/core.js) answers "is the frozen copy intact, and does it still
+   hash to the seal". It has never asked the other question: does the wording
+   this workspace SHOWS still match the wording that was signed. Those came
+   apart the moment an edit could be filed after execution (MK-248) —
+   negoCommitBody rewrote the live body while execution.html kept what was
+   signed, and because the seal is computed over the frozen copy, verifySeal
+   went on reporting the record valid. Nothing anywhere said the two disagreed,
+   which makes this the quietest way the product could be wrong.
+
+   REPORTED, NEVER REPAIRED. The obvious "fix" — copy the sealed wording back
+   over the live body, or re-seal the live body — is the one thing this must
+   never do. Both directions destroy evidence: the first throws away whatever
+   was written after signature without anybody reading it, and the second
+   quietly certifies wording the parties never signed. A divergence is a fact
+   about the record; a human decides what it means.
+
+   COMPARED AS TEXT, not as markup. The frozen copy is html and the live body
+   may be text or rich, so a byte comparison would report every executed
+   contract as diverged and the warning would mean nothing within a week.
+   Reducing both to their words answers the question actually being asked: does
+   it still SAY the same thing. Whitespace is normalised for the same reason — a
+   reflow is not an edit. */
+function negoExecutedText(s){
+  const raw = String(s == null ? '' : s);
+  const txt = (/<[a-z][\s\S]*>/i.test(raw) && window.richToText) ? richToText(raw) : raw;
+  return txt.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+}
+function executedDivergence(c){
+  if (!negoExecuted(c)) return null;
+  /* An uploaded contract's evidence is the file itself, hashed at intake. There
+     is no sealed HTML rendering to disagree with. */
+  if (c && c.upload && (c.upload.fileHash || c.upload.fileId)) return null;
+  const sealed = c && c.execution && c.execution.html;
+  if (!sealed) return null;                      // nothing frozen to compare against
+  const live = (c && (c.redlineText || c.body)) || '';
+  if (!live) return null;
+  const a = negoExecutedText(sealed), b = negoExecutedText(live);
+  if (!a || !b || a === b) return null;
+  return { diverged: true, sealedChars: a.length, liveChars: b.length,
+    detail: 'The wording shown here is not the wording that was sealed at execution. '
+      + 'Nothing has been changed either way — the sealed copy remains the evidence of record. '
+      + 'Have someone compare the two before relying on this document.' };
+}
+
 /* ---------- GAPS THIS CONTRACT'S OWN DELETIONS LEFT ----------
    Accepting a deletion removes the clause and closes nothing up: a contract
    numbered 1..24 that loses clause 9 reads 1..8, 10..24 (clauseRemove, and the
@@ -2320,7 +2365,7 @@ function negoMigrate(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
-  negoExecuted, negoNumberingLocked, negoNumberingGaps,
+  negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
