@@ -77,8 +77,8 @@ const REPORT_METRICS=[
   {k:'avgCycle',   label:'Avg cycle · draft→signed', grad:'var(--grad-emerald)', ic:'clock', get:r=>({val:r.avgCycle!=null?Math.round(r.avgCycle)+'d':'—', sub:r.cycleN+' signed sampled'})},
   {k:'ageReview',  label:'Avg age · in review',       grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:Math.round(r.stageAge['Under Review']||0)+'d', sub:'time on counterparty'})},
   {k:'ageDraft',   label:'Avg age · drafting',        grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:Math.round(r.stageAge['Draft']||0)+'d', sub:'time internal'})},
-  {k:'renewal',    label:'Renewal pipeline · 12mo',   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtKESshort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
-  {k:'totalValue', label:'Total portfolio value',     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtKESshort(r.totalValue), sub:r.active+' active contracts'})},
+  {k:'renewal',    label:'Renewal pipeline · 12mo',   grad:'var(--grad-emerald)', ic:'trend', get:r=>({val:fmtMoneyShort(r.pipeTotal), sub:r.pipeMonthsN+' months with expiries'})},
+  {k:'totalValue', label:'Total portfolio value',     grad:'var(--grad-steel)',   ic:'trend', get:r=>({val:fmtMoneyShort(r.totalValue), sub:r.active+' active contracts'})},
   {k:'count',      label:'Contracts · total',         grad:'var(--grad-steel)',   ic:'file',  get:r=>({val:String(r.total), sub:r.active+' active'})},
   {k:'expiring',   label:'Expiring ≤ 90 days',        grad:'var(--grad-amber)',   ic:'clock', get:r=>({val:String(r.expiring90), sub:'need attention'})},
   {k:'avgRisk',    label:'Avg risk score',            grad:'var(--grad-ruby)',    ic:'shield',get:r=>({val:r.avgRisk!=null?String(Math.round(r.avgRisk)):'—', sub:r.highRisk+' high-risk (≥70)'})},
@@ -97,13 +97,13 @@ const emptyMsg = t => `<p style="font-size:12px;color:var(--color-neutral-600)">
 const REPORT_CHARTS=[
   {k:'streamValue', label:'Portfolio value by value stream', render:r=>{
     const e=Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]); const mx=Math.max(1,...e.map(x=>x[1]));
-    return e.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent)')).join('')||emptyMsg('No data.'); }},
+    return e.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent)')).join('')||emptyMsg('No data.'); }},
   {k:'partyValue', label:'Top counterparties by value', render:r=>{
     const mx=Math.max(1,...r.topParty.map(x=>x[1]));
-    return r.topParty.map(([k,v])=>bar(k,v,mx,fmtKESshort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
+    return r.topParty.map(([k,v])=>bar(k,v,mx,fmtMoneyShort(v),'var(--color-accent-700)')).join('')||emptyMsg('No data.'); }},
   {k:'renewalPipe', label:'Renewal pipeline · next 12 months', render:r=>{
     const months=Object.keys(r.pipeline).sort(); const mx=Math.max(1,...Object.values(r.pipeline));
-    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtKESshort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
+    return months.length?months.map(m=>bar(new Date(m+'-01').toLocaleDateString('en-KE',{month:'short',year:'2-digit'}),r.pipeline[m],mx,fmtMoneyShort(r.pipeline[m]),'#2e8763')).join(''):emptyMsg('Nothing expiring in the next 12 months.'); }},
   {k:'roundsType', label:'Negotiation rounds by type (avg)', render:r=>{
     const e=Object.entries(r.roundsByType).filter(([,v])=>v.n).sort((a,b)=>(b[1].rounds/b[1].n)-(a[1].rounds/a[1].n)).slice(0,8);
     const mx=Math.max(1,...Object.values(r.roundsByType).map(x=>x.rounds/x.n));
@@ -241,13 +241,13 @@ function exportReportsCsv(r){
   lines.push(['Avg cycle time draft->signed (days)', r.avgCycle!=null?Math.round(r.avgCycle):''].map(esc).join(','));
   lines.push(['Signed contracts sampled', r.cycleN].map(esc).join(','));
   lines.push([].join(','));
-  lines.push(['Value by value stream','KES'].map(esc).join(','));
+  lines.push(['Value by value stream',jxCurrency()].map(esc).join(','));
   Object.entries(r.byFolder).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>lines.push([k,Math.round(v)].map(esc).join(',')));
   lines.push([].join(','));
-  lines.push(['Top counterparties','KES'].map(esc).join(','));
+  lines.push(['Top counterparties',jxCurrency()].map(esc).join(','));
   r.topParty.forEach(([k,v])=>lines.push([k,Math.round(v)].map(esc).join(',')));
   lines.push([].join(','));
-  lines.push(['Renewal pipeline month','KES'].map(esc).join(','));
+  lines.push(['Renewal pipeline month',jxCurrency()].map(esc).join(','));
   Object.keys(r.pipeline).sort().forEach(m=>lines.push([m,Math.round(r.pipeline[m])].map(esc).join(',')));
   downloadFile(`hati-reports-${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'), 'text/csv');
   toast('Reports exported to CSV');

@@ -170,9 +170,12 @@ function tbPaint() {
     const uses = tbPlaceholderUse(f.fieldKey);
     if (uses) {
       const ok = typeof confirmDialog === 'function'
-        ? await confirmDialog({ title: `Remove “${f.label || f.fieldKey}”?`, message: `Its placeholder {{${f.fieldKey}}} still sits in ${uses} block${uses === 1 ? '' : 's'} and would render as literal text.`, confirmLabel: 'Remove field', danger: true })
+        ? await confirmDialog({ title: `Remove “${f.label || f.fieldKey}”?`, message: `Its marker sits in ${uses} block${uses === 1 ? '' : 's'} of wording — deleting the field replaces the marker with a plain blank there.`, confirmLabel: 'Remove field', danger: true })
         : true;
       if (!ok) return;
+      // the marker goes with the field — orphaned {{code}} never reaches a contract
+      if (window.templateFormStripMarker)
+        _tb.blocks = _tb.blocks.map(b => ({ ...b, content: templateFormStripMarker(b.content, f.fieldKey) }));
     }
     _tb.fields.splice(i, 1); _tb.dirty = true; tbPaint();
   }));
@@ -337,7 +340,7 @@ async function tbPaintBranding() {
         <input id="tb-b-name" style="${INP}" placeholder="Company name" value="${esc(b.companyName)}">
         <input id="tb-b-reg" style="${INP}" placeholder="Registration number" value="${esc(b.registrationNumber)}">
         <input id="tb-b-addr" style="${INP};grid-column:1/-1" placeholder="Registered address" value="${esc(b.address)}">
-        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in Kenya · C.123456)" value="${esc(b.defaultFooterText)}">
+        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in ${jxName()} · C.123456)" value="${esc(b.defaultFooterText)}">
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end">
           <button id="tb-b-save" class="ui-btn" style="font-size:11px;padding:4px 11px">Save branding</button>
         </div>

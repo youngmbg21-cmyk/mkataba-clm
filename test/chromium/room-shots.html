@@ -72,7 +72,7 @@ window.API_MODE = () => false;
 window.nowISO = () => new Date('2026-07-27T09:14:00Z').toISOString();
 window.todayStr = () => '27 Jul 2026';
 window.fmtDT = iso => '27 Jul 2026, 09:14';
-window.fmtKES = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
+window.fmtMoney = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
 window.icon = () => '<svg width="14" height="14"></svg>';
 window.persist = () => {};
 window.saveContract = () => {};
@@ -97,6 +97,7 @@ window.uploadMax = () => 25*1024*1024;
 </script>
 
 <!-- The product's own modules, in js/app.js order, loaded unmodified. -->
+<script src="../../js/jurisdiction.js"></script>
 <script src="../../js/components.js"></script>
 <script src="../../js/templates.js"></script>
 <script src="../../js/core.js"></script>

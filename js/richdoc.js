@@ -45,12 +45,20 @@ const RICH_TAGS = new Set(['P','BR','H1','H2','H3','H4','STRONG','EM','U','S',
    markup is a smaller allowlist than it looks. */
 const RICH_CLAUSE_ATTR = 'data-clause-id';
 const RICH_CLAUSE_ID_RE = /^cl_[a-z0-9]{4,24}$/;
-const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class']),
+const RICH_ATTRS = { OL:new Set(['start','type']), SPAN:new Set(['class','data-field-key']),
   H1:new Set([RICH_CLAUSE_ATTR]), H2:new Set([RICH_CLAUSE_ATTR]),
   H3:new Set([RICH_CLAUSE_ATTR]), H4:new Set([RICH_CLAUSE_ATTR]),
   P:new Set([RICH_CLAUSE_ATTR]) };
 /* The single allowlisted span class: HaTi's own field-placeholder marker. */
 const RICH_FIELD_CLASS = 'hati-field';
+/* The one data attribute a hati-field span may carry: which template-form
+   field the blank belongs to, so a click on the document can route to the
+   right input. Admitted under the same reasoning as data-clause-id — the
+   identity has to live IN the document to survive save and render — and just
+   as narrowly: only on the hati-field span, only in the machine-safe shape
+   field keys take, never interpreted as markup or a selector. */
+const RICH_FIELD_KEY_ATTR = 'data-field-key';
+const RICH_FIELD_KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;
 /* Removed with their contents — these carry no document meaning and every one
    of them is a way to execute or fetch something. */
 const RICH_DROP = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','NOSCRIPT',
@@ -167,6 +175,12 @@ function _stripAttrs(el){
     if(el.tagName==='SPAN' && name==='class'){
       // exactly one class is permitted, and only that one
       if(String(attr.value||'').trim()!==RICH_FIELD_CLASS) el.removeAttribute(attr.name);
+      continue;
+    }
+    if(el.tagName==='SPAN' && name===RICH_FIELD_KEY_ATTR){
+      // only on the hati-field span, and only a machine-safe field key
+      if(String(el.getAttribute('class')||'').trim()!==RICH_FIELD_CLASS
+        || !RICH_FIELD_KEY_RE.test(String(attr.value||''))) el.removeAttribute(attr.name);
       continue;
     }
     if(name===RICH_CLAUSE_ATTR){

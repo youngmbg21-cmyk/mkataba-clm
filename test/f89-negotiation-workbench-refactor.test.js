@@ -548,11 +548,16 @@ describe('F89 (8) — a marked phrase says whose hand it was', () => {
         'a mark with no attribution makes "who asked for this" a question you cannot answer by looking');
   });
 
-  test('the card\'s diff answers the same question the same way', async () => {
+  test('and the card answers it too, now on its meta line', async () => {
+    /* The card used to carry a clamped copy of the redline, and the
+       attribution rode on the marked runs inside it. The copy is gone — the
+       wording lives in the document, which is where the marks above are — so
+       the same question is answered by the line naming the clause and the
+       author, which is on every card, open or collapsed. */
     const p = await page();
-    const mark = p.$('#rl-changes .rl-card-diff ins, #rl-changes .rl-card-diff del');
-    assert.ok(mark);
-    assert.match(mark.getAttribute('title') || '', /Last updated by Amina Wanjiru/);
+    const meta = p.$('#rl-changes .rl-card-meta');
+    assert.ok(meta);
+    assert.match(meta.getAttribute('title') || '', /Last updated by Amina Wanjiru/);
   });
 
   test('a name carrying a quote cannot break out of the attribute', async () => {
@@ -659,24 +664,37 @@ describe('F89 (11,12) — the card verbs, their colours, and where Edit lands', 
 
 });
 
-describe('F89 (14) — a card shows the change, not the clause', () => {
-  test('unchanged wording is stripped from the card', async () => {
+describe('F89 (14) — the card is a handle on the change, not a copy of it', () => {
+  /* IT USED TO BE A COPY. The card carried the redline clamped to two lines,
+     which put the changed wording on screen twice — once in the document pane
+     being read, and again beside it in the lesser version: cut mid-sentence,
+     stripped of its clause, nothing to act on. The scoping engine below is
+     kept and still tested, because ops are rendered wherever a delta is shown;
+     what has gone is the second copy in the sidebar. */
+  test('the card carries no copy of the wording', async () => {
     const p = await page();
-    const card = p.$('#rl-changes .rl-card-diff');
-    const marked = [...card.querySelectorAll('ins, del')].map(n => n.textContent).join('');
-    const all = card.textContent.replace(/…/g, '').trim();
-    assert.ok(marked.length, 'the card must carry the marked wording');
-    assert.equal(all.replace(/\s+/g, ' ').trim(), marked.replace(/\s+/g, ' ').trim(),
-      'everything in the card must be part of the delta — the column is called Tracked Changes');
+    assert.equal(p.$('#rl-changes .rl-card-diff'), null,
+      'the wording lives in the document, and in exactly one place');
+    const body = p.$('#rl-doc .rl-clause.is-changed .nego-body').textContent.replace(/\s+/g, ' ').trim();
+    const card = p.$('#rl-changes .rl-card').textContent.replace(/\s+/g, ' ').trim();
+    const phrase = body.split(' ').slice(2, 8).join(' ');
+    assert.ok(phrase.length, 'the fixture clause has a body to quote from');
+    assert.ok(!card.includes(phrase),
+      'a card repeating the clause is the copy this change removed');
   });
 
-  test('the clause it came from is longer than the card', async () => {
-    // the point of the scoping: the card is a summary, the document is the text
+  test('but the document still marks it, so nothing was lost with the copy', async () => {
     const p = await page();
-    const clause = p.$('#rl-doc .rl-clause.is-changed .nego-body').textContent.trim();
-    const card = p.$('#rl-changes .rl-card-diff').textContent.trim();
-    assert.ok(clause.length > card.length,
-      'a card as long as its clause has scoped nothing');
+    assert.ok(p.$$('#rl-doc .rl-clause.is-changed ins, #rl-doc .rl-clause.is-changed del').length,
+      'the redline is still readable — it moved, it did not go');
+  });
+
+  test('and pressing the card still takes you to it', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes .rl-card');
+    card.click();
+    assert.ok(p.$('#rl-doc .rl-clause.is-linked'),
+      'the card is a handle: the press is how you reach the wording it stands for');
   });
 
   /* Joined rather than deep-compared throughout: rlDeltaOps returns an array
@@ -789,18 +807,41 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     assert.equal(p.post.reshared, 1, 'and the send really goes, on the one click');
   });
 
-  test('after the send the badge reads Sent and the verb turns amber', async () => {
+  test('after the send the card collapses, and the badge is what says so', async () => {
+    /* THE CARD FOLDS WHEN THE MOVE IS NOT YOURS. A sent ask has nothing left
+       for this reader to press — Edit navigates, Sent is a label — so it
+       becomes a line, and the head carries the fact. Opening it again brings
+       the amber Sent back, which the next test pins. */
     const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
     assert.match(p.$('#rl-changes .rl-badge').textContent, /Draft/);
+    assert.ok(p.$('#rl-changes .rl-card-verbs'), 'a draft is open — it has verbs to press');
     p.$('#rl-changes [data-rl-send]').click();
     await new Promise(r => setTimeout(r, 20));
     p.win.renderRedline();
-    assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/);
+    assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/,
+      'the fact stays on the head, which is the part that never folds');
+    const card = p.$('#rl-changes .rl-card');
+    assert.equal(card.getAttribute('data-rl-open'), '0');
+    /* The body is in the DOM and hidden by the shut class rather than removed —
+       that is what lets a hover peek be a class flip instead of a repaint of
+       the whole column. Safe because only cards with nothing to press can be
+       in this state; see _rlCardChoice. */
+    assert.ok(card.classList.contains('rl-card-shut'), 'and the body folds away with it');
+    assert.ok(card.hasAttribute('data-rl-peek'), 'a sent card is one the reader may peek at');
+    assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
+  });
+
+  test('and opening it again puts the amber Sent back where the Send was', async () => {
+    const p = await page({ theirChange: false, myChange: true, email: 'erik@kabras.co.ke' });
+    p.$('#rl-changes [data-rl-send]').click();
+    await new Promise(r => setTimeout(r, 20));
+    p.win.renderRedline();
+    p.$('#rl-changes .rl-card').click();
+    p.win.renderRedline();
     const sent = p.$('#rl-changes button.rl-sent');
-    assert.ok(sent, 'the verb stays in place rather than vanishing');
+    assert.ok(sent, 'the verb is where it was rather than gone');
     assert.equal(sent.textContent.trim(), 'Sent');
     assert.ok(sent.disabled, 'there is nothing further to do to it');
-    assert.ok(!p.$('#rl-changes [data-rl-send]'), 'and it cannot be sent twice');
   });
 
   test('the amber is the specified one, and it is not greyed out', async () => {

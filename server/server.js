@@ -5,6 +5,12 @@
    Run:  npm install && npm start   (http://localhost:3000)
    ============================================================ */
 const express = require('express');
+/* The market this workspace operates in — its law, its money, the statute a
+   signature rests on. Required from js/jurisdiction.js rather than restated
+   here: a second copy would drift from the browser's the first time either
+   moved, and the two would then describe different markets to the same model. */
+const { jxPack, JX_DEFAULT } = require('../js/jurisdiction.js');
+const orgJx = () => jxPack(((typeof getSetting === 'function' && getSetting('org')) || {}).jurisdiction || JX_DEFAULT);
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -2103,10 +2109,10 @@ app.post('/api/ai/extract', auth, rlAiLight, aiFeature('extract'), aiBudgetGuard
         effectiveDate: { type: 'string', description: 'ISO yyyy-mm-dd, or empty.' },
         expiryDate: { type: 'string', description: 'ISO yyyy-mm-dd end/expiry date, or empty.' },
         value: { type: 'number', description: 'Contract value as a number (no currency symbol). 0 if none/non-monetary.' },
-        currency: { type: 'string', description: 'ISO code e.g. KES, USD. Empty if none.' },
+        currency: { type: 'string', description: 'ISO currency code as written in the document, e.g. KES, SEK, USD. Empty if none.' },
         renewalType: { type: 'string', enum: ['auto-renew', 'fixed', 'evergreen', 'unknown'], description: 'Renewal mechanism.' },
         noticePeriodDays: { type: 'number', description: 'Notice period in days for termination/non-renewal. 0 if none/unclear.' },
-        governingLaw: { type: 'string', description: 'e.g. Kenya, England & Wales. Empty if unclear.' },
+        governingLaw: { type: 'string', description: 'e.g. Kenya, Sweden, England & Wales. Empty if unclear.' },
         paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
         confidence: { type: 'object', properties: {
           counterparty: conf, contractType: conf, effectiveDate: conf, expiryDate: conf, value: conf,
@@ -2171,7 +2177,7 @@ app.post('/api/ai/blanks', auth, rlAiLight, aiFeature('blanks'), aiBudgetGuard, 
       properties: {
         fields: { type: 'array', maxItems: 24, items: { type: 'object', properties: {
           key: { type: 'string', description: 'lower_snake_case placeholder name, letters/digits/underscore only, max 32 chars.' },
-          label: { type: 'string', description: 'Short human label, e.g. "Counterparty" or "Monthly rent (KES)".' },
+          label: { type: 'string', description: 'Short human label, e.g. "Counterparty" or "Monthly rent".' },
           type: { type: 'string', enum: ['text', 'party', 'num', 'date', 'select'], description: 'party = the name of the other company. num = a number. date = a calendar date. select = a fixed choice list.' },
           opts: { type: 'array', items: { type: 'string' }, description: 'For select only: the allowed values.' },
           required: { type: 'boolean', description: 'True if a contract cannot be issued without it.' },
@@ -2277,7 +2283,8 @@ app.post('/api/ai/playbook', auth, rlAiDeep, aiFeature('playbook'), aiBudgetGuar
       required: ['verdicts'],
     },
   };
-  const prompt = `You are a Kenyan contracts reviewer. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
+  const J = orgJx();
+  const prompt = `You are a contracts reviewer practising under ${J.adjective} law. Judge the DOCUMENT against the PLAYBOOK for a ${kind || 'contract'}. For every playbook position and range, return a verdict (aligned / deviation / missing) with a verbatim quote where present, the preferred position, and — for deviations or missing items — a suggested redline in the preferred wording. Mark escalate=true where the playbook flags Legal approval. Return via playbook_review.\n\nPLAYBOOK:\n${JSON.stringify(playbook || {})}\n\nDOCUMENT:\n${String(text).slice(0, 20000)}`;
   try {
     const resp = await anthropicMessages(key, 'deep', { max_tokens: 2500, tools: [tool], tool_choice: { type: 'tool', name: 'playbook_review' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'playbook' });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
@@ -2470,14 +2477,14 @@ const COPILOT_TOOLS = [
     input_schema: { type: 'object', properties: { query: { type: 'string', description: 'Keywords, counterparty name, or clause topic.' } }, required: ['query'] } },
   { name: 'get_contract', description: 'Fetch one contract in full by its id (e.g. MK-103): metadata, dates, value, status, open Copilot-scan findings, body text, AND its negotiation record — the round, whose turn it is, and every tracked change with who proposed it, its status, who decided it and any reason given. Use before answering about, or quoting, a specific contract, and for any question about edits, additions, rounds or versions.',
     input_schema: { type: 'object', properties: { id: { type: 'string', description: 'Contract id, e.g. MK-103.' } }, required: ['id'] } },
-  { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic Kenyan-practice scan). Empty if it has not been scanned.',
+  { name: 'get_scan_findings', description: 'Fetch just the open risk/missing/ambiguity findings for one contract id (from the deterministic local-practice scan). Empty if it has not been scanned.',
     input_schema: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] } },
   { name: 'list_portfolio', description: 'List/filter contracts across the whole workspace by status, folder, expiry horizon, or minimum value. Use for aggregate questions ("what expires in 90 days", "pending contracts", "high-value deals").',
     input_schema: { type: 'object', properties: {
       status: { type: 'string', enum: ['Draft', 'Under Review', 'Signed', 'Declined'], description: 'Optional status filter.' },
       folder: { type: 'string', description: 'Optional value-stream folder id.' },
       expiringWithinDays: { type: 'number', description: 'Optional: only contracts expiring within this many days.' },
-      minValue: { type: 'number', description: 'Optional: only contracts worth at least this many KES.' } } } },
+      minValue: { type: 'number', description: 'Optional: only contracts worth at least this much, in the workspace currency.' } } } },
   { name: 'compare_contracts', description: 'Fetch two or more contracts in full at once for a side-by-side comparison. Prefer this over multiple get_contract calls when comparing.',
     input_schema: { type: 'object', properties: { ids: { type: 'array', items: { type: 'string' }, minItems: 2, maxItems: 4, description: 'The contract ids to compare.' } }, required: ['ids'] } },
   { name: 'deliver_answer', description: 'Deliver the final grounded answer to the user. Call this once — and only once — after gathering what you need. Reference contracts by name and id, and cite the ones you used.',
@@ -2520,7 +2527,7 @@ function buildCopilotSystem(context, scopeCtx) {
   if (ctx.view) view += `The user is currently on the "${ctx.view}" screen. `;
   if (ctx.activeContractId) view += `The contract open on screen is ${ctx.activeContractId}${ctx.activeContractName ? ' (' + ctx.activeContractName + ')' : ''} — assume an unqualified "this contract" means that one. `;
   if (ctx.clause) view += `They are looking at the "${ctx.clause}" area of the document. `;
-  return `You are HaTi Copilot, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform for the Kenyan market (${orgName}). You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
+  return `You are HaTi Copilot, the contract-intelligence assistant embedded in HaTi — a Contract Lifecycle Management platform (${orgName}), operating in ${orgJx().name}. You help a busy contracts/legal/commercial team read, search, compare and understand their own contract portfolio.
 
 ${view ? 'CURRENT VIEW: ' + view + '\n' : ''}WORKSPACE: ${total} contracts (${byStatus}).${folders.length ? ' Value-stream folders: ' + folders.join(', ') + '.' : ''}
 
@@ -2543,7 +2550,7 @@ HOW TO WORK:
 - Use the tools to fetch real data before answering. Never state a value, date, party, clause or finding you have not fetched. If you cannot find something, say so plainly.
 - To answer about a specific contract, call get_contract first. For "compare X and Y", call compare_contracts. For portfolio-wide questions, use list_portfolio. When the user names a party or topic instead of an id, use search_contracts.
 - QUESTIONS ABOUT EDITS, ADDITIONS, ROUNDS OR VERSIONS are answered from get_contract's "negotiation" block — it carries every tracked change with its id, clause, who proposed it, its status, who decided it and any reason given, plus the round, whose turn it is and the version history. Count and quote from that rather than guessing, and say plainly if a contract has no negotiation on it. If "changesOmitted" is above zero the list was capped — say so rather than reporting the visible ones as the total.
-- Contract ids look like MK-103. Money is in Kenyan Shillings (KES).
+- Contract ids look like MK-103. Money is in ${orgJx().currency}.
 - LEAD WITH THE ANSWER, not a list. Say what the data means (counts, totals, the standout item, what to watch) before naming contracts. Cite at most 3 of the most relevant contracts unless the user explicitly asks for the full list; for broad matches, summarize the aggregate and offer to list the rest or drill into one.
 - Always finish by calling deliver_answer exactly once. Cite the contracts you used. When you compared 2+ contracts, fill in the compare table.
 
@@ -2675,7 +2682,7 @@ app.get('/api/export/contracts.csv', auth, (req, res) => {
   if (req.query.status) { where.push('status=@status'); args.status = String(req.query.status); }
   const rows = db.prepare(`SELECT json FROM contracts ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY seq DESC`).all(args)
     .map(r => { try { return JSON.parse(r.json); } catch (_) { return null; } }).filter(Boolean);
-  const head = ['ID', 'Name', 'Counterparty', 'Folder', 'Value (KES)', 'Status', 'Last action', 'Expiry'];
+  const head = ['ID', 'Name', 'Counterparty', 'Folder', `Value (${orgJx().currency})`, 'Status', 'Last action', 'Expiry'];
   const monetary = c => c.valueType !== 'none';
   const lines = [head.map(CSV_CELL).join(',')];
   for (const c of rows) {
@@ -3834,7 +3841,7 @@ function notifyShareResponse(s, r) {
       : r.action === 'decline'
         ? `${who} declined "${cName}".${r.comment ? `\n\nReason:\n${r.comment}` : ''}`
         : `${who} sent "${cName}" back with notes.${r.comment ? `\n\nNotes:\n${r.comment}` : ''}` +
-          `${r.proposedValue ? `\n\nProposed value: KES ${Number(r.proposedValue).toLocaleString('en-KE')}` : ''}` +
+          `${r.proposedValue ? `\n\nProposed value: ${orgJx().currency} ${Number(r.proposedValue).toLocaleString(orgJx().locale)}` : ''}` +
           `${r.proposedText ? `\n\nProposed edits (redline) are on the contract in HaTi — open Negotiation to review the diff.` : ''}`;
     for (const to of shareOwnerEmails(s))
       sendEmail(to, subject, `${detail}\n\nThe response has been recorded on the contract in HaTi.`, `share response: ${r.action}`);
@@ -4552,10 +4559,28 @@ app.post('/api/templates/:id/versions/:vid/publish', auth, templateManager, pass
     if (!clean(f.label)) problems.push(`Field “${f.field_key}” has no label`);
     if (f.control === 'guided' && !f.options.length) problems.push(`Guided field “${f.label || f.field_key}” has no options to choose from`);
   }
+  /* Marker ↔ field consistency, both directions. An orphaned {{marker}} is
+     how deleted fields once reached contracts as literal code — it BLOCKS
+     publish and names itself, so the fix is one obvious edit away. */
+  const fieldKeys = new Set(fields.map(f => f.field_key));
+  const placed = new Set();
+  for (const bl of blocks) {
+    for (const m of String(bl.content || '').matchAll(/\{\{([a-z0-9_.]+)\}\}/gi)) {
+      placed.add(m[1]);
+      if (!fieldKeys.has(m[1]))
+        problems.push(`The wording still mentions “${m[1]}” but no field with that name exists — remove the marker from the wording, or add the field back`);
+    }
+  }
   if (problems.length) return res.status(400).json({ error: problems[0], problems });
   const warnings = [];
   if (!blocks.some(b => b.block_type === 'signature_block') && !fields.some(f => f.field_type === 'signature_name_title'))
     warnings.push('No signature block — contracts from this template will have nowhere to sign');
+  for (const f of fields) {
+    // signature/stamp fields live in the signing flow, never inline — only
+    // typed fields are expected to sit somewhere in the wording
+    if (!placed.has(f.field_key) && !['signature_name_title', 'stamp_image'].includes(f.field_type))
+      warnings.push(`Field “${f.label || f.field_key}” is not placed in any wording block — it will appear only on the fill form`);
+  }
   const changeNote = clean((req.body || {}).changeNote).slice(0, 500);
   txn(() => {
     db.prepare("UPDATE template_versions SET status='superseded', updated_at=? WHERE template_id=? AND status='published'").run(now(), t.id);
@@ -4644,7 +4669,7 @@ app.post('/api/contracts/:id/save-as-template', auth, templateManager, passwordC
       needles: [c.counterparty].filter(Boolean) },
     { key: 'counterparty_email', label: 'Counterparty email', type: 'email',
       needles: [c.counterpartyEmail].filter(Boolean) },
-    { key: 'contract_value', label: 'Contract value (KES)', type: 'currency',
+    { key: 'contract_value', get label(){ return `Contract value (${orgJx().currency})`; }, type: 'currency',
       needles: money > 0 ? [money.toLocaleString('en-US'), String(money)] : [] },
     { key: 'effective_date', label: 'Effective date', type: 'date',
       needles: [c.fields && c.fields.effDate].filter(Boolean) },
@@ -4941,7 +4966,7 @@ Rebuild it as blocks and fields:
 - Recognise blanks in ALL these shapes: an empty table cell beside a label; underscore runs (____); bracket placeholders like [INSERT NAME], [●] or [ ]; and inline phrases such as "whose registered address is ______".
 - An asterisk or the word "required" beside a label means required: true.
 - Legal articles, clauses and boilerplate paragraphs are fixed_text blocks, never fields.
-- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block.
+- Signature, stamp and date-signed areas map to signature_name_title and stamp_image fields inside a signature_block. NEVER place a signature or stamp field's {{marker}} inside any block's content: the whole execution area ("Signed for X … Name … Title … Date …") is replaced by one signature_block per signing party whose content names who signs (e.g. "Buyer director"), and its longhand wording is dropped.
 - Where a blank sits inside wording, emit a field_group block whose content keeps the wording with {{field_key}} in the blank's place. A table of label/blank pairs becomes one field_group block listing "Label: {{field_key}}" lines.
 - Choose the most specific field_type the label supports (kenya_tax_id for KRA PIN, email for email addresses, phone for telephone numbers, national_id for ID numbers, date for dates, currency for amounts). Unsure of the type: use short_text with confidence: low.
 - Never invent a field that is not in the source document. Every field's {{field_key}} must appear in exactly one block.
@@ -4980,7 +5005,28 @@ function tplConvertClean(input) {
       content: String(b.content == null ? '' : b.content).slice(0, 60000) });
   }
   blocks.sort((a, b) => a.order_index - b.order_index);
-  return { blocks, fields, problems };
+  /* Signature reconciliation. The prompt forbids signature/stamp markers
+     inside wording, but the model sometimes writes the execution area out
+     longhand ("Signed for BUYER … {{buyer_signature}} …") AND the renderer
+     draws a signature block — the user then sees the area twice, once as
+     code. Any wording block that carries a signature-type marker IS the
+     signature area: it becomes a signature_block named for who signs, and
+     the longhand wording (markers and all) is dropped. */
+  const sigKeys = new Set(fields.filter(f => ['signature_name_title', 'stamp_image'].includes(f.field_type)).map(f => f.field_key));
+  const reconciled = [];
+  for (const b of blocks) {
+    const carriesSig = b.block_type !== 'signature_block'
+      && [...sigKeys].some(k => b.content.includes(`{{${k}}}`));
+    if (!carriesSig) { reconciled.push(b); continue; }
+    // "Signed for BUYER: GULIZ LLC By (Signature) …" → "BUYER: GULIZ LLC"
+    const m = /signed\s+for\s+(?:the\s+)?["“]?([^{]{2,60}?)\s*(?:\bby\b|\{\{|$)/i.exec(b.content);
+    const party = clean(m ? m[1] : '').replace(/["”:,\s]+$/, '').trim() || 'Signature';
+    const prev = reconciled[reconciled.length - 1];
+    if (!(prev && prev.block_type === 'signature_block' && prev.content === party))
+      reconciled.push({ order_index: b.order_index, block_type: 'signature_block', content: party.slice(0, 120) });
+    problems.push(`signature wording (“${party}”) was rebuilt as a signature block`);
+  }
+  return { blocks: reconciled, fields, problems };
 }
 
 app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDeep, aiFeature('template_convert'), aiBudgetGuard, async (req, res) => {

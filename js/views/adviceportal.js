@@ -79,11 +79,11 @@ function renderAdviceIntake(){
       <div style="display:flex;align-items:center;gap:8px">
         <span style="width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:5px;background:var(--color-accent-100);color:var(--color-accent-800)">${icon(s.ic,'w-4 h-4')}</span>
         <span style="font-size:13px;font-weight:600;line-height:1.25;min-width:0">${s.name}</span>
-        <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-accent-800);white-space:nowrap">${fmtKES(r.rate)}<span style="font-weight:400;color:var(--color-neutral-500)">/hr</span></span>
+        <span style="margin-left:auto;flex:none;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--color-accent-800);white-space:nowrap">${fmtMoney(r.rate)}<span style="font-weight:400;color:var(--color-neutral-500)">/hr</span></span>
       </div>
       <p style="font-size:11px;color:var(--color-neutral-600);margin:7px 0 8px;line-height:1.5">${s.blurb}</p>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:10px">
-        <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:999px;padding:2px 8px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtKESshort(r.rate*r.hoursMin)}–${fmtKESshort(r.rate*r.hoursMax)}</span>
+        <span style="background:var(--color-bg);border:1px solid var(--color-divider);border-radius:999px;padding:2px 8px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums">typically ${r.hoursMin}–${r.hoursMax} hrs · ${fmtMoneyShort(r.rate*r.hoursMin)}–${fmtMoneyShort(r.rate*r.hoursMax)}</span>
         <span style="background:#e8f4ee;border:1px solid #cfe7d9;border-radius:999px;padding:2px 8px;color:#1e6b4d;font-variant-numeric:tabular-nums">feedback in ~${r.days} business day${r.days===1?'':'s'}</span>
       </div>
     </label>`;
@@ -229,9 +229,9 @@ function renderAdviceTracking(r){
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text);margin:0 0 8px">Your fee estimate</h2>
-        ${row('Hourly rate', q.rate?fmtKES(q.rate)+' / hr':'—')}
+        ${row('Hourly rate', q.rate?fmtMoney(q.rate)+' / hr':'—')}
         ${row('Typical effort', q.rate?`${q.hoursMin}–${q.hoursMax} hrs`:'—')}
-        ${row('Estimate range', q.rate?`${fmtKESshort(q.rate*q.hoursMin)}–${fmtKESshort(q.rate*q.hoursMax)}`:'—')}
+        ${row('Estimate range', q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
         ${row('Urgency', r.urgency==='priority'?'Priority':'Standard')}
         ${r.contractName?row('Contract', pesc(r.contractName)):''}
         <p style="font-size:10.5px;color:var(--color-neutral-500);margin:10px 0 0;line-height:1.55">The final fee is confirmed with you at Scoping before billable work starts — you will never be invoiced beyond what is agreed there.</p>

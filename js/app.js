@@ -2,6 +2,7 @@
 // execution order, then nav + shell wiring + boot.
 import './components.js';
 import './templates.js';
+import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './core.js';
 import './docx.js';
 import './richdoc.js';
@@ -70,7 +71,7 @@ function openNavSection(sec, open){
 function commandMeta(view){
   const cs=state.contracts, count=cs.length;
   const m=(window.metrics?metrics():{totalValue:0});
-  const totalV=fmtKESshort(m.totalValue||0);
+  const totalV=fmtMoneyShort(m.totalValue||0);
   switch(view){
     case 'dashboard': {
       // agreements, not files: a master agreement plus six addenda is ONE
@@ -81,8 +82,7 @@ function commandMeta(view){
       return ['Portfolio', `${head} · ${totalV} active value`];
     }
     case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
-    case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
-    case 'tpl-library': return ['Template Library', 'company standard templates — versioned, permissioned, and the parent of every contract they spawn'];
+    case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
@@ -197,7 +197,8 @@ function updateSidebarCounts(){
     calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
       const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
-    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
+    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
+      + (window.tplLibCount?tplLibCount():0),
   };
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
@@ -215,7 +216,6 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
-  'tpl-library':'Template Library',
   team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
   redline:'the Redline workbench' };
 
@@ -267,7 +267,6 @@ function setView(view){
     else if(view==='pipeline') renderPipeline();
     else if(view==='advice') renderAdviceDesk();
     else if(view==='templates') renderTemplatesPage();
-    else if(view==='tpl-library') renderTemplateLibrary();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
     else if(view==='doclab') renderDocLab();
@@ -340,10 +339,18 @@ function renderNewMenu(){
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   const myTpls=(window.customTemplates&&canEdit())?customTemplates():[];
+  /* Company standard templates (the versioned library) sit above the built-in
+     papers: the whole point of publishing one is that it becomes the team's
+     one-click default. Served from the library cache; a background refresh
+     re-renders the open menu when the list has moved. */
+  const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   menu.innerHTML=`
     ${item('upload','#f1e6cd','#7d5a14','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--color-accent-100)','var(--color-accent-800)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
     ${item('sparkle','var(--color-accent-200)','var(--color-accent-800)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${libTpls.length?`
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
+    ${libTpls.map(t=>item('copy','#e8f4ee','#1e6b4d',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
     ${myTpls.map(t=>item('copy','var(--color-accent-100)','var(--color-accent-800)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
@@ -356,6 +363,8 @@ function renderNewMenu(){
   // contract's data (counterparty, value, dates, payment terms).
   menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
+  menu.querySelectorAll('[data-newlib]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); tplLibNewContract(el.getAttribute('data-newlib')); }));
+  if(API_MODE()&&window.tplLibRefresh) tplLibRefresh().then(changed=>{ if(changed&&!menu.classList.contains('hidden')) renderNewMenu(); });
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
@@ -367,7 +376,7 @@ function exportWorkingSetCsv(){
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
   if(!rows.length){ toast('Nothing to export','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Stream','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
@@ -540,10 +549,20 @@ function toggleTheme(){
   try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
   if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
 }
-/* Jurisdiction switcher (top header): a workspace compliance profile — SE
-   (EU/GDPR) or KE (KICA/ODPC). Presentation-level for now: it selects which
-   regulatory frame the UI speaks in; it does not rewrite any contract data. */
-const REGIONS={ SE:{ label:'Sweden (EU/GDPR)' }, KE:{ label:'Kenya (KICA/ODPC)' } };
+/* ---------- Jurisdiction switcher (top header) ----------
+   This control existed and did nothing: it set a data attribute and told the
+   reader their jurisdiction had switched, while the app went on formatting
+   money as KES, telling the Copilot the contract was under Kenyan law, and
+   citing a Kenyan Act on the executed copy. A switch that reports a change it
+   did not make is worse than no switch, because the reader believes it.
+
+   It is wired now. The code is the pack id from js/jurisdiction.js, so
+   pressing it moves the currency, the governing-law sentences, the scanner's
+   statute checks and the playbook's positions together — and the screen is
+   repainted, because half the app would otherwise keep showing the old market
+   until something else happened to redraw it. */
+const REGIONS={ SE:{ id:'sweden', label:'Sweden (EU/GDPR)' }, KE:{ id:'kenya', label:'Kenya (KICA/ODPC)' } };
+const regionCodeFor = id => Object.keys(REGIONS).find(k=>REGIONS[k].id===id) || 'KE';
 function applyRegion(code){
   state.region=code;
   const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
@@ -553,9 +572,14 @@ function applyRegion(code){
 }
 function setRegion(code,opts){
   if(!REGIONS[code]) return;
+  /* The jurisdiction is the record; the code is this control's label for it. */
+  if(window.jxSet) jxSet(REGIONS[code].id);
   applyRegion(code);
   try{ localStorage.setItem('hati-region',code); }catch(e){}
-  if(!(opts&&opts.silent) && window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label}`);
+  if(opts&&opts.silent) return;
+  /* Everything on screen was rendered against the old market. */
+  if(window.setView) setView(state.view||'dashboard');
+  if(window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label} — money, governing-law checks and Copilot briefings follow it`);
 }
 
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */
@@ -627,8 +651,11 @@ function wireShell(){
   document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
   document.getElementById('region-se')?.addEventListener('click',()=>setRegion('SE'));
   document.getElementById('region-ke')?.addEventListener('click',()=>setRegion('KE'));
-  let savedRegion=null; try{ savedRegion=localStorage.getItem('hati-region'); }catch(e){}
-  setRegion(REGIONS[savedRegion]?savedRegion:'KE',{silent:true});
+  /* The stored JURISDICTION is the truth, not this control's own key: a
+     workspace that set its market on another device (it rides on the org
+     record) must not have it silently reverted by whatever this browser last
+     had in localStorage. */
+  setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
 }
 
 // default panel state — closed on load/refresh; the user opens it with the

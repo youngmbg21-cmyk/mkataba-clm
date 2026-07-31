@@ -93,7 +93,7 @@ function contractRow(c, {showFolder=false}={}){
     ${(()=>{ const o=openFindings(c); if(!o.length) return '';
       const sm=SEV_META[worstSevOf(o)];
       return `<span class="hidden md:inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${sm.chip}" title="Open scan findings">${icon('scan','w-2.5 h-2.5')}${o.length}</span>`; })()}
-    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</span>
+    <span class="hidden sm:block text-xs font-mono whitespace-nowrap ${isMonetary(c)?'text-brand-900':'text-brand-800/60'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</span>
     <span class="shrink-0">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span>
     <span class="text-brand-300 group-hover:text-brand-500 transition shrink-0">${icon('chevR')}</span>
   </button>`;
@@ -103,3 +103,81 @@ function wireOpens(root=document){
 }
 
 Object.assign(window,{esc,contractRow,wireOpens});
+
+/* ============================================================
+   A FIELD YOU CAN SEE WHAT YOU TYPED IN
+   ============================================================
+   Every message box in this product was an <input type="text">: one line, no
+   wrapping, and content that scrolls sideways out of view as you write. Past
+   about a dozen words the beginning of your own sentence is gone — on a reply
+   to a counterparty, on a thread starter, on the question you are putting to
+   the Copilot. You cannot re-read what you are about to send, which is exactly
+   the moment re-reading matters.
+
+   So they are textareas that grow. One line at rest, so a column of them looks
+   no busier than it did; taller as you write; and past `max-height` they stop
+   growing and scroll, because a composer that can push the send button off the
+   bottom of the panel has traded one problem for a worse one.
+
+   ENTER STILL SENDS. That habit is the whole reason these were inputs, and
+   breaking it to gain wrapping would be a poor trade. Shift+Enter is the
+   newline — the convention every chat surface uses — and it is the one thing
+   here a reader has to be told, so the placeholder-adjacent hint says it where
+   there is room for one.
+
+   `chatFieldWire` is idempotent: these panels repaint constantly and a field
+   wired twice would grow twice per keystroke. */
+const CHAT_FIELD_CLASS = 'chat-field';
+function chatFieldGrow(el){
+  if (!el || !el.style) return;
+  /* Measured from scratch each time: shrinking needs the height released
+     first, or a field that only ever grew would never come back down after a
+     delete. */
+  el.style.height = 'auto';
+  /* A FIELD NOBODY CAN SEE CANNOT BE MEASURED. The sidebar has two faces and
+     only one is mounted at a time, so the composers on the other are inside a
+     display:none subtree where scrollHeight reads 0 — and writing 0px would
+     leave a zero-height box the moment that panel was shown. Left at `auto`
+     instead, and re-measured when the panel appears (rlSetSideMode calls back
+     in). */
+  if (!el.scrollHeight) return;
+  const max = parseFloat(el.dataset.chatMax || '0');
+  el.style.height = Math.min(el.scrollHeight, max > 0 ? max : Infinity) + 'px';
+}
+function chatFieldWire(root){
+  const scope = root || document;
+  if (!scope.querySelectorAll) return;
+  scope.querySelectorAll('textarea.' + CHAT_FIELD_CLASS).forEach(el => {
+    if (el.dataset.chatWired) { chatFieldGrow(el); return; }
+    el.dataset.chatWired = '1';
+    if (!el.dataset.chatMax){
+      const max = parseFloat(getComputedStyle(el).maxHeight);
+      if (max && isFinite(max)) el.dataset.chatMax = String(max);
+    }
+    el.addEventListener('input', () => chatFieldGrow(el));
+    /* A paste is not an input event on every browser path, and a pasted
+       paragraph is the case that most needs the box to open up. */
+    el.addEventListener('paste', () => setTimeout(() => chatFieldGrow(el), 0));
+    chatFieldGrow(el);
+  });
+}
+/* The keydown rule, in one place so the six composers cannot drift into
+   disagreeing about what Enter does. Returns true when the caller should send.
+   IME composition is excluded: mid-composition Enter commits the candidate
+   word, and treating that as "send" posts a half-typed message. */
+function chatFieldSubmits(ev){
+  if (!ev || ev.key !== 'Enter') return false;
+  if (ev.shiftKey || ev.altKey || ev.ctrlKey || ev.metaKey) return false;
+  if (ev.isComposing || ev.keyCode === 229) return false;
+  ev.preventDefault();
+  return true;
+}
+/* Reset after a send: the box has to come back to one line, or the next reply
+   is typed into a five-line hole where the last one was. */
+function chatFieldReset(el){
+  if (!el) return;
+  el.value = '';
+  chatFieldGrow(el);
+}
+
+Object.assign(window,{CHAT_FIELD_CLASS,chatFieldGrow,chatFieldWire,chatFieldSubmits,chatFieldReset});

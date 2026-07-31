@@ -24,7 +24,7 @@ function adviceCard(r){
     : left===0 ? 'due today' : `${left}d left`;
   const etaCol = done ? 'var(--color-neutral-500)' : left!=null&&left<0 ? '#b0453c' : left!=null&&left<=1 ? '#7d5a14' : 'var(--color-neutral-600)';
   const q=r.quote||{};
-  const fee=q.rate?`${fmtKESshort(q.rate*q.hoursMin)}–${fmtKESshort(q.rate*q.hoursMax)}`:'—';
+  const fee=q.rate?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—';
   const ini=(r.assignee||'').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
   return `
     <div data-adv-card="${r.id}" ${drag?'draggable="true"':''} class="q-card" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;box-shadow:var(--shadow-sm);padding:11px 12px;cursor:${drag?'grab':'pointer'};display:flex;flex-direction:column;gap:5px">
@@ -81,7 +81,7 @@ function renderAdviceDesk(){
       ${kpi('Due in 48h',dueSoon,dueSoon?'#7d5a14':undefined)}
       ${kpi('Overdue',overdue,overdue?'#b0453c':undefined)}
       ${kpi('Delivered · 30d',delivered30,'#1e6b4d')}
-      ${kpi('Projected fees · active',fmtKESshort(projected))}
+      ${kpi('Projected fees · active',fmtMoneyShort(projected))}
       <span style="flex:1"></span>
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <button id="adv-rates" class="ui-btn">${icon('coins','w-3.5 h-3.5')} Rate card</button>
@@ -177,8 +177,8 @@ function openAdviceModal(id){
         ${row('Email', esc(r.email||'—'))}
         ${r.contractName?row('Contract', esc(r.contractName)):''}
         ${row('Urgency', r.urgency==='priority'?'Priority (+25% rate, half turnaround)':'Standard')}
-        ${row('Rate', q.rate?fmtKES(q.rate)+' / hr':'—')}
-        ${row('Estimate', q.rate?`${q.hoursMin}–${q.hoursMax} hrs ≈ ${fmtKESshort(q.rate*q.hoursMin)}–${fmtKESshort(q.rate*q.hoursMax)}`:'—')}
+        ${row('Rate', q.rate?fmtMoney(q.rate)+' / hr':'—')}
+        ${row('Estimate', q.rate?`${q.hoursMin}–${q.hoursMax} hrs ≈ ${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'—')}
         ${row('Feedback due', `<span style="font-family:var(--font-mono)">${fmtDay(r.eta)}</span>`)}
       </div>
       ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:5px;background:var(--color-bg);padding:9px 11px;font-size:12px;line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
@@ -249,7 +249,7 @@ function openRateCardModal(){
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 12px;line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase">
-          <th style="padding:6px 10px 6px 0;font-weight:600">Service</th><th style="padding:6px;font-weight:600">KES / hr</th><th style="padding:6px;font-weight:600">Hrs min</th><th style="padding:6px;font-weight:600">Hrs max</th><th style="padding:6px 0 6px 6px;font-weight:600">Days</th>
+          <th style="padding:6px 10px 6px 0;font-weight:600">Service</th><th style="padding:6px;font-weight:600">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:600">Hrs min</th><th style="padding:6px;font-weight:600">Hrs max</th><th style="padding:6px 0 6px 6px;font-weight:600">Days</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -284,7 +284,7 @@ function openAdviceIntakeModal(){
       <h2 style="font-family:var(--font-heading);font-weight:600;font-size:18px;margin:0 0 4px">Log an advice request</h2>
       <p style="font-size:12px;color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5">For requests that arrive by phone or email — the customer still gets a tracking link.</p>
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono)">Service</span>
-        <select id="ai-service" style="${inputStyle}">${Object.values(ADVICE_SERVICES).map(s=>{const r=adviceRateFor(s.id);return `<option value="${s.id}">${s.name} — ${fmtKES(r.rate)}/hr</option>`;}).join('')}</select></label>
+        <select id="ai-service" style="${inputStyle}">${Object.values(ADVICE_SERVICES).map(s=>{const r=adviceRateFor(s.id);return `<option value="${s.id}">${s.name} — ${fmtMoney(r.rate)}/hr</option>`;}).join('')}</select></label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         ${field('ai-name','Customer name *','e.g. Grace Njeri')}
         ${field('ai-email','Customer email *','grace@company.co.ke','email')}

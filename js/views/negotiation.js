@@ -1475,7 +1475,7 @@ function negoLiveCardsHtml(c, opts){
             <button type="button" class="v-int" data-nego-vis="internal" data-for="${_ne(ch.id)}" aria-pressed="false">\uD83D\uDD12 Internal</button>
             <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">\uD83C\uDF10 Send to them</button>
           </div>
-          <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"/>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply on this change…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
           ${''/* "Send", because that is what it does: the comment goes to the
                   other side on the discussion channel the moment it is
                   pressed. It was briefly "Save" to keep it apart from the
@@ -2998,7 +2998,7 @@ async function negoBatchConfirm(c, kind, split){
    gone is the claim that it can draft. */
 const NEGO_AI_ACTIONS = [
   { id: 'advantage', label: '🪄 Rephrase for Buyer/Supplier Advantage',
-    ask: 'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
+    get ask(){ return `Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under ${jxLaw()}.`; } },
   { id: 'risk', label: '🔍 Explain Legal Risk',
     ask: 'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain: true },
   { id: 'shorten', label: '✂️ Shorten Wording',
@@ -3116,7 +3116,7 @@ async function negoAiPropose(c, ctx){
   })();
   const messages = [{ role: 'user', content:
     `${action.ask}\n\n`
-    + `You are helping negotiate a contract governed by Kenyan law. `
+    + `You are helping negotiate a contract governed by ${jxLaw()}. `
     + `The party I act for is ${side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
     + (pbLine ? pbLine + ' ' : '')
     + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
@@ -4039,7 +4039,9 @@ function wireNegotiationTab(c, opts = {}){
     const inp = byId('nego-ti-' + id);
     if (inp){
       inp.addEventListener('click', e => e.stopPropagation());
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); send(); } });
+      inp.addEventListener('keydown', e => {
+        if (window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key === 'Enter' && (e.preventDefault(), true))) send();
+      });
     }
   });
 
@@ -4538,15 +4540,53 @@ function redlineLayoutCss(){
   .redline-page .rl-origin-them{background:#e0e7ff;color:#3730a3;border:1px solid rgba(99,102,241,.4)}
   html.dark .redline-page .rl-origin-us{background:rgba(5,150,105,.18);color:#6ee7b7}
   html.dark .redline-page .rl-origin-them{background:rgba(99,102,241,.2);color:#c7d2fe}
-  .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);margin-bottom:7px;line-height:1.5}
-  /* The same size as the clause it is a diff of — see --rl-type.
-     CLAMPED TO TWO LINES: the card is a pointer at the redline, not the
-     redline itself — the full expanded scope lives on the contract canvas,
-     one click away, and a stack of uniform two-line cards scans in a way a
-     stack of variable ones cannot. The marked runs keep their colours inside
-     the clamp: what shows is redline, what overflows is reachable. */
+  .redline-page .rl-card-meta{font-size:10.5px;color:var(--color-neutral-500);line-height:1.5}
+  /* ---- THE CARD NO LONGER CARRIES THE REDLINE ----
+     It used to, clamped to two lines, which put the changed wording on screen
+     twice: once in the document pane being read and again in a lesser copy
+     beside it — cut mid-sentence, no surrounding clause, nothing to act on.
+     The card is the HANDLE; the wording lives in the document, one click away
+     (the click is already wired, see rlLinkFocus). .rl-card-diff is kept as a
+     rule so an embed that still emits one is not left unstyled. */
   .redline-page .rl-card-diff{font-size:var(--rl-type);line-height:1.6;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:7px}
+  .redline-page .rl-card-note,.redline-page .rl-card-verbs{margin-top:8px}
+  /* ---- OPEN, OR A LINE ----
+     A collapsed card is the head alone. The caret is the only thing saying
+     there is more under it, so it is always drawn rather than revealed on
+     hover — a control you have to discover by hovering is a control half the
+     readers never find. It is a button in its own right because collapsing is
+     its job alone: pressing the CARD means "take me to this change", and a
+     reader navigating to a clause must not have the card fold up for it. */
+  .redline-page .rl-caret{flex:none;border:0;background:none;padding:0 2px;margin:0;cursor:pointer;
+    font-size:9px;line-height:1;color:var(--color-neutral-500);transition:transform .15s,color .15s;
+    display:inline-block;transform:rotate(0deg)}
+  .redline-page .rl-caret:hover{color:var(--color-text)}
+  .redline-page .rl-caret-open{transform:rotate(180deg)}
+  .redline-page .rl-caret:focus-visible{outline:2px solid var(--color-accent);border-radius:3px}
+  /* Tighter, because a collapsed card is a row in a list rather than a panel. */
+  .redline-page .rl-card-shut{padding:9px 12px}
+  .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
+  /* ---- SHUT HIDES THE BODY; A PEEK PUTS IT BACK ----
+     display:none rather than height or opacity, so a hidden verb is out of the
+     tab order and out of the accessibility tree as well as off the screen. The
+     body is in the DOM either way — that is what lets a peek be a class on the
+     live node instead of a repaint (see _rlCardChoice). */
+  .redline-page .rl-card-shut .rl-card-body{display:none}
+  .redline-page .rl-card-shut.is-peek{padding:11px 12px}
+  .redline-page .rl-card-shut.is-peek .rl-card-body{display:block}
+  .redline-page .rl-card-shut.is-peek .rl-card-top{margin-bottom:5px}
+  /* A peek is a lighter state than a pin: it lifts, it does not ring. The ring
+     is .is-linked, which means "this is the change the document is showing". */
+  .redline-page .rl-card[data-rl-peek]{transition:box-shadow .12s,border-color .12s}
+  .redline-page .rl-card-shut.is-peek{border-color:var(--color-neutral-300);
+    box-shadow:0 1px 6px rgba(15,23,42,.07)}
+  html.dark .redline-page .rl-card-shut.is-peek{box-shadow:0 1px 6px rgba(0,0,0,.35)}
+  /* The caret earns a pointer only where there is something to fold. */
+  .redline-page .rl-card:not([data-rl-peek]) .rl-caret{opacity:.45;cursor:default}
+  @media (prefers-reduced-motion: reduce){
+    .redline-page .rl-card[data-rl-peek]{transition:none}
+  }
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
@@ -4651,13 +4691,21 @@ function redlineLayoutCss(){
     white-space:pre-wrap;overflow-wrap:anywhere}
   .redline-page .rl-reply,.redline-page .rl-starter{margin-top:9px}
   .redline-page .rl-starter{border-top:1px solid var(--color-divider);padding:11px 14px;flex:none}
-  .redline-page .rl-reply-row{display:flex;align-items:center;gap:6px}
-  .redline-page .rl-reply-row input{flex:1;min-width:0;border:1px solid var(--color-divider);
+  /* flex-end, not centre: the composer is a textarea that grows now, and a
+     send button centred against a five-line box floats in the middle of it. */
+  .redline-page .rl-reply-row{display:flex;align-items:flex-end;gap:6px}
+  .redline-page .rl-reply-row input,.redline-page .rl-reply-row textarea{flex:1;min-width:0;
+    border:1px solid var(--color-divider);
     background:var(--color-neutral-100);border-radius:8px;padding:6px 10px;font:inherit;font-size:11.5px;
     color:inherit;outline:none}
-  .redline-page .rl-reply-row input:focus{border-color:var(--color-accent-500)}
+  .redline-page .rl-reply-row input:focus,.redline-page .rl-reply-row textarea:focus{border-color:var(--color-accent-500)}
   .redline-page .rl-reply-row button{flex:none;width:28px;height:28px;border:0;border-radius:8px;
     background:var(--accent-solid);color:#fff;cursor:pointer;font-size:13px}
+  /* The shared composer look, repeated inside this page's own stylesheet
+     because the workbench also mounts as an EMBED on the counterparty portal,
+     which does not carry the shell's head. Same declarations as index.html. */
+  .redline-page textarea.chat-field{resize:none;overflow-y:auto;max-height:7.5em;line-height:1.5;
+    white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;box-sizing:border-box}
   .redline-page .nego-visswitch{display:flex;gap:4px;margin-bottom:6px}
   .redline-page .nego-visswitch button{border:1px solid var(--color-divider);background:var(--color-surface);
     border-radius:7px;padding:3px 8px;font:inherit;font-size:10px;font-weight:600;cursor:pointer;
@@ -4989,6 +5037,9 @@ function renderRedline(){
   });
   redlineLayoutCss();
   const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  /* A pin is a working preference on THIS contract's column. Carrying it to the
+     next contract would open a card the reader has never seen. */
+  rlCardForgetPins(c && c.id);
   /* Recorded on the paint, not on the navigation: however the reader arrived —
      the tab, the register, a link — the bench now knows what is on it. */
   _redlineHeldId = c ? c.id : null;
@@ -5229,11 +5280,16 @@ function renderRedline(){
            timestamp. Moving it first and sending after would put the word
            "Sent" on a card while the send was still in flight, and leave it
            there if the send failed. */
-        negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
+        const handed = negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
         if (window.persist) persist(c);
+        /* "It is now their turn" is only true when the turn actually moved. A
+           second batch sent while it was already theirs must not claim the
+           table changed hands — see negoHandOver. */
+        const moved = handed ? handed.moved !== false : false;
+        const turnLine = moved ? ' — it is now their turn' : '';
         if (window.toast) toast(out && out.delivered
-          ? `Sent to ${to} — it is now their turn`
-          : `Published to ${to}'s link — it is now their turn. Send them the link if it was not emailed.`,
+          ? `Sent to ${to}${turnLine}`
+          : `Published to ${to}'s link${turnLine}. Send them the link if it was not emailed.`,
           out && out.delivered ? undefined : 'err');
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
@@ -5263,12 +5319,19 @@ function renderRedline(){
        this one exists for the negotiation table the workbench is. */
     onSendDecisions(){
       const who = window.FIRST_PARTY || 'the owner';
-      if (!negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' })){
-        if (window.toast) toast('It is already their turn', 'err');
+      const out = negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
+      if (!out){
+        /* Genuinely nothing to do now: the turn is theirs AND nothing of ours
+           is waiting to go. The old message said only the first half, and said
+           it over a column of unsent drafts — see negoHandOver for the dead end
+           that produced. */
+        if (window.toast) toast(`Nothing to send — it is already ${who}'s turn and every ask of yours has gone`, 'err');
         return;
       }
       if (window.persist) persist(c);
-      if (window.toast) toast(`Handed back to ${who} — it is now their turn`);
+      if (window.toast) toast(out.moved === false
+        ? `Sent to ${who} — it was already their turn, so the table has not moved`
+        : `Handed back to ${who} — it is now their turn`);
       renderRedline();
     },
     /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
@@ -5339,6 +5402,11 @@ function renderRedline(){
     }));
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
+  /* The composers on this page are rebuilt by every repaint, and a textarea
+     that grows is a textarea that has to be re-measured — otherwise a reply
+     half-written when a card lands elsewhere comes back one line tall with the
+     rest of it hidden. chatFieldWire is idempotent by design. */
+  if (window.chatFieldWire) chatFieldWire(host);
   Object.keys(_keepScroll).forEach(id => {
     const el = document.getElementById(id);
     if (el) el.scrollTop = _keepScroll[id];
@@ -5408,7 +5476,7 @@ const RL_SEL_ACTIONS = [
      it, I will approve it". */
   { id: 'edit', label: '✨ Edit with Copilot', converse: true, placements: true,
     noteLabel: 'Edit',
-    ask: 'Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    get ask(){ return `Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under ${jxLaw()}.`; },
     greeting: 'What would you like to add or change here?' },
   /* No placements: a shortening that inserts is not a shortening. The action
      carries its own instruction and cannot mean anything but a replacement, so
@@ -5767,15 +5835,20 @@ async function rlAiPropose(ctx){
             : `${where} the selected passage, which is being kept`}. Draft for that placement.`
         : ''].filter(Boolean).join('\n');
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction, history, placements: action.placements === true });
+      playbook: pbLine, instruction, history, clauseLabel: negoClauseLabel(cl),
+      placements: action.placements === true });
     if (!made) return null;
     return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
       placements: action.placements === true, headingText: made.headingText,
       clauseLabel: negoClauseLabel(cl), replacing: text, onApply: applyWording, onRefine: refine };
   };
-  const propose = async instruction => {
+  /* `history` is the exchange in the panel so far, handed over by aiSubmit. The
+     first instruction in a session used to travel without it, which is how
+     "combine them" reached the model as a pronoun with nothing to point at. */
+  const propose = async (instruction, history) => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction: instruction || '', placements: action.placements === true });
+      playbook: pbLine, instruction: instruction || '', history: history || '',
+      clauseLabel: negoClauseLabel(cl), placements: action.placements === true });
     if (!made) return false;
     const card = window.aiOpenProposal ? aiOpenProposal({ advice: made.advice,
       proposedText: made.proposedText, strict: made.strict,
@@ -5792,7 +5865,8 @@ async function rlAiPropose(ctx){
 
   if (action.converse && window.aiOpenRephraseSession){
     aiOpenRephraseSession({ passage: text, clauseLabel: negoClauseLabel(cl),
-      greeting: action.greeting, onPropose: instruction => propose(instruction) });
+      greeting: action.greeting,
+      onPropose: (instruction, session, extra) => propose(instruction, (extra && extra.history) || '') });
     return;
   }
   try{
@@ -5875,6 +5949,137 @@ function rlTagInternalNote(ctx){
    the `nb-`/`nw-` ids the two-pane comparison mints, and this page draws one
    document with `data-nego-card-anchor` instead. Calling it would silently do
    nothing, which is what it did. */
+/* ---------- WHEN A CARD IS OPEN, AND WHEN IT IS A LINE ----------
+   The card used to carry the redline itself, which put the changed wording on
+   the screen twice: once in the document pane the reader is looking at, and
+   again in a two-line clamp beside it. The clamp was the lesser copy — cut
+   mid-sentence, no surrounding clause, no way to act on it — and a column of
+   them made six asks look like six paragraphs.
+
+   So the card is a HANDLE now: who asked, on what, where it stands, and the
+   verbs. The wording lives in exactly one place, and clicking the card takes
+   you there (rlLinkFocus, unchanged).
+
+   OPEN WHILE IT NEEDS YOU, A LINE WHEN IT DOES NOT. That is the whole rule,
+   and it falls out of the record rather than being set anywhere:
+
+     · your unsent draft      — open. It has verbs you are about to press.
+     · their pending ask      — open. Accept and Reject have to be in reach.
+     · your sent ask          — collapsed. The next move is theirs.
+     · anything decided       — collapsed. It is history until you reopen it.
+
+   A reader can always overrule it by pressing the card, and that choice is
+   remembered for the session — including collapsing something the rule would
+   open, because a reader working through a long column knows which ones they
+   have finished with better than the rule does. */
+/* ---- A CHOICE ABOUT A CARD IN A STATE, NOT ABOUT A CARD FOREVER ----
+   This was a pair of id Sets, and remembering an id forever was the bug: press
+   a sent card to check it went — the most natural move there is, right after
+   sending — and it never folded again, through every later state change. From
+   the reader's chair the feature simply did not work: "the cards are not
+   collapsing."
+
+   The mirror of it is the dangerous half. A card SHUT by hand while it was your
+   draft stayed shut when the counterparty answered and it came back carrying
+   Accept and Reject — live controls, on a decision waiting on you, hidden
+   behind a preference expressed about something else.
+
+   So the choice is stored against the state it was made in. The card's verb set
+   IS that state — it is what the open/shut rule reads, so anything that changes
+   the rule's answer also changes the key — and when it moves, the choice lapses
+   and the rule takes over again. */
+/* ---- PEEK, PIN, AND THE ONE THING THAT MUST NEVER HAPPEN ----
+   Working through a round left a column of cards the reader had opened and now
+   had to close one by one. So a card you have merely LOOKED at closes itself,
+   and a card you have committed to stays:
+
+     pointer in / focus in   → peek. Not remembered, not a decision.
+     pointer out / focus out → collapse again, after a short grace (see
+                               RL_CARD_PEEK_MS) so crossing the gap between the
+                               head and the buttons does not slam it shut.
+     click                   → PIN. Remembered, and still jumps to the change.
+     click elsewhere         → unpin. One pinned card at a time.
+     caret                   → collapse now, pinned or not.
+
+   THE EXEMPTION IS THE WHOLE SAFETY ARGUMENT. A card that has something for you
+   to press — Accept, Reject, Send, Retract, Undo, Withdraw — never peeks and
+   never auto-collapses. It is open on the rule and stays open.
+
+   Without that, this feature would fold a card away while the reader's mouse
+   was travelling toward the button on it. That is the same wound as the stale
+   open/shut choice we already shipped and fixed once (a card shut by hand
+   staying shut when Accept and Reject arrived on it), in a worse form: there,
+   the control was hidden before you looked; here it would vanish while you
+   watched. Which is why a peeked card only ever contains INERT verbs — Edit,
+   which navigates, and the disabled Sent, which is a label.
+
+   The peek is a CLASS on the live node, never a repaint. Re-rendering the
+   column on mouseenter would fight the pointer, lose a half-typed reply in the
+   Discussion panel beside it, and drop the very node the event came from. */
+const RL_CARD_PEEK_MS = 180;
+const _rlCardChoice = new Map();    // id -> { open, key } — the PINS
+/* Pins belong to the contract they were made on, and to this visit. Not
+   persisted (a working preference is not a setting) and dropped when the
+   reader moves to another contract, so a pin cannot arrive on a card the
+   reader has never seen. */
+let _rlPinnedFor = null;
+function rlCardForgetPins(contractId){
+  const id = String(contractId == null ? '' : contractId);
+  if (_rlPinnedFor === id) return;
+  _rlPinnedFor = id;
+  _rlCardChoice.clear();
+}
+/* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
+   so that a clause being renamed underneath a card does not count as a state
+   change. */
+function rlCardStateKey(verbs){
+  return (verbs || [])
+    .map(v => (String(v).match(/data-(?:rl|nego)-[a-z]+(?:-[a-z]+)*(?==)/g) || []).join('+'))
+    .sort().join('|');
+}
+/* READ OFF THE VERBS, not off the status. Enumerating states here would be a
+   second copy of the rule that builds the verbs a hundred lines below, and the
+   two would disagree the first time either moved — a held decision whose Undo
+   the reader cannot see, or a settled card kept open for nothing.
+
+   So the question is asked of the card itself: does it offer anything to DO?
+   Edit and Sent do not count. Edit navigates (it opens the clause in the
+   document, which pressing the card does anyway) and Sent is a disabled label.
+   Everything else — Accept, Reject, Withdraw, Undo, Change decision, Retract,
+   Send — is a move waiting on this reader, and a move you cannot see is a move
+   you do not make. Matched on the data attributes the handlers and the tests
+   both query, so a new verb cannot be added without this seeing it. */
+const RL_CARD_INERT = /data-rl-edit|data-rl-sent/;
+function rlCardNeedsYou(verbs){
+  return (verbs || []).some(v => !RL_CARD_INERT.test(String(v)));
+}
+function rlCardIsOpen(ch, verbs){
+  const id = ch && ch.id;
+  const choice = id ? _rlCardChoice.get(id) : null;
+  if (choice && choice.key === rlCardStateKey(verbs)) return choice.open;
+  return rlCardNeedsYou(verbs);
+}
+/* Pressing a collapsed card opens it; pressing the caret on an open one shuts
+   it. Deliberately NOT a toggle on the whole card: the card's click already
+   means "take me to this change in the contract", and a reader navigating to a
+   clause must not have the card fold up underneath them for doing it. */
+function rlCardSetOpen(id, open, stateKey){
+  if (!id) return;
+  /* ONE PINNED CARD AT A TIME. Pinning a second is the reader saying they have
+     moved on from the first, and a column of pins is the pile this feature
+     exists to stop. */
+  if (open) _rlCardChoice.clear();
+  _rlCardChoice.set(id, { open: !!open, key: String(stateKey == null ? '' : stateKey) });
+}
+/* Let go of every pin. The document-level click uses this: pressing anywhere
+   that is not a card is the reader moving on. Returns whether anything changed,
+   so the caller can skip a repaint nobody would see. */
+function rlCardUnpinAll(){
+  if (!_rlCardChoice.size) return false;
+  _rlCardChoice.clear();
+  return true;
+}
+
 function rlLinkFocus(c, changeId, source){
   const page = document.getElementById('view-redline')
     || document.querySelector('.redline-page.rl-embed');
@@ -5999,8 +6204,98 @@ function rlWireClauseTools(c, host, opts){
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
      its way to deciding a change. */
+  /* ---- PEEK: LOOKING AT A CARD IS NOT DECIDING ANYTHING ----
+     A class on the live node, never a repaint — see _rlCardChoice. Only cards
+     marked data-rl-peek take part: one carrying Accept, Reject, Send or Undo
+     is open on the rule and must not fold away while the reader's mouse is on
+     its way to the button.
+
+     The close is delayed and cancellable because a card is not one rectangle
+     to a pointer: crossing from the head to the verbs can leave the element
+     for a frame, and an undelayed collapse slams shut mid-reach. */
+  let _peekTimer = null;
+  const peekOff = card => { if (card && card.classList) card.classList.remove('is-peek'); };
+  const peekOn = card => {
+    if (!card || !card.classList) return;
+    if (_peekTimer){ clearTimeout(_peekTimer); _peekTimer = null; }
+    /* One at a time, so moving down the column does not leave a trail open. */
+    host.querySelectorAll('#rl-changes .rl-card.is-peek').forEach(o => { if (o !== card) peekOff(o); });
+    card.classList.add('is-peek');
+  };
+  const peekLater = card => {
+    if (_peekTimer) clearTimeout(_peekTimer);
+    _peekTimer = setTimeout(() => { _peekTimer = null; peekOff(card); }, RL_CARD_PEEK_MS);
+  };
+  host.querySelectorAll('#rl-changes [data-nego-card][data-rl-peek]').forEach(card => {
+    card.addEventListener('mouseenter', () => peekOn(card));
+    card.addEventListener('mouseleave', () => peekLater(card));
+    /* Keyboard gets the same affordance: there is no hover on a tab key, and
+       the cards are focusable. A focus moving INSIDE the card (to Edit) is not
+       a focus leaving it. */
+    card.addEventListener('focusin', () => peekOn(card));
+    card.addEventListener('focusout', ev => {
+      const to = ev && ev.relatedTarget;
+      if (to && card.contains && card.contains(to)) return;
+      peekLater(card);
+    });
+  });
+
   host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
-    card.addEventListener('click', () => rlLinkFocus(c, card.getAttribute('data-nego-card'), 'card')));
+    card.addEventListener('click', () => {
+      const id = card.getAttribute('data-nego-card');
+      /* A COLLAPSED CARD OPENS ON THE SAME PRESS THAT NAVIGATES. Two presses to
+         reach the verbs on a card you have just scrolled to would be one press
+         too many, and the reader has already said which change they mean. An
+         open card is left open — see rlCardSetOpen for why this is not a
+         toggle. */
+      if (card.getAttribute('data-rl-open') === '0'){
+        /* A click is a commitment where a hover was not: this one stays open
+           until the reader pins another or presses somewhere else. */
+        rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
+        again();
+        /* The card was re-rendered underneath us, so the focus runs against the
+           new one rather than the node this handler was bound to. */
+        rlLinkFocus(c, id, 'card');
+        return;
+      }
+      rlLinkFocus(c, id, 'card');
+    }));
+
+  /* ---- AND THE CARET SHUTS IT AGAIN ----
+     Its own control, and the only one that closes: it stops propagation so
+     collapsing a card does not also drag the document to that clause, which is
+     the opposite of what somebody tidying a column wants. */
+  host.querySelectorAll('#rl-changes [data-rl-caret]').forEach(btn =>
+    btn.addEventListener('click', ev => {
+      ev.preventDefault(); ev.stopPropagation();
+      const id = btn.getAttribute('data-rl-caret');
+      const card = btn.closest ? btn.closest('[data-nego-card]') : null;
+      /* The caret on a card that cannot fold is inert — it is drawn faded for
+         exactly that reason. Pressing it must not pin the card shut and take
+         Accept and Reject off the screen. */
+      if (card && !card.hasAttribute('data-rl-peek')) return;
+      peekOff(card);
+      rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true',
+        card && card.getAttribute('data-rl-state'));
+      again();
+    }));
+
+  /* ---- PRESSING ANYWHERE ELSE LETS THE PIN GO ----
+     Bound once per mount, on the document, because "somewhere else" is by
+     definition outside the column. Capture is deliberate: a handler inside the
+     page that stops propagation (the clause tools do) would otherwise leave a
+     pin standing after the reader had plainly moved on. */
+  if (!host._rlUnpinBound){
+    host._rlUnpinBound = true;
+    document.addEventListener('click', ev => {
+      const col = document.getElementById('rl-changes');
+      /* Gone from the page — a repaint into another view. Nothing to do. */
+      if (!col || !col.isConnected) return;
+      const t = ev && ev.target;
+      if (t && col.contains && col.contains(t)) return;
+      if (rlCardUnpinAll()) renderRedline();
+    }, true);
+  }
 
   /* ---- CONTRACT → CARD ----
      And the same in reverse, from the clause. Two things are deliberately not
@@ -6094,6 +6389,9 @@ function rlSetSideMode(mode){
   /* Every mounted workbench root — the page or an embed — so a preference
      set on one is what any other paints with. */
   document.querySelectorAll('.redline-page').forEach(root => rlApplySideMode(root, m));
+  /* The face that just appeared has composers in it that could not be measured
+     while it was hidden — see chatFieldGrow. */
+  if (window.chatFieldWire) document.querySelectorAll('.redline-page').forEach(r => chatFieldWire(r));
   return m;
 }
 /* The old fold's name, kept as the compatibility surface: the master design
@@ -6652,9 +6950,6 @@ function redlineChangeCardsHtml(c, opts = {}){
        either one answers the same question with the same words. */
     const lastBy = String(ch.author || ch.by || '').trim();
     const tip = lastBy ? `Last updated by ${lastBy}` : '';
-    const diff = window.redlineOpsHtml && ch.ops
-      ? redlineOpsHtml(rlDeltaOps(ch.ops), { title: tip })
-      : _ne(ch.proposedText || ch.newText || '');
     /* A note is the AUTHOR's aside — the 🔒 on it is a promise, and the wall
        applies to the toggle too: it renders only on the side that wrote it.
        A Copilot rationale filed with an owner ask must not appear the moment
@@ -6737,16 +7032,38 @@ function redlineChangeCardsHtml(c, opts = {}){
     const origin = theirs
       ? `<span class="rl-origin rl-origin-them" title="Proposed by ${_nea(originOrg)}${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Counterparty</span>`
       : `<span class="rl-origin rl-origin-us" title="Proposed by your side${ch.by || ch.author ? ' — ' + _nea(ch.by || ch.author) : ''}">Your Ask</span>`;
-    return `<article class="rl-card" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
+    /* Open or a line — see rlCardIsOpen. A collapsed card keeps its head and
+       nothing else; the note and the verbs are what unfold. The caret is the
+       only affordance saying there is more, so it is drawn on every card that
+       can collapse rather than on hover. */
+    const open = rlCardIsOpen(ch, verbs);
+    /* A card with something to press never peeks and never folds itself away —
+       see the comment on _rlCardChoice for why that exemption is the whole
+       safety argument for this behaviour. */
+    const mayPeek = !rlCardNeedsYou(verbs);
+    /* THE BODY IS ALWAYS RENDERED, and hidden by CSS when the card is shut.
+       A peek can then be a class on the live node rather than a repaint of the
+       column — repainting on mouseenter would fight the pointer and drop the
+       node the event came from. Safe only because of the exemption above: a
+       card that can be in the hidden state carries nothing but inert verbs. */
+    const body = `<div class="rl-card-body">${note}${
+      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
+    const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
+        data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
+        title="${open ? 'Collapse this card' : 'Open this card'}"
+        aria-label="${open ? 'Collapse' : 'Open'} ${_nea(ch.id)}">&#9662;</button>`;
+    return `<article class="rl-card${open ? '' : ' rl-card-shut'}" data-nego-card="${_ne(ch.id)}" data-rl-origin="${theirs ? 'them' : 'us'}"${
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
-      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} tabindex="0">
-      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}</span>
+      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
+      mayPeek ? ' data-rl-peek="1"' : ''}${
+      ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
+      } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
+      <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
-      <div class="rl-card-diff">${diff}</div>
-      ${note}${verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}
+      ${body}
     </article>`;
   }).join('');
 }
@@ -6973,7 +7290,7 @@ function redlineDiscussionHtml(c, opts = {}){
           <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(ch.id)}" aria-pressed="true">&#127760; Send to them</button>
         </div>
         <div class="rl-reply-row">
-          <input type="text" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"/>
+          <textarea class="chat-field" rows="1" id="nego-ti-${_ne(ch.id)}" placeholder="Reply…" aria-label="Reply on change ${_ne(ch.id)}"></textarea>
           <button data-nego-send="${_ne(ch.id)}" title="Send this reply">&uarr;</button>
         </div>
       </div>` : ''}
@@ -7000,7 +7317,7 @@ function redlineDiscussionHtml(c, opts = {}){
         <button type="button" class="v-sh" data-nego-vis="shared" data-for="${_ne(target.id)}" aria-pressed="false">&#127760; Shared</button>
       </div>
       <div class="rl-reply-row">
-        <input type="text" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"/>
+        <textarea class="chat-field" rows="1" id="nego-ti-${_ne(target.id)}" placeholder="Start a thread on ${_ne(target.id)}…" aria-label="Start a thread on change ${_ne(target.id)}"></textarea>
         <button data-nego-send="${_ne(target.id)}" title="Start the thread">&uarr;</button>
       </div>
       <p class="rl-starter-note">Internal is the default — a forgotten field stays home, never the other way round.</p>
@@ -7049,6 +7366,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
+  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
+  rlCardForgetPins, RL_CARD_PEEK_MS,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,

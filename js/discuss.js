@@ -239,8 +239,8 @@ function discussPointReplyHtml(topic, messages, opts){
     <div style="margin-top:7px;font-size:11px;color:var(--color-neutral-600)">${e(disabledNote)}</div>` : '');
   return `${thread}
     <div style="display:flex;gap:6px;align-items:center;margin-top:8px;flex-wrap:wrap">
-      <input data-point-body="${e(idp)}" type="text" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
-        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"/>
+      <textarea data-point-body="${e(idp)}" class="chat-field" rows="1" placeholder="${e(placeholder || 'Reply on this point — a sentence, not a redraft')}"
+        style="flex:1;min-width:150px;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:11.5px;background:var(--color-surface);outline:none"></textarea>
       <button data-point-send="${e(idp)}" data-point-topic="${e(topic)}" data-point-label="${e((opts&&opts.label)||'')}" class="ui-btn" style="flex:none;font-size:11px;padding:6px 12px">Send</button>
     </div>
     <div data-point-out="${e(idp)}" style="margin-top:6px"></div>
@@ -251,6 +251,9 @@ function discussPointReplyHtml(topic, messages, opts){
    same kind of thing and land in the same thread. */
 function wireDiscussPoints(opts){
   const { send, onSent } = opts || {};
+  /* The composers this panel just drew are growing textareas; measuring them
+     here is what makes a two-line reply visible as it is typed. */
+  if (typeof window !== 'undefined' && window.chatFieldWire) chatFieldWire(document);
   document.querySelectorAll('[data-point-send]').forEach(btn => {
     const idp = btn.getAttribute('data-point-send');
     btn.addEventListener('click', async () => {

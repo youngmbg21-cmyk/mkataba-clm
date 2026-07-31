@@ -1254,6 +1254,10 @@ function renderTemplatesPage(){
 
     <div>${folderLegendHtml()}</div>
 
+    <!-- Company standard templates (the versioned library) render here — one
+         page for every kind of paper, not a second screen to know about. -->
+    <div id="tpl-company-section"></div>
+
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${my.length?'12px':'6px'}">
         <h4 style="${H4}">My templates</h4>
@@ -1269,7 +1273,7 @@ function renderTemplatesPage(){
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
         <h4 style="${H4}">HaTi standard templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, Kenyan practice defaults</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, ${jxAdjective()} practice defaults</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${builtinCards}</div>
     </section>
@@ -1277,7 +1281,7 @@ function renderTemplatesPage(){
     <section style="${CARD}">
       <div style="display:flex;align-items:baseline;gap:10px;padding:13px 16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="${H4}">HaTi sample documents</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world Kenyan examples — import one to start your library</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world ${jxAdjective()} examples — import one to start your library</span>
       </div>
       ${sampleRows}
     </section>
@@ -1299,6 +1303,7 @@ function renderTemplatesPage(){
     if(!templateAllowedForRole(t.id, currentUser()?.role||'viewer')){ toast('That template is not open to your role','err'); return; }
     openBulkCreateModal(t); }));
   document.querySelectorAll('[data-sample-imp]').forEach(b=>b.addEventListener('click',()=>importHatiSample(Number(b.getAttribute('data-sample-imp')), b)));
+  if(window.renderCompanyTemplatesSection) renderCompanyTemplatesSection();
   setActiveNav('templates');
 }
 

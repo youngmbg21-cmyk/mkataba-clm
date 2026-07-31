@@ -686,7 +686,7 @@ function resolveRound(c, n, accept, opts={}){
     c.value=Number(r.proposedValue);
     c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
   }
-  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to KES ${Number(r.proposedValue).toLocaleString('en-KE')}`:''}`);
+  logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to ${fmtMoney(r.proposedValue)}`:''}`);
   persist(c); renderWorkspace();
   toast(`Round ${n} ${accept?'accepted':'rejected'}`);
 }

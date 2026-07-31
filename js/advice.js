@@ -20,7 +20,7 @@ const ADVICE_SERVICES = {
   draft:       { id:'draft',       name:'Contract Drafting',             ic:'pencil', blurb:'A new contract drafted from your instructions, ready to negotiate and sign.' },
   advice:      { id:'advice',      name:'Contract Advice Session',       ic:'msg',    blurb:'A focused written opinion on a specific contract question — obligations, termination, renewal, disputes.' },
   negotiation: { id:'negotiation', name:'Negotiation & Redline Support', ic:'users',  blurb:'Counsel works the counterparty’s markup with you — positions, counter-redlines and settlement wording.' },
-  compliance:  { id:'compliance',  name:'Regulatory & Compliance Check', ic:'shield', blurb:'A contract or template checked against Kenyan regulatory requirements for your sector.' },
+  compliance:  { id:'compliance',  name:'Regulatory & Compliance Check', ic:'shield', get blurb(){ return `A contract or template checked against ${jxAdjective()} regulatory requirements for your sector.`; } },
 };
 const ADVICE_DEFAULT_RATES = {
   review:      { rate:8500,  hoursMin:3, hoursMax:6, days:3 },

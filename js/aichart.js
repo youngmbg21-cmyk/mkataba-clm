@@ -62,7 +62,7 @@ function aiChartSweep(){
 const _acContracts = () => ((window.state && Array.isArray(state.contracts)) ? state.contracts : [])
   .filter(c => c && c.status !== 'Declined');
 const _acAll = () => ((window.state && Array.isArray(state.contracts)) ? state.contracts : []);
-const _acMoney = n => (typeof window.fmtKES === 'function' ? fmtKES(n) : 'KES ' + Number(n || 0).toLocaleString('en-KE'));
+const _acMoney = n => (typeof window.fmtMoney === 'function' ? fmtMoney(n) : `${typeof jxCurrency==='function'?jxCurrency():''} ` + Number(n || 0).toLocaleString());
 const _acVal = c => Number((c && c.value) || 0);
 const _acExpiry = c => (typeof window.effectiveExpiry === 'function' ? effectiveExpiry(c) : (c && c.expiry)) || null;
 const _acDays = iso => (typeof window.daysUntil === 'function' ? daysUntil(iso)

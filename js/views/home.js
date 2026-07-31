@@ -204,7 +204,7 @@ function renderDashboard(){
   // The exposure figure on an expiring card is a money total. Without the
   // right, the card still earns its place — it just says WHEN instead of HOW
   // MUCH, which is the more actionable half anyway.
-  const expDelta=arr=>money?`${fmtKESshort(expVal(arr))} exposure`
+  const expDelta=arr=>money?`${fmtMoneyShort(expVal(arr))} exposure`
     :(arr.length?`soonest in ${arr[0].d}d`:'none due');
   const expSub=arr=>arr.length?`soonest ${arr[0].d===0?'today':'in '+arr[0].d+' days'} · ${esc(arr[0].c.counterparty||arr[0].c.name)}`:'nothing inside the window';
   // avg cycle draft→signed from audit where both stamps exist
@@ -231,7 +231,7 @@ function renderDashboard(){
   const apprMineN=myApprovals.filter(x=>x.mine).length;
   const KPI_CATALOG={
     under_mgmt:  {label:KPI_META.under_mgmt,   val:Number(countAll).toLocaleString('en-KE'),        delta:`+${newThisWeek} this week`,                                    sub:stageSub, grad:G.steel, ic:'building', go:{stage:'all'}},
-    active_value:{label:KPI_META.active_value, val:fmtKESshort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString('en-KE')} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
+    active_value:{label:KPI_META.active_value, val:fmtMoneyShort(m.totalValue),                        delta:`${Number(m.signed||0).toLocaleString('en-KE')} executed`,       sub:`across ${agreementsIn(cs).length.toLocaleString('en-KE')} agreements`, grad:G.green, ic:'coins',    go:{stage:'all',sort:'value'}},
     awaiting:    {label:KPI_META.awaiting,     val:Number(awaitingCount).toLocaleString('en-KE'),    delta:`${stalled} stalled > 14d`,                                     sub:API_MODE()?'out with counterparties':'shares need server mode', grad:G.amber, ic:'clock',    go:{stage:'awaiting'}},
     approvals:   {label:KPI_META.approvals,    val:Number(myApprovals.length).toLocaleString('en-KE'), delta:myApprovals.length?'Action required':'All clear',            sub:myApprovals.length?`${apprMineN} waiting on you · ${myApprovals.length-apprMineN} on others`:'no approval chain is open', grad:G.amber, ic:'clock', go:{stage:'Under Review'}},
     compliance:  {label:KPI_META.compliance,   val:`${compliancePct}%`,                              delta:REG_PROFILE[state.region]||REG_PROFILE.KE,                      sub:`${clean} of ${live.length} live with no high-risk finding`, grad:compliancePct>=90?G.green:compliancePct>=70?G.amber:G.ruby, ic:'shield', go:{stage:'all',sort:'risk'}},
@@ -241,7 +241,7 @@ function renderDashboard(){
     /* THE BUCKET NOTHING FELL INTO. Every expiry card above filters on
        `days >= 0`, so a contract dropped out of all three on the morning its
        term ended — the one day it most needed somebody to look at it. */
-    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtKESshort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
+    expired:     {label:KPI_META.expired,      val:Number(lapsed.length).toLocaleString('en-KE'),    delta:money?`${fmtMoneyShort(valOf(lapsed))} no longer active`:(lapsed.length?`longest ${Math.abs(dU(effectiveExpiry(lapsed[0])||''))}d ago`:'none'), sub:`${lapsed.length} past their end date`, grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'expiry',view:'expired'}},
     highrisk:    {label:KPI_META.highrisk,     val:Number(highRisk.length).toLocaleString('en-KE'),  delta:`${onExecuted} on executed paper`, sub:'risk score 60 or above', grad:G.ruby,  ic:'alert',    go:{stage:'all',sort:'risk'}},
     avgcycle:    {label:KPI_META.avgcycle,     val:avgCycle,                                          delta:cycles.length?`${cycles.length} signed sampled`:'—', sub:'draft to signed, from the audit trail', grad:G.green, ic:'clock',    go:{stage:'Signed'}},
   };

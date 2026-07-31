@@ -40,30 +40,55 @@ function tplLibStatusBadge(status) {
   return `<span class="badge" style="background:${s.bg};color:${s.fg}"><span class="dot" style="background:${s.dot}"></span>${s.label}</span>`;
 }
 
-/* ---------- the library screen ---------- */
-function renderTemplateLibrary() {
-  const host = document.getElementById('content');
-  if (!API_MODE()) {
-    host.innerHTML = `<div class="view-enter" style="padding:40px;text-align:center;color:var(--color-neutral-600);font-size:13px">
-      The template library lives on the server, so every member sees the same library.<br>It is not available in local demo mode.</div>`;
-    return;
-  }
-  host.innerHTML = `<div class="view-enter" style="padding:40px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">Loading the library…</div>`;
-  const tok = ++_tplLibTok;
-  api('templates').then(d => {
+/* ---------- the Company standard templates section ----------
+   The library has no page of its own any more: it renders INTO the existing
+   Templates page, the one place people look for paper, next to the built-in
+   HaTi templates and the older custom ones. The deep screens (detail,
+   builder, upload review) still take over the content area and return to the
+   Templates page when done. */
+const tplLibPublished = () => (_tplLib.list || []).filter(t => t.status === 'published');
+const tplLibCount = () => (_tplLib.loaded ? tplLibPublished().length : 0);
+/* Refresh the cache; resolves true when the list changed (callers re-render). */
+async function tplLibRefresh() {
+  if (!API_MODE()) return false;
+  try {
+    const before = JSON.stringify((_tplLib.list || []).map(t => t.id + t.status + t.latestVersion));
+    const d = await api('templates');
     _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true };
-    if (tok === _tplLibTok && state.view === 'tpl-library') tplLibPaint();
-  }).catch(e => {
-    host.innerHTML = `<div class="view-enter" style="padding:40px;text-align:center;color:#8f322b;font-size:13px">The library could not be loaded: ${esc(e.message)}</div>`;
-  });
+    if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
+    return JSON.stringify(_tplLib.list.map(t => t.id + t.status + t.latestVersion)) !== before;
+  } catch (_) { return false; }
 }
 
-function tplLibPaint() {
+async function renderCompanyTemplatesSection() {
+  const host = document.getElementById('tpl-company-section');
+  if (!host) return;
+  if (!API_MODE()) { host.innerHTML = ''; return; }
+  const tok = ++_tplLibTok;
+  try {
+    const d = await api('templates');
+    _tplLib = { list: d.templates || [], canManage: !!d.canManage, loaded: true };
+  } catch (e) {
+    host.innerHTML = `<section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:16px;font-size:12px;color:#8f322b">Company templates could not be loaded: ${esc(e.message)}</section>`;
+    return;
+  }
+  if (typeof updateSidebarCounts === 'function') updateSidebarCounts();
+  // stale response, or the reader has moved into a deeper screen meanwhile
+  if (tok !== _tplLibTok || !document.getElementById('tpl-company-section')) return;
+  host.innerHTML = tplCompanySectionHtml();
+  host.querySelectorAll('[data-tpllib-open]').forEach(el =>
+    el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
+  host.querySelectorAll('[data-tpllib-use]').forEach(el =>
+    el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
+  host.querySelector('#tpllib-new')?.addEventListener('click', tplLibCreateModal);
+  host.querySelector('#tpllib-upload')?.addEventListener('click', tplLibUploadModal);
+}
+
+function tplCompanySectionHtml() {
   const CARD = 'background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:16px';
   const canManage = tplLibCanManage();
   const list = _tplLib.list;
   const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-
   const rows = list.map(t => `
     <button data-tpllib-open="${t.id}" class="w-full text-left" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer">
       <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:10px;background:var(--tile-steel-bg);color:var(--tile-steel-fg)">${icon('copy', 'w-4 h-4')}</span>
@@ -79,34 +104,22 @@ function tplLibPaint() {
         ? `<span style="flex:none"><button data-tpllib-use="${t.id}" class="ui-btn ui-btn-primary" style="font-size:11px;padding:3.5px 10px">${icon('plus', 'w-3 h-3')} New contract</button></span>` : ''}
       <span style="flex:none;color:var(--color-neutral-400)">${icon('chevR', 'w-3.5 h-3.5')}</span>
     </button>`).join('');
-
-  document.getElementById('content').innerHTML = `
-  <div class="view-enter" style="padding:16px 18px 28px;display:flex;flex-direction:column;gap:16px">
+  return `
     <section style="${CARD}">
       <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:15px;margin:0">Company standard templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">${list.length} in the library · versioned &amp; permissioned</span>
         <span style="flex:1"></span>
         ${canManage ? `<button id="tpllib-upload" class="ui-btn" style="font-size:12px;padding:5px 12px">${icon('upload', 'w-3.5 h-3.5')} Convert a document</button>
         <button id="tpllib-new" class="ui-btn ui-btn-primary" style="font-size:12px;padding:5px 12px">${icon('plus', 'w-3.5 h-3.5')} New template</button>` : ''}
       </div>
-      ${list.length ? rows : `<div style="padding:34px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">
+      ${rows || `<div style="padding:30px;text-align:center;color:var(--color-neutral-500);font-size:12.5px">
         ${canManage
-          ? 'No standard templates yet. Create one, save an existing contract as a template, or convert an uploaded document.'
-          : 'No published templates yet — a template manager (Admin or Legal) publishes them here.'}</div>`}
-    </section>
-    ${canManage ? `<p style="margin:0;font-size:11px;color:var(--color-neutral-500);line-height:1.55">
-      A template is never sent, filled or signed — contracts are created from its published version and stay
-      independent afterwards. Publishing an edit creates a new version; contracts already created keep the
-      version they were born from.</p>` : ''}
-  </div>`;
-
-  document.querySelectorAll('[data-tpllib-open]').forEach(el =>
-    el.addEventListener('click', () => openTemplateLibDetail(el.getAttribute('data-tpllib-open'))));
-  document.querySelectorAll('[data-tpllib-use]').forEach(el =>
-    el.addEventListener('click', e => { e.stopPropagation(); tplLibNewContract(el.getAttribute('data-tpllib-use')); }));
-  document.getElementById('tpllib-new')?.addEventListener('click', tplLibCreateModal);
-  document.getElementById('tpllib-upload')?.addEventListener('click', tplLibUploadModal);
+          ? 'No standard templates yet. Convert an uploaded Word document, save an existing contract as a template, or build one from scratch.'
+          : 'No published company templates yet — a template manager (Admin or Legal) publishes them here.'}</div>`}
+      ${canManage && rows ? `<p style="margin:0;padding:10px 16px;font-size:10.5px;color:var(--color-neutral-500);line-height:1.5;border-top:1px solid var(--color-divider)">
+        Contracts created from a published version stay independent — publishing an edit makes a new version and never changes contracts already created.</p>` : ''}
+    </section>`;
 }
 
 /* ---------- upload-and-convert: a Word document becomes a draft ---------- */
@@ -237,7 +250,16 @@ function tplConfirmPaint() {
   document.querySelectorAll('[data-tc-label]').forEach(el => el.addEventListener('input', () => upd(Number(el.getAttribute('data-tc-label')), 'label', el.value)));
   document.querySelectorAll('[data-tc-type]').forEach(el => el.addEventListener('change', () => upd(Number(el.getAttribute('data-tc-type')), 'fieldType', el.value)));
   document.querySelectorAll('[data-tc-req]').forEach(el => el.addEventListener('change', () => upd(Number(el.getAttribute('data-tc-req')), 'required', el.checked)));
-  document.querySelectorAll('[data-tc-del]').forEach(el => el.addEventListener('click', () => { s.fields.splice(Number(el.getAttribute('data-tc-del')), 1); tplConfirmPaint(); }));
+  document.querySelectorAll('[data-tc-del]').forEach(el => el.addEventListener('click', () => {
+    const i = Number(el.getAttribute('data-tc-del'));
+    /* Deleting the field also deletes its {{marker}} from the wording — a
+       marker with no field would otherwise reach contracts as literal code. */
+    const key = s.fields[i] && s.fields[i].fieldKey;
+    if (key && window.templateFormStripMarker)
+      s.blocks = s.blocks.map(b => ({ ...b, content: templateFormStripMarker(b.content, key) }));
+    s.fields.splice(i, 1);
+    tplConfirmPaint();
+  }));
   document.getElementById('tc-add')?.addEventListener('click', () => {
     s.fields.push({ fieldKey: 'field_' + (s.fields.length + 1), label: '', section: '', fieldType: 'short_text',
       control: 'free', options: [], required: false, defaultValue: '', helpText: '', detectionConfidence: 'manual' });
@@ -328,7 +350,7 @@ function saveContractToLibrary(c) {
         name: document.getElementById('tpllib-sv-name').value.trim() });
       closeModal();
       toast(`Draft template created — ${r.fieldsCreated} field${r.fieldsCreated === 1 ? '' : 's'} recognised`);
-      setView('tpl-library');
+      setView('templates');
       openTemplateBuilder(r.templateId, r.versionId);
     } catch (e) { toast(e.message, 'err'); }
   });
@@ -395,7 +417,7 @@ async function openTemplateLibDetail(id) {
     </section>
   </div>`;
 
-  document.getElementById('tpllib-back')?.addEventListener('click', () => setView('tpl-library'));
+  document.getElementById('tpllib-back')?.addEventListener('click', () => setView('templates'));
   document.getElementById('tpllib-use')?.addEventListener('click', () => tplLibNewContract(t.id));
   document.getElementById('tpllib-edit-meta')?.addEventListener('click', () => tplLibMetaModal(t));
   document.getElementById('tpllib-archive')?.addEventListener('click', async () => {
@@ -414,7 +436,7 @@ async function openTemplateLibDetail(id) {
       ? await confirmDialog({ title: `Delete “${t.name}”?`, message: 'It has never spawned a contract, so nothing cites it. This cannot be undone.', confirmLabel: 'Delete template', danger: true })
       : true;
     if (!ok) return;
-    try { await api('templates/' + t.id, 'DELETE'); toast(`“${t.name}” deleted`); setView('tpl-library'); }
+    try { await api('templates/' + t.id, 'DELETE'); toast(`“${t.name}” deleted`); setView('templates'); }
     catch (e) { toast(e.message, 'err'); }
   });
   document.getElementById('tpllib-newversion')?.addEventListener('click', async () => {
@@ -493,6 +515,16 @@ function renderTemplateFormSection(c) {
   if (!form) { host.innerHTML = ''; return; }
   const locked = c.status === 'Signed' || (c.execution && c.execution.at) || !!c.hash;
   const editable = !locked && typeof canEdit === 'function' && canEdit();
+  /* Repair on open. A contract created before delete-time marker cleanup can
+     hold literal {{code}} in its stored wording; the form copy it carries
+     makes a clean re-render deterministic. Executed records are never
+     touched — their wording is sealed. */
+  if (!locked && /\{\{/.test(String(c.redlineText || '')) && window.templateFormDocHtml) {
+    c.redlineText = templateFormDocHtml(form);
+    const canvas = document.getElementById('doc-canvas');
+    if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText, window.RICH_FORMAT || 'rich');
+    if (editable) persist(c);
+  }
   const fields = (form.fields || []).filter(f => f.fieldType !== 'signature_name_title');
   const values = form.values || {};
   const problems = window.templateFormProblems ? templateFormProblems(form) : [];
@@ -532,22 +564,7 @@ function renderTemplateFormSection(c) {
     </div>`;
   if (!editable) return;
 
-  const commit = (idx, value) => {
-    const f = form.fields[idx];
-    if (!f) return;
-    const s = value == null ? '' : String(value).trim();
-    form.values = form.values || {};
-    if (s === '') delete form.values[f.fieldKey]; else form.values[f.fieldKey] = s;
-    // the document IS the rendering of the form — regenerate and repaint
-    if (window.templateFormDocHtml) {
-      c.redlineText = templateFormDocHtml(form);
-      const canvas = document.getElementById('doc-canvas');
-      if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText);
-    }
-    c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
-    persist(c); // debounced autosave — a closed tab loses nothing past 400ms
-    renderTemplateFormSection(c); // repaint for validation + progress
-  };
+  const commit = (idx, value) => tplFormCommit(c, idx, value);
   host.querySelectorAll('[data-tplf]').forEach(el => {
     el.addEventListener('change', () => commit(Number(el.getAttribute('data-tplf')), el.value));
   });
@@ -564,10 +581,116 @@ function renderTemplateFormSection(c) {
   host.querySelectorAll('[data-tplf-clear]').forEach(el => {
     el.addEventListener('click', () => commit(Number(el.getAttribute('data-tplf-clear')), ''));
   });
+
+  /* The blanks in the document take clicks too — the workspace repaints
+     #content wholesale, so the canvas node (and this listener) is fresh on
+     every render and never doubles up. */
+  const canvas = document.getElementById('doc-canvas');
+  if (canvas && !canvas._tplFormWired) {
+    canvas._tplFormWired = true;
+    canvas.addEventListener('click', e => {
+      const span = e.target.closest?.('.hati-field[data-field-key]');
+      if (span) tplFormBlankClick(c, span);
+    });
+  }
+}
+
+/* One commit for every door into a field — the side panel, the in-document
+   popover, whatever comes later. Values land on the form, the wording
+   regenerates (the document IS the rendering of the form), the debounced
+   autosave runs, and the panel repaints its progress. */
+function tplFormCommit(c, idx, value) {
+  const form = c.templateForm;
+  const f = form && form.fields[idx];
+  if (!f) return;
+  const s = value == null ? '' : String(value).trim();
+  form.values = form.values || {};
+  if (s === '') delete form.values[f.fieldKey]; else form.values[f.fieldKey] = s;
+  if (window.templateFormDocHtml) {
+    c.redlineText = templateFormDocHtml(form);
+    const canvas = document.getElementById('doc-canvas');
+    if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText, window.RICH_FORMAT || 'rich');
+  }
+  c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
+  persist(c); // debounced autosave — a closed tab loses nothing past 400ms
+  renderTemplateFormSection(c);
+}
+
+/* Click a blank in the document: typed input right there. Signatures route
+   to the signing flow (never typed), file/stamp fields route to the panel
+   (a floating file input helps nobody) — everything else gets a popover. */
+function tplFormBlankClick(c, span) {
+  const form = c.templateForm;
+  if (!form) return;
+  const locked = c.status === 'Signed' || (c.execution && c.execution.at) || !!c.hash;
+  if (locked || !(typeof canEdit === 'function' && canEdit())) return;
+  const key = span.getAttribute('data-field-key');
+  const idx = (form.fields || []).findIndex(f => f.fieldKey === key);
+  if (idx < 0) return;
+  const f = form.fields[idx];
+  if (f.fieldType === 'signature_name_title' || f.fieldType === 'stamp_image') {
+    toast('Signatures and stamps are captured in the signing step — open the Signing tab on the right');
+    return;
+  }
+  const lib = (window.FIELD_LIB || {})[f.fieldType] || { input: 'text' };
+  if (lib.input === 'file' || lib.input === 'image') { tplFormFlashRow(idx); return; }
+  tplFormPopover(c, idx, span);
+  tplFormFlashRow(idx, { quiet: true });
+}
+function tplFormFlashRow(idx, opts = {}) {
+  const host = document.getElementById('tplform-section');
+  const input = host && (host.querySelector(`[data-tplf="${idx}"]`) || host.querySelector(`[data-tplf-file="${idx}"]`));
+  if (!input) return;
+  try { input.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+  input.style.outline = '2px solid var(--accent-solid)';
+  input.style.outlineOffset = '1px';
+  setTimeout(() => { input.style.outline = ''; input.style.outlineOffset = ''; }, 1600);
+  if (!opts.quiet) { try { input.focus(); } catch (_) {} }
+}
+function tplFormPopover(c, idx, anchor) {
+  document.getElementById('tplf-pop')?.remove();
+  const form = c.templateForm;
+  const f = form.fields[idx];
+  const r = anchor.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.id = 'tplf-pop';
+  pop.style.cssText = `position:fixed;z-index:80;top:${Math.round(r.bottom + 6)}px;left:${Math.round(Math.min(Math.max(8, r.left), (window.innerWidth || 1200) - 296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:10px;box-shadow:var(--shadow-md);padding:10px 12px`;
+  pop.innerHTML = `
+    <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label || f.fieldKey)}${f.required ? ' <span style="color:#8f322b">*</span>' : ''}</div>
+    ${tplFormInputHtml(f, (form.values || {})[f.fieldKey], idx)}
+    ${f.helpText ? `<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>` : ''}
+    <div data-tplf-pop-err style="display:none;font-size:10.5px;color:#8f322b;margin-top:4px"></div>`;
+  document.body.appendChild(pop);
+  const input = pop.querySelector('[data-tplf]');
+  let done = false; // Enter commits, then the focused input's blur fires change — one door only
+  const away = e => { if (!pop.contains(e.target)) close(); };
+  const close = () => { done = true; pop.remove(); document.removeEventListener('mousedown', away, true); };
+  document.addEventListener('mousedown', away, true);
+  const commitPop = () => {
+    if (done) return;
+    const v = input ? input.value : '';
+    const s2 = String(v || '').trim();
+    if (s2 && window.fieldLibValidate) {
+      const problem = fieldLibValidate({ label: f.label, field_key: f.fieldKey, field_type: f.fieldType,
+        control: f.control, options: f.options, required: f.required }, s2);
+      if (problem) {
+        const err = pop.querySelector('[data-tplf-pop-err]');
+        err.textContent = problem; err.style.display = 'block';
+        return; // an invalid value never leaves the popover
+      }
+    }
+    close();
+    tplFormCommit(c, idx, v);
+  };
+  input?.addEventListener('change', commitPop);
+  input?.addEventListener('keydown', e => { if (e.key === 'Enter') commitPop(); if (e.key === 'Escape') close(); });
+  try { input?.focus(); } catch (_) {}
 }
 
 Object.assign(window, {
-  renderTemplateLibrary, openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
+  renderCompanyTemplatesSection, tplLibPublished, tplLibCount, tplLibRefresh,
+  openTemplateLibDetail, tplLibCanManage, tplLibCancelPending,
   saveContractToLibrary, tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
+  tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS,
 });

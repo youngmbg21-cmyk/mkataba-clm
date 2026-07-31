@@ -558,7 +558,7 @@ function wirePortalClauseEditor(c, p){
         <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:5px;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
         <label style="display:block;margin-top:7px">
           <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">Why? (optional — shown next to this change)</span>
-          <input data-cl-note="${i}" type="text" value="${esc(PORTAL_CLAUSE_NOTES[i]||'').replace(/"/g,'&quot;')}" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none"/>
+          <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
           <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
@@ -568,6 +568,7 @@ function wirePortalClauseEditor(c, p){
       row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
       row.querySelector(`[data-cl-save="${i}"]`).addEventListener('click',()=>{
         const v=ta?ta.value:'';
+        if(window.chatFieldWire) chatFieldWire(row);
         const noteEl=row.querySelector(`[data-cl-note="${i}"]`);
         const note=noteEl?String(noteEl.value||'').trim():'';
         // a clause edited back to what it said is not a change, and carries no reason
@@ -1563,6 +1564,11 @@ function renderSharePortal(p, opts={}){
      record this page builds can tell the truth about which of the two it is. */
   const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
+  /* Display-side repair: a copy shared before delete-time marker cleanup can
+     carry literal {{code}} in its wording — the form the payload also carries
+     makes a clean re-render deterministic. Executed copies are left alone. */
+  if(c.templateForm && !portalExecuted() && /\{\{/.test(String(c.redlineText||'')) && window.templateFormDocHtml)
+    c.redlineText=templateFormDocHtml(c.templateForm);
   const input=(id,label,ph)=>`
     <label style="display:block;margin-bottom:10px;"><span style="display:block;font-size:11px;font-weight:600;color:var(--color-neutral-700);margin-bottom:4px;font-family:var(--font-mono);letter-spacing:.02em;">${label}</span>
     <input id="${id}" type="text" placeholder="${ph}" style="width:100%;min-height:36px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 11px;font-size:13px;font-family:var(--font-body);color:var(--color-text);outline:none;"/></label>`;
@@ -2080,6 +2086,78 @@ function wirePortalTemplateForm(p){
       r.onload=()=>commit(Number(el.getAttribute('data-ptf-file')),String(r.result));
       r.readAsDataURL(file);
     }));
+
+  /* The grey blanks in the document take clicks too: a typed input opens
+     right where the reader is looking, validated and autosaved through the
+     same commit as the panel above. Signature blanks route to the Sign
+     button; file/stamp blanks route to the panel's file input. */
+  const doc=document.getElementById('pt-doc');
+  if(doc && !doc._tplWired){
+    doc._tplWired=true;
+    doc.addEventListener('click', e=>{
+      const span=e.target.closest?.('.hati-field[data-field-key]');
+      if(!span || portalExecuted() || portalReadOnly()) return;
+      const key=span.getAttribute('data-field-key');
+      const idx=(form.fields||[]).findIndex(f=>f.fieldKey===key);
+      if(idx<0) return;
+      const f=form.fields[idx];
+      const flashPanel=()=>{
+        const input=box.querySelector(`[data-ptf="${idx}"]`)||box.querySelector(`[data-ptf-file="${idx}"]`);
+        if(!input) return;
+        try{ input.scrollIntoView({block:'center',behavior:'smooth'}); }catch(_){}
+        input.style.outline='2px solid var(--accent-solid)'; input.style.outlineOffset='1px';
+        setTimeout(()=>{ input.style.outline=''; input.style.outlineOffset=''; },1600);
+        try{ input.focus(); }catch(_){}
+      };
+      if(f.fieldType==='signature_name_title'||f.fieldType==='stamp_image'){
+        toast('Signatures and stamps are captured when you press Sign — fill in the other details first');
+        return;
+      }
+      const lib=(window.FIELD_LIB||{})[f.fieldType]||{input:'text',hint:''};
+      if(lib.input==='file'||lib.input==='image'){ flashPanel(); return; }
+      // in-place popover, same validation and autosave as the panel
+      document.getElementById('ptf-pop')?.remove();
+      const r=span.getBoundingClientRect();
+      const pop=document.createElement('div');
+      pop.id='ptf-pop';
+      pop.style.cssText=`position:fixed;z-index:80;top:${Math.round(r.bottom+6)}px;left:${Math.round(Math.min(Math.max(8,r.left),(window.innerWidth||1200)-296))}px;width:284px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:10px;box-shadow:var(--shadow-md);padding:10px 12px`;
+      const INP='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:4px;padding:7px 10px;font:inherit;font-size:12.5px;outline:none';
+      const v=(form.values||{})[f.fieldKey]==null?'':String(form.values[f.fieldKey]);
+      const inputHtml=(f.control==='guided'||f.fieldType==='select')
+        ? `<select data-ptf-pop style="${INP}"><option value="">Choose…</option>${(f.options||[]).map(o=>`<option value="${esc(o)}"${v===o?' selected':''}>${esc(o)}</option>`).join('')}</select>`
+        : lib.input==='textarea'
+          ? `<textarea data-ptf-pop style="${INP};min-height:52px">${esc(v)}</textarea>`
+          : `<input type="${({email:'email',tel:'tel',date:'date'})[lib.input]||'text'}" data-ptf-pop value="${esc(v)}" placeholder="${esc(lib.hint||'')}" style="${INP}">`;
+      pop.innerHTML=`
+        <div style="font-size:11px;font-weight:600;margin-bottom:5px">${esc(f.label||f.fieldKey)}${f.required?' <span style="color:#8f322b">*</span>':''}</div>
+        ${inputHtml}
+        ${f.helpText?`<div style="font-size:10px;color:var(--color-neutral-500);margin-top:4px">${esc(f.helpText)}</div>`:''}
+        <div data-ptf-pop-err style="display:none;font-size:10.5px;color:#8f322b;margin-top:4px"></div>`;
+      document.body.appendChild(pop);
+      const input=pop.querySelector('[data-ptf-pop]');
+      let done=false; // Enter commits, then the focused input's blur fires change — one door only
+      const away=ev=>{ if(!pop.contains(ev.target)) closePop(); };
+      const closePop=()=>{ done=true; pop.remove(); document.removeEventListener('mousedown',away,true); };
+      document.addEventListener('mousedown',away,true);
+      const commitPop=()=>{
+        if(done) return;
+        const val=input?input.value:'';
+        const s2=String(val||'').trim();
+        if(s2 && window.fieldLibValidate){
+          const problem=fieldLibValidate({label:f.label,field_key:f.fieldKey,field_type:f.fieldType,
+            control:f.control,options:f.options,required:f.required}, s2);
+          if(problem){ const err=pop.querySelector('[data-ptf-pop-err]'); err.textContent=problem; err.style.display='block'; return; }
+        }
+        closePop();
+        commit(idx, val);
+        const panel=box.querySelector(`[data-ptf="${idx}"]`);
+        if(panel) panel.value=s2;
+      };
+      input?.addEventListener('change',commitPop);
+      input?.addEventListener('keydown',ev=>{ if(ev.key==='Enter') commitPop(); if(ev.key==='Escape') closePop(); });
+      try{ input?.focus(); }catch(_){}
+    });
+  }
 }
 
 async function portalSignUnverified(p, info){
@@ -2256,7 +2334,7 @@ function printExecutionBlock(c){
           <div style="font-family:Inter,system-ui,sans-serif;font-weight:700;font-size:16px;">${external?'Executed outside HaTi':'Executed &amp; Sealed'}</div>
           <div style="font-size:10.5px;color:#666;margin-top:2px;line-height:1.5;">${external
             ? 'Signed before it was migrated into HaTi. <strong>No electronic signature was taken here</strong> — the signatures are on the original document.'
-            : 'Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).'}</div>
+            : jxEsignatureShort()}</div>
           ${external?'':sigTable}
           ${(!external&&!isUpload(c))?`<div style="margin-top:10px;border:1px solid #d4d4d7;border-radius:8px;padding:9px 11px;">
             <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#666;margin-bottom:3px;">Sealed text fingerprint (SHA-256)</div>
@@ -2291,7 +2369,7 @@ function exportPDF(c){
         <div style="font-size:11px;color:#666;margin-bottom:10px;">External document received from ${c.counterparty||'—'} · filed under ${FOLDERS[c.folder].name}</div>
         <table style="font-size:11px;border-collapse:collapse;">
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Original file</td><td style="font-weight:600;">${u.fileName||'—'} (${u.size?Math.round(u.size/1024):0} KB)</td></tr>
-          <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value):'—')}</td></tr>
+          <tr><td style="padding:2px 12px 2px 0;color:#666;">Value</td><td style="font-weight:600;">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value):'—')}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">Status</td><td style="font-weight:600;">${c.status}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666;">File fingerprint (SHA-256)</td><td style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:9px;word-break:break-all;">${u.fileHash||'—'}</td></tr>
         </table>
@@ -2309,6 +2387,14 @@ function exportPDF(c){
        only, and let printExecutionBlock render the execution once, properly. */
     holder.innerHTML=docBody(c);
     holder.querySelectorAll('.seal-in, [data-anchor="sig"]').forEach(n=>n.remove());
+    /* An unfilled blank prints as a paper form's blank line — an underscore
+       run, never the on-screen grey box and never the field's label. */
+    holder.querySelectorAll('.hati-field').forEach(n=>{
+      const line=document.createElement('span');
+      line.style.cssText='display:inline-block;min-width:130px;border-bottom:1px solid #777;';
+      line.innerHTML='&nbsp;';
+      n.replaceWith(line);
+    });
     holder.querySelectorAll('input').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;border-bottom:1px solid #999;padding:0 3px;";

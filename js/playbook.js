@@ -1,21 +1,28 @@
-// HaTi — E4 Kenya playbook engine + clause library. Globals window-attached.
+// HaTi — E4 playbook engine + clause library. Globals window-attached.
+/* The positions below used to name Kenya outright. They read the active
+   jurisdiction pack now (js/jurisdiction.js) — the ENGINE is market-neutral and
+   the market is a setting, so "keep governing law at home" is one rule rather
+   than one rule per country. Seed wording is still practice-shaped rather than
+   invented: a pack supplies the place, the forum and the arbitration seat, and
+   nothing here composes a legal position a pack has not declared. */
 // Reviews incoming paper against the org's preferred/fallback positions
 // (Ironclad-Jurist style), augmenting the existing rule-engine scan.
 
-/* ---- clause library (E4-T1): seeded from Kenyan practice, editable ---- */
+/* ---- clause library (E4-T1): seeded from local practice, editable ---- */
 const DEFAULT_CLAUSE_LIBRARY = [
-  { id:'cl-law', category:'Governing law', name:'Kenyan governing law & forum',
-    preferred:'This Agreement is governed by the laws of Kenya and the parties submit to the exclusive jurisdiction of the courts of Kenya (or arbitration seated in Nairobi under the Nairobi Centre for International Arbitration).',
-    fallback:'This Agreement is governed by the laws of Kenya; disputes may be referred to arbitration seated in Nairobi.',
-    guidance:'Keep governing law and forum in Kenya. Foreign law/forum makes enforcement slow and costly and may bypass Kenyan protections.' },
+  { id:'cl-law', category:'Governing law',
+    get name(){ return `${jxAdjective()} governing law & forum`; },
+    get preferred(){ return jxPreferredLaw(); },
+    get fallback(){ return jxFallbackLaw(); },
+    get guidance(){ return `Keep governing law and forum in ${jxName()}. Foreign law/forum makes enforcement slow and costly and may bypass ${jxAdjective()} protections.`; } },
   { id:'cl-pay', category:'Payment terms', name:'Payment within 30 days',
-    preferred:'The Buyer shall pay each undisputed invoice within thirty (30) days of receipt, in Kenya Shillings, exclusive of VAT.',
+    get preferred(){ return `The Buyer shall pay each undisputed invoice within thirty (30) days of receipt, in ${jxCurrency()}, exclusive of VAT.`; },
     fallback:'Payment within forty-five (45) days of a valid invoice.',
     guidance:'Prefer ≤ 30 days; 45 days is the outer limit. Anything longer needs Finance sign-off.' },
   { id:'cl-liab', category:'Liability cap', name:'Liability cap at 12 months fees',
     preferred:'Each party’s aggregate liability under this Agreement is capped at the total fees paid in the twelve (12) months preceding the claim, save for liability that cannot be limited at law.',
     fallback:'Liability capped at the total contract value.',
-    guidance:'A cap should be at least 12 months of fees and must carve out what Kenyan law will not allow to be limited (e.g. death/personal injury, fraud).' },
+    guidance:`A cap should be at least 12 months of fees and must carve out what ${jxLaw()} will not allow to be limited (e.g. death/personal injury, fraud).` },
   { id:'cl-conf', category:'Confidentiality', name:'Mutual confidentiality',
     preferred:'Each party shall keep the other’s confidential information secret and use it only for this Agreement, for the term and three (3) years after.',
     fallback:'Confidentiality for the term and two (2) years after.',
@@ -30,13 +37,13 @@ const DEFAULT_CLAUSE_LIBRARY = [
     guidance:'Always include a cure period and clear notice mechanics.' },
 ];
 
-/* ---- playbook (E4-T2/T3): per contract-type positions, Kenya FMCG ---- */
+/* ---- playbook (E4-T2/T3): per contract-type positions, FMCG ---- */
 // pos: required|preferred|forbidden; range: {field, op, value} soft check.
 const DEFAULT_PLAYBOOK = {
   _default: {
     label:'All contracts (baseline)',
     positions: [
-      { category:'Governing law', pos:'required', clause:'cl-law', escalate:true, note:'Kenyan law & forum.' },
+      { category:'Governing law', pos:'required', clause:'cl-law', escalate:true, get note(){ return `${jxAdjective()} law & forum.`; } },
       { category:'Data protection', pos:'preferred', clause:'cl-dp', escalate:false, note:'Where personal data is involved.' },
     ],
     ranges: [
@@ -45,7 +52,10 @@ const DEFAULT_PLAYBOOK = {
     ],
   },
   supply: { label:'Supply / raw material / packaging', extends:'_default',
-    positions:[ { category:'Quality & rejection', pos:'required', escalate:false, note:'KEBS/EAS spec + rejection window.' },
+    positions:[ { category:'Quality & rejection', pos:'required', escalate:false,
+                  /* Named where the market has a standards body to name; a plain
+                     specification requirement where it does not. */
+                  get note(){ const sb=jxStandardsBody(); return sb ? `${sb} spec + rejection window.` : 'Agreed product specification + rejection window.'; } },
                 { category:'Liability cap', pos:'preferred', clause:'cl-liab', escalate:true } ],
     ranges:[] },
   services: { label:'Professional / marketing services', extends:'_default',
@@ -53,7 +63,10 @@ const DEFAULT_PLAYBOOK = {
                 { category:'Liability cap', pos:'required', clause:'cl-liab', escalate:true } ],
     ranges:[] },
   lease: { label:'Property lease', extends:'_default',
-    positions:[ { category:'Stamp duty', pos:'required', escalate:true, note:'Stamp duty assessed & paid (Stamp Duty Act Cap 480).' } ],
+    get positions(){ const sd=jxStampDuty();
+      /* A market with no lease stamp duty gets no position to deviate from,
+         rather than one citing a statute that does not apply to it. */
+      return sd ? [{ category:'Stamp duty', pos:'required', escalate:true, note:`Stamp duty assessed & paid (${sd.statute}).` }] : []; },
     ranges:[] },
   nda: { label:'NDA', extends:'_default',
     positions:[ { category:'Confidentiality', pos:'required', clause:'cl-conf', escalate:false } ],
@@ -97,13 +110,18 @@ function playbookReviewHeuristic(c, text){
     const cl=p.clause?clauseById(p.clause):null;
     let present=false, quote='';
     if(p.category==='Governing law'){ present=/govern(?:ed|ing)[^.]*law/i.test(t); const m=t.match(/[^.]*govern(?:ed|ing)[^.]*law[^.]*\./i); quote=m?m[0].trim():'';
-      const foreign=/laws?\s+of\s+(england|wales|singapore|new york|delaware|switzerland|india|uae|dubai|mauritius|south africa)/i.test(t);
-      if(foreign){ V(p.category,'deviation',quote,'Kenyan law & forum', cl?cl.preferred:'', true); return; } }
+      /* Relative to the workspace, not to Kenya: the pack excludes the home
+         market's own names, so switching the setting moves what counts as
+         foreign without touching this line. */
+      const seats=(typeof jxForeignMarkers==='function'?jxForeignMarkers():[]).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|');
+      const foreign=seats?new RegExp(`laws?\\s+of\\s+(${seats})`,'i').test(t):false;
+      if(foreign){ V(p.category,'deviation',quote,`${jxAdjective()} law & forum`, cl?cl.preferred:'', true); return; } }
     else if(p.category==='Data protection'){ present=/data protection act|odpc|personal data/i.test(t); const m=t.match(/[^.]*(data protection|personal data)[^.]*\./i); quote=m?m[0].trim():''; }
     else if(p.category==='Confidentiality'){ present=/confidential/i.test(t); const m=t.match(/[^.]*confidential[^.]*\./i); quote=m?m[0].trim():''; }
     else if(p.category==='Liability cap'){ present=/liab[^.]*cap|cap[^.]*liab|aggregate liability|limitation of liability/i.test(t); const m=t.match(/[^.]*liab[^.]*\./i); quote=m?m[0].trim():''; }
     else if(p.category==='Stamp duty'){ present=/stamp dut/i.test(t); const m=t.match(/[^.]*stamp dut[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Quality & rejection'){ present=/(kebs|reject|specification|spec\b|quality)/i.test(t); const m=t.match(/[^.]*(reject|specification|quality)[^.]*\./i); quote=m?m[0].trim():''; }
+    else if(p.category==='Quality & rejection'){ const sb=(jxStandardsBody()||'').toLowerCase();
+      present=new RegExp(`(${sb?sb+'|':''}reject|specification|spec\\b|quality)`,'i').test(t); const m=t.match(/[^.]*(reject|specification|quality)[^.]*\./i); quote=m?m[0].trim():''; }
     else { present=T.includes(p.category.toLowerCase()); }
     if(present) V(p.category,'aligned',quote,cl?cl.name:p.note||'','',false);
     else V(p.category,'missing','',cl?cl.name:(p.note||p.category), cl?cl.preferred:'', p.escalate);

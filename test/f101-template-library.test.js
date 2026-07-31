@@ -88,7 +88,7 @@ describe('f101 — template library foundation', () => {
     await w.admin.json(`/api/templates/${tplId}/versions/${v1Id}`, { method: 'PUT', body: {
       blocks: [
         { orderIndex: 0, blockType: 'heading', content: 'Company information' },
-        { orderIndex: 1, blockType: 'field_group', content: 'Company: {{company_name}} · KRA PIN: {{kra_pin}}' },
+        { orderIndex: 1, blockType: 'field_group', content: 'Company: {{company_name}} · KRA PIN: {{kra_pin}} · Terms: {{payment_terms}}' },
         { orderIndex: 2, blockType: 'fixed_text', content: 'Article 1. Invoices are payable within thirty (30) days.' },
         { orderIndex: 3, blockType: 'signature_block', content: 'Director' },
       ],

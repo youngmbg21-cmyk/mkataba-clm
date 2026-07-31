@@ -957,22 +957,28 @@ function findingsFromText(c, text){
   const firstIdx=(...ks)=>{ for(const k of ks){ const i=low.indexOf(k); if(i>=0) return i; } return -1; };
   // 1) governing law — scan ALL candidate mentions and pick the one that names a
   //    jurisdiction (a ref-line like "governing law as stated below" is ignored).
-  const foreign=['switzerland','geneva','england','wales','united kingdom','london','delaware','new york','singapore','dubai','u.a.e','uae','netherlands','paris','france','uganda','tanzania','rwanda','south africa'];
+  /* FOREIGN MEANS "NOT WHERE WE ARE", not "not Kenya". The list comes from the
+     active jurisdiction pack (js/jurisdiction.js), which excludes the home
+     market's own names — so a Kenyan-law contract is correctly foreign paper to
+     a Stockholm workspace, and this line does not change when the setting does. */
+  const foreign=(typeof jxForeignMarkers==='function'?jxForeignMarkers():[]).concat(['uganda','tanzania','rwanda','south africa']);
+  const homeName=(typeof jxName==='function'?jxName():'this jurisdiction');
+  const homeAdj=(typeof jxAdjective==='function'?jxAdjective():'local');
   const govKeys=['governing law','governed by the laws','laws of the republic','exclusive jurisdiction','jurisdiction of','arbitration seated','arbitration in','governed by'];
   const cands=[]; for(const k of govKeys){ let i=low.indexOf(k); while(i>=0){ cands.push(i); i=low.indexOf(k,i+1); } }
-  let foreignSen=null,foreignHit=null,kenyaSen=null;
+  let foreignSen=null,foreignHit=null,homeSen=null;
   for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){ const sen=sentenceAround(text,idx), sl=sen.toLowerCase();
-    const fh=foreign.find(f=>sl.includes(f)), hk=sl.includes('kenya');
+    const fh=foreign.find(f=>sl.includes(f)), hk=(typeof jxNamesHome==='function'?jxNamesHome(sl):sl.includes('kenya'));
     if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
-    if(hk&&!kenyaSen) kenyaSen=sen;
+    if(hk&&!homeSen) homeSen=sen;
   }
   if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
-    `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a Kenyan business and may bypass Kenyan protections.`,
-    'Negotiate Kenyan governing law and forum, or budget for foreign enforcement before signing.','high');
-  else if(kenyaSen) add('t-law','low','ambiguity','Governing law: Kenya (found in text)',kenyaSen,
-    'Kenyan governing law keeps enforcement local and predictable.','No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+    `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a ${homeAdj} business and may bypass ${homeAdj} protections.`,
+    `Negotiate ${homeAdj} governing law and forum, or budget for foreign enforcement before signing.`,'high');
+  else if(homeSen) add('t-law','low','ambiguity',`Governing law: ${homeName} (found in text)`,homeSen,
+    `${homeAdj} governing law keeps enforcement local and predictable.`,'No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
   else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
-    'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.','Locate or add the governing-law clause and confirm it names Kenya.','low');
+    'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.',`Locate or add the governing-law clause and confirm it names ${homeName}.`,'low');
   // 2) payment terms
   const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
   if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
@@ -994,15 +1000,18 @@ function findingsFromText(c, text){
     'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
     'Confirm the cap is mutual and reasonable and indemnities are limited to their fault.','medium');
   // 6) stamp duty for leases
-  if((low.includes('lease')||low.includes('landlord')||low.includes('tenant')) && !low.includes('stamp duty'))
-    add('t-stamp','med','risk','Lease with no stamp-duty provision','',
-      'An unstamped lease is inadmissible in evidence in Kenya until duty and penalties are paid (Stamp Duty Act, Cap 480).',
-      'Ensure stamp duty is assessed and paid via iTax within 30 days of execution.','medium');
+  /* SKIPPED WHERE THE MARKET HAS NO SUCH DUTY. Sweden levies none on an
+     ordinary commercial lease, and a finding that fires with the statute name
+     blanked out reads as advice nobody wrote. A check that stays quiet is the
+     honest version of "this does not apply here". */
+  const sd=(typeof jxStampDuty==='function'?jxStampDuty():null);
+  if(sd && (low.includes('lease')||low.includes('landlord')||low.includes('tenant')) && !low.includes('stamp duty'))
+    add('t-stamp','med','risk','Lease with no stamp-duty provision','',sd.consequence,sd.action,'medium');
   // 7) data protection for corporate/IT paper
-  if(c.folder==='corp' && !/(data protection|data processing|personal data|odpc)/.test(low))
+  if(c.folder==='corp' && !/(data protection|data processing|personal data|odpc|gdpr)/.test(low))
     add('t-dp','low','missing','No data-protection terms detected','',
-      'Under the Data Protection Act 2019 you remain responsible for how vendors process personal data.',
-      'Confirm a data-processing / DPA clause with ODPC-aligned obligations is included.','low');
+      `Under ${(typeof jxDataProtection==='function'?jxDataProtection():'applicable data-protection law')} you remain responsible for how vendors process personal data.`,
+      `Confirm a data-processing / DPA clause aligned with ${(typeof jx==='function'?jx().dataProtectionRegulator:'the regulator')} expectations is included.`,'low');
   return F;
 }
 
@@ -1031,7 +1040,7 @@ function openUploadModal(){
             <option value="estimated">Estimated value</option><option value="fixed">Fixed value</option><option value="none">Non-monetary</option></select></label>
       </div>
       <div class="grid sm:grid-cols-2 gap-2 mb-4">
-        ${upField('up-value','Contract value (KES)','e.g. 2500000','number')}
+        ${upField('up-value',`Contract value (${jxCurrency()})`,'e.g. 2500000','number')}
         ${upField('up-expiry','Expiry date (optional)','','date')}
       </div>
       <div id="up-steps" class="hidden" style="margin-bottom:4px"></div>
@@ -1508,7 +1517,7 @@ function uploadScanRules(c){
   if(isMonetary(c) && !(Number(c.value)>0)) add('u-val','med','missing','Contract value not recorded',
     'The value field is empty for a document marked as monetary.',
     'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
-    'Record the agreed KES value, or mark the contract non-monetary if none passes.');
+    `Record the agreed ${jxCurrency()} value, or mark the contract non-monetary if none passes.`);
 
   const u=c.upload||{};
   /* The working text once it exists, not the file as it arrived: the panel
@@ -1533,10 +1542,10 @@ function uploadScanRules(c){
         : 'This file did not yield extractable text. The points below are a manual checklist, not a read of the clauses.',
       'Without readable text there is nothing for a clause-level review to analyse.',
       'Re-scan the document at a higher resolution and upload it again, or review the document manually.');
-    add('u-law','med','risk','Confirm governing law is Kenyan',
-      'Confirm the governing-law and jurisdiction clause names Kenya.',
-      'A foreign governing law or arbitration seat makes enforcement slow and expensive for a Kenyan business.',
-      'Find the governing-law clause and confirm Kenya and a Kenyan forum; negotiate if not.');
+    add('u-law','med','risk',`Confirm governing law is ${(typeof jxAdjective==='function'?jxAdjective():'local')}`,
+      `Confirm the governing-law and jurisdiction clause names ${(typeof jxName==='function'?jxName():'your jurisdiction')}.`,
+      `A foreign governing law or arbitration seat makes enforcement slow and expensive for a ${(typeof jxAdjective==='function'?jxAdjective():'local')} business.`,
+      `Find the governing-law clause and confirm ${(typeof jxName==='function'?jxName():'your jurisdiction')} and a local forum; negotiate if not.`);
     add('u-liab','med','risk','Check liability cap & indemnities',
       'Counterparty paper often caps their liability low and pushes broad indemnities onto you.',
       'An unbalanced liability/indemnity split can expose you well beyond the deal value.',
@@ -1698,7 +1707,7 @@ function docBody(c){
   const title=built.title, recital=built.recital, clauses=built.clauses;
   return `
     <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · Republic of Kenya · ${c.id}</div>
+      <div style="font-size:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.2em;color:var(--color-neutral-600);margin-bottom:6px">${t.kind} · ${jxName()} · ${c.id}</div>
       <h3 style="text-align:center;font-size:19px;margin:0;line-height:1.2">${title}</h3>
     </div>
     <p class="text-[13px] leading-[1.7] mb-6 px-2 -mx-2 py-1" style="color:var(--color-doc-text)" data-anchor="recital">${recital}</p>
@@ -1801,7 +1810,7 @@ function signatureBlock(c){
         </svg>
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">Executed &amp; Sealed</span>${statusChip('Signed')}</div>
-          <div class="mt-1 text-xs text-brand-800/60">Electronic signatures under the Business Laws (Amendment) Act 2020 (Kenya).</div>
+          <div class="mt-1 text-xs text-brand-800/60">${jxEsignatureShort()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
           ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">Sealed text fingerprint (SHA-256)</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
@@ -2679,7 +2688,7 @@ function renderWorkspace(){
             <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--color-divider)">
               <div style="font-size:10px;color:var(--color-neutral-600);margin-bottom:6px">Commenting as <span style="font-weight:600;color:var(--color-neutral-800)">${currentUser()?.name||'you'}</span> · internal — counterparty replies arrive via share-link responses</div>
               <div style="display:flex;gap:6px">
-                <input id="comment-input" type="text" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"/>
+                <textarea id="comment-input" class="chat-field" rows="1" placeholder="Add a comment on the terms…" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:6px 9px;font-size:12px;outline:none"></textarea>
                 <button id="comment-send" class="ui-btn ui-btn-primary" style="width:32px;height:32px;padding:0;flex:none">${icon('send','w-4 h-4')}</button>
               </div>
             </div>
@@ -2724,7 +2733,7 @@ function renderWorkspace(){
             <div style="${KROW};border-bottom:none"><span style="${KKEY}">Template</span><span style="font-weight:500;text-align:right;min-width:0">${tmplLabel}</span></div>`
             :`
             <div style="${KROW}"><span style="${KKEY}">Counterparty</span><span id="meta-cp" style="font-weight:500;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%">${c.counterparty||'—'}</span></div>
-            <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
+            <div style="${KROW}"><span style="${KKEY}">Value</span><span id="meta-value" style="font-weight:600;text-align:right;font-family:var(--font-mono)">${!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—')}</span></div>
             <div style="${KROW}"><span style="${KKEY}">Status</span><span id="meta-status">${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</span></div>
             ${kv('Stream',(window.streamLabel?streamLabel(c):'—'))}
             ${kv('Effective',(c.fields&&c.fields.effDate)||'—')}
@@ -2746,7 +2755,7 @@ function renderWorkspace(){
                 ${(!locked&&canEdit())?`
                 <label style="display:flex;align-items:flex-start;gap:9px;border:1px solid var(--color-divider);border-radius:4px;padding:9px;cursor:pointer">
                   <input type="checkbox" data-comp="consent" ${c.compliance.consent?'checked':''} class="mt-0.5 h-4 w-4" style="accent-color:var(--color-accent);flex:none"/>
-                  <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">Binding under the Business Laws (Amendment) Act 2020.</span></span>
+                  <span style="font-size:11.5px"><span style="font-weight:600;display:block">I intend to sign electronically</span><span style="color:var(--color-neutral-700);display:block;line-height:1.4">${jxEsignature()}</span></span>
                 </label>`:''}
                 <div id="sign-wrap"></div>
               </div>
@@ -2861,7 +2870,7 @@ function syncKeyTermsUI(c, source){
   const cp=document.getElementById('meta-cp'); if(cp) cp.textContent=c.counterparty||'—';
   const mv=document.getElementById('meta-value');
   if(mv){
-    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtKES(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
+    mv.textContent=!isMonetary(c)?'Non-monetary':(c.value?fmtMoney(c.value)+(c.valueType==='estimated'?' (est.)':''):'—');
     mv.classList.add('text-brand-500'); setTimeout(()=>mv.classList.remove('text-brand-500'),250);
   }
 }
@@ -3004,7 +3013,10 @@ function wireComments(c){
     input.value=''; renderFeed(c); renderAuditSection(c);
   };
   send.addEventListener('click',post);
-  input.addEventListener('keydown',e=>{if(e.key==='Enter')post();});
+  input.addEventListener('keydown',e=>{
+    if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') post();
+  });
+  if(window.chatFieldWire) chatFieldWire(input.parentNode||document);
 }
 
 /* -------- compliance + signing -------- */
