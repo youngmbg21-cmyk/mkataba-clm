@@ -414,6 +414,14 @@ addColumnIfMissing('shares', 'sent_at', 'TEXT');
 addColumnIfMissing('shares', 'first_opened_at', 'TEXT');
 addColumnIfMissing('shares', 'responded_at', 'TEXT');
 addColumnIfMissing('shares', 'reminded_at', 'TEXT');
+/* W7: which row of the contract's signing route (c.signerPlan) this link was
+   issued for. A share record used to know its contract but not its signer, and
+   that gap is a recorded data-integrity fault: an incoming signature was
+   stamped on whichever counterparty row was NEXT, so when their FD signed
+   before their MD, the signature landed on the MD's row. The contract side
+   needs no migration — the plan lives in the contract's JSON blob — but the
+   share side is a real table, so it gets a real column. */
+addColumnIfMissing('shares', 'signer_id', 'TEXT');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
 /* Value visibility is a RIGHT, not a preference, so it is a column on the user
    row rather than a key in the client-writable appSettings blob (see SUMMARY.md
@@ -3007,6 +3015,10 @@ function shareInfo(s) {
        what the client's reshare and seen-state features read. */
     token: s.token, contractId: s.contract_id, state: shareStateResolved(s), channel: s.channel || 'link',
     durable: !!s.durable, purpose: s.purpose || null,
+    // W7: which row of the signing route this link was issued for, and whether
+    // its turn email has gone — the owner's panel can tell a held link from a
+    // sent one without guessing.
+    signerId: s.signer_id || null,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
     firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
@@ -3016,6 +3028,119 @@ function shareInfo(s) {
 function shareOwnerEmails(s) {   // the sender if known, else workspace admins
   if (s.created_by) { const u = db.prepare('SELECT email FROM users WHERE id=?').get(s.created_by); if (u) return [u.email]; }
   return db.prepare(`SELECT email FROM users WHERE role='admin'`).all().map(u => u.email);
+}
+
+/* ---------- THE SIGNING ROUTE, READ SERVER-SIDE (W7) ----------
+
+   The owner sets the whole route up front — who signs, in what order, with
+   which email address — and each counterparty signer gets their OWN link,
+   bound to their row of `c.signerPlan` by `shares.signer_id`. Release is
+   sequential: a bound link is dormant until every earlier step has signed,
+   and the moment signer n signs, signer n+1's link sends itself.
+
+   WHOSE TURN IT IS IS COMPUTED FROM TWO STORES, deliberately. Internal steps
+   are signed in the app and land in the contract JSON when the owner's client
+   saves. Counterparty steps arrive on the public respond route — and the
+   contract JSON only learns about them when the owner's browser polls, applies
+   and persists, which may be hours later or never (the browser may be closed;
+   the route must run unattended). So a counterparty row counts as signed the
+   moment its bound share holds a signed response, without waiting for the
+   owner's client to catch up. */
+function signerRouteFor(contractId) {
+  if (!contractId) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : [])
+    .filter(s => s && s.id != null)
+    .slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+  if (!plan.length) return null;
+  const responded = new Set();
+  for (const r of db.prepare(
+    `SELECT signer_id, response FROM shares
+      WHERE contract_id=? AND signer_id IS NOT NULL AND response IS NOT NULL AND revoked_at IS NULL`)
+    .all(contractId)) {
+    try { if (JSON.parse(r.response).action === 'sign') responded.add(String(r.signer_id)); } catch (_) {}
+  }
+  return { contract: c, plan, signedRow: s => !!s.signed || responded.has(String(s.id)) };
+}
+/* Is it this signer's moment? Order-based rather than a special internal/
+   counterparty gate, so a mixed route (CEO → their MD → CFO → their FD) holds
+   at every step, not only at the internal/counterparty boundary. */
+function signerTurn(contractId, signerId) {
+  const rt = signerRouteFor(contractId);
+  if (!rt) return { ok: false, reason: 'no-route' };
+  const mine = rt.plan.find(s => String(s.id) === String(signerId));
+  if (!mine) return { ok: false, reason: 'unknown' };
+  if (rt.signedRow(mine)) return { ok: false, reason: 'already-signed', signer: mine, plan: rt.plan };
+  const waitingOn = rt.plan.find(s => (s.order || 0) < (mine.order || 0) && !rt.signedRow(s));
+  if (waitingOn) return { ok: false, reason: 'awaiting', signer: mine, waitingOn, plan: rt.plan };
+  return { ok: true, signer: mine, plan: rt.plan, contract: rt.contract };
+}
+
+/* W7 fault 4 — the external turn email. The internal notice says "sign in to
+   HaTi", which is a sentence a counterparty signer cannot act on: they have no
+   account and never will. Their turn email delivers their own link and says no
+   account is needed — following the purpose-aware wording precedent of the
+   share email itself, where the invitation must match the screen the link
+   actually opens. */
+function signerTurnEmail({ signer, plan, payload, link, expiresAt }) {
+  const cName = (payload && payload.contract && payload.contract.name) || 'a contract';
+  const org = (payload && payload.org) || 'the sender';
+  const total = (plan || []).length;
+  const pos = signer.order && total ? ` (signer ${signer.order} of ${total} on the agreed order)` : '';
+  return {
+    subject: `Your turn to sign — "${cName}"`,
+    body: `Hello${signer.name ? ' ' + signer.name : ''},\n\n` +
+      `It's your turn to sign "${cName}" with ${org}${pos}. ` +
+      `Every signer before you has signed; the agreement now waits on you.\n\n` +
+      `Open your personal signing link — no account is needed:\n${link}\n\n` +
+      `A one-time code will be emailed to this address to confirm it's you before your signature is recorded. ` +
+      `This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.` +
+      (expiresAt ? `\n\nThis link expires on ${String(expiresAt).slice(0, 10)}.` : '') +
+      `\n\nThis is an automated notice from HaTi CLM.`,
+  };
+}
+
+/* The moment signer n signs, signer n+1's link sends itself — the release half
+   of sequential dispatch. Called from the public respond route because that is
+   where a counterparty signature actually arrives; anything hung off the
+   owner's browser instead would make "unattended" mean "while the owner
+   happens to have the app open".
+
+   Fire-and-forget: the signature itself is already stored, and a failed
+   release email shows up as a link with nothing in sent_at, which the owner
+   can resend. It must never be able to fail the signature that triggered it. */
+async function releaseNextSignerLink(req, contractId) {
+  try {
+    const rt = signerRouteFor(contractId);
+    if (!rt) return;
+    const next = rt.plan.find(s => !rt.signedRow(s));
+    if (!next) return;                                   // route complete — the seal is the client's act
+    if (next.party !== 'counterparty') {
+      // A mixed route can put an internal signer after a counterparty one.
+      // They sign in the app, so their nudge is the sign-in wording.
+      if (/.+@.+\..+/.test(String(next.email || ''))) {
+        const cName = (rt.contract && rt.contract.name) || contractId;
+        await sendEmail(String(next.email), `Your signature is requested — "${cName}"`,
+          `Hello${next.name ? ' ' + next.name : ''},\n\nIt's your turn to sign "${cName}"` +
+          `${next.order ? ` (signer ${next.order})` : ''}. Sign in to HaTi to review and add your signature:\n` +
+          `${req.protocol}://${req.get('host')}/\n\nThis is an automated notice from HaTi CLM.`,
+          `sign turn: ${contractId}`);
+      }
+      return;
+    }
+    const ns = db.prepare(
+      `SELECT * FROM shares WHERE contract_id=? AND signer_id=? AND revoked_at IS NULL AND response IS NULL
+        ORDER BY created_at DESC LIMIT 1`).get(contractId, String(next.id));
+    if (!ns || shareExpired(ns) || ns.sent_at) return;   // no link to release, or it already went
+    if (!/.+@.+\..+/.test(String(ns.recipient_email || ''))) return;
+    let p = {}; try { p = JSON.parse(ns.payload) || {}; } catch (_) {}
+    const mail = signerTurnEmail({ signer: next, plan: rt.plan, payload: p,
+      link: shareUrl(req, ns.token), expiresAt: ns.expires_at });
+    await sendEmail(ns.recipient_email, mail.subject, mail.body, `sign turn (external): ${ns.token}`);
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), ns.token);
+  } catch (_) { /* the signature that triggered this is safe regardless */ }
 }
 
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
@@ -3041,14 +3166,68 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      document it serves would supersede the wrong links. */
   const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
     : SHARE_PURPOSES.includes(purpose) ? purpose : null;
-  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+  /* ---- W7: BIND THE LINK TO ONE ROW OF THE SIGNING ROUTE ----
+     A bound link belongs to one signer, opens only in that signer's turn, and
+     is the row an incoming signature is recorded against. Validated against
+     the STORED contract's plan, not the request's say-so — a signerId the
+     route does not carry would mint a link that can never be matched back. */
+  let signerId = null, heldForTurn = false, signerRow = null, signerPlanAll = null;
+  if ((req.body || {}).signerId != null && String(req.body.signerId).trim()) {
+    if (purp !== 'sign') return res.status(400).json({ error: 'Only a signing link can be bound to a signer' });
+    const rt = signerRouteFor(shareId);
+    signerRow = rt && rt.plan.find(x => String(x.id) === String(req.body.signerId));
+    if (!signerRow) return res.status(400).json({ error: 'That signer is not on this contract\'s signing route' });
+    if (signerRow.party !== 'counterparty')
+      return res.status(400).json({ error: 'Internal signers sign in the app — only a counterparty signer gets a bound link' });
+    signerId = String(signerRow.id);
+    signerPlanAll = rt.plan;
+    const turn = signerTurn(shareId, signerId);
+    heldForTurn = !turn.ok;
+    /* ONE SIGNER, ONE LINK — the same rule the share dialog keeps for durable
+       negotiation links, held here for the same reason: pressing "issue the
+       signing links" twice must not put two live signing links for one signer
+       into the world. A live unanswered bound link is refreshed in place; and
+       if its turn has arrived while its email never went (issued early, before
+       internal signing finished), the refresh is also the moment it sends. */
+    const existing = db.prepare(
+      `SELECT * FROM shares WHERE contract_id=? AND signer_id=? AND revoked_at IS NULL AND response IS NULL
+        ORDER BY created_at DESC LIMIT 1`).get(shareId, signerId);
+    if (existing && !shareExpired(existing)) {
+      db.prepare('UPDATE shares SET payload=?, recipient_name=?, recipient_email=? WHERE token=?')
+        .run(JSON.stringify(payload), String(rec.name || '').slice(0, 120) || existing.recipient_name,
+          email || existing.recipient_email, existing.token);
+      const exLink = shareUrl(req, existing.token);
+      let exSent = false, exErr = null;
+      const sendTo = email || existing.recipient_email;
+      if (!heldForTurn && !existing.sent_at && /.+@.+\..+/.test(String(sendTo || ''))) {
+        const mail = signerTurnEmail({ signer: signerRow, plan: rt.plan, payload,
+          link: exLink, expiresAt: existing.expires_at });
+        const r2 = await sendEmail(sendTo, mail.subject, mail.body, `sign turn (external): ${existing.token}`);
+        exSent = !!r2.sent; exErr = r2.detail || null;
+        db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), existing.token);
+      }
+      return res.json({ ok: true, token: existing.token, link: exLink, reused: true,
+        expiresAt: existing.expires_at, channel: existing.channel || ch, durable: false,
+        signerId, heldForTurn, emailSent: exSent, emailConfigured: EMAIL_ON(), emailError: exErr });
+    }
+  }
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,recipient_email,recipient_phone,channel,message,created_by,expires_at,durable,purpose,signer_id)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(token, JSON.stringify(payload), now(), (payload.contract && payload.contract.id) || null,
       String(rec.name || '').slice(0, 120) || null, email || null, phone || null, ch,
-      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp);
+      String(message || '').slice(0, 1000) || null, req.user.id, expires, isDurable, purp, signerId);
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
-  if (ch === 'email') {
+  /* A bound link whose turn has not come yet is created but NOT delivered —
+     signer n+1's email is what releaseNextSignerLink sends when signer n
+     signs. Emailing it now would invite a signature the respond route is
+     going to refuse. */
+  if (ch === 'email' && signerId && !heldForTurn) {
+    const mail = signerTurnEmail({ signer: signerRow, plan: signerPlanAll, payload, link, expiresAt: expires });
+    const r = await sendEmail(email, mail.subject, mail.body, `sign turn (external): ${token}`);
+    emailSent = !!r.sent; emailError = r.detail || null;
+    db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
+  } else if (ch === 'email' && !heldForTurn) {
     const cName = (payload.contract && payload.contract.name) || 'a contract';
     const body = [
       `${req.user.name} at ${payload.org || 'HaTi'} has shared "${cName}" with you for review${rec.name ? `, ${rec.name}` : ''}.`,
@@ -3070,7 +3249,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     emailSent = !!r.sent; emailError = r.detail || null;
     db.prepare('UPDATE shares SET sent_at=? WHERE token=?').run(now(), token);
   }
-  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable, emailSent, emailConfigured: EMAIL_ON(), emailError });
+  res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
+    signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
+    emailSent, emailConfigured: EMAIL_ON(), emailError });
 });
 
 app.get('/api/shares/pending', auth, (req, res) => {         // owner side: responses to apply
@@ -3239,6 +3420,40 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   // served here — still offering "Approve & sign" — to anyone holding the link.
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
     return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
+  /* ---- W7: A BOUND LINK OPENS IN ITS TURN, AND NOT BEFORE ----
+     Signer n+1 holds a real link — created up front so the whole route exists
+     the moment it is issued — but until signer n has signed, it answers with a
+     dormant notice instead of the contract. Not an error: the page it renders
+     says whose turn it is and stays open, polling, so it comes alive by itself
+     when the turn arrives.
+
+     Checked BEFORE the engagement stamping below, deliberately: first_opened_at
+     is the fact the owner reads as "they have seen the contract", and a signer
+     who clicked early and met the waiting notice has seen no contract. */
+  if (s.signer_id && !s.response) {
+    const turn = signerTurn(s.contract_id, s.signer_id);
+    if (turn.reason === 'unknown')
+      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked' });
+    if (turn.reason === 'already-signed')
+      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked' });
+    if (turn.reason === 'awaiting') {
+      let p = null; try { p = JSON.parse(s.payload); } catch (_) {}
+      const w = turn.waitingOn;
+      return res.json({ dormant: {
+        /* An internal holdup is named as the organisation's, not as a
+           colleague this reader has never met; an earlier counterparty signer
+           is someone on their own side of the route, named so they know who
+           to chase. */
+        waitingOnParty: w.party === 'counterparty' ? 'counterparty' : 'internal',
+        waitingOn: w.party === 'counterparty' ? (w.name || 'an earlier signer') : null,
+        order: turn.signer.order || null, total: (turn.plan || []).length || null,
+        recipientName: s.recipient_name || '',
+        contractName: (p && p.contract && p.contract.name) || '',
+        org: (p && p.org) || '',
+        expiresAt: s.expires_at || null,
+      } });
+    }
+  }
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
   try {
     const payload = JSON.parse(s.payload);
@@ -3728,6 +3943,34 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
   if (r.kind !== 'hati-response' || !['sign','accept','changes','decline','decisions','ready'].includes(r.action) || !r.name)
     return res.status(400).json({ error: 'Invalid response' });
   if (r.action === 'sign') {
+    /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----
+       A bound link signs one step of the route, in that step's turn. Out of
+       order is REFUSED, never refiled onto whichever row happens to be next —
+       misfiling is the recorded fault this exists to close: the FD signing
+       before the MD used to land the FD's signature on the MD's row, with the
+       official running order silently wrong from then on.
+
+       The binding travels ON the response, stamped here from the share row —
+       server-stamped, never client-claimed, because the page holding the link
+       is not ours and a crafted response naming somebody else's row must not
+       be able to choose where it is filed. */
+    if (s.signer_id) {
+      const turn = signerTurn(s.contract_id, s.signer_id);
+      if (turn.reason === 'awaiting') {
+        const w = turn.waitingOn;
+        return res.status(409).json({ error: w.party === 'counterparty'
+          ? `It is not your turn to sign yet — ${w.name || 'an earlier signer'} signs before you on the agreed order. This page will come alive when they have signed.`
+          : `It is not your turn to sign yet — the sender's own signatures are not complete. This page will come alive when they are.` });
+      }
+      if (turn.reason === 'already-signed')
+        return res.status(409).json({ error: 'This signing step has already been completed.' });
+      if (turn.reason === 'unknown')
+        return res.status(409).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.' });
+      if (turn.ok) { r.signerId = s.signer_id; r.signerOrder = turn.signer.order || null; }
+      // 'no-route': the plan was cleared after issue — the link falls back to
+      // behaving as an ordinary signing link, and nothing is stamped that the
+      // contract could no longer match.
+    }
     /* The signature is normally attributed by a one-time code emailed to the
        signer. A workspace with NO mail provider cannot send that code, and
        blocking signature there strands a deal at its least recoverable moment
@@ -3793,6 +4036,11 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     db.prepare('UPDATE shares SET response=?, responded_at=?, applied=0 WHERE token=?').run(JSON.stringify(r), at, req.params.token);
   }
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* W7 sequential release: this signature may be the one the next signer's
+     dormant link is waiting on. Fired from here — the moment the signature is
+     STORED — so the route runs unattended whether or not the owner's browser
+     ever opens. */
+  if (r.action === 'sign' && s.signer_id) releaseNextSignerLink(req, s.contract_id);
   res.json({ ok: true });
 });
 
