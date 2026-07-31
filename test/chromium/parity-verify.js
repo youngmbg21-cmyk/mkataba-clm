@@ -98,10 +98,15 @@ const MEASURE = () => {
     winH: window.innerHeight,
     tabs,
     clippedLabels: clipped('.rl-side-tab, .nego-origin, .nego-chip, .nego-card-id'),
-    docSurfaces: document.querySelectorAll('.doc-surface').length,
+    /* Counted across BOTH renderings of a contract: .doc-surface is the plain
+       document (the old #pt-doc, and the viewer's sheet) and .nego-doc is the
+       workbench's marked-up pane. The claim is "one contract on the page", not
+       "one of a particular class" — counting only one class is how a duplicate
+       in the other shape would pass unnoticed. */
+    docSurfaces: document.querySelectorAll('.doc-surface, .nego-doc').length,
     ids: ['pt-doc', 'portal-redline', 'portal-plain', 'pt-name', 'pt-sign', 'pt-accept',
       'nego-copilot', 'nego-insert-lib', 'nego-save-draft', 'nego-bulk-acc',
-      'nego-exit', 'nego-publish-round', 'nego-close-round']
+      'nego-exit', 'nego-publish-round', 'nego-close-round', 'nego-bulk-acc-all']
       .filter(id => !!document.getElementById(id)),
     sideToggle: document.querySelectorAll('[data-redline-side]').length,
     backArrow: document.querySelectorAll('[data-rl-back]').length,
@@ -184,6 +189,11 @@ const MEASURE = () => {
     cp.ids.filter(i => /copilot|insert-lib|save-draft/.test(i)).join(', ') || 'none');
   check('8 no risk-derived bulk verb on their side',
     !cp.ids.includes('nego-bulk-acc'), cp.ids.includes('nego-bulk-acc') ? 'Accept All Non-Risk present' : 'none');
+  /* …and the capability is NOT withheld. "I agree to all of it" is a real
+     answer; taking the button away would only make them press Accept six
+     times to say the same thing. */
+  check('8 but they DO keep a plain Accept all',
+    cp.ids.includes('nego-bulk-acc-all'), cp.ids.includes('nego-bulk-acc-all') ? 'present' : 'MISSING');
 
   /* The owner's side is the control: if these were absent there too, every
      assertion above would be passing for the wrong reason. */

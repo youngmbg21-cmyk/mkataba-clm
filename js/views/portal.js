@@ -1169,7 +1169,12 @@ function wirePortalNego(c, p){
     noAi:true,
     selMenu(){ /* no Copilot on this page; selecting text is just reading */ },
     bannerHtml:banner,
-    org, height:'min(78vh, 860px)',
+    /* THE WHOLE WINDOW, as the owner's page gives it. The cap was
+       min(78vh, 860px) and it is what produced a 419px contract pane against
+       the owner's 925px: the component was being asked to lay three columns
+       out inside a card in a 1100px grid with a 360px aside beside it.
+       renderShareWorkbench gives it the page instead. */
+    org, height:'100%',
     pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
     pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
     heldDecisionIds:Object.keys(PORTAL_NEGO_DECISIONS),
@@ -1519,6 +1524,119 @@ function renderShareViewer(p, opts={}){
   </div>`;
 }
 
+/* ============================================================
+   THE COUNTERPARTY'S WORKBENCH — the same screen, at the same size
+   ============================================================
+   W1/W2. Their negotiation link used to mount the shared workbench as a CARD:
+   a 1100px two-column grid, the component height-capped at min(78vh, 860px),
+   a 360px sticky aside beside it. Measured in Chromium at 1440x940 from one
+   contract, that gave them a 419px contract pane where the owner had 925px,
+   a page 2761px tall against the owner's 940px, a Discussion tab clipped
+   outside its own panel, and change cards breaking mid-identifier. The owner's
+   renderRedline() hands the same component the whole window.
+
+   A LESSER SCREEN FOR THE OTHER SIDE IS THE THING THIS ROOM EXISTS NOT TO BE.
+   Everything needed to read, judge, propose and answer is here, at the size
+   the owner reads it at.
+
+   WRITTEN AS ITS OWN SCREEN rather than as the old page with parts hidden —
+   the same reasoning as the viewer above. Hiding leaves every id, handler and
+   tab stop in the document, and the duplicates this replaces were not
+   incidental: #pt-doc rendered a SECOND, unmarked copy of the contract below
+   the workbench, showing the wording BEFORE the counterparty's own proposal,
+   with nothing to say so. Two documents on one page disagreeing about what the
+   contract says is worse than either alone. #portal-redline was a third
+   surface — a standalone clause editor duplicating the Direct Edit already in
+   the workbench.
+
+   WHAT THEY DO NOT GET, and why (unchanged, carried through from the embed
+   options): no Copilot — it reads our whole portfolio and our playbook; no
+   clause library — it IS our negotiating position; no Save Draft — our draft
+   state, meaningless outside the workspace; no Share or Import — a
+   counterparty who can re-share has published our contract onward; no side
+   toggle — they ARE the counterparty view, permanently; no round controls —
+   the owner drives rounds; and no back arrow, because there is no page behind
+   theirs (negoRoomHasExit already encodes exactly that rule).
+
+   WHAT THEY KEEP that might look surprising: Accept all and Reject all. Those
+   act on OUR asks, and "I agree to all of it" is a real and common answer —
+   withholding the button would not withhold the decision, only make them press
+   Accept six times to say the same thing. */
+function portalWorkbenchStyle(){
+  if(document.getElementById('pw-style')) return;
+  const el=document.createElement('style'); el.id='pw-style';
+  el.textContent=`
+    .pw-page{height:var(--view-h,100vh);box-sizing:border-box;display:flex;flex-direction:column;
+      gap:9px;padding:9px 16px 12px;background:var(--color-bg);min-height:0;overflow:hidden;}
+    .pw-id{display:flex;align-items:center;gap:11px;flex:none;background:var(--color-surface);
+      border:1px solid var(--color-divider);border-radius:8px;padding:9px 14px;box-shadow:var(--shadow-sm);}
+    .pw-id-badge{width:30px;height:30px;flex:none;border-radius:5px;background:var(--color-accent);
+      color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;}
+    .pw-id-main{min-width:0;line-height:1.3;}
+    .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:600;font-size:15.5px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    /* The banners the old page carried in its main column — closed, revised,
+       round, compare, message-from-sender. They carry facts the workbench does
+       not render, so they are re-homed rather than dropped. */
+    .pw-notes{flex:none;display:grid;gap:6px;}
+    .pw-notes:empty{display:none;}
+    /* The workbench takes everything that is left, and scrolls inside its own
+       columns — which is the whole difference between this and the card. */
+    .pw-mount{flex:1;min-height:0;display:flex;flex-direction:column;}
+    .pw-mount>*{flex:1;min-height:0;}
+    @media (max-width:1024px){
+      /* Below the three-column width the page is allowed to grow and scroll:
+         a fixed-height flex layout on a phone is how a document becomes
+         unreadable rather than merely cramped. Degrading deliberately, as the
+         work order asks, instead of inheriting the desktop grid. */
+      .pw-page{height:auto;overflow:visible;}
+      .pw-mount{min-height:70vh;}
+    }`;
+  document.head.appendChild(el);
+}
+
+function renderShareWorkbench(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  portalLoadHeld();          // before the room is built — the room is built FROM these
+  portalWorkbenchStyle();
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  FIRST_PARTY=p.org;
+  const c=portalNegoContract(p);
+  const org=(p&&p.org)||'the sender';
+  const msg=(opts.share&&opts.share.message)
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#9993;</span><span>
+        <b>Message from ${esc(p.sharedBy||org)}:</b> ${esc(opts.share.message)}</span></div>` : '';
+  root.innerHTML=`
+  <div class="pw-page" id="pw-page">
+    <section class="pw-id">
+      <span class="pw-id-badge">HT</span>
+      <span class="pw-id-main">
+        <h1>${esc(c.name||'Contract')}</h1>
+        <span class="pw-id-sub">${esc(c.id||'')}${c.counterparty?` &middot; with ${esc(c.counterparty)}`:''}
+          &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
+            ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
+      </span>
+    </section>
+    <div class="pw-notes">
+      ${portalClosedBanner()}
+      ${portalRevisedBanner()}
+      ${portalRoundBanner(c,p)}
+      ${portalCompareBar()}
+      ${msg}
+    </div>
+    <div class="pw-mount"><div id="pt-nego"></div></div>
+    <div id="pt-nego-foot" hidden></div>
+  </div>`;
+  /* The shared component, wired exactly as the old page wired it. Same
+     function, same options — this changes the room the workbench stands in,
+     never the workbench. */
+  wirePortalNego(c, p);
+  if(window.portalStartPolling) portalStartPolling(p);
+}
+
 function renderSharePortal(p, opts={}){
   /* ---- THE VIEW LINK LEAVES HERE, BEFORE ANYTHING IS ASSEMBLED ----
      First statement in the function, ahead of portalLoadHeld and the whole
@@ -1529,6 +1647,14 @@ function renderSharePortal(p, opts={}){
      all, so no future addition to them can leak onto a reader's copy. */
   if((opts&&opts.viewOnly)||(p&&(p.viewOnly||p.purpose==='view')))
     return renderShareViewer(p, opts);
+  /* ---- AND THE NEGOTIATION SEAT GETS ITS OWN FULL-WINDOW SCREEN ----
+     Same reason, one step further in: the negotiate page's duplicates are not
+     hidden here, they are never built. What is left below this line is the
+     SIGNING screen and the invalid/expired states. */
+  try{
+    if(p && p.kind==='hati-share' && p.contract
+      && portalNegoPhase(p).phase==='negotiate') return renderShareWorkbench(p, opts);
+  }catch(_){ /* fall through to the page below rather than showing nothing */ }
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
   /* Whatever this reader had answered and not sent, put back — see
      portalLoadHeld. Before the room is built, because the room is built FROM
@@ -2468,4 +2594,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench});
