@@ -573,6 +573,110 @@ describe('F96 (B8b) — a drag that begins outside any clause', () => {
   });
 });
 
+describe('F96 (B13) — a clause the record holds and the canvas did not draw', () => {
+  /* The inverse of everything above: not the screen showing what the record
+     lacks, but the record holding a whole CLAUSE the screen refused to draw.
+
+     redlineDocHtml dropped every insertClause, which cost nothing for as long
+     as nothing on this page could file one — the passage menu offered rephrase,
+     shorten and tag. Edit with Copilot's placements opened that door, and the
+     clause went through it into a canvas that would not show it: filed,
+     fingerprinted, carded in the column, and missing from the contract the
+     reader was reading. It stayed missing after the other side ACCEPTED it,
+     because this canvas is built from the round baseline and an accepted insert
+     only reaches that when the round turns. A lawyer would add a clause, be
+     told it was filed, fail to find it, and reasonably add it again. */
+  const seedInsert = (opts = {}) => async (win, c) => {
+    const after = win.negoClauseList(c).find(x => /payable within thirty/.test(x.text || ''));
+    const ch = await win.negoInsertClause(c, opts.orphan ? 'cl_gone_' : after.clauseId,
+      { headingText: opts.label || '2A. CONFIDENTIALITY',
+        bodyHtml: '<p>Each party shall keep the other party information confidential.</p>' },
+      { side: opts.side || 'owner', author: opts.side === 'counterparty' ? 'Amina Wanjiru' : 'Wanjiru Kamau' });
+    c.__ins = ch; c.__after = after;
+    if (opts.decide) win.negoResolve(c, ch.id, opts.decide,
+      { side: opts.side === 'counterparty' ? 'owner' : 'counterparty', by: 'The other side' });
+  };
+  const canvas = p => (p.$('#rl-doc') || { textContent: '' }).textContent;
+
+  test('a proposed new clause is drawn in the document, not only carded beside it', async () => {
+    const p = await page({ seed: seedInsert() });
+    assert.match(canvas(p), /keep the other party information confidential/,
+      'THE FIX: it was filed correctly and shown nowhere a reader reads');
+    assert.match(canvas(p), /2A\. CONFIDENTIALITY/, 'with the heading it was given');
+  });
+
+  test('and it says it is an addition, not settled wording', async () => {
+    const p = await page({ seed: seedInsert() });
+    const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
+    assert.ok(sec, 'the clause is on the canvas');
+    assert.ok(sec.classList.contains('rl-clause-new'),
+      'a clause that is not in the agreement yet must not read as one that is');
+    assert.match(sec.textContent, /new clause/i, 'and the tag says so in words');
+    assert.ok(sec.querySelector('ins, .nego-ins'), 'the wording carries insertion marks');
+  });
+
+  test('it sits after the clause it names, not swept to the end', async () => {
+    const p = await page({ seed: seedInsert() });
+    const ids = p.$$('#rl-doc [data-clause]').map(el => el.getAttribute('data-clause'));
+    const at = ids.indexOf(p.c.__after.clauseId);
+    assert.ok(at >= 0, 'the anchor clause is on the canvas');
+    assert.equal(ids[at + 1], p.c.__ins.clauseId, 'the new clause follows its anchor');
+    assert.ok(at + 1 < ids.length - 1, 'and that is genuinely not the end of the document');
+  });
+
+  test('an ACCEPTED new clause is still shown, before the round turns', async () => {
+    const p = await page({ seed: seedInsert({ decide: 'accepted' }) });
+    assert.equal(p.win.negoChangeById(p.c, p.c.__ins.id).status, 'accepted');
+    assert.ok(!/keep the other party information confidential/.test(p.c.negotiation.baselineBody),
+      'fixture: the round baseline deliberately does not absorb it yet');
+    assert.match(canvas(p), /keep the other party information confidential/,
+      'THE WORST CASE: agreed by both sides and absent from the contract');
+  });
+
+  test('a REJECTED one is struck through, not silently dropped', async () => {
+    const p = await page({ seed: seedInsert({ decide: 'rejected' }) });
+    const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
+    assert.ok(sec, 'a gap in the document cannot be told from a clause never proposed');
+    assert.ok(sec.querySelector('del, .nego-del'), 'refused wording is struck, not erased');
+    assert.match(sec.textContent, /refused/i);
+  });
+
+  test('an insert whose anchor has gone falls to the end, and only then', async () => {
+    const p = await page({ seed: seedInsert({ orphan: true }) });
+    const ids = p.$$('#rl-doc [data-clause]').map(el => el.getAttribute('data-clause'));
+    assert.equal(ids[ids.length - 1], p.c.__ins.clauseId,
+      'the end is the one place that is always there and never a guess');
+  });
+
+  test('the wall holds: our unsent new clause is not in Counterparty View', async () => {
+    /* Drawing an insert must not become a way around the view wall, and a whole
+       clause is the most conspicuous thing there is to leak. Checked in the
+       direction the wall actually runs: an unsent ask of OURS must not appear
+       in the preview of what they see. (The mirror case does not exist — a
+       change of theirs is on our record only because it was sent to us, which
+       is negoUnsentAsks' own reasoning.) */
+    const p = await page({ seed: seedInsert({ side: 'owner' }) });
+    assert.ok(p.win.rlHiddenFrom(p.c, 'counterparty').has(p.c.__ins.id),
+      'fixture: an unsent draft of ours must really be walled from their view');
+    const theirs = p.win.redlineDocHtml(p.c, { side: 'counterparty' });
+    assert.ok(!/keep the other party information confidential/.test(theirs),
+      'a clause we have not sent is not in the document they are shown');
+    assert.match(p.win.redlineDocHtml(p.c, { side: 'owner' }),
+      /keep the other party information confidential/, 'and it is still in ours');
+  });
+
+  test('highlighting inside a proposed clause is refused honestly, as before', async () => {
+    /* It is on the canvas now, so it can be selected — and it is still not in
+       the baseline, so there is nothing to redline against. The B12 answer has
+       to survive the clause becoming visible. */
+    const p = await page({ seed: seedInsert() });
+    const sec = p.$$('#rl-doc [data-clause]').find(el => /confidential/.test(el.textContent));
+    await p.press(p.highlight(sec, 'keep the other party', 'information confidential'));
+    assert.ok(p.said(/itself still a proposal|not been accepted/i));
+    assert.equal(p.panel.proposals.length, 0);
+  });
+});
+
 describe('F96 (B9) — a mark with no words in it is not wording under change', () => {
   test('an empty mark at the selection boundary is not counted', async () => {
     const p = await page();

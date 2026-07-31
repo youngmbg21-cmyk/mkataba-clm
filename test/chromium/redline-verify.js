@@ -442,8 +442,14 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('5 AI Assist is gone from the clause toolbar', menu.noToolbarAi);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
-  check('5 they are rephrase, shorten, tag',
-    /Rephrase with Copilot/.test(menu.items[0] || '')
+  /* "Edit with Copilot", not "Rephrase with Copilot": the first verb was
+     renamed when the action learned to ADD wording as well as replace it, and
+     rephrasing is now one of the things it does rather than the whole of it.
+     This assertion still named the old label and had gone red unnoticed —
+     browser checks are not run on every branch, which is exactly how a stale
+     one survives a deliberate rename. */
+  check('5 they are edit, shorten, tag',
+    /Edit with Copilot/.test(menu.items[0] || '')
     && /Shorten & Simplify/.test(menu.items[1] || '')
     && /Tag with internal note/.test(menu.items[2] || ''));
   check('3 opening the menu opens no dialog', menu.dialogs === 0 && menu.modals === 0);
