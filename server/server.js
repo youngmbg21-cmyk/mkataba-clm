@@ -3738,6 +3738,33 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     // against the share open; this pins it to the signature itself.
     r.ip = clientIp(req); r.ua = String(req.get('user-agent') || '').slice(0, 300) || null;
   }
+  /* ---------- WHO ACTUALLY SENT THIS, ON EVERY ACTION ----------
+     Verification used to be computed only for `sign`, because a signature is
+     the act that obviously needs a name on it. But a REJECTION is evidence
+     too: a year from now the history screen says "rejected by Jane on 6 March,
+     reason: outside our insurance cover", and the whole value of that sentence
+     is that Jane really sent it. Every other action was landing attributed to
+     whatever name was typed into the box, with nothing recording whether
+     anyone had checked.
+
+     RECORDED, NOT REQUIRED. This does not start demanding a code before
+     somebody may reject a clause — that would put a mail round trip in front
+     of ordinary negotiation and people would stop using the link. It records
+     what is true: verified against the invited address, or not verified. An
+     honest "unverified" is worth more than a confident name nobody checked,
+     and it is the difference between a record that survives being questioned
+     and one that does not.
+
+     The invited address, never the typed one. `otp.email` is the address the
+     code was sent to; a signer who types a different address into the page has
+     verified control of that mailbox and nothing about who they are. */
+  if (r.action !== 'sign') {
+    const otp = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
+    const ok = !!(otp && otp.verified && r.verify && otp.verify === r.verify);
+    r.verified = ok;
+    r.verifiedEmail = ok ? (otp.email || null) : null;
+    r.invitedEmail = s.recipient_email || null;
+  }
   const at = now();
   if (s.durable) {
     // every round's answer is kept, and applied to the contract on its own

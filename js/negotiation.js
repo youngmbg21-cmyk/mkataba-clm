@@ -290,6 +290,41 @@ function negoAllRefs(c){
   });
 }
 
+/* ---------- WHO THE RECORD SAYS DID THIS ----------
+   The name a counterparty types into the box is a claim, not a fact, and until
+   now it was stored as though it were a fact: "Rejected by Jane Mwangi", with
+   nothing anywhere saying whether anybody had checked that Jane sent it. A year
+   later the history screen reads that sentence back to an auditor, and its
+   whole value rests on the part nobody recorded.
+
+   THE RECORD IS HONEST IN BOTH DIRECTIONS. Where the link was verified by a
+   one-time code sent to the invited address, the verified address goes on the
+   decision — that is the strongest identity claim the product can make about
+   somebody with no account. Where it was not, the record says so plainly rather
+   than going quiet, because a name with no qualifier reads as verified to every
+   reader who was not there.
+
+   NEVER THE TYPED ADDRESS. A signer who types their own address and gets a code
+   has proved control of that mailbox and nothing about who they are; the
+   address that means something is the one the owner invited.
+
+   ENCOURAGED, NOT ENFORCED. Nothing here demands verification before somebody
+   may answer a clause — putting a mail round trip in front of ordinary
+   negotiation is how a link stops being used. It records what happened. */
+function negoActorLabel(r, fallback){
+  const base = String((r && r.name) || fallback || 'the counterparty').trim()
+    + ((r && r.title) ? ', ' + r.title : '');
+  if (!r) return base;
+  if (r.verified === true && r.verifiedEmail) return `${base} (${r.verifiedEmail}, email-verified)`;
+  if (r.verified === true) return `${base} (email-verified)`;
+  /* Unverified, and named as such. The invited address is still worth carrying
+     — it says who the link was MEANT for, which is exactly the question a
+     reader asks next. */
+  const sent = (r.invitedEmail || r.email) ? ` — link sent to ${r.invitedEmail || r.email}` : '';
+  return `${base} (link holder, unverified${sent})`;
+}
+
+
 /* The clauses of the contract's CURRENT working wording. */
 const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : []);
 
@@ -2451,7 +2486,7 @@ function negoMigrate(c){
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
-  negoBrokenRefs, negoAllRefs,
+  negoBrokenRefs, negoAllRefs, negoActorLabel,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

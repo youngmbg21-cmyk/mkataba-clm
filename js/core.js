@@ -2826,12 +2826,16 @@ function negoTurnBack(c, who){
 function applyNegoDecisions(c, r, who){
   const list=Array.isArray(r.negoDecisions)?r.negoDecisions.slice(0,200):[];
   const done=[];
+  /* The identity that goes onto the decision is the honest one, not the typed
+     one — see counterpartyActor. `who` is kept as the fallback so a response
+     from before this existed still reads exactly as it always did. */
+  const actor=(typeof negoActorLabel==='function')?negoActorLabel(r, who):who;
   for(const d of list){
     const ch=window.negoChangeById?negoChangeById(c,String(d.id||'')):null;
     if(!ch || ch.authorSide!=='owner') continue;
     if(d.status!=='accepted' && d.status!=='rejected') continue;
-    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:who,
-      reply:d.reply||null })) done.push({ id:ch.id, status:d.status });
+    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:actor,
+      reply:d.reply||null })) done.push({ id:ch.id, status:d.status, reply:d.reply||null });
   }
   return done;
 }

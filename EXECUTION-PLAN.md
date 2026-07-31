@@ -2,7 +2,7 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** IN BUILD. Stage 0 complete; Stage 1 three of four tracks complete.
+**Status:** IN BUILD. Stages 0 and 1 complete.
 See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
@@ -542,24 +542,39 @@ edits (E1–E3)*, *The server refuses, and divergence is reported (E4–E5)*.
 contract as setup (its `negoResolve` calls were already silent no-ops); f102 gave
 a Signed fixture a body by PUT. Both now do it the way the product does.
 
-### 🟡 Stage 1 — Foundations (3 of 4 tracks complete)
-**Suite 1870/0.**
+### ✅ Stage 1 — Foundations (COMPLETE)
+**Suite 1899/0.**
 
 | Track | Status |
 |---|---|
 | A — **WP-1.1 + WP-1.2** | ✅ Done. `SHARE_PURPOSES` gains `view`; `refuseIfViewOnly` written once and called from `respond`, `messages`, `template-values` and the owner's payload refresh; `viewerPayload()` built by allow-list. f108 (12) plants six internal strings and asserts none appears in the response, and asserts the negotiate payload *does* carry them so the check cannot pass vacuously. |
 | D — **W9** | ✅ Done. Reserved signing steps enforced server-side, asked as a difference rather than a state. f109 (5). |
-| B — **WP-2.2 + WP-2.3** | ⬜ Not started. Verified identity stamped on counterparty decisions; the decision-reason nudge. |
-| C — **N1** | ⬜ Not started. Linked cross-references (T1–T5), closes OI-1. The ground it needs (`negoNumberingGaps`, f98) is now on the branch, courtesy of E1. |
+| C — **N1** | ✅ Done. Linked cross-references, T1–T5, **closes OI-1**. Detection uses the same number grammar the headings use; ranges are two endpoints; a bare number is deliberately not a reference. `negoBrokenRefs` is **attributed, never scanned** — reported only where an accepted deletion on this record accounts for the target, and reported on the clause that *contains* the reference. The notice gains a sentence rather than a second banner, and still carries no button on an executed contract. f110 (21). |
+| B — **WP-2.2 + WP-2.3** | ✅ Done. The server now records verification on **every** counterparty action, not only signing — a rejection is evidence too. `negoActorLabel` is honest in both directions: verified decisions carry the invited address, unverified ones say so rather than going quiet. Reasons land on the change record; never mandatory. f111 (8). |
+
+**Two bugs the N1 tests caught:** `clauseRefNorm` was stripping the closing
+bracket off `8.2(a)`, which would have reported every sub-paragraph reference
+in the portfolio as dangling; and the report only fires once the round closes,
+because until then the baseline both sides measure against still carries the
+clause — the warning appears when the gap does.
 
 ### ⬜ Stages 2–9 — not started
-Sessions 6–21 as scheduled above. The next session's first job is Stage 1's two
-remaining tracks (N1 and the capture improvements), then Stage 2.
+Sessions 6–21 as scheduled above. **Next: Stage 2** — the counterparty
+workbench (W1, W2, W4, W5, and W3 now that D5 is answered), starting with the
+Chromium visual-parity harness, since jsdom cannot see the defect being fixed.
 
 ### Notes for whoever picks this up
 - **Branching deviated from §2 deliberately.** This session was instructed to
   develop on `claude/contract-sharing-history-plan-zl54en`, so Stage 0 and
-  Stage 1 share one branch rather than one branch per session.
+  Stage 1 share one branch rather than one branch per session. **The owner has
+  asked that nothing merges to `main` until the whole programme is done**, so
+  the branch accumulates and §2's stage-boundary merges are deferred to the
+  end.
+- **D5 is answered** (see the master order's decision register): signing is
+  strict identity — the owner sets the signers' email addresses, each gets
+  their own link, the next is released automatically when the previous signs,
+  and the code goes only to the invited address. That is W7/W8 as specified.
+  Negotiation stays relaxed. **W3 is unblocked.**
 - `npm install` is required before the suite runs — an empty `node_modules`
   reads as a hanging test run, not as a missing dependency.
 - The entry-check discipline in §1 earned its place twice already: once finding
