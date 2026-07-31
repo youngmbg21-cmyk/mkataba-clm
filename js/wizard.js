@@ -120,7 +120,15 @@ function createFromWizard(tid, vars){
     errs.push(`"${cpEmail}" is not an email address — leave it blank if you do not have it yet.`);
   if(errs.length){ toast(errs[0],'err'); return; }
   const cp=values.counterparty||'';
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
+  /* THE NAME THEY TYPED IS THE COUNTERPARTY, not just a word in the title.
+     This wrote `counterparty:''` and folded `cp` into the display name only,
+     so a contract drafted for Kabras was titled "…— Kabras" while the field
+     the register filters on, the reports total by, and the signing readiness
+     check reads ("Complete: counterparty name") stayed empty. The operator
+     then re-typed, in the workspace, a fact they had already given the wizard.
+     Uploads have always recorded it (js/views/contract.js); the two
+     template-born paths now agree with them. */
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:cp,
     value: 0, status:'Draft', template:tid, folder:t.folder,
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory', compliance:{iprs:false,pki:false},
     comments:[{author:'System',role:'Automation',side:'internal',text:`Drafted via the guided wizard from Template ${tid} (${t.kind}). What you typed is filed as contract data — the register, filters and reports pick it up without re-keying.`,ts:fmtDT(nowISO())}],
