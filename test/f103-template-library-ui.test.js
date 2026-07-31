@@ -78,25 +78,31 @@ function stage({ canManage = true, responses = {} } = {}) {
 const settle = () => new Promise(r => setTimeout(r, 0));
 
 describe('f103 — template library screens', () => {
-  test('the library list renders both templates with status, version and usage', async () => {
-    const { sandbox, content } = stage();
-    sandbox.renderTemplateLibrary();
+  test('the company-templates section renders INTO the Templates page host', async () => {
+    const { sandbox } = stage();
+    // the Templates page provides this host; the section renders into it
+    const host = sandbox.document.getElementById('tpl-company-section');
+    await sandbox.renderCompanyTemplatesSection();
     await settle();
-    const html = content();
+    const html = host.innerHTML;
+    assert.ok(html.includes('Company standard templates'), 'the section names itself');
     assert.ok(html.includes('Account Opening Form'));
     assert.ok(html.includes('Published'), 'status badge');
     assert.ok(html.includes('v2'), 'current published version');
     assert.ok(html.includes('7 contracts'), 'contracts-created count');
     assert.ok(html.includes('NDA — mutual') && html.includes('Draft'), 'a manager sees the draft too');
-    assert.ok(html.includes('New template'), 'a manager is offered the create verb');
+    assert.ok(html.includes('New template') && html.includes('Convert a document'), 'manager verbs live on the section');
+    assert.equal(sandbox.tplLibCount(), 1, 'one published template feeds the sidebar count');
+    assert.equal(sandbox.tplLibPublished()[0].id, 'tpl_1', 'the menu reads the same cache');
   });
 
   test('a viewer gets no create verb (the server would 403 it anyway)', async () => {
-    const { sandbox, content } = stage({ canManage: false });
-    sandbox.renderTemplateLibrary();
+    const { sandbox } = stage({ canManage: false });
+    const host = sandbox.document.getElementById('tpl-company-section');
+    await sandbox.renderCompanyTemplatesSection();
     await settle();
-    assert.ok(!content().includes('New template'));
-    assert.ok(content().includes('Account Opening Form'), 'and the positive case genuinely rendered');
+    assert.ok(!host.innerHTML.includes('New template'));
+    assert.ok(host.innerHTML.includes('Account Opening Form'), 'and the positive case genuinely rendered');
   });
 
   test('the detail screen shows the version history with change notes', async () => {

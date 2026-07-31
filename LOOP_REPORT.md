@@ -103,3 +103,30 @@ is marked in CHECKLIST.md as requiring a real key.
 full-suite verification, commit and push. Out-of-scope list respected: no
 PDF/OCR, no clause library, no auto-updating open contracts, no sharing,
 no pricing changes.
+
+## Loop 5 — the fix work order (WORKORDER-template-library-fixes.md)
+
+**Attempted:** all four steps of the user's work order from hands-on testing:
+marker corruption, inert green blanks, the disconnected library, grey
+restyle.
+
+**Happened:** Step 1 — deleting a field now strips its markers from the
+wording (review screen and builder alike), publish blocks server-side on any
+orphaned marker and names it, the renderer never emits raw {{syntax}} (an
+orphan renders as a plain blank), longhand signature wording from the model
+is rebuilt as a signature block named for who signs, and contracts stored
+with {{code}} repair themselves on next open (portal copies repair
+display-side; executed records untouched). Step 2 — blanks are grey with a
+dotted rule, carry data-field-key (admitted by the sanitiser as narrowly as
+data-clause-id), and take clicks: a typed in-place input with shared-registry
+validation on the workspace and the portal, signature blanks routing to the
+signing flow, print showing underscore blanks. Step 3 — the standalone
+Template Library page is gone; the library renders as a "Company standard
+templates" section on the Templates page, published templates appear in the
++ Draft new agreement menu above the built-ins, and the sidebar count
+includes them. Step 4 — f106 (10 tests) pins the hygiene layers; f105 gained
+the signature-reconciliation case; f101/f103 updated for the new warning and
+the folded-in section.
+
+**Decided next:** full suite + browser checks, after-screenshots of the
+three bug-report screens, merge to main.

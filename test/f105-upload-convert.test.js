@@ -98,7 +98,22 @@ describe('f105 — upload-and-convert', () => {
         req.on('end', () => {
           stubCalls.push(raw);
           const input = stubMode === 'garbage' ? { blocks: 'not-an-array', fields: null }
-            : stubMode === 'prose' ? {} : brutDetection();
+            : stubMode === 'prose' ? {}
+            : stubMode === 'sigblock' ? {
+                blocks: [
+                  { order_index: 0, block_type: 'heading', content: 'AGREEMENT' },
+                  { order_index: 1, block_type: 'field_group', content: 'Client: {{client_name}}' },
+                  { order_index: 2, block_type: 'fixed_text',
+                    content: 'Signed for BUYER: GULIZ LLC By (Signature): {{buyer_signature}} Name: {{buyer_officer_name}} Date: {{buyer_signing_date}}' },
+                ],
+                fields: [
+                  { label: 'Client name', field_key: 'client_name', field_type: 'short_text', required: true, confidence: 'high' },
+                  { label: 'Buyer signature', field_key: 'buyer_signature', field_type: 'signature_name_title', required: true, confidence: 'high' },
+                  { label: 'Buyer officer name', field_key: 'buyer_officer_name', field_type: 'short_text', required: false, confidence: 'medium' },
+                  { label: 'Buyer signing date', field_key: 'buyer_signing_date', field_type: 'date', required: false, confidence: 'medium' },
+                ],
+              }
+            : brutDetection();
           res.writeHead(200, { 'content-type': 'application/json' });
           res.end(JSON.stringify({
             id: 'msg_stub', type: 'message', role: 'assistant', model: 'claude-sonnet-4-6',
@@ -196,6 +211,21 @@ describe('f105 — upload-and-convert', () => {
     const t = await w.admin.json('/api/templates/' + r.templateId);
     assert.equal(t.template.status, 'draft');
     assert.match(t.versions[0].errorNote, /original file is stored/);
+    stubMode = 'brut';
+  });
+
+  test('longhand signature wording from the model is rebuilt as a signature block', async () => {
+    stubMode = 'sigblock';
+    const r = await w.admin.json('/api/templates/upload', { method: 'POST', body: {
+      fileName: 'blanks-inline.docx', dataUrl: dataUrl(FIX('blanks-inline.docx')) } });
+    assert.equal(r.converted, true);
+    const v = await w.admin.json(`/api/templates/${r.templateId}/versions/${r.versionId}`);
+    const all = v.blocks.map(b => b.content).join('\n');
+    assert.ok(!all.includes('{{buyer_signature}}'), 'no signature marker survives in wording');
+    const sig = v.blocks.find(b => b.blockType === 'signature_block');
+    assert.ok(sig, 'the execution area became a signature block');
+    assert.match(sig.content, /GULIZ LLC/i, 'named for who signs');
+    assert.ok(v.blocks.some(b => b.content.includes('{{client_name}}')), 'ordinary typed markers stay in the wording');
     stubMode = 'brut';
   });
 

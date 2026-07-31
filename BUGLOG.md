@@ -5237,3 +5237,74 @@ Defects found and fixed during the build. Blunt, per the brief.
 - `guided` options and `{{org.…}}` defaults are settable in the builder
   but the converter never emits them (the model is not asked to invent
   options — deliberate, per "never invent a field").
+
+---
+
+## Run: Template Library fix work order (2026-07-31)
+
+User-reported, from a real uploaded contract (GULIZ LLC master procurement
+agreement). All four confirmed and fixed; proof in f106 + updated f101/f105.
+
+**Deleted fields reached contracts as literal {{code}}.**
+- What was broken: fields deleted on the upload-review screen left their
+  {{markers}} in the wording; the renderer showed unknown markers verbatim
+  ("visible mistakes" — a decision that turned one delete into corruption);
+  the model sometimes wrote the execution area longhand AND the renderer drew
+  its own signature block, so signatures printed twice, once as code.
+- Root cause: no marker cleanup on delete, no marker↔field check at publish,
+  a renderer that preferred honesty over safety, no signature reconciliation.
+- The fix: four layers — strip on delete, block publish on orphans (named),
+  render orphans as plain blanks, rebuild signature wording as signature
+  blocks; plus repair-on-open for records already damaged.
+- Files touched: js/templateform.js, js/views/templatelib.js,
+  js/views/templatebuilder.js, js/views/portal.js, server/server.js.
+
+**Blanks looked fillable but were inert, and were green.**
+- What was broken: the highlighted blanks in the document were render-only;
+  filling lived solely in a side panel the document never pointed at. Green
+  also reads as done/positive in this design — wrong for emptiness.
+- The fix: blanks are grey (neutral palette, dotted rule), carry
+  data-field-key (sanitiser admits it as narrowly as data-clause-id), and a
+  click opens the right typed input in place — owner and portal — validated
+  by the shared registry, autosaved through the same commit as the panel.
+  Print shows underscore blanks. Signature blanks route to the signing flow.
+- Files touched: index.html (CSS), js/richdoc.js (allowlist),
+  js/templateform.js, js/views/templatelib.js, js/views/portal.js.
+
+**The library was invisible from where users actually look.**
+- What was broken: published templates appeared neither on the Templates
+  page nor in + Draft new agreement — a third place nobody knew to visit.
+- The fix: the standalone page is folded into the Templates page as the
+  "Company standard templates" section; published templates join the
+  draft-new-agreement menu above the built-ins; the sidebar count includes
+  them. Deep screens (detail, builder, review) remain, returning to the
+  Templates page.
+- Files touched: js/views/templatelib.js, js/views/library.js, js/app.js,
+  index.html (nav item removed).
+
+**Known-not-done:** old settings-blob custom templates are still their own
+section (migration explicitly out of scope); the popover handles typed and
+guided fields — file/stamp fields route to the panel's file input by design.
+
+Two follow-on defects surfaced by the after-screenshot pass (real Chromium),
+both in the new click-to-fill popover, both fixed the same day:
+
+**Committing with Enter fired the commit twice.**
+- What was broken: Enter committed the value, the popover was removed, and
+  removing the focused input fired its `change` event — a second commit on a
+  popover that no longer existed. Chromium logged a DOM error
+  ("node to be removed is no longer a child").
+- The fix: a `done` flag — `close()` sets it, `commitPop()` checks it. One
+  door, crossed once. Same guard on the portal's popover.
+- Files touched: js/views/templatelib.js, js/views/portal.js.
+
+**The document repainted as escaped HTML after a popover commit.**
+- What was broken: after committing, the doc canvas showed the contract's raw
+  markup as text (`<h1>STANDARD SUPPLY AGREEMENT</h1>…`).
+- Root cause: `renderDocHtml(content, format)` treats a missing `format` as
+  plain text and escapes it; both repaint sites passed only the content. The
+  dom-sandbox tests stub `renderDocHtml` with a one-argument function, which
+  is exactly why they never caught it — the real browser did.
+- The fix: pass `window.RICH_FORMAT || 'rich'` at both repaint sites
+  (repair-on-open and tplFormCommit).
+- Files touched: js/views/templatelib.js.

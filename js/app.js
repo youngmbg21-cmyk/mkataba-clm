@@ -81,8 +81,7 @@ function commandMeta(view){
       return ['Portfolio', `${head} · ${totalV} active value`];
     }
     case 'register':  return ['Contract Register', 'filter, sort and act in bulk across the working set'];
-    case 'templates': return ['Templates', 'HaTi standard paper, your firm’s templates and sample documents'];
-    case 'tpl-library': return ['Template Library', 'company standard templates — versioned, permissioned, and the parent of every contract they spawn'];
+    case 'templates': return ['Templates', 'company standard templates, HaTi standard paper and sample documents'];
     case 'playbook':  return ['Clause Library & Playbook', 'standard wording, negotiation positions and portfolio deviations'];
     case 'pipeline':  return ['My Queue', 'drag between lifecycle stages · signing runs through the workspace'];
     case 'advice':    return ['Advice Desk', 'customer advice, review & drafting requests · published rates and a transparent turnaround promise'];
@@ -197,7 +196,8 @@ function updateSidebarCounts(){
     calendar: (window.allObligations?allObligations().filter(o=>{ const due=window.obligationDue?obligationDue(o):(o.due||'').slice(0,10);
       const d=(due&&window.daysUntil)?daysUntil(due):null; return d!=null&&!isNaN(d)&&d>=0&&d<=60; }).length:0),
     migration: cs.filter(c=>c.migration&&c.migration.needsReview).length,
-    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0),
+    templates: Object.keys(TEMPLATES).length + (window.customTemplates?customTemplates().length:0)
+      + (window.tplLibCount?tplLibCount():0),
   };
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
@@ -215,7 +215,6 @@ function updateSidebarCounts(){
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Intelligence',
   calendar:'Calendar', reports:'Reports', register:'Register', migration:'Migration',
   pipeline:'Pipeline', advice:'Advice desk', templates:'Templates', playbook:'Playbook',
-  'tpl-library':'Template Library',
   team:'Team & settings', workspace:'the contract workspace', doclab:'the Doc Lab',
   redline:'the Redline workbench' };
 
@@ -267,7 +266,6 @@ function setView(view){
     else if(view==='pipeline') renderPipeline();
     else if(view==='advice') renderAdviceDesk();
     else if(view==='templates') renderTemplatesPage();
-    else if(view==='tpl-library') renderTemplateLibrary();
     else if(view==='playbook') renderPlaybookPage();
     else if(view==='team') renderTeam();
     else if(view==='doclab') renderDocLab();
@@ -340,10 +338,18 @@ function renderNewMenu(){
       <span style="min-width:0;"><span style="display:block;font-size:12px;font-weight:600;">${title}</span><span style="display:block;font-size:10px;color:var(--color-neutral-600);">${sub}</span></span>
     </button>`;
   const myTpls=(window.customTemplates&&canEdit())?customTemplates():[];
+  /* Company standard templates (the versioned library) sit above the built-in
+     papers: the whole point of publishing one is that it becomes the team's
+     one-click default. Served from the library cache; a background refresh
+     re-renders the open menu when the list has moved. */
+  const libTpls=(window.tplLibPublished&&canEdit())?tplLibPublished():[];
   menu.innerHTML=`
     ${item('upload','#f1e6cd','#7d5a14','Upload a received contract','Their paper — review, scan &amp; sign','id="menu-upload"')}
     ${item('box','var(--color-accent-100)','var(--color-accent-800)','Bulk migration','Import a whole portfolio at once','id="menu-migrate"')}
     ${item('sparkle','var(--color-accent-200)','var(--color-accent-800)','Guided setup','Pick a template &amp; answer a few questions','id="menu-wizard"')}
+    ${libTpls.length?`
+    <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">Company standard templates</div>
+    ${libTpls.map(t=>item('copy','#e8f4ee','#1e6b4d',esc(t.name),'v'+t.publishedVersion+' · one-click, pre-filled &amp; branded',`data-newlib="${t.id}"`)).join('')}`:''}
     ${myTpls.length?`
     <div style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500);padding:6px 8px 4px;">My templates</div>
     ${myTpls.map(t=>item('copy','var(--color-accent-100)','var(--color-accent-800)',t.name,(FOLDERS[t.folder]?.name||'')+' · your template',`data-newtpl="${t.id}"`)).join('')}`:''}
@@ -356,6 +362,8 @@ function renderNewMenu(){
   // contract's data (counterparty, value, dates, payment terms).
   menu.querySelectorAll('[data-new]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(el.getAttribute('data-new')); }));
   menu.querySelectorAll('[data-newtpl]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); createFromCustomTemplate(el.getAttribute('data-newtpl')); }));
+  menu.querySelectorAll('[data-newlib]').forEach(el=>el.addEventListener('click',()=>{ menu.classList.add('hidden'); tplLibNewContract(el.getAttribute('data-newlib')); }));
+  if(API_MODE()&&window.tplLibRefresh) tplLibRefresh().then(changed=>{ if(changed&&!menu.classList.contains('hidden')) renderNewMenu(); });
   menu.querySelector('#menu-upload')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openUploadModal(); });
   menu.querySelector('#menu-migrate')?.addEventListener('click',()=>{ menu.classList.add('hidden'); setView('migration'); });
   menu.querySelector('#menu-wizard')?.addEventListener('click',()=>{ menu.classList.add('hidden'); openWizard(); });
