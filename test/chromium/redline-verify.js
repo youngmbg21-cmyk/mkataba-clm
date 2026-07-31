@@ -36,7 +36,13 @@ const { chromium } = require('playwright-core');
 
 const OUT = path.join(__dirname, 'shots', 'redline');
 const ROOT = path.join(__dirname, '..', '..');
-const EXEC = '/opt/pw-browsers/chromium';
+/* Which Chromium. The dev sandbox pre-installs one at a fixed path; CI (and
+   anyone else) runs `npx playwright-core install chromium` and lets
+   playwright-core resolve its own registry. Hardcoding only the sandbox path is
+   why these checks could not run anywhere else — which is how nine of them
+   stayed red for a day without anyone seeing. CHROMIUM_BIN overrides both. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 function serve(){

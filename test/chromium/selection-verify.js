@@ -28,7 +28,11 @@ const { chromium } = require('playwright-core');
 
 const OUT = path.join(__dirname, 'shots', 'selection');
 const ROOT = path.join(__dirname, '..', '..');
-const EXEC = '/opt/pw-browsers/chromium';
+/* Which Chromium — same resolution as redline-verify.js: the sandbox's fixed
+   path when it exists, playwright-core's own registry otherwise (CI installs it
+   with `npx playwright-core install chromium`), CHROMIUM_BIN over both. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 function serve(){
