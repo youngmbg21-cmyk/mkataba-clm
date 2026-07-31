@@ -549,3 +549,34 @@ f104-contract-from-template, f105-upload-convert.
 | Company section renders on the Templates page, role-aware | f103 | PASS |
 | Published templates feed the menu/count caches | f103 | PASS |
 | In-place popover fill on workspace and portal | manual (Chromium shots) | PASS |
+
+---
+
+## Stage 4 — the signing route (W7 + W8, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| A share can be bound to one row of `c.signerPlan` (`shares.signer_id`); unknown / internal / non-sign bindings refused | f115 | PASS |
+| One signer, one link: re-issuing refreshes the live bound link, never mints a second | f115 | PASS |
+| A bound link before its turn is created HELD — no email until its turn | f115 | PASS |
+| A held link opens to a dormant notice, serves none of the contract, stamps no `first_opened_at` | f115 | PASS |
+| Signing out of turn is refused at the respond route, naming who signs first — never refiled | f115 | PASS |
+| Signer *n* signing releases signer *n+1*'s link from the respond route — unattended, no owner browser | f115 | PASS |
+| The stored response carries the binding, server-stamped; a crafted response cannot choose its row | f115 | PASS |
+| The external turn email delivers the signer's own link, "no account is needed" | f115 | PASS |
+| issueSigningRouteLinks issues per-signer bound links in route order; partial routes refused whole | f116 | PASS |
+| The dormant page names who is waited on (colleague by name, sender org collectively) and self-updates | f116 | PASS |
+| An incoming signature lands on its BOUND row; FD-before-MD no longer lands on the MD's row | f117 | PASS |
+| Replay of a signed step refused; deleted-row signature kept with the gap named, no row guessed | f117 | PASS |
+| The seal fires when the last bound signature lands | f117 | PASS |
+| Unbound (pre-W7 / static-mode) responses keep next-in-order behaviour | f117 | PASS |
+| The one-time code goes only to the share's recorded address; typed addresses never a destination | f118 | PASS |
+| A forwarded signing link cannot be used by a third party with their own mailbox | f118 | PASS |
+| The verified signature records the VERIFIED (invited) address, not the typed one | f118 | PASS |
+| An address-less signing link fails closed on OTP, with the way out named | f118 | PASS |
+| The code is never returned to the caller (destination rule changed; leak rule intact) | f118, regression | PASS |
+
+Suite at close: **2078 tests, 0 failures** (`npm test`); Chromium redline
+71/71, parity 18/18, selection 22/22. Test files added: f115-the-signing-route,
+f116-links-from-the-route, f117-the-signature-lands-on-its-row,
+f118-the-code-goes-to-the-invited-address.

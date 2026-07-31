@@ -2,7 +2,7 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** IN BUILD. Stages 0, 1, 2 and 3 complete; merged to `main` as each lands.
+**Status:** IN BUILD. Stages 0, 1, 2, 3 and 4 complete; merged to `main` as each lands.
 See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
@@ -585,17 +585,41 @@ stopped *Accept All Non-Risk* claiming, on their screen, that HaTi had sorted
 their asks by our playbook. W4 needed no change and is asserted rather than
 assumed. Ships with `test/chromium/parity-verify.js`, wired into `test:all`.
 
-### ⬜ Stages 4–9 — not started
-**Next: Stage 4** — the signing route (W7 then W8, never W8 first). Then 5
-(renumber), 6 (history), 7 (live numbering), 8 (extensions), 9 (hardening).
+### ✅ Stage 4 — the signing route (COMPLETE)
+**Suite 2078/0 · redline 71/71 · parity 18/18 · selection 22/22.** W7 then W8,
+as ordered. Four commits, one per task: f115 (13), f116 (8), f117 (6), f118 (5).
+
+| Item | Outcome |
+|---|---|
+| W7 1–3 | `shares.signer_id` binds a link to one row of `c.signerPlan` (additive column per the `addColumnIfMissing` precedent). `signerTurn` reads turn state from TWO stores — internal steps from the contract JSON, counterparty steps from bound shares' stored responses — so the route runs with the owner's browser closed. Links created before their turn are HELD (dormant GET, no email, no `first_opened_at`); one signer, one link (reuse-in-place, and the reuse is the release); `releaseNextSignerLink` fires from the public respond route the moment signer *n*'s signature is stored. |
+| W7 fault 2 | `issueSigningRouteLinks` + `issueSigningAct`: the ready strip, the room button and signDocument's internal-completion moment all issue from the route; the hand-typed dialog is only the planless fallback. A route missing an address is refused whole, never partially issued. |
+| W7 fault 3 *(the live bug)* | `applyResponse` recorded an incoming signature on whichever row `nextSigner()` said was next — FD before MD landed on the MD's row. Bound responses carry `r.signerId` (server-stamped, never client-claimed) and are checked before anything is written: out-of-order and replays refuse with nothing pushed; a deleted bound row keeps the signature with the gap named and marks no row; unbound legacy responses keep next-in-order. |
+| W7 fault 4 | The external turn email delivers the signer's own link, "no account is needed" — the old notice told counterparties to sign in to an account they do not have. Mixed routes nudge a following internal signer with the sign-in wording. |
+| W8 | The one-time code goes only to the share's recorded address; typed addresses are never a destination; `verify-otp` drops its typed-email match (the server chose the destination — the code is the proof); an address-less link fails closed with the way out named. Portal copy blessing the forward-the-link handover rewritten. **Release-note flag: that handover is deliberately removed; W7's recorded route replaces it.** |
+
+**Exit gate held:** f115 drives `CEO → CFO → their MD → their FD` through the
+public routes alone — MD emailed on internal completion, FD's link dead until
+the MD signs then sends itself, each signature on its own row, out-of-order
+refused, seal on the last (f117), forwarded link unusable by a third party
+(f118), unverified-signature honesty preserved (regression).
+
+**Test rewritten, not worked around:** regression's "a one-time code is never
+returned to the caller" now issues the share WITH a recorded recipient — its
+claim was about leaking the code, and that claim stands.
+
+### ⬜ Stages 5–9 — not started
+**Next: Stage 5** — the renumber button (N2, Session 12; entry check
+`negoNumberingLocked`, on `main` since the Stage 0 merge). Then 6 (history —
+X6's signing beats are now all on the record), 7 (live numbering),
+8 (extensions), 9 (hardening).
 
 ### Notes for whoever picks this up
-- **Branching deviated from §2 deliberately.** This session was instructed to
-  develop on `claude/contract-sharing-history-plan-zl54en`, so Stage 0 and
-  Stage 1 share one branch rather than one branch per session. **The owner has
-  asked that nothing merges to `main` until the whole programme is done**, so
-  the branch accumulates and §2's stage-boundary merges are deferred to the
-  end.
+- **Branching history:** Stages 0–1 were built on one shared branch
+  (`claude/contract-sharing-history-plan-zl54en`) under an earlier instruction
+  to hold everything off `main` until the programme finished. **That
+  instruction was later reversed** — everything through Stage 4 is merged to
+  `main`, and §2's stage-boundary merges are the rule again: merge as each
+  stage's suite goes green, don't let branches accumulate.
 - **D5 is answered** (see the master order's decision register): signing is
   strict identity — the owner sets the signers' email addresses, each gets
   their own link, the next is released automatically when the previous signs,

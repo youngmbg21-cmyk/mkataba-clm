@@ -5,6 +5,79 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 4 — the signing route (W7 + W8, Sessions 10–11 in one pass)
+
+**Done** (`server/server.js`, `js/core.js`, `js/views/contract.js`,
+`js/views/portal.js`; new `test/f115` 13, `f116` 8, `f117` 6, `f118` 5;
+suite 2078/0 · redline 71/71 · parity 18/18 · selection 22/22; merged to
+`main` per current instruction — stage-boundary merges are back on)
+
+Four commits, one per task, W7 before W8 as ordered:
+
+- **W7 server — the binding and the sequence.** `shares.signer_id` (additive
+  column, the `addColumnIfMissing` precedent; the contract side is a JSON blob
+  and needed nothing). `signerRouteFor`/`signerTurn` read whose turn it is from
+  TWO stores deliberately: internal steps from the contract JSON, counterparty
+  steps from the bound shares' stored responses — the contract only learns of a
+  counterparty signature when the owner's browser polls, and the route must run
+  unattended with that browser closed. A bound link before its turn is created
+  HELD (no email, dormant GET, no `first_opened_at` — an early click on a
+  waiting notice is not "they saw the contract"). Signing out of turn is
+  refused at `/respond` naming who signs first; the moment signer *n*'s
+  signature is STORED, `releaseNextSignerLink` emails signer *n+1*'s link from
+  the respond route. One signer, one link: re-issue refreshes in place, and the
+  refresh is the release when the turn arrived while held.
+- **W7 client — links from the route, and the waiting page.**
+  `issueSigningRouteLinks` issues one bound link per unsigned counterparty
+  signer in route order (flushing saves first — the server binds against the
+  STORED plan; same overtaking that once broke /distribute). A route missing an
+  address is reported whole, never partially issued. `issueSigningAct` is the
+  owner's one "issue a signing link" act (ready strip, room button, and
+  signDocument's internal-completion moment — which used to open the dialog to
+  hand-type ONE recipient, W7 fault 2). The dormant link renders a waiting page
+  naming who is waited on — an earlier signer by name, the sender org
+  collectively — and polls itself alive. `notifyNextSigner`'s internal-only
+  early return is now deliberate and its comment says where counterparty
+  signers ARE handled (fault 1).
+- **W7 fault 3 — the live data-integrity bug.** `applyResponse` stamped an
+  incoming signature on whichever row `nextSigner()` said was next, so the FD
+  signing before the MD landed on the MD's row. A bound response now carries
+  its row (`r.signerId`, server-stamped, never client-claimed) and is checked
+  BEFORE anything is written: out-of-order and replays refused with nothing
+  pushed; a bound row edited off the route keeps the signature with the gap
+  named in the audit and marks NO row; unbound (pre-W7 / static-mode) responses
+  keep next-in-order because that is all they carry. Background refusals are
+  safe: the poller retries and succeeds once the earlier signature lands.
+- **W8 — the code goes to the invited address.** `/otp` sent the code to
+  whatever address the signer typed — proof of control of A mailbox, not the
+  RIGHT one. It now goes only to the share's recorded recipient; `verify-otp`
+  drops its typed-email match (the server chose the destination; the code is
+  the proof); an address-less link fails closed with the way out named. The
+  portal copy that blessed the forward-the-link handover ("signing with a
+  different address is allowed") is rewritten — that handover is what W8
+  removes, and W7's recorded route is its replacement. **Release-note flag:**
+  forwarding a signing link so someone else types their own address and signs
+  no longer works, deliberately.
+
+**What the next session needs to know.**
+- `test/regression.test.js`'s never-return-the-code case was rewritten (share
+  now carries a recipient email; body carries none) — its claim was about
+  leaking the code and stands unchanged.
+- Stage 6 (X6): signing events for the timeline are on the record — link
+  issued (`Shared` audit line naming each signer sent/held), signer emailed
+  (outbox + `sent_at`), signature recorded (`Countersigned … step N of the
+  signing route, on their own bound link`), seal fired (`Signed`).
+- CHECKLIST.md gained Stage 4's behaviour → proving-test table. Stages 0–3
+  never appended theirs (noted here rather than silently backfilled).
+- The dormancy answer on GET `/api/shares/:token` is a 200 with a `dormant`
+  envelope and NO payload — 410 stays reserved for links that are genuinely
+  dead (revoked/expired/route-edited-away/step-already-signed).
+
+**Next:** Stage 5 — the renumber button (N2, Session 12). Entry check:
+`negoNumberingLocked` exists on `main` (arrived with the Stage 0 merge).
+
+---
+
 ## Stage 1 — foundations: the view-only link and the signing-step lock
 
 **Done** (`server/server.js`, `js/core.js`; new `test/f108` 12 tests and
