@@ -414,3 +414,104 @@ describe('F100c — a message box you can read back', () => {
     assert.equal(bound, 2, 'input and paste, once each, however many paints happen');
   });
 });
+
+/* ============================================================ */
+describe('F100d — a second batch of asks can still be sent', () => {
+  /* Reported from Counterparty View: two drafts on the table, Send pressed,
+     and "It is already their turn" — with nothing sent, and no way to send
+     them for the rest of the negotiation unless the owner happened to move
+     first.
+
+     The turn and the send were one fact. `turn` is whose move it is; `turnAt`
+     is when work last left the desk, and it is the only thing negoUnsentAsks
+     measures against. Refusing to act because the turn was already theirs left
+     the drafts unsent AND said nothing about them. */
+  const world = () => buildWorld({ negotiationView: true });
+
+  const withAsks = async (win, side, n) => {
+    const c = supplyContract();
+    win.negoInit(c);
+    for (let i = 0; i < n; i++)
+      await win.negoFileProposal(c, win.negoResolvedText(c) + `\nUndertaking number ${i + 1}.`,
+        { side, author: side === 'owner' ? 'Young' : 'Erik' });
+    return c;
+  };
+  /* The counterparty only ever has asks after a round has reached them: a
+     change of theirs is on our record because it was sent to us. So their side
+     of this starts where it really starts — the owner has handed over once. */
+  const afterFirstRound = async (win) => {
+    const c = await withAsks(win, 'owner', 1);
+    win.negoHandOver(c, { to: 'counterparty', by: 'Young' });
+    return c;
+  };
+
+  test('THE FIX: the counterparty can send again after handing back', async () => {
+    const win = world().win;
+    const c = await afterFirstRound(win);
+    /* Round one: they raise an ask of their own and hand back. */
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nA counter on the cap.',
+      { side: 'counterparty', author: 'Erik' });
+    assert.ok(win.negoHandOver(c, { to: 'owner', by: 'Erik' }));
+    assert.equal(win.negoTurn(c), 'owner');
+    assert.equal(win.negoUnsentAsks(c, 'counterparty').length, 0, 'that batch has gone');
+
+    /* Then they think of another one, while it is still the owner's turn. */
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nAnd one more on insurance.',
+      { side: 'counterparty', author: 'Erik' });
+    assert.equal(win.negoUnsentAsks(c, 'counterparty').length, 1, 'unsent, and waiting');
+
+    const out = win.negoHandOver(c, { to: 'owner', by: 'Erik' });
+    assert.ok(out, 'THE FIX: the send happens rather than being refused');
+    assert.equal(out.moved, false, 'and it is honest that the table did not change hands');
+    assert.equal(win.negoUnsentAsks(c, 'counterparty').length, 0, 'the ask has left');
+  });
+
+  test('the owner has the same road back', async () => {
+    /* The mirror, through the share path: core.js hands over after publishing,
+       and hit the identical refusal when the turn was already theirs. */
+    const win = world().win;
+    const c = await withAsks(win, 'owner', 1);
+    win.negoHandOver(c, { to: 'counterparty', by: 'Young' });
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nA late addition.',
+      { side: 'owner', author: 'Young' });
+    assert.equal(win.negoUnsentAsks(c, 'owner').length, 1);
+    const out = win.negoHandOver(c, { to: 'counterparty', by: 'Young' });
+    assert.ok(out && out.moved === false);
+    assert.equal(win.negoUnsentAsks(c, 'owner').length, 0);
+  });
+
+  test('and with nothing waiting it is still a no-op', async () => {
+    /* The idempotency the share path depends on: two callers may both hand
+       over after one send, and the second must not stamp again. */
+    const win = world().win;
+    const c = await withAsks(win, 'owner', 1);
+    assert.ok(win.negoHandOver(c, { to: 'counterparty', by: 'Young' }));
+    const at = c.negotiation.turnAt;
+    assert.equal(win.negoHandOver(c, { to: 'counterparty', by: 'Young' }), null,
+      'nothing left to send, so nothing happens');
+    assert.equal(c.negotiation.turnAt, at, 'and the send stamp is untouched');
+  });
+
+  test('a real hand-over still moves the turn and says so', async () => {
+    const win = world().win;
+    const c = await withAsks(win, 'owner', 1);
+    const out = win.negoHandOver(c, { to: 'counterparty', by: 'Young' });
+    assert.equal(out.moved, true);
+    assert.equal(win.negoTurn(c), 'counterparty');
+  });
+
+  test('the audit says which of the two happened', async () => {
+    const win = world().win;
+    const c = await afterFirstRound(win);
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nA counter on the cap.',
+      { side: 'counterparty', author: 'Erik' });
+    win.negoHandOver(c, { to: 'owner', by: 'Erik' });
+    await win.negoFileProposal(c, win.negoResolvedText(c) + '\nOne more.',
+      { side: 'counterparty', author: 'Erik' });
+    win.negoHandOver(c, { to: 'owner', by: 'Erik' });
+    const lines = (c.audit || []).map(e => String(e.detail || ''));
+    assert.ok(lines.some(l => /Turn handed to owner/.test(l)), 'the first was a hand-over');
+    assert.ok(lines.some(l => /Further changes sent/.test(l) && /already their turn/.test(l)),
+      'the second was a send, and the record must not claim the table moved');
+  });
+});

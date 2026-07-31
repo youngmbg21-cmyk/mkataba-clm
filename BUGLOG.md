@@ -5636,3 +5636,48 @@ actions, and the reported sequence end to end. Driven against the running
 server: draft → send → folds → peek → opens → caret → folds → a second draft
 alongside it, with the first still folded. Suite 1894/1894, browser 71/71,
 selection 22/22.
+
+### 5. The counterparty could not send a second batch of asks
+
+**What was broken.** Reported from Counterparty View: two drafts on the table,
+Send pressed, and a red **"It is already their turn"** — with nothing sent. The
+drafts had nowhere to go for the rest of the negotiation unless the owner
+happened to move first.
+
+**Root cause.** The turn and the send were one fact. `turn` is whose move it is;
+`turnAt` is when work last left the desk, and `negoUnsentAsks` measures against
+`turnAt` alone — it is the only thing that decides whether an ask has been sent.
+`negoHandOver` returned `null` whenever the target side already held the turn,
+which is exactly the state a counterparty is in after answering a round:
+
+    they answer round one and hand back   → turn = owner
+    they then raise two more asks         → still turn = owner
+    they press Send                       → refused, nothing sent
+
+The owner had the identical trap through the share path (`js/core.js` hands over
+after publishing), and it would have bitten on any second send inside one turn.
+
+**The fix.** A hand-over to a side that already holds the turn still SENDS when
+there is something of ours waiting: the turn does not move — it is already
+there — but the work leaves and `turnAt` records it. With nothing unsent it
+remains a no-op, which is the idempotency the share path relies on (two callers
+may both hand over after one send, and the second must not stamp again).
+
+`negoHandOver` now returns `moved`, and both sides' messages stopped claiming a
+turn change that did not happen: "Sent to X — it was already their turn, so the
+table has not moved". The audit line likewise distinguishes a hand-over from a
+further send, because anyone reconstructing the negotiation later reads it as
+the record of who held the table when.
+
+The refusal message was also wrong twice over — it named the turn while saying
+nothing about the drafts. It now fires only when there is genuinely nothing to
+do, and says so: "Nothing to send — it is already X's turn and every ask of
+yours has gone".
+
+**Files touched.** js/negotiation.js, js/views/negotiation.js.
+**Verified.** f100d — the counterparty's second batch, the owner's mirror, the
+no-op with nothing waiting, a real hand-over still moving the turn, and the
+audit distinguishing the two. Driven against the running server from the exact
+reported state (turn = owner, one unsent counterparty ask, Counterparty View):
+the send goes through, the toast is honest, and the unsent count drops to zero.
+Suite 1899/1899, browser 71/71, selection 22/22.

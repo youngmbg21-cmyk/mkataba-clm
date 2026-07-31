@@ -1915,7 +1915,29 @@ function negoTurn(c){ return negoInit(c).turn === 'counterparty' ? 'counterparty
 function negoHandOver(c, opts = {}){
   const n = negoInit(c);
   const to = opts.to === 'owner' ? 'owner' : 'counterparty';
-  if (n.turn === to) return null;
+  /* ---- THE TURN AND THE SEND ARE TWO FACTS, NOT ONE ----
+     `turn` is whose move it is. `turnAt` is when work last left our desk — and
+     it is the ONLY thing that decides whether an ask has been sent
+     (negoUnsentAsks measures against it). Refusing to act when the turn is
+     already theirs conflated the two, and the dead end it produced was real:
+
+       the counterparty answers a round and hands back  → turn = owner
+       then raises two more asks of their own           → still turn = owner
+       and presses Send                                 → "It is already their
+                                                          turn", nothing sent
+
+     Their drafts had nowhere to go for the rest of the negotiation unless the
+     owner happened to move first. The owner's side had the same trap through
+     the share path. So a hand-over to a side that already holds the turn still
+     SENDS, when there is something of ours to send — the turn does not move,
+     because it is already there, but the work leaves and `turnAt` records it.
+
+     With nothing unsent it stays a no-op, which is the idempotency the share
+     path relies on: two callers may both hand over after one send, and the
+     second must not stamp again. */
+  const alreadyTheirs = n.turn === to;
+  const mine = to === 'owner' ? 'counterparty' : 'owner';
+  if (alreadyTheirs && !negoUnsentAsks(c, mine).length) return null;
   n.turn = to;
   n.turnAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
@@ -1928,10 +1950,16 @@ function negoHandOver(c, opts = {}){
      so there was nothing to compare and nothing to go back to unless somebody
      had remembered to press Snapshot before every send. The per-change copies
      stay unlisted; these are the milestones, one per turn. */
-  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner'}`, by, { auto: true, listed: true });
-  if (window.logAudit) logAudit(c, 'Negotiation',
-    `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
-  return { turn: to, at: n.turnAt };
+  const whom = to === 'counterparty' ? (c.counterparty || 'the counterparty') : 'the owner';
+  if (window.captureVersion) captureVersion(c, `Round ${n.round} — sent to ${whom}`, by, { auto: true, listed: true });
+  /* Named for what happened. A second batch sent while the turn was already
+     theirs is not "the turn was handed over" — it was already there — and an
+     audit line claiming otherwise misreads the negotiation for anyone
+     reconstructing it later. */
+  if (window.logAudit) logAudit(c, 'Negotiation', alreadyTheirs
+    ? `Further changes sent to ${whom} by ${by} in round ${n.round} — it was already their turn`
+    : `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
+  return { turn: to, at: n.turnAt, moved: !alreadyTheirs };
 }
 /* The banner both sides read. A READ of the change set and the turn, so it can
    never claim a state the record does not support. */

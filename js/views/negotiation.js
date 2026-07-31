@@ -5118,11 +5118,16 @@ function renderRedline(){
            timestamp. Moving it first and sending after would put the word
            "Sent" on a card while the send was still in flight, and leave it
            there if the send failed. */
-        negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
+        const handed = negoHandOver(c, { to: 'counterparty', by: opts.by || (window.currentUser && currentUser()?.name) });
         if (window.persist) persist(c);
+        /* "It is now their turn" is only true when the turn actually moved. A
+           second batch sent while it was already theirs must not claim the
+           table changed hands — see negoHandOver. */
+        const moved = handed ? handed.moved !== false : false;
+        const turnLine = moved ? ' — it is now their turn' : '';
         if (window.toast) toast(out && out.delivered
-          ? `Sent to ${to} — it is now their turn`
-          : `Published to ${to}'s link — it is now their turn. Send them the link if it was not emailed.`,
+          ? `Sent to ${to}${turnLine}`
+          : `Published to ${to}'s link${turnLine}. Send them the link if it was not emailed.`,
           out && out.delivered ? undefined : 'err');
       }catch(err){
         btns.forEach(b => { b.disabled = false; });
@@ -5152,12 +5157,19 @@ function renderRedline(){
        this one exists for the negotiation table the workbench is. */
     onSendDecisions(){
       const who = window.FIRST_PARTY || 'the owner';
-      if (!negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' })){
-        if (window.toast) toast('It is already their turn', 'err');
+      const out = negoHandOver(c, { to: 'owner', by: c.counterparty || 'Counterparty' });
+      if (!out){
+        /* Genuinely nothing to do now: the turn is theirs AND nothing of ours
+           is waiting to go. The old message said only the first half, and said
+           it over a column of unsent drafts — see negoHandOver for the dead end
+           that produced. */
+        if (window.toast) toast(`Nothing to send — it is already ${who}'s turn and every ask of yours has gone`, 'err');
         return;
       }
       if (window.persist) persist(c);
-      if (window.toast) toast(`Handed back to ${who} — it is now their turn`);
+      if (window.toast) toast(out.moved === false
+        ? `Sent to ${who} — it was already their turn, so the table has not moved`
+        : `Handed back to ${who} — it is now their turn`);
       renderRedline();
     },
     /* ---- A SHARED REPLY HAS TO LEAVE THE BUILDING ----
