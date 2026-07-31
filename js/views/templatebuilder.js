@@ -340,7 +340,7 @@ async function tbPaintBranding() {
         <input id="tb-b-name" style="${INP}" placeholder="Company name" value="${esc(b.companyName)}">
         <input id="tb-b-reg" style="${INP}" placeholder="Registration number" value="${esc(b.registrationNumber)}">
         <input id="tb-b-addr" style="${INP};grid-column:1/-1" placeholder="Registered address" value="${esc(b.address)}">
-        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in Kenya · C.123456)" value="${esc(b.defaultFooterText)}">
+        <input id="tb-b-footer" style="${INP};grid-column:1/-1" placeholder="Footer text (e.g. Registered in ${jxName()} · C.123456)" value="${esc(b.defaultFooterText)}">
         <div style="grid-column:1/-1;display:flex;justify-content:flex-end">
           <button id="tb-b-save" class="ui-btn" style="font-size:11px;padding:4px 11px">Save branding</button>
         </div>

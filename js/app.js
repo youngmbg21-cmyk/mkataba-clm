@@ -2,6 +2,7 @@
 // execution order, then nav + shell wiring + boot.
 import './components.js';
 import './templates.js';
+import './jurisdiction.js'; // where this workspace operates: law, money, which statute checks apply
 import './core.js';
 import './docx.js';
 import './richdoc.js';
@@ -70,7 +71,7 @@ function openNavSection(sec, open){
 function commandMeta(view){
   const cs=state.contracts, count=cs.length;
   const m=(window.metrics?metrics():{totalValue:0});
-  const totalV=fmtKESshort(m.totalValue||0);
+  const totalV=fmtMoneyShort(m.totalValue||0);
   switch(view){
     case 'dashboard': {
       // agreements, not files: a master agreement plus six addenda is ONE
@@ -375,7 +376,7 @@ function exportWorkingSetCsv(){
   const rows=(window.regFiltered?regFiltered():state.contracts.slice());
   if(!rows.length){ toast('Nothing to export','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Stream','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
@@ -548,10 +549,20 @@ function toggleTheme(){
   try{ localStorage.setItem('hati-theme', dark?'dark':'light'); }catch(e){}
   if(window.toast) toast(dark?'Dark theme enabled':'Light theme enabled');
 }
-/* Jurisdiction switcher (top header): a workspace compliance profile — SE
-   (EU/GDPR) or KE (KICA/ODPC). Presentation-level for now: it selects which
-   regulatory frame the UI speaks in; it does not rewrite any contract data. */
-const REGIONS={ SE:{ label:'Sweden (EU/GDPR)' }, KE:{ label:'Kenya (KICA/ODPC)' } };
+/* ---------- Jurisdiction switcher (top header) ----------
+   This control existed and did nothing: it set a data attribute and told the
+   reader their jurisdiction had switched, while the app went on formatting
+   money as KES, telling the Copilot the contract was under Kenyan law, and
+   citing a Kenyan Act on the executed copy. A switch that reports a change it
+   did not make is worse than no switch, because the reader believes it.
+
+   It is wired now. The code is the pack id from js/jurisdiction.js, so
+   pressing it moves the currency, the governing-law sentences, the scanner's
+   statute checks and the playbook's positions together — and the screen is
+   repainted, because half the app would otherwise keep showing the old market
+   until something else happened to redraw it. */
+const REGIONS={ SE:{ id:'sweden', label:'Sweden (EU/GDPR)' }, KE:{ id:'kenya', label:'Kenya (KICA/ODPC)' } };
+const regionCodeFor = id => Object.keys(REGIONS).find(k=>REGIONS[k].id===id) || 'KE';
 function applyRegion(code){
   state.region=code;
   const root=document.documentElement; if(root&&root.setAttribute) root.setAttribute('data-region',code);
@@ -561,9 +572,14 @@ function applyRegion(code){
 }
 function setRegion(code,opts){
   if(!REGIONS[code]) return;
+  /* The jurisdiction is the record; the code is this control's label for it. */
+  if(window.jxSet) jxSet(REGIONS[code].id);
   applyRegion(code);
   try{ localStorage.setItem('hati-region',code); }catch(e){}
-  if(!(opts&&opts.silent) && window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label}`);
+  if(opts&&opts.silent) return;
+  /* Everything on screen was rendered against the old market. */
+  if(window.setView) setView(state.view||'dashboard');
+  if(window.toast) toast(`Jurisdiction switched to ${REGIONS[code].label} — money, governing-law checks and Copilot briefings follow it`);
 }
 
 /* ============================================================ COMMAND-BAR + PANEL WIRING (once) */
@@ -635,8 +651,11 @@ function wireShell(){
   document.getElementById('theme-toggle-btn')?.addEventListener('click',toggleTheme);
   document.getElementById('region-se')?.addEventListener('click',()=>setRegion('SE'));
   document.getElementById('region-ke')?.addEventListener('click',()=>setRegion('KE'));
-  let savedRegion=null; try{ savedRegion=localStorage.getItem('hati-region'); }catch(e){}
-  setRegion(REGIONS[savedRegion]?savedRegion:'KE',{silent:true});
+  /* The stored JURISDICTION is the truth, not this control's own key: a
+     workspace that set its market on another device (it rides on the org
+     record) must not have it silently reverted by whatever this browser last
+     had in localStorage. */
+  setRegion(regionCodeFor(window.jxId?jxId():'kenya'),{silent:true});
 }
 
 // default panel state — closed on load/refresh; the user opens it with the

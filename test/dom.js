@@ -59,8 +59,6 @@ function loadViews(files, overrides = {}) {
     // ---- app globals the dashboard reads ----
     esc: s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])),
     icon: () => '<svg></svg>',
-    fmtKES: n => 'KES ' + Number(n || 0).toLocaleString('en-KE'),
-    fmtKESshort: n => { n = Number(n || 0); if (n >= 1e6) return 'KES ' + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M'; if (n >= 1e3) return 'KES ' + (n / 1e3).toFixed(0) + 'K'; return 'KES ' + n; },
     fmtDT: iso => String(iso || ''),
     statusChip: s => `<span class="badge">${s}</span>`,
     riskChip: r => `<span class="badge">R ${r}</span>`,
@@ -106,7 +104,10 @@ function loadViews(files, overrides = {}) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  for (const f of files) {
+  /* js/jurisdiction.js first, as js/app.js loads it: the money formatters and
+     every governing-law sentence read from it, so a view evaluated without it
+     throws on the first thing it renders. */
+  for (const f of ['js/jurisdiction.js'].concat(files)) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     vm.runInContext(src, sandbox, { filename: f });
   }

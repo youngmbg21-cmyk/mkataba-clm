@@ -5308,3 +5308,184 @@ both in the new click-to-fill popover, both fixed the same day:
 - The fix: pass `window.RICH_FORMAT || 'rich'` at both repaint sites
   (repair-on-open and tplFormCommit).
 - Files touched: js/views/templatelib.js.
+
+---
+
+## Run: the Copilot asking a question is not a redline (2026-07-31)
+
+Found from a single screenshot: a drafter selected the price-adjustment and
+invoicing sub-paragraphs of clause 4 and typed "combine them". Two defects,
+which fail apart and are fixed apart.
+
+### 1. A clarifying question was drawn as contract wording, under an Apply button
+
+**What was broken.** The Copilot replied in prose — "I need to see the full
+context of what the drafter wants me to combine… Please share: the full
+contract…" — and the whole reply, markdown asterisks and bullet list included,
+was rendered as the PROPOSED WORDING for clause 4.2 with an **Apply Redline**
+button under it. One press would have filed a question into the contract as a
+tracked change, authored, on the record and on its way to a counterparty. The
+chat bubble above it read "Here is a replacement for that passage" — the panel
+vouching for a reply it had not parsed.
+
+**Root cause.** `AI_NOT_WORDING` (`js/ai.js`) is the guard that keeps a model's
+remarks out of the proposal card, and every pattern in it described a model
+REFUSING: "I'm sorry", "I cannot", "As an AI", "this is not legal advice",
+"I would recommend". A model ASKING matches none of them, so
+`aiLooksConversational` returned false, `aiSplitDisclaimer` classified the reply
+as wording, and `aiParseProposal`'s no-JSON fallback handed all 786 characters
+back as `proposedText`. Nothing between the card and `negoEditClause` re-checks
+whether wording looks like wording.
+
+**The fix.** A second list, `AI_ASKS_BACK`, for the openers a model uses when it
+wants something before it will draft, plus two rules for the question itself:
+`AI_ASKS_WHOLE` (anchored at both ends — a candidate that is nothing but a
+question) and `aiAsksTheReader`, the one unanchored rule, kept safe by requiring
+a conjunction a clause cannot satisfy — a question mark AND the model speaking
+as "I". Contract wording is third-person about the parties; it does not say "I"
+and it does not ask the reader anything. `aiOpenProposal` already had the right
+behaviour waiting for an empty `proposedText` (one bubble, no card, session
+stays open); it simply never fired. "Please provide" and "Please confirm" are
+deliberately absent — a facility letter really does close "Please confirm your
+acceptance by countersigning", and eating real wording is the same harm in the
+other direction.
+
+**Files touched.** js/ai.js.
+**Verified.** f98a (the verbatim shipped reply yields no card, ten other ask
+shapes likewise), f98b (eight strings of real wording, each brushing a new
+pattern, still reach the card — including roman-numeral sub-paragraphs, which
+are the near miss the first-person test is written to survive).
+
+### 2. The panel never sent the conversation, so "them" had no antecedent
+
+**What was broken.** "combine them" reached the model with the passage and that
+one sentence. The turns before it were dropped, so the pronoun pointed at
+nothing and the model asked for context the panel was already holding. Worse:
+the drafter's ANSWER would have gone out the same way, so a session that once
+needed clarifying could never get out of the loop.
+
+**Root cause.** The seeded session (`aiOpenRephraseSession`) stored the passage
+and a callback, and nothing else. `aiSubmit` called `onPropose(q, session)`, and
+both views' `propose` called `copilotPropose` with no `history` at all. History
+existed only on the follow-up path (`aiRefineProposal`), which does not run
+until a card exists — so the first instruction in every session travelled blind,
+and a session that produced no card never got a second chance.
+
+**The fix.** The session keeps its turns (bounded to six, markup stripped).
+`aiSubmit` reads the history before recording the new sentence — the instruction
+is already stated on its own line, and repeating it would invite the model to
+answer the echo — and hands it to `onPropose` as `{ history }`, the same shape
+`onRefine` already receives. `aiOpenProposal` records a reply that produced no
+card, because that is exactly the reply the next sentence is answering.
+
+Two smaller things fixed alongside, both contributors to the same screenshot:
+`copilotPropose` now sends the clause label, because a passage reading "4.2 …
+4.3 …" arrived as bare text and the model concluded it was being shown two
+clauses — a thing this product does forbid combining, and not what it was
+looking at (a clause here runs heading to heading, so both are sub-paragraphs of
+clause 4). And a reply that missed the shape no longer claims "I have no
+reasoning to add"; it says the structure was missed and to read the wording
+before applying it.
+
+**Files touched.** js/ai.js, js/views/negotiation.js, js/views/doclab.js.
+**Verified.** f98c (turns kept, ordered, markup-free, bounded, not recorded once
+the session closes), f98d (the honest bubble), f98e (the history and the label
+reach `copilotPropose` and the composed prompt, end to end on the negotiation
+page). Full suite 1825/1825, plus 22/22 selection and 69/69 redline browser
+checks — the multi-clause and live-redline refusals still refuse.
+
+**Not done.** Nothing between **Apply Redline** and the contract inspects the
+wording; the guard is at the parse. A model that returns a plausible-looking
+non-clause the patterns do not catch still gets a button. A second check at
+Apply — length against the passage, or a "this does not read like a clause"
+confirm — was considered and not built: it needs a rule that will not fire on
+short real edits, and guessing at one is how the first guard got too narrow.
+
+---
+
+## Run: the market is a setting, not a sentence (2026-07-31)
+
+### 1. Kenya was hard-coded into ~90 places, none of them a setting
+
+**What was broken.** The product was written for one market and asserted it in
+code rather than configuration. The Copilot was told "you are helping negotiate
+a contract governed by Kenyan law" on every rewrite, on three separate prompt
+paths plus the server's own. Money formatted as KES through `fmtKES` — the
+formatter's *name* was a hard-code. The executed copy and the evidence pack
+cited the Business Laws (Amendment) Act 2020. The scanner asked whether a lease
+had been stamped under Cap 480 and named the Data Protection Act 2019. The
+playbook's governing-law position was "Kenyan law & forum", and its foreign-law
+test literally meant "not Kenya". The generated document header stamped
+"Republic of Kenya" on every contract the app produced.
+
+A pilot outside Kenya would have been advised to negotiate for Kenyan courts,
+shown shillings, and told its signatures rested on a Kenyan Act — each wrong in
+the same way, none of them saying so.
+
+**The tell nobody had noticed.** A Jurisdiction switcher (SE / KE) was already
+in the header. It set a `data-region` attribute and raised a toast saying the
+workspace had switched, while every sentence above stayed exactly where it was.
+A control that reports a change it did not make is worse than no control.
+
+**The fix.** `js/jurisdiction.js` — one table of packs (Kenya, Sweden), and
+every assertion above reads from the active one. A pack holds what the app must
+know to describe a market honestly: what the law is called, what money looks
+like, which statute a signature rests on, which statute-specific checks apply.
+It does NOT hold legal advice invented for a market nobody here has practised
+in — where a pack has nothing to say (Sweden levies no stamp duty on a
+commercial lease) the field is null and the check does not run, rather than
+firing with a blank where the statute name goes. `fmtKES`/`fmtKESshort` became
+`fmtMoney`/`fmtMoneyShort` and moved into the pack.
+
+The foreign-law test is now RELATIVE — "not home" rather than "not Kenya" — so
+a Kenyan-law contract is correctly foreign paper to a Stockholm workspace and
+the same code path serves both. The header switcher is wired to the record and
+repaints; it opens on the stored jurisdiction (which rides on the org, so a
+workspace carries its market across devices) rather than on whatever key this
+browser last held.
+
+**Kenya stays the default, deliberately.** Making the market configurable and
+changing it in the same breath would move every existing workspace's money,
+playbook and scan without anybody asking. A workspace that never touches the
+setting behaves exactly as it did.
+
+**One table, two hosts.** `server/server.js` requires the same module rather
+than restating the packs. The repo already carries one deliberate twin
+(`negoCopilotRecord` / `copilotNegotiation`) with a test holding it honest; a
+second was not worth the same cost when a plain require would do.
+
+**Files touched.** New js/jurisdiction.js. js/app.js, js/ai.js, js/core.js,
+js/playbook.js, js/metadata.js, js/versioning.js, js/approvals.js,
+js/aichart.js, js/advice.js, js/fieldlib.js, js/templates.js, js/wizard.js,
+js/views/{contract,negotiation,doclab,portal,settings,register,reports,advice,
+adviceportal,queue,home,intelligence,library,migration,templatebuilder}.js,
+server/server.js, and the four test harnesses that evaluate app modules onto a
+bare stage (test/dom.js, test/world.js, test/portalworld.js, the two Chromium
+pages) — a view that renders money now needs the pack on the stage with it.
+
+**Verified.** f99 (23 tests): default unchanged; switching moves currency, law,
+e-signature basis and playbook label together; foreign-is-relative in both
+directions; the stamp-duty check runs in Kenya and stays silent in Sweden; the
+data-protection finding names the right regime; every pack answers every field
+the app asks of it; the server requires the same module; the switcher is wired.
+One test is a source-level guard against the failure most likely to reappear —
+the next prompt somebody writes saying "Kenyan law" again.
+
+Beyond the suite: the real app was booted in Chromium, signed in with the
+30-contract sample portfolio, and swept across eleven views in BOTH markets —
+no unrendered `${…}` anywhere (the risk when a plain string becomes an
+interpolation), no KES leaking into the Swedish workspace, no page errors.
+Suite 1848/1848, browser 69/69, selection 22/22.
+
+**Not done / known.** The 12 built-in template papers, the seeded playbook
+clause wording and the 30 demo contracts are still Kenyan — deliberately, and
+agreed with the user before starting. They are CONTENT, not configuration:
+deleting them removes working features rather than un-hard-coding anything, and
+a Swedish pack of papers has to be written by someone who practises there, not
+generated here. A Swedish pilot gets correct law, currency, statutes and
+Copilot briefings with a Kenyan template library it can ignore or replace.
+
+Per-contract currency is also not done: money follows the workspace, so a
+contract denominated in USD still displays in the workspace currency. That was
+the explicit choice — the alternative needs the register, reports and charts to
+total across mixed currencies, which is a larger change than this one.

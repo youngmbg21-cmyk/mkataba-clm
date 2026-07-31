@@ -37,7 +37,7 @@ const FIELD_LIB = {
     validate: s => fieldLibDateOk(s) ? null : 'Enter a real calendar date' },
   number: { label: 'Number', input: 'text', hint: '',
     validate: s => Number.isFinite(Number(s.replace(/,/g, ''))) ? null : 'Enter a number' },
-  currency: { label: 'Amount (KES)', input: 'text', hint: 'e.g. 2,500,000',
+  currency: { get label(){ return `Amount (${jxCurrency()})`; }, input: 'text', hint: 'e.g. 2,500,000',
     validate: s => { const n = Number(s.replace(/[, ]/g, '')); return Number.isFinite(n) && n >= 0 ? null : 'Enter a non-negative amount'; } },
   address: { label: 'Address', input: 'textarea', hint: 'Street, town, county',
     validate: s => s.length >= 4 ? null : 'Enter an address' },

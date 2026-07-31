@@ -60,7 +60,7 @@ function renderFolder(){
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;background:var(--color-accent-800);color:#fff;border-radius:4px">${icon(f.ic,'w-4 h-4')}</span>
         <div style="min-width:0">
           <div style="font-family:var(--font-mono);font-weight:600;font-size:17px;color:var(--color-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</div>
-          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtKESshort(val)} active value`}</div>
+          <div style="font-size:11px;color:var(--color-neutral-600)"><span id="fold-count">${cs.length}</span> contracts${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${fmtMoneyShort(val)} active value`}</div>
         </div>
         <span style="flex:1"></span>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--color-neutral-700)">Sort
@@ -158,7 +158,7 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:11.5px;color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—')}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?'title="Non-monetary agreement"':''}>${!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—')}</td>
       <td style="font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:11px;color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       <td style="text-align:right;padding-right:12px;white-space:nowrap">${shareDot(c.id)}${window.questionDot?questionDot(c.id):''}${window.contractStatusChip?contractStatusChip(c):statusChip(c.status)}</td>
@@ -187,7 +187,7 @@ function folderExportSelectedCsv(){
   const rows=folderContracts(state.folderId).filter(c=>ids.includes(c.id));
   if(!rows.length){ toast('Nothing selected','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Type','Value stream','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Type','Value stream',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
@@ -284,7 +284,7 @@ function regFooterText(cs){
   const famNote=fam.amendments?` · <b style="color:var(--color-text)">${fam.agreements.toLocaleString('en-KE')}</b> agreement${fam.agreements===1?'':'s'} · <b style="color:var(--color-text)">${fam.documents.toLocaleString('en-KE')}</b> documents`:'';
   const R=regState();
   const flatBtn=` · <button type="button" id="reg-flat" style="border:0;background:none;font:inherit;font-size:inherit;color:var(--color-accent-700);text-decoration:underline;cursor:pointer;padding:0">${R.flat?'group amendments under their agreement':'show a flat list'}</button>`;
-  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtKESshort(regAggregate(cs))}</b>`}${flatBtn}`;
+  return `Showing <b style="color:var(--color-text)">${start.toLocaleString('en-KE')}–${end.toLocaleString('en-KE')}</b> of <b style="color:var(--color-text)">${cs.length.toLocaleString('en-KE')}</b>${totalNote}${famNote} · page ${p} of ${n}${(typeof canViewValues==='function'&&!canViewValues())?'':` · aggregate <b style="color:var(--color-text)">${fmtMoneyShort(regAggregate(cs))}</b>`}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -417,7 +417,7 @@ function regRowsHtml(cs){
     const renUrgent=din!=null&&din<30, renSoon=din!=null&&din>=30&&din<=90;
     const renColor=din==null?'transparent':(renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-500)');
     const renDateColor=renUrgent?'#8f322b':renSoon?'#7d5a14':'var(--color-neutral-700)';
-    const val=!isMonetary(c)?'n/m':(c.value?fmtKESshort(c.value):'—');
+    const val=!isMonetary(c)?'n/m':(c.value?fmtMoneyShort(c.value):'—');
     return `
     <tr data-row="${c.id}" style="cursor:pointer;animation-delay:${Math.min(i,14)*22}ms">
       <td class="reg-mk" style="border-left:4px solid ${folderColor(c)}">${c.id}</td>
@@ -476,7 +476,7 @@ function regExportCsv(){
   const rows=regFiltered();
   if(!rows.length){ toast('Nothing to export','err'); return; }
   const esc=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const head=['ID','Name','Counterparty','Type','Folder','Value (KES)','Status','Last action','Expiry'];
+  const head=['ID','Name','Counterparty','Type','Folder',`Value (${jxCurrency()})`,'Status','Last action','Expiry'];
   const body=rows.map(c=>[c.id,c.name,c.counterparty||'',cKind(c),FOLDERS[c.folder]?.name||'',csvValueCell(c),statusLabel(c.status),c.lastAction||'',c.expiry||''].map(esc).join(','));
   const csv=[head.map(esc).join(','),...body].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);

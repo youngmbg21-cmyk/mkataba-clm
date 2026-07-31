@@ -2879,7 +2879,7 @@ async function negoBatchConfirm(c, kind, split){
    gone is the claim that it can draft. */
 const NEGO_AI_ACTIONS = [
   { id: 'advantage', label: '🪄 Rephrase for Buyer/Supplier Advantage',
-    ask: 'Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under Kenyan law.' },
+    get ask(){ return `Rewrite this contract wording so it is more favourable to the party I act for, while staying commercially reasonable and enforceable under ${jxLaw()}.`; } },
   { id: 'risk', label: '🔍 Explain Legal Risk',
     ask: 'Explain the legal and commercial risk this wording carries, then give a safer alternative formulation.', explain: true },
   { id: 'shorten', label: '✂️ Shorten Wording',
@@ -2997,7 +2997,7 @@ async function negoAiPropose(c, ctx){
   })();
   const messages = [{ role: 'user', content:
     `${action.ask}\n\n`
-    + `You are helping negotiate a contract governed by Kenyan law. `
+    + `You are helping negotiate a contract governed by ${jxLaw()}. `
     + `The party I act for is ${side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us')}. `
     + (pbLine ? pbLine + ' ' : '')
     + `\n\nThe selected wording is:\n"""\n${text}\n"""\n\n`
@@ -5269,7 +5269,7 @@ const RL_SEL_ACTIONS = [
      it, I will approve it". */
   { id: 'edit', label: '✨ Edit with Copilot', converse: true, placements: true,
     noteLabel: 'Edit',
-    ask: 'Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    get ask(){ return `Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under ${jxLaw()}.`; },
     greeting: 'What would you like to add or change here?' },
   /* No placements: a shortening that inserts is not a shortening. The action
      carries its own instruction and cannot mean anything but a replacement, so
@@ -5628,15 +5628,20 @@ async function rlAiPropose(ctx){
             : `${where} the selected passage, which is being kept`}. Draft for that placement.`
         : ''].filter(Boolean).join('\n');
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction, history, placements: action.placements === true });
+      playbook: pbLine, instruction, history, clauseLabel: negoClauseLabel(cl),
+      placements: action.placements === true });
     if (!made) return null;
     return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
       placements: action.placements === true, headingText: made.headingText,
       clauseLabel: negoClauseLabel(cl), replacing: text, onApply: applyWording, onRefine: refine };
   };
-  const propose = async instruction => {
+  /* `history` is the exchange in the panel so far, handed over by aiSubmit. The
+     first instruction in a session used to travel without it, which is how
+     "combine them" reached the model as a pronoun with nothing to point at. */
+  const propose = async (instruction, history) => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction: instruction || '', placements: action.placements === true });
+      playbook: pbLine, instruction: instruction || '', history: history || '',
+      clauseLabel: negoClauseLabel(cl), placements: action.placements === true });
     if (!made) return false;
     const card = window.aiOpenProposal ? aiOpenProposal({ advice: made.advice,
       proposedText: made.proposedText, strict: made.strict,
@@ -5653,7 +5658,8 @@ async function rlAiPropose(ctx){
 
   if (action.converse && window.aiOpenRephraseSession){
     aiOpenRephraseSession({ passage: text, clauseLabel: negoClauseLabel(cl),
-      greeting: action.greeting, onPropose: instruction => propose(instruction) });
+      greeting: action.greeting,
+      onPropose: (instruction, session, extra) => propose(instruction, (extra && extra.history) || '') });
     return;
   }
   try{

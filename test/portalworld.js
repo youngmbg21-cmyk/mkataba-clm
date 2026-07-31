@@ -26,6 +26,7 @@ const ROOT = path.join(__dirname, '..');
    because buildSharePayload — the thing that decides what Erik is allowed to
    see — must be the real one, not a copy kept in a test. */
 const MODULES = [
+  'js/jurisdiction.js', // first, as js/app.js loads it: money and law read from it
   'js/richdoc.js',
   'js/clausemodel.js',
   'js/redline.js',
@@ -115,7 +116,6 @@ function buildPortal(opts = {}) {
     esc: s => String(s == null ? '' : s).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch])),
     icon: () => '<i></i>',                       // not <svg>, so tests can assert on real markup
     fmtDT: iso => String(iso || ''),
-    fmtKES: n => 'KES ' + Number(n || 0).toLocaleString('en-KE'),
     statusChip: s => `<span>${s}</span>`,
     toast: (m, k) => log.toasts.push({ msg: String(m), kind: k || 'ok' }),
     async sha256(str) { return crypto.createHash('sha256').update(String(str)).digest('hex'); },

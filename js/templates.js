@@ -148,7 +148,7 @@ const TEMPLATES = {
 const TEMPLATE_BASE_FIELDS = [
   { key:'counterparty', label:'Counterparty', type:'party', maps:'counterparty', required:true, def:'',
     ph:'Full registered name' },
-  { key:'value',        label:'Contract value (KES)', type:'num', maps:'value', required:false, def:'', ph:'0' },
+  { key:'value',        get label(){ return `Contract value (${jxCurrency()})`; }, type:'num', maps:'value', required:false, def:'', ph:'0' },
   { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },
   { key:'expiry',       label:'End / expiry date', type:'date', maps:'expiry', required:false, def:'' },
 ];

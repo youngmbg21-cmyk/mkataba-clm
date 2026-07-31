@@ -1273,7 +1273,7 @@ function renderTemplatesPage(){
     <section style="${CARD};padding:16px">
       <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px">
         <h4 style="${H4}">HaTi standard templates</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, Kenyan practice defaults</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">${Object.keys(TEMPLATES).length} generators · guided fields, ${jxAdjective()} practice defaults</span>
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px">${builtinCards}</div>
     </section>
@@ -1281,7 +1281,7 @@ function renderTemplatesPage(){
     <section style="${CARD}">
       <div style="display:flex;align-items:baseline;gap:10px;padding:13px 16px;border-bottom:1px solid var(--color-divider)">
         <h4 style="${H4}">HaTi sample documents</h4>
-        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world Kenyan examples — import one to start your library</span>
+        <span style="font-size:10.5px;color:var(--color-neutral-600)">real-world ${jxAdjective()} examples — import one to start your library</span>
       </div>
       ${sampleRows}
     </section>
