@@ -958,14 +958,20 @@ function signerProvenance(ip, ua){
   if(dev) parts.push(dev);
   return parts.length?' · '+parts.join(' · '):'';
 }
-function logAudit(c, action, detail, actor){
+/* `data` is an optional STRUCTURED half of an entry (X3): the prose `detail`
+   is the record a human reads, and `data` is the same fact in a shape the
+   history timeline can render without parsing prose — first used by the
+   renumbering act ({ kind:'renumber', headings:[{clauseId,from,to}], … }).
+   Additive: entries without it are unchanged, and nothing reads it back as
+   required. */
+function logAudit(c, action, detail, actor, data){
   c.audit = c.audit || [];
   const user = actor || currentUser()?.name || 'System';
   const last = c.audit[c.audit.length-1];
   // coalesce rapid repeats (e.g. keystrokes on the same field) into one entry
   if(last && last.action===action && last.detail===detail && last.user===user
      && (Date.now()-new Date(last.at).getTime())<60000){ last.at=nowISO(); return; }
-  c.audit.push({ at:nowISO(), user, action, detail });
+  c.audit.push({ at:nowISO(), user, action, detail, ...(data ? { data } : {}) });
 }
 function renderAuditSection(c){
   const host=document.getElementById('audit-section'); if(!host) return;
@@ -1311,8 +1317,16 @@ async function verifySeal(c){
     }
   }
   const h=await sha256(sealString(c));
-  if(h===c.hash) toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
-  else toast('Seal MISMATCH — the record changed after signing','err');
+  if(h!==c.hash){ toast('Seal MISMATCH — the record changed after signing','err'); return; }
+  /* The seal can be perfectly valid and the workspace still be showing
+     different wording, because the seal is computed over the frozen copy and
+     this asks about the live one. Reported here rather than left to be noticed,
+     since "Seal valid" on a screen whose text nobody signed is the most
+     misleading thing this button could say. */
+  const div=(typeof executedDivergence==='function')?executedDivergence(c):null;
+  if(div){ toast('Seal valid, BUT the wording on screen is not the wording that was sealed — '
+    +'the sealed copy is the evidence of record','err'); return; }
+  toast(isUpload(c)?'Seal valid — file and parties are intact':'Seal valid — sealed text, parties and value are intact');
 }
 function downloadFile(name, content, type='application/json'){
   const a=document.createElement('a');
@@ -1481,6 +1495,8 @@ const SHARE_PURPOSE_COPY={
     blurb:'They land in the negotiation room. Every clause they want changed comes back as its own item you accept or reject. Nothing can be signed on this link.' },
   sign:{ label:'Sign', title:'They sign this exact wording',
     blurb:'They land on the signing panel. Use this only when there is nothing left to argue about — proposing changes is not what this link is for.' },
+  view:{ label:'View only', title:'They read it, and can do nothing else',
+    blurb:'For an advisor, an insurer, a lawyer being asked whether this is normal. They see the wording and the redlines as they stand today, and cannot respond, edit or sign. Your comments and internal notes never leave this workspace.' },
 };
 function sharePurposePickerHtml(c, sel){
   const btn=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
@@ -1626,7 +1642,10 @@ function shareVersions(c, org){
    So the sender says what the link is when they create it, the reader's page
    reads that and nothing else, and a negotiation link stays the room until a
    NEW link supersedes it. */
-const SHARE_PURPOSE = p => (p === 'sign' ? 'sign' : p === 'negotiate' ? 'negotiate' : null);
+/* Three purposes now. 'view' is the read-only pass an outside advisor gets —
+   it is enforced by the server (refuseIfViewOnly, server/server.js), and named
+   here so the share dialog can offer it and the portal can route on it. */
+const SHARE_PURPOSE = p => (['sign','negotiate','view'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   const sharedBy=(who&&who.sharedBy)||currentUser().name;
@@ -1744,10 +1763,19 @@ function buildSharePayload(c, docHash, who, opts){
     baselineBody:r.baselineBody||'',
     baselineText:r.baselineText||'',
     changeIds:(r.changes||[]).map(x=>x&&x.id).filter(Boolean) }));
-  const purpose = SHARE_PURPOSE(opts&&opts.purpose) || (shareChanges.length?'negotiate':'sign');
+  /* WHAT THE SENDER ACTUALLY CHOSE, kept apart from what this line then
+     guesses. `purpose` below falls back to a reading of the change set when
+     nobody stated one — which is right for deciding which SCREEN to open, and
+     wrong as evidence of intent: a contract with nothing proposed on it yet
+     guesses 'sign', and a link built from that guess is not a signing link.
+     W6 strips the negotiating verbs from signing links, and it has to be able
+     to tell the two apart or it takes Direct Edit away from links nobody ever
+     issued for signature. */
+  const purposeChosen = SHARE_PURPOSE(opts&&opts.purpose) || null;
+  const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
-    purpose:purpose,
+    purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
       /* The negotiation, as the other side must see it: the same fingerprints,
          the same statuses and the same baseline the owner's tab is reading. Two
@@ -1956,6 +1984,59 @@ async function reshareToLastRecipient(c, opts={}){
     message:opts.message||'', recipient:{ name:last.name, email:last.email, phone:last.phone },
     expiryDays:opts.expiryDays||14, durable:opts.durable!==false, purpose:payload.purpose });
   return record(r||{}, false);
+}
+
+/* ---- W7: THE SIGNING LINKS COME FROM THE ROUTE, NOT FROM A TYPED BOX ----
+
+   The owner already named every counterparty signer, in order, with an email
+   address, when they set the signing route. Opening the share dialog at that
+   point and asking them to hand-type ONE recipient threw that record away —
+   and left every signer after the first with no link at all.
+
+   This issues one bound link per unsigned counterparty signer, in one pass.
+   The server holds each link until its turn (signer n+1's email goes out when
+   signer n signs — see releaseNextSignerLink in server/server.js), so calling
+   this early simply creates the route dormant, and calling it again is safe:
+   one signer, one link, reused in place, and the reuse is the release when
+   the turn has arrived in the meantime.
+
+   Returns null where the route cannot drive this (static mode, no counterparty
+   signers), and { missingEmails } where it should but the plan is incomplete —
+   the caller decides whether to fall back to the hand-typed dialog, because
+   only the caller knows whether an owner is watching. */
+async function issueSigningRouteLinks(c){
+  if(!API_MODE() || !window.signerPlan) return null;
+  const cps=signerPlan(c).filter(s=>s && s.party==='counterparty' && !s.signed)
+    .slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  if(!cps.length) return null;
+  const missingEmails=cps.filter(s=>!/.+@.+\..+/.test(String(s.email||'')));
+  if(missingEmails.length) return { missingEmails };
+  /* The server binds and sequences against the STORED plan, and `persist` is a
+     400 ms timer — the same overtaking that once had /distribute refuse a
+     contract its own screen had just sealed. The plan must be on disk before
+     the first share request reads it back. */
+  try{ await flushSaves(); }catch(_){}
+  try{ await ensureFull(c); }catch(_){}
+  const docHash=await sha256(canonicalDoc(c));
+  if(c.status!=='Signed'){ const v=captureVersion(c,'Sent for signature',null,{auto:true}); if(v) persist(c); }
+  const links=[];
+  for(const s of cps){
+    const payload=buildSharePayload(c, docHash, null, { purpose:'sign' });
+    const r=await api('shares','POST',{ payload, channel:'email',
+      recipient:{ name:s.name, email:s.email }, expiryDays:30, durable:false,
+      purpose:'sign', signerId:s.id });
+    links.push({ signer:s, ...r });
+  }
+  /* One audit line for the act, naming what actually went and what is held —
+     "3 links created" hides exactly the fact the route exists to record. */
+  const made=links.filter(x=>!x.reused).length;
+  const sent=links.find(x=>x.emailSent);
+  if(made || sent){
+    const bit=x=>`${x.signer.name} (${x.emailSent?'emailed their link':x.heldForTurn?'link held until their turn':'link ready'})`;
+    logAudit(c,'Shared',`Signing links issued from the route — ${links.map(bit).join(', ')}. Each link is bound to its signer and released in order.`);
+    persist(c);
+  }
+  return { links };
 }
 
 /* opts.onSent — a callback fired when a share is really created, carrying what
@@ -2557,21 +2638,65 @@ async function applyResponse(c, r, opts={}){
     if(window.templateFormDocHtml) c.redlineText=templateFormDocHtml(c.templateForm);
   }
   if(r.action==='sign'){
+    /* ---- W7 fault 3: A SIGNATURE LANDS ON ITS BOUND ROW, OR ON NONE ----
+       This used to stamp whichever counterparty row was NEXT — nextSigner() —
+       so when links were out with their MD (order 3) and their FD (order 4)
+       and the FD signed first, the signature landed on the MD's row. The real
+       name went into `by`, so the trail was not false, but the official
+       running order was silently wrong from then on.
+
+       A response from a bound link now carries the row it belongs to
+       (r.signerId — stamped by the SERVER from the share record, never
+       claimed by the page). It is checked BEFORE anything is written, because
+       a refusal that has already pushed the signature is a misfile with extra
+       steps. Out of order is refused here as well as at the server: this
+       function is also the import door for static-mode response codes, which
+       never pass through the respond route. A background refusal is safe —
+       the poller retries, and succeeds once the earlier signature it is
+       waiting on has been applied. */
+    let boundRow=null, routeNote='';
+    if(r.signerId && window.signerPlan && signerPlan(c).length){
+      boundRow=signerPlan(c).find(x=>x && String(x.id)===String(r.signerId))||null;
+      if(boundRow){
+        if(boundRow.signed){
+          if(!opts.background) toast(`${boundRow.name}'s signing step is already recorded — this signature was not applied again`,'err');
+          return false;
+        }
+        const earlier=signerPlan(c).filter(x=>x && (x.order||0)<(boundRow.order||0) && !x.signed)
+          .sort((a,b)=>(a.order||0)-(b.order||0));
+        if(earlier.length){
+          if(!opts.background) toast(`${r.name} signed out of order — ${earlier[0].name} signs first. Refused rather than filed on the wrong step.`,'err');
+          return false;
+        }
+      } else {
+        /* The route was edited and the bound row is gone. The signature is
+           real evidence and is kept; what must not happen is guessing it onto
+           somebody else's step. Recorded with the gap named, so the trail says
+           exactly what is and is not claimed. */
+        routeNote=' — NOTE: the signing-route step this link was bound to no longer exists on the route; the signature is recorded, and no step was marked signed';
+      }
+    }
     c.signatures=c.signatures||[];
     const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
       method:r.method||'share-link', verified:r.verified!==false, ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
-    // If a signing route is running, mark this counterparty's step signed and advance.
-    const ns=window.nextSigner?nextSigner(c):null;
-    if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+    if(boundRow){
+      boundRow.signed=true; boundRow.at=r.at; boundRow.by=r.name; boundRow.signature=sig;
+    } else if(!r.signerId){
+      /* The unbound path: a pre-W7 link, or a static-mode response code —
+         neither carries a binding, and next-in-order is all there is to go
+         on. Bound links never come through here. */
+      const ns=window.nextSigner?nextSigner(c):null;
+      if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+    }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
     // r.verified===false means the server could not send a code, so nothing
     // checked that this signer holds that address. The trail says so rather
     // than reading like every other verified counterparty signature.
     const unverified = r.verified===false;
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
@@ -2843,12 +2968,16 @@ function negoTurnBack(c, who){
 function applyNegoDecisions(c, r, who){
   const list=Array.isArray(r.negoDecisions)?r.negoDecisions.slice(0,200):[];
   const done=[];
+  /* The identity that goes onto the decision is the honest one, not the typed
+     one — see counterpartyActor. `who` is kept as the fallback so a response
+     from before this existed still reads exactly as it always did. */
+  const actor=(typeof negoActorLabel==='function')?negoActorLabel(r, who):who;
   for(const d of list){
     const ch=window.negoChangeById?negoChangeById(c,String(d.id||'')):null;
     if(!ch || ch.authorSide!=='owner') continue;
     if(d.status!=='accepted' && d.status!=='rejected') continue;
-    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:who,
-      reply:d.reply||null })) done.push({ id:ch.id, status:d.status });
+    if(negoResolve(c, ch.id, d.status, { side:'counterparty', by:actor,
+      reply:d.reply||null })) done.push({ id:ch.id, status:d.status, reply:d.reply||null });
   }
   return done;
 }
@@ -3010,4 +3139,4 @@ function schedulePolling(){
   _pollTimer=setInterval(()=>{ pollNow('tick'); schedulePolling(); }, want);
 }
 
-Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});
+Object.assign(window,{contractExpired,contractStage,contractStatusChip,EXPIRED_META,cachedShares,counterpartyContact,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,shareSummaryStepHtml,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,counterpartySeenState,counterpartySeenHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,contractShares,reshareToLastRecipient,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,currentUser,deleteContract,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,openModal,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,todayStr,userById,verifySeal,waShareLink});

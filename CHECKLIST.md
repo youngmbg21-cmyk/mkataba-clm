@@ -549,3 +549,113 @@ f104-contract-from-template, f105-upload-convert.
 | Company section renders on the Templates page, role-aware | f103 | PASS |
 | Published templates feed the menu/count caches | f103 | PASS |
 | In-place popover fill on workspace and portal | manual (Chromium shots) | PASS |
+
+---
+
+## Stage 4 — the signing route (W7 + W8, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| A share can be bound to one row of `c.signerPlan` (`shares.signer_id`); unknown / internal / non-sign bindings refused | f115 | PASS |
+| One signer, one link: re-issuing refreshes the live bound link, never mints a second | f115 | PASS |
+| A bound link before its turn is created HELD — no email until its turn | f115 | PASS |
+| A held link opens to a dormant notice, serves none of the contract, stamps no `first_opened_at` | f115 | PASS |
+| Signing out of turn is refused at the respond route, naming who signs first — never refiled | f115 | PASS |
+| Signer *n* signing releases signer *n+1*'s link from the respond route — unattended, no owner browser | f115 | PASS |
+| The stored response carries the binding, server-stamped; a crafted response cannot choose its row | f115 | PASS |
+| The external turn email delivers the signer's own link, "no account is needed" | f115 | PASS |
+| issueSigningRouteLinks issues per-signer bound links in route order; partial routes refused whole | f116 | PASS |
+| The dormant page names who is waited on (colleague by name, sender org collectively) and self-updates | f116 | PASS |
+| An incoming signature lands on its BOUND row; FD-before-MD no longer lands on the MD's row | f117 | PASS |
+| Replay of a signed step refused; deleted-row signature kept with the gap named, no row guessed | f117 | PASS |
+| The seal fires when the last bound signature lands | f117 | PASS |
+| Unbound (pre-W7 / static-mode) responses keep next-in-order behaviour | f117 | PASS |
+| The one-time code goes only to the share's recorded address; typed addresses never a destination | f118 | PASS |
+| A forwarded signing link cannot be used by a third party with their own mailbox | f118 | PASS |
+| The verified signature records the VERIFIED (invited) address, not the typed one | f118 | PASS |
+| An address-less signing link fails closed on OTP, with the way out named | f118 | PASS |
+| The code is never returned to the caller (destination rule changed; leak rule intact) | f118, regression | PASS |
+
+Suite at close: **2078 tests, 0 failures** (`npm test`); Chromium redline
+71/71, parity 18/18, selection 22/22. Test files added: f115-the-signing-route,
+f116-links-from-the-route, f117-the-signature-lands-on-its-row,
+f118-the-code-goes-to-the-invited-address.
+
+---
+
+## Stage 5 — the renumber button (N2, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| 1, 4, 5, 6, 12 → 1, 2, 3, 4, 5 — gaps close per family | f119 | PASS |
+| The run keeps its own origin: an extract numbered 4, 5, 6 proposes nothing | f119 | PASS |
+| Sub-family isolation; a renumbered parent carries its children (4→2 ⇒ 4.1→2.1) | f119 | PASS |
+| Format preservation: every separator survives; `clause 8.2(a)` → `clause 8.1(a)` exactly | f119 | PASS |
+| References repoint in one simultaneous pass; range endpoints both move; bare numbers never touched | f119 | PASS |
+| Dangling references listed as unresolvable — never rewritten | f119 | PASS |
+| Preview lists 100% of what moves and what will not; cancel is byte-identical | f119 | PASS |
+| Apply is one audit entry carrying the X3 structured shape; version captured | f119 | PASS |
+| Ids never move — renumbering is presentation, identity is the clause id | f119 | PASS |
+| A live change on the table blocks the act, reason named | f119 | PASS |
+| An executed contract: the computation refuses; the notice's door is absent, not disabled | f119, f98 | PASS |
+| Two clicks: the notice's button, the preview's confirm | f119 | PASS |
+| The counterparty's copy of the notice carries no door | f119 | PASS |
+| A recorded renumbering stands the gap notice down; a ref citing the deleted clause keeps its own warning | f119 | PASS |
+
+Suite at close: **2099 tests, 0 failures**; Chromium redline 71/71, parity
+18/18, selection 22/22. Test file added: f119-the-renumber-button. OI-1 and
+OI-2 closed and moved to BUGLOG.
+
+
+---
+
+## Stage 6, Session 13 — the history timeline (WP-2.1, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Multi-round history renders one complete, correctly ordered story | f120 | PASS |
+| X1: labels as of the event — renumber after the fact leaves the story byte-identical | f120 | PASS |
+| X6: signing beats render beside changes, in the record's own words | f120 | PASS |
+| X3: renumbering renders off its structured audit data | f120 | PASS |
+| Filters (clause-by-id, person, side, round, outcome) combine, model-level | f120 | PASS |
+| Screen renders redlines + reasons; filtering re-asks the model | f120 | PASS |
+| Workspace History door opens the screen; viewers included | f120 | PASS |
+
+Suite at close: **2106 tests, 0 failures**; Chromium 71/71 · 18/18 · 22/22.
+Playwright screen check: deferred to Session 14, recorded in SESSION-NOTES.
+
+
+---
+
+## Stage 6, Session 14 — verify and export (WP-2.5 + WP-2.4, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Untampered record verifies green, with the run's own timestamp | f121 | PASS |
+| Tampered record fails naming the FIRST broken change | f121 | PASS |
+| Executed contract: the seal joins the answer; a false seal fails it | f121 | PASS |
+| Verify + Export doors on the timeline; verdict written, never toasted | f121 | PASS |
+| Export: every change, decision and reason; redlines rendered; standalone (no src/href/network) | f121 | PASS |
+| Export embeds the verification result AND when it was run | f121 | PASS |
+| A failed verification exports as a failure | f121 | PASS |
+
+Suite at close: **2113/0**; Chromium 71/71 · 18/18 · 22/22. Stage 6 gate held.
+
+
+---
+
+## Stages 7–9 (2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Template-born contracts number live: delete + round close → run closes, refs follow, zero manual steps | f122 | PASS |
+| One numbering authority: live doc and baseline byte-identical; every surface renders the stored run | f122 | PASS |
+| Literal contracts and uploads untouched; upload can never acquire the flag | f122 | PASS |
+| The freeze: sealed copy carries literal numbers, verifies self-contained, no path can move it | f122 | PASS |
+| Derived view link: negotiate-only, strictly weaker, parent's expiry ceiling | f123 | PASS |
+| Child dies with the parent; dead parents delegate nothing; owner sees and revokes children | f123 | PASS |
+| Sub-clause DoD verbatim: live 2.2 delete → 2.3 becomes 2.2, clause 3 untouched; upload keeps gap + flags citation | f124 | PASS |
+| Lettered body runs stay body; citations into them follow the base clause | f124 | PASS |
+| Forged/revoked/view tickets fail closed on every mutating door, derive included | f125 | PASS |
+| Sealed record survives crafted PUTs (rewording, renumber-by-PUT, invented changes, audit erasure) | f125 | PASS |
+| Rate limits engage; folder scope holds on shares panel | f125 | PASS |

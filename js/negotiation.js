@@ -78,6 +78,500 @@ function negoClauseList(c){
   return window.clauseSegment ? clauseSegment(c.negotiation.baselineBody || '') : [];
 }
 const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === id) || null;
+
+/* ---------- IS THIS CONTRACT EXECUTED ----------
+   One predicate, named, because the answer decides three different things and
+   was written out longhand at each of them. An executed record takes no new
+   decisions, however it came to be executed — so the test is not `status ===
+   'Signed'`. A contract carrying a seal (`hash`) or an execution stamp
+   (`execution.at`) is executed whatever its status field says, and reducing
+   this to the status alone is exactly the narrowing the signed door in
+   negoResolve was written to prevent. */
+function negoExecuted(c){
+  return !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
+}
+
+/* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
+   The same predicate under the name that says WHY it is being asked, because
+   this is a different rule from the wording lock even though today they turn on
+   the same fact.
+
+   Sealed WORDING must not change because the seal binds it. Sealed NUMBERING
+   must not change for a reason the seal knows nothing about: once a contract is
+   executed its clause numbers are cited — by every amendment that varies it, by
+   correspondence between the parties, and by anyone who ends up arguing about
+   it in front of a judge. "Clause 9" in an amendment signed next year means the
+   ninth clause of the document as executed, permanently. Tidying 1..8, 10..24
+   into 1..23 on a signed agreement silently repoints every one of those
+   citations, and does it invisibly, because the wording underneath is right.
+
+   The renumbering action now exists (negoRenumberApply, N2) and asks this
+   first — the gate was built and tested before its first caller, deliberately,
+   so the caller could not be written without meeting it. Anything else that
+   ever rewrites a clause number must ask it too. */
+const negoNumberingLocked = c => negoExecuted(c);
+
+/* ---------- HAS THE LIVE DOCUMENT WALKED AWAY FROM THE SEALED ONE ----------
+   verifySeal (js/core.js) answers "is the frozen copy intact, and does it still
+   hash to the seal". It has never asked the other question: does the wording
+   this workspace SHOWS still match the wording that was signed. Those came
+   apart the moment an edit could be filed after execution (MK-248) —
+   negoCommitBody rewrote the live body while execution.html kept what was
+   signed, and because the seal is computed over the frozen copy, verifySeal
+   went on reporting the record valid. Nothing anywhere said the two disagreed,
+   which makes this the quietest way the product could be wrong.
+
+   REPORTED, NEVER REPAIRED. The obvious "fix" — copy the sealed wording back
+   over the live body, or re-seal the live body — is the one thing this must
+   never do. Both directions destroy evidence: the first throws away whatever
+   was written after signature without anybody reading it, and the second
+   quietly certifies wording the parties never signed. A divergence is a fact
+   about the record; a human decides what it means.
+
+   COMPARED AS TEXT, not as markup. The frozen copy is html and the live body
+   may be text or rich, so a byte comparison would report every executed
+   contract as diverged and the warning would mean nothing within a week.
+   Reducing both to their words answers the question actually being asked: does
+   it still SAY the same thing. Whitespace is normalised for the same reason — a
+   reflow is not an edit. */
+function negoExecutedText(s){
+  const raw = String(s == null ? '' : s);
+  const txt = (/<[a-z][\s\S]*>/i.test(raw) && window.richToText) ? richToText(raw) : raw;
+  return txt.replace(/ /g, ' ').replace(/\s+/g, ' ').trim();
+}
+function executedDivergence(c){
+  if (!negoExecuted(c)) return null;
+  /* An uploaded contract's evidence is the file itself, hashed at intake. There
+     is no sealed HTML rendering to disagree with. */
+  if (c && c.upload && (c.upload.fileHash || c.upload.fileId)) return null;
+  const sealed = c && c.execution && c.execution.html;
+  if (!sealed) return null;                      // nothing frozen to compare against
+  const live = (c && (c.redlineText || c.body)) || '';
+  if (!live) return null;
+  const a = negoExecutedText(sealed), b = negoExecutedText(live);
+  if (!a || !b || a === b) return null;
+  return { diverged: true, sealedChars: a.length, liveChars: b.length,
+    detail: 'The wording shown here is not the wording that was sealed at execution. '
+      + 'Nothing has been changed either way — the sealed copy remains the evidence of record. '
+      + 'Have someone compare the two before relying on this document.' };
+}
+
+/* ---------- GAPS THIS CONTRACT'S OWN DELETIONS LEFT ----------
+   Accepting a deletion removes the clause and closes nothing up: a contract
+   numbered 1..24 that loses clause 9 reads 1..8, 10..24 (clauseRemove, and the
+   rule at the heading renderer that a number the file does not carry is never
+   printed). That is the right behaviour and it stays. What was missing is that
+   nothing SAID so, and a reader meeting 8 followed by 10 has no way to tell a
+   deliberate deletion from a broken document.
+
+   ATTRIBUTED, NEVER SCANNED. The gap is reported only where an accepted
+   deleteClause accounts for it. A document that arrived numbered 1, 4, 5, 6, 9,
+   12 — the prototype's own contract, and every uploaded extract shaped like it
+   — raises nothing here, because we did not make those gaps and have no
+   standing to call them faults. This is the whole reason clauseNumberGap
+   answers about one number rather than scanning the run.
+
+   IT TIMES ITSELF. An accepted deletion is struck through in the working pane
+   and stays in the document until the round closes; only then does
+   negoResolvedBody remove it and the baseline move. So `present` is true for
+   the whole of that window and nothing is reported — the notice appears when
+   the gap does, not when the decision is taken.
+
+   Read from negoAllChanges rather than c.changes: closing the round is what
+   creates the gap AND what archives the change that caused it, so the live set
+   is empty of exactly the records this needs. */
+function negoNumberingGaps(c){
+  if (!c) return [];
+  negoInit(c);
+  const nums = negoClauseList(c).map(cl => cl.num).filter(Boolean);
+  const parse = window.clauseParseHeading;
+  const gapOf = window.clauseNumberGap;
+  if (!parse || !gapOf) return [];
+  /* A RECORDED RENUMBERING ANSWERS THE GAPS BEFORE IT. Attribution cuts both
+     ways: a gap is reported because an accepted deletion accounts for it, and
+     it STOPS being reported because a recorded renumbering (N2) closed the
+     run back up — "Clause 9 was deleted and the numbering was not closed up"
+     over a run that now reads 1..5 would be the notice lying about the one
+     thing it exists to say. Compared by time, off the renumbering's own X3
+     audit entry: a deletion decided AFTER the last renumbering opened a gap
+     that act never saw, and it still reports. A trailing deletion — the run
+     simply ending earlier — keeps reporting too, until a renumbering
+     addresses it: the run shows no hole, but the deletion is real news and
+     nothing has yet answered it. */
+  const lastRenumber = (c.audit || [])
+    .filter(a => a && a.data && a.data.kind === 'renumber')
+    .map(a => String(a.at || '')).sort().slice(-1)[0] || '';
+  const out = [];
+  const seen = new Set();
+  for (const ch of negoAllChanges(c)){
+    if (!ch || ch.changeType !== 'deleteClause' || ch.status !== 'accepted') continue;
+    /* The number comes back out of the stored label rather than from a field of
+       its own, so this reads correctly on every change ever filed — including
+       the ones written before anybody was asking this question. */
+    const num = String(parse(ch.clauseLabel || '').num || '');
+    if (!num || seen.has(num)) continue;
+    if (lastRenumber && String(ch.resolvedAt || '') <= lastRenumber) continue;
+    const gap = gapOf(nums, num);
+    if (gap.present) continue;
+    seen.add(num);
+    out.push({ num, label: String(ch.clauseLabel || ''), changeId: ch.id || null,
+      before: gap.before, after: gap.after });
+  }
+  return out.sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, { numeric: true }));
+}
+/* ---------- REFERENCES THIS CONTRACT'S OWN DELETIONS BROKE ----------
+   The same doctrine as negoNumberingGaps above, and for the same reason:
+   ATTRIBUTED, NEVER SCANNED.
+
+   A dangling reference on its own is not news. The prototype's contract is an
+   extract numbered 1, 4, 5, 6, 9, 12, and an extract cites the parent agreement
+   it was cut from — "subject to Clause 2" is a perfectly good sentence in a
+   document that has no clause 2 and never did. Reporting every unresolved
+   reference lights that document up with faults nobody can fix, and does the
+   same to every uploaded contract shaped like it.
+
+   What IS news is a reference whose target was deleted HERE, by an accepted
+   deletion this record can point at. Then the document really has changed
+   underneath the sentence, and somebody has to decide what the sentence should
+   now say.
+
+   REPORTED ON THE CLAUSE THAT CONTAINS THE REFERENCE, not on the deleted one.
+   The deleted clause is gone; the surviving clause is the one with a problem in
+   it, and it is the one a person has to open and revise.
+
+   Read from negoAllChanges for the reason negoNumberingGaps gives: closing the
+   round archives the very change that created the gap.
+
+   ADVISORY. This names a problem. It never edits wording to fix one — repairing
+   a reference changes what the contract means, and that is a drafting decision
+   with a human's name on it. */
+function negoBrokenRefs(c){
+  if (!c) return [];
+  negoInit(c);
+  const resolve = window.clauseResolveRefs;
+  const parse = window.clauseParseHeading;
+  const norm = window.clauseRefNorm;
+  if (!resolve || !parse || !norm) return [];
+  const clauses = negoClauseList(c);
+
+  /* The numbers whose clause an accepted deletion took out of this document. */
+  const deleted = new Map();
+  for (const ch of negoAllChanges(c)){
+    if (!ch || ch.changeType !== 'deleteClause' || ch.status !== 'accepted') continue;
+    const num = norm(parse(ch.clauseLabel || '').num || '');
+    if (num && !deleted.has(num)) deleted.set(num, ch);
+  }
+  if (!deleted.size) return [];
+
+  const byId = new Map(clauses.map(cl => [cl.clauseId, cl]));
+  const out = [];
+  const seen = new Set();
+  for (const r of resolve(clauses)){
+    if (r.state !== 'dangling') continue;
+    const ch = deleted.get(r.num);
+    if (!ch) continue;                      // dangling, but nothing here deleted it
+    const key = r.fromClauseId + '→' + r.num;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const from = byId.get(r.fromClauseId) || null;
+    out.push({
+      fromClauseId: r.fromClauseId,
+      fromNum: r.fromNum || '',
+      fromLabel: from ? (window.clauseLabel ? clauseLabel(from) : (from.headingText || '')) : '',
+      num: r.num,
+      text: r.text,
+      deletedLabel: String(ch.clauseLabel || ''),
+      changeId: ch.id || null,
+    });
+  }
+  return out;
+}
+
+/* Every reference in the document with its resolution state — the on-demand
+   whole-document check (N1-T5), as against the attributed warning above.
+   Presented NEUTRALLY by its caller: on an extract, references out to the
+   parent agreement are normal and must not be dressed up as faults. */
+function negoAllRefs(c){
+  if (!c) return [];
+  negoInit(c);
+  if (!window.clauseResolveRefs) return [];
+  const clauses = negoClauseList(c);
+  const byId = new Map(clauses.map(cl => [cl.clauseId, cl]));
+  return clauseResolveRefs(clauses).map(r => {
+    const from = byId.get(r.fromClauseId) || null;
+    return { ...r,
+      fromLabel: from ? (window.clauseLabel ? clauseLabel(from) : (from.headingText || '')) : '' };
+  });
+}
+
+/* ---------- RENUMBERING, AS A RECORDED ACT (N2) ----------
+   The computation lives in js/clausemodel.js (clauseRenumberPlan) and is pure;
+   these three are the contract-shaped door in front of it: whether the door is
+   open, what would happen, and the one write.
+
+   WHEN THE DOOR IS OPEN — and this is the decided change-model treatment the
+   work order asked for (N2-T4). Renumbering applies DIRECTLY, but only over a
+   QUIET TABLE: never on an executed contract, and never while any live change
+   is on the table. The quiet-table rule is not caution for its own sake —
+   every filed change carries oldText measured against the current baseline and
+   renders its redline from it, so rewriting the document underneath pending
+   asks would detach every one of them from the wording it cites. Between
+   rounds the table is empty by construction (negoAdvanceRound archives the
+   decided set), which is exactly when the gap notice appears — the gap only
+   opens when the round closes — so the primary flow is never blocked. The
+   alternative treatment (filing each heading rename as a tracked change once a
+   round has been sent) was considered and rejected: the change model has no
+   heading-rename change type, and N headings filed as N fingerprints
+   contradicts the order's own "one audit entry summarising the whole act".
+   The counterparty is not cut out by this: the renumbered wording becomes the
+   baseline their next round opens on, the version list records the act, and
+   their standing link shows the result — a renumbering they object to is a
+   renumbering they redline like any other wording.
+
+   THE APPLY RECOMPUTES ITS OWN PLAN rather than trusting the one the preview
+   showed. Same quiet table, same clauses, same answer — and a plan object
+   cannot go stale in a pocket between the preview being painted and the
+   button being pressed. */
+/* ---------- LIVE NUMBERING (N3) ----------
+   A contract born from a template carries `numbering:'live'`, and for it a
+   deletion "renumbers" with zero manual steps. THE DECIDED IMPLEMENTATION —
+   recorded here because it deliberately differs from the order's sketch of
+   numbers-as-render-time-presentation: live numbering is AUTOMATIC
+   RENUMBERING AT ROUND BOUNDARIES, through the N2 engine.
+
+   Why not compute numbers at render? T2's own rule decided it: "a number
+   computed in two places will eventually disagree in two places". The stored
+   document is already the one numbering authority every surface reads — the
+   room, the workbench, the Doc page, print, PDF, docx, the portal, the
+   Copilot's context strings all render the stored headings — so keeping the
+   numbers IN the stored text and closing them up through the one engine that
+   already knows how (format-preserving, reference-repointing, id-stable,
+   audited) means no surface ever formats its own number, because no surface
+   formats a number at all. It also makes X2's freeze rule true by
+   construction: the sealed copy, the view-link snapshot and the history
+   export carry literal numbers because the document always does, and no
+   later change to numbering code can move what a seal covers (N3-T5).
+
+   WHY THE ROUND BOUNDARY (N3-T7): the gap only exists once the round closes
+   (the struck-through clause leaves the baseline then), the table is empty
+   there by construction (N2's quiet-table rule), and a sent round stays the
+   fixed snapshot the counterparty reviewed — numbering shifts BETWEEN
+   rounds, never under one.
+
+   UPLOADS CAN NEVER ACQUIRE THIS, even by a crafted flag: the predicate
+   refuses them, because an uploaded contract's numbers are the paper's own
+   facts. Absence of the flag = literal numbering; nothing retro-converts. */
+function negoLiveNumbered(c){
+  if (!c || c.numbering !== 'live') return false;
+  if (window.isUpload && isUpload(c)) return false;
+  if (c.upload || c.source === 'upload') return false;
+  return true;
+}
+
+function negoRenumberBlocked(c){
+  if (!c) return 'locked';
+  if (negoNumberingLocked(c)) return 'locked';
+  negoInit(c);
+  if (negoChanges(c).some(x => x && x.status !== 'superseded')) return 'table';
+  return null;
+}
+/* The computation refuses on an executed contract — not only the UI. A caller
+   that never renders a button can still not compute its way past the lock. */
+function negoRenumberPlan(c){
+  if (!c || negoNumberingLocked(c)) return null;
+  if (!window.clauseRenumberPlan) return null;
+  return clauseRenumberPlan(negoClauseList(c));
+}
+function negoRenumberApply(c, opts = {}){
+  if (negoRenumberBlocked(c)) return null;
+  const plan = negoRenumberPlan(c);
+  if (!plan || !plan.changed) return null;
+  const n = negoInit(c);
+  let body = n.baselineBody;
+  for (const h of plan.headings){
+    const next = window.clauseReplaceHeading ? clauseReplaceHeading(body, h.clauseId, h.newHeading) : null;
+    if (next != null) body = next;
+  }
+  for (const [id, bodyHtml] of Object.entries(plan.bodies || {})){
+    const next = window.clauseReplaceBody ? clauseReplaceBody(body, id, bodyHtml) : null;
+    if (next != null) body = next;
+  }
+  /* The baseline and the live document move together, through the same commit
+     path every accepted change uses — two copies of the wording that could
+     disagree about the numbering would be worse than the gap. */
+  n.baselineBody = body;
+  n.baselineText = window.richToText ? richToText(body) : '';
+  negoCommitBody(c, body);
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  const moved = plan.headings.map(h => `${h.oldNum}→${h.newNum}`);
+  const shown = moved.slice(0, 6).join(', ') + (moved.length > 6 ? ` and ${moved.length - 6} more` : '');
+  /* X3: the structured half rides ON the audit entry, so the history timeline
+     (WP-2.1) can render the act as a story beat without parsing prose. The
+     prose half stays the record a human reads. */
+  if (window.logAudit) logAudit(c, 'Renumbered',
+    `Clauses renumbered ${opts.auto ? 'automatically — this contract numbers live (N3), so the round closing closed the numbering up' : 'by ' + who} — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'} (${shown})`
+    + `; ${plan.refs.length} cross-reference${plan.refs.length === 1 ? '' : 's'} repointed to follow`
+    + (plan.untouched.length ? `; ${plan.untouched.length} reference${plan.untouched.length === 1 ? '' : 's'} left untouched (unresolvable)` : '')
+    + '. Every clause keeps its id; nothing beyond the numbers changed.',
+    who,
+    { kind: 'renumber',
+      headings: plan.headings.map(h => ({ clauseId: h.clauseId, from: h.oldNum, to: h.newNum })),
+      refs: plan.refs.map(r => ({ clauseId: r.clauseId, from: r.from, to: r.to })),
+      untouched: plan.untouched.length });
+  if (window.captureVersion) captureVersion(c,
+    `Clauses renumbered — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'}`,
+    who, { auto: true, listed: true });
+  return plan;
+}
+
+/* ---------- THE NEGOTIATION HISTORY, AS A STORY (WP-2.1) ----------
+   One chronological sequence assembled from the change record (live and
+   archived rounds), the round closures, and the audit entries that mark acts
+   a reader needs in the same story — signing beats (X6: link issued, signature
+   recorded, seal, copies) and renumbering acts (X3, read from the entry's
+   structured data, never parsed out of prose).
+
+   X1 — LABELS AS OF THE EVENT. Every entry shows the clause label the change
+   record STORED when the event happened (ch.clauseLabel), with the durable
+   clause id carried underneath for filtering. Never a live lookup of today's
+   number: N2 makes numbers movable, and a timeline that looked numbers up
+   would silently rewrite its own story every time a document was tidied.
+
+   FILTERS COMBINE, and they are applied here in the model so a test can hold
+   them without a DOM: clauseId (the durable id, not the number), actor, side,
+   round, outcome. */
+function negoTimeline(c, f = {}){
+  if (!c) return [];
+  negoInit(c);
+  const ev = [];
+  const otherSide = s => s === 'owner' ? 'counterparty' : 'owner';
+  const pushChange = (ch, roundN) => {
+    if (!ch || ch.status === 'superseded') return;
+    const base = { round: roundN, clauseId: ch.clauseId || null,
+      clauseLabel: ch.clauseLabel || ch.clauseId || '', changeId: ch.id || null };
+    const sideWord = ch.authorSide === 'owner' ? 'owner side' : 'counterparty';
+    ev.push({ ...base, kind: 'proposed', at: ch.createdAt || ch.at || '', actor: ch.author || '',
+      side: ch.authorSide || '', outcome: ch.status === 'pending' && !ch.withdrawn ? 'pending' : '',
+      text: `${ch.author || 'Someone'} (${sideWord}) proposed #${ch.id} — ${ch.summary || ch.changeType}`,
+      note: ch.note || null, ch });
+    if (ch.status === 'accepted' || ch.status === 'rejected')
+      ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
+        actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
+        text: `${ch.status === 'accepted' ? 'Accepted' : 'Rejected'} by ${ch.resolvedBy || 'the other side'}`
+          + `${ch.status === 'accepted' ? ' — merged into the wording' : ch.reply ? ` — “${ch.reply}”` : ''}`,
+        reply: ch.reply || null, ch });
+    if (ch.withdrawn)
+      ev.push({ ...base, kind: 'withdrawn', at: ch.withdrawn.at || '',
+        actor: ch.withdrawn.by || '', side: ch.withdrawn.side || ch.authorSide || '',
+        outcome: 'withdrawn',
+        text: `${ch.withdrawn.by || ch.author || 'The proposer'} withdrew #${ch.id} — the ask came off the table`, ch });
+  };
+  for (const r of (c.negotiation.rounds || [])){
+    for (const ch of (r.changes || [])) pushChange(ch, r.n);
+    ev.push({ kind: 'round-closed', at: r.at || '', actor: '', side: '', outcome: '',
+      round: r.n, clauseId: null, clauseLabel: '',
+      text: `Round ${r.n} closed — the agreed wording became the baseline for round ${r.n + 1}` });
+  }
+  for (const ch of negoChanges(c)) pushChange(ch, c.negotiation.round);
+  /* The beats that come off the audit trail. The prose is the entry's own —
+     it was written in the house register at the moment of the act — and the
+     kind is read from the action (or, for renumbering, from the X3 data). */
+  const SIGNING_ACTS = { 'Shared': 'link', 'Countersigned': 'signature',
+    'Signature': 'signature', 'Signed': 'sealed', 'Distributed': 'copies' };
+  for (const a of (c.audit || [])){
+    if (!a) continue;
+    if (a.data && a.data.kind === 'renumber'){
+      ev.push({ kind: 'renumbered', at: a.at || '', actor: a.user || '', side: 'owner',
+        outcome: '', round: null, clauseId: null, clauseLabel: '',
+        text: a.detail || 'Clauses renumbered', data: a.data });
+    } else if (SIGNING_ACTS[a.action]){
+      ev.push({ kind: SIGNING_ACTS[a.action], at: a.at || '', actor: a.user || '',
+        side: '', outcome: '', round: null, clauseId: null, clauseLabel: '',
+        text: a.detail || a.action });
+    }
+  }
+  /* Chronological, with arrival order as the tiebreak — two acts in the same
+     second keep the order they were recorded in. */
+  const idx = new Map(ev.map((e, i) => [e, i]));
+  ev.sort((a, b) => String(a.at).localeCompare(String(b.at)) || (idx.get(a) - idx.get(b)));
+  return ev.filter(e =>
+    (!f.clauseId || e.clauseId === f.clauseId)
+    && (!f.actor || e.actor === f.actor)
+    && (!f.side || e.side === f.side)
+    && (!f.round || e.round === Number(f.round))
+    && (!f.outcome || e.outcome === f.outcome));
+}
+
+/* ---------- THE WHOLE RECORD, VERIFIED IN ONE ANSWER (WP-2.5) ----------
+   Three separate facts, asked together because a reader pressing "verify"
+   means all of them: the change chain (every fingerprint recomputed from
+   stored content, every link checked — verifyChangeChain), the seal (does the
+   frozen copy still hash to what the record claims), and the divergence check
+   E5 built after finding that verifySeal alone never compared the live body
+   to the sealed one. Reported with the FIRST broken link named — "something
+   is wrong" is a verdict nobody can act on.
+
+   The answer carries its own timestamp because the export (WP-2.4) embeds it:
+   a verification result with no "when" reads as a permanent property of the
+   document, and it is a property of the moment it was run. */
+async function negoIntegrityReport(c){
+  const at = (window.nowISO ? window.nowISO() : new Date().toISOString());
+  const chain = await verifyChangeChain(c);
+  const executed = negoExecuted(c);
+  let seal = null;
+  if (executed && c.hash && window.sealString && window.sha256){
+    const expect = await sha256(sealString(c));
+    seal = expect === c.hash
+      ? { ok: true, detail: 'The seal matches the stored record' }
+      : { ok: false, detail: 'The seal does NOT match the stored record — the sealed content or the seal itself has been altered' };
+  }
+  const divergence = executed ? executedDivergence(c) : null;
+  const ok = chain.ok && (!seal || seal.ok) && !divergence;
+  const firstBroken = !chain.ok
+    ? `${chain.failedAt ? '#' + chain.failedAt + ': ' : ''}${chain.detail}`
+    : (seal && !seal.ok) ? seal.detail
+    : divergence ? divergence.detail : null;
+  return { ok, at, chain, seal, divergence, firstBroken,
+    detail: ok
+      ? `Record verified — ${chain.checked} entr${chain.checked === 1 ? 'y' : 'ies'} recomputed from stored content, no alteration found${seal ? '; the seal matches' : ''}`
+      : `Integrity check FAILED — ${firstBroken}` };
+}
+
+/* ---------- WHO THE RECORD SAYS DID THIS ----------
+   The name a counterparty types into the box is a claim, not a fact, and until
+   now it was stored as though it were a fact: "Rejected by Jane Mwangi", with
+   nothing anywhere saying whether anybody had checked that Jane sent it. A year
+   later the history screen reads that sentence back to an auditor, and its
+   whole value rests on the part nobody recorded.
+
+   THE RECORD IS HONEST IN BOTH DIRECTIONS. Where the link was verified by a
+   one-time code sent to the invited address, the verified address goes on the
+   decision — that is the strongest identity claim the product can make about
+   somebody with no account. Where it was not, the record says so plainly rather
+   than going quiet, because a name with no qualifier reads as verified to every
+   reader who was not there.
+
+   NEVER THE TYPED ADDRESS. A signer who types their own address and gets a code
+   has proved control of that mailbox and nothing about who they are; the
+   address that means something is the one the owner invited.
+
+   ENCOURAGED, NOT ENFORCED. Nothing here demands verification before somebody
+   may answer a clause — putting a mail round trip in front of ordinary
+   negotiation is how a link stops being used. It records what happened. */
+function negoActorLabel(r, fallback){
+  const base = String((r && r.name) || fallback || 'the counterparty').trim()
+    + ((r && r.title) ? ', ' + r.title : '');
+  if (!r) return base;
+  if (r.verified === true && r.verifiedEmail) return `${base} (${r.verifiedEmail}, email-verified)`;
+  if (r.verified === true) return `${base} (email-verified)`;
+  /* Unverified, and named as such. The invited address is still worth carrying
+     — it says who the link was MEANT for, which is exactly the question a
+     reader asks next. */
+  const sent = (r.invitedEmail || r.email) ? ` — link sent to ${r.invitedEmail || r.email}` : '';
+  return `${base} (link holder, unverified${sent})`;
+}
+
+
 /* The clauses of the contract's CURRENT working wording. */
 const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : []);
 
@@ -416,6 +910,30 @@ function negoSummariseOps(changeType, ops, oldText, newText){
    round. Quietly folding it into the decided change would rewrite what the
    other side agreed to. */
 async function negoFileChange(c, draft, opts = {}){
+  /* ---------- AN EXECUTED CONTRACT TAKES NO NEW CHANGES ----------
+     The signed door in negoResolve refused to DECIDE on an executed contract
+     and this refused nothing at all, so the product's real rule was: you may
+     not rule on a change to a signed agreement, but you may author one. MK-248
+     was reported Executed with a live Save change bar on its clause body, and
+     it filed.
+
+     What that costs is not a stray record. negoCommitBody rewrites c.body — the
+     text the seal was computed over — while execution.html keeps the wording
+     that was actually signed, so an edit here walks the live document away from
+     the sealed evidence in silence. Afterwards verifySeal reports a break on a
+     contract nobody tampered with, or the screen shows wording the evidence
+     does not contain. Either way the seal stops meaning what it says, and the
+     seal is the whole claim.
+
+     GUARDED AT THE FUNNEL, NOT AT THE CALLERS. negoEditClause, negoInsertClause
+     and negoDeleteClause all arrive here; the fourth caller written next year
+     will too, and it inherits this without knowing it needs to. Before
+     negoInit, because a refusal must not leave initialisation behind as its
+     only trace. */
+  if (negoExecuted(c)){
+    if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
+    return null;
+  }
   negoInit(c);
   const side = opts.side === 'owner' ? 'owner' : 'counterparty';
   const author = String(opts.author || (side === 'owner'
@@ -864,9 +1382,13 @@ function negoResolve(c, id, status, opts = {}){
      live in js/wordflow.js as wordDoorClosed(), and losing that file would have
      quietly reduced this to `status === 'Signed'` — dropping the seal and the
      execution stamp from the test. An executed record takes no new decisions,
-     however it came to be executed. */
-  const executed = !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
-  if (executed){
+     however it came to be executed.
+
+     Now asked through negoExecuted, which is that same test under a name. The
+     numbering lock reads the identical fact and had no business writing the
+     expression out a second time — two copies is how one of them comes to be
+     the narrowed version this comment exists to warn about. */
+  if (negoExecuted(c)){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
@@ -2050,6 +2572,16 @@ function negoAdvanceRound(c, opts = {}){
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
     ` the agreed wording is now the baseline for round ${n + 1}`);
+  /* N3: a live-numbered contract closes its numbering up HERE, with zero
+     manual steps — the round boundary is the one moment the table is quiet by
+     construction and the counterparty's sent snapshot is behind us. The N2
+     engine does the work (format-preserving, references repointed, ids fixed,
+     one audited act), so the numbers stay literal text in the stored document
+     and every surface — and every freeze path — reads the same run. A literal
+     contract is untouched: it gets the gap notice and the button instead. */
+  if (negoLiveNumbered(c) && !negoNumberingLocked(c)){
+    try{ negoRenumberApply(c, { by: opts.by, auto: true }); }catch(_){ /* the round is closed either way */ }
+  }
   return c.negotiation.rounds[c.negotiation.rounds.length - 1];
 }
 /* Every change this negotiation has ever carried, live and archived, newest
@@ -2238,6 +2770,9 @@ function negoMigrate(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
+  negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
+  negoBrokenRefs, negoAllRefs, negoActorLabel,
+  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

@@ -175,7 +175,15 @@ describe('the link they were sent is the workbench, and there is no room', () =>
     const { c } = await ownerProposed();
     const v = theirLink(c);
     const doc = v.win.document;
-    assert.ok(doc.querySelector('#pt-nego-wrap'), 'the panel is rendered, visible, in the page');
+    /* #pt-nego-wrap was the CARD the workbench used to be mounted inside — a
+       titled panel in a 1100px column, which is precisely what W1 removed: it
+       is what squeezed the contract pane to 419px against the owner's 925px.
+       The claim this test makes is unchanged and is the same one W1 makes more
+       strongly — the workbench IS the page, with no lobby in front of it — so
+       it is now asserted against the page itself rather than against the card
+       that used to stand in for it. */
+    assert.ok(doc.querySelector('#pw-page'), 'the workbench is the page');
+    assert.ok(doc.getElementById('pt-nego'), 'and the shared component is mounted in it');
     assert.ok(!doc.getElementById('pt-nego').classList.contains('hidden'));
     assert.equal(doc.querySelector('#pt-nego-open'), null,
       'no door to a room that no longer exists');
@@ -333,7 +341,12 @@ describe('their name is collected where the sending happens', () => {
   test('the field is on the page and prefilled from the share\'s recipient', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c);
-    const box = v.$('#pt-name');
+    /* #pt-name lived in the respond aside, which W2 deleted along with the
+       duplicate document and the standalone clause editor. The field itself is
+       not gone — it could not be, it gates every send — it is the workbench's
+       own #nego-cp-name, which portalAuthor() already preferred over #pt-name.
+       One box, on the page that sends, exactly as this test has always said. */
+    const box = v.$('#nego-cp-name');
     assert.ok(box, 'the field that gates every send must be on the page that sends');
     assert.equal(box.value, 'Erik Lindqvist');
   });
@@ -341,7 +354,7 @@ describe('their name is collected where the sending happens', () => {
   test('with nobody named on the share it opens empty, not filled with the company', async () => {
     const { c } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
-    assert.equal(v.$('#pt-name').value, '',
+    assert.equal(v.$('#nego-cp-name').value, '',
       'filing "Nordfrakt Logistik AB" as the person who answered would be a lie told quietly');
   });
 
@@ -357,7 +370,7 @@ describe('their name is collected where the sending happens', () => {
   test('the name typed on the page is the one that travels', async () => {
     const { c, filed } = await ownerProposed();
     const v = theirLink(c, { recipientName: '' });
-    v.$('#pt-name').value = 'Erik Lindqvist';
+    v.$('#nego-cp-name').value = 'Erik Lindqvist';
     await v.press(`[data-nego-accept="${filed[0].id}"]`);
     await v.press('#nego-send-decisions');
     assert.equal(v.last().name, 'Erik Lindqvist');
@@ -687,6 +700,10 @@ describe('signing arrives on a new link', () => {
     const v = theirLink(c, { purpose: 'sign' });
     assert.equal(v.win.portalNegoPhase(v.payload).phase, 'sign');
     assert.equal(v.$('#nego-room'), null);
+    /* Still #pt-name here, deliberately: W1/W2 rebuilt the NEGOTIATE seat.
+       The signing screen is untouched and keeps the respond panel it has
+       always had, which is where its name field lives. W6 is what will
+       revisit this one. */
     assert.ok(v.$('#pt-doc') && v.$('#pt-name'));
     assert.ok(v.$('#pt-sign'), 'the existing respond panel — no signing is built here');
   });

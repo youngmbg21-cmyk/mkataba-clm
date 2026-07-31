@@ -264,6 +264,26 @@ function negoStyleHtml(){
   .nego-closed[data-state="signed"] .tick{background:var(--n-accept)}
   .nego-closed[data-state="declined"] .tick{background:var(--n-reject)}
   .nego-closed .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--n-ink)}
+  /* The numbering notice. Inside the document, above the first clause, because
+     it is a remark about THIS PAGE's numbering and not about where the deal
+     stands — the banner slot above the panes answers that one question and
+     stays answering only it. Amber while the draft can still be tidied; slate
+     once the contract is executed and the gap is part of the record. */
+  .nego-gaps{display:flex;align-items:flex-start;gap:10px;margin:0 0 18px;border-radius:6px;
+    padding:10px 13px;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b}
+  .nego-gaps[data-locked="1"]{border-color:var(--n-line);background:var(--n-badge-bg);
+    border-left-color:var(--n-slate)}
+  .nego-gaps .mark{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
+    background:#b8862b;color:#fff;font-size:11px;font-weight:800;line-height:1}
+  .nego-gaps[data-locked="1"] .mark{background:var(--n-slate)}
+  .nego-gaps .body{flex:1;min-width:200px;font-size:11.5px;line-height:1.55;color:var(--n-ink)}
+  .nego-gaps .body b{font-weight:700}
+  .nego-gaps .why{display:block;margin-top:3px;color:var(--n-ink-soft)}
+  /* The one door out of the notice (N2-T5) — drafts only; the executed notice
+     never renders it at all. */
+  .nego-gaps .renum{display:inline-block;margin-top:7px;font:inherit;font-size:11px;font-weight:700;
+    color:#7d5a14;background:#fff;border:1px solid #b8862b;border-radius:5px;padding:4px 10px;cursor:pointer}
+  .nego-gaps .renum:hover{background:#b8862b;color:#fff}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
     border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
@@ -907,6 +927,370 @@ function negoRichBody(cl){
 
    A rejected clause reading exactly as the baseline reads is the point: it is
    the visible half of "silence rejects". */
+/* ---------- SAYING THAT THE NUMBERING HAS A HOLE IN IT ----------
+   A reader who meets clause 8 followed by clause 10 has two readings available
+   and no way to choose between them: somebody deleted 9, or the document is
+   broken. They are not equally cheap. The second one costs the platform its
+   credibility with the only audience that matters here, and it is the reading a
+   lawyer reaches for first, because a contract that skips a number is normally
+   a contract somebody mangled.
+
+   So the gap is named, and the act that made it is named with it — and on a
+   DRAFT, on the owner's own surface, the notice now carries the one door out
+   of it: `Renumber clauses…`, which opens a full preview and writes nothing
+   until it is confirmed (N2-T5). The button appears only where the caller
+   states the owner seat (opts.offer) — opt-IN, so a surface that forgets the
+   flag shows no button rather than showing one to the wrong seat — and never
+   when the numbering is locked. The old rule here was "no button at all",
+   argued on the ground that a notice offering the undo is how a signed
+   contract gets renumbered by accident; what actually holds that line is the
+   lock plus the preview, not the absence of the door on drafts, and N2 built
+   both before this button existed.
+
+   TWO VOICES, and the difference is the lock. On a draft the gap is a loose end
+   the owner may want to deal with before signing. On an executed contract it is
+   part of the record: the numbers have been cited by the act of signing and
+   every amendment that follows will cite them again, so the gap is not a defect
+   to be fixed but a fact to be read correctly. The executed notice is therefore
+   buttonless — the action is ABSENT, not disabled, because a disabled button
+   says "this exists and you may not", and no such act exists against a signed
+   agreement. */
+function negoNumberingNoticeHtml(c, opts = {}){
+  const gaps = window.negoNumberingGaps ? negoNumberingGaps(c) : [];
+  const broken = window.negoBrokenRefs ? negoBrokenRefs(c) : [];
+  /* A BROKEN REFERENCE CAN OUTLIVE ITS GAP. Renumbering closes the gap and
+     leaves "subject to Clause 9" pointing at a number nothing carries, so this
+     notice has to be able to appear for the references alone. Two conditions,
+     not one. */
+  if (!gaps.length && !broken.length) return '';
+  if (!gaps.length) return negoBrokenRefsOnlyHtml(c, broken, opts);
+  const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
+  const list = ns => ns.length === 1 ? ns[0]
+    : ns.slice(0, -1).join(', ') + ' and ' + ns[ns.length - 1];
+  const nums = gaps.map(g => g.num);
+  const what = `<b>Clause${gaps.length === 1 ? '' : 's'} ${_ne(list(nums))} `
+    + `${gaps.length === 1 ? 'was' : 'were'} deleted, and the numbering was not closed up.</b>`;
+  /* The run is spelled out only where there is one gap to spell out. Four gaps
+     produce four "x is followed by y" clauses that nobody reads, and the
+     numbers above already say which clauses are missing. */
+  const run = (gaps.length === 1 && gaps[0].before && gaps[0].after)
+    ? ` ${_ne(gaps[0].before)} is followed by ${_ne(gaps[0].after)}.` : '';
+  const why = locked
+    ? 'This contract is executed, so its numbering is final. Any amendment to it — '
+      + 'and anyone reading the two documents together — cites these clauses by the '
+      + 'numbers they carry here, so the gap stays exactly where it is.'
+    : 'Numbers are printed exactly as the document carries them, so nothing else moved '
+      + 'and no reference to another clause was repointed. Renumbering is a separate, '
+      + 'deliberate act — and once this contract is signed its numbering is final.';
+  /* Two clicks to close the gap: this one, then the preview's confirm. */
+  const door = (!locked && opts.offer)
+    ? `<button type="button" class="renum" data-renumber-open="${_ne(c.id)}"
+        onclick="window.negoRenumberOpen&&negoRenumberOpen(this.getAttribute('data-renumber-open'))">Renumber clauses…</button>`
+    : '';
+  return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
+      data-gaps="${gaps.length}" data-brokenrefs="${broken.length}" role="status">
+    <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
+    <span class="body">${what}${run}${negoBrokenRefsLine(broken)}<span class="why">${_ne(why)}</span>${door}</span>
+  </div>`;
+}
+
+/* ---------- …AND SOMETHING STILL REFERS TO IT ----------
+   Appended to the gap notice rather than raised as a second banner beside it.
+   Both sentences are about the same act — a clause was deleted — and two
+   notices stacked on one screen saying two halves of one fact is how a reader
+   learns to close notices without reading them.
+
+   NAMES BOTH ENDS. "Clause 15 refers to Clause 9, which was deleted" tells a
+   reader where to go. "A reference is broken" tells them to go looking. */
+function negoBrokenRefsLine(broken){
+  if (!broken || !broken.length) return '';
+  const one = broken.length === 1;
+  const where = broken.slice(0, 3)
+    .map(b => b.fromNum ? `Clause ${_ne(b.fromNum)}` : 'another clause');
+  const more = broken.length > 3 ? ` and ${broken.length - 3} more` : '';
+  return ` <b>${where.join(', ')}${more} still refer${one ? 's' : ''} to `
+    + `${one ? 'it' : 'clauses that were deleted'}.</b>`;
+}
+
+/* The same fact when there is no gap left to report it against — after a
+   renumbering has closed the gap and left the reference behind. */
+function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
+  const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
+  const one = broken.length === 1;
+  const what = broken.slice(0, 3).map(b =>
+    `<b>${_ne(b.fromLabel || ('Clause ' + b.fromNum))} refers to Clause ${_ne(b.num)}, `
+    + `which was deleted.</b>`).join(' ');
+  const more = broken.length > 3 ? ` And ${broken.length - 3} more.` : '';
+  /* ADVISORY, AND SAYS SO. The reader either revises the referring clause — an
+     ordinary tracked change the other side sees and rules on — or leaves it,
+     because a reference to a deleted clause is sometimes exactly what the
+     parties meant to leave. Nothing here rewrites legal wording to tidy up a
+     warning. */
+  const why = locked
+    ? 'This contract is executed, so nothing here can be changed. Noted so that anyone '
+      + 'reading it knows the reference is to a clause the signed document does not carry.'
+    : 'Nothing has been changed for you. Revising the sentence is a drafting decision — '
+      + 'file it as a change like any other, so the other side sees it and rules on it.';
+  return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
+      data-gaps="0" data-brokenrefs="${broken.length}" role="status">
+    <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
+    <span class="body">${what}${more}<span class="why">${_ne(why)}</span></span>
+  </div>`;
+}
+/* ---------- THE HISTORY TIMELINE SCREEN (WP-2.1) ----------
+   The centrepiece of the history work: one chronological story of the whole
+   negotiation — proposals, decisions with their reasons, withdrawals, round
+   closures, the renumbering acts (X3) and the signing beats (X6) — with
+   filters that combine. Read-only by nature, so every signed-in role gets it,
+   viewers included.
+
+   THE SENTENCES COME FROM THE MODEL (negoTimeline), which reads stored labels
+   (X1) and stored prose; this renderer only lays the story out. Filtering
+   re-asks the model rather than hiding DOM — what is on the page is what the
+   filter produced, and a test can hold the model without a browser. */
+const _HT_KIND_META = {
+  proposed:   { mark: '✎', word: 'Proposed' },
+  decided:    { mark: '⚖', word: 'Decided' },
+  withdrawn:  { mark: '↩', word: 'Withdrawn' },
+  'round-closed': { mark: '▣', word: 'Round' },
+  renumbered: { mark: '§', word: 'Renumbered' },
+  link:       { mark: '✉', word: 'Link' },
+  signature:  { mark: '✍', word: 'Signature' },
+  sealed:     { mark: '🔏', word: 'Sealed' },
+  copies:     { mark: '📤', word: 'Copies' },
+};
+function negoTimelineEventHtml(c, e){
+  const m = _HT_KIND_META[e.kind] || { mark: '·', word: e.kind };
+  const when = e.at ? String(e.at).slice(0, 10) : '';
+  const meta = [when, e.round != null && e.round !== '' && e.kind !== 'round-closed' ? `round ${e.round}` : '',
+    e.outcome && e.kind === 'proposed' ? 'still pending' : '']
+    .filter(Boolean).join(' · ');
+  /* X1 on the face of it: the stored label, with the durable id beneath in
+     the DOM for filtering — never a lookup of today's number. */
+  const clause = e.clauseLabel
+    ? `<span class="ht-clause" data-ht-clause="${_nea(e.clauseId || '')}">${_ne(e.clauseLabel)}</span>` : '';
+  const body = e.kind === 'proposed' && e.ch
+    ? `<div class="ht-redline">${negoChangeHtml(e.ch)}</div>`
+      + (e.note ? `<div class="ht-note">Why they asked: ${_ne(e.note)}</div>` : '')
+    : e.kind === 'decided' && e.reply
+    ? `<div class="ht-note">Reply: ${_ne(e.reply)}</div>`
+    : '';
+  return `<div class="ht-ev" data-ht-kind="${_nea(e.kind)}" data-ht-outcome="${_nea(e.outcome || '')}">
+    <span class="ht-mark" aria-hidden="true">${m.mark}</span>
+    <div class="ht-body">
+      <div class="ht-text">${_ne(e.text)}</div>
+      <div class="ht-meta">${_ne(meta)}${clause ? ' · ' : ''}${clause}</div>
+      ${body}
+    </div>
+  </div>`;
+}
+function negoTimelineScreenHtml(c, f = {}){
+  const all = negoTimeline(c);
+  const list = negoTimeline(c, f);
+  const uniq = pairs => Array.from(new Map(pairs.filter(x => x && String(x[0])).map(x => [String(x[0]), x])).values());
+  const sel = (id, label, pairs, cur) => `<label class="ht-f"><span>${_ne(label)}</span>
+    <select id="${id}" data-ht-filter="${id.replace('ht-f-', '')}">
+      <option value="">All</option>
+      ${pairs.map(p => `<option value="${_nea(p[0])}"${String(cur || '') === String(p[0]) ? ' selected' : ''}>${_ne(String(p[1]).slice(0, 48))}</option>`).join('')}
+    </select></label>`;
+  return `<div id="history-timeline" class="ht" data-count="${list.length}">
+    <style>
+      .ht{padding:20px 22px;max-width:820px;max-height:82vh;overflow-y:auto}
+      .ht h3{font-family:var(--font-heading);font-weight:600;font-size:18px;color:var(--color-text);margin:0 0 2px}
+      .ht .ht-sub{font-size:11.5px;color:var(--color-neutral-600);margin:0 0 12px}
+      .ht .ht-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--color-divider)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f select{font:inherit;font-size:12px;font-weight:400;text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:4px;padding:4px 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
+      .ht .ht-ev{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
+      .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:11px}
+      .ht .ht-body{flex:1;min-width:0}
+      .ht .ht-text{font-size:12.5px;line-height:1.5;color:var(--color-text)}
+      .ht .ht-meta{font-size:10.5px;color:var(--color-neutral-600);margin-top:1px}
+      .ht .ht-clause{font-weight:600}
+      .ht .ht-redline{border:1px solid var(--color-divider);border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px;line-height:1.55;background:var(--color-surface)}
+      .ht .ht-redline ins{background:#d9eae0;text-decoration:none}
+      .ht .ht-redline del{background:#f9ecea;color:#8f322b}
+      .ht .ht-note{font-size:11px;color:var(--color-neutral-700);margin-top:4px;border-left:2px solid var(--color-divider);padding-left:8px}
+    </style>
+    <h3>Negotiation history — ${_ne(c.name || c.id)}</h3>
+    <p class="ht-sub">${all.length} event${all.length === 1 ? '' : 's'}, oldest first. Labels read as they were when each event happened.</p>
+    <div class="ht-filters">
+      ${sel('ht-f-clauseId', 'Clause', uniq(all.map(e => [e.clauseId || '', e.clauseLabel || ''])), f.clauseId)}
+      ${sel('ht-f-actor', 'Person', uniq(all.map(e => [e.actor || '', e.actor || ''])), f.actor)}
+      ${sel('ht-f-side', 'Side', [['owner', 'Owner side'], ['counterparty', 'Counterparty']], f.side)}
+      ${sel('ht-f-round', 'Round', uniq(all.filter(e => e.round != null && e.round !== '').map(e => [e.round, 'Round ' + e.round])), f.round)}
+      ${sel('ht-f-outcome', 'Outcome', [['accepted', 'Accepted'], ['rejected', 'Rejected'], ['pending', 'Pending'], ['withdrawn', 'Withdrawn']], f.outcome)}
+      <button id="ht-clear" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px">Clear</button>
+      <span style="flex:1"></span>
+      <button id="ht-verify" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="Recompute every fingerprint from the stored record, check the chain, the seal and the sealed-copy comparison">Verify integrity</button>
+      <button id="ht-export" class="ui-btn" style="align-self:flex-end;font-size:11px;padding:5px 10px" title="A self-contained report for a reader with no HaTi login — the whole story, every filter off, with the verification result embedded">Export history</button>
+    </div>
+    <div id="ht-verify-result"></div>
+    <div id="ht-list">${list.length
+      ? list.map(e => negoTimelineEventHtml(c, e)).join('')
+      : '<div style="font-size:12px;color:var(--color-neutral-600);padding:14px 0">Nothing matches these filters.</div>'}</div>
+  </div>`;
+}
+function openHistoryTimeline(c, f = {}){
+  if (!c || typeof window.openModal !== 'function') return;
+  openModal(negoTimelineScreenHtml(c, f));
+  /* Filters combine: every change re-renders the same screen with the whole
+     filter state, so the two sources of truth cannot drift. */
+  const read = () => {
+    const g = k => { const el = document.getElementById('ht-f-' + k); return el && el.value ? el.value : ''; };
+    return { clauseId: g('clauseId'), actor: g('actor'), side: g('side'), round: g('round'), outcome: g('outcome') };
+  };
+  document.querySelectorAll('#history-timeline [data-ht-filter]').forEach(s =>
+    s.addEventListener('change', () => openHistoryTimeline(c, read())));
+  document.getElementById('ht-clear')?.addEventListener('click', () => openHistoryTimeline(c, {}));
+  /* WP-2.5 — the one answer, with the first broken link named. The result
+     panel is written, never toasted: a verdict about the integrity of a legal
+     record does not scroll away. */
+  document.getElementById('ht-verify')?.addEventListener('click', async () => {
+    const box = document.getElementById('ht-verify-result');
+    if (!box || !window.negoIntegrityReport) return;
+    box.innerHTML = `<div style="font-size:11.5px;color:var(--color-neutral-600);padding:8px 0">Recomputing every fingerprint from the stored record…</div>`;
+    const r = await negoIntegrityReport(c);
+    box.innerHTML = negoVerifyResultHtml(r);
+  });
+  /* WP-2.4 — the standalone report. Verification runs FIRST and rides inside
+     it: an export that merely claims the record is intact, without saying when
+     that was checked, is the "Verified" pill fakery in file form. */
+  document.getElementById('ht-export')?.addEventListener('click', async () => {
+    if (!window.negoIntegrityReport) return;
+    const r = await negoIntegrityReport(c);
+    const html = negoHistoryExportHtml(c, r);
+    if (window.downloadFile) downloadFile(`${c.id}-negotiation-history.html`, html, 'text/html');
+    if (window.toast) toast(`History exported — the report carries its own verification result (${r.ok ? 'verified' : 'FAILED'})`);
+  });
+}
+function negoVerifyResultHtml(r){
+  return r.ok
+    ? `<div data-verify-ok="1" style="border:1px solid color-mix(in srgb,#2e8763 30%,transparent);background:#e8f4ee;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#1e6b4d">✓ ${_ne(r.detail)}. Verified ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</div>`
+    : `<div data-verify-ok="0" style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#8f322b"><b>Integrity check failed.</b> ${_ne(r.firstBroken || r.detail)}<br><span style="font-size:11px">Nothing has been changed by this check. The first broken link is named above; everything before it verified. Checked ${_ne(String(r.at).slice(0, 19).replace('T', ' '))} UTC.</span></div>`;
+}
+/* The report a reader with no login can hold: the whole story, every filter
+   off, each change as its rendered redline, and the integrity statement —
+   result, when it was run, and the seal it was run against. Self-contained by
+   construction: the styles ride inline and nothing references the app. */
+function negoHistoryExportHtml(c, report){
+  const ev = negoTimeline(c, {});
+  const sigs = (c.signatures || []).map(s =>
+    `<li>${_ne(s.name || '')}${s.title ? `, ${_ne(s.title)}` : ''} — ${_ne(s.party || '')}${s.verified === false ? ' (NOT independently verified)' : s.method ? ` (${_ne(s.method)})` : ''}</li>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8">
+<title>Negotiation history — ${_ne(c.name || c.id)}</title>
+<style>
+  body{font:13px/1.55 Georgia,serif;color:#1c2126;max-width:760px;margin:32px auto;padding:0 18px}
+  h1{font-size:21px;margin:0 0 2px} .sub{color:#5a6470;font-size:12px;margin:0 0 18px}
+  .integrity{border:1.5px solid ${report.ok ? '#2e8763' : '#b0453c'};border-radius:6px;padding:12px 14px;margin:0 0 20px;font-size:12.5px}
+  .ht-ev{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e3e7ea;page-break-inside:avoid}
+  .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid #cdd4da;font-size:11px}
+  .ht-body{flex:1;min-width:0} .ht-text{font-size:12.5px} .ht-meta{font-size:10.5px;color:#5a6470}
+  .ht-clause{font-weight:600}
+  .ht-redline{border:1px solid #e3e7ea;border-radius:4px;padding:7px 9px;margin-top:6px;font-size:11.5px}
+  .ht-redline ins{background:#d9eae0;text-decoration:none} .ht-redline del{background:#f9ecea;color:#8f322b}
+  .ht-note{font-size:11px;color:#3c454e;margin-top:4px;border-left:2px solid #cdd4da;padding-left:8px}
+  @media print{ body{margin:10mm auto} }
+</style></head><body>
+<h1>Negotiation history — ${_ne(c.name || c.id)}</h1>
+<p class="sub">${_ne(c.id)} · between ${_ne((window.FIRST_PARTY) || 'the owner')} and ${_ne(c.counterparty || 'the counterparty')}
+ · ${ev.length} events, oldest first · generated ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC by HaTi CLM</p>
+<div class="integrity">
+  <b>${report.ok ? '✓ Record verified' : '✗ Integrity check FAILED'}</b> — ${_ne(report.detail)}<br>
+  Run ${_ne(String(report.at).slice(0, 19).replace('T', ' '))} UTC · ${report.chain.checked} chained record${report.chain.checked === 1 ? '' : 's'} recomputed${c.hash ? ` · document seal (SHA-256): <span style="font-family:monospace;font-size:10.5px;word-break:break-all">${_ne(c.hash)}</span>` : ' · not yet executed, so no seal to check'}
+</div>
+${sigs ? `<p style="font-size:12px"><b>Signatures on the record:</b></p><ul style="font-size:12px">${sigs}</ul>` : ''}
+${ev.map(e => negoTimelineEventHtml(c, e)).join('')}
+<p style="font-size:10.5px;color:#5a6470;margin-top:22px">This report stands alone: every sentence above was generated from the stored
+negotiation record, labels read as they were when each event happened, and the integrity statement applies to the record as it stood at the
+generation time shown. HaTi retains the master copy.</p>
+</body></html>`;
+}
+
+/* ---------- THE RENUMBER PREVIEW (N2-T3) ----------
+   Everything that would move, shown before anything is written: every heading
+   old → new, every cross-reference old → new, and — just as deliberately —
+   everything that will NOT be touched, with its reason. A preview that only
+   shows the tidy half invites a confirm from somebody who has not seen the
+   whole act. Nothing outside the plan is ever touched, and Cancel leaves the
+   document byte-identical because the plan never wrote anything to cancel. */
+function negoRenumberPreviewHtml(c, plan){
+  const hRows = plan.headings.map(h => `
+    <div class="flex items-start gap-2 py-1.5 border-b border-line/60 text-[12px]" data-renum-head="${_ne(h.clauseId)}">
+      <span class="font-mono text-[10.5px] px-1.5 py-0.5 rounded bg-slate-100 text-ink/70 shrink-0">${_ne(h.oldNum)} → ${_ne(h.newNum)}</span>
+      <span class="min-w-0 text-ink/80"><s class="text-ink/45">${_ne(h.oldHeading)}</s><br>${_ne(h.newHeading)}</span>
+    </div>`).join('');
+  const refRows = plan.refs.map(r => `
+    <div class="flex items-start gap-2 py-1 text-[11.5px]" data-renum-ref="${_ne(r.clauseId)}">
+      <span class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-ink/70 shrink-0">${_ne(r.from)} → ${_ne(r.to)}</span>
+      <span class="text-ink/70">in Clause ${_ne(r.fromNum || '?')} — “${_ne(r.refText)}”</span>
+    </div>`).join('');
+  const dangling = plan.untouched.filter(u => u.reason === 'dangling');
+  const unreachable = plan.untouched.filter(u => u.reason === 'formatting')
+    .reduce((a, u) => a + (u.count || 1), 0);
+  const leftAlone = (dangling.length || unreachable) ? `
+    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">Will not be touched</div>
+    ${dangling.map(u => `<div class="text-[11.5px] text-ink/60 py-0.5" data-renum-untouched="dangling">“${_ne(u.refText)}” — unresolvable: no clause here carries ${_ne(u.num)}, so it is left exactly as written.</div>`).join('')}
+    ${unreachable ? `<div class="text-[11.5px] text-ink/60 py-0.5" data-renum-untouched="formatting">${unreachable} reference${unreachable === 1 ? '' : 's'} sit${unreachable === 1 ? 's' : ''} across formatting and cannot be rewritten safely — left as ${unreachable === 1 ? 'it is' : 'they are'}.</div>` : ''}` : '';
+  return `<div class="p-6" style="max-width:640px" id="renum-preview">
+    <h3 class="font-serif font-600 text-lg text-ink mb-1">Renumber clauses</h3>
+    <p class="text-xs text-ink/60 mb-3">The gaps close, and nothing else moves: every clause keeps its identity, every
+      cross-reference below is repointed to keep citing the same clause, and no other wording changes.
+      Nothing is written until you confirm.</p>
+    <div class="text-[11px] font-700 text-ink/70 mb-1">Headings — ${plan.headings.length}</div>
+    <div class="max-h-52 overflow-y-auto pr-1">${hRows}</div>
+    <div class="text-[11px] font-700 text-ink/70 mt-3 mb-1">Cross-references repointed to follow — ${plan.refs.length}</div>
+    ${plan.refs.length ? `<div class="max-h-36 overflow-y-auto pr-1">${refRows}</div>`
+      : '<div class="text-[11.5px] text-ink/50">None cite a renumbered clause.</div>'}
+    ${leftAlone}
+    <div class="flex justify-end gap-2 mt-4">
+      <button id="renum-cancel" class="rounded-lg border border-line px-4 py-2 text-sm font-600 text-ink/70 hover:bg-slate-50">Cancel</button>
+      <button id="renum-apply" class="rounded-lg bg-brand-900 text-white px-4 py-2 text-sm font-600 hover:bg-brand-800">Renumber ${plan.headings.length} clause${plan.headings.length === 1 ? '' : 's'}</button>
+    </div>
+  </div>`;
+}
+/* The door's handler. Looks the contract up by id because the notice is
+   generated markup on two different canvases — the inline handler carries the
+   one durable fact (the contract id), and everything else is asked fresh. */
+function negoRenumberOpen(cId){
+  const c = (typeof window.getContract === 'function') ? getContract(cId) : null;
+  if (!c) return;
+  const blocked = window.negoRenumberBlocked ? negoRenumberBlocked(c) : 'locked';
+  if (blocked === 'locked'){
+    // The button never renders here — this answers a crafted call, not a click.
+    if (window.toast) toast('This contract is executed — its numbering is final', 'err');
+    return;
+  }
+  if (blocked === 'table'){
+    if (window.toast) toast('Settle the changes on the table first — renumbering rewrites the document underneath asks that cite it', 'err');
+    return;
+  }
+  const plan = window.negoRenumberPlan ? negoRenumberPlan(c) : null;
+  if (!plan || !plan.changed){
+    if (window.toast) toast('Nothing to renumber — the numbering already runs without gaps');
+    return;
+  }
+  if (typeof window.openModal !== 'function') return;
+  openModal(negoRenumberPreviewHtml(c, plan));
+  document.getElementById('renum-cancel')?.addEventListener('click', () => closeModal());
+  document.getElementById('renum-apply')?.addEventListener('click', () => {
+    const applied = window.negoRenumberApply ? negoRenumberApply(c) : null;
+    closeModal();
+    if (!applied){
+      if (window.toast) toast('Nothing was renumbered — the document may have changed underneath the preview', 'err');
+      return;
+    }
+    if (window.persist) persist(c);
+    if (window.toast) toast(`Renumbered ${applied.headings.length} clause${applied.headings.length === 1 ? '' : 's'}`
+      + (applied.refs.length ? ` and repointed ${applied.refs.length} cross-reference${applied.refs.length === 1 ? '' : 's'}` : ''));
+    /* Repaint whichever surface the reader is on — the room if it is open,
+       the workspace behind it either way. */
+    let painted = false;
+    try{ painted = !!(window.negoRepaintOpenRoom && negoRepaintOpenRoom(c)); }catch(_){}
+    try{ if (!painted && window.renderWorkspace) renderWorkspace(); }catch(_){}
+  });
+}
+
 function negoDocHtml(c, opts){
   const baseline = !!opts.baseline;
   const clauses = negoClauseList(c);
@@ -1115,9 +1499,18 @@ function negoDocHtml(c, opts){
   }).join('');
   const tail = baseline ? '' : orphanInserts.map(insertBlock).join('');
 
+  /* ON THE WORKING PANE ONLY. The baseline is the wording this round is
+     measured against and carries the same gap — saying so twice, side by side,
+     reads as two different faults rather than one document. The renumber door
+     is offered only on the owner's editable seat: the counterparty reads the
+     notice, but renumbering is the document owner's act. */
+  const gaps = baseline ? '' : negoNumberingNoticeHtml(c, { noticeId: 'nego-gaps',
+    offer: opts.side !== 'counterparty' && (typeof window.canEdit !== 'function' || window.canEdit()) });
+
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
+    ${gaps}
     ${body || `<p style="color:var(--n-ink-soft)">This contract has no wording yet.</p>`}
     ${tail}
   </article>`;
@@ -2114,6 +2507,9 @@ function negoIndexSendHtml(c, opts = {}){
 function negoPanesHtml(c, opts = {}){
   const p = negoProgress(c);
   const canAct = !opts.readonly;
+  /* Which chair. Same reason as redlinePanesHtml: this markup is shared, and
+     the risk-derived bulk verb is the owner's alone (D2). */
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const L = negoLayout();
   const pair = negoComparePair();
   const cmp = window.negoCompareVersions ? negoCompareVersions(c, pair.left, pair.right) : null;
@@ -2199,11 +2595,34 @@ function negoPanesHtml(c, opts = {}){
         : `
         <div class="nego-track"><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
         <div style="font-size:11px;color:var(--n-ink-soft)" id="nego-progress">${p.done} of ${p.total} change${p.total === 1 ? '' : 's'} resolved</div>
+        ${''/* ---- WHOSE PLAYBOOK, AND WHOSE COUNTERPARTY ----
+               D2. "Accept All Non-Risk" sorts by OUR playbook and OUR scan
+               signals. Offering it to the other side both hands them a verb
+               they cannot reason about and tells them how we score their asks
+               — the playbook is our negotiating position, and this button is a
+               readout of it. Owner only.
+
+               "Reject All Counterparty" was worse than useless from their
+               seat: read from their chair, "counterparty" means US. The verbs
+               are named from the reader's chair on each side; the ACT is
+               identical either way, and unchanged — both only ever touch the
+               other side's pending asks.
+
+               The capability stays, and so does the ID. What differs by side is
+               the LABEL and what the button claims to do, not the DOM contract —
+               changing the id would have broken every page and test that reaches
+               for the bulk verbs by name, to express a difference the label
+               already carries. "I agree to all of it" is a real and common
+               answer, and withholding the button would not withhold the
+               decision, only make them press Accept six times to say it. */}
         ${canAct ? `<div class="nego-bulk">
           <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}
-            title="Accepts only the pending changes that trip no playbook, scan or review signal">Accept All Non-Risk</button>
+            title="${side === 'owner'
+              ? 'Accepts only the pending changes that trip no playbook, scan or review signal'
+              : `Accepts every change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.`}"
+            >${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
           <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}
-            title="Rejects every pending change from the other side. Your own asks are untouched.">Reject All Counterparty</button>
+            title="Rejects every pending change ${_ne(negoOtherSideName(opts))} has proposed. Your own asks are untouched.">${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
         </div>` : ''}
         ${negoIndexSendHtml(c, opts)}`}
       </div>
@@ -2282,6 +2701,15 @@ function negoRoomHasExit(opts = {}){
   if (opts.noExit != null) return !opts.noExit;
   return (opts.side || 'owner') !== 'counterparty';
 }
+/* The other party, named from the reader's chair. On the owner's screen that
+   is the counterparty; on the counterparty's screen it is us. A label that
+   says "counterparty" to the counterparty is telling them about themselves. */
+function negoOtherSideName(opts){
+  const side = (opts && opts.side) || 'owner';
+  if (side === 'owner') return 'the counterparty';
+  return String((opts && opts.org) || (window.FIRST_PARTY || 'the sender'));
+}
+
 function negoRoomActionsHtml(c, opts){
   const side = opts.side || 'owner';
   const p = negoProgress(c);
@@ -5101,6 +5529,26 @@ function renderRedline(){
   const mount = document.getElementById('redline-host');
   negoEnsureStyle();
   const opts = { hostId: 'redline-host', side,
+    /* ---------- A SEALED CONTRACT SHOWS NO VERBS ----------
+       The closed banner at negoBannerHtml has fired on 'Signed' for a long
+       time, and the panes underneath it went on rendering Direct Edit, Propose
+       deletion and a live Save change bar — the banner said finished and the
+       buttons said otherwise, and the buttons won (MK-248).
+
+       Everything in the workbench that can act is gated on this one flag —
+       canAct in the cards, the index, the action bar and the panes, editable in
+       the document — so the fix is to ask the question once, here, rather than
+       to hunt those gates down individually. negoExecuted, not `status ===
+       'Signed'`: a contract carrying a seal or an execution stamp is executed
+       whatever its status field says.
+
+       This is the sign on the door. The lock is in negoFileChange, which
+       refuses the write even if a caller reaches it another way; both ship,
+       because a lock with no sign is a button that errors at a reader who
+       should never have been offered it. */
+    readonly: (typeof negoExecuted === 'function') ? negoExecuted(c) : false,
+    readonlyWhy: ((typeof negoExecuted === 'function') && negoExecuted(c))
+      ? 'This contract is executed — its wording is sealed. Record an amendment instead.' : null,
     messages: c._messages || [], seenScope: c.id,
     shares: (window.cachedShares ? cachedShares(c) : []), onChange(){ if (window.persist) persist(c); },
     /* Highlighting wording on this page drives the SIDE PANEL, never a
@@ -6630,6 +7078,8 @@ function redlineDocHtml(c, opts = {}){
      silently unreachable on this page. */
   return `<article class="nego-doc rl-paper">
     ${head}
+    ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps',
+      offer: side === 'owner' && (typeof window.canEdit !== 'function' || window.canEdit()) })}
     ${body || '<p class="rl-clause-p">This contract has no clause structure yet.</p>'}
   </article>`;
 }
@@ -6982,6 +7432,10 @@ function redlineWallHtml(c, opts = {}){
 /* The design's grid. Everything inside it is the engine's, arranged the way the
    design arranges it rather than the way the comparison workbench does. */
 function redlinePanesHtml(c, opts = {}){
+  /* Which chair this is being rendered for. The panes are shared markup and
+     were reading only opts.readonly, which is why the owner's risk-derived
+     bulk verb rendered on the counterparty's screen (D2). */
+  const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   /* Before anything reads the baseline: an UNTOUCHED negotiation re-reads it
      from the document, so key terms filled on the Doc page after the first
      paint show here too. Guarded inside the engine — one filed change, one
@@ -7061,10 +7515,20 @@ function redlinePanesHtml(c, opts = {}){
           <button class="nego-fold" id="nego-fold" hidden>Hide</button>
           <div class="nego-track" hidden><div class="nego-fill" id="nego-fill" style="width:${p.pct}%"></div></div>
           <div id="nego-progress" hidden>${p.done} of ${p.total} resolved</div>
+          ${''/* Owner-only risk verb, and verbs named from the reader's chair —
+                 see the note at the room's bulk bar for why. */}
           ${canAct ? `<div class="nego-bulk">
-            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>Accept All Non-Risk</button>
-            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>Reject All Counterparty</button>
-          </div>` : ''}
+            <button class="b-acc" id="nego-bulk-acc"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Accept All Non-Risk' : 'Accept all'}</button>
+            <button class="b-rej" id="nego-bulk-rej"${p.pending ? '' : ' disabled'}>${side === 'owner' ? 'Reject All Counterparty' : 'Reject all'}</button>
+          </div>` : (opts.readonlyWhy
+            /* A SCREEN WITH NO VERBS MUST SAY WHY IT HAS NONE — the same rule
+               the counterparty's action bar has carried for a while, applied
+               here because this is where the owner's verbs were. An executed
+               contract used to render this column silently: no bulk verbs, no
+               Direct Edit, and nothing anywhere saying the wording is sealed,
+               which reads as a page that failed to load rather than a record
+               that is closed. */
+            ? `<div class="nego-why" id="nego-readonly-why">${_ne(opts.readonlyWhy)}</div>` : '')}
           <div class="rl-sendslot">${negoIndexSendHtml(c, opts)}</div>
           </div>
           <!-- TWO IDS, NESTED, BOTH LOAD-BEARING. #nego-cards is the scroll box
@@ -7241,7 +7705,10 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
-  negoRoomBannerHtml, negoClosedBannerHtml,
+  negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
+  negoRenumberPreviewHtml, negoRenumberOpen,
+  negoTimelineScreenHtml, negoTimelineEventHtml, openHistoryTimeline,
+  negoVerifyResultHtml, negoHistoryExportHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

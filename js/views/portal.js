@@ -931,6 +931,19 @@ function portalNegoContract(p){
    Read from the record, so it cannot claim a state the changes do not support.
    `superseded` and `responded` copies stay on the reading view either way —
    they are history, and history is not signable. */
+/* Did the SENDER issue this link for signature, as against did this page work
+   out that a signing screen is the sensible one to show?
+
+   portalNegoPhase answers the second question and is right to infer — a link
+   created before purposes existed still has to open on something. This answers
+   the first, and never infers: purposeChosen is set only where somebody picked
+   'Sign' in the share dialog. Everything else — a legacy link, a link on a
+   contract with nothing proposed yet — is not a signing link and keeps every
+   verb it has always had. */
+function portalIssuedForSigning(p){
+  return !!(p && (p.purposeChosen==='sign'
+    || (PORTAL_OPTS && PORTAL_OPTS.purpose==='sign')));
+}
 function portalNegoPhase(p){
   const src=(p&&p.contract)||{};
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
@@ -952,6 +965,13 @@ function portalNegoPhase(p){
      old reading still applies, so an existing link opens on exactly the screen
      it opened on yesterday. */
   const purpose=p&&p.purpose;
+  /* THE THIRD PURPOSE, and the only one that is not a seat at the table. A
+     view link goes to somebody outside the deal, so it is checked before the
+     other two and before any inference: a reader who may do nothing must never
+     reach a screen assembled for a reader who may do something. The server
+     already refuses their requests (refuseIfViewOnly); this is what stops the
+     page offering them in the first place. */
+  if(purpose==='view'||(p&&p.viewOnly)) return { phase:'view', changes:changes.length, pending, reason:'link-is-view-only' };
   if(purpose==='negotiate') return { phase:'negotiate', changes:changes.length, pending, reason:'link-is-a-negotiation' };
   if(purpose==='sign') return { phase:'sign', changes:changes.length, pending, reason:'link-is-for-signature' };
   if(!changes.length) return { phase:'sign', changes:0, pending:0, reason:'nothing-proposed' };
@@ -1137,7 +1157,26 @@ function wirePortalNego(c, p){
   const host=document.getElementById('pt-nego');
   if(!host) return;
   const who=portalResponderLabel(c);
-  const live=!!PORTAL_OPTS.token && !portalReadOnly();
+  /* ---- A SIGNING LINK SHOWS WHAT WAS SETTLED; IT DOES NOT REOPEN IT ----
+     W6/D4. The signing screen keeps a read-only view of the tracked changes,
+     reachable from "Review what changed", because signing on trust with no
+     account of what was agreed is the thing this product exists to remove.
+     What it must not carry is a way to start negotiating again: the workbench
+     was being mounted live there, so a signing link rendered Direct Edit and
+     the send-decisions postbox — a second, quieter route back into a
+     negotiation the sender had already declared finished by issuing this link.
+
+     The link states what it is (portalNegoPhase reads the stored purpose), and
+     the seat is derived from that rather than from what is left pending. */
+  /* THE LINK MUST SAY SO. Not portalNegoPhase, which also INFERS a signing
+     phase for a link that stated no purpose at all — every link created before
+     purposes existed, and every one with nothing proposed on it yet. Those keep
+     the reading they have always had, or this quietly takes the ability to
+     propose edits away from links that were never meant to be signing links.
+     Only a link the sender explicitly issued for signature loses the
+     negotiating verbs. */
+  const signing=portalIssuedForSigning(p);
+  const live=!!PORTAL_OPTS.token && !portalReadOnly() && !signing;
   const org=(p&&p.org)||'the sender';
   const held=Object.keys(PORTAL_NEGO_DECISIONS).length;
   const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
@@ -1153,6 +1192,18 @@ function wirePortalNego(c, p){
   redlineEmbed(host, c, {
     side:'counterparty',
     readonly:!live,
+    /* Said, not merely absent — the panel a reader opened expecting to be able
+       to answer must explain why it has no verbs. */
+    /* THE MORE SPECIFIC REASON WINS. A link can be read-only for several
+       reasons at once, and they are not equally useful: "a newer copy was sent
+       to you" and "this contract is executed" tell a reader what to do next,
+       while "this is a signing link" only explains the absence of buttons.
+       So this one speaks only when it is the ONLY thing to say — otherwise it
+       would talk over the notice the reader actually needs. */
+    readonlyWhy:(signing && !portalReadOnly() && !PORTAL_OPTS.superseded)
+      ? 'This is the agreed wording, shown so you can see what changed before you sign. '
+        + 'The negotiation is closed on this link — ask ' + esc(org) + ' if something still needs to change.'
+      : undefined,
     holdsDecisions:true,
     canComment:!!PORTAL_OPTS.token && !PORTAL_OPTS.superseded,
     seenScope:PORTAL_OPTS.token||'',
@@ -1162,7 +1213,12 @@ function wirePortalNego(c, p){
     noAi:true,
     selMenu(){ /* no Copilot on this page; selecting text is just reading */ },
     bannerHtml:banner,
-    org, height:'min(78vh, 860px)',
+    /* THE WHOLE WINDOW, as the owner's page gives it. The cap was
+       min(78vh, 860px) and it is what produced a 419px contract pane against
+       the owner's 925px: the component was being asked to lay three columns
+       out inside a card in a 1100px grid with a 360px aside beside it.
+       renderShareWorkbench gives it the page instead. */
+    org, height:'100%',
     pendingDecisions:Object.keys(PORTAL_NEGO_DECISIONS).length,
     pendingProposals:Object.keys(PORTAL_NEGO_PROPOSED).length,
     heldDecisionIds:Object.keys(PORTAL_NEGO_DECISIONS),
@@ -1261,7 +1317,14 @@ function portalRenderOpts(token, d){
     /* Read LIVE, not from the payload: a signature that landed after this link
        was last refreshed is precisely the case that matters. */
     executed:d.executed||null,
-    emailConfigured:d.emailConfigured!==false, messages:d.messages||[] };
+    emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
+    /* The server states it on the envelope as well as inside the payload, and
+       the render reads whichever arrives — a reader who may do nothing must not
+       depend on one of two flags surviving a refactor. */
+    viewOnly:d.viewOnly===true||d.purpose==='view',
+    /* The share ROW's purpose — what the sender chose, as against what the
+       payload guessed. See portalIssuedForSigning. */
+    purpose:d.purpose||null };
 }
 /* A fingerprint of everything on this page a reader would notice moving. Kept
    deliberately narrow: the engagement log ticks on every open, and a page that
@@ -1357,6 +1420,17 @@ async function portalRefreshNow(reason){
        expired. That is a whole-page answer and it is shown immediately. */
     if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
     if(!ok || !d) return 'error';
+    /* Still waiting for an earlier signer. Painted once — a waiting page that
+       repainted on every tick would flicker for nobody's benefit — and the
+       poll carries on, because this page's whole promise is that it notices
+       the turn arriving by itself. */
+    if(d.dormant){
+      if(!document.getElementById('pt-dormant')) renderSharePortal(null,{ dormant:d.dormant, token:_ptPollToken });
+      return 'dormant';
+    }
+    /* The turn just arrived on a page that was dormant: repaint regardless of
+       the content signature — the previous paint had no contract on it. */
+    if(document.getElementById('pt-dormant')){ portalRepaint(_ptPollToken, d); return 'repaint'; }
     const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
     if(what==='repaint'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
     if(what==='notify'){ portalShowUpdatedNotice(); return 'notify'; }
@@ -1383,6 +1457,10 @@ async function portalEntry(encoded){
       const { status, ok, d }=await portalFetchShare(token);
       if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
       if(!ok) throw new Error(d?.error||'not found');
+      /* A dormant bound link (W7): show the waiting page AND start polling —
+         the poll is what turns it into the signing page when the earlier
+         signer signs. */
+      if(d.dormant){ renderSharePortal(null,{ dormant:d.dormant, token }); portalStartPolling(token, d); return; }
       renderSharePortal(d.payload, portalRenderOpts(token, d));
       portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
@@ -1390,7 +1468,308 @@ async function portalEntry(encoded){
   }
   renderSharePortal(b64d(encoded));    // static-mode share (payload in the URL)
 }
+/* ============================================================
+   THE VIEWER'S SCREEN — a read-only copy for somebody outside the deal
+   ============================================================
+   WP-1.4. The reader is an advisor, an insurer, a lawyer being asked whether
+   this is normal. They get the wording and the marks, and no way to touch
+   anything.
+
+   BUILT SEPARATELY FROM THE OTHER TWO SCREENS, not as the negotiate page with
+   its buttons hidden. Hiding controls leaves every id, every handler and every
+   tab stop in the document, and the next person to add a control to the shared
+   page adds it here too without knowing. This screen renders from the viewer
+   payload the server assembled by allow-list, and there is nothing on it to
+   hide because nothing was ever put on it.
+
+   IT SAYS WHAT IT IS, TWICE. A banner naming who shared it and the date it was
+   frozen, and a watermark that survives the reader printing it and passing the
+   paper on. A read-only copy that looks like the live contract will eventually
+   be read as the live contract.
+
+   PRINT IS THE POINT. The likeliest thing an advisor does with this link is
+   print it to PDF and mark it up in their own way. So the print stylesheet is
+   part of the feature, not a nicety: banner and chrome off, watermark and
+   marks kept. */
+function portalViewerRedlineHtml(c){
+  const changes=Array.isArray(c.changes)?c.changes:[];
+  if(!changes.length) return '';
+  const rows=changes.map(ch=>{
+    const marks=(Array.isArray(ch.ops)&&ch.ops.length&&window.redlineOpsHtml)
+      ? redlineOpsHtml(ch.ops)
+      : (window.redlineOps&&window.redlineOpsHtml)
+        ? redlineOpsHtml(redlineOps(String(ch.oldText||''),String(ch.newText||'')))
+        : esc(String(ch.newText||''));
+    /* Outcome as VISUAL STATE only. Who ruled on it, when, and why are the
+       negotiation's story and the story belongs to the parties — the payload
+       does not carry them (viewerPayload, server/server.js), so there is
+       nothing here to leak even by accident. */
+    const st=String(ch.status||'pending');
+    const chip=st==='accepted'?'Agreed':st==='rejected'?'Not agreed':'Still open';
+    return `<li class="pv-chg" data-status="${esc(st)}">
+      <div class="pv-chg-head"><span class="pv-chg-where">${esc(ch.clauseLabel||'Clause')}</span>
+        <span class="pv-chg-state">${chip}</span></div>
+      <div class="pv-chg-body">${marks}</div></li>`;
+  }).join('');
+  return `<section class="pv-changes" aria-label="Proposed changes">
+    <h2>Proposed changes</h2>
+    <p class="pv-note">Struck-through text is proposed for removal; underlined text is proposed
+      to be added. Whether each one was agreed is shown beside it.</p>
+    <ol class="pv-list">${rows}</ol></section>`;
+}
+
+function portalViewerStyle(){
+  if(document.getElementById('pv-style')) return;
+  const el=document.createElement('style'); el.id='pv-style';
+  el.textContent=`
+    .pv-wrap{min-height:100vh;background:var(--color-bg);}
+    .pv-banner{background:var(--color-accent-900);color:#fff;padding:13px 24px;}
+    .pv-banner b{font-family:var(--font-mono);font-weight:600;}
+    .pv-banner .pv-sub{display:block;font-size:11.5px;color:var(--color-accent-200);margin-top:3px;line-height:1.5;}
+    .pv-page{max-width:920px;margin:0 auto;padding:26px 24px 60px;}
+    .pv-sheet{position:relative;background:#fbfbfc;box-shadow:var(--shadow-md);border-radius:4px;padding:34px 40px;overflow:hidden;}
+    /* The watermark is behind the words and never on top of them: a copy an
+       advisor cannot read is a copy they ask to be re-sent unmarked. */
+    .pv-sheet::before{content:attr(data-mark);position:absolute;inset:0;display:grid;place-items:center;
+      transform:rotate(-28deg);font-family:var(--font-mono);font-size:clamp(26px,7vw,58px);
+      font-weight:700;letter-spacing:.08em;color:rgba(17,24,39,.055);white-space:pre;pointer-events:none;z-index:0;}
+    .pv-sheet>*{position:relative;z-index:1;}
+    .pv-changes{margin-top:22px;}
+    .pv-changes h2{font-family:var(--font-heading);font-size:16px;font-weight:600;margin:0 0 4px;}
+    .pv-note{font-size:11.5px;color:var(--color-neutral-600);line-height:1.55;margin:0 0 12px;}
+    .pv-list{list-style:none;margin:0;padding:0;display:grid;gap:10px;}
+    .pv-chg{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:5px;padding:11px 13px;}
+    .pv-chg-head{display:flex;gap:10px;align-items:baseline;margin-bottom:5px;}
+    .pv-chg-where{font-family:var(--font-mono);font-size:11.5px;font-weight:600;}
+    .pv-chg-state{font-size:10.5px;color:var(--color-neutral-600);}
+    .pv-chg-body{font-size:13.5px;line-height:1.75;color:var(--color-doc-text);}
+    .pv-foot{margin-top:26px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.6;}
+    @media print{
+      .pv-banner,.pv-foot{display:none!important;}
+      .pv-wrap,.pv-page{background:#fff;padding:0;max-width:none;}
+      .pv-sheet{box-shadow:none;border-radius:0;padding:0;}
+      .pv-sheet::before{color:rgba(17,24,39,.09);}
+      .pv-chg{break-inside:avoid;}
+    }`;
+  document.head.appendChild(el);
+}
+
+function renderShareViewer(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  portalViewerStyle();
+  const c=(p&&p.contract)||{};
+  const org=(p&&p.org)||'the sender';
+  const asOf=(p&&p.asOf)?fmtDT(p.asOf):'';
+  const round=(p&&p.round)||1;
+  const to=(opts.share&&opts.share.recipientName)||'';
+  const mark=((opts.share&&opts.share.recipientEmail)||'').trim()||'CONFIDENTIAL — VIEW ONLY';
+  const body=window.readOnlyDocHtml?readOnlyDocHtml(c.redlineText||''):esc(c.redlineText||'');
+  root.innerHTML=`
+  <div class="pv-wrap">
+    <header class="pv-banner" role="status">
+      <b>Read-only copy shared by ${esc(org)}${to?` with ${esc(to)}`:''}</b>
+      <span class="pv-sub">${esc(c.name||'Contract')}${c.counterparty?` · with ${esc(c.counterparty)}`:''}
+        &middot; Round ${esc(String(round))}${asOf?` &middot; as it stood on ${esc(asOf)}`:''}.
+        You can read and print this copy. You cannot edit it, respond to it or sign it —
+        send any comments to ${esc(org)} directly.</span>
+    </header>
+    <div class="pv-page">
+      <div class="pv-sheet" data-mark="${esc(mark)}">
+        <article class="doc-surface">${body}</article>
+        ${portalViewerRedlineHtml(c)}
+      </div>
+      <p class="pv-foot">This is a fixed copy of the contract as it stood on ${esc(asOf||'the date it was shared')}.
+        The contract may have changed since. Ask ${esc(org)} for a current copy if you need one.</p>
+    </div>
+  </div>`;
+}
+
+/* ============================================================
+   THE COUNTERPARTY'S WORKBENCH — the same screen, at the same size
+   ============================================================
+   W1/W2. Their negotiation link used to mount the shared workbench as a CARD:
+   a 1100px two-column grid, the component height-capped at min(78vh, 860px),
+   a 360px sticky aside beside it. Measured in Chromium at 1440x940 from one
+   contract, that gave them a 419px contract pane where the owner had 925px,
+   a page 2761px tall against the owner's 940px, a Discussion tab clipped
+   outside its own panel, and change cards breaking mid-identifier. The owner's
+   renderRedline() hands the same component the whole window.
+
+   A LESSER SCREEN FOR THE OTHER SIDE IS THE THING THIS ROOM EXISTS NOT TO BE.
+   Everything needed to read, judge, propose and answer is here, at the size
+   the owner reads it at.
+
+   WRITTEN AS ITS OWN SCREEN rather than as the old page with parts hidden —
+   the same reasoning as the viewer above. Hiding leaves every id, handler and
+   tab stop in the document, and the duplicates this replaces were not
+   incidental: #pt-doc rendered a SECOND, unmarked copy of the contract below
+   the workbench, showing the wording BEFORE the counterparty's own proposal,
+   with nothing to say so. Two documents on one page disagreeing about what the
+   contract says is worse than either alone. #portal-redline was a third
+   surface — a standalone clause editor duplicating the Direct Edit already in
+   the workbench.
+
+   WHAT THEY DO NOT GET, and why (unchanged, carried through from the embed
+   options): no Copilot — it reads our whole portfolio and our playbook; no
+   clause library — it IS our negotiating position; no Save Draft — our draft
+   state, meaningless outside the workspace; no Share or Import — a
+   counterparty who can re-share has published our contract onward; no side
+   toggle — they ARE the counterparty view, permanently; no round controls —
+   the owner drives rounds; and no back arrow, because there is no page behind
+   theirs (negoRoomHasExit already encodes exactly that rule).
+
+   WHAT THEY KEEP that might look surprising: Accept all and Reject all. Those
+   act on OUR asks, and "I agree to all of it" is a real and common answer —
+   withholding the button would not withhold the decision, only make them press
+   Accept six times to say the same thing. */
+function portalWorkbenchStyle(){
+  if(document.getElementById('pw-style')) return;
+  const el=document.createElement('style'); el.id='pw-style';
+  el.textContent=`
+    .pw-page{height:var(--view-h,100vh);box-sizing:border-box;display:flex;flex-direction:column;
+      gap:9px;padding:9px 16px 12px;background:var(--color-bg);min-height:0;overflow:hidden;}
+    .pw-id{display:flex;align-items:center;gap:11px;flex:none;background:var(--color-surface);
+      border:1px solid var(--color-divider);border-radius:8px;padding:9px 14px;box-shadow:var(--shadow-sm);}
+    .pw-id-badge{width:30px;height:30px;flex:none;border-radius:5px;background:var(--color-accent);
+      color:#fff;display:grid;place-items:center;font-family:var(--font-mono);font-weight:600;font-size:13px;}
+    .pw-id-main{min-width:0;line-height:1.3;}
+    .pw-id-main h1{margin:0;font-family:var(--font-heading);font-weight:600;font-size:15.5px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pw-id-sub{display:block;font-size:11px;color:var(--color-neutral-600);font-family:var(--font-mono);
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pw-id .nego-who{margin-left:auto;flex:none;display:flex;align-items:center;gap:7px;}
+    .pw-id .nego-who .lbl{font-size:11px;font-weight:600;color:var(--color-neutral-700);
+      font-family:var(--font-mono);}
+    .pw-id .nego-who input{min-height:32px;min-width:180px;border:1px solid var(--color-divider);
+      border-radius:4px;padding:6px 10px;font:inherit;font-size:12.5px;background:var(--color-surface);
+      color:var(--color-text);outline:none;}
+    /* The banners the old page carried in its main column — closed, revised,
+       round, compare, message-from-sender. They carry facts the workbench does
+       not render, so they are re-homed rather than dropped. */
+    .pw-notes{flex:none;display:grid;gap:6px;}
+    .pw-notes:empty{display:none;}
+    /* The workbench takes everything that is left, and scrolls inside its own
+       columns — which is the whole difference between this and the card. */
+    .pw-mount{flex:1;min-height:0;display:flex;flex-direction:column;}
+    .pw-mount>*{flex:1;min-height:0;}
+    @media (max-width:1024px){
+      /* Below the three-column width the page is allowed to grow and scroll:
+         a fixed-height flex layout on a phone is how a document becomes
+         unreadable rather than merely cramped. Degrading deliberately, as the
+         work order asks, instead of inheriting the desktop grid. */
+      .pw-page{height:auto;overflow:visible;}
+      .pw-mount{min-height:70vh;}
+    }`;
+  document.head.appendChild(el);
+}
+
+function renderShareWorkbench(p, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
+  portalLoadHeld();          // before the room is built — the room is built FROM these
+  portalWorkbenchStyle();
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  FIRST_PARTY=p.org;
+  const c=portalNegoContract(p);
+  const org=(p&&p.org)||'the sender';
+  const msg=(opts.share&&opts.share.message)
+    ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#9993;</span><span>
+        <b>Message from ${esc(p.sharedBy||org)}:</b> ${esc(opts.share.message)}</span></div>` : '';
+  root.innerHTML=`
+  <div class="pw-page" id="pw-page">
+    <section class="pw-id">
+      <span class="pw-id-badge">HT</span>
+      <span class="pw-id-main">
+        <h1>${esc(c.name||'Contract')}</h1>
+        <span class="pw-id-sub">${esc(c.id||'')}${c.counterparty?` &middot; with ${esc(c.counterparty)}`:''}
+          &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
+            ?` &middot; link expires ${esc(String(opts.share.expiresAt).slice(0,10))}`:''}</span>
+      </span>
+      ${''/* W3 — THE NAME, and it is load-bearing. It is stamped on every
+             fingerprinted change they file and every comment they post, and
+             portalNegoComment refuses to send without it. It used to live in
+             the aside this screen replaces, so deleting that aside without
+             putting the field back would have left a page whose Send could
+             never succeed. The workbench's own field is used rather than a
+             second one of this page's making — the send path already prefers
+             #nego-cp-name over the old #pt-name, so there is one box, not two
+             that can disagree.
+
+             Filled ONLY from the share's named recipient, never from the
+             counterparty ORGANISATION — see negoNameFieldHtml. An empty box
+             asks the question; a wrong one answers it. */}
+      ${window.negoNameFieldHtml
+        ? negoNameFieldHtml({ recipientName:(opts.share&&opts.share.recipientName)||'' }) : ''}
+    </section>
+    <div class="pw-notes">
+      ${portalClosedBanner()}
+      ${portalRevisedBanner()}
+      ${portalRoundBanner(c,p)}
+      ${portalCompareBar()}
+      ${msg}
+    </div>
+    <div class="pw-mount"><div id="pt-nego"></div></div>
+    <div id="pt-nego-foot" hidden></div>
+  </div>`;
+  /* The shared component, wired exactly as the old page wired it. Same
+     function, same options — this changes the room the workbench stands in,
+     never the workbench. */
+  wirePortalNego(c, p);
+  /* Polling is NOT started here. portalEntry owns it — it holds the token and
+     the fetched envelope, which is what portalStartPolling actually takes.
+     Starting it from the renderer passed the wrong arguments AND left a live
+     interval behind on every render, which under the test harness is a node
+     process that never exits. */
+}
+
+/* ---- W7: THE WAITING PAGE A DORMANT SIGNING LINK OPENS TO ----
+   A bound link before its turn serves no contract at all — the server answers
+   a `dormant` envelope instead of a payload, so there is nothing on this page
+   to hide and nothing on it to press. It is deliberately NOT the gone/expired
+   card: the link is real and will work, and a signer told "invalid link"
+   phones the sender, while one told "you are after the MD" waits — or chases
+   the right person. The page keeps polling and comes alive by itself the
+   moment the turn arrives. */
+function renderShareDormant(d, opts={}){
+  PORTAL_MODE=true; PORTAL_OPTS=opts;
+  const root=document.getElementById('share-root');
+  document.getElementById('app-shell').classList.add('hidden');
+  const who = d.waitingOnParty==='counterparty'
+    ? `<strong>${esc(d.waitingOn||'an earlier signer')}</strong> signs before you on the agreed order`
+    : `${esc(d.org||'the sender')}'s own signatures are not yet complete`;
+  root.innerHTML=`<div id="pt-dormant" style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 16px;">
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:7px;padding:32px;text-align:center;max-width:26rem;">
+      <div style="color:#b8862b;margin-bottom:12px;display:flex;justify-content:center;">${icon('clock','w-8 h-8')}</div>
+      <h1 style="font-family:var(--font-heading);font-weight:600;font-size:20px;color:var(--color-text);margin:0;">Not your turn to sign yet</h1>
+      <p style="font-size:13px;color:var(--color-neutral-700);margin-top:8px;line-height:1.6;">This is your personal signing link${d.contractName?` for <strong>“${esc(d.contractName)}”</strong>`:''}${d.org?` from ${esc(d.org)}`:''}${d.order&&d.total?` — you are signer ${d.order} of ${d.total}`:''}. ${who}.</p>
+      <p style="font-size:12px;color:var(--color-neutral-600);margin-top:10px;line-height:1.6;">Keep this link. This page checks automatically and will come alive the moment it is your turn — nothing is needed from you until then.${d.expiresAt?` The link expires on ${esc(String(d.expiresAt).slice(0,10))}.`:''}</p>
+    </div></div>`;
+}
+
 function renderSharePortal(p, opts={}){
+  /* A dormant bound link routes out even ahead of the view link: the server
+     sent no payload at all, so every branch below would read as an invalid
+     link when the truth is "not yet". */
+  if(opts&&opts.dormant) return renderShareDormant(opts.dormant, opts);
+  /* ---- THE VIEW LINK LEAVES HERE, BEFORE ANYTHING IS ASSEMBLED ----
+     First statement in the function, ahead of portalLoadHeld and the whole
+     page build. A view link has no held decisions to restore, no respond
+     panel, no send. Routing it out at the top rather than branching inside the
+     page is what makes "there is nothing on that screen to hide" true rather
+     than aspirational — the negotiate page's controls are never constructed at
+     all, so no future addition to them can leak onto a reader's copy. */
+  if((opts&&opts.viewOnly)||(p&&(p.viewOnly||p.purpose==='view')))
+    return renderShareViewer(p, opts);
+  /* ---- AND THE NEGOTIATION SEAT GETS ITS OWN FULL-WINDOW SCREEN ----
+     Same reason, one step further in: the negotiate page's duplicates are not
+     hidden here, they are never built. What is left below this line is the
+     SIGNING screen and the invalid/expired states. */
+  try{
+    if(p && p.kind==='hati-share' && p.contract
+      && portalNegoPhase(p).phase==='negotiate') return renderShareWorkbench(p, opts);
+  }catch(_){ /* fall through to the page below rather than showing nothing */ }
   PORTAL_MODE=true; PORTAL_OPTS=opts; PORTAL_OPTS.payload=p;
   /* Whatever this reader had answered and not sent, put back — see
      portalLoadHeld. Before the room is built, because the room is built FROM
@@ -1424,6 +1803,13 @@ function renderSharePortal(p, opts={}){
      so on this page not one of them could ever fire. The executed fact now
      travels (see buildSharePayload) and the server reports it live, so the
      record this page builds can tell the truth about which of the two it is. */
+  /* What is left below this line renders the SIGNING screen and the
+     read-only/expired states — the negotiate seat left at the top of this
+     function (renderShareWorkbench). So "propose your edits" has no business
+     here: a signing link is issued when the sender has declared the wording
+     final, and a standalone clause editor on it is a second route back into a
+     negotiation that was closed. W6. */
+  const signingSeat=portalIssuedForSigning(p);   // chosen, never inferred
   const c=migrateContract({ ...p.contract, status:portalExecuted()?'Signed':'Under Review',
     folder:p.contract.folder || (TEMPLATES[p.contract.template]||{}).folder || 'corp' });
   /* Display-side repair: a copy shared before delete-time marker cleanup can
@@ -1474,6 +1860,7 @@ function renderSharePortal(p, opts={}){
         <!-- Rewriting a contract used to happen in a twelve-row box inside the
              360px column on the right. It happens here now, at the size of the
              document it replaces. -->
+        ${signingSeat ? '' : `
         <div id="portal-redline" class="hidden" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-md);overflow:hidden">
           <div style="padding:16px 22px;border-bottom:1px solid var(--color-divider);display:flex;align-items:flex-start;gap:12px;background:var(--color-bg)">
             <span style="flex:1;min-width:0">
@@ -1493,6 +1880,7 @@ function renderSharePortal(p, opts={}){
             <button id="pt-redline-submit" class="ui-btn ui-btn-primary" style="font-size:13px;padding:10px 20px">Submit proposed edits</button>
           </div>
         </div>
+        `}
       </div>
       <aside style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:6px;box-shadow:var(--shadow-sm);padding:18px;" class="portal-aside">
         <h2 style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-text);margin:0 0 4px;">Respond to ${esc(p.org)}</h2>
@@ -1607,19 +1995,19 @@ function renderSharePortal(p, opts={}){
       // carry whatever they have already changed across, rather than losing it
       ta.value=portalProposedText(c);
       plain.classList.remove('hidden'); clauses.classList.add('hidden');
-      document.getElementById('pt-plain-toggle').textContent='Back to editing clause by clause';
+      const _pt=document.getElementById('pt-plain-toggle'); if(_pt) _pt.textContent='Back to editing clause by clause';
       setTimeout(()=>ta.focus(),120);
     } else {
       plain.classList.add('hidden'); clauses.classList.remove('hidden');
-      document.getElementById('pt-plain-toggle').textContent='Edit the whole document instead';
+      const _pt=document.getElementById('pt-plain-toggle'); if(_pt) _pt.textContent='Edit the whole document instead';
     }
   });
-  document.getElementById('pt-redline').addEventListener('click',()=>
+  document.getElementById('pt-redline')?.addEventListener('click',()=>
     showRedline(document.getElementById('portal-redline').classList.contains('hidden')));
   /* CANCEL IS A DISCARD, so it says so and asks first — but only when there is
      something to lose. Closing an editor nobody typed into is not a decision
      worth a dialog. */
-  document.getElementById('pt-redline-cancel').addEventListener('click',async()=>{
+  document.getElementById('pt-redline-cancel')?.addEventListener('click',async()=>{
     const n=stagedEdits();
     if(!n){ showRedline(false); return; }
     let ok=true;
@@ -1631,7 +2019,7 @@ function renderSharePortal(p, opts={}){
     if(!ok) return;
     showRedline(false,{ fresh:true });
   });
-  document.getElementById('pt-redline-submit').addEventListener('click',()=>portalRespond(p,'redline'));
+  document.getElementById('pt-redline-submit')?.addEventListener('click',()=>portalRespond(p,'redline'));
   // prefill the recipient's details from the share (they can still edit them)
   if(opts.share){
     const setIf=(id,v)=>{ const el=document.getElementById(id); if(el&&v&&!el.value) el.value=v; };
@@ -2053,21 +2441,37 @@ async function portalSignUnverified(p, info){
   });
 }
 
-/* two-step counterparty signing with email one-time code (server mode) */
+/* two-step counterparty signing with email one-time code (server mode)
+
+   W8: the code goes to the address the OWNER invited — the server reads it
+   off the share record and ignores anything typed on this page. The old copy
+   here said "signing with a different address is allowed (e.g. a colleague
+   signs)"; that handover is exactly what W8 removes, because a code sent to
+   a typed address proves control of A mailbox, not the RIGHT one. A
+   colleague who should sign gets their own link on the signing route. */
 async function portalStartOtp(p, info){
   const box=document.getElementById('portal-result');
-  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(info.email)}</strong>…</div>`;
-  let emailSent=true;
+  const invited=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
+  box.innerHTML=`<div style="border:1px solid var(--color-divider);background:var(--color-accent-100);border-radius:6px;padding:13px;font-size:11px;color:var(--color-neutral-700);">Sending a one-time code to <strong>${esc(invited||'the address this link was issued to')}</strong>…</div>`;
+  let emailSent=true, sentTo=invited;
   try{
-    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{ email:info.email });
+    const r=await api('shares/'+PORTAL_OPTS.token+'/otp','POST',{});
     emailSent=r.emailSent!==false;
-  }catch(e){ toast(e.message,'err'); box.innerHTML=''; return; }
+    sentTo=r.sentTo||invited;
+  }catch(e){
+    /* The one refusal with no way forward on this page: the link records no
+       address to verify against. Said in full, with the way out, rather than
+       as a toast that scrolls away. */
+    box.innerHTML=`<div style="border:1px solid #e3c4bf;background:#f9ecea;border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.55;color:#8f322b"><b>Cannot send a signing code.</b> ${esc(e.message||'')}</div>`;
+    portalSetIdle();
+    return;
+  }
   box.innerHTML=`
     <div style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:6px;padding:13px;">
-      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify your email to sign</div>
-      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(info.email)}</strong>. Enter it to complete your signature.</p>
-      ${(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail&&PORTAL_OPTS.share.recipientEmail.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Note: this contract was sent to <strong>${esc(PORTAL_OPTS.share.recipientEmail)}</strong>. Signing with a different address is allowed (e.g. a colleague signs) and the verified address will be recorded on the signature.</p>`:''}
-      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent to you. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--color-text);margin-bottom:4px;">${icon('key','w-3.5 h-3.5')} Verify it's you to sign</div>
+      <p style="font-size:11px;color:var(--color-neutral-600);margin:0 0 8px;line-height:1.5;">We sent a 6-digit code to <strong>${esc(sentTo)}</strong> — the address this link was issued to. Enter it to complete your signature.</p>
+      ${(sentTo&&info.email&&sentTo.toLowerCase()!==String(info.email||'').toLowerCase())?`<p style="margin:0 0 8px;font-size:10.5px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">The code goes only to <strong>${esc(sentTo)}</strong>, the address the sender invited — not to the address typed above. If somebody else should be signing, ask the sender to add them to the signing route so they get their own link.</p>`:''}
+      ${emailSent?'':`<p style="margin:0 0 8px;font-size:11px;border-radius:4px;background:color-mix(in srgb,#b8862b 10%,transparent);border:1px solid color-mix(in srgb,#b8862b 30%,transparent);color:#7d5a14;padding:6px 10px;line-height:1.5;">Email delivery is not configured on this server, so the code could not be sent. Ask <strong>${esc((PORTAL_OPTS.payload&&PORTAL_OPTS.payload.sharedBy)||'the sender')}</strong> for it — they can read it in HaTi under Team &amp; Settings.</p>`}
       <input id="pt-otp" inputmode="numeric" maxlength="6" placeholder="______" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:4px;padding:8px 11px;text-align:center;font-size:18px;font-family:var(--font-mono);letter-spacing:.4em;color:var(--color-text);outline:none;"/>
       <button id="pt-otp-go" class="ui-btn ui-btn-primary" style="margin-top:8px;width:100%;padding:9px;font-size:13px;">${icon('finger','w-4 h-4')} Verify &amp; sign</button>
       <button id="pt-otp-resend" style="margin-top:6px;width:100%;background:none;border:0;font-size:11px;color:var(--color-neutral-600);cursor:pointer;font-family:var(--font-body);">Resend code</button>
@@ -2080,7 +2484,9 @@ async function portalVerifyAndSign(p, info){
   const codeVal=fval('pt-otp');
   if(!/^\d{6}$/.test(codeVal)){ toast('Enter the 6-digit code','err'); return; }
   let verify;
-  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ email:info.email, code:codeVal }); verify=v.verify; }
+  // no email in the body: the server verified the address IT chose (W8), and
+  // possession of the code is the whole proof
+  try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
   catch(e){ toast(e.message,'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
@@ -2330,4 +2736,4 @@ async function refreshStats(){
   try{ state.serverStats=await api('stats'); if(state.view==='dashboard') renderDashboard(); }catch(e){}
 }
 
-Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal});
+Object.assign(window,{PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning});
