@@ -2632,21 +2632,65 @@ async function applyResponse(c, r, opts={}){
     if(window.templateFormDocHtml) c.redlineText=templateFormDocHtml(c.templateForm);
   }
   if(r.action==='sign'){
+    /* ---- W7 fault 3: A SIGNATURE LANDS ON ITS BOUND ROW, OR ON NONE ----
+       This used to stamp whichever counterparty row was NEXT — nextSigner() —
+       so when links were out with their MD (order 3) and their FD (order 4)
+       and the FD signed first, the signature landed on the MD's row. The real
+       name went into `by`, so the trail was not false, but the official
+       running order was silently wrong from then on.
+
+       A response from a bound link now carries the row it belongs to
+       (r.signerId — stamped by the SERVER from the share record, never
+       claimed by the page). It is checked BEFORE anything is written, because
+       a refusal that has already pushed the signature is a misfile with extra
+       steps. Out of order is refused here as well as at the server: this
+       function is also the import door for static-mode response codes, which
+       never pass through the respond route. A background refusal is safe —
+       the poller retries, and succeeds once the earlier signature it is
+       waiting on has been applied. */
+    let boundRow=null, routeNote='';
+    if(r.signerId && window.signerPlan && signerPlan(c).length){
+      boundRow=signerPlan(c).find(x=>x && String(x.id)===String(r.signerId))||null;
+      if(boundRow){
+        if(boundRow.signed){
+          if(!opts.background) toast(`${boundRow.name}'s signing step is already recorded — this signature was not applied again`,'err');
+          return false;
+        }
+        const earlier=signerPlan(c).filter(x=>x && (x.order||0)<(boundRow.order||0) && !x.signed)
+          .sort((a,b)=>(a.order||0)-(b.order||0));
+        if(earlier.length){
+          if(!opts.background) toast(`${r.name} signed out of order — ${earlier[0].name} signs first. Refused rather than filed on the wrong step.`,'err');
+          return false;
+        }
+      } else {
+        /* The route was edited and the bound row is gone. The signature is
+           real evidence and is kept; what must not happen is guessing it onto
+           somebody else's step. Recorded with the gap named, so the trail says
+           exactly what is and is not claimed. */
+        routeNote=' — NOTE: the signing-route step this link was bound to no longer exists on the route; the signature is recorded, and no step was marked signed';
+      }
+    }
     c.signatures=c.signatures||[];
     const sig={ form:r.signatureForm||null, image:r.signatureImage||null, imageHash:r.signatureImageHash||null,
       typedName:r.signatureTypedName||null, font:r.signatureFont||null };
     c.signatures.push({ party:'counterparty', name:r.name, title:r.title||'', email:r.email||'', at:r.at,
       method:r.method||'share-link', verified:r.verified!==false, ip:r.ip||null, ua:r.ua||null, docHash:r.docHash,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
-    // If a signing route is running, mark this counterparty's step signed and advance.
-    const ns=window.nextSigner?nextSigner(c):null;
-    if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+    if(boundRow){
+      boundRow.signed=true; boundRow.at=r.at; boundRow.by=r.name; boundRow.signature=sig;
+    } else if(!r.signerId){
+      /* The unbound path: a pre-W7 link, or a static-mode response code —
+         neither carries a binding, and next-in-order is all there is to go
+         on. Bound links never come through here. */
+      const ns=window.nextSigner?nextSigner(c):null;
+      if(ns && ns.party==='counterparty'){ ns.signed=true; ns.at=r.at; ns.by=r.name; ns.signature=sig; }
+    }
     c.comments.push({ author:r.name, role:'Counterparty — Signed', side:'external', text:r.comment||'Approved and signed via secure share link.', ts:fmtDT(r.at) });
     // r.verified===false means the server could not send a code, so nothing
     // checked that this signer holds that address. The trail says so rather
     // than reading like every other verified counterparty signature.
     const unverified = r.verified===false;
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}`);
+    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     toast(`${r.name} has signed — countersignature recorded`);
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
