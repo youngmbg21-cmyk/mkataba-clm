@@ -4317,6 +4317,13 @@ function redlineLayoutCss(){
      thing you find by accident. */
   .redline-page .rl-doc ins[title],.redline-page .rl-doc del[title],
   .redline-page .rl-doc .nego-ins[title],.redline-page .rl-doc .nego-del[title]{cursor:help}
+  /* ---- A CLAUSE THAT IS NOT IN THE AGREEMENT YET ----
+     Washed green rather than amber, because it is a different KIND of ask: the
+     amber frame says "this wording is under argument", and this says "this
+     wording is not in the contract at all yet". A reader scrolling the document
+     has to be able to tell the two apart without reading the tag. */
+  .redline-page .rl-clause.rl-clause-new{background:color-mix(in srgb,#10b981 7%,transparent);
+    border-color:color-mix(in srgb,#10b981 34%,transparent)}
   .redline-page .rl-clause-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .redline-page .rl-asktag{flex:none;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;
     background:var(--st-amber-bg);color:var(--st-amber-fg)}
@@ -6016,11 +6023,40 @@ function redlineDocHtml(c, opts = {}){
      computed wall is for the side holding the full live record — the owner's
      preview toggle. */
   const hidden = Array.isArray(opts.hiddenIds) ? new Set(opts.hiddenIds) : rlHiddenFrom(c, side);
-  const changes = (typeof negoChanges === 'function')
-    ? negoChanges(c).filter(x => x.status !== 'superseded' && x.changeType !== 'insertClause'
-        && !hidden.has(x.id)) : [];
+  const live = (typeof negoChanges === 'function')
+    ? negoChanges(c).filter(x => x.status !== 'superseded' && !hidden.has(x.id)) : [];
+  const changes = live.filter(x => x.changeType !== 'insertClause');
   const byClause = new Map();
   for (const ch of changes) byClause.set(ch.clauseId, ch);
+  /* ---- A CLAUSE SOMEBODY PROPOSED TO ADD IS PART OF THE DOCUMENT ----
+     This canvas used to drop every insertClause on the floor. That was harmless
+     for exactly as long as nothing here could FILE one: the passage menu
+     offered rephrase, shorten and tag, and none of them adds wording. Edit with
+     Copilot's placements opened that door, and the clause went straight through
+     it into a document that would not draw it — filed correctly, fingerprinted,
+     carded in the column beside, and absent from the contract the reader was
+     reading. It stayed absent after the other side ACCEPTED it, because this
+     canvas is built from the round baseline and an accepted insert only reaches
+     that when the round turns. So a lawyer added a clause, was told it was
+     filed, scrolled the contract, could not find it, and had every reason to
+     add it again.
+
+     Drawn WHERE IT WAS PROPOSED — after the clause it names — which is the same
+     rule, and deliberately the same reading of afterClauseId, that the room has
+     always used (see insertsAfter in negoDocHtml). An insert whose anchor has
+     gone falls to the end and only then, because the end is the one place that
+     is always available and never a guess. */
+  const insertsAfter = new Map();
+  const orphanInserts = [];
+  for (const ch of live){
+    if (ch.changeType !== 'insertClause') continue;
+    const anchor = ch.afterClauseId && clauses.some(cl => cl.clauseId === ch.afterClauseId)
+      ? ch.afterClauseId : null;
+    if (anchor){
+      if (!insertsAfter.has(anchor)) insertsAfter.set(anchor, []);
+      insertsAfter.get(anchor).push(ch);
+    } else orphanInserts.push(ch);
+  }
   const tmpl = (window.TEMPLATES && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
   const region = RL_REGION[(window.state && state.region) || 'KE'] || RL_REGION.KE;
   const editable = !opts.readonly && opts.canEdit !== false;
@@ -6112,7 +6148,34 @@ function redlineDocHtml(c, opts = {}){
       return `<div class="nego-body"><p>${redlineOpsHtml(ch.ops, { title: tip })}</p></div>`;
     return `<div class="nego-body"><p>${_ne(ch.proposedText || ch.newText || '')}</p></div>`;
   };
+  /* The added clause itself. Marked as an addition and never as settled text:
+     until it is accepted it is a PROPOSAL, and a reader deciding whether to
+     take it must be able to see that at a glance rather than infer it from a
+     column. Rendered through the same ops path as every other redline so the
+     wording carries the insertion marks the rest of the document uses. */
+  const insertBlock = ch => {
+    const theirs = ch.authorSide !== side;
+    const st = ch.status === 'accepted' ? ' &middot; &#10003; adopted'
+      : ch.status === 'rejected' ? ' &middot; &#10007; refused' : '';
+    const tagTip = ch.status === 'rejected' && ch.reply ? ` title="${_nea(ch.reply)}"` : '';
+    const label = String(ch.headingText || '').trim();
+    const text = String(ch.proposedText || ch.newText || '');
+    /* A rejected insertion is struck rather than dropped: the clause is not in
+       the agreement and the argument about it is on the record, and a reader
+       scrolling past a gap cannot tell those apart. */
+    const inner = window.redlineOpsBlocksHtml
+      ? redlineOpsBlocksHtml([{ op: ch.status === 'rejected' ? 'del' : 'ins', text }])
+      : `<p><span class="${ch.status === 'rejected' ? 'nego-del' : 'nego-ins'}">${_ne(text)}</span></p>`;
+    return `<section class="nego-clause rl-clause is-changed rl-clause-new" data-clause="${_ne(ch.clauseId)}" data-nego-card-anchor="${_ne(ch.id)}">
+      <div class="rl-clause-top">
+        ${label ? `<h4 class="rl-clause-h">${_ne(label)}</h4>` : ''}
+        <span class="rl-asktag"${tagTip}>${_ne(ch.id)} · ${theirs ? 'Their ask' : 'Your ask'} &middot; new clause${st}</span>
+      </div>
+      <div class="nego-body">${inner}</div>
+    </section>`;
+  };
   const body = clauses.map(cl => {
+    const after = (insertsAfter.get(cl.clauseId) || []).map(insertBlock).join('');
     const ch = byClause.get(cl.clauseId);
     if (ch){
       const theirs = ch.authorSide !== side;
@@ -6130,14 +6193,14 @@ function redlineDocHtml(c, opts = {}){
         </div>
         ${redlineBody(ch)}
         ${tools(cl, ch)}
-      </section>`;
+      </section>${after}`;
     }
     return `<section class="nego-clause rl-clause" data-clause="${_ne(cl.clauseId)}" data-nego-working="${_ne(cl.clauseId)}">
       ${heading(cl)}
       ${richBody(cl)}
       ${tools(cl, null)}
-    </section>`;
-  }).join('');
+    </section>${after}`;
+  }).join('') + orphanInserts.map(insertBlock).join('');
   /* ---- THE DOCUMENT'S OWN FRONT MATTER, NOT A LABEL ABOUT IT ----
      The Doc page opens with the contract's kicker line, its own title and the
      recital naming the parties and the key terms; the clause model calls all

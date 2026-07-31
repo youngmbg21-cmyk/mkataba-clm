@@ -1,0 +1,52 @@
+# Every check, on every push — including the two browser harnesses.
+#
+# The browser checks existed and were green-capable for a day while nine of
+# them sat red, because they only ran when somebody remembered to run them:
+# a deliberate redesign (the floated sheet, the soft-wash verbs, the menu
+# rename to "Edit with Copilot") updated the jsdom tests and sailed straight
+# past the assertions nobody's routine touched. A check that does not run on
+# every change is a diary, not an alarm. This workflow is the alarm.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  node:
+    name: node suite (jsdom)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # npm install, not npm ci: the lockfile is deliberately untracked
+      # (see .gitignore), so there is nothing for ci to hold the build to.
+      - run: npm install
+      - run: npm test
+
+  browser:
+    name: browser checks (Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      # playwright-core ships no browser of its own; the harnesses resolve
+      # the registry copy this installs (see EXEC in test/chromium/*.js —
+      # the dev sandbox's fixed path wins only where it exists).
+      - run: npx playwright-core install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:selection
+      # The measurements are numbers, but a failure is usually a LOOK — keep
+      # the screenshots so a red run can be seen, not only read.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chromium-screenshots
+          path: test/chromium/shots/
+          if-no-files-found: ignore
+          retention-days: 14

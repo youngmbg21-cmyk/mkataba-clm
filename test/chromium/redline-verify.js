@@ -36,7 +36,13 @@ const { chromium } = require('playwright-core');
 
 const OUT = path.join(__dirname, 'shots', 'redline');
 const ROOT = path.join(__dirname, '..', '..');
-const EXEC = '/opt/pw-browsers/chromium';
+/* Which Chromium. The dev sandbox pre-installs one at a fixed path; CI (and
+   anyone else) runs `npx playwright-core install chromium` and lets
+   playwright-core resolve its own registry. Hardcoding only the sandbox path is
+   why these checks could not run anywhere else — which is how nine of them
+   stayed red for a day without anyone seeing. CHROMIUM_BIN overrides both. */
+const EXEC = process.env.CHROMIUM_BIN
+  || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 
 function serve(){
@@ -97,23 +103,49 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     };
     let n = 0, el = paper;
     while (el && el !== col.parentElement){ if (framed(el)) n++; el = el.parentElement; }
+    const pr = paper.getBoundingClientRect(), cr = col.getBoundingClientRect();
     return { frames: n, paperBorder: getComputedStyle(paper).borderTopWidth,
       paperShadow: getComputedStyle(paper).boxShadow,
+      paperBg: getComputedStyle(paper).backgroundColor,
       colBorder: getComputedStyle(col).borderTopWidth,
-      paperWidth: paper.getBoundingClientRect().width,
-      colWidth: col.getBoundingClientRect().width };
+      colBg: getComputedStyle(col).backgroundColor,
+      paperWidth: pr.width, colWidth: cr.width,
+      gutterL: Math.round(pr.left - cr.left), gutterR: Math.round(cr.right - pr.right) };
   });
-  check('2 the inner sheet has no border', sheet.paperBorder === '0px', sheet.paperBorder);
-  check('2 the inner sheet has no shadow', sheet.paperShadow === 'none', sheet.paperShadow);
-  check('2 the column carries no border either', sheet.colBorder === '0px', sheet.colBorder);
-  check('2 exactly one painted frame around the contract text', sheet.frames === 1,
-    `${sheet.frames} frame(s)`);
-  /* The sheet takes the column's width rather than the 720px measure .nego-doc
-     sets for the room — allowing only for the scroller's own 4px gutter each
-     side. A centred 720px block inside a wider column is the "page floating in
-     a panel" look the flattening exists to end. */
-  check('2 the sheet fills the column', sheet.paperWidth >= sheet.colWidth - 12,
+  /* ---- WHAT THIS SECTION USED TO ASSERT, AND WHY IT NO LONGER DOES ----
+     These five checks encoded the flattening of 0b0f42f and 84ea572: one
+     painted frame, no shadow on the sheet, and a contract running the full
+     width of its column. 1390c55 DELIBERATELY reversed that ("Float the
+     redline document as a centred sheet with gutters") so the Redline page and
+     the Doc page stop reading as two different documents — a 720px sheet
+     carrying its own shadow, floating on the column as canvas. ca1473d caught
+     the jsdom tests up and did not catch these up, because browser checks are
+     not run on every branch; they have been red ever since, which is the whole
+     hazard of a check nobody watches.
+
+     Re-pointed at the design that is actually intended, and deliberately NOT
+     rewritten as "whatever the stylesheet says" — each one still has to be
+     capable of failing. The sheet is paper on canvas: bounded, centred, its own
+     shadow, its own background. */
+  check('2 the sheet carries no border — it is paper, edged by shadow',
+    sheet.paperBorder === '0px', sheet.paperBorder);
+  check('2 and it does carry that shadow', sheet.paperShadow !== 'none' && !!sheet.paperShadow,
+    sheet.paperShadow);
+  check('2 the sheet reads as paper against the column behind it',
+    sheet.paperBg !== sheet.colBg, `${sheet.paperBg} on ${sheet.colBg}`);
+  /* The measure the Doc page sets, so the two tabs typeset the contract to the
+     same line length. Bounded is the point: a sheet that grew with the window
+     would be the edge-to-edge look this replaced. */
+  check('2 the sheet is bounded to the design\'s 720px measure',
+    Math.abs(sheet.paperWidth - 720) <= 1 && sheet.paperWidth < sheet.colWidth - 24,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
+  /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
+     out-specified the centring rule and pinned the sheet to the left of the
+     column with all the spare width on the right. Equal gutters is the one
+     measurement that catches it, and it cannot be read off a stylesheet. */
+  check('2 and centred, with the spare width split evenly',
+    Math.abs(sheet.gutterL - sheet.gutterR) <= 2,
+    `${sheet.gutterL}px left / ${sheet.gutterR}px right`);
 
   /* ---- 2b. how much of the column the contract actually occupies ----
      The complaint this answers is "there is too much space at the edges", and
@@ -129,8 +161,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const cls = [...document.querySelectorAll('#rl-doc .rl-clause')];
     const gaps = cls.slice(1).map((c, i) =>
       Math.round(c.getBoundingClientRect().top - cls[i].getBoundingClientRect().bottom));
+    const paper = document.querySelector('#rl-doc .rl-paper').getBoundingClientRect();
     return { left: Math.round(left - col.left), right: Math.round(col.right - right),
-      colWidth: Math.round(col.width),
+      colWidth: Math.round(col.width), paperWidth: Math.round(paper.width),
+      padL: Math.round(left - paper.left), padR: Math.round(paper.right - right),
       textWidth: Math.round(right - left), gaps,
       toolsOpacity: tools ? getComputedStyle(tools).opacity : null,
       toolsPosition: tools ? getComputedStyle(tools).position : null,
@@ -138,11 +172,23 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   check('2b the text sits the same distance from both edges',
     Math.abs(inset.left - inset.right) <= 2, `${inset.left}px left / ${inset.right}px right`);
-  check('2b the margins are the design\'s p-6, not a reserved gutter',
-    inset.left <= 32, `${inset.left}px`);
-  check('2b the contract occupies the column rather than floating in it',
-    inset.textWidth / inset.colWidth > 0.9,
-    `${(inset.textWidth / inset.colWidth * 100).toFixed(1)}% of the column`);
+  /* MEASURED INSIDE THE SHEET, not inside the column. The original complaint
+     survives the redesign and is still the thing worth catching: the engine's
+     100px badge gutter landing on ONE side, so the text sat 116px from the left
+     of its container and 46px from the right. Against the column that now reads
+     as the sheet's own gutters (103px each side, by design); against the SHEET
+     it is still exactly the lopsidedness it always was, and .rl-paper's own
+     36px padding is what it must equal. */
+  check('2b the text sits on the sheet\'s own padding, not a reserved gutter',
+    inset.padL <= 40 && Math.abs(inset.padL - inset.padR) <= 2,
+    `${inset.padL}px / ${inset.padR}px inside the sheet`);
+  /* A floor, not an equality: .rl-paper's 36px each side is exactly 90% of its
+     720px, so this passes today by design and fails the moment anything
+     reserves a further gutter INSIDE the sheet — which is how the 100px badge
+     column got in the first time. */
+  check('2b nothing is reserved inside the sheet beyond its own padding',
+    inset.textWidth / inset.paperWidth >= 0.89,
+    `${(inset.textWidth / inset.paperWidth * 100).toFixed(1)}% of the sheet`);
   /* The toolbar is an overlay: hidden at rest and OUT OF THE FLOW, so being
      hidden costs no height — the failure mode both of its predecessors had
      (a reserved blank row, then a permanently busy page) is measured against
@@ -220,11 +266,22 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   /* ---- 10 / 11. the column and its verbs ---- */
   const cards = await page.evaluate(() => {
     const live = negoChanges(CONTRACT).filter(x => x.status === 'pending').length;
+    /* Colour is read as NUMBERS, not as a hex string to be matched. A wash can
+       be retuned without breaking a check; what may not change is that it stays
+       readable and stays distinguishable from the other verb. */
+    const rgb = s => (String(s).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const lum = ([r, g, b]) => {
+      const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
     const btn = sel => {
       const b = document.querySelector('#rl-changes ' + sel);
       if (!b) return null;
       const s = getComputedStyle(b);
-      return { bg: s.backgroundColor, fg: s.color };
+      const bg = rgb(s.backgroundColor), fg = rgb(s.color);
+      const L1 = Math.max(lum(bg), lum(fg)), L2 = Math.min(lum(bg), lum(fg));
+      return { bg: s.backgroundColor, fg: s.color, bgv: bg, fgv: fg,
+        contrast: Math.round(((L1 + 0.05) / (L2 + 0.05)) * 100) / 100 };
     };
     return { cards: document.querySelectorAll('#rl-changes [data-nego-card]').length,
       clauses: document.querySelectorAll('#rl-doc .rl-clause').length, live,
@@ -234,14 +291,39 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('10 one card per live redline, not per clause',
     cards.cards === cards.live && cards.clauses > cards.cards,
     `${cards.cards} cards · ${cards.live} live · ${cards.clauses} clauses`);
-  check('11 Accept is emerald-600', cards.acc && cards.acc.bg === 'rgb(5, 150, 105)',
-    cards.acc && cards.acc.bg);
-  check('11 Reject is red-600', cards.rej && cards.rej.bg === 'rgb(220, 38, 38)',
-    cards.rej && cards.rej.bg);
+  /* ---- THE VERBS WEAR THE STATUS CHIPS' CLOTHING ----
+     These three used to pin the exact solid fills — emerald-600, red-600.
+     e76ec83 deliberately replaced them: "The card verbs were solid emerald and
+     red fills - a row of alarms on every card", so they became a tint
+     background with tone text. The checks were not updated and have been red
+     since.
+
+     Re-pointed at what the soft wash must not cost, rather than at a hex code
+     that may be retuned again. A wash has two failure modes a solid never had —
+     it can stop being legible, and two washes can stop being tellable apart —
+     and both are measured here. */
+  const wash = (name, b, hue) => {
+    if (!b) return check(`11 ${name} exists`, false);
+    const [r, g] = b.bgv;
+    check(`11 ${name} is a soft ${hue} wash, not a solid alarm`,
+      Math.min(...b.bgv) > 200 && (hue === 'green' ? g > r : r > g),
+      `${b.bg}`);
+    /* The whole point of the tone text: a near-white tint with pale text on it
+       is the way a soft wash goes wrong, and it goes wrong invisibly. */
+    check(`11 ${name} stays legible on it`, b.contrast >= 4.5,
+      `contrast ${b.contrast}:1 (${b.fg} on ${b.bg})`);
+  };
+  wash('Accept', cards.acc, 'green');
+  wash('Reject', cards.rej, 'red');
+  wash('Send', cards.send, 'green');
+  /* And the two decisions must not read as the same button at a glance — the
+     one thing a row of tints can lose that a row of solids could not. */
+  check('11 Accept and Reject are tellable apart by hue',
+    cards.acc && cards.rej
+    && Math.abs((cards.acc.bgv[1] - cards.acc.bgv[0]) - (cards.rej.bgv[1] - cards.rej.bgv[0])) > 30,
+    cards.acc && cards.rej ? `${cards.acc.bg} vs ${cards.rej.bg}` : 'missing');
   check('11 Edit is slate-200 on slate-800', cards.edit && cards.edit.bg === 'rgb(226, 232, 240)',
     cards.edit && `${cards.edit.bg} / ${cards.edit.fg}`);
-  check('11 Send is emerald-600', cards.send && cards.send.bg === 'rgb(5, 150, 105)',
-    cards.send && cards.send.bg);
 
   /* ---- 14. the card holds the delta and nothing else ---- */
   const delta = await page.evaluate(() => {
@@ -442,16 +524,24 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('5 AI Assist is gone from the clause toolbar', menu.noToolbarAi);
   check('5 the selection menu offers exactly three actions', menu.items.length === 3,
     JSON.stringify(menu.items));
+  /* "Edit with Copilot", not "Rephrase with Copilot": the first verb was
+     renamed when the action learned to ADD wording as well as replace it, and
+     rephrasing is now one of the things it does rather than the whole of it.
+     This assertion still named the old label and had gone red unnoticed —
+     browser checks were not run on every branch, which is exactly how a stale
+     one survives a deliberate rename. (Since fixed both ways: the workflow now
+     runs them on every push, and the failing item list is passed as the detail
+     below, so a failure prints the menu rather than only the verdict — the one
+     fact that tells "the label changed" from "the menu never opened".) */
   check('5 they are edit, shorten, tag',
     /Edit with Copilot/.test(menu.items[0] || '')
     && /Shorten & Simplify/.test(menu.items[1] || '')
     && /Tag with internal note/.test(menu.items[2] || ''),
     JSON.stringify(menu.items));
-  /* STILL THREE, and the first one renamed rather than joined. "Edit with
-     Copilot" is what "Rephrase with Copilot" became when a proposal learned to
-     add wording as well as replace it — rephrasing is what you get when your
-     instruction is a rephrase, and a fourth entry beside it would read the same
-     to anyone moving at speed. */
+  /* A SEPARATE CLAIM, and worth its own check: not merely that the first item
+     is Edit, but that Rephrase is nowhere. The rename could have been done as a
+     fourth entry beside the old one, and two doors reading the same to anyone
+     moving at speed is the failure this guards. */
   check('5 and rephrase is gone from the menu',
     !menu.items.some(t => /Rephrase/.test(t)), JSON.stringify(menu.items));
   check('3 opening the menu opens no dialog', menu.dialogs === 0 && menu.modals === 0);
