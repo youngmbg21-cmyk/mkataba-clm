@@ -8,7 +8,9 @@ of fixes) and delete it from here.
 
 ## OI-1. A cross-reference to a deleted clause is never flagged
 
-**Status:** open · **Area:** `js/negotiation.js`, `js/clausemodel.js` · **Severity:** high
+**Status:** open — scheduled as phase **N1** of `WORKORDER-clause-numbering.md`,
+which supersedes the sketch below with a full task breakdown.
+**Area:** `js/negotiation.js`, `js/clausemodel.js` · **Severity:** high
 
 **What is wrong.** Nothing in the codebase detects internal cross-references.
 Grepping for `cross-ref` / `crossRef` finds three passing mentions in comments
@@ -62,6 +64,9 @@ because references to clauses that still exist also go stale.
 ## OI-2. Deleting a clause leaves a visible gap in the numbering, with nothing said about it
 
 **Status:** partly done — the notice and the lock have shipped; the renumberer has not.
+The remainder is scheduled as phase **N2** of `WORKORDER-clause-numbering.md`
+(explicit renumber), with live auto-numbering for HaTi-born contracts as **N3**
+and sub-clause runs as **N4**. The work order supersedes the sketch below.
 **Area:** `js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js` · **Severity:** medium
 
 **Shipped** (`f98`, 25 tests):
