@@ -5148,14 +5148,54 @@ function renderRedline(){
    beside the document, nothing behind it moves or reflows, and the exchange
    can go several turns without the contract ever leaving the screen. */
 const RL_SEL_ACTIONS = [
-  { id: 'rephrase', label: '✨ Rephrase with Copilot', converse: true,
-    ask: 'Rewrite this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
-    greeting: 'How would you like me to help rephrase this passage?' },
-  { id: 'shorten', label: '✂️ Shorten & Simplify',
+  /* ---------- "REPHRASE" BECAME "EDIT", AND IT IS A RENAME, NOT AN ADDITION
+     ----------
+     This was "✨ Rephrase with Copilot", and the word was doing damage. The
+     action has always taken its instruction in words, so half of what people
+     typed into it was not a rephrase at all: "add three bullet points about
+     data retention after this clause" is the second thing anybody asks of a
+     drafting assistant. The model drafted the bullets, and because a proposal
+     could only ever REPLACE, the splice put them on top of the sentence they
+     were meant to follow. Wording nobody agreed to lose, gone, with no error
+     and no warning.
+
+     So the action can now add as well as replace (placements: true — see
+     AI_PLACEMENTS in js/ai.js), and it is named for the whole job. "Edit"
+     covers changing wording and adding it; "rephrase" names only the first,
+     which is exactly how the wrong splice came to look like the only one.
+
+     A FOURTH ITEM WAS THE OBVIOUS MOVE AND THE WRONG ONE. "Edit with Copilot"
+     sitting beside "Rephrase with Copilot" is two entries on a three-item menu
+     that read the same to anyone moving at speed — the duplicate-door problem
+     this page already argued out once, over AI Assist (see the clause toolbar
+     below). Rephrasing is not lost: it is what you get when your instruction
+     is a rephrase.
+
+     THE SPARKLE STAYS. ✍️ was drafted and rejected: the clause toolbar's
+     Direct Edit already wears ✎, and a writing hand beside a pencil is two
+     near-identical marks doing different jobs. ✨ is the established "this one
+     is the Copilot" signal, and the pairing the two buttons make is worth
+     having — Direct Edit is "I will type it", Edit with Copilot is "you type
+     it, I will approve it". */
+  { id: 'edit', label: '✨ Edit with Copilot', converse: true, placements: true,
+    noteLabel: 'Edit',
+    ask: 'Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+    greeting: 'What would you like to add or change here?' },
+  /* No placements: a shortening that inserts is not a shortening. The action
+     carries its own instruction and cannot mean anything but a replacement, so
+     offering the field would only invite the model to use it. */
+  { id: 'shorten', label: '✂️ Shorten & Simplify', noteLabel: 'Shorten & Simplify',
     ask: 'Rewrite this contract wording more concisely and in plainer language, without changing its legal effect. Keep defined terms exactly as they are.' },
   { id: 'tag', label: '🏷️ Tag with internal note', tag: true }
 ];
 function rlSelActions(){ return RL_SEL_ACTIONS.slice(); }
+/* What the change record says it did. A change card carries this note to the
+   other side, and "Copilot — Edit" over a clause that grew three sub-paragraphs
+   describes the tool rather than the act. Empty for replace, which is what a
+   Copilot edit has always meant and needs no qualifier, and empty for newClause,
+   where the change type already prints "New clause added". */
+const RL_PLACEMENT_NOTE = { replace: '', after: ' (added after)',
+  before: ' (added before)', newClause: '' };
 
 /* Say something in the Copilot panel without asking a model anything. Used for
    every refusal on this path, because a refusal belongs in the conversation the
@@ -5328,15 +5368,22 @@ async function rlAiPropose(ctx){
      this closure was read when the panel opened, and a conversation can run for
      minutes — so the live one is re-read and the passage re-checked, rather
      than writing an older copy back over whatever moved in between. */
-  const note = `Copilot — ${action.label.replace(/^\S+\s/, '')}`;
   /* One filing, whatever it took. Every change goes through negoEditClause /
-     negoDeleteClause like any other proposal — same model, same fingerprint,
-     same chain — and the toast names what was actually filed rather than
-     claiming a single change when a span took several. */
-  const fileAll = jobs => {
+     negoDeleteClause / negoInsertClause like any other proposal — same model,
+     same fingerprint, same chain — and the toast names what was actually filed
+     rather than claiming a single change when a span took several.
+
+     The NOTE is a parameter rather than a constant of this closure because it
+     now records the placement as well as the action, and the placement is not
+     known until Apply is pressed — the reader may have corrected it since the
+     model guessed. */
+  const fileAll = (jobs, note) => {
     Promise.all(jobs.map(j => j.kind === 'delete'
       ? negoDeleteClause(c, j.clauseId, { side, author: opts && opts.by, note })
-      : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note })))
+      : j.kind === 'insert'
+        ? negoInsertClause(c, j.clauseId, { bodyHtml: j.bodyHtml, headingText: j.headingText || '' },
+          { side, author: opts && opts.by, note })
+        : negoEditClause(c, j.clauseId, j.html, { side, author: opts && opts.by, note })))
       .then(chs => {
         const filed = chs.filter(Boolean);
         if (!filed.length){ if (window.toast) toast('That wording matches the clause already — nothing filed'); return; }
@@ -5352,21 +5399,78 @@ async function rlAiPropose(ctx){
     return { ok: true };
   };
   const asHtml = t => (window.negoRichFromLines ? negoRichFromLines(t) : `<p>${_ne(t)}</p>`);
+  /* ---------- INSERTING AT AN OFFSET, ON ITS OWN LINE ----------
+     A clause's text carries one sub-paragraph per line, and docRichFromText
+     reads those line openers back into real list markup at filing time. So new
+     wording has to ARRIVE as lines or it is filed as one paragraph and the
+     numbering a contract is cited by is lost.
 
-  const applyWording = wording => {
-    /* ---- THE SPAN CASE: a head that takes the new wording, and the blocks the
-       highlight ate proposed for deletion. The tail of the last block — wording
-       the reader did NOT highlight — is kept and re-filed as that block's text,
-       because a rewrite of two sentences must not silently carry off a third. */
+     The trims are what stop a seam from showing. Inserting mid-paragraph
+     leaves the remainder of that paragraph starting a new line — which is the
+     honest rendering, since a list genuinely cannot sit inside a paragraph —
+     but without them it would start with the space that used to follow the
+     selected sentence, and a line beginning with a space is a line the
+     document builder reads differently. */
+  const insertAt = (src, at, wording) => {
+    const head = String(src).slice(0, at).replace(/\s+$/, '');
+    const tail = String(src).slice(at).replace(/^\s+/, '');
+    return [head, String(wording).trim(), tail].filter(x => x !== '').join('\n');
+  };
+
+  const applyWording = (wording, card) => {
+    /* WHERE, read off the card at the moment Apply is pressed — not off the
+       model's original answer. The reader may have corrected the placement
+       since, and that correction is the whole point of the control. */
+    const placement = window.aiNormalizePlacement
+      ? aiNormalizePlacement(card && card.placement) : 'replace';
+    const noteLabel = action.noteLabel || action.label.replace(/^\S+\s/, '');
+    const note = `Copilot — ${noteLabel}${RL_PLACEMENT_NOTE[placement] || ''}`;
+    const moved = { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
+
+    /* ---- A WHOLE NEW CLAUSE ----
+       Deliberately not routed through the passage checks below, on either the
+       single-clause or the span path: its anchor is the CLAUSE, not the wording
+       inside it, so a selection that has since drifted is not a reason to
+       refuse. What must still be true is that the clause it follows is there,
+       and that was checked when the panel opened. */
+    if (placement === 'newClause'){
+      if (!window.negoInsertClause)
+        return { ok: false, message: 'This build cannot file a new clause. Choose Replace, Add after or Add before instead.' };
+      return fileAll([{ kind: 'insert', clauseId, bodyHtml: asHtml(String(wording)),
+        headingText: (card && card.headingText) || '' }], note);
+    }
+
+    /* ---- THE SPAN CASE ----
+       A highlight across several headingless blocks. REPLACING it collapses
+       them: the head takes the new wording and the blocks the highlight ate are
+       proposed for deletion, with the tail of the last block kept and re-filed
+       so a rewrite of two sentences does not silently carry off a third.
+
+       ADDING to it deletes nothing at all. Every block the reader highlighted
+       stays exactly as it is and the new wording lands at one end of the span —
+       the last block for "after", the first for "before" — which is one edit
+       and no collapse. Running an insert through the replace machinery would
+       delete blocks the reader asked to keep, which is the same class of
+       silent loss this whole feature exists to stop. */
     if (parts){
+      if (placement !== 'replace'){
+        const p = placement === 'after' ? parts[parts.length - 1] : parts[0];
+        const x = window.negoClauseById ? negoClauseById(c, p.clauseId) : null;
+        if (!x) return moved;
+        const t = String(x.text || '');
+        const hit = negoResolvePassage(t, p);
+        if (!hit) return moved;
+        return fileAll([{ kind: 'edit', clauseId: p.clauseId,
+          html: asHtml(insertAt(t, placement === 'after' ? hit.end : hit.start, wording)) }], note);
+      }
       const jobs = [];
       for (let i = 0; i < parts.length; i++){
         const p = parts[i];
         const x = window.negoClauseById ? negoClauseById(c, p.clauseId) : null;
-        if (!x) return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
+        if (!x) return moved;
         const t = String(x.text || '');
         const hit = negoResolvePassage(t, p);
-        if (!hit) return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
+        if (!hit) return moved;
         if (i === 0){
           jobs.push({ kind: 'edit', clauseId: p.clauseId, html: asHtml(t.slice(0, hit.start) + String(wording)) });
         } else if (i === parts.length - 1){
@@ -5377,34 +5481,60 @@ async function rlAiPropose(ctx){
           jobs.push({ kind: 'delete', clauseId: p.clauseId });
         }
       }
-      return fileAll(jobs);
+      return fileAll(jobs, note);
     }
+
     const live = window.negoClauseById ? negoClauseById(c, clauseId) : null;
     if (!live) return { ok: false, message: 'This clause is no longer in the document. Select a current clause and try again.' };
     const nowText = String(live.text || '');
     const isWhole = window.negoPassageIsWhole && negoPassageIsWhole(nowText, passage);
     const hit = isWhole ? null : negoResolvePassage(nowText, passage);
-    if (!isWhole && !hit)
-      return { ok: false, message: 'This text changed while the panel was open. Reselect the passage and try again.' };
-    const proposed = isWhole ? String(wording)
-      : nowText.slice(0, hit.start) + String(wording) + nowText.slice(hit.end);
+    if (!isWhole && !hit) return moved;
+    /* ---- REPLACE SWAPS, AFTER AND BEFORE KEEP ----
+       The anchor is the passage's own end or start, resolved against the text
+       as it reads NOW rather than as it read when the panel opened. Where the
+       selection was the whole clause there is no offset to find: after means
+       the end of it and before means the top. */
+    const proposed = placement === 'replace'
+      ? (isWhole ? String(wording)
+         : nowText.slice(0, hit.start) + String(wording) + nowText.slice(hit.end))
+      : placement === 'after'
+        ? insertAt(nowText, isWhole ? nowText.length : hit.end, wording)
+        : insertAt(nowText, isWhole ? 0 : hit.start, wording);
     if (proposed === nowText) return { ok: false, message: 'That wording matches the clause already — nothing was filed.' };
-    return fileAll([{ kind: 'edit', clauseId, html: asHtml(proposed) }]);
+    return fileAll([{ kind: 'edit', clauseId, html: asHtml(proposed) }], note);
   };
 
   const refine = async (instruction, prev, extra) => {
+    /* The placement in force travels with the ask, so the next draft is written
+       for where it is actually going — three bullets read differently when they
+       follow a sentence than when they stand in for it. It is NOT returned
+       below: aiRefineProposal carries the reader's own placement forward, and
+       letting the model re-pick every turn would quietly undo a correction they
+       had already made. */
+    const where = window.aiNormalizePlacement
+      ? aiNormalizePlacement(prev && prev.placement) : 'replace';
+    const history = [(extra && extra.history) || '',
+      action.placements && where !== 'replace'
+        ? `Your wording is going to be filed ${where === 'newClause'
+            ? 'as a new clause following the one the passage sits in'
+            : `${where} the selected passage, which is being kept`}. Draft for that placement.`
+        : ''].filter(Boolean).join('\n');
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction, history: (extra && extra.history) || '' });
+      playbook: pbLine, instruction, history, placements: action.placements === true });
     if (!made) return null;
     return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
+      placements: action.placements === true, headingText: made.headingText,
       clauseLabel: negoClauseLabel(cl), replacing: text, onApply: applyWording, onRefine: refine };
   };
   const propose = async instruction => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction: instruction || '' });
+      playbook: pbLine, instruction: instruction || '', placements: action.placements === true });
     if (!made) return false;
     const card = window.aiOpenProposal ? aiOpenProposal({ advice: made.advice,
       proposedText: made.proposedText, strict: made.strict,
+      placements: action.placements === true, placement: made.placement,
+      headingText: made.headingText,
       clauseLabel: negoClauseLabel(cl), replacing: text,
       onApply: applyWording, onRefine: refine }) : null;
     /* The session hands over once there IS a card: the next sentence typed is
@@ -6605,7 +6735,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   redlineHeldId, redlineEvict, openRedlineWorkbench, RL_DEMOTABLE,
   rlHiddenFrom, rlMsgVisible, redlineEmbed, negoIsRedeciding,
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
-  RL_SEL_ACTIONS, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
+  RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,

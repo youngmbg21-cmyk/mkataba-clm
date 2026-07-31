@@ -1319,6 +1319,83 @@ const AI_PROPOSAL_FORMAT = 'Reply with ONE JSON object and nothing else — no p
   + 'no quotation marks around it, no explanation inside it."\n'
   + '}';
 
+/* ---------- WHERE THE WORDING GOES ----------
+   Every proposal on this path used to do one thing: swap out the passage the
+   reader highlighted. That is right for "make this tighter" and silently wrong
+   for the other half of what people actually ask — "add three bullet points
+   about data retention after this clause". The model drafted the bullets, and
+   the splice put them ON TOP of the sentence they were meant to follow. No
+   error, no warning: wording nobody agreed to lose, gone.
+
+   So a proposal now carries WHERE it goes as well as WHAT it says. Four
+   placements, and only four, because each one is a splice this engine can
+   already perform:
+
+     replace   — swap the highlighted passage. The default, and the only
+                 behaviour that existed before.
+     after     — insert immediately after the highlighted passage, in the clause
+     before    — insert immediately before it
+     newClause — a separate new clause, positioned after the current one
+
+   The first three are arithmetic on an offset inside one clause and all file
+   through negoEditClause, which diffs the whole new clause body into a redline
+   by itself. The fourth files through negoInsertClause. There is no new change
+   TYPE here and no new server call — a proposal that adds wording is the same
+   kind of thing as one that replaces it, and must not get a private path into
+   the contract. */
+const AI_PLACEMENTS = ['replace', 'after', 'before', 'newClause'];
+const AI_PLACEMENT_LABEL = { replace: 'Replacing', after: 'Inserting after',
+  before: 'Inserting before', newClause: 'New clause after' };
+/* Short forms for the control on the card. The reader is choosing between four
+   things at a glance, so they read as verbs rather than as field values. */
+const AI_PLACEMENT_SHORT = { replace: 'Replace', after: 'Add after',
+  before: 'Add before', newClause: 'New clause' };
+/* UNRECOGNISED FALLS BACK TO REPLACE, which is the conservative answer only
+   because everything downstream re-checks the passage before splicing. A model
+   that invents a fifth placement gets the behaviour that existed before this
+   feature, rather than an insert at an offset nobody worked out. */
+function aiNormalizePlacement(v){
+  const s = String(v == null ? '' : v).trim().toLowerCase();
+  return AI_PLACEMENTS.find(p => p.toLowerCase() === s) || 'replace';
+}
+const aiIsInsert = p => aiNormalizePlacement(p) !== 'replace';
+
+/* The contract with the model when placement is on the table. The base format
+   above stays exactly as it was — "✂️ Shorten & Simplify" and the contract
+   tab's own actions carry their instruction and cannot mean anything but a
+   replacement, so offering them a placement field would only invite one.
+
+   Two rules are stated hard because they are the two ways this comes back
+   wrong. A drafter who says "add" and gets `replace` loses the sentence they
+   were building on. And a list emitted as a prose run-on is filed as one
+   paragraph — docRichFromText reads line openers to rebuild real list markup
+   (js/docx.js), so bullets have to ARRIVE as lines to survive as items. */
+const AI_EDIT_FORMAT = 'Reply with ONE JSON object and nothing else — no preamble, '
+  + 'no commentary outside it, no markdown fence:\n'
+  + '{\n'
+  + '  "advice": "Your reasoning: what you changed or added, which risk it moves, what it '
+  + 'costs to ask for it, and anything the drafter should check before proposing it.",\n'
+  + '  "placement": "replace" | "after" | "before" | "newClause",\n'
+  + '  "proposedText": "The wording itself and nothing else — no quotation marks around it, '
+  + 'no explanation inside it.",\n'
+  + '  "headingText": "Only when placement is newClause: the new clause\'s heading, e.g. '
+  + '\\"12. Data Retention\\". Omit otherwise."\n'
+  + '}\n\n'
+  + 'placement says WHERE your wording goes:\n'
+  + '  replace   — your wording takes the place of the selected passage\n'
+  + '  after     — your wording is inserted directly after the selected passage, '
+  + 'inside the same clause, and the selected passage is kept\n'
+  + '  before    — inserted directly before it, and the selected passage is kept\n'
+  + '  newClause — filed as a separate new clause immediately after the current one\n\n'
+  + 'If the drafter asks you to ADD, APPEND, INSERT, INCLUDE or EXTEND something, '
+  + 'placement MUST NOT be "replace" — choose after, before or newClause. Use replace only '
+  + 'when they are asking you to change wording that is already there. When they say '
+  + '"after this clause", prefer newClause; when they say "after this" of a sentence '
+  + 'inside a clause, prefer after.\n\n'
+  + 'When proposedText is a list, put ONE ITEM PER LINE with its own opening mark '
+  + '("(a)", "1.", "•" or "-"). Never run the items together into a single paragraph — '
+  + 'a list filed as one paragraph loses the numbering a contract is cited by.';
+
 /* ---------- TYPOGRAPHY SURVIVES THE REWRITE ----------
    A model handed a numbered sub-clause returns prose. It is not wrong about the
    words; it simply has no reason to know that "(a) … (b) … (c) …" on three
@@ -1438,6 +1515,39 @@ function aiPreserveTypography(original, proposed){
   return aiRestoreEmphasis(src, out);
 }
 
+/* ---------- AN ADDITION IS NOT MEASURED AGAINST WHAT IT SITS BESIDE ----------
+   aiPreserveTypography above is a comparison: it reads the shape of the passage
+   the answer REPLACES — its item count, its list and paragraph tags — and puts
+   that shape back where the model lost it. That is exactly right when the
+   answer stands in for the passage. It is wrong when the answer is added
+   alongside one, because an addition's shape has nothing to do with the shape
+   of whatever it happens to land next to.
+
+   The damage runs toward SPLITTING rather than joining, and it is not
+   theoretical: hand the repair a passage of three sub-paragraphs and one added
+   sentence, and it goes looking for two more items to reach the count, breaking
+   the sentence at its own semicolon to find them. A sub-paragraph break nobody
+   drafted, inside wording about to be filed as a redline. Against a rich
+   passage it does the mirror image, re-wrapping added text in the neighbour's
+   <ol> or <p>.
+
+   So an insert gets the SAFETY half and none of the reshaping: the void blocks
+   go, the tag allowlist holds, and nothing is counted. What structure the new
+   wording arrives with is the structure it was asked for — and where the clause
+   is plain text, docRichFromText reads the line openers back into real list
+   markup at filing time (js/docx.js), which is why bullets must arrive as
+   lines and why nothing here may join them up. */
+function aiCleanAddedWording(original, proposed){
+  const raw = String(proposed == null ? '' : proposed).trim();
+  if (!raw) return raw;
+  /* Markup is allowed through only where the passage it joins already carries
+     it. A model that decided to return tags for a clause held as a plain string
+     is adding typography to a value that gets escaped downstream, so it would
+     be filed as visible angle brackets in a contract. */
+  return aiStructureOf(String(original == null ? '' : original)).html
+    ? aiKeepStructuralTags(raw) : _aiStripTags(raw);
+}
+
 /* ---------- WHAT IS NOT CONTRACT WORDING ----------
    The proposal card exists to hold one thing: the string that will be spliced
    into a clause. Everything a model says AROUND that — "I'd be happy to help",
@@ -1521,7 +1631,17 @@ function aiParseProposal(raw){
     const split = aiSplitDisclaimer(text);
     const merged = [said, split.advice].filter(Boolean).join(' ');
     if (!split.wording && !merged) return null;
-    return { advice: merged, proposedText: split.wording, strict: true };
+    /* Absent, misspelt or invented placements all land on 'replace' — see
+       aiNormalizePlacement. A caller that did not offer the field gets the
+       behaviour it had before it existed. */
+    const placement = aiNormalizePlacement(obj.placement ?? obj.where ?? obj.position);
+    const heading = String(obj.headingText ?? obj.heading ?? '').trim();
+    return { advice: merged, proposedText: split.wording, strict: true, placement,
+      /* Carried only where it means something. A heading on a replacement is a
+         field nobody reads, and one left on a placement the reader later flips
+         AWAY from newClause would resurface if they flipped back to it — which
+         is the correct behaviour, so it is kept rather than cleared. */
+      headingText: placement === 'newClause' ? heading : '' };
   };
   try{ const hit = pick(JSON.parse(unfenced)); if (hit) return hit; }catch(_){}
   /* JSON with prose either side of it — take the widest balanced object and try
@@ -1537,15 +1657,37 @@ function aiParseProposal(raw){
   const text = unfenced.replace(/^["“]([\s\S]*)["”]$/, '$1').trim();
   if (!text) return null;
   const split = aiSplitDisclaimer(text);
-  return { advice: split.advice, proposedText: split.wording, strict: false };
+  /* NO STRUCTURE MEANS NO PLACEMENT. A reply that skipped the wrapper never
+     said where its wording goes, and guessing "insert" from prose would splice
+     at an offset nobody nominated. Replacing the passage is the one reading
+     that is certainly about the passage the reader selected. */
+  return { advice: split.advice, proposedText: split.wording, strict: false,
+    placement: 'replace', headingText: '' };
 }
 
 /* Ask for a rewrite and get the structure back. One call, used by every entry
-   point, so "what does a proposal look like" has a single answer. */
+   point, so "what does a proposal look like" has a single answer.
+
+   `placements: true` opens the four placements up (see AI_PLACEMENTS) so the
+   answer can ADD wording rather than only swap it. It is opt-in per action
+   because most callers cannot mean anything else: "✂️ Shorten & Simplify"
+   carries its own instruction and a shortening that inserts is not a
+   shortening. Offering the field where it has no meaning would only invite the
+   model to use it. */
 async function copilotPropose(opts){
   const o = opts || {};
   const passage = String(o.passage == null ? '' : o.passage);
+  const placements = o.placements === true;
   const shape = aiStructureOf(passage);
+  /* ---- WHAT SHAPE THE ANSWER SHOULD BE IN ----
+     For a replacement this is a description of the passage, because the answer
+     stands in for it. Once the answer can be an INSERT that reasoning breaks:
+     new wording added after a one-line sentence has no reason to be one line —
+     "add three bullet points" is three lines by definition — and instructing
+     the model to match the passage's shape is instructing it to flatten the
+     list it was asked for. So the shape note is only given where the answer
+     really is a substitute; where it may be an addition, the list rule in
+     AI_EDIT_FORMAT governs instead. */
   const structural = shape.html
     ? 'The passage is HTML. Keep every structural tag it uses — <strong>, <br>, <p>, <ol>, <ul>, <li> — '
       + 'in your proposedText, and add no others. Do not collapse a list into a paragraph.'
@@ -1562,12 +1704,20 @@ async function copilotPropose(opts){
     o.history ? `\nSo far in this exchange:\n${o.history}` : '',
     o.instruction ? `\nThe drafter has now asked: "${o.instruction}"` : '',
     '',
-    'The selected wording is:',
+    placements
+      ? 'The drafter has selected this wording. It is the ANCHOR — depending on the placement '
+        + 'you choose, your wording may replace it, sit after it, sit before it, or become a new '
+        + 'clause following the one it sits in:'
+      : 'The selected wording is:',
     '"""', passage, '"""',
     '',
-    structural,
+    /* The shape note is a REPLACEMENT instruction; see above. */
+    placements && shape.html
+      ? 'If your placement is "replace", keep every structural tag the passage uses — <strong>, '
+        + '<br>, <p>, <ol>, <ul>, <li> — and add no others.'
+      : placements ? '' : structural,
     '',
-    AI_PROPOSAL_FORMAT
+    placements ? AI_EDIT_FORMAT : AI_PROPOSAL_FORMAT
   ];
   /* Through the PUBLISHED binding, not the module-local one. Every module in
      this app is an ES module that exports by assigning to window, and every
@@ -1588,7 +1738,16 @@ async function copilotPropose(opts){
      running an empty string through the typography repair would only manufacture
      an empty proposal to put buttons on. */
   if (!parsed.proposedText) return { ...parsed, proposedText: '' };
-  return { ...parsed, proposedText: aiPreserveTypography(passage, parsed.proposedText) };
+  /* A caller that never offered placements gets 'replace' from the parser and
+     therefore the repair, unchanged — this branch cannot alter their behaviour.
+     See aiCleanAddedWording for why an insert must not be measured against the
+     passage it sits beside. */
+  const placement = placements ? aiNormalizePlacement(parsed.placement) : 'replace';
+  return { ...parsed, placement,
+    headingText: placement === 'newClause' ? String(parsed.headingText || '') : '',
+    proposedText: aiIsInsert(placement)
+      ? aiCleanAddedWording(passage, parsed.proposedText)
+      : aiPreserveTypography(passage, parsed.proposedText) };
 }
 
 /* ---------- the proposal card ----------
@@ -1599,6 +1758,63 @@ async function copilotPropose(opts){
 const AI_PROPOSAL_OPEN = 'open';
 const aiProposals = new Map();
 let _aiProposalSeq = 0;
+
+/* ---------- THE CARD SAYS WHAT IT IS ABOUT TO DO ----------
+   This line used to read "Replacing: …" and nothing else, because replacing was
+   the only thing a proposal could do. Now that it can also add, a card that
+   still says "Replacing" over wording about to be INSERTED is telling the
+   reader the opposite of what pressing Apply will do — and the reader has no
+   other way to find out before it happens.
+
+   For a new clause the anchor is not wording being acted on at all; it is the
+   clause the new one will follow. So it names the clause rather than quoting
+   the passage, which would otherwise read as though that passage were going
+   somewhere. */
+function aiProposalAnchorHtml(p){
+  const e = _aiEsc;
+  const placement = aiNormalizePlacement(p.placement);
+  const line = s => `<div style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.5">${s}</div>`;
+  if (placement === 'newClause')
+    return line(`New clause${p.clauseLabel ? ` after <i>${e(p.clauseLabel)}</i>` : ''}${
+      p.headingText ? ` · heading <i>${e(p.headingText)}</i>` : ''}`);
+  if (!p.replacing) return '';
+  const quote = e(p.replacing.length > 110 ? p.replacing.slice(0, 109) + '…' : p.replacing);
+  return line(`${e(AI_PLACEMENT_LABEL[placement])}: <i>${quote}</i>`);
+}
+
+/* ---------- AND LETS THE READER CORRECT IT ----------
+   The model picks the placement from a sentence typed in a hurry, and it will
+   sometimes pick wrong. The costs of the two directions are not symmetrical: an
+   insert that should have been a replacement leaves a duplicate sentence for
+   somebody to notice and tidy, while a REPLACEMENT that should have been an
+   insert deletes wording nobody agreed to lose. That asymmetry is the whole
+   argument for this control — one press to correct the guess, before Apply,
+   without spending another round trip on saying "no, after it".
+
+   Which is also why flipping the placement never re-asks the model. The wording
+   on the card is the wording the reader has read and may have edited; throwing
+   it away to re-draft it because they corrected WHERE it goes would punish them
+   for using the control. Only shown where the action offered placements at all
+   — "✂️ Shorten & Simplify" cannot mean an insert, so it gets no choice. */
+function aiProposalPlacementHtml(p){
+  if (!p.placements || p.status !== AI_PROPOSAL_OPEN) return '';
+  const e = _aiEsc;
+  const current = aiNormalizePlacement(p.placement);
+  return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <span style="font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+      color:var(--color-neutral-500)">Where</span>
+    ${AI_PLACEMENTS.map(x => {
+      const on = x === current;
+      return `<button type="button" data-ai-prop-place="${e(p.id)}" data-place="${e(x)}"
+        aria-pressed="${on}" title="${e(AI_PLACEMENT_LABEL[x])} — nothing is re-drafted, only where it goes"
+        style="font:inherit;font-size:10.5px;line-height:1;cursor:pointer;border-radius:999px;padding:4px 9px;
+          border:1px solid ${on ? '#6366f1' : 'var(--color-divider)'};
+          background:${on ? '#e0e7ff' : 'var(--color-surface)'};
+          color:${on ? '#3730a3' : 'var(--color-neutral-600)'};
+          font-weight:${on ? '700' : '500'}">${e(AI_PLACEMENT_SHORT[x])}</button>`;
+    }).join('')}
+  </div>`;
+}
 
 function aiProposalCardHtml(p){
   if (!p) return '';
@@ -1624,8 +1840,8 @@ function aiProposalCardHtml(p){
             padding:9px 11px;background:var(--color-surface);color:inherit;resize:vertical">${e(p.text)}</textarea>`
       : `<div class="ai-proposal-text" style="font-size:12.5px;line-height:1.65;white-space:pre-wrap;
           border-left:2px solid #c7d2fe;padding-left:10px;color:var(--color-neutral-800)">${e(p.text)}</div>`}
-    ${p.replacing ? `<div style="font-size:10.5px;color:var(--color-neutral-500);line-height:1.5">Replacing: <i>${
-      e(p.replacing.length > 110 ? p.replacing.slice(0, 109) + '…' : p.replacing)}</i></div>` : ''}
+    ${aiProposalAnchorHtml(p)}
+    ${aiProposalPlacementHtml(p)}
     ${p.note ? `<div style="font-size:11px;line-height:1.5;color:#7d5a14">${e(p.note)}</div>` : ''}
     ${done
       ? `<div style="font-size:11px;font-weight:600;border-radius:6px;padding:5px 9px;background:${tone[0]};color:${tone[1]}">${tone[2]}</div>`
@@ -1658,7 +1874,7 @@ function aiOpenProposal(opts){
      reply lands as one ordinary bubble and the conversation stays open. */
   if (!String(o.proposedText == null ? '' : o.proposedText).trim()){
     aiPush('assistant', { text: aiFmt(o.advice
-      || 'I could not turn that into replacement wording. Tell me what you would like changed and I will draft it.') });
+      || 'I could not turn that into contract wording. Tell me what you would like changed or added and I will draft it.') });
     renderAIFeed();
     return null;
   }
@@ -1668,6 +1884,12 @@ function aiOpenProposal(opts){
     advice: String(o.advice == null ? '' : o.advice),
     strict: o.strict !== false,
     clauseLabel: o.clauseLabel || '', replacing: o.replacing || '', note: o.note || '',
+    /* `placements` is whether this action offered a CHOICE, `placement` is the
+       one currently made. They are separate because a shorten proposal has a
+       placement (replace, necessarily) and must not have a control. */
+    placements: o.placements === true,
+    placement: aiNormalizePlacement(o.placement),
+    headingText: String(o.headingText == null ? '' : o.headingText),
     ctx: o.ctx || null,
     onApply: typeof o.onApply === 'function' ? o.onApply : null,
     onDecline: typeof o.onDecline === 'function' ? o.onDecline : null,
@@ -1675,7 +1897,9 @@ function aiOpenProposal(opts){
   aiProposals.set(id, p);
   ai.activeProposal = id;
   if (p.advice) aiPush('assistant', { text: aiFmt(p.advice) });
-  else aiPush('assistant', { text: `<div>Here is a replacement for that passage. I have no reasoning to add beyond the wording itself.</div>` });
+  else aiPush('assistant', { text: `<div>${aiIsInsert(p.placement)
+    ? 'Here is wording to add. I have no reasoning to add beyond the wording itself.'
+    : 'Here is a replacement for that passage. I have no reasoning to add beyond the wording itself.'}</div>` });
   aiPush('assistant', { proposalId: id });
   renderAIFeed();
   return p;
@@ -1727,6 +1951,27 @@ function aiProposalToggleEdit(id){
     if (box){ box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
   }
 }
+/* Correct where the wording goes, without re-drafting it. The model's guess is
+   a guess; this is the reader overruling it in one press. Nothing is asked of
+   the model and nothing about the wording changes — only the splice it is
+   headed for, which is re-resolved against the live clause at Apply anyway.
+
+   The live text is read out FIRST because a repaint follows. Flipping the
+   placement while the card is open in its editor would otherwise redraw the
+   textarea from the record and silently discard whatever was half-typed into
+   it — the same trap aiProposalToggleEdit steps around. */
+function aiProposalSetPlacement(id, placement){
+  const p = aiProposals.get(id);
+  if (!p || p.status !== AI_PROPOSAL_OPEN || !p.placements) return;
+  const next = aiNormalizePlacement(placement);
+  if (next === p.placement) return;
+  if (p.editing) p.text = aiProposalLiveText(p);
+  p.placement = next;
+  /* A note left over from a refused Apply described the placement that was
+     refused. Keeping it beside a different one would explain the wrong thing. */
+  p.note = '';
+  renderAIFeed();
+}
 function aiWireProposals(){
   const feed = document.getElementById('ai-feed');
   if (!feed || !feed.querySelectorAll) return;
@@ -1735,6 +1980,8 @@ function aiWireProposals(){
   bind('data-ai-prop-apply', aiProposalApply);
   bind('data-ai-prop-decline', aiProposalDecline);
   bind('data-ai-prop-edit-btn', aiProposalToggleEdit);
+  feed.querySelectorAll('[data-ai-prop-place]').forEach(b => b.addEventListener('click', () =>
+    aiProposalSetPlacement(b.getAttribute('data-ai-prop-place'), b.getAttribute('data-place'))));
   /* Keep the record in step with the box as it is typed. Without this a repaint
      from anywhere else in the panel — a follow-up answer landing — would redraw
      the textarea from a stale value and throw away the edit in progress. */
@@ -1757,7 +2004,22 @@ async function aiRefineProposal(p, instruction){
     ? await p.onRefine(instruction, p, { history })
     : null;
   if (!next) return null;
-  return aiOpenProposal({ ...next,
+  /* ---- A CORRECTED PLACEMENT SURVIVES THE NEXT TURN ----
+     The reader who pressed "Add after" because the model guessed "Replace" has
+     already answered this question, and a follow-up about the WORDING —
+     "make the third one stronger" — is not them reopening it. Letting the model
+     re-pick on every turn would silently undo that correction, and undoing it
+     back to `replace` is the destructive direction: the passage they were
+     building on disappears.
+
+     So the placement in force carries forward, and the model's fresh pick is
+     used only where there is nothing to carry. Genuinely changing their mind
+     costs one press of the control on the new card, which is the cheap
+     direction to be wrong in. */
+  const placement = aiNormalizePlacement(next.placement || p.placement);
+  return aiOpenProposal({ ...next, placement,
+    placements: next.placements === undefined ? p.placements : next.placements,
+    headingText: next.headingText || p.headingText,
     clauseLabel: next.clauseLabel || p.clauseLabel,
     replacing: next.replacing || p.replacing,
     ctx: next.ctx || p.ctx,
@@ -1805,7 +2067,7 @@ function aiOpenRephraseSession(opts){
       <div class="ai-target-head">Target text${o.clauseLabel ? ` · ${_aiEsc(o.clauseLabel)}` : ''}</div>
       <div class="ai-target-body">${_aiEsc(passage.length > 600 ? passage.slice(0, 599) + '…' : passage)}</div>
     </div>
-    <div class="ai-target-ask">${_aiEsc(o.greeting || 'How would you like me to help rephrase this passage?')}</div>` });
+    <div class="ai-target-ask">${_aiEsc(o.greeting || 'What would you like to add or change here?')}</div>` });
   renderAIFeed();
   return aiRephrase.active;
 }
@@ -1912,7 +2174,9 @@ if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
 Object.assign(window,{
-  AI_PROPOSAL_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
+  AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
+  AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
+  aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
   AI_NOT_WORDING,aiLooksConversational,aiSplitDisclaimer,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,

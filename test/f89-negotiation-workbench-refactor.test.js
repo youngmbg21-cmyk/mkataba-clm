@@ -313,16 +313,19 @@ describe('F89 (3,4) — redlining runs through the Copilot column, not a dialog'
       'a panel that answers a question it never showed reads as volunteering wording');
   });
 
-  test('Rephrase asks what the rewrite is for instead of guessing', async () => {
+  test('Edit asks what the change is for instead of guessing', async () => {
     const p = await page();
     p.openSel();
     [...p.$$('.nego-selmenu [data-nego-ai]')]
-      .find(b => b.getAttribute('data-nego-ai') === 'rephrase').dispatchEvent(
+      .find(b => b.getAttribute('data-nego-ai') === 'edit').dispatchEvent(
         new p.win.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
     await new Promise(r => setTimeout(r, 10));
     assert.equal(p.panel.sessions.length, 1, 'it must seed a session, not spend a call');
     assert.equal(p.panel.proposals.length, 0, 'nothing is asked until the drafter says what they want');
-    assert.match(p.panel.sessions[0].greeting, /how would you like/i);
+    /* The question has to leave ADDING open. Asking "how would you like me to
+       rephrase this" of a drafter who came to add three bullet points reads as
+       a refusal before they have typed anything. */
+    assert.match(p.panel.sessions[0].greeting, /what would you like to add or change/i);
   });
 
   test('a selection drives the side panel through the page\'s own hook', async () => {
@@ -419,10 +422,16 @@ describe('F89 (5) — three actions on a passage, and only three', () => {
   test('the menu is exactly the standardised set', async () => {
     const p = await page();
     const ids = p.win.RL_SEL_ACTIONS.map(a => a.id);
+    /* STILL THREE after the Copilot learned to add wording as well as replace
+       it. "Edit with Copilot" is the rename of "Rephrase with Copilot", not a
+       fourth door beside it — two entries that read the same to anyone moving
+       at speed is the duplicate-door problem this page already argued out. */
     assert.equal(ids.length, 3, 'three verbs, no more');
-    assert.equal(ids.join(','), 'rephrase,shorten,tag');
+    assert.equal(ids.join(','), 'edit,shorten,tag');
     const labels = p.win.RL_SEL_ACTIONS.map(a => a.label);
-    assert.match(labels[0], /Rephrase with Copilot/);
+    assert.match(labels[0], /Edit with Copilot/);
+    assert.ok(!labels.some(l => /Rephrase/.test(l)),
+      'and "rephrase" is gone from the menu — it named half the job');
     assert.match(labels[1], /Shorten & Simplify/);
     assert.match(labels[2], /Tag with internal note/);
   });

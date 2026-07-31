@@ -683,12 +683,12 @@ describe('F96 — the guarantees the fixes are not allowed to cost', () => {
 });
 
 describe('F96 — the custom-prompt route matches the one-shot route', () => {
-  test('Rephrase opens a conversation, and its proposal splices the same way', async () => {
+  test('Edit with Copilot opens a conversation, and its proposal splices the same way', async () => {
     const p = await page();
     const cl = p.clauseWith(/A party in breach/);
     await p.press(p.highlight(cl, 'thirty (30) days', 'thirty (30) days', { fromNth: 1, toNth: 1 }),
-      /Rephrase/);
-    assert.equal(p.panel.sessions.length, 1, 'Rephrase asks what the rewrite is FOR');
+      /Edit with Copilot/);
+    assert.equal(p.panel.sessions.length, 1, 'the conversational action asks what the edit is FOR');
     assert.equal(p.panel.proposals.length, 0, 'and spends nothing before it is told');
     /* The lawyer types their instruction. */
     await p.panel.sessions[0].onPropose('Make the notice period longer.');
