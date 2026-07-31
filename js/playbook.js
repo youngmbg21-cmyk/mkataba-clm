@@ -52,7 +52,10 @@ const DEFAULT_PLAYBOOK = {
     ],
   },
   supply: { label:'Supply / raw material / packaging', extends:'_default',
-    positions:[ { category:'Quality & rejection', pos:'required', escalate:false, note:'KEBS/EAS spec + rejection window.' },
+    positions:[ { category:'Quality & rejection', pos:'required', escalate:false,
+                  /* Named where the market has a standards body to name; a plain
+                     specification requirement where it does not. */
+                  get note(){ const sb=jxStandardsBody(); return sb ? `${sb} spec + rejection window.` : 'Agreed product specification + rejection window.'; } },
                 { category:'Liability cap', pos:'preferred', clause:'cl-liab', escalate:true } ],
     ranges:[] },
   services: { label:'Professional / marketing services', extends:'_default',
@@ -60,7 +63,10 @@ const DEFAULT_PLAYBOOK = {
                 { category:'Liability cap', pos:'required', clause:'cl-liab', escalate:true } ],
     ranges:[] },
   lease: { label:'Property lease', extends:'_default',
-    positions:[ { category:'Stamp duty', pos:'required', escalate:true, note:'Stamp duty assessed & paid (Stamp Duty Act Cap 480).' } ],
+    get positions(){ const sd=jxStampDuty();
+      /* A market with no lease stamp duty gets no position to deviate from,
+         rather than one citing a statute that does not apply to it. */
+      return sd ? [{ category:'Stamp duty', pos:'required', escalate:true, note:`Stamp duty assessed & paid (${sd.statute}).` }] : []; },
     ranges:[] },
   nda: { label:'NDA', extends:'_default',
     positions:[ { category:'Confidentiality', pos:'required', clause:'cl-conf', escalate:false } ],
@@ -114,7 +120,8 @@ function playbookReviewHeuristic(c, text){
     else if(p.category==='Confidentiality'){ present=/confidential/i.test(t); const m=t.match(/[^.]*confidential[^.]*\./i); quote=m?m[0].trim():''; }
     else if(p.category==='Liability cap'){ present=/liab[^.]*cap|cap[^.]*liab|aggregate liability|limitation of liability/i.test(t); const m=t.match(/[^.]*liab[^.]*\./i); quote=m?m[0].trim():''; }
     else if(p.category==='Stamp duty'){ present=/stamp dut/i.test(t); const m=t.match(/[^.]*stamp dut[^.]*\./i); quote=m?m[0].trim():''; }
-    else if(p.category==='Quality & rejection'){ present=/(kebs|reject|specification|spec\b|quality)/i.test(t); const m=t.match(/[^.]*(reject|specification|quality)[^.]*\./i); quote=m?m[0].trim():''; }
+    else if(p.category==='Quality & rejection'){ const sb=(jxStandardsBody()||'').toLowerCase();
+      present=new RegExp(`(${sb?sb+'|':''}reject|specification|spec\\b|quality)`,'i').test(t); const m=t.match(/[^.]*(reject|specification|quality)[^.]*\./i); quote=m?m[0].trim():''; }
     else { present=T.includes(p.category.toLowerCase()); }
     if(present) V(p.category,'aligned',quote,cl?cl.name:p.note||'','',false);
     else V(p.category,'missing','',cl?cl.name:(p.note||p.category), cl?cl.preferred:'', p.escalate);

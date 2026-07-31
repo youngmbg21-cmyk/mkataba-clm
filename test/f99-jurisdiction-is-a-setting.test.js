@@ -219,12 +219,77 @@ describe('F99d — what the Copilot is told', () => {
 
   test('no prompt path still hard-codes the market', () => {
     /* A source-level guard, because this is the failure that reappears: the
-       next prompt somebody writes is the one that says "Kenyan law" again. */
-    for (const f of ['js/ai.js', 'js/views/negotiation.js', 'js/views/doclab.js', 'server/server.js']){
+       next prompt somebody writes is the one that says "Kenyan law" again.
+
+       js/views/contract.js is deliberately NOT in this list — it holds the
+       twelve built-in template papers, whose CLAUSE BODIES are Kenyan by
+       agreement. That is content a Swedish workspace ignores or replaces, not
+       configuration; a guard over it would fail on the one thing here that is
+       supposed to name a market. */
+    for (const f of ['js/ai.js', 'js/views/negotiation.js', 'js/views/doclab.js',
+      'js/playbook.js', 'js/core.js', 'js/views/portal.js', 'server/server.js']){
       const src = read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       assert.doesNotMatch(src, /Kenyan law/, `${f} still names a market in code`);
       assert.doesNotMatch(src, /Kenyan Shillings/, `${f} still names a currency in code`);
+      /* Statutes are the same failure wearing a citation. These are the ones
+         that were live in the product's own copy, as opposed to a template. */
+      assert.doesNotMatch(src, /Business Laws \(Amendment\)/,
+        `${f} still cites an e-signature statute in code`);
+      assert.doesNotMatch(src, /Cap 480/, `${f} still cites a stamp-duty statute in code`);
     }
+  });
+});
+
+/* ============================================================ */
+describe('F99g — a claim a market cannot support is not made', () => {
+  /* The statute citations reached the user through three more doors than the
+     scanner: the signing consent box, the intent-to-sign finding, and the
+     playbook's own lease position. Each asserted a Kenyan Act to whoever was
+     reading, whatever market they were in. */
+  const loadPlaybook = (jurisdiction) => {
+    const store = {};
+    const sandbox = { console, JSON, Object, String, Number, Array, Boolean, Math, Error, RegExp, Set, Map,
+      document: { getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] },
+      lsGet: k => (k in store ? store[k] : null), lsSet: (k, v) => { store[k] = v; },
+      getOrg: () => ({ name: 'Pilot', jurisdiction }), state: { contracts: [] },
+      esc: x => String(x), icon: () => '', toast(){}, saveSettings(){}, currentUser: () => ({ name: 'You' }) };
+    sandbox.window = sandbox;
+    vm.createContext(sandbox);
+    for (const f of ['js/jurisdiction.js', 'js/playbook.js'])
+      vm.runInContext(read(f), sandbox, { filename: f });
+    return sandbox;
+  };
+
+  test('the lease playbook drops the stamp-duty position where there is no such duty', () => {
+    const ke = loadPlaybook('kenya');
+    const kePos = ke.DEFAULT_PLAYBOOK.lease.positions;
+    assert.equal(kePos.length, 1);
+    assert.match(kePos[0].note, /Cap 480/, 'Kenya still gets the citation it always had');
+
+    const se = loadPlaybook('sweden');
+    assert.equal(se.DEFAULT_PLAYBOOK.lease.positions.length, 0,
+      'THE FIX: no position beats one citing a statute that does not apply');
+  });
+
+  test('the governing-law position and its wording follow the market', () => {
+    const se = loadPlaybook('sweden');
+    const cl = se.DEFAULT_CLAUSE_LIBRARY.find(x => x.id === 'cl-law');
+    assert.match(cl.name, /^Swedish governing law/);
+    assert.match(cl.preferred, /laws of Sweden/);
+    assert.doesNotMatch(cl.guidance, /Kenya/);
+  });
+
+  test('the quality position names a standards body only where the pack has one', () => {
+    assert.match(loadPlaybook('kenya').DEFAULT_PLAYBOOK.supply.positions[0].note, /KEBS/);
+    assert.doesNotMatch(loadPlaybook('sweden').DEFAULT_PLAYBOOK.supply.positions[0].note, /KEBS/);
+  });
+
+  test('the signing consent box cites the market\'s own e-signature basis', () => {
+    /* Read from source: this is one line of markup deep inside the workspace
+       screen, and what matters is that it interpolates rather than asserts. */
+    const src = read('js/views/contract.js');
+    assert.match(src, /I intend to sign electronically[\s\S]{0,200}\$\{jxEsignature\(\)\}/,
+      'the consent a signer gives must name the law they are giving it under');
   });
 });
 

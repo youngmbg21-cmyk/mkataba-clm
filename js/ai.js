@@ -43,7 +43,7 @@ function scanRules(c){
     'Pick the effective date in the recital\u2019s date field.');
   if(c.status!=='Signed' && !c.compliance.consent) add('g-comp','low','missing','Intent-to-sign not yet confirmed','sig',
     'The signer has not yet confirmed intent to sign electronically.',
-    'A recorded intent-to-sign strengthens attribution of the electronic signature under the Business Laws (Amendment) Act 2020.',
+    `A recorded intent-to-sign strengthens attribution of the electronic signature. ${jxEsignature()}`,
     'Tick the intent-to-sign consent box in the verification panel before signing.');
 
   // --- template-specific (tuned to FMCG contract types & local practice) ---
@@ -53,10 +53,15 @@ function scanRules(c){
       'The recital leaves the material description blank.',
       'An unspecified input makes the specification, quality and rejection clauses unworkable and invites delivery disputes.',
       'Name the material and grade in the recital (e.g. \u201cICUMSA 45 refined white sugar\u201d).');
-    add('rm-kebs','med','risk','KEBS/EAS standard not cited','c3',
-      'The quality clause references a specification generally but names no KEBS/EAS standard number.',
+    /* Named where the market has a standards body to name. Where the pack
+       declares none the point still holds — an unnamed standard is unenforceable
+       anywhere — so the finding is generalised rather than dropped. */
+    const _sb = (typeof jxStandardsBody==='function' && jxStandardsBody()) || '';
+    const _std = _sb ? `${_sb}/EAS` : 'product';
+    add('rm-kebs','med','risk',`${_sb || 'Product'} standard not cited`,'c3',
+      `The quality clause references a specification generally but names no ${_std} standard number.`,
       'For food-grade inputs, an unnamed standard makes rejection hard to enforce and risks non-compliant material entering production.',
-      'Cite the applicable KEBS/EAS standard and make conformity a condition of acceptance.');
+      `Cite the applicable ${_std} standard and make conformity a condition of acceptance.`);
     add('rm-index','low','ambiguity','Price index unnamed','c2',
       'Pricing is \u201creviewed against commodity indices\u201d without naming one.',
       'Different indices move differently; an unnamed benchmark invites a pricing dispute at every quarterly review.',
@@ -78,8 +83,8 @@ function scanRules(c){
   }
   if(c.template==='CM'){
     add('cm-fs','high','risk','Food-safety certification not evidenced','c3',
-      'The agreement requires FSSC 22000 / KEBS certification but attaches no current certificate.',
-      'A lapsed co-packer certificate exposes the brand owner to recalls and Public Health / KEBS enforcement on its own label.',
+      `The agreement requires FSSC 22000${(typeof jxStandardsBody==='function'&&jxStandardsBody())?' / '+jxStandardsBody():''} certification but attaches no current certificate.`,
+      'A lapsed co-packer certificate exposes the brand owner to recalls and food-safety enforcement on its own label.',
       'Attach the current certificate and make continuous renewal a condition, with audit rights on notice.');
     add('cm-recall','high','missing','No product recall & traceability clause','c4',
       'Liability is noted generally but there is no defined recall process or batch traceability obligation.',
@@ -185,11 +190,13 @@ function scanRules(c){
     if(!f.deposit) add('le-dep','high','missing','Security deposit not specified','c3',
       'Clause 3 references a deposit but the amount field is blank.',
       'Without a stated deposit there is no defined security against dilapidations or arrears.',
-      'Enter the deposit \u2014 market practice in Nairobi is around 3 months\u2019 gross rent for commercial space.');
-    add('le-stamp','med','risk','Stamp duty not evidenced','c4',
+      `Enter the deposit${jxIs('kenya') ? ' \u2014 market practice in Nairobi is around 3 months\u2019 gross rent for commercial space' : ''}.`);
+    /* Only where the market has one. See js/jurisdiction.js: a finding that
+       fires with the statute name blanked out reads as advice nobody wrote. */
+    const _sd = (typeof jxStampDuty==='function' ? jxStampDuty() : null);
+    if(_sd) add('le-stamp','med','risk','Stamp duty not evidenced','c4',
       'Nothing records assessment or payment of stamp duty.',
-      'Leases attract stamp duty under the Stamp Duty Act (Cap 480); an unstamped lease is inadmissible in evidence until duty and penalties are paid.',
-      'Assess and pay stamp duty via iTax within 30 days of execution and attach the certificate.');
+      _sd.consequence, _sd.action);
     add('le-esc','low','missing','No rent escalation clause','c2',
       `Rent is fixed for the ${Number(f.termYears||6)}-year term with no review mechanism.`,
       'Over a multi-year lease, flat rent shifts inflation risk to one side and invites informal renegotiation disputes.',
