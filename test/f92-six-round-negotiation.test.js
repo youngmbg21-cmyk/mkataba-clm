@@ -136,7 +136,11 @@ describe('F92 — the six-round negotiation, end to end', () => {
     assert.equal(t.post.reshared, 1, 'and the dispatch really happened');
     assert.equal(win.negoTurn(c), 'counterparty', 'the table turned');
     assert.equal(t.$$('#rl-changes .rl-badge').filter(b => /^Sent$/.test(b.textContent.trim())).length, 2);
-    assert.ok(t.$('#rl-changes button.rl-sent'), 'the amber Sent state is on the card');
+    /* The card folds once it is theirs to answer: no verb on it is a move
+       this reader can make. The badge above carries the fact, and opening the
+       card brings the amber Sent back — f89 pins that half. */
+    assert.equal(t.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
+      'a sent ask is a line, not a panel');
     assert.ok(!t.$('[data-rl-blast]'), 'nothing unsent, no flashing control');
 
     /* ================= ROUND 2 — the counterparty answers ================= */

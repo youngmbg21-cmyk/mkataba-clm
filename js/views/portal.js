@@ -558,7 +558,7 @@ function wirePortalClauseEditor(c, p){
         <textarea data-cl-input="${i}" spellcheck="false" style="width:100%;min-height:78px;border:1px solid var(--color-accent);border-radius:5px;padding:9px 11px;font:inherit;font-size:13px;line-height:1.7;color:var(--color-doc-text);background:var(--color-surface);outline:none;resize:vertical">${esc(cur)}</textarea>
         <label style="display:block;margin-top:7px">
           <span style="display:block;font-size:10.5px;font-weight:600;color:var(--color-neutral-600);margin-bottom:3px">Why? (optional — shown next to this change)</span>
-          <input data-cl-note="${i}" type="text" value="${esc(PORTAL_CLAUSE_NOTES[i]||'').replace(/"/g,'&quot;')}" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none"/>
+          <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:5px;padding:7px 10px;font:inherit;font-size:12px;background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
           <button data-cl-cancel="${i}" class="ui-btn" style="font-size:11px;padding:4px 11px">Cancel</button>
@@ -568,6 +568,7 @@ function wirePortalClauseEditor(c, p){
       row.querySelector(`[data-cl-cancel="${i}"]`).addEventListener('click',repaint);
       row.querySelector(`[data-cl-save="${i}"]`).addEventListener('click',()=>{
         const v=ta?ta.value:'';
+        if(window.chatFieldWire) chatFieldWire(row);
         const noteEl=row.querySelector(`[data-cl-note="${i}"]`);
         const note=noteEl?String(noteEl.value||'').trim():'';
         // a clause edited back to what it said is not a change, and carries no reason
