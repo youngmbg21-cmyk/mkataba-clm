@@ -5992,3 +5992,52 @@ where `localStorage` throws on the first access — deliberately, because that i
 the counterparty's own situation — so proving something was written needs
 `buildPortal({ url })`, not a hand-rolled storage stub, which the accessor
 silently ignores.
+
+---
+
+## Run: the history screen had never been looked at (2026-07-31)
+
+**What was broken.** The negotiation history rendered at **510px of the 820px it
+asks for** — 62% of its design width, with the filter bar wrapped into four rows
+and every event squeezed into a column half the intended measure.
+
+**Root cause.** `.ht` declares `max-width:820px`; `openHistoryTimeline` called
+`openModal(html)` with no options, so the panel took the modal's `32rem` (512px)
+default. An inner max-width cannot argue with an outer one — it can only lose.
+`{ maxWidth: '820px' }` is the house convention for a modal of this kind
+(js/views/library.js uses it twice); this call simply never said so.
+
+**Why nothing caught it.** f120 and f121 prove the screen's behaviour — right
+events, right order, filters that combine, tamper-detection that names the first
+broken record — and every one of them ran in jsdom, which has no layout engine.
+jsdom can prove an event is PRESENT. It cannot prove it is VISIBLE. The
+Playwright render check was deferred from Session 14 to Session 20, then recorded
+at the close of Stage 9 as the programme's one open follow-up.
+
+This is the second time this exact failure has shipped here. The counterparty's
+workbench went out rendering 419px wide against the owner's 925px, with the whole
+suite green, and was caught only when `parity-verify.js` was built to look.
+
+**The fix.** `test/chromium/timeline-verify.js` + `test/chromium/timeline.html`,
+and the one-argument fix the harness found. 19 checks, all measured from
+`getBoundingClientRect`/`getComputedStyle` in a real browser: the declared width
+is reachable, one scrolling box rather than a scrollbar inside a scrollbar, no
+filter control clipped or outside its bar, nothing drawn past the panel edge, no
+event collapsed to nothing, redlines that wrap rather than scroll, the page
+behind not scrolling, a written (not toasted) verdict from Verify integrity, a
+filter that narrows the list without breaking the screen, and two narrower
+viewports. Wired into `test:all` as `npm run test:timeline`.
+
+**The check reads the component's OWN declared width** rather than a number
+copied into the harness, so it fails when the panel cannot deliver what the
+screen asks for — including if somebody later changes one and not the other.
+
+**Files touched.** js/views/negotiation.js (one argument), package.json,
+test/chromium/timeline.html, test/chromium/timeline-verify.js.
+**Verified.** 19/19 after the fix, 17/19 before it — the two failures being the
+width, on the unfiltered and the filtered screen. Suite 2170/2170 · redline
+71/71 · selection 22/22 · parity 18/18 · timeline 19/19.
+
+**Recorded, not fixed:** OI-5 — a `<del>` and its following `<ins>` run together
+in `.ht-redline` with no separation at the join. Cosmetic, and it lives in the
+shared redline renderer, so it moves every surface that draws one.

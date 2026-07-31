@@ -1133,7 +1133,21 @@ function negoTimelineScreenHtml(c, f = {}){
 }
 function openHistoryTimeline(c, f = {}){
   if (!c || typeof window.openModal !== 'function') return;
-  openModal(negoTimelineScreenHtml(c, f));
+  /* ---- THE PANEL HAS TO BE AS WIDE AS THE SCREEN INSIDE IT ----
+     `.ht` asks for 820px and this call did not say so, so the modal applied
+     its 32rem default and the whole history rendered at 510px — 62% of the
+     width it was drawn for, with the filter bar wrapped into four rows and
+     every event squeezed into a column half the intended measure. An inner
+     max-width cannot argue with an outer one; it can only lose.
+
+     Invisible to jsdom, which has no layout engine: f120 and f121 were green
+     throughout, because every event WAS present. Found by
+     test/chromium/timeline-verify.js on its first run — the check this screen
+     had been waiting on since Session 14. 820px is the house width for a modal
+     of this kind (see js/views/library.js), and the two numbers must stay in
+     step: the browser check reads `.ht`'s own max-width and fails if the panel
+     cannot deliver it. */
+  openModal(negoTimelineScreenHtml(c, f), { maxWidth: '820px' });
   /* Filters combine: every change re-renders the same screen with the whole
      filter state, so the two sources of truth cannot drift. */
   const read = () => {

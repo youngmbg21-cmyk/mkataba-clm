@@ -6,18 +6,15 @@ of fixes) and delete it from here.
 
 ---
 
-## OI-3 · The timeline screen has never been drawn at a real size
+## OI-5 · A deletion and the insertion after it run together in the history
 
-`f120`/`f121` prove the History screen's behaviour in jsdom, which has no
-layout engine: they can prove every event is PRESENT and cannot prove it is
-VISIBLE. The Playwright render check was deferred from Session 14 to Session
-20 and then recorded as still open at the close of Stage 9.
-
-This is the failure mode that already shipped once in this product — the
-counterparty's workbench passed every test while rendering 419px wide against
-the owner's 925px (Stage 2, `test/chromium/parity-verify.js`). A long
-chronological list with filters over it is the likeliest thing in the product
-to repeat it.
+Observed while building `timeline-verify.js`, not a layout fault and not fixed
+here: in `.ht-redline` a `<del>` is followed immediately by its `<ins>` with no
+separation, so "…within ~~thirty (30) days (Net-30).~~forty-five (45) days…"
+reads as one word at the join. Legible, and cosmetic. It belongs to the shared
+redline renderer rather than to the history screen, so changing it moves every
+surface that draws a redline — worth a deliberate decision rather than a
+drive-by.
 
 ## OI-4 · The header's bulk verbs keep the owner's words in Counterparty View
 
@@ -43,3 +40,8 @@ deletion left a visible numbering gap with nothing said about it) closed across
 f98 (the notice and the lock) and N2 in Stage 5 — the explicit, previewed
 renumber action, `f119`. Both closures are recorded in `BUGLOG.md` under
 "Run: Linked references and the renumber button".
+
+*Also closed:* OI-3 (the timeline screen had never been drawn at a real size)
+closed by `test/chromium/timeline-verify.js`, which found on its first run that
+the screen was rendering at 510px of the 820px it asks for. Recorded in
+`BUGLOG.md` under "Run: the history screen had never been looked at".

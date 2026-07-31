@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HaTi — the negotiation history screen, Chromium verification</title>
+<script>
+document.documentElement.style.setProperty('--view-h', '100vh');
+</script>
+</head>
+<body>
+<div id="app-shell"></div>
+<div id="content"></div>
+<div id="modal-root"></div>
+<div id="share-root"></div>
+
+<!-- index.html's own stylesheet, lifted at load rather than copied. The screen
+     under measurement is drawn almost entirely in the product's variables
+     (--color-surface, --color-divider, --font-heading), so a harness with its
+     own copy of them would be measuring a page that does not exist. -->
+<script>
+(function(){
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', '/index.html', false);
+  xhr.send(null);
+  var doc = new DOMParser().parseFromString(xhr.responseText, 'text/html');
+  Array.prototype.forEach.call(doc.querySelectorAll('style'), function(st){
+    var el = document.createElement('style'); el.textContent = st.textContent;
+    document.head.appendChild(el);
+  });
+  /* js/ai.js wires itself to the Copilot panel's controls the moment it loads,
+     and the panel lives in index.html. Without it the harness prints a page
+     error of its own making — which would mask a real one. */
+  ['ai-scrim', 'ai-panel'].forEach(function(id){
+    var node = doc.getElementById(id);
+    if (node) document.body.appendChild(document.importNode(node, true));
+  });
+})();
+</script>
+
+<script>
+window.FIRST_PARTY = 'Wanjiru Catering Ltd';
+window.PORTAL_MODE = false;
+try{
+  localStorage.setItem('hati.v1.users', JSON.stringify([{ id:'u_w', name:'Wanjiru Kamau', role:'legal', email:'wanjiru@company.co.ke' }]));
+  localStorage.setItem('hati.v1.session', JSON.stringify({ userId:'u_w' }));
+}catch(e){}
+window.currentUser = () => ({ id:'u_w', name:'Wanjiru Kamau', role:'legal' });
+window.canEdit = () => true;
+window.isAdmin = () => false;
+window.API_MODE = () => false;
+window.nowISO = () => new Date('2026-07-30T09:14:00Z').toISOString();
+window.todayStr = () => '30 Jul 2026';
+window.fmtDT = () => '30 Jul 2026, 09:14';
+window.fmtMoney = n => 'KES ' + Number(n||0).toLocaleString('en-KE');
+window.icon = () => '<svg width="14" height="14"></svg>';
+window.persist = () => {};
+window.saveContract = () => {};
+window.renderWorkspace = () => {};
+window.setView = () => {};
+window.toast = () => {};
+window.confirmDialog = async () => true;
+window.promptDialog = async () => 'Round 1';
+window.emailOff = () => true;
+window.customTemplates = () => [];
+</script>
+
+<script src="../../js/jurisdiction.js"></script>
+<script src="../../js/components.js"></script>
+<script src="../../js/templates.js"></script>
+<script src="../../js/core.js"></script>
+<script src="../../js/richdoc.js"></script>
+<script src="../../js/clausemodel.js"></script>
+<script src="../../js/redline.js"></script>
+<script src="../../js/docx.js"></script>
+<script src="../../js/versioning.js"></script>
+<script src="../../js/discuss.js"></script>
+<script src="../../js/negotiation.js"></script>
+<script src="../../js/ai.js"></script>
+<script src="../../js/views/negotiation.js"></script>
+
+<script>
+/* Re-applied after core.js, which defines its own over the top — correct, it
+   IS the product, but a harness has to stand these few in. openModal is
+   DELIBERATELY NOT among them: the modal chrome is half of what this harness
+   measures, so it must be the product's own. */
+window.currentUser = () => ({ id:'u_w', name:'Wanjiru Kamau', role:'legal' });
+window.canEdit = () => true;
+window.persist = () => {};
+window.setView = () => {};
+window.toast = () => {};
+window.FIRST_PARTY = 'Wanjiru Catering Ltd';
+if (!window.TEMPLATES.WH) window.TEMPLATES.WH = { id:'WH', name:'Warehousing and Logistics Services Agreement', folder:'dist' };
+</script>
+
+<script>
+const RICH = [
+  '<h1>Warehousing and Logistics Services Agreement</h1>',
+  '<p>Between Wanjiru Catering Ltd (Nairobi, Kenya) and Nordfrakt Logistik AB (Malmö, Sweden).</p>',
+  '<h2>4. Payment Terms</h2>',
+  '<p>All invoices are payable within thirty (30) days from the date of issue (Net-30).</p>',
+  '<h2>8. Limitation of Liability and Consequential Loss Exclusions</h2>',
+  '<p>Neither party shall be liable for indirect or consequential loss howsoever arising.</p>',
+  '<h2>12. Governing Law</h2>',
+  '<p>This Agreement is governed by the laws of Kenya.</p>',
+  '<h2>13. Insurance</h2>',
+  '<p>The Provider shall maintain warehouse legal liability insurance with a reputable insurer licensed in Kenya.</p>',
+  '<h2>14. Confidentiality</h2>',
+  '<p>Each party shall keep confidential all information disclosed by the other in connection with this Agreement.</p>',
+  '<h2>16. Force Majeure</h2>',
+  '<p>Neither party is liable for failure to perform caused by an event beyond its reasonable control.</p>',
+  '<h2>18. Notices</h2>',
+  '<p>Notices shall be given in writing and delivered by hand or by electronic mail to the addresses in Annex B.</p>',
+].join('');
+
+window.READY = (async () => {
+  const c = { id:'MK-191', name:'WH — Nordfrakt Logistik AB', counterparty:'Nordfrakt Logistik AB',
+    template:'WH', status:'Under Review', folder:'dist', fields:{}, metadata:{}, audit:[],
+    rounds:[], versions:[], signatures:[], comments:[], redlineText: RICH, format:'rich' };
+  negoInit(c);
+  const byNum = n => negoClauseList(c).find(x => (x.headingText || '').indexOf(n) === 0);
+  const ask = (num, body, o) => negoEditClause(c, byNum(num).clauseId, body, o);
+
+  /* ---- ROUND 1: asks from both sides, decided both ways ----
+     A timeline with only one kind of beat in it measures nothing about a
+     screen whose whole job is to hold several kinds side by side. */
+  await ask('4.', '<p>All invoices are payable within forty-five (45) days from the date of issue (Net-45).</p>',
+    { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB',
+      summary:'Payment terms extended from Net-30 to Net-45',
+      note:'Our accounts-payable cycle runs monthly, so Net-30 forces out-of-cycle payments.' });
+  await ask('8.', '<p>Neither party shall be liable for indirect or consequential loss howsoever arising, save that this exclusion shall not apply to liability for death or personal injury caused by negligence, fraud, or fraudulent misrepresentation.</p>',
+    { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB',
+      summary:'Carve-outs added to the consequential-loss exclusion' });
+  await ask('12.', '<p>This Agreement is governed by the laws of Kenya and the courts of Nairobi have exclusive jurisdiction.</p>',
+    { side:'owner', author:'Wanjiru Kamau', summary:'Exclusive jurisdiction added' });
+
+  const chById = id => negoChanges(c).find(x => x.id === id);
+  const all = negoChanges(c).slice();
+  negoResolve(c, all[0].id, 'accepted', { by:'Wanjiru Kamau', side:'owner' });
+  negoResolve(c, all[1].id, 'rejected', { by:'Wanjiru Kamau', side:'owner',
+    reply:'The carve-out for fraudulent misrepresentation goes beyond our board mandate — we can accept death and personal injury only.' });
+  negoResolve(c, all[2].id, 'accepted', { by:'Amina Wanjiru · Nordfrakt Logistik AB', side:'counterparty' });
+  negoAdvanceRound(c, { by:'Wanjiru Kamau' });
+
+  /* ---- ROUND 2: a live round, one still pending, one withdrawn ---- */
+  await ask('13.', '<p>The Provider shall maintain warehouse legal liability insurance with a reputable insurer licensed in Kenya, and shall furnish certificates of currency each quarter.</p>',
+    { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB',
+      summary:'Quarterly certificates of currency required' });
+  await ask('14.', '<p>Each party shall keep confidential all information disclosed by the other for a period of five (5) years after termination.</p>',
+    { side:'owner', author:'Wanjiru Kamau', summary:'Five-year confidentiality tail' });
+  await ask('16.', '<p>Neither party is liable for failure to perform caused by an event beyond its reasonable control, provided it notifies the other party within five (5) business days.</p>',
+    { side:'counterparty', author:'Amina Wanjiru · Nordfrakt Logistik AB',
+      summary:'Notification window added to force majeure' });
+  const live = negoChanges(c).filter(x => x.status === 'pending');
+  if (live[2] && window.negoWithdraw) negoWithdraw(c, live[2].id, { by:'Amina Wanjiru · Nordfrakt Logistik AB', side:'counterparty' });
+
+  /* ---- THE BEATS THAT COME OFF THE AUDIT TRAIL ----
+     Written through logAudit, the way the product writes them, so the screen
+     reads its own prose rather than a fixture's. */
+  const stamp = (action, detail, data) => (c.audit = c.audit || []).push({
+    at:'2026-07-2' + ((c.audit || []).length % 9) + 'T10:00:00.000Z',
+    user:'Wanjiru Kamau', action, detail, ...(data ? { data } : {}) });
+  stamp('Shared', 'A negotiation link was sent to Amina Wanjiru at Nordfrakt Logistik AB');
+  stamp('Renumbered', 'Clause 9 was deleted and the run closed up: clauses 10–18 became 9–17, and four cross-references were repointed to follow',
+    { kind:'renumber', moved:9 });
+  stamp('Countersigned', 'Erik Lindqvist (Managing Director, Nordfrakt Logistik AB) signed — verified by one-time code to erik@nordfrakt.se');
+
+  window.CONTRACT = c;
+  state.contracts.unshift(c);
+  state.activeId = c.id;
+  state.view = 'redline';
+
+  /* The door the product opens it by. Nothing here builds the markup itself:
+     the harness presses the same function the workspace History button does. */
+  window.SHOW_HISTORY = function(){ openHistoryTimeline(c); };
+  window.SHOW_FILTERED = function(){ openHistoryTimeline(c, { side:'counterparty' }); };
+  window.EVENT_COUNT = negoTimeline(c).length;
+  SHOW_HISTORY();
+  return true;
+})();
+</script>
+</body>
+</html>
