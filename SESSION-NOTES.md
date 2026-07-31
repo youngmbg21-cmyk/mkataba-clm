@@ -5,6 +5,33 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 6, Session 14 — verify and export (WP-2.5 + WP-2.4)
+
+**Done** (`js/negotiation.js` negoIntegrityReport; `js/views/negotiation.js`
+Verify/Export buttons, result panel, `negoHistoryExportHtml`; new `test/f121`
+7; suite 2113/0 · redline 71/71 · parity 18/18 · selection 22/22.
+**Stage 6 complete — merged to main.**)
+
+- `negoIntegrityReport(c)`: chain + seal + E5 divergence in one answer, first
+  broken link NAMED, own timestamp. The seal is recomputed directly
+  (sha256(sealString(c)) === c.hash) rather than through verifySeal's UI path.
+- The export is self-contained by construction (inline styles, no src/href/
+  network), carries every change as its rendered redline with reasons, the
+  signatures with verification labels, the seal for independent comparison,
+  and the embedded verification result WITH its run time. A failed check
+  exports as a failure — the report never launders it.
+- **Deferred, recorded:** the Playwright screen check for the timeline rides
+  with Session 20's adversarial pass; f120/f121 hold the behaviour in jsdom.
+- Session 13's open question (server-side share lifecycle events as beats):
+  decided NO for the export — the audit trail's Shared/Countersigned/Signed
+  entries already carry the story a no-login reader needs; opens/expiry are
+  operational telemetry, not negotiation history.
+
+**Next:** Stage 7 — live numbering (N3-T1..T4 in Session 15; THE FREEZE +
+X2 bake-in alone in Session 16). Then 8 (extensions), 9 (hardening).
+
+---
+
 ## Stage 6, Session 13 — the history timeline (WP-2.1 + X1/X6/X3)
 
 **Done** (`js/negotiation.js` negoTimeline; `js/views/negotiation.js` screen +
