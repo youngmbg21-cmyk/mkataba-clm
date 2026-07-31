@@ -375,17 +375,31 @@ New in this master order:
     viewer on W1's shell (X5).
 18. **Signer binding ships before history presents the signing record** (X6).
 
-### ⚠ OPEN — needs the owner's answer before W3 (Stage 2's last item)
+### ✅ ANSWERED — D5, by the owner, 31 Jul 2026
 
-**D5 — Is the counterparty's name identity or attribution?** One named person
-holds the negotiation link (set once, sticky), or it circulates around their
-legal team (asked per action)? The source order's recommendation: split it —
-negotiation relaxed (pre-fill, correctable, anyone on their side), signing
-strict (one link, one named person, code to that person's address only; W7/W8
-make the strict half true regardless). **If unanswered when Stage 2 reaches
-W3, the stage ships without it and W3 waits. No guessing.**
+**Question:** is the counterparty's name identity or attribution?
 
----
+**Answer given:** *"The owner sets emails of who will be signing the contract,
+sends a link to counterparty 1, and after they sign an automated new link goes
+to the next party in the list of signers, and so on."*
+
+**What that settles.** Signing is **strict identity**, exactly as W7/W8
+specify: the owner names the signers and their email addresses up front; each
+signer gets their own link; a link belongs to one row of the signing route;
+the next link is released automatically when the previous signer signs; and
+the one-time code goes only to the address the owner invited (W8). This is not
+a new design — it is the confirmation that W7's sequenced release and W8's
+address binding are what the owner wants, and they are now specified behaviour
+rather than a proposal.
+
+**What it leaves as recommended.** The answer is about signing. **Negotiation**
+stays relaxed per the source order's recommendation — pre-fill the name from
+the share's named recipient, let them correct it, let anyone on their side pick
+up the work. A redline attributed to the wrong lawyer is annoying; a signature
+attributed to the wrong director is not, and W7/W8 make the strict half true
+regardless of how the relaxed half behaves.
+
+**W3 is therefore unblocked** and builds the relaxed half in Stage 2.
 
 ## Out of scope (union of all three source documents)
 

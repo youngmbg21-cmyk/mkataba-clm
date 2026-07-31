@@ -205,6 +205,91 @@ function negoNumberingGaps(c){
   }
   return out.sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, { numeric: true }));
 }
+/* ---------- REFERENCES THIS CONTRACT'S OWN DELETIONS BROKE ----------
+   The same doctrine as negoNumberingGaps above, and for the same reason:
+   ATTRIBUTED, NEVER SCANNED.
+
+   A dangling reference on its own is not news. The prototype's contract is an
+   extract numbered 1, 4, 5, 6, 9, 12, and an extract cites the parent agreement
+   it was cut from — "subject to Clause 2" is a perfectly good sentence in a
+   document that has no clause 2 and never did. Reporting every unresolved
+   reference lights that document up with faults nobody can fix, and does the
+   same to every uploaded contract shaped like it.
+
+   What IS news is a reference whose target was deleted HERE, by an accepted
+   deletion this record can point at. Then the document really has changed
+   underneath the sentence, and somebody has to decide what the sentence should
+   now say.
+
+   REPORTED ON THE CLAUSE THAT CONTAINS THE REFERENCE, not on the deleted one.
+   The deleted clause is gone; the surviving clause is the one with a problem in
+   it, and it is the one a person has to open and revise.
+
+   Read from negoAllChanges for the reason negoNumberingGaps gives: closing the
+   round archives the very change that created the gap.
+
+   ADVISORY. This names a problem. It never edits wording to fix one — repairing
+   a reference changes what the contract means, and that is a drafting decision
+   with a human's name on it. */
+function negoBrokenRefs(c){
+  if (!c) return [];
+  negoInit(c);
+  const resolve = window.clauseResolveRefs;
+  const parse = window.clauseParseHeading;
+  const norm = window.clauseRefNorm;
+  if (!resolve || !parse || !norm) return [];
+  const clauses = negoClauseList(c);
+
+  /* The numbers whose clause an accepted deletion took out of this document. */
+  const deleted = new Map();
+  for (const ch of negoAllChanges(c)){
+    if (!ch || ch.changeType !== 'deleteClause' || ch.status !== 'accepted') continue;
+    const num = norm(parse(ch.clauseLabel || '').num || '');
+    if (num && !deleted.has(num)) deleted.set(num, ch);
+  }
+  if (!deleted.size) return [];
+
+  const byId = new Map(clauses.map(cl => [cl.clauseId, cl]));
+  const out = [];
+  const seen = new Set();
+  for (const r of resolve(clauses)){
+    if (r.state !== 'dangling') continue;
+    const ch = deleted.get(r.num);
+    if (!ch) continue;                      // dangling, but nothing here deleted it
+    const key = r.fromClauseId + '→' + r.num;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const from = byId.get(r.fromClauseId) || null;
+    out.push({
+      fromClauseId: r.fromClauseId,
+      fromNum: r.fromNum || '',
+      fromLabel: from ? (window.clauseLabel ? clauseLabel(from) : (from.headingText || '')) : '',
+      num: r.num,
+      text: r.text,
+      deletedLabel: String(ch.clauseLabel || ''),
+      changeId: ch.id || null,
+    });
+  }
+  return out;
+}
+
+/* Every reference in the document with its resolution state — the on-demand
+   whole-document check (N1-T5), as against the attributed warning above.
+   Presented NEUTRALLY by its caller: on an extract, references out to the
+   parent agreement are normal and must not be dressed up as faults. */
+function negoAllRefs(c){
+  if (!c) return [];
+  negoInit(c);
+  if (!window.clauseResolveRefs) return [];
+  const clauses = negoClauseList(c);
+  const byId = new Map(clauses.map(cl => [cl.clauseId, cl]));
+  return clauseResolveRefs(clauses).map(r => {
+    const from = byId.get(r.fromClauseId) || null;
+    return { ...r,
+      fromLabel: from ? (window.clauseLabel ? clauseLabel(from) : (from.headingText || '')) : '' };
+  });
+}
+
 /* The clauses of the contract's CURRENT working wording. */
 const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : []);
 
@@ -2366,6 +2451,7 @@ function negoMigrate(c){
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
+  negoBrokenRefs, negoAllRefs,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

@@ -415,8 +415,137 @@ function clauseInsert(html, afterId, clause){
   return { html: root.innerHTML, clauseId: id };
 }
 
+/* ============================================================
+   CROSS-REFERENCES — finding them, and working out what they point at
+   ============================================================
+   A contract talks about itself constantly: "subject to Clause 9", "the limits
+   in Section 4", "as defined in 8.2(a)". Today every one of those is plain
+   text, and nothing in the product knows they are references at all.
+
+   WHY THIS EXISTS BEFORE ANYTHING THAT MOVES A NUMBER. While numbers never
+   move, a reference to a deleted clause points at NOTHING — ugly, but a reader
+   who follows it finds an absence and knows something is wrong. The moment
+   numbers can be renumbered, that same reference points at the WRONG CLAUSE:
+   plausible, readable, and lying. The renumbering feature converts today's
+   honest gaps into silent misstatements of what the contract means, so the net
+   goes up before the tightrope.
+
+   THE SAME NUMBER GRAMMAR THE HEADINGS USE, deliberately. A document that
+   writes its headings as `8.2(a)` writes its references the same way, and a
+   second grammar invented here would disagree with clauseParseHeading on
+   exactly the documents where it matters most.
+
+   A READ, AND NOTHING ELSE. No DOM mutation, no storage, no rewriting of
+   anybody's wording. What this module produces is an opinion; every decision
+   about what to do with one belongs to a human (see guardrail 5 in
+   WORKORDER-clause-numbering.md — warnings advise, they never auto-edit).
+
+   NAMES, AND WHAT THEY DO NOT COVER. "Clause", "Section", "Article", "Art.",
+   "Sec.", "§", "para"/"paragraph", and the bare form inside a range
+   ("Clauses 4 to 6" — the 6 carries no word of its own). Deliberately NOT
+   matched: a bare number with no word in front of it. "See 9 below" is a
+   reference and "within 30 days" is not, and nothing in the text distinguishes
+   them; guessing would fill every payment clause in the portfolio with false
+   warnings. A reference the product cannot see is a missed warning. A false one
+   is a warning nobody reads. */
+const _CLREF_WORD = '(?:clauses?|sections?|articles?|art\\.?|sec\\.?|paragraphs?|paras?\\.?|§§?)';
+const _CLREF_NUM = '\\d+(?:\\.\\d+)*(?:\\s*\\([a-z0-9]+\\))*';
+/* Ranges: "Clauses 4 to 6", "Clauses 4–6", "Clauses 4-6". Captured as two
+   endpoints, because a range that loses a clause in the middle is still broken
+   at whichever end went. */
+const _CLREF_RANGE = new RegExp(
+  `(${_CLREF_WORD})\\s*(${_CLREF_NUM})\\s*(?:to|through|–|—|-)\\s*(${_CLREF_NUM})`, 'gi');
+const _CLREF_ONE = new RegExp(`(${_CLREF_WORD})\\s*(${_CLREF_NUM})`, 'gi');
+
+/* Normalise a reference number to the form clauseParseHeading produces:
+   trailing punctuation off, whitespace out of sub-paragraph brackets. */
+function clauseRefNorm(n){
+  let s = String(n == null ? '' : n).replace(/\s+/g, '');
+  /* Trailing punctuation off — but a closing bracket is only punctuation when
+     nothing opened it. Stripping it unconditionally turned 8.2(a) into 8.2(a,
+     which then matched no heading and reported every sub-paragraph reference in
+     the portfolio as dangling. */
+  s = s.replace(/\.+$/, '');
+  while (s.endsWith(')') && (s.split('(').length - 1) < (s.split(')').length - 1))
+    s = s.slice(0, -1);
+  return s.replace(/\.+$/, '');
+}
+
+/* Every reference in one piece of text.
+   Returns [{ text, num, start, end, kind }] where kind is 'single' or 'range'
+   and start/end are character offsets into the text as given — so a caller can
+   highlight the exact words without searching for them again. */
+function clauseRefsInText(text){
+  const s = String(text == null ? '' : text);
+  if (!s) return [];
+  const out = [];
+  const taken = [];
+  const overlaps = (a, b) => taken.some(([x, y]) => a < y && b > x);
+
+  /* Ranges first. "Clauses 4 to 6" contains "Clauses 4", and letting the
+     single-reference pass see it first would report the range as one reference
+     and leave the 6 invisible. */
+  let m;
+  _CLREF_RANGE.lastIndex = 0;
+  while ((m = _CLREF_RANGE.exec(s))){
+    const whole = m[0], at = m.index;
+    taken.push([at, at + whole.length]);
+    const a = clauseRefNorm(m[2]), b = clauseRefNorm(m[3]);
+    if (a) out.push({ text: whole, num: a, start: at, end: at + whole.length, kind: 'range' });
+    if (b) out.push({ text: whole, num: b, start: at, end: at + whole.length, kind: 'range' });
+  }
+  _CLREF_ONE.lastIndex = 0;
+  while ((m = _CLREF_ONE.exec(s))){
+    const at = m.index;
+    if (overlaps(at, at + m[0].length)) continue;
+    const num = clauseRefNorm(m[2]);
+    if (num) out.push({ text: m[0], num, start: at, end: at + m[0].length, kind: 'single' });
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+
+/* ---------- WHAT DOES IT POINT AT ----------
+   Resolve each reference against the numbers this document's own clauses
+   carry. Three answers, and the third is the one that keeps the feature quiet
+   enough to be worth having:
+
+     resolved — a clause in this document carries that number
+     self     — the clause is citing itself. Legal, ordinary drafting
+                ("nothing in this Clause 8 limits…"), never a fault, never
+                reported.
+     dangling — no clause here carries it. NOT automatically an error: an
+                extract of a longer agreement legitimately cites clause 2 of
+                the parent, which is not in the file and never was. Whether a
+                dangling reference is news is a question about the change
+                record, and it is answered by negoBrokenRefs, not here.
+
+   Sibling rules come from clauseNumberGap by way of exact matching: 12 never
+   answers for 1.2, because the numbers are compared as written. */
+function clauseResolveRefs(clauses, opts = {}){
+  const list = Array.isArray(clauses) ? clauses : [];
+  const byNum = new Map();
+  for (const cl of list){
+    const n = clauseRefNorm(cl && cl.num);
+    if (n && !byNum.has(n)) byNum.set(n, cl);
+  }
+  const out = [];
+  for (const cl of list){
+    const hay = String((cl && cl.text) || '');
+    for (const r of clauseRefsInText(hay)){
+      const target = byNum.get(r.num) || null;
+      const own = clauseRefNorm(cl && cl.num);
+      const state = (own && own === r.num) ? 'self' : target ? 'resolved' : 'dangling';
+      out.push({ ...r, fromClauseId: (cl && cl.clauseId) || null,
+        fromNum: own || '', state,
+        toClauseId: state === 'resolved' ? (target.clauseId || null) : null });
+    }
+  }
+  return out;
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
+  clauseRefsInText, clauseResolveRefs, clauseRefNorm,
 });

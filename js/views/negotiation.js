@@ -945,7 +945,13 @@ function negoRichBody(cl){
    want to tidy this" over an executed agreement would be advice to corrupt it. */
 function negoNumberingNoticeHtml(c, opts = {}){
   const gaps = window.negoNumberingGaps ? negoNumberingGaps(c) : [];
-  if (!gaps.length) return '';
+  const broken = window.negoBrokenRefs ? negoBrokenRefs(c) : [];
+  /* A BROKEN REFERENCE CAN OUTLIVE ITS GAP. Renumbering closes the gap and
+     leaves "subject to Clause 9" pointing at a number nothing carries, so this
+     notice has to be able to appear for the references alone. Two conditions,
+     not one. */
+  if (!gaps.length && !broken.length) return '';
+  if (!gaps.length) return negoBrokenRefsOnlyHtml(c, broken, opts);
   const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
   const list = ns => ns.length === 1 ? ns[0]
     : ns.slice(0, -1).join(', ') + ' and ' + ns[ns.length - 1];
@@ -965,9 +971,53 @@ function negoNumberingNoticeHtml(c, opts = {}){
       + 'and no reference to another clause was repointed. Renumbering is a separate, '
       + 'deliberate act — and once this contract is signed its numbering is final.';
   return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
-      data-gaps="${gaps.length}" role="status">
+      data-gaps="${gaps.length}" data-brokenrefs="${broken.length}" role="status">
     <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
-    <span class="body">${what}${run}<span class="why">${_ne(why)}</span></span>
+    <span class="body">${what}${run}${negoBrokenRefsLine(broken)}<span class="why">${_ne(why)}</span></span>
+  </div>`;
+}
+
+/* ---------- …AND SOMETHING STILL REFERS TO IT ----------
+   Appended to the gap notice rather than raised as a second banner beside it.
+   Both sentences are about the same act — a clause was deleted — and two
+   notices stacked on one screen saying two halves of one fact is how a reader
+   learns to close notices without reading them.
+
+   NAMES BOTH ENDS. "Clause 15 refers to Clause 9, which was deleted" tells a
+   reader where to go. "A reference is broken" tells them to go looking. */
+function negoBrokenRefsLine(broken){
+  if (!broken || !broken.length) return '';
+  const one = broken.length === 1;
+  const where = broken.slice(0, 3)
+    .map(b => b.fromNum ? `Clause ${_ne(b.fromNum)}` : 'another clause');
+  const more = broken.length > 3 ? ` and ${broken.length - 3} more` : '';
+  return ` <b>${where.join(', ')}${more} still refer${one ? 's' : ''} to `
+    + `${one ? 'it' : 'clauses that were deleted'}.</b>`;
+}
+
+/* The same fact when there is no gap left to report it against — after a
+   renumbering has closed the gap and left the reference behind. */
+function negoBrokenRefsOnlyHtml(c, broken, opts = {}){
+  const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
+  const one = broken.length === 1;
+  const what = broken.slice(0, 3).map(b =>
+    `<b>${_ne(b.fromLabel || ('Clause ' + b.fromNum))} refers to Clause ${_ne(b.num)}, `
+    + `which was deleted.</b>`).join(' ');
+  const more = broken.length > 3 ? ` And ${broken.length - 3} more.` : '';
+  /* ADVISORY, AND SAYS SO. The reader either revises the referring clause — an
+     ordinary tracked change the other side sees and rules on — or leaves it,
+     because a reference to a deleted clause is sometimes exactly what the
+     parties meant to leave. Nothing here rewrites legal wording to tidy up a
+     warning. */
+  const why = locked
+    ? 'This contract is executed, so nothing here can be changed. Noted so that anyone '
+      + 'reading it knows the reference is to a clause the signed document does not carry.'
+    : 'Nothing has been changed for you. Revising the sentence is a drafting decision — '
+      + 'file it as a change like any other, so the other side sees it and rules on it.';
+  return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
+      data-gaps="0" data-brokenrefs="${broken.length}" role="status">
+    <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
+    <span class="body">${what}${more}<span class="why">${_ne(why)}</span></span>
   </div>`;
 }
 function negoDocHtml(c, opts){
