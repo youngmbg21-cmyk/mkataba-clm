@@ -991,7 +991,7 @@ function negoDocHtml(c, opts){
   /* THE STATUS SITS WITH THE VERBS, ON ONE LINE.
 
      "Accepted", "Rejected — baseline kept" and "Needs review" used to be pushed
-     inside the clause's own <h2>, which put a status pill in the middle of the
+     inside the clause's own <h2 data-nego-chrome>, which put a status pill in the middle of the
      document's heading — "Clause 4 · Payment Terms Accepted" reads as part of
      the title of the clause, and on a narrow pane it wrapped the heading onto
      two lines. It belongs with the controls that act on that clause, which
@@ -1033,7 +1033,7 @@ function negoDocHtml(c, opts){
   const clauseBlock = (cl, ch, domPrefix) => {
     if (baseline || !ch)
       return `<div class="nego-clause" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-        ${tools(cl)}${head(cl) ? `<h2>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
+        ${tools(cl)}${head(cl) ? `<h2 data-nego-chrome>${head(cl)}</h2>` : ''}${negoRichBody(cl)}</div>`;
 
     let body, badgeCls = '', badgeSuffix = '', note = '';
     if (ch.status === 'pending'){
@@ -1086,7 +1086,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="${domPrefix}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}" data-change="${_ne(ch.id)}">
       ${row}<button class="nego-badge${active && !badgeCls ? ' is-active' : ''}${badgeCls ? ' ' + badgeCls : ''}"
         data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}" aria-label="Change ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${badgeSuffix}</button>
-      ${head(cl) ? `<h2>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
+      ${head(cl) ? `<h2 data-nego-chrome>${head(cl)}${inHead}</h2>` : inHead}${body}</div>`;
   };
 
   const insertBlock = ch => {
@@ -1103,7 +1103,7 @@ function negoDocHtml(c, opts){
     return `<div class="nego-clause${active ? ' is-active' : ''}" id="nw-${negoDomId(ch.clauseId)}" data-clause="${_ne(ch.clauseId)}" data-change="${_ne(ch.id)}">
       <button class="nego-badge${cls ? ' ' + cls : ''}" data-badge="${_ne(ch.id)}" title="${_ne(ch.hash || '')}"
         aria-label="New clause ${_ne(ch.id)}, ${_ne(ch.status)}">#${_ne(ch.id)}${sfx}</button>
-      <h2>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
+      <h2 data-nego-chrome>${_ne(label)}${note}</h2><p>${inner}</p></div>`;
   };
 
   const prefix = baseline ? 'nb' : 'nw';
@@ -1651,17 +1651,17 @@ function negoCompareDocHtml(c, cmp, whichSide){
     if (whichSide === 'left'){
       if (r.state === 'added') return '';
       return `<div class="nego-clause" id="nb-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-        ${r.label ? `<h2>${_ne(r.label)}</h2>` : ''}<p>${_ne(r.oldText)}</p></div>`;
+        ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}</h2>` : ''}<p>${_ne(r.oldText)}</p></div>`;
     }
     if (r.state === 'removed')
       return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-        ${r.label ? `<h2>${_ne(r.label)}<span class="nego-note no">Removed</span></h2>` : ''}
+        ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}<span class="nego-note no">Removed</span></h2>` : ''}
         <p><span class="nego-del">${_ne(r.oldText)}</span></p></div>`;
     const note = r.state === 'added' ? `<span class="nego-note ok">Added</span>` : '';
     const inner = r.state === 'same' ? _ne(r.newText)
       : (window.redlineOpsHtml ? redlineOpsHtml(r.ops) : _ne(r.newText));
     return `<div class="nego-clause" id="nw-${negoDomId(r.clauseId)}" data-clause="${_ne(r.clauseId)}">
-      ${r.label ? `<h2>${_ne(r.label)}${note}</h2>` : ''}<p>${inner}</p></div>`;
+      ${r.label ? `<h2 data-nego-chrome>${_ne(r.label)}${note}</h2>` : ''}<p>${inner}</p></div>`;
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -1700,7 +1700,7 @@ function negoCleanDocHtml(c, whichSide){
        and a screen whose whole purpose is "read it as a contract" is the last
        place that should show a flattened one. */
     return `<div class="nego-clause" id="${left ? 'nb' : 'nw'}-${negoDomId(cl.clauseId)}" data-clause="${_ne(cl.clauseId)}">
-      ${label ? `<h2>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
+      ${label ? `<h2 data-nego-chrome>${_ne(label)}</h2>` : ''}${negoRichBody(cl)}</div>`;
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
@@ -3141,10 +3141,18 @@ const _NEGO_SEL_BLOCK = new Set(['P', 'DIV', 'LI', 'OL', 'UL', 'H1', 'H2', 'H3',
 /* THE PAGE'S FURNITURE IS NOT THE CONTRACT. Every one of these renders inside
    `[data-clause]` and none of it is wording anybody negotiated: the heading is
    the document's own (and is stored apart from the clause body, so including it
-   guarantees a miss), the ask tag and badge are the workbench's marginalia, and
-   the toolbar is a control. They are cut from the reading, not from the page. */
-const _NEGO_SEL_CHROME = '.rl-tools,.rl-tool,.nego-tool,.rl-asktag,.nego-badge,'
-  + '.rl-clause-h,.nego-edit-bar,[data-nego-editor],button,input,textarea,select';
+   guarantees a miss), the ask tag, the badge and the status notes are
+   marginalia about the clause, and the toolbar is a control. They are cut from
+   the reading, not from the page.
+
+   `data-nego-chrome` is the explicit way to say so, and the clause headings
+   carry it because they cannot be told apart by shape: the workbench heads a
+   clause with h4.rl-clause-h, the room with a bare h2, and a clause BODY under
+   redline legitimately renders sub-headings of its own (redlineOpsBlocksHtml
+   emits h4.rl-line for them) which ARE stored wording and must not be cut. A
+   rule guessing from the tag name would take those with it. */
+const _NEGO_SEL_CHROME = '[data-nego-chrome],.rl-tools,.rl-tool,.nego-tool,.rl-asktag,.nego-badge,'
+  + '.nego-note,.rl-clause-h,.nego-edit-bar,[data-nego-editor],button,input,textarea,select';
 /* One reading of a node's wording. `mode` says how to treat tracked marks:
    'baseline' keeps struck wording and drops inserted (what the round baseline
    still holds), 'current' does the reverse, and null takes the page at its
@@ -5296,7 +5304,16 @@ async function rlAiPropose(ctx){
     })
     : (whole || !!negoResolvePassage(clauseText, passage));
   if (!findable){
-    rlSayInPanel('This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.');
+    /* ---- WHY IT COULD NOT BE FOUND, WHERE THAT IS KNOWABLE ----
+       A drag that begins in the recital and ends inside clause 1 covers one
+       clause and a stretch of document that belongs to no clause at all. The
+       passage genuinely cannot be matched, so the refusal is true either way —
+       but "reselect and try again" sends somebody to do the identical thing
+       again, and the part that has to change is the START of the drag. */
+    const only = passage.parts && passage.parts.length === 1 ? passage.parts[0] : null;
+    rlSayInPanel(only && only.text !== passage.text
+      ? 'This selection reaches outside the clause, into wording that belongs to no clause — the title, the recital or the space between clauses. Select from the first word of the passage inside the clause and try again.'
+      : 'This selection couldn\'t be matched to the clause\'s current wording. Reselect the passage and try again.');
     return;
   }
   const party = side === 'counterparty' ? (c.counterparty || 'the counterparty') : (window.FIRST_PARTY || 'us');

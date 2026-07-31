@@ -331,6 +331,47 @@ describe('F96 (B2) — a highlight across two lettered sub-clauses', () => {
   });
 });
 
+describe('F96 (B1b) — the same rule on the room, which heads a clause differently', () => {
+  /* Also from the re-audit. The workbench heads a clause with h4.rl-clause-h;
+     the room uses a bare h2 and hangs status notes ("#3 needs review") inside
+     the clause box as well. A rule that knew only the workbench's class would
+     have left the room exactly as broken. */
+  test('a bare h2 clause heading and its status notes are furniture too', async () => {
+    const p = await page();
+    const doc = p.doc;
+    const host = doc.createElement('div');
+    host.innerHTML = '<div class="nego-clause" data-clause="c1">'
+      + '<button class="nego-badge">#3</button>'
+      + '<h2 data-nego-chrome>2. PAYMENT<span class="nego-note no">#3 needs review</span></h2>'
+      + '<div class="nego-body"><p>All invoices are payable within thirty (30) days.</p></div></div>';
+    doc.body.appendChild(host);
+    const r = doc.createRange();
+    r.selectNodeContents(host.querySelector('[data-clause]'));
+    const passage = p.win.negoReadPassage(r, host);
+    assert.equal(passage.text, 'All invoices are payable within thirty (30) days.',
+      'the heading, the badge and the review note are all about the clause, not in it');
+  });
+
+  test('but a sub-heading inside the clause BODY is stored wording and is kept', async () => {
+    /* redlineOpsBlocksHtml renders a clause's own sub-headings as h4.rl-line,
+       and richToText puts them in cl.text. Cutting those would break the very
+       clauses this audit set out to fix. */
+    const p = await page();
+    const doc = p.doc;
+    const host = doc.createElement('div');
+    host.innerHTML = '<div class="nego-clause" data-clause="c1">'
+      + '<h2 data-nego-chrome>4. TERMINATION</h2>'
+      + '<div class="nego-body"><h4 class="rl-line rl-heading">4.1 For convenience</h4>'
+      + '<p>Either party may terminate on notice.</p></div></div>';
+    doc.body.appendChild(host);
+    const r = doc.createRange();
+    r.selectNodeContents(host.querySelector('[data-clause]'));
+    const passage = p.win.negoReadPassage(r, host);
+    assert.match(passage.text, /4\.1 For convenience/, 'a body sub-heading is the contract');
+    assert.ok(!/4\. TERMINATION/.test(passage.text), 'the clause heading above it is not');
+  });
+});
+
 describe('F96 (B3) — a wall of paragraphs has no clauses to stay inside', () => {
   test('a cross-paragraph highlight is not refused on a headingless document', async () => {
     const p = await page({ body: WALL });
@@ -516,6 +557,19 @@ describe('F96 (B8) — a highlight in the front matter says so', () => {
     assert.match(menu.textContent, /front matter|not a negotiable clause/i);
     assert.equal(menu.querySelectorAll('[data-nego-ai]').length, 0,
       'and it offers nothing, because there is nothing here to file against');
+  });
+});
+
+describe('F96 (B8b) — a drag that begins outside any clause', () => {
+  test('the refusal names the start of the drag, not the passage', async () => {
+    const p = await page();
+    const recital = p.$('#rl-doc .rl-recital') || p.$('#rl-doc .rl-paper-head');
+    const cl = p.clauseWith(/payable within thirty/);
+    await p.press(p.drag(p.point(recital, 'Between the parties', 'start'),
+      p.point(cl, 'date of issue.', 'end')));
+    assert.ok(p.said(/reaches outside the clause/i),
+      'the part that has to change is where the drag STARTED');
+    assert.equal(p.panel.proposals.length, 0, 'and nothing is asked of the model');
   });
 });
 
