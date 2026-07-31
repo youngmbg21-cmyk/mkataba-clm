@@ -1,5 +1,5 @@
 /* ============================================================
-   F96 — "Edit with Copilot": a proposal that can ADD, not only replace
+   F97 — "Edit with Copilot": a proposal that can ADD, not only replace
    ============================================================
    Every Copilot proposal used to do exactly one thing: swap out the passage the
    reader highlighted. That is right for "make this tighter" and silently wrong
@@ -79,7 +79,7 @@ const BULLETS = [
 ].join('\n');
 
 /* ============================================================ */
-describe('F96a — the placement survives the parse, or fails safe', () => {
+describe('F97a — the placement survives the parse, or fails safe', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
 
@@ -149,7 +149,7 @@ describe('F96a — the placement survives the parse, or fails safe', () => {
 });
 
 /* ============================================================ */
-describe('F96b — an addition is not measured against what it sits beside', () => {
+describe('F97b — an addition is not measured against what it sits beside', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
 
@@ -304,7 +304,7 @@ async function page(opts = {}){
 }
 
 /* ============================================================ */
-describe('F96c — the menu renamed rather than grew a fourth door', () => {
+describe('F97c — the menu renamed rather than grew a fourth door', () => {
   test('the action is Edit, it offers placements, and rephrase is gone', async () => {
     const p = await page();
     const ids = p.win.RL_SEL_ACTIONS.map(a => a.id);
@@ -341,7 +341,7 @@ describe('F96c — the menu renamed rather than grew a fourth door', () => {
 });
 
 /* ============================================================ */
-describe('F96d — "after" keeps the sentence it follows', () => {
+describe('F97d — "after" keeps the sentence it follows', () => {
   test('the highlighted wording is still there, and the bullets follow it', async () => {
     const p = await page({ placement: 'after' });
     const passage = 'All invoices are payable within thirty (30) days from the date of issue.';
@@ -426,7 +426,7 @@ describe('F96d — "after" keeps the sentence it follows', () => {
 });
 
 /* ============================================================ */
-describe('F96e — a new clause is a new clause', () => {
+describe('F97e — a new clause is a new clause', () => {
   test('it files insertClause after the current one, not a modify on it', async () => {
     const p = await page({ placement: 'newClause', headingText: '12. Data Retention' });
     const card = await p.ask('All invoices are payable within thirty (30) days from the date of issue.',
@@ -448,7 +448,7 @@ describe('F96e — a new clause is a new clause', () => {
 });
 
 /* ============================================================ */
-describe('F96f — the refusals still refuse, and an insert is no exception', () => {
+describe('F97f — the refusals still refuse, and an insert is no exception', () => {
   test('a selection spanning two clauses files nothing', async () => {
     const p = await page();
     await p.ask('All invoices are payable within thirty (30) days from the date of issue.',
@@ -493,7 +493,7 @@ describe('F96f — the refusals still refuse, and an insert is no exception', ()
 });
 
 /* ============================================================ */
-describe('F96g — the card says what it will do, and the reader can correct it', () => {
+describe('F97g — the card says what it will do, and the reader can correct it', () => {
   let ai;
   beforeEach(() => { ai = loadAi(); });
 

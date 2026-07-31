@@ -4,7 +4,7 @@ Status: **BUILT.** Shipped on `claude/redline-edit-copilot-feature-ju6ze4`;
 `npm test` green at 1700. Part 1 is the review the feature was designed from and
 is kept as the record of why it is shaped this way; Part 2 is the prompt it was
 built from, kept so the reasoning behind each step stays with the code. The
-behaviour is pinned by `test/f96-copilot-edit-placement.test.js`.
+behaviour is pinned by `test/f97-copilot-edit-placement.test.js`.
 
 One claim in Part 1 was wrong and is corrected in place — see §1.5 trap 1.
 
@@ -173,7 +173,7 @@ Buyer/Supplier Advantage".)*
    items, inventing a sub-paragraph break nobody drafted. Against a rich passage
    it re-wraps added text in the neighbour's `<ol>`/`<p>`. Skip the
    structure-repair for `after`/`before`/`newClause`; keep the tag allowlist and
-   the strip. (Pinned by F96b.)
+   the strip. (Pinned by F97b.)
 2. **Bullets survive intake, but only in the right form.** `docRichFromText`
    (`js/docx.js:308`) turns `•`/`-` and `(a)`/`1.` line openers into real
    `<ul>/<ol>` markup. The model must therefore emit bullets as **one per line
@@ -317,7 +317,7 @@ engine diff it. `newClause` files through `negoInsertClause`
 
 ### Tests
 
-Add `test/f96-copilot-edit-placement.test.js` (next free number; `node --test`
+Add `test/f97-copilot-edit-placement.test.js` (next free number; `node --test`
 + jsdom, matching the existing `test/f*.test.js` style). Cover at least:
 
 - `copilotPropose` parses `placement` out of the model JSON and defaults to
