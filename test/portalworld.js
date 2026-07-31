@@ -102,7 +102,7 @@ function buildPortal(opts = {}) {
   if (!win.URL.createObjectURL) win.URL.createObjectURL = () => 'blob:stub';
   if (!win.URL.revokeObjectURL) win.URL.revokeObjectURL = () => {};
 
-  const log = { downloads: [], toasts: [], sent: [], modals: [], messages: [] };
+  const log = { downloads: [], toasts: [], sent: [], modals: [], messages: [], derived: [] };
 
   /* Every file the page hands to the browser is captured instead of saved, so
      a test can read the bytes Erik would have received. */
@@ -132,6 +132,19 @@ function buildPortal(opts = {}) {
           author: body.author, topic: body.topic, topicLabel: body.topicLabel,
           body: body.body, at: '2026-07-26T12:00:00Z' });
         return { ok: true, messages: log.messages.slice() };
+      }
+      /* Deriving a read-only ticket for an adviser. The route's own rules
+         (a view cannot delegate, a signing holder was asked to sign) are
+         server-side and proven in f123 against a real server; what this stage
+         stands in for is the successful mint, so the page's half — the door,
+         the held list, what it tells the reader — can be driven. */
+      if (/\/derive-view$/.test(pathname)) {
+        log.sent.push({ pathname, body });
+        const n = log.derived.length + 1;
+        const made = { ok: true, token: 'tok_child' + n, link: 'https://hati.test/#s=t:tok_child' + n,
+          expiresAt: '2026-08-14T00:00:00.000Z', purpose: 'view' };
+        log.derived.push(made);
+        return made;
       }
       return {};
     },
@@ -186,6 +199,7 @@ function buildPortal(opts = {}) {
     },
     lastDownload: () => log.downloads[log.downloads.length - 1] || null,
     lastSent: () => (log.sent.length ? log.sent[log.sent.length - 1].body : null),
+    derived: () => log.derived.slice(),
     toastText: () => log.toasts.map(t => t.msg).join(' | '),
   };
 }

@@ -5925,3 +5925,70 @@ must be a call. Suite 1933/1933, browser 71/71, selection 22/22.
 word limit — the length in plain mode is asked for, not enforced. If the paragraphs
 come back long in plain after this, the next lever is a cap rather than a rewording.
 
+
+---
+
+## Run: the read-only copy nobody could reach (2026-07-31)
+
+**What was broken.** `POST shares/:token/derive-view` has minted a strictly
+weaker view ticket since Stage 8, and `RELEASE-NOTES-stages-4-9.md` announced
+it: "a negotiation-link holder can mint a read-only copy for an advisor." No
+page in the product ever called it. The only callers in the repository were
+`f123` and `f125` — its own tests. A counterparty whose insurer or counsel
+needed to READ the deal still had exactly one thing to hand over: the
+negotiate link, which carries the power to ANSWER in their name.
+
+Found by checking the claim rather than the release note, after it had been
+reported to the user as shipped.
+
+**Why it survived.** The route is well tested and the tests call it directly
+over HTTP, so every assertion passed while the UI door did not exist. Nothing
+in the suite asks "can a person get to this".
+
+**The fix.** A door on the counterparty's page, in the footer that already
+carries the deal-level verbs (Ready to sign, Decline) — the same altitude: an
+act about the whole deal rather than about one change.
+
+- `portalCanDerive()` reads exactly the route's own conditions (live token, not
+  read-only, not view-only, purpose is negotiate) so the button is ABSENT where
+  the answer is a 403 rather than present and failing. The judgement is not
+  re-implemented — a view cannot delegate and a signing holder was asked to
+  sign, not to distribute, and both remain the server's to say.
+- The name is asked for and optional, because it is what the OWNER sees beside
+  the child in their share panel — "Nordfrakt insurers" is the difference
+  between a link they can reason about and an anonymous one they revoke on
+  suspicion. A CANCELLED prompt mints nothing: `promptDialog` answers `null`
+  for a cancel and `''` for an empty box, and confusing the two would leave a
+  live ticket on the server that somebody had just decided against.
+- Minted links are HELD as a list and rendered from it, never written into the
+  DOM once. This footer is rebuilt every time a decision is held, and a link
+  that vanished when the reader answered the next change is a link they never
+  copied. They ride in the same stored blob as the held answers (and count
+  towards it, or a reader who had answered nothing would have the blob deleted
+  from under them), and `portalDropHeld` writes them straight back — a derived
+  link is a live ticket, not a draft, and losing the only record of one to an
+  unrelated send leaves the reader with nothing to give anybody.
+- The panel says what is being handed over: the holder cannot accept, reject,
+  propose wording or sign; access ends on a date and sooner if the parent link
+  ends; and the sender can see it and withdraw it. A reader who passes on a link
+  believing it private would have been misled by our silence.
+
+**Files touched.** js/views/portal.js. test/portalworld.js gained a derive-view
+answer beside the respond and messages ones.
+**Verified.** f126 (16 tests): the door's presence on a negotiate link and its
+absence on signing, view-only, responded and superseded ones; the call and its
+name; cancel-mints-nothing; two advisers, two links; survival across a footer
+rebuild, a reload and a send; the three things the panel must say; and a refused
+mint that gives the button back rather than leaving "Creating…" standing. 13 of
+the 16 fail without the change. Suite 2170/2170 · redline 71/71 · selection
+22/22 · parity 18/18.
+
+**One trap worth recording.** `PORTAL_DERIVED` is a module-level `let`, which is
+a lexical binding and NOT a property of `window` — a test that assigned to
+`window.PORTAL_DERIVED` would be writing to a name nothing in the module reads,
+the same trap `portalworld.js` documents for `canEdit`. It is handed out by
+`portalDerivedLinks()` instead. And the portal stage runs on an OPAQUE ORIGIN
+where `localStorage` throws on the first access — deliberately, because that is
+the counterparty's own situation — so proving something was written needs
+`buildPortal({ url })`, not a hand-rolled storage stub, which the accessor
+silently ignores.
