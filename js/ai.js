@@ -1582,10 +1582,51 @@ const AI_NOT_WORDING = [
   /\b(?:is|are|does|do)\s+not\s+(?:constitute\s+)?legal\s+advice\b/i,
   /^(?:i|we)\s+(?:would\s+)?(?:recommend|suggest|advise)\b/i,
 ];
+
+/* ---------- AND WHAT A QUESTION BACK IS ----------
+   The list above catches a model that REFUSES. It did not catch one that ASKS,
+   and that turned out to be the commoner failure by a distance — because a
+   drafter's instruction is usually a fragment ("combine them", "make it
+   mutual") that only means anything against the conversation it sits in. Hand
+   the model the fragment on its own and it does the sensible thing: it asks
+   what was meant. That reply matched none of the refusal patterns, so the whole
+   question — bullet points, "Please share:", the lot — was handed back as
+   proposedText and drawn in the proposal card under an Apply Redline button.
+
+   Anchoring only half works here. The opener is often the tell, so the openers
+   below are anchored like the rest. But the question itself is as likely to be
+   the third sentence as the first, and an unanchored pattern is exactly the
+   kind that can reach real wording — so the unanchored rule is a CONJUNCTION
+   that a clause cannot satisfy: a question mark AND the model speaking in its
+   own voice. Contract wording is written in the third person about the parties.
+   It does not say "I", and it does not ask the reader anything.
+
+   Deliberately NOT here: "please provide", "please confirm". A facility letter
+   genuinely closes "Please confirm your acceptance by countersigning", and
+   catching that would move real wording out of the card — the same harm in the
+   other direction, which is the rule this whole section is written under. */
+const AI_ASKS_BACK = [
+  /^(?:i|we)\s*(?:'|’)?(?:d|ll|ve)?\s*(?:would\s+|will\s+)?(?:need|require)\b/i,
+  /^(?:i|we)\s+(?:can(?:'|’)?t|cannot|do\s+not|don(?:'|’)?t)\s+(?:see|tell|find|know)\b/i,
+  /^(?:could|can|would|will)\s+you\b/i,
+  /^please\s+(?:share|send|paste|attach|upload|clarify|specify)\b/i,
+  /^please\s+(?:tell|let)\s+me\b/i,
+  /^before\s+(?:i|we)\s+(?:can\s+)?(?:draft|rewrite|propose|combine|answer|do)\b/i,
+];
+/* The one unanchored rule, and the one anchored at BOTH ends — a candidate that
+   is nothing but a question. See above for why each is kept where it is. */
+const AI_ASKS_WHOLE = /^(?:which|what|who|whom|where|when|why|how|should|shall|do|does|can|could|would|is|are)\b[^\n]{0,220}\?$/i;
+const aiAsksTheReader = t => /\?/.test(t)
+  /* A capital "I" standing alone as a word. Lower-case roman numerals — the
+     "(i)" of a sub-paragraph — are the near miss this is written to survive. */
+  && /(?:^|[^\w'’])I(?:'|’)?(?:m|d|ll|ve)?(?=\s|[,.?!;:])/.test(t);
+
 const aiLooksConversational = s => {
   const t = String(s == null ? '' : s).trim();
   if (!t) return false;
-  return AI_NOT_WORDING.some(re => re.test(t));
+  if (AI_NOT_WORDING.some(re => re.test(t))) return true;
+  if (AI_ASKS_BACK.some(re => re.test(t))) return true;
+  return AI_ASKS_WHOLE.test(t) || aiAsksTheReader(t);
 };
 /* Take a disclaimer off the FRONT of otherwise good wording and hand it back
    separately, so it lands in the advice bubble where it belongs. Only ever the
@@ -1704,6 +1745,19 @@ async function copilotPropose(opts){
     o.history ? `\nSo far in this exchange:\n${o.history}` : '',
     o.instruction ? `\nThe drafter has now asked: "${o.instruction}"` : '',
     '',
+    /* ---- WHICH CLAUSE THIS IS, SAID OUT LOUD ----
+       The panel computes this label for the card and used not to send it. So a
+       passage reading "4.2 … 4.3 …" arrived as bare text, and a model with no
+       other information concluded it was being shown two clauses — and got
+       cautious about combining two clauses, which is a thing this product does
+       forbid. It is not what it was looking at. On this engine a clause runs
+       from one HEADING to the next (clauseSegment, js/clausemodel.js), so 4.2
+       and 4.3 under a "4. PRICING" heading are sub-paragraphs of one clause.
+       Naming the clause makes the boundary the app enforces the same boundary
+       the model reasons about. */
+    o.clauseLabel ? `The passage comes from ${o.clauseLabel}. Numbers inside it — 4.2, 4.3, (a), (b) `
+      + '— are sub-paragraphs of that one clause, not separate clauses. Your wording acts on the '
+      + 'passage shown and on nothing outside it.' : '',
     placements
       ? 'The drafter has selected this wording. It is the ANCHOR — depending on the placement '
         + 'you choose, your wording may replace it, sit after it, sit before it, or become a new '
@@ -1873,8 +1927,13 @@ function aiOpenProposal(opts){
      to splice an apology into a clause is a defect that files itself. So the
      reply lands as one ordinary bubble and the conversation stays open. */
   if (!String(o.proposedText == null ? '' : o.proposedText).trim()){
-    aiPush('assistant', { text: aiFmt(o.advice
-      || 'I could not turn that into contract wording. Tell me what you would like changed or added and I will draft it.') });
+    const said = String(o.advice || '').trim()
+      || 'I could not turn that into contract wording. Tell me what you would like changed or added and I will draft it.';
+    aiPush('assistant', { text: aiFmt(said) });
+    /* On the record, because the session stays open and the next sentence typed
+       is an answer to THIS. Without it the reader answers a question the model
+       is never shown again. */
+    aiRephraseRemember('copilot', said);
     renderAIFeed();
     return null;
   }
@@ -1897,9 +1956,17 @@ function aiOpenProposal(opts){
   aiProposals.set(id, p);
   ai.activeProposal = id;
   if (p.advice) aiPush('assistant', { text: aiFmt(p.advice) });
-  else aiPush('assistant', { text: `<div>${aiIsInsert(p.placement)
-    ? 'Here is wording to add. I have no reasoning to add beyond the wording itself.'
-    : 'Here is a replacement for that passage. I have no reasoning to add beyond the wording itself.'}</div>` });
+  /* NO REASONING IS TWO DIFFERENT FACTS. A model that kept the shape and left
+     the advice field empty had nothing to add, and saying so is true. A model
+     that missed the shape entirely never offered reasoning OR wording — what
+     the card holds is its whole reply, read as wording because there was
+     nothing else to read it as, and claiming that as a considered replacement
+     is the panel vouching for something it did not parse. */
+  else aiPush('assistant', { text: `<div>${p.strict === false
+    ? 'The Copilot answered without the structure this panel asks for, so what is below is its whole reply, treated as wording. Read it before you apply it.'
+    : aiIsInsert(p.placement)
+      ? 'Here is wording to add. I have no reasoning to add beyond the wording itself.'
+      : 'Here is a replacement for that passage. I have no reasoning to add beyond the wording itself.'}</div>` });
   aiPush('assistant', { proposalId: id });
   renderAIFeed();
   return p;
@@ -2056,6 +2123,15 @@ function aiOpenRephraseSession(opts){
   aiRephrase.active = {
     id: 'rsn_' + (++_aiProposalSeq),
     passage, clauseLabel: o.clauseLabel || '',
+    /* THE EXCHANGE, KEPT. The session used to hold the passage and nothing
+       else, so every instruction typed into it went to the model with the
+       passage and that one sentence — the turns before it dropped on the floor.
+       A drafter writes "combine them" because the panel has just been talking
+       about which two; the model received the pronoun and no antecedent, and
+       answered by asking for the context this object had been sitting on. Worse,
+       their ANSWER went out the same way, so a session that once needed
+       clarifying could never get out of the loop. */
+    turns: [],
     onPropose: typeof o.onPropose === 'function' ? o.onPropose : null
   };
   /* THE PASSAGE, SHOWN RATHER THAN REMEMBERED. A session that carried the
@@ -2074,6 +2150,32 @@ function aiOpenRephraseSession(opts){
 const aiActiveRephrase = () => aiRephrase.active;
 function aiCloseRephraseSession(){ aiRephrase.active = null; }
 
+/* Record a turn on the open session, if there is one. Called for the drafter's
+   own sentence and for a Copilot reply that produced no card — which is exactly
+   the reply that needs remembering, because it is the one the next sentence is
+   answering. A reply that DID produce a card is not recorded: the card closes
+   the session, and the follow-up path carries its own history (aiRefineProposal).
+
+   Bounded, because a prompt that grows without limit eventually crowds out the
+   passage it is about. Six turns is roughly the exchange still on the screen. */
+const AI_SESSION_TURNS = 6;
+function aiRephraseRemember(role, text){
+  const s = aiRephrase.active;
+  const t = String(text == null ? '' : text).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!s || !t) return;
+  s.turns.push({ role: role === 'you' ? 'you' : 'copilot', text: t });
+  if (s.turns.length > AI_SESSION_TURNS) s.turns = s.turns.slice(-AI_SESSION_TURNS);
+}
+/* The same shape aiRefineProposal builds, so the model reads one kind of
+   history whichever path it arrives by. */
+function aiRephraseHistory(session){
+  const s = session || aiRephrase.active;
+  if (!s || !Array.isArray(s.turns) || !s.turns.length) return '';
+  return s.turns.map(t => t.role === 'you'
+    ? `The drafter said: "${t.text}"`
+    : `You replied: "${t.text}"`).join('\n');
+}
+
 async function aiSubmit(){
   const inp=document.getElementById('ai-input');
   const q=inp.value.trim(); if(!q||ai.busy) return;
@@ -2091,7 +2193,12 @@ async function aiSubmit(){
   if(session && session.onPropose){
     renderAIFeed(true);
     try{
-      const made=await session.onPropose(q,session);
+      /* Read BEFORE this sentence is recorded: copilotPropose states the
+         instruction in its own line, so repeating it inside the history would
+         ask the same question twice and invite the model to answer the echo. */
+      const history=aiRephraseHistory(session);
+      aiRephraseRemember('you',q);
+      const made=await session.onPropose(q,session,{ history });
       ai.busy=false;
       if(!made){
         aiPush('assistant',{text:'<div>I could not turn that into a proposal. Say it another way, or decline and select the passage again.</div>'});
@@ -2177,8 +2284,9 @@ Object.assign(window,{
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,
-  AI_NOT_WORDING,aiLooksConversational,aiSplitDisclaimer,
+  AI_NOT_WORDING,AI_ASKS_BACK,AI_ASKS_WHOLE,aiAsksTheReader,aiLooksConversational,aiSplitDisclaimer,
   aiRephrase,aiOpenRephraseSession,aiActiveRephrase,aiCloseRephraseSession,
+  AI_SESSION_TURNS,aiRephraseRemember,aiRephraseHistory,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,
   aiParseProposal,copilotPropose,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,

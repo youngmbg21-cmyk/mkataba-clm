@@ -1357,7 +1357,8 @@ async function labAiPropose(ctx){
      baseline. */
   const refine = async (instruction, prev, extra) => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction, history: (extra && extra.history) || '' });
+      playbook: pbLine, instruction, history: (extra && extra.history) || '',
+      clauseLabel: clause.label });
     if(!made) return null;
     return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
       clauseLabel: clause.label, replacing: text,
@@ -1398,9 +1399,13 @@ async function labAiPropose(ctx){
      produces an advice bubble and no card — that is an answer, and reporting it
      as a failure would talk over the thing it just said. Only a reply with
      nothing usable in it at all comes back false. */
-  const propose = async instruction => {
+  /* `history` is the exchange in the panel so far, handed over by aiSubmit. The
+     first instruction in a session used to travel without it, so an instruction
+     that leaned on the conversation — "combine them" — arrived without one. */
+  const propose = async (instruction, history) => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction: instruction || '' });
+      playbook: pbLine, instruction: instruction || '', history: history || '',
+      clauseLabel: clause.label });
     if(!made) return false;
     const card = aiOpenProposal({ advice: made.advice, proposedText: made.proposedText,
       strict: made.strict, clauseLabel: clause.label, replacing: text, note,
@@ -1426,7 +1431,7 @@ async function labAiPropose(ctx){
   if(action.converse && window.aiOpenRephraseSession){
     aiOpenRephraseSession({ passage: text, clauseLabel: clause.label,
       greeting: action.greeting,
-      onPropose: instruction => propose(instruction) });
+      onPropose: (instruction, session, extra) => propose(instruction, (extra && extra.history) || '') });
     return;
   }
   try{

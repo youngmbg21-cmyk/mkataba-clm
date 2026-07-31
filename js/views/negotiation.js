@@ -5628,15 +5628,20 @@ async function rlAiPropose(ctx){
             : `${where} the selected passage, which is being kept`}. Draft for that placement.`
         : ''].filter(Boolean).join('\n');
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction, history, placements: action.placements === true });
+      playbook: pbLine, instruction, history, clauseLabel: negoClauseLabel(cl),
+      placements: action.placements === true });
     if (!made) return null;
     return { advice: made.advice, proposedText: made.proposedText, strict: made.strict,
       placements: action.placements === true, headingText: made.headingText,
       clauseLabel: negoClauseLabel(cl), replacing: text, onApply: applyWording, onRefine: refine };
   };
-  const propose = async instruction => {
+  /* `history` is the exchange in the panel so far, handed over by aiSubmit. The
+     first instruction in a session used to travel without it, which is how
+     "combine them" reached the model as a pronoun with nothing to point at. */
+  const propose = async (instruction, history) => {
     const made = await copilotPropose({ ask: action.ask, passage: text, party,
-      playbook: pbLine, instruction: instruction || '', placements: action.placements === true });
+      playbook: pbLine, instruction: instruction || '', history: history || '',
+      clauseLabel: negoClauseLabel(cl), placements: action.placements === true });
     if (!made) return false;
     const card = window.aiOpenProposal ? aiOpenProposal({ advice: made.advice,
       proposedText: made.proposedText, strict: made.strict,
@@ -5653,7 +5658,8 @@ async function rlAiPropose(ctx){
 
   if (action.converse && window.aiOpenRephraseSession){
     aiOpenRephraseSession({ passage: text, clauseLabel: negoClauseLabel(cl),
-      greeting: action.greeting, onPropose: instruction => propose(instruction) });
+      greeting: action.greeting,
+      onPropose: (instruction, session, extra) => propose(instruction, (extra && extra.history) || '') });
     return;
   }
   try{

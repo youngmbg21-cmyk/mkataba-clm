@@ -5237,3 +5237,95 @@ Defects found and fixed during the build. Blunt, per the brief.
 - `guided` options and `{{org.…}}` defaults are settable in the builder
   but the converter never emits them (the model is not asked to invent
   options — deliberate, per "never invent a field").
+
+---
+
+## Run: the Copilot asking a question is not a redline (2026-07-31)
+
+Found from a single screenshot: a drafter selected the price-adjustment and
+invoicing sub-paragraphs of clause 4 and typed "combine them". Two defects,
+which fail apart and are fixed apart.
+
+### 1. A clarifying question was drawn as contract wording, under an Apply button
+
+**What was broken.** The Copilot replied in prose — "I need to see the full
+context of what the drafter wants me to combine… Please share: the full
+contract…" — and the whole reply, markdown asterisks and bullet list included,
+was rendered as the PROPOSED WORDING for clause 4.2 with an **Apply Redline**
+button under it. One press would have filed a question into the contract as a
+tracked change, authored, on the record and on its way to a counterparty. The
+chat bubble above it read "Here is a replacement for that passage" — the panel
+vouching for a reply it had not parsed.
+
+**Root cause.** `AI_NOT_WORDING` (`js/ai.js`) is the guard that keeps a model's
+remarks out of the proposal card, and every pattern in it described a model
+REFUSING: "I'm sorry", "I cannot", "As an AI", "this is not legal advice",
+"I would recommend". A model ASKING matches none of them, so
+`aiLooksConversational` returned false, `aiSplitDisclaimer` classified the reply
+as wording, and `aiParseProposal`'s no-JSON fallback handed all 786 characters
+back as `proposedText`. Nothing between the card and `negoEditClause` re-checks
+whether wording looks like wording.
+
+**The fix.** A second list, `AI_ASKS_BACK`, for the openers a model uses when it
+wants something before it will draft, plus two rules for the question itself:
+`AI_ASKS_WHOLE` (anchored at both ends — a candidate that is nothing but a
+question) and `aiAsksTheReader`, the one unanchored rule, kept safe by requiring
+a conjunction a clause cannot satisfy — a question mark AND the model speaking
+as "I". Contract wording is third-person about the parties; it does not say "I"
+and it does not ask the reader anything. `aiOpenProposal` already had the right
+behaviour waiting for an empty `proposedText` (one bubble, no card, session
+stays open); it simply never fired. "Please provide" and "Please confirm" are
+deliberately absent — a facility letter really does close "Please confirm your
+acceptance by countersigning", and eating real wording is the same harm in the
+other direction.
+
+**Files touched.** js/ai.js.
+**Verified.** f98a (the verbatim shipped reply yields no card, ten other ask
+shapes likewise), f98b (eight strings of real wording, each brushing a new
+pattern, still reach the card — including roman-numeral sub-paragraphs, which
+are the near miss the first-person test is written to survive).
+
+### 2. The panel never sent the conversation, so "them" had no antecedent
+
+**What was broken.** "combine them" reached the model with the passage and that
+one sentence. The turns before it were dropped, so the pronoun pointed at
+nothing and the model asked for context the panel was already holding. Worse:
+the drafter's ANSWER would have gone out the same way, so a session that once
+needed clarifying could never get out of the loop.
+
+**Root cause.** The seeded session (`aiOpenRephraseSession`) stored the passage
+and a callback, and nothing else. `aiSubmit` called `onPropose(q, session)`, and
+both views' `propose` called `copilotPropose` with no `history` at all. History
+existed only on the follow-up path (`aiRefineProposal`), which does not run
+until a card exists — so the first instruction in every session travelled blind,
+and a session that produced no card never got a second chance.
+
+**The fix.** The session keeps its turns (bounded to six, markup stripped).
+`aiSubmit` reads the history before recording the new sentence — the instruction
+is already stated on its own line, and repeating it would invite the model to
+answer the echo — and hands it to `onPropose` as `{ history }`, the same shape
+`onRefine` already receives. `aiOpenProposal` records a reply that produced no
+card, because that is exactly the reply the next sentence is answering.
+
+Two smaller things fixed alongside, both contributors to the same screenshot:
+`copilotPropose` now sends the clause label, because a passage reading "4.2 …
+4.3 …" arrived as bare text and the model concluded it was being shown two
+clauses — a thing this product does forbid combining, and not what it was
+looking at (a clause here runs heading to heading, so both are sub-paragraphs of
+clause 4). And a reply that missed the shape no longer claims "I have no
+reasoning to add"; it says the structure was missed and to read the wording
+before applying it.
+
+**Files touched.** js/ai.js, js/views/negotiation.js, js/views/doclab.js.
+**Verified.** f98c (turns kept, ordered, markup-free, bounded, not recorded once
+the session closes), f98d (the honest bubble), f98e (the history and the label
+reach `copilotPropose` and the composed prompt, end to end on the negotiation
+page). Full suite 1825/1825, plus 22/22 selection and 69/69 redline browser
+checks — the multi-clause and live-redline refusals still refuse.
+
+**Not done.** Nothing between **Apply Redline** and the contract inspects the
+wording; the guard is at the parse. A model that returns a plausible-looking
+non-clause the patterns do not catch still gets a button. A second check at
+Apply — length against the passage, or a "this does not read like a clause"
+confirm — was considered and not built: it needs a rule that will not fire on
+short real edits, and guessing at one is how the first guard got too narrow.
