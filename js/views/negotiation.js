@@ -264,6 +264,21 @@ function negoStyleHtml(){
   .nego-closed[data-state="signed"] .tick{background:var(--n-accept)}
   .nego-closed[data-state="declined"] .tick{background:var(--n-reject)}
   .nego-closed .body{flex:1;min-width:220px;font-size:12px;line-height:1.5;color:var(--n-ink)}
+  /* The numbering notice. Inside the document, above the first clause, because
+     it is a remark about THIS PAGE's numbering and not about where the deal
+     stands — the banner slot above the panes answers that one question and
+     stays answering only it. Amber while the draft can still be tidied; slate
+     once the contract is executed and the gap is part of the record. */
+  .nego-gaps{display:flex;align-items:flex-start;gap:10px;margin:0 0 18px;border-radius:6px;
+    padding:10px 13px;border:1px solid #e0c48a;background:#fdf6e7;border-left:4px solid #b8862b}
+  .nego-gaps[data-locked="1"]{border-color:var(--n-line);background:var(--n-badge-bg);
+    border-left-color:var(--n-slate)}
+  .nego-gaps .mark{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
+    background:#b8862b;color:#fff;font-size:11px;font-weight:800;line-height:1}
+  .nego-gaps[data-locked="1"] .mark{background:var(--n-slate)}
+  .nego-gaps .body{flex:1;min-width:200px;font-size:11.5px;line-height:1.55;color:var(--n-ink)}
+  .nego-gaps .body b{font-weight:700}
+  .nego-gaps .why{display:block;margin-top:3px;color:var(--n-ink-soft)}
   /* Their name, in the room, because the room is their page. */
   .nego-who{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.28);
     border-radius:7px;padding:2px 4px 2px 9px;background:rgba(255,255,255,.06)}
@@ -907,6 +922,54 @@ function negoRichBody(cl){
 
    A rejected clause reading exactly as the baseline reads is the point: it is
    the visible half of "silence rejects". */
+/* ---------- SAYING THAT THE NUMBERING HAS A HOLE IN IT ----------
+   A reader who meets clause 8 followed by clause 10 has two readings available
+   and no way to choose between them: somebody deleted 9, or the document is
+   broken. They are not equally cheap. The second one costs the platform its
+   credibility with the only audience that matters here, and it is the reading a
+   lawyer reaches for first, because a contract that skips a number is normally
+   a contract somebody mangled.
+
+   So the gap is named, and the act that made it is named with it. That is all
+   this does — it offers no button, because closing the gap is a renumbering and
+   a renumbering is a deliberate act with consequences of its own (see
+   negoNumberingLocked). Telling somebody what happened is not the same as
+   inviting them to undo it, and the notice that quietly offers the undo is how
+   a signed contract gets renumbered by somebody who thought they were tidying.
+
+   TWO VOICES, and the difference is the lock. On a draft the gap is a loose end
+   the owner may want to deal with before signing. On an executed contract it is
+   part of the record: the numbers have been cited by the act of signing and
+   every amendment that follows will cite them again, so the gap is not a defect
+   to be fixed but a fact to be read correctly. The same notice saying "you may
+   want to tidy this" over an executed agreement would be advice to corrupt it. */
+function negoNumberingNoticeHtml(c, opts = {}){
+  const gaps = window.negoNumberingGaps ? negoNumberingGaps(c) : [];
+  if (!gaps.length) return '';
+  const locked = window.negoNumberingLocked ? !!negoNumberingLocked(c) : false;
+  const list = ns => ns.length === 1 ? ns[0]
+    : ns.slice(0, -1).join(', ') + ' and ' + ns[ns.length - 1];
+  const nums = gaps.map(g => g.num);
+  const what = `<b>Clause${gaps.length === 1 ? '' : 's'} ${_ne(list(nums))} `
+    + `${gaps.length === 1 ? 'was' : 'were'} deleted, and the numbering was not closed up.</b>`;
+  /* The run is spelled out only where there is one gap to spell out. Four gaps
+     produce four "x is followed by y" clauses that nobody reads, and the
+     numbers above already say which clauses are missing. */
+  const run = (gaps.length === 1 && gaps[0].before && gaps[0].after)
+    ? ` ${_ne(gaps[0].before)} is followed by ${_ne(gaps[0].after)}.` : '';
+  const why = locked
+    ? 'This contract is executed, so its numbering is final. Any amendment to it — '
+      + 'and anyone reading the two documents together — cites these clauses by the '
+      + 'numbers they carry here, so the gap stays exactly where it is.'
+    : 'Numbers are printed exactly as the document carries them, so nothing else moved '
+      + 'and no reference to another clause was repointed. Renumbering is a separate, '
+      + 'deliberate act — and once this contract is signed its numbering is final.';
+  return `<div class="nego-gaps" id="${_ne(opts.noticeId || 'nego-gaps')}" data-locked="${locked ? '1' : '0'}"
+      data-gaps="${gaps.length}" role="status">
+    <span class="mark" aria-hidden="true">${locked ? '§' : '!'}</span>
+    <span class="body">${what}${run}<span class="why">${_ne(why)}</span></span>
+  </div>`;
+}
 function negoDocHtml(c, opts){
   const baseline = !!opts.baseline;
   const clauses = negoClauseList(c);
@@ -1115,9 +1178,15 @@ function negoDocHtml(c, opts){
   }).join('');
   const tail = baseline ? '' : orphanInserts.map(insertBlock).join('');
 
+  /* ON THE WORKING PANE ONLY. The baseline is the wording this round is
+     measured against and carries the same gap — saying so twice, side by side,
+     reads as two different faults rather than one document. */
+  const gaps = baseline ? '' : negoNumberingNoticeHtml(c, { noticeId: 'nego-gaps' });
+
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
     <div class="nego-meta">${_ne(meta)}</div>
+    ${gaps}
     ${body || `<p style="color:var(--n-ink-soft)">This contract has no wording yet.</p>`}
     ${tail}
   </article>`;
@@ -6234,6 +6303,7 @@ function redlineDocHtml(c, opts = {}){
      silently unreachable on this page. */
   return `<article class="nego-doc rl-paper">
     ${head}
+    ${negoNumberingNoticeHtml(c, { noticeId: 'rl-gaps' })}
     ${body || '<p class="rl-clause-p">This contract has no clause structure yet.</p>'}
   </article>`;
 }
@@ -6823,7 +6893,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPanesHtml, negoRoomHtml, negoRoomActionsHtml, negoLayout, negoSetLayout, wireNegoLayout,
   negoHistoryHtml, negoHistoryCardHtml, negoConfirmCloseRound, negoWhoseHtml,
   negoIndexSendHtml, negoNameFieldHtml, negoReadySignalHtml, negoRoomHasExit, negoPick,
-  negoRoomBannerHtml, negoClosedBannerHtml,
+  negoRoomBannerHtml, negoClosedBannerHtml, negoNumberingNoticeHtml,
   openNegotiationRoom, closeNegotiationRoom, negoRoomContract, negoRoomIsOpen,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,

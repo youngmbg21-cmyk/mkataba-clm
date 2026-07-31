@@ -61,7 +61,37 @@ because references to clauses that still exist also go stale.
 
 ## OI-2. Deleting a clause leaves a visible gap in the numbering, with nothing said about it
 
-**Status:** open · **Area:** `js/clausemodel.js`, `js/views/negotiation.js` · **Severity:** medium
+**Status:** partly done — the notice and the lock have shipped; the renumberer has not.
+**Area:** `js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js` · **Severity:** medium
+
+**Shipped** (`f98`, 25 tests):
+
+- `clauseNumberGap(nums, num)` — is one number missing from the run its siblings
+  form, and what sits either side of it. Sibling-aware, so `8.2` is compared
+  against `8.1`/`8.3` and never against `8` or `9`.
+- `negoNumberingGaps(c)` — the gaps this contract's own accepted deletions
+  account for, read from `negoAllChanges` because closing the round is what both
+  creates the gap and archives the change that caused it.
+- `negoExecuted(c)` / `negoNumberingLocked(c)` — the execution predicate, named
+  once. `negoResolve`'s inlined copy now calls it.
+- `negoNumberingNoticeHtml` — drawn in the room's working pane and on the
+  redline workbench, amber on a draft and slate once executed.
+
+**Deliberately NOT scanned for skipped numbers.** The prototype's own contract is
+numbered 1, 4, 5, 6, 9, 12 because it is an extract, and `clausefixtures.js`
+keeps it that way on purpose. A scan reports six faults on it and would do the
+same to every uploaded contract shaped like it. The gap is reported only where an
+accepted `deleteClause` accounts for it.
+
+**Still open — steps 2 to 4 of the sketch below: the renumberer itself.** There
+is no `Renumber clauses` action. `clauseReplaceHeading` remains the primitive it
+will be built on and still has no callers. `negoNumberingLocked` is the gate that
+action must pass; it is written and tested ahead of the thing it gates,
+deliberately, so it cannot be forgotten at the time.
+
+---
+
+### Original write-up, kept for the parts not yet built
 
 **What is wrong.** `clauseRemove` takes out the heading and body and closes
 nothing. A contract numbered 1..24 that loses Clause 9 renders as

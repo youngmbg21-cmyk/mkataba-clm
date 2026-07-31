@@ -5,6 +5,69 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Clause numbering — the gap a deletion leaves, and the lock after signature
+
+**Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/views/negotiation.js`;
+new `test/f98-numbering-gaps-and-the-lock.test.js`, 25 tests; no server changes)
+
+Deleting a clause takes its heading and body out and closes nothing up, so a
+contract that loses clause 9 reads 1..8, 10..24. That behaviour is right and
+stays — a number is the text the file carries, and printing one it does not
+carry is a renumbering however small. What was missing is that nothing said so,
+and a lawyer meeting 8 followed by 10 reads a mangled document.
+
+- **`clauseNumberGap(nums, num)`** — is one number missing, and what are its
+  nearest siblings. Sibling-aware and depth-aware: `8.2` is missing from a
+  document carrying `8.1` and `8.3`, is not missing from one carrying only `8`
+  and `9`, and `12` never answers for `1.2`. Numeric ordering throughout, so the
+  notice cannot print its own sentence backwards.
+- **`negoNumberingGaps(c)`** — the gaps this contract's own deletions made.
+  Attributed to an accepted `deleteClause`, never scanned for. Read from
+  `negoAllChanges`, not `c.changes`: closing the round both creates the gap and
+  archives the change that caused it, so the live set is empty of exactly the
+  records this needs. It times itself — an accepted deletion is struck through
+  and stays in the document until the round closes, so nothing is announced
+  before the hole exists.
+- **`negoExecuted(c)` / `negoNumberingLocked(c)`** — the execution test
+  (`status === 'Signed' || hash || execution.at`) had been written out longhand
+  in `negoResolve` with a comment warning that narrowing it to the status alone
+  would drop the seal. The numbering lock needed the same fact, so it is now one
+  named predicate and `negoResolve` calls it rather than a second copy.
+- **The notice** — in the room's working pane and on the redline workbench,
+  inside the document above the first clause. Deliberately NOT in the banner
+  slot: that slot answers one question (where does this stand?) with one answer
+  at a time, and f52 exists because it used to stack.
+
+**Why no scan for skipped numbers.** The obvious implementation is wrong on the
+product's own primary fixture. The prototype's contract is numbered 1, 4, 5, 6,
+9, 12 because it is an extract of a longer agreement, and `clausefixtures.js`
+keeps it that way so nothing can treat a number as an index. A scan reports six
+faults on a perfectly good document and would do the same to every uploaded
+contract shaped like it. `f98` holds that line explicitly.
+
+**Why the notice offers no button.** Closing the gap is a renumbering, and a
+renumbering is a deliberate act — telling somebody what happened is not the same
+as inviting them to undo it. A notice that quietly offers the undo is how a
+contract gets renumbered by somebody who thought they were tidying.
+
+**The lock.** Once a contract is executed its clause numbers are cited by every
+amendment that varies it and by anyone arguing about it afterwards, so tidying
+1..8, 10..24 into 1..23 repoints all of that silently. The notice switches voice
+at execution — "the gap stays exactly where it is" rather than "renumbering is a
+separate, deliberate act" — and `negoNumberingLocked` is the gate any future
+renumbering must pass. There is no renumbering action yet;
+`clauseReplaceHeading` is the primitive it will be built on and still has no
+callers. The gate is written and tested ahead of it on purpose.
+
+**Not built:** the `Renumber clauses` action itself (preview, format-preserving,
+hierarchy-aware) — steps 2 to 4 of OI-2 in `OPEN-ISSUES.md`. Cross-references to
+a deleted clause are still not detected at all — OI-1, untouched.
+
+**1774 tests, 0 failures.** `f98` is new (25 tests). No existing assertion
+needed changing.
+
+---
+
 ## AI assistant chrome — delete history, minimize, unread glow
 
 **Done** (`js/ai.js`, `js/components.js`, `index.html`; no server changes)
