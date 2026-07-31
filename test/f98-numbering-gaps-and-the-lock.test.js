@@ -280,27 +280,40 @@ describe('the notice says what happened and offers nothing', () => {
     assert.match(html, /data-gaps="1"/);
   });
 
-  test('on a draft it explains that nothing else moved, and never offers a button', async () => {
+  /* ADJUSTED DELIBERATELY FOR N2-T5, as the work order requires. This test
+     used to assert the draft notice NEVER offers a button, on the ground that
+     a notice quietly offering the undo is how a contract gets renumbered by
+     accident. What actually holds that line is the numbering lock plus the
+     preview-and-confirm — both built and tested before the button existed —
+     so the draft notice now carries its one door, on the owner's surface
+     only. The claims that survive unchanged: the button is opt-IN (a surface
+     that does not state the owner seat gets none), and the executed notice
+     stays buttonless below. */
+  test('on a draft it explains that nothing else moved, and offers the door only where the owner seat is stated', async () => {
     const { win, c } = await withGap();
-    const html = win.negoNumberingNoticeHtml(c, {});
-    assert.match(html, /data-locked="0"/);
-    assert.match(html, /no reference to another clause was repointed/,
+    const bare = win.negoNumberingNoticeHtml(c, {});
+    assert.match(bare, /data-locked="0"/);
+    assert.match(bare, /no reference to another clause was repointed/,
       'the reassurance that matters: numbers are literal, so nothing silently repointed');
-    assert.ok(!/<button/i.test(html),
-      'closing the gap is a renumbering and a renumbering is a deliberate act — '
-      + 'a notice that quietly offers the undo is how a contract gets renumbered by accident');
+    assert.ok(!/<button/i.test(bare),
+      'opt-in: a caller that does not claim the owner seat shows no button to anyone');
+    const offered = win.negoNumberingNoticeHtml(c, { offer: true });
+    assert.match(offered, /Renumber clauses…/, 'the draft notice carries its one door (N2-T5)');
+    assert.match(offered, /data-renumber-open=/, 'wired to the preview, which writes nothing unconfirmed');
   });
 
   test('on an executed contract it says the numbering is final', async () => {
     const { win, c } = await withGap();
     c.status = 'Signed';
-    const html = win.negoNumberingNoticeHtml(c, {});
+    /* offer:true on purpose: absence must come from the LOCK, not from a
+       caller forgetting the flag — the action is absent, never disabled. */
+    const html = win.negoNumberingNoticeHtml(c, { offer: true });
     assert.match(html, /data-locked="1"/);
     assert.match(html, /numbering is final/);
     assert.match(html, /the gap stays exactly where it is/);
     assert.ok(!/deliberate act/.test(html),
       'the draft voice invites a tidy-up; over an executed agreement that is advice to corrupt it');
-    assert.ok(!/<button/i.test(html));
+    assert.ok(!/<button/i.test(html), 'no path to renumbering on an executed contract — absent, not disabled');
   });
 
   test('the seal alone locks the voice, without a Signed status', async () => {

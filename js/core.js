@@ -958,14 +958,20 @@ function signerProvenance(ip, ua){
   if(dev) parts.push(dev);
   return parts.length?' · '+parts.join(' · '):'';
 }
-function logAudit(c, action, detail, actor){
+/* `data` is an optional STRUCTURED half of an entry (X3): the prose `detail`
+   is the record a human reads, and `data` is the same fact in a shape the
+   history timeline can render without parsing prose — first used by the
+   renumbering act ({ kind:'renumber', headings:[{clauseId,from,to}], … }).
+   Additive: entries without it are unchanged, and nothing reads it back as
+   required. */
+function logAudit(c, action, detail, actor, data){
   c.audit = c.audit || [];
   const user = actor || currentUser()?.name || 'System';
   const last = c.audit[c.audit.length-1];
   // coalesce rapid repeats (e.g. keystrokes on the same field) into one entry
   if(last && last.action===action && last.detail===detail && last.user===user
      && (Date.now()-new Date(last.at).getTime())<60000){ last.at=nowISO(); return; }
-  c.audit.push({ at:nowISO(), user, action, detail });
+  c.audit.push({ at:nowISO(), user, action, detail, ...(data ? { data } : {}) });
 }
 function renderAuditSection(c){
   const host=document.getElementById('audit-section'); if(!host) return;

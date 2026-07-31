@@ -543,9 +543,204 @@ function clauseResolveRefs(clauses, opts = {}){
   return out;
 }
 
+/* ============================================================
+   RENUMBERING — the computation, and nothing but the computation (N2)
+   ============================================================
+   Everything here is a PLAN: given the clauses a document carries, what would
+   each heading say and where would each cross-reference point if the gaps
+   were closed. No function in this section writes anything. The write is a
+   separate, deliberate act (negoRenumberApply, js/negotiation.js) behind a
+   preview and a confirmation, because renumbering an instrument that is cited
+   by its numbers is exactly the kind of act that must never happen as a side
+   effect.
+
+   FORMAT PRESERVATION IS A HARD REQUIREMENT, not a nicety. `8.2(a)` renumbered
+   must produce `8.1(a)` — never `8.1. (a)` or `8.1 (a)`. The product has been
+   burned by rebuilt headings inventing punctuation (B-004's whole failure
+   class), so nothing here ever rebuilds a string around a number: the numeric
+   token is rewritten IN PLACE and every character around it is kept verbatim.
+
+   THE RUN KEEPS ITS OWN ORIGIN. 1, 4, 5, 12 compacts to 1, 2, 3, 4 — but
+   4, 5, 6 proposes NOTHING, and 2, 4, 5 compacts to 2, 3, 4. An extract of a
+   longer agreement legitimately starts at the number its parent gave it;
+   dragging it back to 1 would be inventing a fact about a document we did not
+   write. Gaps BETWEEN clauses close; the first number stays where it was. */
+
+/* Rewrite the numeric token inside a heading, using the same three grammars
+   clauseParseHeading reads with — so a heading this cannot rewrite is a
+   heading that was never parsed as numbered in the first place. Returns the
+   new heading string, or null when no numeric token is found. */
+function clauseHeadingRenumber(headingText, newNum){
+  const t = String(headingText == null ? '' : headingText);
+  let m = t.match(/^((?:clause|article|section|art\.?|sec\.?|§)\s*)(\d+(?:\.\d+)*)([\s\S]*)$/i);
+  if (m) return m[1] + newNum + m[3];
+  m = t.match(/^(\d+(?:\.\d+)*)([\s\S]*)$/);       // "4. PAYMENT TERMS", "4)" and bare "4"
+  if (m) return newNum + m[2];
+  return null;
+}
+
+/* Rewrite the reference numbers in ONE piece of text, per a mapping of clause
+   numbers. `mapBase` answers with the new number for a normalised base, or
+   null to leave it alone.
+
+   THE BASE MOVES, THE SUFFIX STAYS. A reference "8.2(a)" names sub-paragraph
+   (a) of clause 8.2; when clause 8.2 becomes 8.1, only the "8.2" is rewritten
+   and the "(a)" — including any space the author put before it — is kept as
+   written. A dotted reference deeper than any clause here ("4.3" when only
+   clause 4 exists) maps to nothing and is left alone: what it points at is
+   not in this document, and guessing is how a reference comes to lie.
+
+   ONE PASS, SIMULTANEOUS. With a mapping of {4→3, 5→4}, "Clause 4" becomes
+   "Clause 3" and "Clause 5" becomes "Clause 4" — a sequential find-and-replace
+   would map the 4 twice and corrupt the document it was tidying. Every edit is
+   located first, against the original string, then applied together. */
+function clauseRenumberText(text, mapBase){
+  const s = String(text == null ? '' : text);
+  if (!s || !/\d/.test(s)) return { text: s, edits: [] };
+  const edits = [];
+  const spans = [];
+  const overlaps = (a, b) => spans.some(([x, y]) => a < y && b > x);
+  const renum = raw => {
+    const m = /^(\d+(?:\.\d+)*)([\s\S]*)$/.exec(raw);
+    if (!m) return null;
+    const to = mapBase(clauseRefNorm(m[1]));
+    if (!to || to === m[1]) return null;
+    return { from: m[1], to, out: to + m[2] };
+  };
+  /* Ranges first, exactly as clauseRefsInText orders it: "Clauses 4 to 6"
+     contains "Clauses 4", and the single pass must not see it twice. */
+  const range = new RegExp(`(${_CLREF_WORD})\\s*(${_CLREF_NUM})\\s*(?:to|through|–|—|-)\\s*(${_CLREF_NUM})`, 'gi');
+  let m;
+  while ((m = range.exec(s))){
+    const at = m.index, whole = m[0];
+    spans.push([at, at + whole.length]);
+    const afterWord = whole.slice(m[1].length);
+    const p2 = at + m[1].length + (afterWord.length - afterWord.replace(/^\s+/, '').length);
+    const p3 = at + whole.length - m[3].length;   // the regex ends at the second number
+    for (const [raw, pos] of [[m[2], p2], [m[3], p3]]){
+      const r = renum(raw);
+      if (r) edits.push({ start: pos, end: pos + raw.length, out: r.out,
+        refText: whole, from: r.from, to: r.to });
+    }
+  }
+  const one = new RegExp(`(${_CLREF_WORD})\\s*(${_CLREF_NUM})`, 'gi');
+  while ((m = one.exec(s))){
+    const at = m.index;
+    if (overlaps(at, at + m[0].length)) continue;
+    const raw = m[2], pos = at + m[0].length - raw.length;
+    const r = renum(raw);
+    if (r) edits.push({ start: pos, end: pos + raw.length, out: r.out,
+      refText: m[0], from: r.from, to: r.to });
+  }
+  if (!edits.length) return { text: s, edits: [] };
+  let out = s;
+  for (const e of edits.slice().sort((a, b) => b.start - a.start))
+    out = out.slice(0, e.start) + e.out + out.slice(e.end);
+  return { text: out, edits };
+}
+
+/* The same rewrite over a clause BODY's HTML, text node by text node — the
+   markup is never flattened and never touched, which is what keeps this out
+   of the B-004 failure class by construction. A reference split across
+   formatting ("Clause <b>9</b>") is invisible at this level; the planner
+   reports it as unreachable rather than half-rewriting it. */
+function clauseRenumberBodyHtml(bodyHtml, mapBase){
+  const root = _clParse(window.sanitizeRich ? sanitizeRich(bodyHtml) : bodyHtml);
+  const edits = [];
+  const walk = el => {
+    for (const node of Array.from(el.childNodes)){
+      if (node.nodeType === 3){
+        const r = clauseRenumberText(node.nodeValue, mapBase);
+        if (r.edits.length){ node.nodeValue = r.text; edits.push(...r.edits); }
+      } else if (node.nodeType === 1) walk(node);
+    }
+  };
+  walk(root);
+  return { html: root.innerHTML, edits };
+}
+
+/* The whole plan: new headings, repointed references, and everything that
+   will NOT be touched, each with its reason — so the preview can show 100% of
+   what would move before anything is written.
+
+   HIERARCHY-AWARE. Families renumber independently: closing a gap among
+   clause 1's sub-clauses proposes nothing for clause 2, and a renumbered
+   parent carries its children with it (4 → 2 makes 4.1 → 2.1) with the
+   children's own run compacted against their own siblings. */
+function clauseRenumberPlan(clauses){
+  const list = (Array.isArray(clauses) ? clauses : []).filter(cl => cl && cl.clauseId);
+  const numbered = list.filter(cl => _clNumOk(_clNumParts(cl.num)));
+  const byDepth = new Map();
+  for (const cl of numbered){
+    const d = _clNumParts(cl.num).length;
+    if (!byDepth.has(d)) byDepth.set(d, []);
+    byDepth.get(d).push(cl);                      // document order, preserved
+  }
+  const map = new Map();                          // old num → new num, changed only
+  const headings = [];
+  for (const d of Array.from(byDepth.keys()).sort((a, b) => a - b)){
+    const fams = new Map();
+    for (const cl of byDepth.get(d)){
+      const parent = _clNumParts(cl.num).slice(0, -1).join('.');
+      if (!fams.has(parent)) fams.set(parent, []);
+      fams.get(parent).push(cl);
+    }
+    for (const [parent, members] of fams){
+      const newParent = map.get(parent) || parent;
+      const anchor = _clNumParts(members[0].num).pop();   // the run keeps its own origin
+      members.forEach((cl, i) => {
+        const to = newParent ? `${newParent}.${anchor + i}` : String(anchor + i);
+        const from = clauseRefNorm(cl.num);
+        if (to === from) return;
+        map.set(from, to);
+        const newHeading = clauseHeadingRenumber(cl.headingText, to);
+        if (newHeading == null || newHeading === cl.headingText) return;
+        headings.push({ clauseId: cl.clauseId, oldNum: from, newNum: to,
+          oldHeading: cl.headingText, newHeading });
+      });
+    }
+  }
+  const mapBase = n => map.get(n) || null;
+  const refs = [], untouched = [], bodies = {};
+  const seenDangling = new Set();
+  for (const cl of list){
+    const r = clauseRenumberBodyHtml(cl.bodyHtml || '', mapBase);
+    if (r.edits.length){
+      bodies[cl.clauseId] = r.html;
+      for (const e of r.edits)
+        refs.push({ clauseId: cl.clauseId, fromNum: cl.num || '', refText: e.refText,
+          from: e.from, to: e.to });
+    }
+    /* Anything the flat text can see that the node walk could not reach is a
+       reference split across formatting — reported, never half-rewritten. */
+    const flat = clauseRefsInText(String(cl.text || ''));
+    const expected = flat.filter(x => {
+      const base = (/^(\d+(?:\.\d+)*)/.exec(x.num) || [])[1] || '';
+      return base && map.has(clauseRefNorm(base));
+    }).length;
+    if (expected > r.edits.length)
+      untouched.push({ clauseId: cl.clauseId, refText: '', num: '',
+        reason: 'formatting', count: expected - r.edits.length });
+  }
+  /* Dangling references, listed so the preview can say "unresolvable — will
+     not be touched" instead of leaving the reader to wonder. */
+  for (const r of clauseResolveRefs(list)){
+    if (r.state !== 'dangling') continue;
+    const base = (/^(\d+(?:\.\d+)*)/.exec(r.num) || [])[1] || '';
+    if (base && map.has(clauseRefNorm(base))) continue;    // its base moves — it is in `refs`
+    const key = r.fromClauseId + '→' + r.num;
+    if (seenDangling.has(key)) continue;
+    seenDangling.add(key);
+    untouched.push({ clauseId: r.fromClauseId, refText: r.text, num: r.num, reason: 'dangling' });
+  }
+  return { headings, refs, untouched, bodies,
+    map: Object.fromEntries(map), changed: headings.length > 0 };
+}
+
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
   clauseRefsInText, clauseResolveRefs, clauseRefNorm,
+  clauseHeadingRenumber, clauseRenumberText, clauseRenumberBodyHtml, clauseRenumberPlan,
 });

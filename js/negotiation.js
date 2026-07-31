@@ -105,11 +105,10 @@ function negoExecuted(c){
    into 1..23 on a signed agreement silently repoints every one of those
    citations, and does it invisibly, because the wording underneath is right.
 
-   There is no renumbering action in the product yet — clauseReplaceHeading is
-   the primitive it will be built on and has no callers. This exists so that
-   when it is built the gate is already here and already tested, rather than
-   being remembered at the time. Anything that rewrites a clause number must ask
-   this first. */
+   The renumbering action now exists (negoRenumberApply, N2) and asks this
+   first — the gate was built and tested before its first caller, deliberately,
+   so the caller could not be written without meeting it. Anything else that
+   ever rewrites a clause number must ask it too. */
 const negoNumberingLocked = c => negoExecuted(c);
 
 /* ---------- HAS THE LIVE DOCUMENT WALKED AWAY FROM THE SEALED ONE ----------
@@ -188,6 +187,20 @@ function negoNumberingGaps(c){
   const parse = window.clauseParseHeading;
   const gapOf = window.clauseNumberGap;
   if (!parse || !gapOf) return [];
+  /* A RECORDED RENUMBERING ANSWERS THE GAPS BEFORE IT. Attribution cuts both
+     ways: a gap is reported because an accepted deletion accounts for it, and
+     it STOPS being reported because a recorded renumbering (N2) closed the
+     run back up — "Clause 9 was deleted and the numbering was not closed up"
+     over a run that now reads 1..5 would be the notice lying about the one
+     thing it exists to say. Compared by time, off the renumbering's own X3
+     audit entry: a deletion decided AFTER the last renumbering opened a gap
+     that act never saw, and it still reports. A trailing deletion — the run
+     simply ending earlier — keeps reporting too, until a renumbering
+     addresses it: the run shows no hole, but the deletion is real news and
+     nothing has yet answered it. */
+  const lastRenumber = (c.audit || [])
+    .filter(a => a && a.data && a.data.kind === 'renumber')
+    .map(a => String(a.at || '')).sort().slice(-1)[0] || '';
   const out = [];
   const seen = new Set();
   for (const ch of negoAllChanges(c)){
@@ -197,6 +210,7 @@ function negoNumberingGaps(c){
        the ones written before anybody was asking this question. */
     const num = String(parse(ch.clauseLabel || '').num || '');
     if (!num || seen.has(num)) continue;
+    if (lastRenumber && String(ch.resolvedAt || '') <= lastRenumber) continue;
     const gap = gapOf(nums, num);
     if (gap.present) continue;
     seen.add(num);
@@ -288,6 +302,90 @@ function negoAllRefs(c){
     return { ...r,
       fromLabel: from ? (window.clauseLabel ? clauseLabel(from) : (from.headingText || '')) : '' };
   });
+}
+
+/* ---------- RENUMBERING, AS A RECORDED ACT (N2) ----------
+   The computation lives in js/clausemodel.js (clauseRenumberPlan) and is pure;
+   these three are the contract-shaped door in front of it: whether the door is
+   open, what would happen, and the one write.
+
+   WHEN THE DOOR IS OPEN — and this is the decided change-model treatment the
+   work order asked for (N2-T4). Renumbering applies DIRECTLY, but only over a
+   QUIET TABLE: never on an executed contract, and never while any live change
+   is on the table. The quiet-table rule is not caution for its own sake —
+   every filed change carries oldText measured against the current baseline and
+   renders its redline from it, so rewriting the document underneath pending
+   asks would detach every one of them from the wording it cites. Between
+   rounds the table is empty by construction (negoAdvanceRound archives the
+   decided set), which is exactly when the gap notice appears — the gap only
+   opens when the round closes — so the primary flow is never blocked. The
+   alternative treatment (filing each heading rename as a tracked change once a
+   round has been sent) was considered and rejected: the change model has no
+   heading-rename change type, and N headings filed as N fingerprints
+   contradicts the order's own "one audit entry summarising the whole act".
+   The counterparty is not cut out by this: the renumbered wording becomes the
+   baseline their next round opens on, the version list records the act, and
+   their standing link shows the result — a renumbering they object to is a
+   renumbering they redline like any other wording.
+
+   THE APPLY RECOMPUTES ITS OWN PLAN rather than trusting the one the preview
+   showed. Same quiet table, same clauses, same answer — and a plan object
+   cannot go stale in a pocket between the preview being painted and the
+   button being pressed. */
+function negoRenumberBlocked(c){
+  if (!c) return 'locked';
+  if (negoNumberingLocked(c)) return 'locked';
+  negoInit(c);
+  if (negoChanges(c).some(x => x && x.status !== 'superseded')) return 'table';
+  return null;
+}
+/* The computation refuses on an executed contract — not only the UI. A caller
+   that never renders a button can still not compute its way past the lock. */
+function negoRenumberPlan(c){
+  if (!c || negoNumberingLocked(c)) return null;
+  if (!window.clauseRenumberPlan) return null;
+  return clauseRenumberPlan(negoClauseList(c));
+}
+function negoRenumberApply(c, opts = {}){
+  if (negoRenumberBlocked(c)) return null;
+  const plan = negoRenumberPlan(c);
+  if (!plan || !plan.changed) return null;
+  const n = negoInit(c);
+  let body = n.baselineBody;
+  for (const h of plan.headings){
+    const next = window.clauseReplaceHeading ? clauseReplaceHeading(body, h.clauseId, h.newHeading) : null;
+    if (next != null) body = next;
+  }
+  for (const [id, bodyHtml] of Object.entries(plan.bodies || {})){
+    const next = window.clauseReplaceBody ? clauseReplaceBody(body, id, bodyHtml) : null;
+    if (next != null) body = next;
+  }
+  /* The baseline and the live document move together, through the same commit
+     path every accepted change uses — two copies of the wording that could
+     disagree about the numbering would be worse than the gap. */
+  n.baselineBody = body;
+  n.baselineText = window.richToText ? richToText(body) : '';
+  negoCommitBody(c, body);
+  const who = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
+  const moved = plan.headings.map(h => `${h.oldNum}→${h.newNum}`);
+  const shown = moved.slice(0, 6).join(', ') + (moved.length > 6 ? ` and ${moved.length - 6} more` : '');
+  /* X3: the structured half rides ON the audit entry, so the history timeline
+     (WP-2.1) can render the act as a story beat without parsing prose. The
+     prose half stays the record a human reads. */
+  if (window.logAudit) logAudit(c, 'Renumbered',
+    `Clauses renumbered by ${who} — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'} (${shown})`
+    + `; ${plan.refs.length} cross-reference${plan.refs.length === 1 ? '' : 's'} repointed to follow`
+    + (plan.untouched.length ? `; ${plan.untouched.length} reference${plan.untouched.length === 1 ? '' : 's'} left untouched (unresolvable)` : '')
+    + '. Every clause keeps its id; nothing beyond the numbers changed.',
+    who,
+    { kind: 'renumber',
+      headings: plan.headings.map(h => ({ clauseId: h.clauseId, from: h.oldNum, to: h.newNum })),
+      refs: plan.refs.map(r => ({ clauseId: r.clauseId, from: r.from, to: r.to })),
+      untouched: plan.untouched.length });
+  if (window.captureVersion) captureVersion(c,
+    `Clauses renumbered — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'}`,
+    who, { auto: true, listed: true });
+  return plan;
 }
 
 /* ---------- WHO THE RECORD SAYS DID THIS ----------
@@ -2515,6 +2613,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
+  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
