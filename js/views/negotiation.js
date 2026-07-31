@@ -5436,7 +5436,24 @@ async function rlAiPropose(ctx){
     if (placement === 'newClause'){
       if (!window.negoInsertClause)
         return { ok: false, message: 'This build cannot file a new clause. Choose Replace, Add after or Add before instead.' };
-      return fileAll([{ kind: 'insert', clauseId, bodyHtml: asHtml(String(wording)),
+      /* AFTER THE WHOLE HIGHLIGHT, not after the block the drag began in.
+         `clauseId` names the selection's STARTING clause, which is the right
+         anchor for a single-clause selection and the wrong one for a span:
+         a highlight across three paragraphs would put the new clause after the
+         first of them — inside the wording the reader had just selected, which
+         is the one place "after this" cannot mean. */
+      const anchorId = parts ? parts[parts.length - 1].clauseId : clauseId;
+      /* AND THE ANCHOR HAS TO STILL BE THERE. Every other path on this function
+         re-resolves against the live document at Apply, because the panel stays
+         open for as long as the conversation lasts. This one skipped the check
+         on the reasoning that a new clause does not depend on the passage — true
+         of the WORDING, false of the anchor. An insert filed against a clause
+         that has since gone does not fail loudly: negoDocHtml treats it as an
+         orphan and drops it to the end of the document (see orphanInserts), so
+         the reader gets a clause in a place nobody chose and nothing says so. */
+      if (!(window.negoClauseById && negoClauseById(c, anchorId)))
+        return { ok: false, message: 'The clause this would follow is no longer in the document. Reselect a current clause and try again.' };
+      return fileAll([{ kind: 'insert', clauseId: anchorId, bodyHtml: asHtml(String(wording)),
         headingText: (card && card.headingText) || '' }], note);
     }
 

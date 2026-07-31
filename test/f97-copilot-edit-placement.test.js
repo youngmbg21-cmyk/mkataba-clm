@@ -9,7 +9,7 @@
    error, no warning, and wording nobody agreed to lose was gone.
 
    So a proposal now carries WHERE it goes as well as what it says. Four
-   placements, and this file pins the five ways the feature can fail silently:
+   placements, and this file pins the six ways the feature can fail silently:
 
      · THE PLACEMENT HAS TO SURVIVE THE PARSE, and a model that omits it, or
        invents a fifth, must land on `replace` — the behaviour that existed
@@ -17,19 +17,24 @@
        worked out.
 
      · AN ADDITION MUST NOT BE MEASURED AGAINST WHAT IT SITS BESIDE. The
-       typography repair reads the shape of the passage a rewrite REPLACES and
-       puts it back if the model lost it. Run that on an insert and three new
-       bullets, measured against one selected sentence, are squashed into one
-       paragraph: the feature that protects a numbered list would be the thing
-       that destroys the list you asked for.
+       typography repair reshapes an answer to the shape of the passage a
+       rewrite REPLACES, including its item count. Point it at an addition and
+       it goes hunting for items that were never meant to be there — splitting a
+       single added sentence at its own semicolon to reach the passage's count.
+       A sub-paragraph break nobody drafted, inside wording about to be filed.
 
      · "AFTER" HAS TO KEEP THE SENTENCE. It is the entire difference between
        this feature and the bug it replaces, and it is one character of
        arithmetic away from being wrong.
 
-     · A NEW CLAUSE IS A NEW CLAUSE, not a modify on the one above it.
+     · A NEW CLAUSE IS A NEW CLAUSE, not a modify on the one above it — and it
+       lands after the whole highlight, against an anchor re-checked at Apply.
 
-     · AND THE REFUSALS STILL REFUSE. A selection spanning two clauses, one
+     · ADDING TO A SPAN DELETES NOTHING. Replacing a highlight that crosses
+       several blocks collapses them; running an ADDITION through that machinery
+       would propose deletions for blocks the reader explicitly asked to keep.
+
+     · AND THE REFUSALS STILL REFUSE. A selection spanning numbered clauses, one
        crossing a redline, and a clause that moved while the panel was open all
        still file nothing — an insert is a splice like any other and gets no
        private path into the contract. */
@@ -299,7 +304,14 @@ async function page(opts = {}){
   const moveClauseUnderneath = (from, to) => {
     c.negotiation.baselineBody = String(c.negotiation.baselineBody).replace(from, to);
   };
-  return { w, win, c, panel, clause, action, ask, clauseText, filed, moveClauseUnderneath,
+  /* The clause leaving the document entirely while the panel is open — the
+     anchor case, as opposed to the wording case above. */
+  const dropClause = id => {
+    c.negotiation.baselineBody = win.clauseRemove
+      ? (win.clauseRemove(c.negotiation.baselineBody, id) ?? c.negotiation.baselineBody)
+      : c.negotiation.baselineBody;
+  };
+  return { w, win, c, panel, clause, action, ask, clauseText, filed, moveClauseUnderneath, dropClause,
     changes: () => win.negoChanges(c) };
 }
 
@@ -444,6 +456,131 @@ describe('F97e — a new clause is a new clause', () => {
     assert.match(ch.newText, /twelve \(12\) months/);
     assert.equal(p.clauseText(), wasText,
       'and the clause it follows is untouched — this is not an edit to it');
+  });
+
+  test('the anchor is re-checked at Apply, not trusted from when the panel opened', async () => {
+    /* The one path that legitimately skips the PASSAGE check still depends on
+       the anchor clause, and the panel is open for as long as the conversation
+       lasts. Filed against a clause that has gone, the insert does not fail —
+       negoDocHtml treats it as an orphan and drops it to the end of the
+       document, which is a placement nobody chose and nothing announces. So it
+       is refused here instead, like every other stale apply on this function. */
+    const p = await page({ placement: 'newClause' });
+    const card = await p.ask('All invoices are payable within thirty (30) days from the date of issue.',
+      'add a new clause after this one covering data retention');
+    p.dropClause(p.clause.clauseId);
+    const res = card.onApply(card.proposedText, { placement: 'newClause' });
+    assert.equal(res.ok, false, 'refused rather than filed against a vanished anchor');
+    assert.match(res.message, /no longer in the document/i);
+    assert.equal(p.changes().filter(x => x.changeType === 'insertClause').length, 0);
+  });
+});
+
+/* ============================================================
+   A HIGHLIGHT ACROSS SEVERAL BLOCKS. Main's selection work taught this page to
+   accept a drag across the paragraphs of a headingless document — the kind of
+   contract that arrived as a wall of prose and was segmented one clause per
+   paragraph. Replacing such a span collapses it: the head takes the new wording
+   and the blocks the highlight ate are proposed for deletion.
+
+   Adding to one must do neither of those things, and that is what these pin. */
+const FLAT = ['<p>The Supplier shall deliver the goods to the named warehouse.</p>',
+  '<p>Risk passes on delivery to that warehouse.</p>',
+  '<p>Title passes on payment in full.</p>'].join('');
+
+async function spanPage(opts = {}){
+  const w = buildWorld({ negotiationView: true });
+  const { win } = w;
+  const c = { id: 'MK-980', name: 'Flat Supply Agreement', counterparty: 'Naivas Supermarkets',
+    template: 'RM', status: 'Under Review', folder: 'proc', fields: {}, metadata: {}, audit: [],
+    rounds: [], versions: [], signatures: [], comments: [], redlineText: FLAT, format: 'rich' };
+  const panel = { cards: [], said: [] };
+  win.openAI = () => {}; win.renderAIFeed = () => {};
+  win.aiPush = (role, m) => { if (role === 'assistant' && m && m.text) panel.said.push(String(m.text)); };
+  win.copilotAvailable = () => true;
+  win.copilotPropose = async () => ({ advice: 'a', proposedText: 'Delivery shall be certified in writing.',
+    strict: true, placement: opts.placement || 'after' });
+  win.aiOpenProposal = o => { panel.cards.push(o); return o; };
+  win.aiOpenRephraseSession = o => { o.onPropose('x'); return o; };
+  win.aiCloseRephraseSession = () => {};
+  win.aiNormalizePlacement = v => ['replace', 'after', 'before', 'newClause']
+    .includes(String(v)) ? String(v) : 'replace';
+  win.negoInit(c);
+  win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+  win.getContract = id => (id === c.id ? c : null);
+  win.renderRedline();
+  const cls = win.negoClauseList(c);
+  const parts = [
+    { clauseId: cls[0].clauseId, text: 'to the named warehouse.', readings: [], occurrence: 0 },
+    { clauseId: cls[1].clauseId, text: 'Risk passes on delivery', readings: [], occurrence: 0 }
+  ];
+  const text = 'to the named warehouse.\nRisk passes on delivery';
+  await win.rlAiPropose({ c, action: win.RL_SEL_ACTIONS.find(a => a.id === 'edit'),
+    text, clauseId: cls[0].clauseId, spans: true,
+    passage: { text, readings: [], occurrence: 0, parts },
+    opts: { side: 'owner', by: 'Young Mbagaya', persist: false }, again: () => {} });
+  await new Promise(r => setTimeout(r, 0));
+  return { win, c, cls, panel, card: panel.cards[panel.cards.length - 1],
+    changes: () => win.negoChanges(c) };
+}
+
+describe('F97h — adding to a span keeps every block it covered', () => {
+  test('a span is accepted at all on a headingless document', async () => {
+    const p = await spanPage();
+    assert.ok(p.card, 'main allows the drag across paragraphs; the refusal is for numbered clauses');
+  });
+
+  test('"after" edits one block and deletes none', async () => {
+    /* Running an insert through the replace machinery would propose deletions
+       for the blocks the reader explicitly asked to KEEP — the same silent loss
+       this whole feature exists to stop, re-entering by the back door. */
+    const p = await spanPage({ placement: 'after' });
+    const res = p.card.onApply('Delivery shall be certified in writing.', { placement: 'after' });
+    assert.equal(res.ok, true);
+    await new Promise(r => setTimeout(r, 0));
+    const chs = p.changes();
+    assert.equal(chs.filter(x => x.changeType === 'deleteClause').length, 0,
+      'nothing the reader highlighted is proposed for deletion');
+    assert.equal(chs.length, 1, 'one block touched, not three');
+    assert.equal(chs[0].clauseId, p.cls[1].clauseId, 'and it is the LAST block of the span');
+    assert.match(chs[0].newText, /Risk passes on delivery/, 'whose own wording survives');
+    assert.match(chs[0].newText, /certified in writing/);
+  });
+
+  test('"before" lands on the first block of the span', async () => {
+    const p = await spanPage({ placement: 'before' });
+    p.card.onApply('Delivery shall be certified in writing.', { placement: 'before' });
+    await new Promise(r => setTimeout(r, 0));
+    const chs = p.changes();
+    assert.equal(chs.length, 1);
+    assert.equal(chs[0].clauseId, p.cls[0].clauseId);
+    assert.match(chs[0].newText, /The Supplier shall deliver/, 'the block survives');
+  });
+
+  test('a new clause lands after the whole highlight, not inside it', async () => {
+    /* clauseId names the block the DRAG BEGAN IN. Anchoring a new clause there
+       drops it into the middle of the wording the reader had just selected,
+       which is the one place "after this" cannot mean. */
+    const p = await spanPage({ placement: 'newClause' });
+    p.card.onApply('Delivery shall be certified in writing.', { placement: 'newClause' });
+    await new Promise(r => setTimeout(r, 0));
+    const ins = p.changes().find(x => x.changeType === 'insertClause');
+    assert.ok(ins, 'filed as a new clause');
+    assert.equal(ins.afterClauseId, p.cls[1].clauseId,
+      'after the last block the highlight covered');
+    assert.notEqual(ins.afterClauseId, p.cls[0].clauseId,
+      'not after the first, which would sit it inside the selection');
+  });
+
+  test('replacing a span still collapses it, exactly as main built it', async () => {
+    const p = await spanPage({ placement: 'replace' });
+    p.card.onApply('The Supplier shall deliver and certify.', { placement: 'replace' });
+    await new Promise(r => setTimeout(r, 0));
+    const chs = p.changes();
+    assert.ok(chs.some(x => x.changeType === 'deleteClause' || /^\s*$/.test(String(x.newText || ''))
+      || x.clauseId === p.cls[1].clauseId), 'the tail block is still dealt with');
+    assert.ok(chs.some(x => x.clauseId === p.cls[0].clauseId && /deliver and certify/.test(x.newText || '')),
+      'and the head still takes the new wording');
   });
 });
 
