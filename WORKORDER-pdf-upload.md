@@ -361,11 +361,27 @@ API cost observed per document — note it so Young can price this), **`BUGLOG.m
 
 **[Corrected] Record which tests were green at session start, before touching
 anything.** The first stop condition below compares against that baseline, so
-without it the condition cannot be evaluated. During the review pass,
-`test/f105-upload-convert.test.js` — the very test §0 names as this brief's
-precondition — did not complete on a first attempt and had to be re-run, so do not
-assume the suite is healthy. Establish the baseline first and write it into
-`RECON.md`.
+without it the condition cannot be evaluated.
+
+**Run `npm install` before running any test.** In a fresh container `node_modules`
+is empty, and `server/server.js` fails on its first `require` — which surfaces as
+the whole suite hanging and then reporting every test as "cancelled by parent",
+with the real cause buried in a stack trace. It looks exactly like a broken test
+suite and is not one. This was confirmed during the review pass: with dependencies
+installed, `test/f105-upload-convert.test.js` — the very test §0 names as this
+brief's precondition — **passes 7 of 7**. So the precondition is met and this brief
+may proceed.
+
+Baseline measured during the review pass, for comparison at session start:
+
+| Test | Result |
+| --- | --- |
+| `f101-template-library` · `f102-save-as-template` · `f103-template-library-ui` · `f104-contract-from-template` | 23 of 23 pass |
+| `f105-upload-convert` (this brief's precondition) | 7 of 7 pass |
+
+Re-confirm this at session start and record it in `RECON.md`. If any of these are
+red before you have changed anything, the cause is the environment, not the brief —
+check `npm install` first.
 
 Stop and write up immediately if:
 - Any Phase A–D test that was green at session start goes red and cannot be
