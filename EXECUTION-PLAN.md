@@ -625,7 +625,7 @@ OPEN-ISSUES' own rule.
 a draft's gap with a full preview; preview-then-cancel byte-identical; ids
 never move; executed contracts offer nothing anywhere.
 
-### 🔶 Stage 6 — IN PROGRESS (Session 13 landed; Session 14 next)
+### ✅ Stage 6 — the negotiation history (COMPLETE)
 **Suite 2106/0 · redline 71/71 · parity 18/18 · selection 22/22.**
 **WP-2.1 ✅** — `negoTimeline` assembles one chronological story from changes
 (live + archived rounds), round closures and the audit trail's beats; the
@@ -636,9 +636,18 @@ story byte-identical (f120, 7). Filters (clause-by-durable-id, person, side,
 round, outcome) combine in the MODEL; the screen re-asks it rather than
 hiding DOM. Reached from the workspace History button; no canEdit gate —
 read-only by nature, viewers included.
-**Session 14 next:** WP-2.5 (verify-integrity button on the timeline) →
-WP-2.4 (exportable standalone report embedding the verification result). The
-plan's Playwright screen check rides with Session 14's proving work.
+**WP-2.5 ✅** — `negoIntegrityReport`: the chain, the seal and the E5
+live-vs-sealed comparison in one answer, FIRST broken link named, timestamp
+carried. **WP-2.4 ✅** — the standalone export: whole story, filters off,
+redlines and reasons, seal printed for independent comparison, verification
+result embedded WITH when it was run; a failed check exports as a failure.
+f121 (7). **Suite 2113/0.** Exit gate held: the untampered fixture verifies
+green; the tampered one names the exact broken record; the export stands
+alone for a reader with no login and embeds the verification result and its
+time. **Deferred, recorded:** the Playwright render check for the timeline
+screen rides with Session 20's real-browser adversarial pass — the screen's
+behaviour is jsdom-proven (f120/f121); the deferral is about pixels, not
+claims.
 
 ### ⬜ Stages 7–9 — not started
 Then 7 (live numbering — the freeze shares a session with nothing else),

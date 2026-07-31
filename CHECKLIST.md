@@ -623,3 +623,20 @@ OI-2 closed and moved to BUGLOG.
 
 Suite at close: **2106 tests, 0 failures**; Chromium 71/71 · 18/18 · 22/22.
 Playwright screen check: deferred to Session 14, recorded in SESSION-NOTES.
+
+
+---
+
+## Stage 6, Session 14 — verify and export (WP-2.5 + WP-2.4, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Untampered record verifies green, with the run's own timestamp | f121 | PASS |
+| Tampered record fails naming the FIRST broken change | f121 | PASS |
+| Executed contract: the seal joins the answer; a false seal fails it | f121 | PASS |
+| Verify + Export doors on the timeline; verdict written, never toasted | f121 | PASS |
+| Export: every change, decision and reason; redlines rendered; standalone (no src/href/network) | f121 | PASS |
+| Export embeds the verification result AND when it was run | f121 | PASS |
+| A failed verification exports as a failure | f121 | PASS |
+
+Suite at close: **2113/0**; Chromium 71/71 · 18/18 · 22/22. Stage 6 gate held.
