@@ -6239,3 +6239,21 @@ revision note; repeated here because they cost time:
   fenced or prose answer is impossible by construction. The instruction
   described a text-parsing design this codebase does not use, and following it
   would have meant building a JSON parser for output that arrives structured.
+
+### A guard that is precautionary, and is labelled as such
+
+`tplPdfClassify()` walks the raw bytes as well as the inflated streams, so that
+a PDF whose text sits uncompressed is not mistaken for a scan. The cost is that
+it also walks compressed image data, where a byte run shaped like `(…)Tj` could
+in principle be counted as text — which would file a scan as digital and
+silently drop both the banner and the digit cap.
+
+A printable-run filter was added against that. **Measured, it changed nothing:**
+against 630 KB of incompressible image data the coincidence did not occur, so
+`f128`'s big-scan case passes with or without the filter. It is kept because it
+is nearly free and the failure it guards against is silent, but it should not be
+described as fixing an observed bug, and the test should not be described as
+proving the filter works. Both the code comment and the test say so.
+
+Recorded here because a guard that passes either way is the kind of thing a
+later reader mistakes for a tested invariant.

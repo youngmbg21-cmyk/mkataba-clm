@@ -5374,11 +5374,30 @@ function tplPdfClassify(bytes, chunks) {
      otherwise look textless and be misfiled as a scan. */
   const sources = [bytes.subarray(0, TPL_PDF_SCAN_LIMIT).toString('latin1')]
     .concat(chunks || tplPdfInflatedChunks(bytes));
+  /* Only count something that reads like language. The raw pass above walks the
+     whole file, compressed image data included, so in principle a byte sequence
+     shaped like `(…)Tj` can occur in an image stream by chance and count toward
+     the text floor — which would file a scan as digital and silently drop both
+     the banner and the digit cap, the one misclassification here with a real
+     cost. Precautionary rather than a fix for an observed bug: measured against
+     630 KB of incompressible image data this filter changed nothing, because
+     the coincidence did not occur. It is kept because it is nearly free, the
+     failure it guards against is silent, and file sizes only grow. */
+  const looksLikeText = s => {
+    if (!s) return false;
+    let printable = 0;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      if (c === 9 || c === 10 || c === 13 || (c >= 0x20 && c <= 0x7e)) printable++;
+    }
+    return printable / s.length >= 0.8;
+  };
+  const add = s => { if (looksLikeText(s)) chars += s.length; };
   for (const c of sources) {
     // (literal) Tj   |   [(pieces) -250 (more)] TJ   |   (literal) '   |   (literal) "
-    for (const m of c.matchAll(/\(((?:[^()\\]|\\.)*)\)\s*(?:Tj|TJ|'|")/g)) chars += m[1].length;
+    for (const m of c.matchAll(/\(((?:[^()\\]|\\.)*)\)\s*(?:Tj|TJ|'|")/g)) add(m[1]);
     for (const m of c.matchAll(/\[((?:[^\][\\]|\\.)*)\]\s*TJ/g))
-      for (const s of m[1].matchAll(/\(((?:[^()\\]|\\.)*)\)/g)) chars += s[1].length;
+      for (const s of m[1].matchAll(/\(((?:[^()\\]|\\.)*)\)/g)) add(s[1]);
     if (chars >= TPL_PDF_TEXT_FLOOR) return { sourceType: 'pdf_digital', textChars: chars };
   }
   return { sourceType: chars >= TPL_PDF_TEXT_FLOOR ? 'pdf_digital' : 'pdf_scanned', textChars: chars };

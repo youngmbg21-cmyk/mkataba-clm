@@ -204,6 +204,64 @@ describe('f128 — the PDF door', () => {
     assert.equal(t.template.scanned, true);
   });
 
+  test('a big, noisy scan is still a scan — compressed image data does not read as text', async () => {
+    /* The classifier walks the raw bytes as well as the inflated streams, so a
+       PDF whose text is sitting uncompressed is not mistaken for a scan. The
+       cost of that is walking compressed image data too, where a byte sequence
+       shaped like `(…)Tj` could in principle occur by chance and count toward
+       the text floor — filing a scan as digital and silently dropping the
+       banner and the digit cap.
+
+       Honest about what this pins: it asserts the OUTCOME (a large, noisy,
+       image-only PDF is still a scan), not that the printable-run filter in
+       tplPdfClassify is what achieves it. Measured against this buffer the
+       coincidence does not occur, so the test passes with or without that
+       filter. It is here to catch the day some future change to the raw pass
+       starts counting image noise — the failure mode is silent, so something
+       has to be watching for it. */
+    const W = 700, H = 900;
+    /* Deterministic but genuinely incompressible: a chain of SHA-256 blocks.
+       A plain LCG will not do here — `seed * 1103515245` exceeds float64's
+       exact-integer range, so the sequence degenerates and deflate crushed the
+       first two attempts at this buffer to a fortieth of their size. A hash
+       chain is high-entropy by construction and identical on every run. */
+    const crypto = require('node:crypto');
+    const blocks = [];
+    let acc = Buffer.from('f128-big-scan-seed');
+    for (let n = 0; n * 32 < W * H; n++) {
+      acc = crypto.createHash('sha256').update(acc).digest();
+      blocks.push(acc);
+    }
+    const px = Buffer.concat(blocks).subarray(0, W * H);
+    const z = zlib.deflateSync(px);
+    const objs = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Count 1 /Kids [3 0 R] >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>',
+    ];
+    let out = '%PDF-1.4\n', offsets = [0], pos = out.length;
+    const push = s => { offsets.push(pos); out += s; pos += s.length; };
+    objs.forEach((o, i) => push(`${i + 1} 0 obj\n${o}\nendobj\n`));
+    const imgHead = `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${z.length} >>\nstream\n`;
+    offsets.push(pos);
+    const head = Buffer.from(out, 'latin1');
+    const imgBuf = Buffer.concat([Buffer.from(imgHead, 'latin1'), z, Buffer.from('\nendstream\nendobj\n', 'latin1')]);
+    pos += imgBuf.length;
+    const contentStr = `5 0 obj\n<< /Length 40 >>\nstream\nq 595 0 0 842 0 0 cm /Im0 Do Q\nendstream\nendobj\n`;
+    offsets.push(pos);
+    let tail = contentStr; pos += contentStr.length;
+    tail += `xref\n0 6\n0000000000 65535 f \n`;
+    for (let i = 1; i <= 5; i++) tail += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    tail += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${pos}\n%%EOF\n`;
+    const big = Buffer.concat([head, imgBuf, Buffer.from(tail, 'latin1')]);
+    assert.ok(big.length > 400_000, 'the point of this case is that it is large');
+
+    const r = await w.admin.json('/api/templates/upload', { method: 'POST', body: {
+      fileName: 'big-scan.pdf', dataUrl: pdfUrl(big) } });
+    assert.equal(r.sourceType, 'pdf_scanned', 'noise in an image stream is not a text layer');
+    assert.equal(r.scanned, true);
+  });
+
   test('a Word file is still docx, and templates from before this feature stay silent', async () => {
     const docx = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,'
       + FIX('blanks-inline.docx').toString('base64');

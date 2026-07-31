@@ -195,3 +195,15 @@ fire on an unusable answer and never on a refusal or a rate limit, and getting
 that discrimination right needs real failure modes, not a stub. Detection quality
 (§9's 20-of-27 bar) and cost per document (§8) are unmeasured because this
 environment has no Anthropic key. Both are in BUGLOG.md with the command to run.
+
+**Loop 6 — the full suite, the browser checks, and one honest downgrade.** Whole
+Node suite 2197/2197 and all four Chromium checks green (71/71, 22/22, 18/18,
+19/19). Then hardened `tplPdfClassify()` against image noise being counted as
+text, and added a large-scan case to `f128` for it. Measuring afterwards showed
+the guard changes nothing on the data available — the coincidence it defends
+against did not occur in 630 KB — so the code comment and the test comment were
+both rewritten to say precautionary rather than implying a bug was found and
+fixed. The guard stays (cheap, and the failure it covers is silent); the claim
+about it does not. Building that test also took two attempts at incompressible
+data: a plain LCG degenerates in float64 and deflate crushed the buffer to a
+fortieth of its size, so it now uses a SHA-256 chain.
