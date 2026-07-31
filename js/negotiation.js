@@ -78,6 +78,88 @@ function negoClauseList(c){
   return window.clauseSegment ? clauseSegment(c.negotiation.baselineBody || '') : [];
 }
 const negoClauseById = (c, id) => negoClauseList(c).find(cl => cl.clauseId === id) || null;
+
+/* ---------- IS THIS CONTRACT EXECUTED ----------
+   One predicate, named, because the answer decides three different things and
+   was written out longhand at each of them. An executed record takes no new
+   decisions, however it came to be executed — so the test is not `status ===
+   'Signed'`. A contract carrying a seal (`hash`) or an execution stamp
+   (`execution.at`) is executed whatever its status field says, and reducing
+   this to the status alone is exactly the narrowing the signed door in
+   negoResolve was written to prevent. */
+function negoExecuted(c){
+  return !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
+}
+
+/* ---------- THE NUMBERING OF AN EXECUTED CONTRACT IS FINAL ----------
+   The same predicate under the name that says WHY it is being asked, because
+   this is a different rule from the wording lock even though today they turn on
+   the same fact.
+
+   Sealed WORDING must not change because the seal binds it. Sealed NUMBERING
+   must not change for a reason the seal knows nothing about: once a contract is
+   executed its clause numbers are cited — by every amendment that varies it, by
+   correspondence between the parties, and by anyone who ends up arguing about
+   it in front of a judge. "Clause 9" in an amendment signed next year means the
+   ninth clause of the document as executed, permanently. Tidying 1..8, 10..24
+   into 1..23 on a signed agreement silently repoints every one of those
+   citations, and does it invisibly, because the wording underneath is right.
+
+   There is no renumbering action in the product yet — clauseReplaceHeading is
+   the primitive it will be built on and has no callers. This exists so that
+   when it is built the gate is already here and already tested, rather than
+   being remembered at the time. Anything that rewrites a clause number must ask
+   this first. */
+const negoNumberingLocked = c => negoExecuted(c);
+
+/* ---------- GAPS THIS CONTRACT'S OWN DELETIONS LEFT ----------
+   Accepting a deletion removes the clause and closes nothing up: a contract
+   numbered 1..24 that loses clause 9 reads 1..8, 10..24 (clauseRemove, and the
+   rule at the heading renderer that a number the file does not carry is never
+   printed). That is the right behaviour and it stays. What was missing is that
+   nothing SAID so, and a reader meeting 8 followed by 10 has no way to tell a
+   deliberate deletion from a broken document.
+
+   ATTRIBUTED, NEVER SCANNED. The gap is reported only where an accepted
+   deleteClause accounts for it. A document that arrived numbered 1, 4, 5, 6, 9,
+   12 — the prototype's own contract, and every uploaded extract shaped like it
+   — raises nothing here, because we did not make those gaps and have no
+   standing to call them faults. This is the whole reason clauseNumberGap
+   answers about one number rather than scanning the run.
+
+   IT TIMES ITSELF. An accepted deletion is struck through in the working pane
+   and stays in the document until the round closes; only then does
+   negoResolvedBody remove it and the baseline move. So `present` is true for
+   the whole of that window and nothing is reported — the notice appears when
+   the gap does, not when the decision is taken.
+
+   Read from negoAllChanges rather than c.changes: closing the round is what
+   creates the gap AND what archives the change that caused it, so the live set
+   is empty of exactly the records this needs. */
+function negoNumberingGaps(c){
+  if (!c) return [];
+  negoInit(c);
+  const nums = negoClauseList(c).map(cl => cl.num).filter(Boolean);
+  const parse = window.clauseParseHeading;
+  const gapOf = window.clauseNumberGap;
+  if (!parse || !gapOf) return [];
+  const out = [];
+  const seen = new Set();
+  for (const ch of negoAllChanges(c)){
+    if (!ch || ch.changeType !== 'deleteClause' || ch.status !== 'accepted') continue;
+    /* The number comes back out of the stored label rather than from a field of
+       its own, so this reads correctly on every change ever filed — including
+       the ones written before anybody was asking this question. */
+    const num = String(parse(ch.clauseLabel || '').num || '');
+    if (!num || seen.has(num)) continue;
+    const gap = gapOf(nums, num);
+    if (gap.present) continue;
+    seen.add(num);
+    out.push({ num, label: String(ch.clauseLabel || ''), changeId: ch.id || null,
+      before: gap.before, after: gap.after });
+  }
+  return out.sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, { numeric: true }));
+}
 /* The clauses of the contract's CURRENT working wording. */
 const negoClauses = c => (window.clauseSegment ? clauseSegment(negoBodyOf(c)) : []);
 
@@ -864,9 +946,13 @@ function negoResolve(c, id, status, opts = {}){
      live in js/wordflow.js as wordDoorClosed(), and losing that file would have
      quietly reduced this to `status === 'Signed'` — dropping the seal and the
      execution stamp from the test. An executed record takes no new decisions,
-     however it came to be executed. */
-  const executed = !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
-  if (executed){
+     however it came to be executed.
+
+     Now asked through negoExecuted, which is that same test under a name. The
+     numbering lock reads the identical fact and had no business writing the
+     expression out a second time — two copies is how one of them comes to be
+     the narrowed version this comment exists to warn about. */
+  if (negoExecuted(c)){
     if (window.toast) toast('This contract is executed — record an amendment instead', 'err');
     return null;
   }
@@ -2210,6 +2296,7 @@ function negoMigrate(c){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
+  negoExecuted, negoNumberingLocked, negoNumberingGaps,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,

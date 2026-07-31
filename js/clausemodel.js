@@ -113,6 +113,54 @@ function clauseLabel(cl){
   return t.length > 60 ? t.slice(0, 57) + '…' : t;
 }
 
+/* ---------- WHERE A NUMBER IS MISSING ----------
+   Asked of ONE number against the numbers a document carries, and deliberately
+   not of the whole run at once.
+
+   THE TRAP THIS AVOIDS. "Report every number the document skips" is the obvious
+   reading and it is useless here. The prototype's own contract is numbered
+   1, 4, 5, 6, 9, 12 — an extract of a longer agreement, which is how a great
+   many uploaded contracts arrive — and clausefixtures.js keeps it that way on
+   purpose so that nothing can quietly treat a number as an index. A scan for
+   skipped numbers fires on that document six times over and is wrong every
+   time: nobody deleted clauses 2 and 3, they were never in the file. A gap is
+   only news when we know an act created it, and this module cannot know that.
+   So it answers the narrow question and leaves the attribution to the caller
+   that holds the change record (negoNumberingGaps).
+
+   SIBLINGS, NOT NEIGHBOURS. "8.2" is missing from a document containing 8.1 and
+   8.3, and is not missing from one containing only 8 and 9 — a sub-clause is
+   compared against the sub-clauses of its own parent and against nothing else.
+   Depth and parent prefix both have to match, so 12 never answers for 1.2.
+
+   Returns { present, before, after }: whether the number is there at all, and
+   the nearest sibling on each side, '' where there is none. before/after are
+   what lets a notice say "8 is followed by 10" rather than making the reader
+   scroll to find out. */
+const _clNumParts = s => String(s == null ? '' : s).split('.')
+  .map(p => p.trim()).filter(Boolean).map(p => parseInt(p, 10));
+const _clNumOk = parts => parts.length > 0 && parts.every(n => Number.isFinite(n));
+
+function clauseNumberGap(nums, num){
+  const want = _clNumParts(num);
+  if (!_clNumOk(want)) return { present: false, before: '', after: '' };
+  const depth = want.length;
+  const parent = want.slice(0, -1).join('.');
+  const last = want[depth - 1];
+  let present = false, before = null, after = null;
+  for (const raw of (Array.isArray(nums) ? nums : [])){
+    const parts = _clNumParts(raw);
+    if (!_clNumOk(parts) || parts.length !== depth) continue;
+    if (parts.slice(0, -1).join('.') !== parent) continue;
+    const n = parts[depth - 1];
+    if (n === last){ present = true; continue; }
+    if (n < last && (before == null || n > before)) before = n;
+    if (n > last && (after == null || n < after)) after = n;
+  }
+  const fmt = n => n == null ? '' : (parent ? parent + '.' + n : String(n));
+  return { present, before: fmt(before), after: fmt(after) };
+}
+
 /* ---------- the segmentation ----------
    Walk the document's top-level blocks once. A heading opens a clause; it
    closes at the next heading of the same or higher rank, so an <h3>
@@ -368,7 +416,7 @@ function clauseInsert(html, afterId, clause){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel,
+  CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   clauseSegment, clauseFrontMatter, clauseStampIds, clauseList, clauseFindById,
   clauseReplaceBody, clauseReplaceHeading, clauseRemove, clauseInsert,
 });
