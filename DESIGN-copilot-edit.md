@@ -1,7 +1,12 @@
 # "Edit with Copilot" — design review and build prompt
 
-Status: **design only, nothing built.** This document is the review the feature
-was asked for, plus the prompt to build it from.
+Status: **BUILT.** Shipped on `claude/redline-edit-copilot-feature-ju6ze4`;
+`npm test` green at 1700. Part 1 is the review the feature was designed from and
+is kept as the record of why it is shaped this way; Part 2 is the prompt it was
+built from, kept so the reasoning behind each step stays with the code. The
+behaviour is pinned by `test/f96-copilot-edit-placement.test.js`.
+
+One claim in Part 1 was wrong and is corrected in place — see §1.5 trap 1.
 
 ---
 
@@ -157,11 +162,18 @@ Buyer/Supplier Advantage".)*
 ### 1.5 The traps — the things that will break if nobody names them
 
 1. **`aiPreserveTypography` (`js/ai.js:1413`) must not run on an insert.** It
-   measures the model's answer against *the passage it replaces* and forces the
-   passage's shape back onto it. On an insert there is no counterpart — three
-   new bullets measured against one selected sentence get flattened into one
-   paragraph. Skip the structure-repair for `after`/`before`/`newClause`; keep
-   the tag allowlist and the strip.
+   measures the model's answer against *the passage it replaces* — its item
+   count, its list and paragraph tags — and forces that shape back onto it. On
+   an insert there is no counterpart, and the addition's shape has nothing to do
+   with whatever it lands next to. **Corrected from an earlier draft of this
+   document**, which said the repair squashes three bullets into one paragraph:
+   it does not: `aiSplitItems` never joins lines. The damage runs the other way
+   — handed a three-sub-paragraph passage and a one-sentence addition, the
+   repair splits that sentence at its own semicolon hunting for the missing
+   items, inventing a sub-paragraph break nobody drafted. Against a rich passage
+   it re-wraps added text in the neighbour's `<ol>`/`<p>`. Skip the
+   structure-repair for `after`/`before`/`newClause`; keep the tag allowlist and
+   the strip. (Pinned by F96b.)
 2. **Bullets survive intake, but only in the right form.** `docRichFromText`
    (`js/docx.js:308`) turns `•`/`-` and `(a)`/`1.` line openers into real
    `<ul>/<ol>` markup. The model must therefore emit bullets as **one per line
@@ -248,10 +260,10 @@ engine diff it. `newClause` files through `negoInsertClause`
 
 2. **`js/ai.js` — do not repair structure onto an insert.**
    `aiPreserveTypography` (`:1413`) measures the answer against the passage it
-   replaces. That is right for `replace` and wrong for every insert — three new
-   bullets measured against one selected sentence collapse into one paragraph.
-   Run it for `replace` only; for inserts keep the tag allowlist and the
-   script/style strip and nothing else.
+   replaces. That is right for `replace` and wrong for every insert — see §1.5
+   trap 1 for what it actually does to added wording. Run it for `replace` only;
+   for inserts keep the tag allowlist and the script/style strip and nothing
+   else.
 
 3. **`js/ai.js` — the card says what it is about to do.**
    `aiProposalCardHtml` (`:1603`) hardcodes `Replacing: …`. Make that line

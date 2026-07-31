@@ -466,7 +466,7 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
 
   test('a selection offers the workbench\'s own action list, over the highlighted words', async () => {
     /* The list is RL_SEL_ACTIONS, not NEGO_AI_ACTIONS. The workbench
-       standardised on three actions of its own — rephrase, shorten, tag — and
+       standardised on three actions of its own — edit, shorten, tag — and
        routes all three into the Copilot side panel, while the contract tab and
        the room keep the engine's list and its popover. */
     const p = await page();
