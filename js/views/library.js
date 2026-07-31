@@ -71,7 +71,9 @@ function buildFromCustomTemplate(t, values, opts){
     // so recording the version is the only way to answer "which wording is
     // this?" once the template has moved on.
     templateRef:t.id, templateId:t.id, templateName:t.name,
-    templateVersion:templateVersionNo(t) };
+    templateVersion:templateVersionNo(t),
+    // N3-T1: template-born, so it numbers live (see js/wizard.js for the rule).
+    numbering:'live' };
   if(fs.length) applyTemplateValues(c, fs, values);
   // v1 is captured through captureVersion so it carries the text projection and
   // the canonical form, exactly like every later version

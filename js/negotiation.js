@@ -332,6 +332,42 @@ function negoAllRefs(c){
    showed. Same quiet table, same clauses, same answer — and a plan object
    cannot go stale in a pocket between the preview being painted and the
    button being pressed. */
+/* ---------- LIVE NUMBERING (N3) ----------
+   A contract born from a template carries `numbering:'live'`, and for it a
+   deletion "renumbers" with zero manual steps. THE DECIDED IMPLEMENTATION —
+   recorded here because it deliberately differs from the order's sketch of
+   numbers-as-render-time-presentation: live numbering is AUTOMATIC
+   RENUMBERING AT ROUND BOUNDARIES, through the N2 engine.
+
+   Why not compute numbers at render? T2's own rule decided it: "a number
+   computed in two places will eventually disagree in two places". The stored
+   document is already the one numbering authority every surface reads — the
+   room, the workbench, the Doc page, print, PDF, docx, the portal, the
+   Copilot's context strings all render the stored headings — so keeping the
+   numbers IN the stored text and closing them up through the one engine that
+   already knows how (format-preserving, reference-repointing, id-stable,
+   audited) means no surface ever formats its own number, because no surface
+   formats a number at all. It also makes X2's freeze rule true by
+   construction: the sealed copy, the view-link snapshot and the history
+   export carry literal numbers because the document always does, and no
+   later change to numbering code can move what a seal covers (N3-T5).
+
+   WHY THE ROUND BOUNDARY (N3-T7): the gap only exists once the round closes
+   (the struck-through clause leaves the baseline then), the table is empty
+   there by construction (N2's quiet-table rule), and a sent round stays the
+   fixed snapshot the counterparty reviewed — numbering shifts BETWEEN
+   rounds, never under one.
+
+   UPLOADS CAN NEVER ACQUIRE THIS, even by a crafted flag: the predicate
+   refuses them, because an uploaded contract's numbers are the paper's own
+   facts. Absence of the flag = literal numbering; nothing retro-converts. */
+function negoLiveNumbered(c){
+  if (!c || c.numbering !== 'live') return false;
+  if (window.isUpload && isUpload(c)) return false;
+  if (c.upload || c.source === 'upload') return false;
+  return true;
+}
+
 function negoRenumberBlocked(c){
   if (!c) return 'locked';
   if (negoNumberingLocked(c)) return 'locked';
@@ -373,7 +409,7 @@ function negoRenumberApply(c, opts = {}){
      (WP-2.1) can render the act as a story beat without parsing prose. The
      prose half stays the record a human reads. */
   if (window.logAudit) logAudit(c, 'Renumbered',
-    `Clauses renumbered by ${who} — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'} (${shown})`
+    `Clauses renumbered ${opts.auto ? 'automatically — this contract numbers live (N3), so the round closing closed the numbering up' : 'by ' + who} — ${plan.headings.length} heading${plan.headings.length === 1 ? '' : 's'} (${shown})`
     + `; ${plan.refs.length} cross-reference${plan.refs.length === 1 ? '' : 's'} repointed to follow`
     + (plan.untouched.length ? `; ${plan.untouched.length} reference${plan.untouched.length === 1 ? '' : 's'} left untouched (unresolvable)` : '')
     + '. Every clause keeps its id; nothing beyond the numbers changed.',
@@ -2536,6 +2572,16 @@ function negoAdvanceRound(c, opts = {}){
     `Round ${n} closed by ${opts.by || (window.currentUser && window.currentUser()?.name) || 'System'}` +
     ` — ${decided.filter(x => x.status === 'accepted').length} of ${decided.length} changes adopted;` +
     ` the agreed wording is now the baseline for round ${n + 1}`);
+  /* N3: a live-numbered contract closes its numbering up HERE, with zero
+     manual steps — the round boundary is the one moment the table is quiet by
+     construction and the counterparty's sent snapshot is behind us. The N2
+     engine does the work (format-preserving, references repointed, ids fixed,
+     one audited act), so the numbers stay literal text in the stored document
+     and every surface — and every freeze path — reads the same run. A literal
+     contract is untouched: it gets the gap notice and the button instead. */
+  if (negoLiveNumbered(c) && !negoNumberingLocked(c)){
+    try{ negoRenumberApply(c, { by: opts.by, auto: true }); }catch(_){ /* the round is closed either way */ }
+  }
   return c.negotiation.rounds[c.negotiation.rounds.length - 1];
 }
 /* Every change this negotiation has ever carried, live and archived, newest
@@ -2726,7 +2772,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseLabel, negoClauses, negoClauseList, negoClauseById, negoBodyOf,
   negoExecuted, negoNumberingLocked, negoNumberingGaps, executedDivergence, negoExecutedText,
   negoBrokenRefs, negoAllRefs, negoActorLabel,
-  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport,
+  negoRenumberBlocked, negoRenumberPlan, negoRenumberApply, negoTimeline, negoIntegrityReport, negoLiveNumbered,
   negoInit, negoStampContract, negoFreshenBaseline, negoBaseText, negoBaseBody, negoRound,
   negoChanges, negoChangeById, negoPending, negoOpenChanges,
   negoNextId, negoHashInput, negoHash, negoIssue, negoIssuances, negoShortHash,
