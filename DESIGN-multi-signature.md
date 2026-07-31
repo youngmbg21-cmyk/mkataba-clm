@@ -382,3 +382,18 @@ existing `saveContract` JSON write (`server.js:125`).
    first for speed, 3b as a fast follow.
 5. **Parallel signers** — needed now (e.g. CFO + COO in any order, then CEO), or strictly sequential for v1?
    The `order` field supports shared numbers; defer the UI unless required.
+
+
+---
+
+## Phase 2+ — built (Stage 4, 2026-07-31)
+
+Server-side signer-step enforcement (W9, f109) is live. The counterparty half
+of the route is wired end to end (W7): one bound link per signer
+(`shares.signer_id`), held until its turn, released automatically from the
+respond route when the previous signer's signature is STORED — unattended,
+with no owner browser in the loop. Signatures land on their BOUND row;
+out-of-order is refused, never misfiled (the FD-before-MD misfiling fault is
+closed, f115/f117). The one-time code goes only to the invited address (W8,
+f118); the forward-the-link handover is deliberately removed and the recorded
+route replaces it.

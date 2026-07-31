@@ -101,3 +101,31 @@ This is an honest description of where the MVP stands today, for pilot customers
 AI cost-control settings (`aiRateLight`, `aiRateDeep`, `aiDailyLimit`, `aiMaxChars`, `aiMaxContracts`) and the model-routing settings are also editable from **Team & Settings** and take precedence over these env vars.
 
 Report security concerns to the workspace administrator.
+
+
+---
+
+## Programme addendum (Stages 0–9, 2026-07-31)
+
+- **Execution lock.** Sealed content is immutable server-side (E4): wording,
+  the negotiation record (changes/rounds/negotiation/versions) and the audit
+  trail are restored from the stored record on any PUT against an executed
+  contract. Divergence between live and sealed wording is reported, never
+  repaired (E5). Proven: f106/f107, re-attacked in f125.
+- **Share tickets.** Three purposes, one guard: `refuseIfViewOnly` on every
+  mutating token route; view payloads built by allow-list. Derived view links
+  (WP-1.6) are strictly weaker — parent's expiry ceiling, dead with the
+  parent, owner-visible and revocable; view cannot mint view; sign cannot
+  derive. Proven: f108/f112/f113/f123, re-attacked in f125.
+- **Signing route.** Each counterparty link is bound to one row of the signer
+  plan (shares.signer_id); out-of-order signatures are refused server-side
+  and the binding is server-stamped onto the stored response; release is
+  sequential from the respond route. The one-time code goes only to the
+  share's recorded address — typed addresses are never a destination — and
+  the code is never returned to the caller. Unverified signatures are
+  recorded as unverified, never dressed up. Proven: f109/f115/f117/f118.
+- **Numbering.** No path renumbers an executed contract — the computation
+  refuses, not merely the UI (f119/f122); sealed copies carry literal
+  numbers and verify self-contained forever (f122).
+- **Rate limits.** OTP, share-route and share-send limiters engage under
+  attack (f125).

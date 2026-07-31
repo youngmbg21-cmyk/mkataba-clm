@@ -640,3 +640,22 @@ Playwright screen check: deferred to Session 14, recorded in SESSION-NOTES.
 | A failed verification exports as a failure | f121 | PASS |
 
 Suite at close: **2113/0**; Chromium 71/71 · 18/18 · 22/22. Stage 6 gate held.
+
+
+---
+
+## Stages 7–9 (2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| Template-born contracts number live: delete + round close → run closes, refs follow, zero manual steps | f122 | PASS |
+| One numbering authority: live doc and baseline byte-identical; every surface renders the stored run | f122 | PASS |
+| Literal contracts and uploads untouched; upload can never acquire the flag | f122 | PASS |
+| The freeze: sealed copy carries literal numbers, verifies self-contained, no path can move it | f122 | PASS |
+| Derived view link: negotiate-only, strictly weaker, parent's expiry ceiling | f123 | PASS |
+| Child dies with the parent; dead parents delegate nothing; owner sees and revokes children | f123 | PASS |
+| Sub-clause DoD verbatim: live 2.2 delete → 2.3 becomes 2.2, clause 3 untouched; upload keeps gap + flags citation | f124 | PASS |
+| Lettered body runs stay body; citations into them follow the base clause | f124 | PASS |
+| Forged/revoked/view tickets fail closed on every mutating door, derive included | f125 | PASS |
+| Sealed record survives crafted PUTs (rewording, renumber-by-PUT, invented changes, audit erasure) | f125 | PASS |
+| Rate limits engage; folder scope holds on shares panel | f125 | PASS |

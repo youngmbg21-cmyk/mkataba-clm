@@ -422,6 +422,10 @@ addColumnIfMissing('shares', 'reminded_at', 'TEXT');
    needs no migration — the plan lives in the contract's JSON blob — but the
    share side is a real table, so it gets a real column. */
 addColumnIfMissing('shares', 'signer_id', 'TEXT');
+/* WP-1.6: a view link DERIVED from a negotiate link by its holder. The parent
+   token is recorded so the child's life is bound to it — a derived ticket is
+   strictly weaker than the ticket it came from, and dies with it. */
+addColumnIfMissing('shares', 'parent_token', 'TEXT');
 addColumnIfMissing('users', 'prefs', 'TEXT');   // per-user notification opt-ins
 /* Value visibility is a RIGHT, not a preference, so it is a column on the user
    row rather than a key in the client-writable appSettings blob (see SUMMARY.md
@@ -3019,6 +3023,10 @@ function shareInfo(s) {
     // its turn email has gone — the owner's panel can tell a held link from a
     // sent one without guessing.
     signerId: s.signer_id || null,
+    // WP-1.6: a derived view link names its parent, so the owner's panel can
+    // say "reading copy minted from Erik's link" rather than listing a
+    // stranger.
+    parentToken: s.parent_token || null,
     recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '', recipientPhone: s.recipient_phone || '',
     createdAt: s.created_at, sentAt: s.sent_at || null, expiresAt: s.expires_at || null, revokedAt: s.revoked_at || null,
     firstOpenedAt: s.first_opened_at || null, respondedAt: s.responded_at || null,
@@ -3415,6 +3423,15 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
   if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
   if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  /* WP-1.6: a derived view link dies with its parent — checked live, on every
+     open, because a cascade WRITE at revoke time would miss a parent that
+     merely expired. A derived ticket is strictly weaker than its source, and
+     "weaker" includes its lifespan. */
+  if (s.parent_token){
+    const p = db.prepare('SELECT revoked_at, expires_at FROM shares WHERE token=?').get(s.parent_token);
+    if (!p || p.revoked_at || shareExpired(p))
+      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked' });
+  }
   // The payload carries its own copy of the contract, so a link outlives the
   // record unless this is checked: without it, a deleted contract keeps being
   // served here — still offering "Approve & sign" — to anyone holding the link.
@@ -3837,6 +3854,37 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
     notifySkipped: !silent && !notify,
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError });
+});
+
+/* ---------- WP-1.6: A NEGOTIATE HOLDER MINTS A VIEW LINK ----------
+   The counterparty's lawyer wants their insurer or counsel to READ the deal.
+   Forwarding the negotiate link would hand over the power to answer; this
+   mints a strictly weaker ticket instead — view purpose, serving the viewer
+   payload's allow-list and nothing else, expiring no later than its parent,
+   dead the moment the parent is revoked or expires, and visible (and
+   revocable) to the owner in the contract's share list like any other link.
+
+   Only a LIVE NEGOTIATE token derives. A view token deriving view tokens
+   would be privilege laundering with extra steps; a signing link's holder
+   was asked to sign, not to distribute; a revoked or expired parent has
+   nothing left to delegate. */
+app.post('/api/shares/:token/derive-view', rlShare, (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
+  if ((s.purpose || 'negotiate') !== 'negotiate')
+    return res.status(403).json({ error: 'Only a negotiation link can mint a view link — a view link cannot delegate, and a signing link\'s holder was asked to sign, not to distribute' });
+  const b = req.body || {};
+  const name = String(b.name || '').slice(0, 120).trim();
+  const token = rid(12);
+  /* The child can never outlive the parent: its expiry is the parent's, or
+     sooner. And its payload is the parent's copy AS OF NOW — a snapshot,
+     exactly like an owner-minted view link. */
+  const expires = s.expires_at || new Date(Date.now() + 14 * 86400000).toISOString();
+  db.prepare(`INSERT INTO shares (token,payload,created_at,contract_id,recipient_name,channel,created_by,expires_at,durable,purpose,parent_token)
+    VALUES (?,?,?,?,?,?,?,?,0,'view',?)`)
+    .run(token, s.payload, now(), s.contract_id, name || null, 'link', s.created_by, expires, s.token);
+  res.json({ ok: true, token, link: shareUrl(req, token), expiresAt: expires, purpose: 'view' });
 });
 
 app.post('/api/shares/:token/revoke', auth, editor, (req, res) => {

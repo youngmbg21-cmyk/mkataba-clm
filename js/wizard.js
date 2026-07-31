@@ -126,7 +126,13 @@ function createFromWizard(tid, vars){
     comments:[{author:'System',role:'Automation',side:'internal',text:`Drafted via the guided wizard from Template ${tid} (${t.kind}). What you typed is filed as contract data — the register, filters and reports pick it up without re-keying.`,ts:fmtDT(nowISO())}],
     fields:{}, scan:null, expiry:null, valueType:t.valueType,
     audit:[{at:nowISO(),user:u?.name||'System',action:'Created',detail:`Guided creation from Template ${tid} (${t.kind})`}],
-    signatures:[] };
+    signatures:[],
+    /* N3-T1: born from a template, so this contract NUMBERS LIVE — a deleted
+       clause closes the run up automatically at the next round boundary
+       (negoAdvanceRound → negoRenumberApply). Set only here and at the custom
+       template path; absence means literal numbering, so every existing
+       contract and every upload is excluded by construction. */
+    numbering:'live' };
   // the blanks ARE the database: every value lands on the contract AND in
   // c.metadata, with no separate data-entry step
   if(cpEmail) c.counterpartyEmail=cpEmail;
