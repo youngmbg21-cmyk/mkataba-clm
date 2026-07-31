@@ -3287,6 +3287,10 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        — but their page has to be able to say that the wording is final, or it
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
+    /* The row's purpose, which is what the SENDER chose. The payload carries a
+       purpose too, but that one falls back to a reading of the change set when
+       nobody stated one — see buildSharePayload. W6 needs the choice. */
+    purpose: s.purpose || null,
     share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
       message: s.message || '', expiresAt: s.expires_at || null, channel: s.channel || 'link' },
   });

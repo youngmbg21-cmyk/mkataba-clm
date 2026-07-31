@@ -1757,10 +1757,19 @@ function buildSharePayload(c, docHash, who, opts){
     baselineBody:r.baselineBody||'',
     baselineText:r.baselineText||'',
     changeIds:(r.changes||[]).map(x=>x&&x.id).filter(Boolean) }));
-  const purpose = SHARE_PURPOSE(opts&&opts.purpose) || (shareChanges.length?'negotiate':'sign');
+  /* WHAT THE SENDER ACTUALLY CHOSE, kept apart from what this line then
+     guesses. `purpose` below falls back to a reading of the change set when
+     nobody stated one — which is right for deciding which SCREEN to open, and
+     wrong as evidence of intent: a contract with nothing proposed on it yet
+     guesses 'sign', and a link built from that guess is not a signing link.
+     W6 strips the negotiating verbs from signing links, and it has to be able
+     to tell the two apart or it takes Direct Edit away from links nobody ever
+     issued for signature. */
+  const purposeChosen = SHARE_PURPOSE(opts&&opts.purpose) || null;
+  const purpose = purposeChosen || (shareChanges.length?'negotiate':'sign');
   // written out longhand, not as shorthand: this list is read as a list
   return { v:1, kind:'hati-share', org:org, sharedBy:sharedBy, at:nowISO(), docHash:docHash,
-    purpose:purpose,
+    purpose:purpose, purposeChosen:purposeChosen,
     contract:{ id:c.id, name:c.name, template:c.template, source:c.source||null,
       /* The negotiation, as the other side must see it: the same fingerprints,
          the same statuses and the same baseline the owner's tab is reading. Two
