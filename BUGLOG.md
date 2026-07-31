@@ -5743,3 +5743,50 @@ else and wrong for a grace period, whose entire behaviour is the delay — under
 the stub the card closes on the same tick as the `mouseleave` and the test
 passes while proving nothing. Both `setTimeout` and `clearTimeout` are restored
 for those two tests; restoring only the first makes the cancel a silent no-op.
+
+---
+
+## Run: Linked references and the renumber button (N1 + N2 — closes OI-1 and OI-2)
+
+### 1. A cross-reference to a deleted clause was never flagged (OI-1)
+
+**What was broken.** Nothing in the codebase knew a reference was a reference.
+"Subject to Clause 9" was plain text, so accepting a deletion of clause 9 left
+the sentence pointing at nothing, silently, all the way into the executed
+document.
+
+**The fix (N1, Stage 1 — `f110`, 21 tests).** Detection uses the same number
+grammar the headings use (`clauseRefsInText`), resolution runs against the
+document's own clause numbers (`clauseResolveRefs`), and the warning is
+ATTRIBUTED, never scanned: `negoBrokenRefs` reports only where an accepted
+deletion on this record accounts for the dangling target, on the clause that
+CONTAINS the reference. An extract citing its parent agreement raises nothing.
+Advisory only — a reference is never auto-repaired, because rewriting wording
+to fix a warning changes what the contract means.
+
+### 2. A deletion left a visible numbering gap, with nothing said and no way to close it (OI-2)
+
+**What was broken.** A contract numbered 1..24 that lost clause 9 read
+1..8, 10..24 — correct (numbers are the text the file carries) but unexplained,
+so a lawyer's first reading was a mangled document. And there was no deliberate
+way to close the gap at all.
+
+**The fix, in two halves.** The notice and the execution lock shipped first
+(`f98`: attributed gaps, `negoNumberingLocked`, two voices draft/executed).
+N2 (Stage 5 — `f119`, 21 tests) built the door: `clauseRenumberPlan` computes
+a pure, hierarchy-aware, format-preserving plan (`8.2(a)` → `8.1(a)` exactly;
+an extract numbered 4, 5, 6 proposes nothing; ids never move), cross-references
+repoint in the same plan with dangling ones listed as untouched, a preview
+shows 100% of it before anything is written, and the act lands as ONE audit
+entry carrying the X3 structured shape for the history timeline. The gap
+notice offers the button on the owner's draft surface only; an executed
+contract has no path to it — the computation itself refuses, not merely the
+UI. A recorded renumbering also stands the gap notice down (attribution cuts
+both ways), while a reference still citing the deleted clause keeps its own
+warning.
+
+**Files touched.** js/clausemodel.js, js/negotiation.js, js/core.js (logAudit
+`data` param), js/views/negotiation.js, test/world.js (audit recorder carries
+`data`), test/f98 (draft-side assertion adjusted deliberately per the work
+order), test/f119.
+**Verified.** Suite 2099/0 · redline 71/71 · parity 18/18 · selection 22/22.

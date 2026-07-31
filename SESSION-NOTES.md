@@ -5,6 +5,73 @@ Reverse-chronological log of autonomous work against the product backlog
 
 ---
 
+## Stage 5 — the renumber button (N2, Session 12)
+
+**Done** (`js/clausemodel.js`, `js/negotiation.js`, `js/core.js`,
+`js/views/negotiation.js`; new `test/f119` 21; f98 draft-side assertion
+adjusted deliberately per the work order; suite 2099/0 · redline 71/71 ·
+parity 18/18 · selection 22/22; **closes OI-2**, and OI-1/OI-2 are now moved
+to BUGLOG per OPEN-ISSUES' own rule)
+
+One commit — T1–T5 are one interlocking build and Session 12 is one job:
+
+- **The computation** (`clauseRenumberPlan`, pure, no writes): gaps close per
+  family; **the run keeps its own origin** — 1, 4, 5, 12 → 1, 2, 3, 4 but an
+  extract numbered 4, 5, 6 proposes NOTHING (its first number is the parent
+  agreement's fact, and dragging it to 1 would invent a document nobody
+  wrote). Families are isolated; a renumbered parent carries its children
+  (4→2 makes 4.1→2.1). Format preservation by construction: the numeric token
+  is rewritten in place, so `clause 8.2(a)` cites `clause 8.1(a)` — never
+  `8.1. (a)`.
+- **References repoint in the same plan** — the reason N1 shipped first. One
+  simultaneous pass ({4→3, 5→4} can never map a token twice), range endpoints
+  both move, bare numbers are never touched, dangling references are listed
+  as *unresolvable — will not be touched*, and bodies are walked text node by
+  text node (a ref split across formatting is reported, never half-rewritten).
+- **The decided change-model treatment (T4)**, documented at
+  `negoRenumberApply`: apply DIRECTLY, but only over a QUIET TABLE — never
+  executed, never while any live change is on the table, because every filed
+  change cites the current baseline. Between rounds the table is empty by
+  construction, which is exactly when the gap notice appears, so the primary
+  flow is never blocked. Filing N heading renames as N tracked changes was
+  considered and rejected: no heading-rename change type exists, and it
+  contradicts the order's own "one audit entry summarising the whole act".
+  The counterparty is not cut out — the renumbered wording is the next
+  round's baseline, versioned and visible on their standing link.
+- **X3**: `logAudit` gains an optional structured `data` param; the renumber
+  entry carries `{kind:'renumber', headings:[{clauseId,from,to}], refs,
+  untouched}` so the Stage 6 timeline renders the act without parsing prose.
+- **T5**: the notice's `Renumber clauses…` button — opt-IN per callsite
+  (owner's draft surface only; a surface that forgets the flag shows no
+  button to the wrong seat); the executed notice is buttonless, absent not
+  disabled, and the COMPUTATION refuses on executed too.
+
+**Finding — the notice had to learn to stand down.** After a renumbering,
+`negoNumberingGaps` still reported the deleted number missing (it is), so the
+notice would have said "the numbering was not closed up" over a run reading
+1..5 — forever. Attribution now cuts both ways: a recorded renumbering
+(matched by time off its own X3 entry) answers every gap decided before it,
+while a trailing deletion keeps reporting until an act addresses it, and a
+reference citing the deleted clause keeps its own warning through the
+refs-only notice that was built for exactly this moment.
+
+**What the next session needs to know.**
+- Sub-clause RUNS inside a clause body (`(a)/(b)/(c)`, and `<h3>` under
+  `<h2>`) are N4's ground (Stage 8) — today an `<h3>` is body. N2's hierarchy
+  handling covers dotted numbers at the same heading rank, which is how
+  uploaded contracts write them.
+- Deleting the FIRST clause of an extract (2 from `2, 4`) leaves a run the
+  anchor rule cannot close (4 keeps its origin); the notice stays and the
+  button honestly reports nothing to renumber. Edge accepted, not hidden.
+- cross-realm note for test authors: arrays returned out of the vm fail
+  `deepEqual` against test-realm arrays — compare `.join()`ed strings.
+
+**Next:** Stage 6 — the negotiation history (WP-2.1 with X1/X6/X3 in from the
+first render, then WP-2.5 verify + WP-2.4 export). The signing beats (Stage 4)
+and the renumber beats (X3, this stage) are already shaped on the record.
+
+---
+
 ## Stage 4 — the signing route (W7 + W8, Sessions 10–11 in one pass)
 
 **Done** (`server/server.js`, `js/core.js`, `js/views/contract.js`,

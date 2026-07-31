@@ -2,7 +2,7 @@
 
 **Project:** HaTi (Mkataba CLM)
 **Date:** 2026-07-31
-**Status:** IN BUILD. Stages 0, 1, 2, 3 and 4 complete; merged to `main` as each lands.
+**Status:** IN BUILD. Stages 0–5 complete; merged to `main` as each lands.
 See §9 Build log at the foot of this document for exactly what is done.
 **Reads with:** `WORKORDER-MASTER.md` (what plays when) and the five source
 work orders (the detailed spec). This document is the third layer: **how each
@@ -607,11 +607,29 @@ refused, seal on the last (f117), forwarded link unusable by a third party
 returned to the caller" now issues the share WITH a recorded recipient — its
 claim was about leaking the code, and that claim stands.
 
-### ⬜ Stages 5–9 — not started
-**Next: Stage 5** — the renumber button (N2, Session 12; entry check
-`negoNumberingLocked`, on `main` since the Stage 0 merge). Then 6 (history —
-X6's signing beats are now all on the record), 7 (live numbering),
-8 (extensions), 9 (hardening).
+### ✅ Stage 5 — the renumber button (COMPLETE)
+**Suite 2099/0 · redline 71/71 · parity 18/18 · selection 22/22.** N2, one
+commit, f119 (21). **Closes OI-2**; OI-1/OI-2 moved to BUGLOG per
+OPEN-ISSUES' own rule.
+
+| Item | Outcome |
+|---|---|
+| T1 computation | `clauseRenumberPlan` — pure, hierarchy-aware, format-preserving (`8.2(a)` → `8.1(a)` exactly, token rewritten in place). **The run keeps its own origin:** 1, 4, 5, 12 → 1..4, but an extract numbered 4, 5, 6 proposes nothing. A renumbered parent carries its children (4→2 ⇒ 4.1→2.1); families are isolated. |
+| T2 references | Repointed in the same plan, one simultaneous pass ({4→3, 5→4} never maps a token twice); range endpoints both move; bare numbers never touched; dangling refs listed *unresolvable — will not be touched*; bodies walked text node by node. |
+| T3 preview | 100% of what moves AND what will not, shown before anything is written; cancel is byte-identical because the plan never wrote. |
+| T4 apply + X3 | Direct apply over a QUIET TABLE only (decision documented at `negoRenumberApply`: every filed change cites the baseline; between rounds the table is empty — exactly when the notice appears). One audit entry carrying the X3 structured shape; `logAudit` gains the optional `data` param. `captureVersion` lists the act. |
+| T5 the button | On the owner's draft surface only, opt-in per callsite; executed contract has **no path at all** — the computation refuses, not merely the UI. f98's draft-side assertion adjusted deliberately, same commit. |
+| Finding | The notice had to learn to STAND DOWN: attribution now cuts both ways — a recorded renumbering (matched by time off its own X3 entry) answers gaps decided before it; a trailing deletion keeps reporting; a ref citing the deleted clause keeps its own warning. |
+
+**Exit gate held:** two clicks (the notice's door, the preview's confirm) close
+a draft's gap with a full preview; preview-then-cancel byte-identical; ids
+never move; executed contracts offer nothing anywhere.
+
+### ⬜ Stages 6–9 — not started
+**Next: Stage 6** — the negotiation history (Sessions 13–14: WP-2.1 with
+X1/X6/X3 built into the first render, then WP-2.5 verify + WP-2.4 export).
+The signing beats (Stage 4) and renumber beats (X3) are already shaped on the
+record. Then 7 (live numbering), 8 (extensions), 9 (hardening).
 
 ### Notes for whoever picks this up
 - **Branching history:** Stages 0–1 were built on one shared branch

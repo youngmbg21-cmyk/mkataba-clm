@@ -580,3 +580,28 @@ Suite at close: **2078 tests, 0 failures** (`npm test`); Chromium redline
 71/71, parity 18/18, selection 22/22. Test files added: f115-the-signing-route,
 f116-links-from-the-route, f117-the-signature-lands-on-its-row,
 f118-the-code-goes-to-the-invited-address.
+
+---
+
+## Stage 5 — the renumber button (N2, 2026-07-31)
+
+| Behavior | Proving test | Status |
+|---|---|---|
+| 1, 4, 5, 6, 12 → 1, 2, 3, 4, 5 — gaps close per family | f119 | PASS |
+| The run keeps its own origin: an extract numbered 4, 5, 6 proposes nothing | f119 | PASS |
+| Sub-family isolation; a renumbered parent carries its children (4→2 ⇒ 4.1→2.1) | f119 | PASS |
+| Format preservation: every separator survives; `clause 8.2(a)` → `clause 8.1(a)` exactly | f119 | PASS |
+| References repoint in one simultaneous pass; range endpoints both move; bare numbers never touched | f119 | PASS |
+| Dangling references listed as unresolvable — never rewritten | f119 | PASS |
+| Preview lists 100% of what moves and what will not; cancel is byte-identical | f119 | PASS |
+| Apply is one audit entry carrying the X3 structured shape; version captured | f119 | PASS |
+| Ids never move — renumbering is presentation, identity is the clause id | f119 | PASS |
+| A live change on the table blocks the act, reason named | f119 | PASS |
+| An executed contract: the computation refuses; the notice's door is absent, not disabled | f119, f98 | PASS |
+| Two clicks: the notice's button, the preview's confirm | f119 | PASS |
+| The counterparty's copy of the notice carries no door | f119 | PASS |
+| A recorded renumbering stands the gap notice down; a ref citing the deleted clause keeps its own warning | f119 | PASS |
+
+Suite at close: **2099 tests, 0 failures**; Chromium redline 71/71, parity
+18/18, selection 22/22. Test file added: f119-the-renumber-button. OI-1 and
+OI-2 closed and moved to BUGLOG.
