@@ -208,6 +208,104 @@ describe('F100b — the card is a handle, not a copy', () => {
       'a preference the next paint forgets is not a preference');
   });
 
+  /* ---------- the follow-up defect, reported from a live session ----------
+     "After send the cards are not collapsing." They were. What had happened is
+     that the reader pressed the sent card to check it had gone — the most
+     natural move there is — and the open/shut choice was remembered against the
+     ID, forever. So that card never folded again, through every later state
+     change, and the feature read as broken.
+
+     The mirror is the one that matters: a card SHUT by hand while it was your
+     draft stayed shut when the counterparty answered and it came back carrying
+     Accept and Reject. Live controls on a decision waiting on you, hidden
+     behind a preference expressed about something else entirely. */
+  test('THE FIX: a peek at a sent card does not outlive that state', () => {
+    const w = buildWorld({ negotiationView: true });
+    const { rlCardIsOpen, rlCardSetOpen, rlCardStateKey } = w.win;
+    const SENT = ['<button data-rl-edit="c1">Edit</button>',
+      '<button data-rl-sent="CHG-1" disabled>Sent</button>'];
+    const DRAFT = ['<button data-rl-edit="c1">Edit</button>',
+      '<button data-rl-retract="CHG-1">Retract</button>',
+      '<button data-rl-send="CHG-1">Send</button>'];
+    const ch = { id: 'CHG-1' };
+
+    assert.equal(rlCardIsOpen(ch, SENT), false, 'a sent ask folds');
+    rlCardSetOpen('CHG-1', true, rlCardStateKey(SENT));      // the peek
+    assert.equal(rlCardIsOpen(ch, SENT), true, 'and stays open while it is that card');
+    /* THE PROOF that it lapsed rather than merely happening to agree: shut it
+       while it is a draft, and the sent state — where the reader had asked for
+       OPEN — is no longer governed by that older choice either. One card holds
+       one choice, tied to the state it was made in; a stack of remembered
+       choices per state would surprise a reader months later. */
+    rlCardSetOpen('CHG-1', false, rlCardStateKey(DRAFT));
+    assert.equal(rlCardIsOpen(ch, DRAFT), false, 'the new choice holds while that state does');
+    assert.equal(rlCardIsOpen(ch, SENT), false,
+      'and the sent state is back on the rule, which folds it');
+  });
+
+  test('and a card shut by hand re-opens when it starts needing you', () => {
+    /* The dangerous direction. Accept and Reject must never be behind a
+       preference the reader expressed about a different card state. */
+    const w = buildWorld({ negotiationView: true });
+    const { rlCardIsOpen, rlCardSetOpen, rlCardStateKey } = w.win;
+    const MINE = ['<button data-rl-edit="c1">Edit</button>',
+      '<button data-rl-retract="CHG-9">Retract</button>',
+      '<button data-rl-send="CHG-9">Send</button>'];
+    const THEIRS = ['<button data-nego-accept="CHG-9">Accept</button>',
+      '<button data-nego-reject="CHG-9">Reject</button>',
+      '<button data-rl-edit="c1">Edit</button>'];
+    const ch = { id: 'CHG-9' };
+    rlCardSetOpen('CHG-9', false, rlCardStateKey(MINE));
+    assert.equal(rlCardIsOpen(ch, MINE), false, 'shut, as asked');
+    assert.equal(rlCardIsOpen(ch, THEIRS), true,
+      'THE FIX: a decision waiting on you is never hidden by a stale choice');
+  });
+
+  test('the state key is the actions on offer, not the ids inside them', () => {
+    /* A clause renamed under a card, or a change re-parented, must not read as
+       "this is a different card now" and throw the reader's choice away. */
+    const { rlCardStateKey } = buildWorld({ negotiationView: true }).win;
+    assert.equal(
+      rlCardStateKey(['<button data-rl-edit="clause-1" data-rl-edit-change="CHG-1">Edit</button>']),
+      rlCardStateKey(['<button data-rl-edit="clause-7" data-rl-edit-change="CHG-1">Edit</button>']));
+    assert.notEqual(
+      rlCardStateKey(['<button data-rl-send="CHG-1">Send</button>']),
+      rlCardStateKey(['<button data-rl-sent="CHG-1">Sent</button>']));
+    assert.equal(rlCardStateKey([]), '');
+  });
+
+  test('the card carries the state its choice is measured against', async () => {
+    const p = await page();
+    const card = p.$('#rl-changes .rl-card');
+    assert.ok(card.getAttribute('data-rl-state'),
+      'without it the click handler has nothing to record the choice against');
+    assert.match(card.getAttribute('data-rl-state'), /data-rl-send/,
+      'a draft names its own verbs');
+  });
+
+  test('the reported sequence, end to end', async () => {
+    /* send → folds → peek → open → caret → folds again. The step that was
+       broken is the third: before the fix the peek was remembered against the
+       id alone, so the card never folded again for the rest of the session and
+       the whole feature read as "the cards are not collapsing". */
+    const p = await page();
+    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0', 'folds on send');
+
+    p.$('#rl-changes .rl-card').click();
+    p.again();
+    const open = p.$('#rl-changes .rl-card');
+    assert.equal(open.getAttribute('data-rl-open'), '1', 'a peek opens it');
+    assert.match(open.getAttribute('data-rl-state'), /data-rl-sent/,
+      'and the choice is recorded against the state it was made in');
+
+    p.$('#rl-changes [data-rl-caret]').click();
+    p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
+      'and the caret puts it back');
+  });
+
   test('the rule is read off the verbs, not off a list of statuses', () => {
     /* Two copies of "is there anything to do here" would disagree the first
        time either moved — and the card that lost would hide a live control. */

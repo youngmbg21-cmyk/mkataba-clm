@@ -5599,3 +5599,40 @@ open while pending, folded once decided — which was the agreed answer but is a
 behaviour change on a screen the counterparty sees too. Nothing collapses on the
 older two-pane negotiation cards (`.nego-card`, `js/views/negotiation.js:1391`);
 that surface was not in the report and shares no markup with the workbench.
+
+### 4. Follow-up: "after send the cards are not collapsing" — they were
+
+**What was broken.** Reported from a live session with a screenshot: a sent card
+open, showing its Copilot note and Edit / Sent, beside a fresh draft.
+
+**Root cause, and it was not the collapse.** Driven end to end against the real
+server, the send folds the card correctly. What the reader had done next was
+press it — to check it had gone, the most natural move there is. That opened it,
+by design. The defect was that the choice was remembered against the change ID
+and nothing else, so it never expired: that card stayed open for the rest of the
+session, through every later state change, and the feature read as broken.
+
+The mirror of it is the one that mattered more. A card SHUT by hand while it was
+your own draft stayed shut when the counterparty answered and it came back
+carrying **Accept** and **Reject** — live controls on a decision waiting on you,
+hidden behind a preference expressed about a different card state entirely.
+Nobody would have gone looking.
+
+**The fix.** The choice is stored against the state it was made in. The card's
+verb set is that state — it is exactly what the open/shut rule reads, so
+anything that changes the rule's answer also changes the key — and the card
+carries it as `data-rl-state` so the handlers can record what was chosen. When
+the state moves, the choice lapses and the rule takes over. One card holds one
+choice: a stack of remembered choices per state would surprise a reader who
+returned to a state months later.
+
+The key is the ACTIONS on offer with the ids stripped out, so a clause renamed
+under a card is not read as "this is a different card now".
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100b — the peek not outliving its state, the dangerous mirror
+(Accept/Reject never behind a stale choice), the key ignoring ids but not
+actions, and the reported sequence end to end. Driven against the running
+server: draft → send → folds → peek → opens → caret → folds → a second draft
+alongside it, with the first still folded. Suite 1894/1894, browser 71/71,
+selection 22/22.

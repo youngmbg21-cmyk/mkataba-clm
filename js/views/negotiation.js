@@ -5798,8 +5798,31 @@ function rlTagInternalNote(ctx){
    remembered for the session — including collapsing something the rule would
    open, because a reader working through a long column knows which ones they
    have finished with better than the rule does. */
-const _rlCardOpen = new Set();      // ids the reader opened by hand
-const _rlCardShut = new Set();      // ids the reader closed by hand
+/* ---- A CHOICE ABOUT A CARD IN A STATE, NOT ABOUT A CARD FOREVER ----
+   This was a pair of id Sets, and remembering an id forever was the bug: press
+   a sent card to check it went — the most natural move there is, right after
+   sending — and it never folded again, through every later state change. From
+   the reader's chair the feature simply did not work: "the cards are not
+   collapsing."
+
+   The mirror of it is the dangerous half. A card SHUT by hand while it was your
+   draft stayed shut when the counterparty answered and it came back carrying
+   Accept and Reject — live controls, on a decision waiting on you, hidden
+   behind a preference expressed about something else.
+
+   So the choice is stored against the state it was made in. The card's verb set
+   IS that state — it is what the open/shut rule reads, so anything that changes
+   the rule's answer also changes the key — and when it moves, the choice lapses
+   and the rule takes over again. */
+const _rlCardChoice = new Map();    // id -> { open, key }
+/* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
+   so that a clause being renamed underneath a card does not count as a state
+   change. */
+function rlCardStateKey(verbs){
+  return (verbs || [])
+    .map(v => (String(v).match(/data-(?:rl|nego)-[a-z]+(?:-[a-z]+)*(?==)/g) || []).join('+'))
+    .sort().join('|');
+}
 /* READ OFF THE VERBS, not off the status. Enumerating states here would be a
    second copy of the rule that builds the verbs a hundred lines below, and the
    two would disagree the first time either moved — a held decision whose Undo
@@ -5818,18 +5841,17 @@ function rlCardNeedsYou(verbs){
 }
 function rlCardIsOpen(ch, verbs){
   const id = ch && ch.id;
-  if (id && _rlCardOpen.has(id)) return true;
-  if (id && _rlCardShut.has(id)) return false;
+  const choice = id ? _rlCardChoice.get(id) : null;
+  if (choice && choice.key === rlCardStateKey(verbs)) return choice.open;
   return rlCardNeedsYou(verbs);
 }
 /* Pressing a collapsed card opens it; pressing the caret on an open one shuts
    it. Deliberately NOT a toggle on the whole card: the card's click already
    means "take me to this change in the contract", and a reader navigating to a
    clause must not have the card fold up underneath them for doing it. */
-function rlCardSetOpen(id, open){
+function rlCardSetOpen(id, open, stateKey){
   if (!id) return;
-  if (open){ _rlCardOpen.add(id); _rlCardShut.delete(id); }
-  else { _rlCardShut.add(id); _rlCardOpen.delete(id); }
+  _rlCardChoice.set(id, { open: !!open, key: String(stateKey == null ? '' : stateKey) });
 }
 
 function rlLinkFocus(c, changeId, source){
@@ -5965,7 +5987,7 @@ function rlWireClauseTools(c, host, opts){
          open card is left open — see rlCardSetOpen for why this is not a
          toggle. */
       if (card.getAttribute('data-rl-open') === '0'){
-        rlCardSetOpen(id, true);
+        rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
         again();
         /* The card was re-rendered underneath us, so the focus runs against the
            new one rather than the node this handler was bound to. */
@@ -5983,7 +6005,9 @@ function rlWireClauseTools(c, host, opts){
     btn.addEventListener('click', ev => {
       ev.preventDefault(); ev.stopPropagation();
       const id = btn.getAttribute('data-rl-caret');
-      rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true');
+      const card = btn.closest ? btn.closest('[data-nego-card]') : null;
+      rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true',
+        card && card.getAttribute('data-rl-state'));
       again();
     }));
 
@@ -6737,7 +6761,9 @@ function redlineChangeCardsHtml(c, opts = {}){
       (ch.status === 'rejected' && !ch.withdrawn) ? ` data-contested="${_ne(ch.id)}"` : ''}${
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
-      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}" tabindex="0">
+      ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
+      ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
+      } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
         <span class="rl-badge rl-badge-${badge[0]}">${badge[1]}</span></div>
       <div class="rl-card-meta"${tip ? ` title="${_nea(tip)}"` : ''}>${who}</div>
@@ -7036,7 +7062,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
-  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou,
+  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,
