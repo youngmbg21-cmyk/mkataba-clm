@@ -90,28 +90,69 @@ re-asking, because the failure mode of getting this wrong is a `replace` that
 deletes wording nobody agreed to lose. That is the single most valuable guard in
 the whole feature.
 
-### 1.4 Naming — a real risk worth deciding deliberately
+### 1.4 Naming — DECIDED: rename, do not add
 
 `RL_SEL_ACTIONS` already carries **"✨ Rephrase with Copilot"**, which is
-*already* the "open the chat, type what you want" door (`converse: true`). Adding
-**"✍️ Edit with Copilot"** next to it puts two items on a three-item menu that
-read as the same thing to anyone moving at speed — and the codebase has already
-had this argument once, in the comment at `js/views/negotiation.js:5541` about
-AI Assist being "a duplicate door".
+*already* the "open the chat, type what you want" door (`converse: true`). A
+fourth item beside it puts two entries on a three-item menu that read as the
+same thing to anyone moving at speed — and the codebase has already had this
+argument once, in the comment at `js/views/negotiation.js:5541` about AI Assist
+being "a duplicate door".
 
-**Recommendation: rename rather than add.** "Edit with Copilot" is a strict
-superset of "Rephrase with Copilot" — rephrasing is what you get when your
-instruction is a rephrase. Replace the item, keep the menu at three:
+So the menu stays three wide:
 
 ```
-✍️ Edit with Copilot      ← was "✨ Rephrase with Copilot", now also adds/inserts
+✨ Edit with Copilot       ← was "✨ Rephrase with Copilot"; now adds as well as replaces
 ✂️ Shorten & Simplify      ← unchanged, still goes straight to a draft
 🏷️ Tag with internal note  ← unchanged
 ```
 
-The build prompt below implements it as a **fourth item** (as literally asked
-for) but marks the one-line change to collapse it into the third. Decide before
-the build starts, not after.
+Three reasons for this exact label:
+
+- **"Edit" covers both jobs.** Changing wording and adding wording are both
+  edits. "Rephrase" names only the first, which is precisely why the action does
+  the wrong thing today.
+- **It pairs with a control that already exists.** The clause toolbar offers
+  **"✎ Direct Edit"** (`js/views/negotiation.js:5552`). The two doors then
+  explain each other: Direct Edit is *I will type it*, Edit with Copilot is
+  *you type it, I will approve it*.
+- Rephrasing is not lost. It is what you get when your instruction is a
+  rephrase.
+
+**Keep the ✨, do not use ✍️.** An earlier draft of this document said ✍️ and
+that was wrong: "Direct Edit" already wears ✎, and a writing hand beside a
+pencil on the same screen is two near-identical marks doing different jobs. The
+sparkle is the established "this is the AI one" signal and is already on the
+button.
+
+The internal id moves with the label: `rephrase` → `edit`. It is the value in
+the `data-nego-ai` attribute and the tests key on it.
+
+**What must move with the rename, or it starts contradicting itself:**
+
+- The `greeting` — "How would you like me to help rephrase this passage?" would
+  have a button called Edit opening with a question about rephrasing, which
+  reads as *adding is not allowed here*. → **"What would you like to add or
+  change here?"**
+- The `ask` — begins "Rewrite this contract wording…", which on its own pushes
+  the model toward `replace`. → "Rewrite, **add to, or extend** this contract
+  wording…"
+- The note stamped on the filed change — `rlAiPropose` builds it as
+  ``Copilot — ${action.label.replace(/^\S+\s/, '')}`` (`:5028`), which after the
+  rename reads *"Copilot — Edit with Copilot"*. Give each action a short
+  `noteLabel` ('Edit', 'Shorten & Simplify') so the record reads **"Copilot —
+  Edit"**. Minor, but that string reaches a change card the counterparty may see.
+
+**The Doc Lab keeps the old name for now.** `js/views/doclab.js:909` carries the
+same button (id `advantage`) against the sandbox store. Renaming it to "Edit"
+before it can actually add wording would copy the silent-wrong-edit bug into a
+second surface under an inaccurate label. Leave it as "Rephrase with Copilot" —
+which is true of what it does — and port the feature as a follow-up so the two
+read the same again.
+
+*(Unrelated and untouched: `NEGO_AI_ACTIONS` at `js/views/negotiation.js:2877`
+is the contract tab and room's own menu, with its own "🪄 Rephrase for
+Buyer/Supplier Advantage".)*
 
 ### 1.5 The traps — the things that will break if nobody names them
 
@@ -221,18 +262,24 @@ engine diff it. `newClause` files through `negoInsertClause`
    `aiOpenProposal` (`:1645`), `aiProposalApply` (`:1693`) and
    `aiRefineProposal` (`:1751`) so a follow-up turn keeps it.
 
-4. **`js/views/negotiation.js` — the menu.**
-   Add to `RL_SEL_ACTIONS` (`:4886`):
+4. **`js/views/negotiation.js` — the menu (a rename, not a fourth item).**
+   **Replace** the existing `rephrase` entry in `RL_SEL_ACTIONS` (`:4886`) —
+   do not add alongside it. See §1.4 for why; the menu stays three wide.
    ```
-   { id:'edit', label:'✍️ Edit with Copilot', converse:true, edit:true,
-     ask:  '…rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
+   { id:'edit', label:'✨ Edit with Copilot', converse:true, noteLabel:'Edit',
+     ask: 'Rewrite, add to, or extend this contract wording as the drafter asks, while staying commercially reasonable and enforceable under Kenyan law.',
      greeting: 'What would you like to add or change here?' }
    ```
-   *(Preferred alternative, per §1.4: replace the existing `rephrase` item with
-   this one instead of adding a fourth, so the menu stays three wide and there
-   are not two doors that read the same.)*
+   Keep the ✨ — the clause toolbar's Direct Edit already wears ✎ and a second
+   pencil-like mark beside it is two near-identical icons doing different jobs.
+   Give `shorten` a `noteLabel` too, and change the note in `rlAiPropose`
+   (`:5028`) to use it, so a filed change reads "Copilot — Edit" rather than
+   "Copilot — Edit with Copilot".
    `rlSelMenu` (`:4911`) needs no structural change — it already renders the
    list and routes `converse` actions into the panel.
+   **Leave `js/views/doclab.js:909` named "Rephrase with Copilot."** It is the
+   sandbox surface and cannot add wording yet; renaming it first would put an
+   inaccurate label on the same silent-wrong-edit bug. Port it as a follow-up.
 
 5. **`js/views/negotiation.js` — apply, per placement.**
    In `rlAiPropose` (`:4949`), generalise `applyWording`:
@@ -273,6 +320,21 @@ Add `test/f96-copilot-edit-placement.test.js` (next free number; `node --test`
   in the panel with nothing filed.
 - Apply against a clause that changed while the panel was open refuses rather
   than splicing at a stale offset.
+
+**Existing tests the rename will turn red — update them, they are the guardrail
+working:**
+
+| Test | Asserts today |
+|---|---|
+| `test/f88-the-copilot-argues-in-the-panel.test.js:381` | `label:'✨ Rephrase with Copilot'` |
+| `test/f88-the-copilot-argues-in-the-panel.test.js:390` | the old `greeting:` string |
+| `test/f89-negotiation-workbench-refactor.test.js:320` | clicks `data-nego-ai === 'rephrase'` |
+| `test/f89-negotiation-workbench-refactor.test.js:423` | ids are exactly `rephrase,shorten,tag` |
+| `test/f89-negotiation-workbench-refactor.test.js:425` | label matches `/Rephrase with Copilot/` |
+| `test/f84-redline-design-contract.test.js:469` | prose comment naming "rephrase, shorten, tag" |
+
+These are name changes, not behaviour changes. Update the strings; do not weaken
+the assertions.
 
 Run `npm test` and make it green. Commit and push to
 `claude/redline-edit-copilot-feature-ju6ze4`. Do not open a pull request.
