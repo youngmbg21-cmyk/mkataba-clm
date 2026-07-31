@@ -4650,6 +4650,20 @@ addColumnIfMissing('contracts', 'template_id', 'TEXT');
 addColumnIfMissing('contracts', 'template_version_id', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_contracts_template ON contracts(template_id)');
 
+/* What kind of document this template was converted from, and how long it was.
+   Additive and nullable on purpose: every template that existed before the PDF
+   route keeps NULL, and NULL reads exactly like 'docx' everywhere downstream
+   (see TPL_IS_SCANNED). Nothing is backfilled — a NULL here means "converted
+   before we started recording this", not "unknown kind of file". */
+addColumnIfMissing('templates', 'source_type', 'TEXT');
+addColumnIfMissing('templates', 'page_count', 'INTEGER');
+
+const TPL_SOURCE_TYPES = ['docx', 'pdf_digital', 'pdf_scanned'];
+/* The one place that decides whether the scan warnings apply. NULL and 'docx'
+   are both "not a scan"; only an explicit pdf_scanned draws the banner and the
+   digit-field confidence cap. */
+const TPL_IS_SCANNED = st => st === 'pdf_scanned';
+
 const TPL_CATEGORIES = ['sales', 'procurement', 'employment', 'nda', 'other'];
 const TPL_ORIGINS = ['upload', 'saved_from_contract', 'built_in_hati'];
 
@@ -4703,6 +4717,12 @@ function tplListView(t) {
     latestVersion: latest,
     contractsCreated: tplUsage(t.id),
     lastUsedAt: t.last_used_at || null,
+    /* What this template was converted from. NULL on everything built before
+       the PDF route existed, and NULL reads as "not a scan" — only an explicit
+       pdf_scanned raises the warnings on the confirmation screen. */
+    sourceType: t.source_type || null,
+    pageCount: t.page_count == null ? null : Number(t.page_count),
+    scanned: TPL_IS_SCANNED(t.source_type),
     createdBy: t.created_by || null, createdAt: t.created_at, updatedAt: t.updated_at,
   };
 }
@@ -5250,6 +5270,152 @@ function tplExtractionText(structure) {
   }).join('\n').slice(0, 60000);
 }
 
+/* ---------- the PDF route -------------------------------------------------
+   HaTi does not reconstruct a PDF's layout. The file goes to the model whole
+   (the API renders the pages itself) and comes back as the same blocks-and-
+   fields shape the Word route produces. What happens here is only the small
+   amount of inspection that must happen BEFORE we spend money on a call:
+
+     - is this really a PDF, and is it readable at all (not encrypted)?
+     - how many pages is it? — the cost cap in the brief is per page, and a
+       30-page scan is the most expensive request this product makes.
+     - does it carry a text layer? — a born-digital PDF is read reliably; a
+       scan is a photograph of paper and everything downstream treats it with
+       more suspicion.
+
+   All three are answered on the server, from the bytes, deliberately. An
+   earlier draft of the work order had the browser answer them by reusing
+   js/ocr.js, which already does this for the contract register. That module
+   cannot run here: it is built on `window`, a canvas, and a lazily fetched
+   pdf.js — browser furniture with no server equivalent. Rather than trust
+   numbers the client computed (the page count gates spending, so it must not
+   be forgeable), the server does its own reading. It needs no new dependency:
+   node:zlib already ships with the runtime, and that is all a PDF's streams
+   are compressed with in practice (it is already required at the top of this
+   file for the .docx reader). RECON.md records the deviation. */
+
+/* Every byte we are willing to walk when inspecting a PDF. A malformed or
+   hostile file should cost us a bounded amount of work, never a wedged
+   request, so all three inspectors below stop at the same ceiling. */
+const TPL_PDF_SCAN_LIMIT = 12 * 1024 * 1024;
+/* Characters of real text a PDF must yield before we call it born-digital.
+   Deliberately the same floor js/ocr.js uses on the browser side, so the two
+   halves of the product agree on what "has a text layer" means. */
+const TPL_PDF_TEXT_FLOOR = 200;
+const TPL_PDF_MAX_PAGES = 30;
+
+const tplIsPdf = bytes => bytes.length > 4 && bytes.subarray(0, 5).toString('latin1') === '%PDF-';
+
+/* An encrypted PDF passes the %PDF- signature test and then fails deep inside
+   the model call with something unhelpful, so it is caught here instead. The
+   marker lives in the trailer dictionary; scanning the tail is enough and
+   avoids walking a large file for a rare case. */
+function tplPdfIsEncrypted(bytes) {
+  const tail = bytes.subarray(Math.max(0, bytes.length - 4096)).toString('latin1');
+  if (/\/Encrypt\b/.test(tail)) return true;
+  // Some producers put the trailer elsewhere; a bounded whole-file check backs it up.
+  return /\/Encrypt\s+\d+\s+\d+\s+R/.test(bytes.subarray(0, TPL_PDF_SCAN_LIMIT).toString('latin1'));
+}
+
+/* Pull out every Flate-compressed stream we can inflate. Page objects and page
+   text both hide in here on any modern PDF, so both inspectors below share it.
+   Streams that will not inflate are skipped without comment: an image stream is
+   not Flate, and that is the normal case, not an error. */
+function tplPdfInflatedChunks(bytes) {
+  const out = [];
+  const hay = bytes.subarray(0, TPL_PDF_SCAN_LIMIT);
+  const latin = hay.toString('latin1');
+  const re = /stream\r?\n/g;
+  let m, budget = 400;                       // enough for a 30-page form; bounded
+  while ((m = re.exec(latin)) !== null && budget-- > 0) {
+    const start = m.index + m[0].length;
+    const end = latin.indexOf('endstream', start);
+    if (end < 0) break;
+    try {
+      const inflated = zlib.inflateSync(hay.subarray(start, end));
+      out.push(inflated.toString('latin1'));
+    } catch (_) { /* not Flate, or truncated — nothing to read here */ }
+    re.lastIndex = end;
+  }
+  return out;
+}
+
+/* How many pages. Counted from the bytes because this number decides whether
+   we make an expensive call at all. Two readings are taken and the larger
+   wins: page objects sitting in the clear, and page objects inside compressed
+   object streams (how a linearised PDF usually stores them). Returns 0 when
+   the file yields nothing recognisable, which the caller treats as "cannot
+   read this" rather than "empty". */
+function tplPdfPageCount(bytes, chunks) {
+  const countIn = s => (s.match(/\/Type\s*\/Page(?![sA-Za-z])/g) || []).length;
+  let n = countIn(bytes.subarray(0, TPL_PDF_SCAN_LIMIT).toString('latin1'));
+  for (const c of (chunks || tplPdfInflatedChunks(bytes))) n = Math.max(n, countIn(c));
+  if (n) return n;
+  // Nothing matched — fall back to the page tree's own tally.
+  const m = /\/Type\s*\/Pages[^>]*?\/Count\s+(\d+)/.exec(bytes.subarray(0, TPL_PDF_SCAN_LIMIT).toString('latin1'));
+  return m ? Number(m[1]) : 0;
+}
+
+/* Digital or scan. Not an OCR pass and not trying to be: it asks only whether
+   the file carries a text layer at all, by inflating the content streams and
+   measuring what the text-showing operators (Tj, TJ, ' and ") actually draw.
+   A born-digital contract yields thousands of characters; a scan yields the
+   handful its producer stamped in, or none.
+
+   When in doubt this leans toward 'pdf_scanned'. Being wrong that way costs a
+   banner and some capped confidence on number fields — the user is warned to
+   check work that was probably fine. Being wrong the other way ships a scan's
+   guessed ID numbers with no warning at all, which is the failure that matters. */
+function tplPdfClassify(bytes, chunks) {
+  let chars = 0;
+  /* Both readings matter. Most PDFs Flate-compress their content streams, but
+     plenty of producers (and anything written by hand) leave them in the
+     clear — and a PDF whose text is sitting uncompressed in the file would
+     otherwise look textless and be misfiled as a scan. */
+  const sources = [bytes.subarray(0, TPL_PDF_SCAN_LIMIT).toString('latin1')]
+    .concat(chunks || tplPdfInflatedChunks(bytes));
+  for (const c of sources) {
+    // (literal) Tj   |   [(pieces) -250 (more)] TJ   |   (literal) '   |   (literal) "
+    for (const m of c.matchAll(/\(((?:[^()\\]|\\.)*)\)\s*(?:Tj|TJ|'|")/g)) chars += m[1].length;
+    for (const m of c.matchAll(/\[((?:[^\][\\]|\\.)*)\]\s*TJ/g))
+      for (const s of m[1].matchAll(/\(((?:[^()\\]|\\.)*)\)/g)) chars += s[1].length;
+    if (chars >= TPL_PDF_TEXT_FLOOR) return { sourceType: 'pdf_digital', textChars: chars };
+  }
+  return { sourceType: chars >= TPL_PDF_TEXT_FLOOR ? 'pdf_digital' : 'pdf_scanned', textChars: chars };
+}
+
+/* Everything the upload route needs to know before it decides to spend money.
+   Returns { error } for anything the user must fix, so the caller can answer
+   with one message and stop. */
+function tplPdfInspect(bytes) {
+  if (tplPdfIsEncrypted(bytes))
+    return { error: 'That PDF is password-protected. Remove the password and upload it again, or upload the Word version.' };
+  const chunks = tplPdfInflatedChunks(bytes);
+  const pageCount = tplPdfPageCount(bytes, chunks);
+  if (!pageCount)
+    return { error: 'That PDF could not be read — it may be damaged. Try re-saving it, or upload the Word version.' };
+  if (pageCount > TPL_PDF_MAX_PAGES)
+    return { error: `That PDF is ${pageCount} pages. For long documents, split the file or upload the Word version.` };
+  const { sourceType, textChars } = tplPdfClassify(bytes, chunks);
+  return { pageCount, sourceType, textChars };
+}
+
+/* The scan rule, hard-coded rather than left to the model: on a scan, every
+   field whose value is digits gets its confidence held down to 'medium' at
+   best. Digits are where scan errors hide — a 3 read as an 8 in a KRA PIN
+   looks perfectly plausible on screen — and the confirmation screen leads the
+   eye to anything below 'high'. The model is not asked to be humble about
+   this; it is made so after the fact. */
+const TPL_DIGIT_FIELDS = ['national_id', 'kenya_tax_id', 'phone', 'company_reg_number', 'number'];
+function tplCapScanConfidence(fields) {
+  let capped = 0;
+  for (const f of fields) {
+    if (!TPL_DIGIT_FIELDS.includes(f.field_type)) continue;
+    if (f.detection_confidence === 'high') { f.detection_confidence = 'medium'; capped++; }
+  }
+  return capped;
+}
+
 const TPL_CONVERT_MODEL = 'claude-sonnet-4-6';
 const TPL_UPLOAD_MAX = 8 * 1024 * 1024; // decoded bytes
 const TPL_CONVERT_TOOL = {
@@ -5302,6 +5468,30 @@ Rebuild it as blocks and fields:
 - Never invent a field that is not in the source document. Every field's {{field_key}} must appear in exactly one block.
 
 Return the result via the propose_template tool only.`;
+
+/* The PDF route reuses the prompt above wholesale — same definition of a field,
+   same block types, same tool — and appends only what changes when the input is
+   pages instead of an extraction listing. Keeping one prompt with an addendum,
+   rather than two prompts, is what stops the two routes drifting apart: a rule
+   added to the Word route is inherited here for free.
+
+   The first line does real work. The shared prompt opens by describing a text
+   extraction of HEADING/PARA/TABLE ROW lines, which is not what arrives on this
+   route, so the framing has to be corrected explicitly or the model looks for a
+   listing that was never sent. */
+const TPL_CONVERT_PDF_RULES = `
+
+INPUT FORMAT — THIS DOCUMENT ONLY: ignore the description above of an extraction listing. You are being shown the pages of a PDF as they appear on paper. Read them yourself.
+
+- Read in natural human order: left to right, top to bottom, respecting columns. Follow the visual layout, not the order text happens to sit in the file.
+- An empty ruled box, a bordered cell, or a line next to a label IS a field, exactly as an empty table cell is in the Word route.
+- If the page is a scan, handwriting may already fill some blanks. A filled-in blank is still a field: capture the printed LABEL and ignore whatever was handwritten into it. Never turn a handwritten value into a default, an option, or fixed wording.
+- On a scan, transcribe printed labels carefully. Where a label is partly illegible, keep the field, give it your best-guess label, and set confidence: low. Do not drop a field because its label is hard to read.
+- Never invent a field that is not visibly on the page. If you cannot see it, it does not exist.`;
+
+/* What the user turn says on the PDF route. The document block carries the file
+   itself; this is the instruction that travels beside it. */
+const TPL_CONVERT_PDF_INSTRUCTION = 'Convert the attached document into template blocks and fields, following the rules in your instructions. Return the result via the propose_template tool only.';
 
 const tplSafeParse = v => { try { return JSON.parse(v); } catch (_) { return null; } };
 function tplConvertClean(input) {
@@ -5367,32 +5557,54 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
   let bytes;
   try { bytes = Buffer.from(m[2], 'base64'); } catch (_) { return res.status(400).json({ error: 'The file could not be decoded' }); }
   if (bytes.length > TPL_UPLOAD_MAX) return res.status(400).json({ error: `Keep the document under ${Math.round(TPL_UPLOAD_MAX / 1024 / 1024)} MB` });
-  // The real file signature, not the extension: a .docx is a PK zip that
-  // contains word/document.xml. Anything else is refused, whatever it is named.
-  if (!(bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04))
-    return res.status(400).json({ error: 'That is not a Word (.docx) file — the converter reads .docx only (PDF arrives in a later phase)' });
-  const structure = tplDocxStructure(bytes);
-  if (!structure) return res.status(400).json({ error: 'The file has a zip wrapper but no Word document inside (word/document.xml is missing)' });
-  if (!structure.length) return res.status(400).json({ error: 'No readable text found in the document' });
+  /* The real file signature, not the extension. Two doors now: a .docx is a PK
+     zip carrying word/document.xml, a PDF starts %PDF-. Anything else is
+     refused whatever it is named. Which door was used decides how the document
+     reaches the model — and nothing after that point. */
+  const isZip = bytes.length > 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
+  const isPdf = tplIsPdf(bytes);
+  if (!isZip && !isPdf)
+    return res.status(400).json({ error: 'That is not a Word (.docx) or PDF file — the converter reads those two kinds' });
+
+  let structure = null, pdf = null;
+  if (isPdf) {
+    pdf = tplPdfInspect(bytes);
+    if (pdf.error) return res.status(400).json({ error: pdf.error });
+  } else {
+    structure = tplDocxStructure(bytes);
+    if (!structure) return res.status(400).json({ error: 'The file has a zip wrapper but no Word document inside (word/document.xml is missing)' });
+    if (!structure.length) return res.status(400).json({ error: 'No readable text found in the document' });
+  }
   const key = aiKey();
   if (!key) return res.status(409).json({ error: 'The converter needs the Copilot engine — an admin adds the Anthropic API key under Team & Settings', needsKey: true });
 
-  const fileName = clean(b.fileName).slice(0, 200) || 'upload.docx';
-  const name = clean(b.name).slice(0, 160) || fileName.replace(/\.docx$/i, '');
+  const sourceType = isPdf ? pdf.sourceType : 'docx';
+  const fileName = clean(b.fileName).slice(0, 200) || (isPdf ? 'upload.pdf' : 'upload.docx');
+  const name = clean(b.name).slice(0, 160) || fileName.replace(/\.(docx|pdf)$/i, '');
   // store the original for reprocessing before anything can fail
   const fileId = 'f_' + rid(10);
   db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
-    .run(fileId, fileName, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', dataUrl, now());
+    .run(fileId, fileName, isPdf ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', dataUrl, now());
 
-  const extraction = tplExtractionText(structure);
+  /* How the document reaches the model. The Word route sends the text it
+     extracted; the PDF route attaches the file itself as a document block and
+     lets the API render the pages, so HaTi never rasterises anything. The
+     instruction, the tool and the required output are identical either way —
+     that sameness is what lets everything downstream stay untouched. */
+  const userContent = isPdf
+    ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: m[2] } },
+       { type: 'text', text: TPL_CONVERT_PDF_INSTRUCTION }]
+    : tplExtractionText(structure);
+
   let converted = null, errorNote = null, notice = null;
   try {
     const out = await anthropicMessages(key, 'deep', {
       max_tokens: 8192,
-      system: TPL_CONVERT_PROMPT,
+      system: TPL_CONVERT_PROMPT + (isPdf ? TPL_CONVERT_PDF_RULES : ''),
       tools: [TPL_CONVERT_TOOL],
       tool_choice: { type: 'tool', name: 'propose_template' },
-      messages: [{ role: 'user', content: extraction }],
+      messages: [{ role: 'user', content: userContent }],
     }, { feature: 'template_convert', model: TPL_CONVERT_MODEL });
     if (!out.ok) {
       errorNote = `The converter could not reach the model (HTTP ${out.status}) — the original file is stored; try again from the template's page`;
@@ -5405,6 +5617,13 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
         console.error('[template-convert] unusable response:', JSON.stringify(out.data.content || []).slice(0, 2000));
       } else {
         converted = cleaned;
+        /* The scan rule, applied here rather than asked of the model. It runs
+           after cleaning so it sees the same typed fields the confirmation
+           screen will, and it only ever lowers confidence. */
+        if (TPL_IS_SCANNED(sourceType)) {
+          const capped = tplCapScanConfidence(cleaned.fields);
+          if (capped) cleaned.problems.push(`${capped} number ${capped === 1 ? 'field was' : 'fields were'} marked for checking because the source was a scan`);
+        }
         if (cleaned.problems.length) notice = cleaned.problems.join(' · ');
         if (out.fellBack) notice = `${notice ? notice + ' · ' : ''}model “${out.rejectedModel}” was rejected; the tier default answered instead`;
       }
@@ -5417,9 +5636,10 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
   const tid = 'tpl_' + rid(8);
   let vid;
   txn(() => {
-    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at)
-      VALUES (?,?,?,?,?,'draft','upload',NULL,?,?,?)`)
-      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', req.user.name, now(), now());
+    db.prepare(`INSERT INTO templates (id,org_id,name,description,category,status,origin,source_contract_id,created_by,created_at,updated_at,source_type,page_count)
+      VALUES (?,?,?,?,?,'draft','upload',NULL,?,?,?,?,?)`)
+      .run(tid, WORKSPACE_ID, name, `Converted from ${fileName} (original stored: ${fileId})`, TPL_CATEGORIES.includes(b.category) ? b.category : 'other', req.user.name, now(), now(),
+        sourceType, isPdf ? pdf.pageCount : null);
     const v = tplNewVersion(tid, 1);
     vid = v.id;
     if (errorNote) db.prepare('UPDATE template_versions SET error_note=? WHERE id=?').run(errorNote.slice(0, 500), vid);
@@ -5438,6 +5658,8 @@ app.post('/api/templates/upload', auth, templateManager, passwordCurrent, rlAiDe
     converted: !!converted, errorNote, notice,
     fieldsDetected: converted ? converted.fields.length : 0,
     blocksDetected: converted ? converted.blocks.length : 0,
+    sourceType, pageCount: isPdf ? pdf.pageCount : null,
+    scanned: TPL_IS_SCANNED(sourceType),
   });
 });
 

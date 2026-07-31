@@ -129,11 +129,11 @@ function tplLibUploadModal() {
     <div style="padding:20px 22px;max-width:470px">
       <h3 style="margin:0 0 4px;font-family:var(--font-heading);font-size:16px;font-weight:700">Convert a document into a template</h3>
       <p style="margin:0 0 14px;font-size:11.5px;color:var(--color-neutral-600);line-height:1.5">
-        Upload your standard contract as a Word (.docx) file. HaTi reads it, works out which parts are
-        fixed wording and which are blanks to fill in, and rebuilds it as a draft template — HaTi's
-        layout, your branding. The original file's formatting is deliberately left behind. You review
-        every detected field before anything goes further.</p>
-      <input type="file" id="tpllib-up-file" accept=".docx" style="display:block;margin-bottom:12px;font-size:12px">
+        Upload your standard contract as a Word (.docx) or PDF file — including a scan of a paper form.
+        HaTi reads it, works out which parts are fixed wording and which are blanks to fill in, and
+        rebuilds it as a draft template — HaTi's layout, your branding. The original file's formatting
+        is deliberately left behind. You review every detected field before anything goes further.</p>
+      <input type="file" id="tpllib-up-file" accept=".docx,.pdf" style="display:block;margin-bottom:12px;font-size:12px">
       <label style="display:block;margin-bottom:16px"><span style="display:block;font-size:11px;font-weight:600;margin-bottom:4px">Template name <span style="font-weight:400;color:var(--color-neutral-500)">(defaults to the file name)</span></span>
         <input id="tpllib-up-name" style="${INP}" maxlength="160"></label>
       <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -143,8 +143,12 @@ function tplLibUploadModal() {
     </div>`);
   document.getElementById('tpllib-up-go')?.addEventListener('click', () => {
     const file = document.getElementById('tpllib-up-file').files?.[0];
-    if (!file) { toast('Choose a .docx file first', 'err'); return; }
-    if (!/\.docx$/i.test(file.name)) { toast('The converter reads .docx files only', 'err'); return; }
+    if (!file) { toast('Choose a .docx or .pdf file first', 'err'); return; }
+    /* A fast, friendly no for the obvious cases. It is not the gate: the server
+       checks the real file signature, the page count and whether the PDF is
+       encrypted, because those decide whether we spend money on a model call
+       and must not be forgeable from here. */
+    if (!/\.(docx|pdf)$/i.test(file.name)) { toast('The converter reads .docx and .pdf files only', 'err'); return; }
     if (file.size > 8 * 1024 * 1024) { toast('Keep the document under 8 MB', 'err'); return; }
     const btn = document.getElementById('tpllib-up-go');
     btn.disabled = true; btn.textContent = 'Reading the document…';
@@ -184,6 +188,10 @@ async function openTemplateConfirm(tid, vid) {
   catch (e) { toast(e.message, 'err'); return; }
   _tplConfirm = {
     tid, vid, name: t.template.name,
+    /* Whether the source was a scan. Carried onto the confirmation screen so
+       the banner and the number-field warning appear on the one screen where a
+       human is actually looking at the detected fields. */
+    scanned: !!t.template.scanned,
     blocks: v.blocks.map(b => ({ blockType: b.blockType, content: b.content })),
     fields: v.fields.map(f => ({
       fieldKey: f.field_key, label: f.label, section: f.section || '', fieldType: f.field_type,
@@ -229,6 +237,14 @@ function tplConfirmPaint() {
         Low-confidence fields are listed first: fix their labels and types, delete anything that is not
         really a blank, add anything missed. Nothing publishes until you have been through the builder.</p>
     </section>
+    ${s.scanned ? `
+    <section id="tc-scan-banner" style="${CARD};padding:12px 16px;border-color:#e6c98a;background:#fdf7ea">
+      <p style="margin:0;font-size:12px;color:#7a541a;line-height:1.55">
+        <strong>This document was a scan. Please check number fields carefully.</strong>
+        Reading a photograph of paper involves more guesswork than reading a Word file, and digits are
+        where mistakes hide — a 3 read as an 8 in an ID or KRA PIN looks perfectly normal on screen.
+        Number fields from this document are never marked high confidence, however clear the scan looked.</p>
+    </section>` : ''}
     <section style="${CARD}">
       <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--color-divider)">
         <h4 style="font-family:var(--font-heading);font-weight:600;font-size:13px;margin:0;flex:1">Fields found</h4>

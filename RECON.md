@@ -231,3 +231,113 @@ reuse this helper and pattern with a dedicated tool schema.
 **Explicitly not touched:** negotiation room, tracked changes, DOCX
 round-trip, portal, signing, existing Templates page and its settings-blob
 storage, pricing/billing. No new npm dependencies.
+
+---
+
+# Recon refresh — PDF & scanned document upload
+
+Written before feature code, per the addendum's §3. Everything below was read
+off the repository as it stands, not assumed from the brief.
+
+## The ground the new route has to land on
+
+**Phase D's extraction output, and where the call lives.** The Word converter is
+a single route, `POST /api/templates/upload` in `server/server.js`. It decodes a
+base64 data URL, checks the real file signature, extracts an ordered structure
+with `tplDocxStructure()`, flattens it to text with `tplExtractionText()`, and
+sends that as a plain-string user turn.
+
+The thing that matters for this addendum: **the answer does not come back as
+text.** The call forces a tool (`TPL_CONVERT_TOOL`, `tool_choice` pinned to
+`propose_template`), so the model returns structured input which
+`tplConvertClean()` then sanitises — dropping unknown field types, de-duplicating
+keys, clamping confidence to high/medium/low, and reconciling longhand signature
+wording into a `signature_block`. The PDF route therefore does not need to parse
+anything, and the brief's "JSON only, no prose, no fences" instruction does not
+apply here; that was written for a text-parsing design this codebase does not
+use. Reusing the same tool and the same `tplConvertClean()` is what actually
+guarantees the two routes produce identical output — sameness by construction
+rather than by convention.
+
+**Where uploaded files are stored.** In the `files` table, keyed `f_<rid>`, as
+the original data URL with its MIME type, written *before* the model is called
+so a failed conversion never loses the customer's document. The template's
+`description` records the file id. The PDF route uses this unchanged, with
+`application/pdf` as the MIME.
+
+**Upload screen and its file-type validation.** `tplLibUploadModal()` in
+`js/views/templatelib.js`: body copy naming Word, `accept=".docx"` on the file
+input, and a client-side extension check. The server independently refuses
+anything that is not a PK zip. Note for the record: there was no "PDF support
+coming soon" string anywhere in the repository — the brief's §4 asked for the
+removal of text that did not exist. The four real locations are listed in the
+corrected §4.
+
+**Test baseline at session start.** `npm install` first — in a fresh container
+`node_modules` is empty and `server/server.js` dies on its first `require`,
+which surfaces as the whole suite hanging and then reporting every test as
+"cancelled by parent". That reads as a broken suite and is not one. With
+dependencies installed:
+
+| Suite | Result |
+|---|---|
+| `f101`–`f104` (template library, save-as, UI, contract-from-template) | 23 / 23 pass |
+| `f105` (upload-and-convert — this addendum's stated precondition) | 7 / 7 pass |
+
+Precondition met; the addendum was cleared to proceed.
+
+## The four decisions the brief left open
+
+**1. Classification and page counting run on the SERVER. This is a deviation
+from the corrected §1, and the reason is worth recording.**
+
+The corrected work order recommended doing this in the browser by reusing
+`js/ocr.js`, which already classifies digital-vs-scanned and counts PDF pages
+for the contract register. On implementation that turned out to be the wrong
+shape, for two reasons:
+
+- `js/ocr.js` **cannot run on the server at all.** It is built on `window`, a
+  `<canvas>`, and a lazily CDN-fetched pdf.js. There is no server equivalent of
+  any of those, and porting it would be a far larger change than this addendum
+  is allowed to make.
+- The page count **gates spending**. It decides whether HaTi makes the most
+  expensive call in the product. A number computed in the browser is a number a
+  client can forge, so it cannot be the control even if the browser also
+  computes it for a faster error message.
+
+So the server reads the file itself, in `tplPdfInspect()`. It needs no new
+dependency: `node:zlib` is already required at the top of `server/server.js` for
+the .docx reader, and Flate is what PDF streams are compressed with in practice.
+Three inspectors share one bounded pass over the bytes — `tplPdfIsEncrypted()`,
+`tplPdfPageCount()` (page objects in the clear and inside compressed object
+streams, plus a `/Count` fallback), and `tplPdfClassify()` (text-showing
+operators — `Tj`, `TJ`, `'`, `"` — measured against the same 200-character floor
+`js/ocr.js` uses, so both halves of the product agree on what "has a text layer"
+means).
+
+`js/ocr.js` is left exactly as it was. Nothing was duplicated into it and
+nothing was taken out of it: the register's OCR pipeline and this route's
+pre-flight inspection are different jobs that happen to look alike.
+
+**2. What of `js/ocr.js` was reusable.** In the end, its *design* rather than its
+code: the text floor, and the principle that provenance travels with the text so
+downstream code can cap confidence honestly. The functions themselves are
+browser-bound, as above.
+
+**3. Native PDF support handles the fixtures — the rasterising fallback was not
+built.** Verified against the current API: attaching the file as a `document`
+content block needs no beta header, and the limits are 32 MB and 600 pages,
+comfortably outside this route's 8 MB and 30-page caps. HaTi therefore never
+rasterises a page, and there are no temporary image files to create, store, or
+forget to delete. The corrected §5 keeps local rendering as a documented
+fallback if a real run shows scans reading poorly; it is not in the code today,
+and should not be added speculatively.
+
+**4. There is NO Anthropic API key in this environment.** `ANTHROPIC_API_KEY` is
+unset, `ANTHROPIC_AUTH_TOKEN` is unset, and there is no settings database
+carrying one. The test suite does not need it — every suite points
+`ANTHROPIC_BASE_URL` at a local stub, which is why the tests pass and cost
+nothing. But it means two things the brief asks for **could not be done**:
+detection quality against the real model (§9's bar of 20 of ~27 blanks) and the
+observed cost per document (§8). Both are recorded in `BUGLOG.md` with the exact
+command to run once a key exists.

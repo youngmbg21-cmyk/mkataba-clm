@@ -6137,3 +6137,105 @@ SAME text, which is the durable form of the claim: two buttons for one act,
 only one following the rule, is exactly how this drifted. Suite 2176/2176 ·
 redline 71/71 · selection 22/22 · parity 18/18 · timeline 19/19.
 
+
+---
+
+## PDF & scanned document upload — blockers and blunt notes
+
+### BLOCKER — no Anthropic API key in this environment, so detection quality and cost are UNMEASURED
+
+`ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are both unset, and there is no
+settings database carrying a stored key. The test suite does not care — every
+suite points `ANTHROPIC_BASE_URL` at a local stub — but two things the addendum
+explicitly asks for could not be done:
+
+- **§9's detection bar.** "Detection on the digital Brut PDF finds fewer than 20
+  of its ~27 blanks after prompt iteration" is a stop condition, and it cannot
+  be evaluated against a stub, which returns whatever the test told it to. The
+  PDF-specific prompt rules in `TPL_CONVERT_PDF_RULES` are therefore **written
+  but never iterated against a real answer.** They are a first draft, and should
+  be treated as one.
+- **§8's cost figure.** "API cost observed per document — note it so Young can
+  price this" needs real `usage` numbers. Nothing was measured. Do not quote a
+  price from this session; there is no number in it that came from a real call.
+
+**Cost estimate, clearly labelled as arithmetic and not observation.** At the
+published `claude-sonnet-4-6` rate of $3 per million input tokens and $15 per
+million output, a page of PDF is on the order of 1.5–3k input tokens once the
+API renders it, and the detection answer runs to a few thousand output tokens.
+That puts a 2-page form somewhere around half a US cent and a 30-page scan in
+the region of 15–30 cents. **These are estimates from public pricing, not
+measurements.** The real numbers may differ, and a scan is likely to sit at the
+expensive end because an image-only page carries more input tokens than a text
+one.
+
+**To run the real thing** (and get the two numbers above), set a key and point
+the converter at the live API:
+
+```
+export ANTHROPIC_API_KEY=sk-ant-...        # or add it in Team & Settings
+unset ANTHROPIC_BASE_URL                   # the test harness overrides this
+npm start
+# then: Templates → New template → Upload a document → fixtures/brut-account-opening.pdf
+```
+
+Count the fields on the confirmation screen against the form's ~27 blanks, and
+read the cost off the AI usage record the server writes for every real call
+(`feature: 'template_convert'`). Budget: a handful of uploads is cents, not
+dollars — the $2 ceiling that was authorised is many times what this needs.
+
+### The scanned fixture is synthetic, and that limits what the scan tests prove
+
+`fixtures/brut-account-opening-scanned.pdf` is generated, not scanned: text
+drawn as pixels with a 5×7 bitmap font, plus deterministic speckle and an edge
+shadow. That is genuinely enough for what `f128` asserts — there is no text
+layer, so classification, the confidence cap, the banner and the whole pipeline
+are all exercised honestly. It is **not** enough to judge how well the model
+reads real scanner output: no skew beyond a nominal shadow, no JPEG artefacts,
+no bleed-through, and a font cleaner than most fax-quality paper. Before
+trusting scan detection in front of customers, print the form, scan it, and run
+that.
+
+### The retry the brief asked for was NOT added — deliberately
+
+§5 asks for "on an unparseable response, retry once". It is not implemented, on
+either route, and that is a decision rather than an oversight:
+
+- Phase D's Word route has never retried. Adding a retry to the PDF route alone
+  would make the two paths behave differently on failure for no principled
+  reason, and the whole design of this addendum is that the two routes differ
+  only in how the document reaches the model.
+- The corrected §5 says to add it to the shared failure path or to neither, and
+  to say which. This is the saying-which: **neither**, for now.
+- A retry is only safe if it fires on an unusable *answer* and never on a
+  refusal, an auth failure or a rate limit — retrying those spends money and
+  cannot succeed. Getting that discrimination right is worth doing properly,
+  against real failure modes, which needs the key that this session did not
+  have. Building it blind against a stub would be guessing at which errors are
+  worth retrying.
+
+The existing behaviour is unchanged and still safe: an unusable answer saves the
+template as a draft with an `error_note`, the original file is stored before the
+call so nothing is lost, and the upload flow never crashes. `f128` pins that for
+the PDF route.
+
+### The rate limiter had to be raised for the new test file
+
+`f128` uploads far more than the 15 deep Copilot calls per window that
+`AI_RATE_DEEP` allows, so it starts its server with `AI_RATE_DEEP: '500'`. The
+limiter is a real production guard and is untouched everywhere else. Worth
+knowing because the first run of that file failed on a 429 that looked like a
+product bug and was not.
+
+### Two things in the brief described a codebase that does not exist
+
+Both were corrected before code and are recorded in full in the work order's
+revision note; repeated here because they cost time:
+
+- **"Remove the 'PDF support coming soon' signpost text."** No such string
+  exists, or ever existed, in this repository. The four real places that name
+  Word-only are listed in the corrected §4.
+- **"JSON only, no prose, no fences."** The converter forces a tool call, so a
+  fenced or prose answer is impossible by construction. The instruction
+  described a text-parsing design this codebase does not use, and following it
+  would have meant building a JSON parser for output that arrives structured.

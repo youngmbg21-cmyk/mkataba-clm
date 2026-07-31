@@ -130,3 +130,68 @@ the folded-in section.
 
 **Decided next:** full suite + browser checks, after-screenshots of the
 three bug-report screens, merge to main.
+
+---
+
+# PDF & scanned document upload — per-loop log
+
+**Loop 1 — review the brief before touching anything.** Read the addendum
+against the repository rather than taking it at face value. Six instructions
+described a codebase we do not have; all six were corrected in the work order
+first, with the reasoning kept, and two decisions were escalated (branch name,
+EN/SV) and answered. Chief finding: `js/ocr.js` already classifies
+digital-vs-scanned and counts PDF pages for the contract register, and the brief
+did not mention it — which would have invited a second parallel pipeline. Also
+established the test baseline the stop conditions compare against (23/23 on
+f101–f104, 7/7 on f105), after discovering that a fresh container with no
+`npm install` makes the whole suite look broken when it is not.
+
+**Loop 2 — schema and the server's own reading of a PDF.** Added `source_type`
+and `page_count` to `templates`, additive and nullable, with `TPL_IS_SCANNED()`
+as the single place that decides NULL and `docx` both mean "not a scan". Then
+the pre-flight inspectors: encryption, page count, and digital-vs-scan
+classification, all from the bytes, sharing one bounded pass and using the
+`node:zlib` already required for the .docx reader.
+
+*Deviation, recorded:* the corrected §1 recommended classifying in the browser
+by reusing `js/ocr.js`. On implementation that was wrong twice over — the module
+is browser-bound (`window`, canvas, CDN pdf.js) so it cannot run server-side at
+all, and the page count gates spending so it must not be forgeable by a client.
+The server reads the file itself. RECON.md carries the full reasoning.
+
+*Caught during this loop:* the first version of `tplPdfClassify()` only inspected
+Flate-compressed streams, so a PDF with uncompressed content — perfectly legal,
+and what a hand-written PDF looks like — would have been misfiled as a scan and
+had its number fields needlessly capped. Fixed to read both.
+
+**Loop 3 — the route, the prompt, and the screen.** Branched the upload route on
+signature rather than extension; the PDF travels as a `document` content block so
+the API renders the pages and HaTi never rasterises. The shared prompt, tool and
+`tplConvertClean()` sanitiser are reused whole, with `TPL_CONVERT_PDF_RULES`
+appended only for what changes when the input is pages. That addendum has to
+correct the shared prompt's opening line explicitly, which describes an
+extraction listing that does not arrive on this route. Confidence cap applied
+after cleaning, so it sees the same typed fields the confirmation screen will.
+Banner on the confirmation screen, driven by `scanned`, English only.
+
+**Loop 4 — fixtures.** Three PDFs from a new `genbrutpdf.js`: digital, image-only
+scan, and underscore/bracket blanks, all carrying the same synthetic Brut wording
+as the existing .docx so counts are comparable across routes. The scan draws its
+text as pixels with a 5×7 bitmap font plus fixed-seed speckle — deterministic on
+purpose. First cut silently clipped a third of the form off the raster page;
+caught by checking the page count rather than by a test, and fixed by sizing
+`perPage` to the worst case.
+
+**Loop 5 — tests, and the one sanctioned edit.** New `f128` (14 tests): refusals
+before any call, classification, the document block, the selective confidence
+cap, the banner flag, NULL-is-not-a-scan, and the full pipeline for each of the
+three fixtures. Updated `f105`'s first test, which asserted PDFs are *rejected* —
+correct before this addendum, wrong the moment it landed. First run failed on a
+429 that looked like a bug and was the Copilot rate limiter doing its job;
+`f128` now starts with headroom.
+
+**Not done, and why.** The retry in §5 was not built, on either route: it should
+fire on an unusable answer and never on a refusal or a rate limit, and getting
+that discrimination right needs real failure modes, not a stub. Detection quality
+(§9's 20-of-27 bar) and cost per document (§8) are unmeasured because this
+environment has no Anthropic key. Both are in BUGLOG.md with the command to run.
