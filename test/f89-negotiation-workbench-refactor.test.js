@@ -820,8 +820,14 @@ describe('F89 (16) — Send is one click, and the card says so afterwards', () =
     p.win.renderRedline();
     assert.match(p.$('#rl-changes .rl-badge').textContent, /^Sent$/,
       'the fact stays on the head, which is the part that never folds');
-    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
-    assert.ok(!p.$('#rl-changes .rl-card-verbs'), 'and the verbs fold away with the body');
+    const card = p.$('#rl-changes .rl-card');
+    assert.equal(card.getAttribute('data-rl-open'), '0');
+    /* The body is in the DOM and hidden by the shut class rather than removed —
+       that is what lets a hover peek be a class flip instead of a repaint of
+       the whole column. Safe because only cards with nothing to press can be
+       in this state; see _rlCardChoice. */
+    assert.ok(card.classList.contains('rl-card-shut'), 'and the body folds away with it');
+    assert.ok(card.hasAttribute('data-rl-peek'), 'a sent card is one the reader may peek at');
     assert.ok(!p.$('#rl-changes [data-rl-send]'), 'it cannot be sent twice');
   });
 

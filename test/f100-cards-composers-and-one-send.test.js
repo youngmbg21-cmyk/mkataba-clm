@@ -172,7 +172,7 @@ describe('F100b — the card is a handle, not a copy', () => {
     p.again();
     const card = p.$('#rl-changes .rl-card');
     assert.equal(card.getAttribute('data-rl-open'), '0');
-    assert.equal(card.querySelector('.rl-card-verbs'), null);
+    assert.ok(card.classList.contains('rl-card-shut'), 'the body is folded away');
     assert.match(card.querySelector('.rl-badge').textContent.trim(), /^Sent$/,
       'the fact lives on the part that never folds');
     assert.ok(card.querySelector('.rl-card-meta'), 'and so does the clause it is on');
@@ -191,17 +191,26 @@ describe('F100b — the card is a handle, not a copy', () => {
 
   test('the caret is what folds it again, and it does not drag the document', async () => {
     /* Its own control precisely because the CARD's press means "take me to this
-       change". A reader tidying a column must not be scrolled somewhere for it. */
+       change". A reader tidying a column must not be scrolled somewhere for it.
+       Driven on a SENT card: a card with something to press is exempt from
+       folding altogether — see the exemption tests below. */
     const p = await page();
-    const card = p.$('#rl-changes .rl-card');
-    assert.equal(card.getAttribute('data-rl-open'), '1');
-    card.querySelector('[data-rl-caret]').click();
+    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.again();
+    p.$('#rl-changes .rl-card').click();          // pin it open
+    p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    p.$('#rl-changes [data-rl-caret]').click();
     p.again();
     assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0');
   });
 
   test('a hand-closed card stays closed through a repaint', async () => {
     const p = await page();
+    p.win.negoHandOver(p.c, { to: 'counterparty' });
+    p.again();
+    p.$('#rl-changes .rl-card').click();
+    p.again();
     p.$('#rl-changes [data-rl-caret]').click();
     p.again(); p.again();
     assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
@@ -513,5 +522,177 @@ describe('F100d — a second batch of asks can still be sent', () => {
     assert.ok(lines.some(l => /Turn handed to owner/.test(l)), 'the first was a hand-over');
     assert.ok(lines.some(l => /Further changes sent/.test(l) && /already their turn/.test(l)),
       'the second was a send, and the record must not claim the table moved');
+  });
+});
+
+/* ============================================================ */
+describe('F100e — looking at a card is not deciding anything', () => {
+  /* Working through a round left a column of cards the reader had opened and
+     then had to close one at a time. So a card you have merely LOOKED at closes
+     itself, and a card you have committed to stays.
+
+     The exemption is the whole safety argument, and it is why this file leans
+     on it three times below: a card with Accept, Reject, Send or Undo on it
+     never peeks and never folds. Without that, this feature would take a button
+     off the screen while the reader's mouse was travelling toward it — the same
+     wound as the stale open/shut choice (F100b), in a worse form. */
+  const RICH = null;
+
+  async function page(){
+    const w = buildWorld({ negotiationView: true });
+    const { win } = w;
+    win.promptDialog = async () => '';
+    win.openAI = () => {}; win.aiPush = () => {}; win.renderAIFeed = () => {};
+    win.copilotAvailable = () => false;
+    win.openShareModal = () => {};
+    win.counterpartyContact = () => null;
+    win.reshareToLastRecipient = async () => ({ delivered: true });
+    win.cachedShares = () => [];
+    const c = supplyContract();
+    win.negoInit(c);
+    await win.negoFileProposal(c, win.negoBaseText(c).replace('thirty (30) days', 'forty-five (45) days'),
+      { side: 'owner', author: 'Young Mbagaya' });
+    win.rlSetCardFilter('all');
+    win.state = Object.assign({}, win.state, { contracts: [c], activeId: c.id, view: 'redline' });
+    win.getContract = id => (id === c.id ? c : null);
+    win.renderRedline();
+    const $ = s => win.document.querySelector(s);
+    return { w, win, c, $, doc: win.document, again: () => win.renderRedline() };
+  }
+  const sent = async () => { const p = await page();
+    p.win.negoHandOver(p.c, { to: 'counterparty' }); p.again(); return p; };
+  /* test/world.js runs setTimeout synchronously so deferred UI work lands
+     inside a test. That is right for everything else here and wrong for a
+     GRACE PERIOD, whose whole behaviour is the delay — with the stub in place
+     the card would close on the same tick as the mouseleave and the test would
+     pass while proving nothing. Restored per test, after the page is built. */
+  const realTimers = p => {
+    p.win.setTimeout = (fn, ms) => setTimeout(fn, ms);
+    /* Both halves, or the cancel is a no-op: a Node timer id handed to jsdom's
+       clearTimeout clears nothing, and the "coming back cancels it" case would
+       fail for a reason that has nothing to do with the code under test. */
+    p.win.clearTimeout = id => clearTimeout(id);
+  };
+  const fire = (el, type, init) => el.dispatchEvent(
+    new el.ownerDocument.defaultView.Event(type, Object.assign({ bubbles: false }, init)));
+
+  test('THE EXEMPTION: a card with something to press cannot peek or fold', async () => {
+    const p = await page();                       // a draft: Edit / Retract / Send
+    const card = p.$('#rl-changes .rl-card');
+    assert.equal(card.getAttribute('data-rl-open'), '1');
+    assert.equal(card.hasAttribute('data-rl-peek'), false,
+      'it is not in the peek set at all — Send must not vanish under a moving mouse');
+    /* And its caret is inert, so it cannot be folded by hand either. */
+    p.$('#rl-changes [data-rl-caret]').click();
+    p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1',
+      'a live control is not something the reader can hide by accident');
+  });
+
+  test('a finished card is the one that peeks', async () => {
+    const p = await sent();
+    const card = p.$('#rl-changes .rl-card');
+    assert.equal(card.getAttribute('data-rl-open'), '0');
+    assert.equal(card.hasAttribute('data-rl-peek'), true);
+  });
+
+  test('hovering opens it, and no repaint happens for a look', async () => {
+    const p = await sent();
+    const card = p.$('#rl-changes .rl-card');
+    fire(card, 'mouseenter');
+    assert.ok(card.classList.contains('is-peek'), 'the body is on screen');
+    assert.equal(card.getAttribute('data-rl-open'), '0',
+      'and the record still says shut — a look is not a decision');
+    assert.equal(p.doc.querySelector('#rl-changes .rl-card'), card,
+      'the same node: a peek must not rebuild the column under the pointer');
+  });
+
+  test('leaving collapses it again, after a grace so it does not slam shut', async () => {
+    const p = await sent();
+    realTimers(p);
+    const card = p.$('#rl-changes .rl-card');
+    fire(card, 'mouseenter');
+    fire(card, 'mouseleave');
+    assert.ok(card.classList.contains('is-peek'),
+      'still open for a moment — crossing the gap to the buttons leaves the element');
+    await new Promise(r => setTimeout(r, p.win.RL_CARD_PEEK_MS + 60));
+    assert.ok(!card.classList.contains('is-peek'), 'and then it closes');
+  });
+
+  test('coming back inside the grace cancels the close', async () => {
+    const p = await sent();
+    realTimers(p);
+    const card = p.$('#rl-changes .rl-card');
+    fire(card, 'mouseenter');
+    fire(card, 'mouseleave');
+    fire(card, 'mouseenter');
+    await new Promise(r => setTimeout(r, p.win.RL_CARD_PEEK_MS + 60));
+    assert.ok(card.classList.contains('is-peek'), 'the reader never left');
+  });
+
+  test('the keyboard gets the same affordance', async () => {
+    /* There is no hover on a tab key, and the cards are focusable. */
+    const p = await sent();
+    const card = p.$('#rl-changes .rl-card');
+    fire(card, 'focusin', { bubbles: true });
+    assert.ok(card.classList.contains('is-peek'));
+  });
+
+  test('a click pins it, and a pin survives the repaints a peek must not cause', async () => {
+    const p = await sent();
+    p.$('#rl-changes .rl-card').click();
+    p.again(); p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1',
+      'a click is a commitment where a hover was not');
+  });
+
+  test('pressing anywhere outside the column lets the pin go', async () => {
+    const p = await sent();
+    p.$('#rl-changes .rl-card').click();
+    p.again();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '1');
+    p.doc.body.click();
+    assert.equal(p.$('#rl-changes .rl-card').getAttribute('data-rl-open'), '0',
+      'the reader has plainly moved on');
+  });
+
+  test('only one card is pinned at a time', async () => {
+    const { rlCardSetOpen, rlCardIsOpen } = buildWorld({ negotiationView: true }).win;
+    const K = 'data-rl-edit|data-rl-sent';
+    rlCardSetOpen('CHG-1', true, K);
+    rlCardSetOpen('CHG-2', true, K);
+    assert.equal(rlCardIsOpen({ id: 'CHG-2' }, ['<b data-rl-edit=1>', '<b data-rl-sent=1>']), true);
+    assert.equal(rlCardIsOpen({ id: 'CHG-1' }, ['<b data-rl-edit=1>', '<b data-rl-sent=1>']), false,
+      'a column of pins is the pile this behaviour exists to stop');
+  });
+
+  test('pins do not travel to another contract', async () => {
+    /* They are a working preference on THIS column. Carried across, a pin would
+       open a card the reader has never seen. */
+    const w = buildWorld({ negotiationView: true });
+    const { rlCardSetOpen, rlCardIsOpen, rlCardForgetPins } = w.win;
+    rlCardSetOpen('CHG-1', true, 'k');
+    rlCardForgetPins('MK-OTHER');
+    assert.equal(rlCardIsOpen({ id: 'CHG-1' }, []), false);
+  });
+
+  test('and they are not persisted anywhere', async () => {
+    /* Answered explicitly by the raiser: a working preference is not a setting.
+       Nothing writes a pin to storage. */
+    const src = read('js/views/negotiation.js');
+    const block = src.slice(src.indexOf('const _rlCardChoice'), src.indexOf('function rlLinkFocus'));
+    assert.doesNotMatch(block, /localStorage|lsSet|persist\(/,
+      'a pin must not outlive the visit');
+  });
+
+  test('and a peek never moves the document', async () => {
+    /* Answered explicitly by the raiser: hovering must not scroll the contract,
+       or the page slides about as the mouse crosses the column. Clicking still
+       navigates — that is the card press, tested in F100b. */
+    const p = await sent();
+    const card = p.$('#rl-changes .rl-card');
+    fire(card, 'mouseenter');
+    assert.equal(p.doc.querySelector('#rl-doc .is-linked'), null,
+      'nothing in the document lit up for a look');
   });
 });

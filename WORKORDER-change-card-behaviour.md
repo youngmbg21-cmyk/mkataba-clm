@@ -5,7 +5,9 @@
 **Repo:** `youngmbg21-cmyk/mkataba-clm` (HaTi).
 **Baseline:** `main` at `0c41ffc` — after the card-as-handle work (`368ec30`),
 the stale open/shut choice fix (`671828f`) and the send-vs-turn fix (`0c41ffc`).
-**Status:** NOT STARTED — specified only. No code written.
+**Status:** BUILT — WO-2 landed; WO-1 confirmed already closed by `0c41ffc`.
+Proof in f100e (new, 13 tests), f100b/f89 (updated), and a real-pointer drive in
+Chromium. See BUGLOG.md.
 **Scope:** the change cards in the Tracked Changes column
 (`redlineChangeCardsHtml`, `js/views/negotiation.js`). Nothing else.
 
@@ -143,32 +145,59 @@ Three consequences for the build:
 - `.rl-card` CSS (`:4400` onward) — the peek should not shift the cards below it
   jarringly; consider a height transition.
 
-### Open questions for the raiser
+### Answers from the raiser (2026-07-31) — all three settled before building
 
-1. **Should a peek jump the document too?** Today clicking a card scrolls the
-   contract to that change. If hovering also scrolled the document, the page
-   would move under the reader as the mouse crosses the column — recommend
-   **no**: peek expands only, click navigates.
-2. **Should pinning survive changing tabs or reloading?** Recommend **no** —
-   it is a working preference, not a setting.
-3. **Confirm the exemption.** Do you agree that a card with Accept/Reject or
-   Send on it should stay open rather than peek-and-collapse? If you want *all*
-   cards to collapse, say so and the delay/grace design becomes much more
-   important.
+1. **Does a peek jump the document?** **No.** Hovering expands the card and
+   nothing else; the contract pane does not move. Clicking still navigates, as
+   it always has. Pinned by a test that asserts nothing in the document lights
+   up on `mouseenter`.
+2. **Does a pin survive tabs or reload?** **No.** It lives in memory only,
+   nothing writes it to storage, and it is dropped when the reader moves to
+   another contract — otherwise a pin would open a card they have never seen.
+   Pinned by a test that greps the state block for any persistence call.
+3. **Are cards with live buttons exempt?** **Yes** — and the build takes it one
+   step further, deliberately: such a card cannot be folded *by hand* either.
+   Its caret is drawn faded and does nothing. A card that needs you is simply
+   always open. That removes the entire class of "a live control the reader
+   cannot see", rather than leaving a way to create it on purpose.
 
-**Risk:** medium. The behaviour is subtle, easy to get wrong on the edges
-(pointer gaps, repaints landing mid-hover, touch), and the failure mode is
-hiding a live control — the same class of defect as `671828f`.
+**Risk:** medium. Handled as follows.
+
+- **Pointer gaps** — a 180ms grace (`RL_CARD_PEEK_MS`) that cancels if the
+  pointer returns, so crossing from the head to the buttons does not slam the
+  card shut mid-reach.
+- **Repaints landing mid-hover** — a peek is a CLASS on the live node and never
+  a repaint. Re-rendering the column on `mouseenter` would fight the pointer,
+  drop the node the event came from, and disturb the Discussion panel beside it.
+  This is why the body is now always in the DOM and hidden by CSS
+  (`display:none`, so a hidden verb is out of the tab order and the
+  accessibility tree too) rather than omitted from the markup.
+- **Keyboard** — `focusin` peeks and `focusout` closes, with a focus moving
+  *inside* the card (to Edit) correctly not counted as leaving it.
+- **Touch** — a tap is a click, so it pins. Touch behaviour is exactly what it
+  was before this change.
+- **Hiding a live control** — impossible by construction: only cards marked
+  `data-rl-peek` participate, and that flag is the negation of `rlCardNeedsYou`,
+  the same single test the open/shut rule already reads off the verbs.
 
 ---
 
-## Suggested order
+## What was built
 
-1. **WO-1 verification** — cheap, and it may already be closed by `0c41ffc`.
-   Do this first so WO-2 is not built on top of an unconfirmed fix.
-2. **WO-2 answers** — questions 1–3 above, before any code.
-3. **WO-2 build** — peek/pin/collapse, with the exemption and the grace period
-   in from the start rather than added after the first complaint.
+1. **WO-1** — verified against the running server: after a send the badge reads
+   `Sent` and the card carries exactly **Edit** and **Sent**. Closed by
+   `0c41ffc`; no further code needed. The disabled-button-vs-label question was
+   left as-is, per the request for "two buttons of Edit and Sent".
+2. **WO-2** — peek / pin / unpin, with the exemption and the grace period in
+   from the start. Driven with a real pointer in Chromium:
+
+   | Step | Result |
+   |---|---|
+   | at rest | `open=0`, body hidden |
+   | hover | body visible, record still `open=0` — a look is not a decision |
+   | move away | body hidden again |
+   | click | `open=1`, and the document scrolls to the change |
+   | click elsewhere | `open=0` |
 
 ## What this work order does NOT cover
 

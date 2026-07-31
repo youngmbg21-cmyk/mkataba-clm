@@ -4448,6 +4448,26 @@ function redlineLayoutCss(){
   /* Tighter, because a collapsed card is a row in a list rather than a panel. */
   .redline-page .rl-card-shut{padding:9px 12px}
   .redline-page .rl-card-shut .rl-card-top{margin-bottom:3px}
+  /* ---- SHUT HIDES THE BODY; A PEEK PUTS IT BACK ----
+     display:none rather than height or opacity, so a hidden verb is out of the
+     tab order and out of the accessibility tree as well as off the screen. The
+     body is in the DOM either way — that is what lets a peek be a class on the
+     live node instead of a repaint (see _rlCardChoice). */
+  .redline-page .rl-card-shut .rl-card-body{display:none}
+  .redline-page .rl-card-shut.is-peek{padding:11px 12px}
+  .redline-page .rl-card-shut.is-peek .rl-card-body{display:block}
+  .redline-page .rl-card-shut.is-peek .rl-card-top{margin-bottom:5px}
+  /* A peek is a lighter state than a pin: it lifts, it does not ring. The ring
+     is .is-linked, which means "this is the change the document is showing". */
+  .redline-page .rl-card[data-rl-peek]{transition:box-shadow .12s,border-color .12s}
+  .redline-page .rl-card-shut.is-peek{border-color:var(--color-neutral-300);
+    box-shadow:0 1px 6px rgba(15,23,42,.07)}
+  html.dark .redline-page .rl-card-shut.is-peek{box-shadow:0 1px 6px rgba(0,0,0,.35)}
+  /* The caret earns a pointer only where there is something to fold. */
+  .redline-page .rl-card:not([data-rl-peek]) .rl-caret{opacity:.45;cursor:default}
+  @media (prefers-reduced-motion: reduce){
+    .redline-page .rl-card[data-rl-peek]{transition:none}
+  }
   .redline-page .rl-card-note{margin-top:8px;padding:7px 9px;border-radius:7px;font-size:10.5px;line-height:1.5;
     background:var(--st-amber-bg);color:var(--st-amber-fg);overflow-wrap:anywhere}
   .redline-page .rl-card-verbs{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
@@ -4898,6 +4918,9 @@ function renderRedline(){
   });
   redlineLayoutCss();
   const c = (typeof getContract === 'function') ? getContract(state.activeId) : null;
+  /* A pin is a working preference on THIS contract's column. Carrying it to the
+     next contract would open a card the reader has never seen. */
+  rlCardForgetPins(c && c.id);
   /* Recorded on the paint, not on the navigation: however the reader arrived —
      the tab, the register, a link — the bench now knows what is on it. */
   _redlineHeldId = c ? c.id : null;
@@ -5826,7 +5849,47 @@ function rlTagInternalNote(ctx){
    IS that state — it is what the open/shut rule reads, so anything that changes
    the rule's answer also changes the key — and when it moves, the choice lapses
    and the rule takes over again. */
-const _rlCardChoice = new Map();    // id -> { open, key }
+/* ---- PEEK, PIN, AND THE ONE THING THAT MUST NEVER HAPPEN ----
+   Working through a round left a column of cards the reader had opened and now
+   had to close one by one. So a card you have merely LOOKED at closes itself,
+   and a card you have committed to stays:
+
+     pointer in / focus in   → peek. Not remembered, not a decision.
+     pointer out / focus out → collapse again, after a short grace (see
+                               RL_CARD_PEEK_MS) so crossing the gap between the
+                               head and the buttons does not slam it shut.
+     click                   → PIN. Remembered, and still jumps to the change.
+     click elsewhere         → unpin. One pinned card at a time.
+     caret                   → collapse now, pinned or not.
+
+   THE EXEMPTION IS THE WHOLE SAFETY ARGUMENT. A card that has something for you
+   to press — Accept, Reject, Send, Retract, Undo, Withdraw — never peeks and
+   never auto-collapses. It is open on the rule and stays open.
+
+   Without that, this feature would fold a card away while the reader's mouse
+   was travelling toward the button on it. That is the same wound as the stale
+   open/shut choice we already shipped and fixed once (a card shut by hand
+   staying shut when Accept and Reject arrived on it), in a worse form: there,
+   the control was hidden before you looked; here it would vanish while you
+   watched. Which is why a peeked card only ever contains INERT verbs — Edit,
+   which navigates, and the disabled Sent, which is a label.
+
+   The peek is a CLASS on the live node, never a repaint. Re-rendering the
+   column on mouseenter would fight the pointer, lose a half-typed reply in the
+   Discussion panel beside it, and drop the very node the event came from. */
+const RL_CARD_PEEK_MS = 180;
+const _rlCardChoice = new Map();    // id -> { open, key } — the PINS
+/* Pins belong to the contract they were made on, and to this visit. Not
+   persisted (a working preference is not a setting) and dropped when the
+   reader moves to another contract, so a pin cannot arrive on a card the
+   reader has never seen. */
+let _rlPinnedFor = null;
+function rlCardForgetPins(contractId){
+  const id = String(contractId == null ? '' : contractId);
+  if (_rlPinnedFor === id) return;
+  _rlPinnedFor = id;
+  _rlCardChoice.clear();
+}
 /* The verbs reduced to which ACTIONS are on offer, ignoring the ids inside them
    so that a clause being renamed underneath a card does not count as a state
    change. */
@@ -5863,7 +5926,19 @@ function rlCardIsOpen(ch, verbs){
    clause must not have the card fold up underneath them for doing it. */
 function rlCardSetOpen(id, open, stateKey){
   if (!id) return;
+  /* ONE PINNED CARD AT A TIME. Pinning a second is the reader saying they have
+     moved on from the first, and a column of pins is the pile this feature
+     exists to stop. */
+  if (open) _rlCardChoice.clear();
   _rlCardChoice.set(id, { open: !!open, key: String(stateKey == null ? '' : stateKey) });
+}
+/* Let go of every pin. The document-level click uses this: pressing anywhere
+   that is not a card is the reader moving on. Returns whether anything changed,
+   so the caller can skip a repaint nobody would see. */
+function rlCardUnpinAll(){
+  if (!_rlCardChoice.size) return false;
+  _rlCardChoice.clear();
+  return true;
 }
 
 function rlLinkFocus(c, changeId, source){
@@ -5990,6 +6065,42 @@ function rlWireClauseTools(c, host, opts){
      Pressing anywhere on a card that is not one of its verbs. The verbs all
      stop propagation, so Accept does not also drag the document somewhere on
      its way to deciding a change. */
+  /* ---- PEEK: LOOKING AT A CARD IS NOT DECIDING ANYTHING ----
+     A class on the live node, never a repaint — see _rlCardChoice. Only cards
+     marked data-rl-peek take part: one carrying Accept, Reject, Send or Undo
+     is open on the rule and must not fold away while the reader's mouse is on
+     its way to the button.
+
+     The close is delayed and cancellable because a card is not one rectangle
+     to a pointer: crossing from the head to the verbs can leave the element
+     for a frame, and an undelayed collapse slams shut mid-reach. */
+  let _peekTimer = null;
+  const peekOff = card => { if (card && card.classList) card.classList.remove('is-peek'); };
+  const peekOn = card => {
+    if (!card || !card.classList) return;
+    if (_peekTimer){ clearTimeout(_peekTimer); _peekTimer = null; }
+    /* One at a time, so moving down the column does not leave a trail open. */
+    host.querySelectorAll('#rl-changes .rl-card.is-peek').forEach(o => { if (o !== card) peekOff(o); });
+    card.classList.add('is-peek');
+  };
+  const peekLater = card => {
+    if (_peekTimer) clearTimeout(_peekTimer);
+    _peekTimer = setTimeout(() => { _peekTimer = null; peekOff(card); }, RL_CARD_PEEK_MS);
+  };
+  host.querySelectorAll('#rl-changes [data-nego-card][data-rl-peek]').forEach(card => {
+    card.addEventListener('mouseenter', () => peekOn(card));
+    card.addEventListener('mouseleave', () => peekLater(card));
+    /* Keyboard gets the same affordance: there is no hover on a tab key, and
+       the cards are focusable. A focus moving INSIDE the card (to Edit) is not
+       a focus leaving it. */
+    card.addEventListener('focusin', () => peekOn(card));
+    card.addEventListener('focusout', ev => {
+      const to = ev && ev.relatedTarget;
+      if (to && card.contains && card.contains(to)) return;
+      peekLater(card);
+    });
+  });
+
   host.querySelectorAll('#rl-changes [data-nego-card]').forEach(card =>
     card.addEventListener('click', () => {
       const id = card.getAttribute('data-nego-card');
@@ -5999,6 +6110,8 @@ function rlWireClauseTools(c, host, opts){
          open card is left open — see rlCardSetOpen for why this is not a
          toggle. */
       if (card.getAttribute('data-rl-open') === '0'){
+        /* A click is a commitment where a hover was not: this one stays open
+           until the reader pins another or presses somewhere else. */
         rlCardSetOpen(id, true, card.getAttribute('data-rl-state'));
         again();
         /* The card was re-rendered underneath us, so the focus runs against the
@@ -6018,10 +6131,32 @@ function rlWireClauseTools(c, host, opts){
       ev.preventDefault(); ev.stopPropagation();
       const id = btn.getAttribute('data-rl-caret');
       const card = btn.closest ? btn.closest('[data-nego-card]') : null;
+      /* The caret on a card that cannot fold is inert — it is drawn faded for
+         exactly that reason. Pressing it must not pin the card shut and take
+         Accept and Reject off the screen. */
+      if (card && !card.hasAttribute('data-rl-peek')) return;
+      peekOff(card);
       rlCardSetOpen(id, btn.getAttribute('aria-expanded') !== 'true',
         card && card.getAttribute('data-rl-state'));
       again();
     }));
+
+  /* ---- PRESSING ANYWHERE ELSE LETS THE PIN GO ----
+     Bound once per mount, on the document, because "somewhere else" is by
+     definition outside the column. Capture is deliberate: a handler inside the
+     page that stops propagation (the clause tools do) would otherwise leave a
+     pin standing after the reader had plainly moved on. */
+  if (!host._rlUnpinBound){
+    host._rlUnpinBound = true;
+    document.addEventListener('click', ev => {
+      const col = document.getElementById('rl-changes');
+      /* Gone from the page — a repaint into another view. Nothing to do. */
+      if (!col || !col.isConnected) return;
+      const t = ev && ev.target;
+      if (t && col.contains && col.contains(t)) return;
+      if (rlCardUnpinAll()) renderRedline();
+    }, true);
+  }
 
   /* ---- CONTRACT → CARD ----
      And the same in reverse, from the clause. Two things are deliberately not
@@ -6762,9 +6897,17 @@ function redlineChangeCardsHtml(c, opts = {}){
        only affordance saying there is more, so it is drawn on every card that
        can collapse rather than on hover. */
     const open = rlCardIsOpen(ch, verbs);
-    const body = open
-      ? `${note}${verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}`
-      : '';
+    /* A card with something to press never peeks and never folds itself away —
+       see the comment on _rlCardChoice for why that exemption is the whole
+       safety argument for this behaviour. */
+    const mayPeek = !rlCardNeedsYou(verbs);
+    /* THE BODY IS ALWAYS RENDERED, and hidden by CSS when the card is shut.
+       A peek can then be a class on the live node rather than a repaint of the
+       column — repainting on mouseenter would fight the pointer and drop the
+       node the event came from. Safe only because of the exemption above: a
+       card that can be in the hidden state carries nothing but inert verbs. */
+    const body = `<div class="rl-card-body">${note}${
+      verbs.length ? `<div class="rl-card-verbs">${verbs.join('')}</div>` : ''}</div>`;
     const caret = `<button type="button" class="rl-caret${open ? ' rl-caret-open' : ''}"
         data-rl-caret="${_nea(ch.id)}" aria-expanded="${open ? 'true' : 'false'}"
         title="${open ? 'Collapse this card' : 'Open this card'}"
@@ -6774,6 +6917,7 @@ function redlineChangeCardsHtml(c, opts = {}){
       heldHere ? ` data-unsent="${_ne(ch.id)}"` : ''}${
       sentHere ? ` data-sent="${_ne(ch.id)}"` : ''}${
       ch.withdrawn ? ` data-withdrawn="${_ne(ch.id)}"` : ''} data-rl-open="${open ? '1' : '0'}"${
+      mayPeek ? ' data-rl-peek="1"' : ''}${
       ''/* What the reader's open/shut choice was made ABOUT — see rlCardSetOpen. */
       } data-rl-state="${_nea(rlCardStateKey(verbs))}" tabindex="0">
       <div class="rl-card-top"><span class="rl-card-lead"><span class="rl-card-id">${_ne(ch.id)}</span>${origin}${caret}</span>
@@ -7074,7 +7218,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   RL_CARD_FILTERS, rlCardFilter, rlSetCardFilter,
   RL_SEL_ACTIONS, RL_PLACEMENT_NOTE, rlSelActions, rlSelMenu, rlAiPropose, rlTagInternalNote,
   rlJumpToClause, rlLinkFocus, rlDeltaOps, rlSayInPanel,
-  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey,
+  rlCardIsOpen, rlCardSetOpen, rlCardNeedsYou, rlCardStateKey, rlCardUnpinAll,
+  rlCardForgetPins, RL_CARD_PEEK_MS,
   redlinePanesHtml, redlineDiscussionHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, negoWhen,
   negoStyleHtml, negoEnsureStyle, negoDocHtml, negoCardsHtml, negoStatusHtml, negoHeadHtml, negoReadyHtml,
   negoTabHtml, renderNegotiationTab, wireNegotiationTab, negoFocus, negoResetView, negoDomId,

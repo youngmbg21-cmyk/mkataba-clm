@@ -5681,3 +5681,65 @@ audit distinguishing the two. Driven against the running server from the exact
 reported state (turn = owner, one unsent counterparty ask, Counterparty View):
 the send goes through, the toast is honest, and the unsent count drops to zero.
 Suite 1899/1899, browser 71/71, selection 22/22.
+
+### 6. Looking at a card is not deciding anything
+
+**What was asked for.** Working through a round left a column of cards the
+reader had opened and then had to close one at a time. Two requests: a sent card
+must read `Sent` with only Edit and Sent on it; and a card the reader has not
+committed to should collapse itself when they hover out or press elsewhere.
+
+**The first was already true and could not drift** — the badge and the buttons
+are both read from `negoUnsentAsks`, and `mineUnsent` / `mineSent` are mutually
+exclusive by construction. What had been seen was the send not registering
+(defect 5 above). Verified, not rebuilt.
+
+**The second is new behaviour.** Peek on hover or focus; pin on click; unpin on
+a press anywhere outside the column. At most one card open at a time, and it
+closes as soon as attention moves on.
+
+**Three things this needed, and one it did not get wrong by luck.**
+
+- *The peek is a class on the live node, never a repaint.* Re-rendering the
+  column on `mouseenter` would fight the pointer, drop the node the event came
+  from, and disturb a half-typed reply in the Discussion panel beside it. That
+  is why the card body is now always in the DOM and hidden with `display:none`
+  when shut — which also keeps a hidden verb out of the tab order and the
+  accessibility tree, not merely off the screen.
+- *A grace period.* A card is not one rectangle to a pointer: crossing from the
+  head to the buttons leaves the element for a frame, and an undelayed collapse
+  slams shut mid-reach. 180ms, cancelled if the pointer returns.
+- *The exemption, which is the whole safety argument.* A card with Accept,
+  Reject, Send, Retract, Undo or Withdraw on it never peeks and never
+  auto-collapses. Without it this feature would take a button off the screen
+  while the reader's mouse was travelling toward it — the same wound as defect 2
+  in this run, in a worse form: there the control was hidden before you looked,
+  here it would vanish while you watched.
+
+  The build goes one step further than asked: such a card cannot be folded **by
+  hand** either. Its caret is drawn faded and does nothing. A card that needs you
+  is simply always open, which removes the class of "a live control the reader
+  cannot see" rather than leaving a way to create it deliberately.
+
+**Decisions taken by the raiser before building.** A peek does not move the
+document (the page would slide about as the mouse crossed the column); a pin is
+not persisted and is dropped when the reader changes contract (a working
+preference is not a setting, and a carried pin would open a card they have never
+seen).
+
+**Files touched.** js/views/negotiation.js.
+**Verified.** f100e (13 tests): the exemption in both halves, peek without
+repaint, the grace and its cancel, keyboard focus, pin surviving repaints,
+unpin on an outside press, one pin at a time, pins not travelling between
+contracts, no persistence, and no document movement on a peek. f100b/f89 updated
+to the render-and-hide contract. Driven with a real pointer in Chromium against
+the running server — at rest shut, hover opens, away closes, click pins and
+navigates, click elsewhere releases. Suite 1911/1911, browser 71/71,
+selection 22/22.
+
+**One test-harness trap worth recording.** `test/world.js` runs `setTimeout`
+synchronously so deferred UI work lands inside a test. That is right everywhere
+else and wrong for a grace period, whose entire behaviour is the delay — under
+the stub the card closes on the same tick as the `mouseleave` and the test
+passes while proving nothing. Both `setTimeout` and `clearTimeout` are restored
+for those two tests; restoring only the first makes the cancel a silent no-op.
