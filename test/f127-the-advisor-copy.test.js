@@ -1,5 +1,5 @@
 /* ============================================================
-   f126 — the read-only copy, with a door on it
+   f127 — the read-only copy, with a door on it
    ============================================================
    `POST shares/:token/derive-view` has minted a strictly weaker ticket since
    Stage 8. f123 proves the route thoroughly — a view cannot delegate, a
@@ -60,7 +60,7 @@ function open_(opts = {}, answer = 'Nordfrakt insurers', world = {}){
 const foot = p => p.win.document.getElementById('pt-nego-foot');
 
 /* ============================================================ */
-describe('f126a — the door is where the route would say yes, and nowhere else', () => {
+describe('f127a — the door is where the route would say yes, and nowhere else', () => {
   test('THE GAP: a live negotiation link now has one at all', () => {
     /* The whole defect in one assertion. Before this, no page in the product
        contained the string. */
@@ -98,7 +98,7 @@ describe('f126a — the door is where the route would say yes, and nowhere else'
 });
 
 /* ============================================================ */
-describe('f126b — minting one', () => {
+describe('f127b — minting one', () => {
   test('it calls the route, with the name the reader gave', async () => {
     const p = open_();
     await p.click('pt-derive');
@@ -145,7 +145,7 @@ describe('f126b — minting one', () => {
 });
 
 /* ============================================================ */
-describe('f126c — a link the reader has not copied yet must not vanish', () => {
+describe('f127c — a link the reader has not copied yet must not vanish', () => {
   test('it survives the footer being rebuilt', async () => {
     /* This footer is rewritten every time a decision is held. Written into the
        DOM once, the link would disappear the moment the reader answered the
@@ -184,7 +184,7 @@ describe('f126c — a link the reader has not copied yet must not vanish', () =>
 });
 
 /* ============================================================ */
-describe('f126d — what it says, and what it does when it fails', () => {
+describe('f127d — what it says, and what it does when it fails', () => {
   test('the page states the three things a reader is entitled to know', async () => {
     /* Passing on a link believing it private, or permanent, or invisible to
        the sender would be a reader misled by our silence. */

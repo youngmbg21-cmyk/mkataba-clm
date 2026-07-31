@@ -54,7 +54,9 @@ function buildFromCustomTemplate(t, values, opts){
   const body=fillTemplateBody(templateBody(t), values, tFmt);
   const cp=(()=>{ const f=fs.find(x=>x.maps==='counterparty'); return f?String(values[f.key]||''):''; })();
   const cpEmail=String((opts&&opts.counterpartyEmail)||'').trim();
-  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:'',
+  // The mapped counterparty field is the counterparty — recorded, not only
+  // spelled into the title. See js/wizard.js for the fault this closes.
+  const c={ id:nextId(), name:t.name+(cp?' — '+cp:' (Draft)'), counterparty:cp,
     counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
     template:null, source:'template', folder:FOLDERS[t.folder]?t.folder:'corp', valueType:'estimated',
     lastAction:todayStr(), hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',

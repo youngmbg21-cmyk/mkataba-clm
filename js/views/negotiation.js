@@ -3914,7 +3914,16 @@ function wireNegotiationTab(c, opts = {}){
        Without one it still appears, and still works: it opens the dialog, which
        collects the address it needs. What must never happen is the press doing
        nothing, which is the dead end this whole thread began with. */
-    if (side === 'owner' && opts.contact && opts.contact.email
+    /* ASKED AT PRESS TIME, not at paint time. opts.contact is resolved once
+       when this screen renders, and the share list it reads may still have
+       been in flight then — so a first press could open the dialog for an
+       address the record already held, and the second press would not. The
+       fresh answer wins; the painted one remains the fallback for callers
+       that pass a contact without the resolver being reachable. */
+    const live = (window.counterpartyContact && window.cachedShares)
+      ? counterpartyContact(c, cachedShares(c)) : null;
+    const contact = (live && live.email) ? live : opts.contact;
+    if (side === 'owner' && contact && contact.email
         && typeof opts.onSendDirect === 'function'){
       opts.onSendDirect(c);
       return;

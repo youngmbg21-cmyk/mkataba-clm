@@ -1894,11 +1894,29 @@ function counterpartyContact(c, shares){
      only a name — narrowing this to "has an email" broke re-sending on exactly
      those, which is a channel the product supports. The contract's own address
      is a FALLBACK for the case that had none: the first send. */
+  /* ---- THE IDENTITY AND THE ADDRESS ARE TWO DIFFERENT ANSWERS ----
+     This returned the newest share WHOLE, and a copy-link or WhatsApp share
+     carries no email at all. So one link copied to the clipboard shadowed a
+     perfectly good address — the one recorded on the contract, or the one an
+     earlier email share went to — for the rest of the negotiation. Every send
+     after it found `email: ''`, concluded it had nowhere to send, and reopened
+     the dialog to ask a question the record could already answer: the pop-up
+     that appeared on every round, once per change, reported from the field.
+
+     So the newest share still decides WHO this is — name, channel, token —
+     and the address is asked separately, best answer first: the most recent
+     share that actually carries one, then the address recorded on the
+     contract. A share without an email is not evidence that there is no
+     email. */
   const last=lastShareRecipient(shares);
-  if(last) return last;
-  const email=String((c&&c.counterpartyEmail)||'').trim();
-  if(!email) return null;
-  return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email, phone:'', channel:'email', token:null };
+  const recorded=String((c&&c.counterpartyEmail)||'').trim();
+  const fromShares=(shares||[]).slice()
+    .sort((a,b)=>String((b&&b.createdAt)||'').localeCompare(String((a&&a.createdAt)||'')))
+    .map(s=>String((s&&s.recipientEmail)||'').trim())
+    .find(Boolean)||'';
+  if(last) return { ...last, email: last.email || fromShares || recorded };
+  if(!recorded) return null;
+  return { name:(c&&c.counterpartyName)||(c&&c.counterparty)||'', email:recorded, phone:'', channel:'email', token:null };
 }
 /* ---------- WHERE THIS CONTRACT'S CHANGES GO ----------
    The share dialog is not a confirmation step. It is the form that collects the
